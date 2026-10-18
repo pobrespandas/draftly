@@ -1,0 +1,112 @@
+import Foundation
+
+public enum ActionImporter {
+    public static func decode(_ data: Data, source: String? = nil) throws -> [DraftAction] {
+        if let native = try? JSONDecoder().decode([DraftAction].self, from: data) { return native }
+        if let native = try? JSONDecoder().decode(DraftAction.self, from: data) { return [native] }
+        let object = try JSONSerialization.jsonObject(with: data)
+        let entries: [[String: Any]]
+        if let array = object as? [[String: Any]] { entries = array }
+        else if let dictionary = object as? [String: Any] {
+            entries = dictionary["actions"] as? [[String: Any]] ?? [dictionary]
+        } else { throw DraftlyError.message("This file does not contain an action.") }
+        return try entries.map { entry in
+            guard let name = entry["name"] as? String, let rawSteps = entry["steps"] as? [[String: Any]] else {
+                throw DraftlyError.message("The action must contain a name and steps.")
+            }
+            let steps = try rawSteps.map { raw -> ActionStep in
+                guard let type = raw["type"] as? String else { throw DraftlyError.message("An action step has no type.") }
+                var values: [String: String] = [:]
+                let nested = raw["data"] as? [String: Any] ?? raw["parameters"] as? [String: Any] ?? raw["values"] as? [String: Any] ?? [:]
+                for (key, value) in raw.merging(nested, uniquingKeysWith: { _, new in new }) where key != "type" {
+                    if let text = value as? String { values[key] = text }
+                    else if JSONSerialization.isValidJSONObject(value), let json = try? JSONSerialization.data(withJSONObject: value) { values[key] = String(data: json, encoding: .utf8) }
+                    else { values[key] = String(describing: value) }
+                }
+                var step = ActionStep(type, values)
+                step.isEnabled = raw["isEnabled"] as? Bool
+                if let value = raw["uuid"] as? String, let id = UUID(uuidString: value) { step.id = id }
+                return step
+            }
+            var action = DraftAction(name: name, steps: steps)
+            action.group = entry["group"] as? String ?? "Imported"
+            if let command = entry["keyCommand"] as? [String: Any] {
+                action.shortcut = command["input"] as? String ?? ""
+                action.shortcutModifiers = ["command", "option", "shift", "control"].filter { command[$0 + "Key"] as? Bool == true }
+            }
+            if let icon = entry["icon"] as? String, icon.hasPrefix("symbol||") { action.symbol = String(icon.dropFirst(8)) }
+            if let uuid = entry["uuid"] as? String, let id = UUID(uuidString: uuid) { action.id = id }
+            let disposition = entry["disposition"] as? Int ?? 3
+            let success = entry["afterSuccess"] as? String ?? (disposition == 1 ? "archive" : disposition == 2 ? "trash" : "none")
+            action.afterSuccess = success.lowercased()
+            action.sourceURL = source
+            action.rawPayload = String(data: try JSONSerialization.data(withJSONObject: entry, options: [.sortedKeys]), encoding: .utf8)
+            for step in steps where step.type == "configurationKey" {
+                let key = step.values["key"] ?? ""
+                let dataType = step.values["dataType"] ?? "string"
+                action.configuredValues[key] = step.values["defaultValue"] ?? step.values[dataType == "boolean" ? "defaultBoolValue" : dataType == "number" ? "defaultNumberValue" : dataType == "text" ? "defaultTextValue" : "defaultStringValue"] ?? ""
+            }
+            return action
+        }
+    }
+
+    public static func download(_ url: URL) async throws -> [DraftAction] {
+        try await download(url, depth: 0)
+    }
+
+    public static func installationActions(_ url: URL) throws -> [DraftAction] {
+        let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems
+        guard let encoded = query?.first(where: { $0.name == "data" })?.value else {
+            throw DraftlyError.message("This installation link has no action data.")
+        }
+        // URL can add one encoding layer when a directory link contains raw brackets.
+        for candidate in [encoded, encoded.removingPercentEncoding ?? encoded] {
+            if let data = candidate.data(using: .utf8), let actions = try? decode(data) { return actions }
+            if let data = Data(base64Encoded: candidate), let actions = try? decode(data) { return actions }
+        }
+        throw DraftlyError.message("The installation link contains invalid action data.")
+    }
+
+    private static func download(_ url: URL, depth: Int) async throws -> [DraftAction] {
+        guard depth < 5 else { throw DraftlyError.message("The directory link redirects too many times.") }
+        if ["drafts", "drafts5"].contains(url.scheme ?? ""), url.host == "action" {
+            return try installationActions(url)
+        }
+        guard url.scheme == "https", ["actions.getdrafts.com", "directory.getdrafts.com", "config.getdrafts.com"].contains(url.host ?? "") else {
+            throw DraftlyError.message("Use an HTTPS Drafts Directory link or import an action file.")
+        }
+        let (data, response) = try await URLSession.shared.data(from: url)
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw DraftlyError.message("The action could not be downloaded.") }
+        if let decoded = try? decode(data, source: url.absoluteString) { return decoded }
+        guard let html = String(data: data, encoding: .utf8) else { throw DraftlyError.message("The directory returned an invalid page.") }
+        let pattern = "(?:href|data-install-url)=[\"']([^\"']*(?:drafts5?://|config.getdrafts.com)[^\"']+)[\"']"
+        let regex = try NSRegularExpression(pattern: pattern)
+        for match in regex.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
+            guard let range = Range(match.range(at: 1), in: html) else { continue }
+            let link = String(html[range]).replacingOccurrences(of: "&amp;", with: "&")
+            if let target = URL(string: link), target != url, ["drafts", "drafts5"].contains(target.scheme ?? "") || target.host == "config.getdrafts.com" {
+                var actions = try await download(target, depth: depth + 1)
+                for index in actions.indices { actions[index].sourceURL = url.absoluteString }
+                return actions
+            }
+        }
+        throw DraftlyError.message("No installation data was found. Export the action from Drafts and import the file.")
+    }
+
+    public static func importNotes(_ data: Data) throws -> [Note] {
+        let object = try JSONSerialization.jsonObject(with: data)
+        let entries = (object as? [[String: Any]]) ?? (object as? [String: Any])?["drafts"] as? [[String: Any]] ?? []
+        guard !entries.isEmpty else { throw DraftlyError.message("No drafts were found in this JSON file.") }
+        let formatter = ISO8601DateFormatter()
+        return try entries.map { entry in
+            guard let content = entry["content"] as? String else { throw DraftlyError.message("A draft has no content.") }
+            var note = Note(content: content, tags: entry["tags"] as? [String] ?? [])
+            note.id = (entry["uuid"] as? String).flatMap(UUID.init(uuidString:)) ?? UUID()
+            note.isArchived = entry["isArchived"] as? Bool ?? false
+            note.flag = entry["isFlagged"] as? Bool == true ? 1 : 0
+            if let date = entry["createdAt"] as? String, let parsed = formatter.date(from: date) { note.createdAt = parsed }
+            if let date = entry["modifiedAt"] as? String, let parsed = formatter.date(from: date) { note.modifiedAt = parsed }
+            return note
+        }
+    }
+}

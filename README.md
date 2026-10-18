@@ -1,2 +1,124 @@
-# draftly
-Draftly
+# Draftly
+
+Draftly is a native Mac app for quick text capture and actions. It uses SwiftUI,
+AppKit, Core Data, CloudKit, and JavaScriptCore. It requires macOS 26 or later
+and Xcode 26 or later with Swift 6.2 or later.
+
+## Build and run
+
+Build a local app without an Apple Developer profile:
+
+```sh
+scripts/build-app.sh --local
+```
+
+Open `.build/xcode/Build/Products/Debug/Draftly.app`. This build stores data on
+this Mac. It shows that iCloud is not configured.
+
+To enable iCloud:
+
+1. Copy `Configuration/Signing.xcconfig.example` to
+   `Configuration/Signing.xcconfig`.
+2. Set your paid Apple Developer team ID, bundle ID, and CloudKit container ID.
+3. Sign in to that team in Xcode. Open `Draftly.xcodeproj` and check Signing &
+   Capabilities. Create the CloudKit container if Xcode requests it.
+4. Run `scripts/build-app.sh --icloud`.
+5. Open the app on two Macs with the same iCloud account. Use the checklist in
+   [validation.md](docs/validation.md).
+
+A Personal Team cannot provision iCloud or Push Notifications. The team found
+on the development Mac was a Personal Team. The iCloud build needs a team that
+supports these capabilities. No live sync result has been verified.
+
+`Signing.xcconfig` is ignored by Git. The project supports automatic signing.
+CloudKit uses a private database. The app can save data while offline.
+
+## Use Draftly
+
+- Press **⌘N** for a new draft. Press **⌃⌥⌘N** to capture from another app.
+- Empty drafts stay temporary until you type, add metadata, or run an action.
+- Use the menu bar icon to capture text or show the app.
+- Type in the editor. Content saves after a 500 ms pause and before navigation.
+- Enter tags separated by commas. Press Return to save a tag.
+- Use the flag menu, Archive, and Trash to organize drafts. Trash keeps notes.
+- Use Command-click or Shift-click in the note list for batch operations.
+- Save a workspace to keep a folder, search, tags, and sort order.
+- Use the toolbar to show or hide filters, the draft list, and actions separately.
+- Use the bottom editor bar for undo, redo, tasks, dates, and indentation. Select
+  an action group from its left menu to run that group's actions.
+- Click the eye button below the editor, or press **⌥⌘P**, to switch
+  between editing and rendered Markdown in the center panel.
+- Pin the current draft to keep it when returning to the app. Set New Draft After
+  in Settings to change the idle timeout. The default timeout is five minutes.
+- Use Float on Top in the main toolbar to keep the window above other windows.
+- Use List Options to show previews, tags, and dates. Select one to three preview
+  lines. These options stay saved on this Mac.
+- Select an action group with the menu or bottom tabs. Use Search Actions to
+  search all groups. Press **⇧⌘P** to open the command palette.
+- Open Revision History to review or restore saved content.
+- Use File → Export Full Backup to save the complete library. File → Import
+  merges backups, Drafts JSON exports, text files, and action files.
+- Open Actions → Import from Directory to load an action. Review it in the action
+  editor before running it.
+- Use Settings to change the editor font, size, and line spacing.
+
+Each window has its own editor. Notes, revisions, workspaces, actions, and action
+groups are part of the library. File permissions stay on each Mac.
+
+## Actions and automation
+
+Actions contain ordered steps. The action editor can create, change, reorder,
+duplicate, import, and export steps. It can set a group, a keyboard shortcut,
+configuration values, and an action to perform after success.
+
+The JavaScript bridge supports the five reference actions in
+[compatibility.md](docs/compatibility.md). Scripts share one context across steps.
+Unknown steps are preserved. An action with an unknown step fails before any
+step runs. Unsupported API calls produce an error in Execution History.
+
+Native steps support the clipboard, sharing, file export, URLs, text insertion,
+new drafts, Markdown preview, Shortcuts, AppleScript, Reminders, and Calendar.
+AppleScript and Shortcuts run with the current user's permissions. Review
+imported scripts before use. This personal app does not use App Sandbox.
+
+Shortcuts can create, search, and open drafts, or run an action. URL examples:
+
+```text
+draftly://create?text=Hello
+draftly://open?uuid=NOTE-UUID
+draftly://run?action=Copy&uuid=NOTE-UUID
+```
+
+Percent-encode query values. External links that run actions require a prompt.
+The app owns its `draftly` URL scheme. It does not register the Drafts scheme.
+
+## Development
+
+```sh
+swift build
+swift test
+python3 scripts/generate-project.py
+```
+
+The Swift package contains the reusable core, executable, and tests. The Xcode
+project adds the app bundle, privacy descriptions, URL scheme, and entitlements.
+Regenerate the project after adding or removing app source files.
+
+The tests use in-memory stores or temporary folders. They do not access iCloud,
+Reminders, Calendar, external apps, or the user's library. The five downloaded
+action snapshots have source URLs and SHA-256 hashes in the fixture manifest.
+
+The local library is in `~/Library/Application Support/Draftly`. The SQLite
+store includes notes, immutable content revisions, workspaces, actions, and logs.
+Backups omit logs and local file permissions. A backup restores both copies when
+the same note ID has different content or metadata. The copied note keeps its
+own revision history.
+
+The interface was checked against the installed Drafts Mac app. See the
+[interface reference](docs/research/drafts-mac.md) for the controls used.
+
+iPhone, iPad, Apple Watch, MCP, email capture, and full Drafts API compatibility
+are outside this version. Action scripts can use MultiMarkdown and GitHub Markdown,
+asynchronous completion, callback responses, and interactive HTML previews.
+The editor preview uses a separate renderer. Native model sessions require an
+available macOS model. See [compatibility.md](docs/compatibility.md) for limits.

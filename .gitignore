@@ -30,6 +30,9 @@ playground.xcworkspace
 # .swiftpm
 
 .build/
+Configuration/Signing.xcconfig
+.swiftpm/
+__pycache__/
 
 # CocoaPods
 #

@@ -1,0 +1,32 @@
+[
+  {
+    "id": "1VL",
+    "name": "New Draft with Template",
+    "url": "https://actions.getdrafts.com/a/1VL",
+    "sha256": "896be1a43858528b090c88833c30d6d836ae3a3e2864a81d2f12b557888bd303"
+  },
+  {
+    "id": "1Ga",
+    "name": "Add to List",
+    "url": "https://actions.getdrafts.com/a/1Ga",
+    "sha256": "b44df71e9d042a4ee74f14afeaa6a471c126142ffb1fb5532dcbed1651832d55"
+  },
+  {
+    "id": "1Bg",
+    "name": "Text Modifier\u2026",
+    "url": "https://actions.getdrafts.com/a/1Bg",
+    "sha256": "30d088ecf8be15abcc3e1073348ec2dc3a1d72407188f6f7e6b55543e20281d0"
+  },
+  {
+    "id": "1DM",
+    "name": "Copy as Rich Text",
+    "url": "https://actions.getdrafts.com/a/1DM",
+    "sha256": "3aba4db2f98ec2b81dae6b27a01889b1bb2476567f4a093a779dc4cc0d985b95"
+  },
+  {
+    "id": "1qn",
+    "name": "Save in Obsidian Vault",
+    "url": "https://actions.getdrafts.com/a/1qn",
+    "sha256": "1d80acc814b0fd8d1d1063baca4bcc3feaa2569e9b18bf816bbb63f96b0247f8"
+  }
+]

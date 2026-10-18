@@ -1,0 +1,21 @@
+{
+  "CMultiMarkdown": {
+    "repository": "https://github.com/fletcher/MultiMarkdown-6",
+    "ref": "6.8.0",
+    "sha256": "6568d1e5ccaffab3a8689909fe21f64066c13d5716a0010a4c3fffcb308d3f9e"
+  },
+  "CGFM": {
+    "repository": "https://github.com/github/cmark-gfm",
+    "ref": "0.29.0.gfm.13",
+    "sha256": "5abc61798ebd9de5660bc076443c07abad2b8d15dbc11094a3a79644b8ad243a"
+  },
+  "mustache": {
+    "source": "https://registry.npmjs.org/mustache/-/mustache-4.2.0.tgz",
+    "ref": "4.2.0",
+    "sha256": "05ea84bf212d37d84fb201aa77a82b347a6f744a3fcaef750c88e58f889c357c"
+  },
+  "datejs": {
+    "source": "https://raw.githubusercontent.com/datejs/Datejs/master/build/date-en-US.js",
+    "sha256": "c658ca0b39e6adff9e246b7e631ca8f99dca1e9c65a690594a3c8396eb5b3a1d"
+  }
+}
