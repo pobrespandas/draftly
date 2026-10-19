@@ -3,6 +3,7 @@ import AppKit
 import DraftlyCore
 
 struct FolderControl: View {
+    @Environment(\.controlActiveState) private var activeState
     @Binding var folder: NoteFolder
     private let folders: [NoteFolder] = [.inbox, .flagged, .archive, .all, .trash]
     private let symbols = ["tray.and.arrow.down", "flag", "archivebox", "asterisk", "trash"]
@@ -16,7 +17,8 @@ struct FolderControl: View {
                         .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
-                .background { if folder == item { Capsule().fill(Color.primary.opacity(0.09)) } }
+                .foregroundStyle(folder == item && activeState != .inactive ? Color.white : Color.primary.opacity(0.85))
+                .background { if folder == item { Capsule().fill(activeState == .inactive ? Color.primary.opacity(0.09) : Color.accentColor) } }
                 .help(item.title).accessibilityLabel(item.title)
                 .accessibilityAddTraits(folder == item ? .isSelected : [])
                 .overlay(alignment: .trailing) {
@@ -28,7 +30,7 @@ struct FolderControl: View {
         }
         .foregroundStyle(.primary.opacity(0.85))
         .background(Color.primary.opacity(0.065), in: Capsule())
-        .accessibilityElement(children: .contain).accessibilityLabel("Folder")
+        .accessibilityElement(children: .contain).accessibilityLabel("Draft View")
     }
 }
 
@@ -39,10 +41,14 @@ struct ReferenceSearchField: NSViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(self) }
     func makeNSView(context: Context) -> NSSearchField {
         let field = NSSearchField()
-        field.controlSize = .large; field.font = .systemFont(ofSize: 14); field.focusRingType = .none
+        if #available(macOS 26.0, *) { field.controlSize = .extraLarge } else { field.controlSize = .large }
+        field.font = .systemFont(ofSize: 14); field.focusRingType = .none
         field.sendsSearchStringImmediately = true; field.sendsWholeSearchString = false
         field.delegate = context.coordinator
         return field
+    }
+    func sizeThatFits(_ proposal: ProposedViewSize, nsView: NSSearchField, context: Context) -> CGSize? {
+        CGSize(width: proposal.width ?? 200, height: 30)
     }
     func updateNSView(_ field: NSSearchField, context: Context) {
         context.coordinator.parent = self
@@ -73,6 +79,8 @@ struct NativeTagsField: NSViewRepresentable {
     @Binding var tags: [String]
     var noteID: UUID?
     var suggestions: [String] = []
+    @Binding var editing: Bool
+    var focusToken: UUID
     func makeCoordinator() -> Coordinator { Coordinator(self) }
     func makeNSView(context: Context) -> NSTokenField {
         let field = NSTokenField()
@@ -88,19 +96,27 @@ struct NativeTagsField: NSViewRepresentable {
         let changedNote = coordinator.noteID != noteID
         if changedNote || (field.currentEditor() == nil && field.objectValue as? [String] != tags) { field.objectValue = tags }
         coordinator.noteID = noteID
+        if coordinator.focusToken != focusToken {
+            coordinator.focusToken = focusToken
+            if editing { DispatchQueue.main.async { field.window?.makeFirstResponder(field) } }
+        }
     }
     @MainActor final class Coordinator: NSObject, NSTokenFieldDelegate {
         var parent: NativeTagsField
         var noteID: UUID?
+        var focusToken: UUID?
         init(_ parent: NativeTagsField) { self.parent = parent }
         @objc func commit(_ field: NSTokenField) {
             guard noteID == parent.noteID else { return }
             let tags = TagRules.normalize(field.objectValue as? [String] ?? [])
             if tags != parent.tags { parent.tags = tags }
         }
+        func controlTextDidBeginEditing(_ notification: Notification) { parent.editing = true }
         func controlTextDidEndEditing(_ notification: Notification) {
             if let field = notification.object as? NSTokenField { commit(field) }
+            parent.editing = false
         }
+        func tokenField(_ tokenField: NSTokenField, styleForRepresentedObject representedObject: Any) -> NSTokenField.TokenStyle { .rounded }
         func tokenField(_ tokenField: NSTokenField, shouldAdd tokens: [Any], at index: Int) -> [Any] {
             let expectedNoteID = noteID
             DispatchQueue.main.async { [weak self, weak tokenField] in
@@ -117,6 +133,39 @@ struct NativeTagsField: NSViewRepresentable {
             if !options.isEmpty { selectedIndex?.pointee = 0 }
             return options
         }
+    }
+}
+
+struct TagCapsuleField: View {
+    @Binding var tags: [String]
+    var noteID: UUID?
+    var suggestions: [String]
+    @State private var editing = false
+    @State private var focusToken = UUID()
+    var body: some View {
+        ZStack(alignment: .leading) {
+            NativeTagsField(tags: $tags, noteID: noteID, suggestions: suggestions, editing: $editing, focusToken: focusToken)
+                .opacity(editing || tags.isEmpty ? 1 : 0)
+                .allowsHitTesting(editing || tags.isEmpty)
+                .accessibilityHidden(!editing && !tags.isEmpty)
+            if !editing && !tags.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 4) {
+                        ForEach(tags, id: \.self) { tag in
+                            Text(tag).font(.system(size: 12)).foregroundStyle(.primary).lineLimit(1)
+                                .padding(.horizontal, 6).frame(height: 16)
+                                .background(Color.accentColor.opacity(0.14), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                                .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(Color.accentColor.opacity(0.35), lineWidth: 0.5))
+                        }
+                        Spacer(minLength: 12)
+                    }.frame(height: 25).contentShape(Rectangle())
+                }.contentShape(Rectangle()).onTapGesture { editing = true; focusToken = UUID() }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Tags: " + tags.joined(separator: ", "))
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityAction { editing = true; focusToken = UUID() }
+            }
+        }.onChange(of: noteID) { _, _ in editing = false }
     }
 }
 
@@ -140,10 +189,10 @@ struct DraftTagStrip: View {
             }.help("Flag")
             Menu {
                 Button("No Flag") { if let note = model.currentNote { model.change([note.id]) { $0.flag = 0 } } }
-                ForEach(1...6, id: \.self) { flag in Button(flagName(flag)) { if let note = model.currentNote { model.change([note.id]) { $0.flag = flag } } } }
+                ForEach(1...7, id: \.self) { flag in Button(flagName(flag)) { if let note = model.currentNote { model.change([note.id]) { $0.flag = flag } } } }
             } label: { Image(systemName: "chevron.down").font(.system(size: 10)) }
                 .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().help("Flag Color")
-            NativeTagsField(tags: Binding(get: { model.currentNote?.tags ?? [] }, set: { tags in
+            TagCapsuleField(tags: Binding(get: { model.currentNote?.tags ?? [] }, set: { tags in
                 guard let noteID = session.noteID else { return }
                 model.change([noteID]) { $0.tags = TagRules.normalize(tags) }
             }), noteID: session.noteID, suggestions: model.allTags).frame(height: 25)
@@ -178,7 +227,9 @@ struct PanelMenuItem {
     var isOn = false
     var children: [PanelMenuItem] = []
     var action: (() -> Void)?
+    var isSection = false
     static var separator: PanelMenuItem { PanelMenuItem(title: "", action: nil) }
+    static func section(_ title: String) -> PanelMenuItem { PanelMenuItem(title: title, isSection: true) }
 }
 
 struct PanelMenu: NSViewRepresentable {
@@ -225,7 +276,9 @@ struct PanelMenu: NSViewRepresentable {
         private func makeMenu(_ entries: [PanelMenuItem]) -> NSMenu {
             let menu = NSMenu(); menu.autoenablesItems = false
             for entry in entries {
-                if !entry.children.isEmpty {
+                if entry.isSection {
+                    menu.addItem(.sectionHeader(title: entry.title))
+                } else if !entry.children.isEmpty {
                     let item = NSMenuItem(title: entry.title, action: nil, keyEquivalent: "")
                     item.submenu = makeMenu(entry.children); menu.addItem(item)
                 } else if let action = entry.action {
@@ -240,5 +293,58 @@ struct PanelMenu: NSViewRepresentable {
             guard callbacks.indices.contains(sender.tag) else { return }
             callbacks[sender.tag]()
         }
+    }
+}
+
+// Shared dimensions for the main window.
+enum MainWindowStyle {
+    static let actionTitleSize: CGFloat = 13
+    static let statusSymbolSize: CGFloat = 11
+    static let utilityHeight: CGFloat = 48
+    static let utilityInset: CGFloat = 9
+    static let utilityLeadingSpacing: CGFloat = 12
+    static let utilityTrailingSpacing: CGFloat = 6
+    static let listSearchOffset: CGFloat = -2
+    static let listControlOffset: CGFloat = 2
+    static let tagsHeadingOffset: CGFloat = -2
+    static let sidebarInset: CGFloat = 18
+    static let editingBarHeight: CGFloat = 31
+    static let footerHeight: CGFloat = 29
+}
+
+struct EditorStatusOverlay: View {
+    let message: String
+    @State private var visible = false
+    var body: some View {
+        Group {
+            if visible && !message.isEmpty {
+                Text(message).font(.caption).lineLimit(3)
+                    .padding(.horizontal, 12).padding(.vertical, 8)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+                    .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
+                    .padding(12)
+                    .accessibilityLabel(message)
+            }
+        }
+        .allowsHitTesting(false)
+        .task(id: message) {
+            visible = !message.isEmpty
+            try? await Task.sleep(for: .seconds(4))
+            guard !Task.isCancelled else { return }
+            visible = false
+        }
+    }
+}
+
+@MainActor
+enum DraftListDefaults {
+    static func load() -> DraftListOptions {
+        let defaults = UserDefaults.standard
+        var options = defaults.data(forKey: "list.options").flatMap { try? JSONDecoder().decode(DraftListOptions.self, from: $0) } ?? DraftListOptions()
+        if defaults.object(forKey: "list.showPreview") != nil { options.showPreview = defaults.bool(forKey: "list.showPreview") }
+        if defaults.object(forKey: "list.previewLines") != nil { options.previewLines = defaults.integer(forKey: "list.previewLines") }
+        if defaults.object(forKey: "list.showTags") != nil { options.showTags = defaults.bool(forKey: "list.showTags") }
+        if defaults.object(forKey: "list.showDate") != nil { options.showDate = defaults.bool(forKey: "list.showDate") }
+        return options
     }
 }

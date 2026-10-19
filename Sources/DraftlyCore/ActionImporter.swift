@@ -30,6 +30,7 @@ public enum ActionImporter {
             }
             var action = DraftAction(name: name, steps: steps)
             action.group = entry["group"] as? String ?? "Imported"
+            if entry["backingIsSeparator"] as? Bool == true { action.scriptMetadata = ["isSeparator": "true"] }
             if let command = entry["keyCommand"] as? [String: Any] {
                 action.shortcut = command["input"] as? String ?? ""
                 action.shortcutModifiers = ["command", "option", "shift", "control"].filter { command[$0 + "Key"] as? Bool == true }
@@ -39,6 +40,11 @@ public enum ActionImporter {
             let disposition = entry["disposition"] as? Int ?? 3
             let success = entry["afterSuccess"] as? String ?? (disposition == 1 ? "archive" : disposition == 2 ? "trash" : "none")
             action.afterSuccess = success.lowercased()
+            var presentation = ActionPresentation()
+            presentation.description = entry["actionDescription"] as? String ?? ""
+            presentation.confirmBeforeRun = entry["shouldConfirm"] as? Bool ?? false
+            presentation.addTags = TagRules.normalize(entry["assignTags"] as? [String] ?? [])
+            action.options = presentation
             action.sourceURL = source
             action.rawPayload = String(data: try JSONSerialization.data(withJSONObject: entry, options: [.sortedKeys]), encoding: .utf8)
             for step in steps where step.type == "configurationKey" {
@@ -98,14 +104,18 @@ public enum ActionImporter {
         let entries = (object as? [[String: Any]]) ?? (object as? [String: Any])?["drafts"] as? [[String: Any]] ?? []
         guard !entries.isEmpty else { throw DraftlyError.message("No drafts were found in this JSON file.") }
         let formatter = ISO8601DateFormatter()
+        let fractional = ISO8601DateFormatter(); fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        func date(_ value: Any?) -> Date? { guard let text = value as? String else { return nil }; return fractional.date(from: text) ?? formatter.date(from: text) }
         return try entries.map { entry in
             guard let content = entry["content"] as? String else { throw DraftlyError.message("A draft has no content.") }
             var note = Note(content: content, tags: entry["tags"] as? [String] ?? [])
             note.id = (entry["uuid"] as? String).flatMap(UUID.init(uuidString:)) ?? UUID()
             note.isArchived = entry["isArchived"] as? Bool ?? false
-            note.flag = entry["isFlagged"] as? Bool == true ? 1 : 0
-            if let date = entry["createdAt"] as? String, let parsed = formatter.date(from: date) { note.createdAt = parsed }
-            if let date = entry["modifiedAt"] as? String, let parsed = formatter.date(from: date) { note.modifiedAt = parsed }
+            note.flag = entry["flag"] as? Int ?? (entry["isFlagged"] as? Bool == true ? 1 : 0)
+            note.syntax = entry["syntax"] as? String ?? "Markdown"
+            note.trashedAt = date(entry["trashedAt"])
+            if let parsed = date(entry["createdAt"]) { note.createdAt = parsed }
+            if let parsed = date(entry["modifiedAt"]) { note.modifiedAt = parsed }
             return note
         }
     }

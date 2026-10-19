@@ -9,6 +9,12 @@ struct NativeEditor: NSViewRepresentable {
     var fontSize: Double
     var lineSpacing: Double
     var markdown: Bool
+    var syntax = "Markdown"
+    var syntaxDefinition: SyntaxDefinition?
+    var horizontalMargin = 17.0
+    var verticalMargin = 17.0
+    var maximumWidth = 0.0
+    var theme: EditorTheme?
     var linksEnabled = false
     var isActive = true
     var onChange: () -> Void
@@ -16,39 +22,54 @@ struct NativeEditor: NSViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(self) }
     func makeNSView(context: Context) -> NSScrollView {
         let scroll = NSScrollView(); scroll.hasVerticalScroller = true; scroll.autohidesScrollers = true
-        scroll.drawsBackground = false
+        scroll.drawsBackground = true
         let text = DraftTextView(frame: .zero)
         text.isRichText = false; text.isAutomaticQuoteSubstitutionEnabled = false
         text.isAutomaticDashSubstitutionEnabled = false; text.isAutomaticTextReplacementEnabled = true
         text.isGrammarCheckingEnabled = false; text.isContinuousSpellCheckingEnabled = true
         text.allowsUndo = true; text.usesFindBar = true; text.isIncrementalSearchingEnabled = true
-        text.drawsBackground = false; text.textContainerInset = NSSize(width: 17, height: 17)
+        text.drawsBackground = true; text.textContainerInset = NSSize(width: 17, height: 17)
         text.isVerticallyResizable = true; text.isHorizontallyResizable = false
         text.autoresizingMask = [.width]; text.textContainer?.widthTracksTextView = true
         text.textContainer?.containerSize = NSSize(width: 0, height: CGFloat.greatestFiniteMagnitude)
         text.delegate = context.coordinator; scroll.documentView = text
         context.coordinator.textView = text
+        session.synchronizeScriptEdit = { [weak coordinator = context.coordinator] in coordinator?.synchronizeScriptEdit() }
+        session.performUndo = { [weak text] redo in if redo { text?.undoManager?.redo() } else { text?.undoManager?.undo() } }
+        session.focusForDictation = { [weak text] in
+            guard let text, let window = text.window else { return false }
+            return window.makeFirstResponder(text)
+        }
         return scroll
     }
     func updateNSView(_ scroll: NSScrollView, context: Context) {
         guard let text = scroll.documentView as? NSTextView else { return }
         let coordinator = context.coordinator; coordinator.parent = self; coordinator.updating = true
         defer { coordinator.updating = false }
-        let changedNote = coordinator.noteID != session.noteID
+        if let text = text as? DraftTextView {
+            text.syntaxDefinition = syntaxDefinition
+            text.horizontalMargin = max(0, horizontalMargin); text.verticalMargin = max(0, verticalMargin)
+            text.maximumLineWidth = max(0, maximumWidth); text.updateTextInsets()
+        }
+        let background = theme.flatMap { EditorTheme.color($0.background) } ?? NSColor.textBackgroundColor
+        if text.backgroundColor != background { text.backgroundColor = background }
+        if scroll.backgroundColor != background { scroll.backgroundColor = background }
+        let changedNote = coordinator.noteID != session.noteID || coordinator.style.isEmpty
         let changedText = text.string != session.content
-        let changedStyle = coordinator.style != "\(fontName):\(fontSize):\(lineSpacing):\(markdown):\(linksEnabled)"
+        let changedStyle = coordinator.style != "\(fontName):\(fontSize):\(lineSpacing):\(markdown):\(syntax):\(linksEnabled):\(syntaxDefinition?.source ?? ""):\(theme?.foreground ?? ""):\(theme?.heading ?? "")"
         if changedNote { text.undoManager?.removeAllActions(); coordinator.noteID = session.noteID }
         if changedText {
             if !changedNote {
-                let previous = text.string
-                text.undoManager?.registerUndo(withTarget: coordinator) { target in target.restore(previous) }
+                let previous = text.string, selection = text.selectedRange()
+                text.undoManager?.registerUndo(withTarget: coordinator) { target in target.restore(previous, selection: selection) }
             }
             text.string = session.content
         }
         if changedText || changedStyle || changedNote {
             coordinator.highlight()
-            coordinator.style = "\(fontName):\(fontSize):\(lineSpacing):\(markdown):\(linksEnabled)"
+            coordinator.style = "\(fontName):\(fontSize):\(lineSpacing):\(markdown):\(syntax):\(linksEnabled):\(syntaxDefinition?.source ?? ""):\(theme?.foreground ?? ""):\(theme?.heading ?? "")"
         }
+        if changedText || changedNote { coordinator.invalidateDisplay() }
         if text.selectedRange() != session.safeSelection { text.setSelectedRange(session.safeSelection); text.scrollRangeToVisible(session.safeSelection) }
         if coordinator.focusToken != session.focusToken {
             coordinator.focusToken = session.focusToken
@@ -63,7 +84,7 @@ struct NativeEditor: NSViewRepresentable {
         var noteID: UUID?
         var style = ""
         var focusToken: UUID?
-        init(_ parent: NativeEditor) { self.parent = parent }
+        init(_ parent: NativeEditor) { self.parent = parent; noteID = parent.session.noteID }
         func textDidChange(_ notification: Notification) {
             guard !updating, let textView else { return }
             parent.session.content = textView.string
@@ -79,23 +100,45 @@ struct NativeEditor: NSViewRepresentable {
                 scroll.contentView.scroll(to: NSPoint(x: 0, y: y)); scroll.reflectScrolledClipView(scroll.contentView)
             }
         }
-        func restore(_ text: String) {
+        func invalidateDisplay() {
+            guard let view = textView else { return }
+            view.needsDisplay = true
+            view.enclosingScrollView?.contentView.needsDisplay = true
+            view.enclosingScrollView?.needsDisplay = true
+        }
+        func synchronizeScriptEdit() {
+            guard let textView, !updating else { return }
+            updating = true; defer { updating = false }
+            let changedNote = noteID != parent.session.noteID
+            if changedNote { textView.undoManager?.removeAllActions(); noteID = parent.session.noteID }
+            if textView.string != parent.session.content {
+                let previous = textView.string, selection = textView.selectedRange()
+                if !changedNote { textView.undoManager?.registerUndo(withTarget: self) { target in target.restore(previous, selection: selection) } }
+                textView.string = parent.session.content
+                highlight(); invalidateDisplay()
+            }
+            textView.setSelectedRange(parent.session.safeSelection)
+        }
+        func restore(_ text: String, selection: NSRange = NSRange(location: 0, length: 0)) {
             guard let textView else { return }
-            let previous = textView.string
-            textView.undoManager?.registerUndo(withTarget: self) { target in target.restore(previous) }
-            textView.string = text; parent.session.content = text; parent.session.selection = NSRange(location: 0, length: 0)
-            highlight(); parent.onChange()
+            let previous = textView.string, previousSelection = textView.selectedRange()
+            textView.undoManager?.registerUndo(withTarget: self) { target in target.restore(previous, selection: previousSelection) }
+            textView.string = text; parent.session.content = text; parent.session.selection = selection
+            textView.setSelectedRange(parent.session.safeSelection)
+            highlight(); invalidateDisplay(); parent.onChange()
         }
         func highlight() {
             guard let view = textView, let storage = view.textStorage else { return }
             let range = NSRange(location: 0, length: storage.length)
-            let font = NSFont(name: parent.fontName, size: parent.fontSize) ?? NSFont.monospacedSystemFont(ofSize: parent.fontSize, weight: .regular)
+            let font = parent.fontName == "System" ? NSFont.systemFont(ofSize: parent.fontSize) : NSFont(name: parent.fontName, size: parent.fontSize) ?? NSFont.monospacedSystemFont(ofSize: parent.fontSize, weight: .regular)
+            let foreground = parent.theme.flatMap { EditorTheme.color($0.foreground) } ?? NSColor.textColor
+            let heading = parent.theme.flatMap { EditorTheme.color($0.heading) } ?? NSColor.systemBlue
             let paragraph = NSMutableParagraphStyle(); paragraph.lineSpacing = parent.lineSpacing
             storage.beginEditing()
-            storage.setAttributes([.font: font, .foregroundColor: NSColor.textColor, .paragraphStyle: paragraph], range: range)
+            storage.setAttributes([.font: font, .foregroundColor: foreground, .paragraphStyle: paragraph], range: range)
             if parent.markdown {
                 let rules: [(String, [NSAttributedString.Key: Any])] = [
-                    ("(?m)^#{1,6} .*$", [.foregroundColor: NSColor.systemBlue, .font: NSFontManager.shared.convert(font, toHaveTrait: .boldFontMask)]),
+                    ("(?m)^#{1,6} .*$", [.foregroundColor: heading, .font: NSFontManager.shared.convert(font, toHaveTrait: .boldFontMask)]),
                     ("\\*\\*[^*]+\\*\\*", [.font: NSFontManager.shared.convert(font, toHaveTrait: .boldFontMask)]),
                     ("`[^`]+`", [.foregroundColor: NSColor.systemOrange]),
                     ("(?m)^\\s*[-*] \\[.\\]", [.foregroundColor: NSColor.systemTeal]),
@@ -106,18 +149,76 @@ struct NativeEditor: NSViewRepresentable {
                     for match in regex.matches(in: view.string, range: range) { storage.addAttributes(attributes, range: match.range) }
                 }
             }
+            if parent.syntax == "TaskPaper" || parent.syntax == "Simple List" {
+                for (pattern, color) in [("(?m)^.*:$", NSColor.systemBlue), ("@[a-zA-Z0-9_]+(?:\\([^)]*\\))?", NSColor.systemOrange), ("(?m)^\\s*- .*@done.*$", NSColor.secondaryLabelColor)] {
+                    if let regex = try? NSRegularExpression(pattern: pattern) {
+                        for match in regex.matches(in: view.string, range: range) { storage.addAttribute(.foregroundColor, value: color, range: match.range) }
+                    }
+                }
+            }
+            if parent.syntax == "JavaScript" {
+                if let regex = try? NSRegularExpression(pattern: "\\b(let|const|var|function|return|if|else|class|new|throw|try|catch|async|await)\\b") {
+                    for match in regex.matches(in: view.string, range: range) { storage.addAttribute(.foregroundColor, value: NSColor.systemPurple, range: match.range) }
+                }
+            }
+            if let definition = parent.syntaxDefinition {
+                for task in definition.tasks(in: view.string) {
+                    if let range = task["interactiveRange"] as? [Int], range.count == 2 { storage.addAttribute(.foregroundColor, value: NSColor.systemTeal, range: NSRange(location: range[0], length: range[1])) }
+                }
+                for (range, scopeList) in definition.styledRanges(in: view.string) {
+                    for scope in scopeList.split(separator: ",").map({ $0.trimmingCharacters(in: .whitespaces) }) {
+                        var attributes: [NSAttributedString.Key: Any] = [:]
+                        if scope.contains("heading") { attributes[.foregroundColor] = heading }
+                        if scope.contains("bold") { attributes[.font] = NSFontManager.shared.convert(font, toHaveTrait: .boldFontMask) }
+                        if scope.contains("italic") { attributes[.font] = NSFontManager.shared.convert(font, toHaveTrait: .italicFontMask) }
+                        let colors: [String: NSColor] = ["color.red": .systemRed, "color.blue": .systemBlue, "color.green": .systemGreen, "color.orange": .systemOrange, "color.purple": .systemPurple]
+                        if let color = colors[scope] { attributes[.foregroundColor] = color }
+                        storage.addAttributes(attributes, range: range)
+                    }
+                }
+            }
             if parent.linksEnabled, let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) {
                 for match in detector.matches(in: view.string, range: range) {
                     if let url = match.url { storage.addAttributes([.link: url, .foregroundColor: NSColor.linkColor], range: match.range) }
                 }
             }
             storage.endEditing()
-            view.typingAttributes = [.font: font, .foregroundColor: NSColor.textColor, .paragraphStyle: paragraph]
+            view.typingAttributes = [.font: font, .foregroundColor: foreground, .paragraphStyle: paragraph]
         }
     }
 }
 
 final class DraftTextView: NSTextView {
+    var syntaxDefinition: SyntaxDefinition?
+    override func mouseDown(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        if let syntaxDefinition, let layoutManager, let textContainer {
+            let index = characterIndexForInsertion(at: point)
+            for task in syntaxDefinition.tasks(in: string) {
+                guard let raw = task["interactiveRange"] as? [Int], raw.count == 2 else { continue }
+                let range = NSRange(location: raw[0], length: raw[1])
+                let glyphs = layoutManager.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
+                let rect = layoutManager.boundingRect(forGlyphRange: glyphs, in: textContainer).offsetBy(dx: textContainerOrigin.x, dy: textContainerOrigin.y)
+                guard NSLocationInRange(index, range), rect.contains(point), let change = try? syntaxDefinition.taskChange(in: string, task: task, operation: "advance") else { continue }
+                insertText(change.1, replacementRange: change.0)
+                return
+            }
+        }
+        super.mouseDown(with: event)
+    }
+    var horizontalMargin: CGFloat = 17
+    var verticalMargin: CGFloat = 17
+    var maximumLineWidth: CGFloat = 0
+    override func setFrameSize(_ newSize: NSSize) {
+        super.setFrameSize(newSize)
+        updateTextInsets()
+    }
+    func updateTextInsets() {
+        let width = enclosingScrollView?.contentSize.width ?? bounds.width
+        let inset = NSSize(width: EditorTextLayout.inset(width: width, margin: horizontalMargin, maximumWidth: maximumLineWidth), height: verticalMargin)
+        if textContainerInset != inset { textContainerInset = inset }
+    }
+
     override func insertNewline(_ sender: Any?) {
         let source = string as NSString
         let range = selectedRange()
@@ -143,6 +244,7 @@ struct WindowAccessor: NSViewRepresentable {
 
 struct InlineMarkdownPreview: NSViewRepresentable {
     @ObservedObject var session: EditorSession
+    var syntax = "Markdown"
     var htmlOverride: String?
     func makeCoordinator() -> Coordinator { Coordinator() }
     func makeNSView(context: Context) -> WKWebView {
@@ -154,11 +256,79 @@ struct InlineMarkdownPreview: NSViewRepresentable {
         return view
     }
     func updateNSView(_ view: WKWebView, context: Context) {
-        let html = htmlOverride ?? MarkdownRenderer.page(MarkdownRenderer.render(session.content))
+        let html = htmlOverride ?? MarkdownRenderer.page((try? ScriptSyntax.preview(session.content, syntax: syntax)) ?? MarkdownRenderer.escape(session.content))
             .replacingOccurrences(of: "margin:48px auto;padding:0 28px", with: "margin:20px auto;padding:0 20px")
         guard html != context.coordinator.html else { return }
         context.coordinator.html = html
         view.loadHTMLString(html, baseURL: nil)
     }
     @MainActor final class Coordinator { var html: String? }
+}
+
+struct AdvancedFindView: View {
+    @ObservedObject var model: WindowModel
+    @ObservedObject private var editor: EditorSession
+    @Environment(\.dismiss) private var dismiss
+    @State private var replacement = ""
+    @State private var caseSensitive = false
+    @State private var regularExpression = false
+    @FocusState private var queryFocused: Bool
+    init(model: WindowModel) { self.model = model; editor = model.editor }
+    private var query: Result<EditorFindQuery, Error> {
+        Result { try EditorFindQuery(model.advancedFindQuery, caseSensitive: caseSensitive, regularExpression: regularExpression) }
+    }
+    private var ranges: [NSRange] { (try? query.get().matches(in: editor.content)) ?? [] }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Advanced Find").font(.headline)
+            TextField("Find", text: $model.advancedFindQuery).focused($queryFocused).onSubmit { navigate(backward: false) }
+            TextField("Replace", text: $replacement)
+            HStack {
+                Toggle("Match Case", isOn: $caseSensitive)
+                Toggle("Regular Expression", isOn: $regularExpression)
+            }.toggleStyle(.checkbox)
+            if case .failure(let error) = query {
+                Text(error.localizedDescription).foregroundStyle(.red).font(.caption)
+            } else { Text("\(ranges.count) matches").foregroundStyle(.secondary) }
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 4) {
+                    ForEach(Array(ranges.enumerated()), id: \.offset) { index, range in
+                        Button { select(range) } label: {
+                            Text("\(index + 1). " + preview(range)).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
+                        }.buttonStyle(.plain).padding(5)
+                            .background(editor.selection == range ? Color.accentColor.opacity(0.15) : .clear)
+                    }
+                }
+            }.frame(height: 160)
+            HStack {
+                Button("Previous") { navigate(backward: true) }.disabled(ranges.isEmpty)
+                Button("Next") { navigate(backward: false) }.disabled(ranges.isEmpty)
+                Spacer()
+                Button("Replace All") { replaceAll() }.disabled(ranges.isEmpty)
+                Button("Done") { dismiss() }.keyboardShortcut(.cancelAction)
+            }
+        }.padding(20).frame(width: 520).onAppear { queryFocused = true }
+    }
+    private func preview(_ range: NSRange) -> String {
+        let text = editor.content as NSString
+        return text.substring(with: text.lineRange(for: range)).trimmingCharacters(in: .newlines)
+    }
+    private func select(_ range: NSRange) {
+        editor.selection = range
+        editor.synchronizeScriptEdit?()
+    }
+    private func navigate(backward: Bool) {
+        guard !ranges.isEmpty else { return }
+        let selection = editor.safeSelection
+        if backward { select(ranges.last { $0.location < selection.location } ?? ranges[ranges.count - 1]) }
+        else { select(ranges.first { $0.location >= NSMaxRange(selection) && $0 != selection } ?? ranges[0]) }
+    }
+    private func replaceAll() {
+        guard let query = try? query.get() else { return }
+        editor.content = query.replacingAll(in: editor.content, with: replacement)
+        editor.selection = editor.safeSelection
+        editor.synchronizeScriptEdit?()
+        model.contentChanged()
+        _ = model.flush()
+    }
 }

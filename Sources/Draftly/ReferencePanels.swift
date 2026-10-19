@@ -6,18 +6,34 @@ struct DraftListPanel: View {
     @ObservedObject var model: WindowModel
     @ObservedObject var library: LibraryStore
     @Binding var selection: Set<UUID>
-    @AppStorage("list.showPreview") private var showPreview = true
-    @AppStorage("list.previewLines") private var previewLines = 2
-    @AppStorage("list.showTags") private var showTags = true
-    @AppStorage("list.showDate") private var showDate = true
+    @AppStorage("list.showPreview") private var storedPreview = true
+    @AppStorage("list.previewLines") private var storedLines = 2
+    @AppStorage("list.showTags") private var storedTags = true
+    @AppStorage("list.showDate") private var storedDate = true
+    private var showPreview: Bool {
+        get { model.selectedWorkspace == nil ? storedPreview : model.listOptions.showPreview }
+        nonmutating set { model.listOptions.showPreview = newValue; if model.selectedWorkspace == nil { storedPreview = newValue } }
+    }
+    private var previewLines: Int {
+        get { model.selectedWorkspace == nil ? storedLines : model.listOptions.previewLines }
+        nonmutating set { model.listOptions.previewLines = newValue; if model.selectedWorkspace == nil { storedLines = newValue } }
+    }
+    private var showTags: Bool {
+        get { model.selectedWorkspace == nil ? storedTags : model.listOptions.showTags }
+        nonmutating set { model.listOptions.showTags = newValue; if model.selectedWorkspace == nil { storedTags = newValue } }
+    }
+    private var showDate: Bool {
+        get { model.selectedWorkspace == nil ? storedDate : model.listOptions.showDate }
+        nonmutating set { model.listOptions.showDate = newValue; if model.selectedWorkspace == nil { storedDate = newValue } }
+    }
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
-                HStack(spacing: 20) {
+                HStack(spacing: MainWindowStyle.utilityLeadingSpacing) {
                 PanelMenu(symbol: "chevron.down.circle", help: "Workspaces", items:
                     [PanelMenuItem(title: "Default Workspace") { model.clearFilters(); model.folder = .inbox }]
                     + library.workspaces.map { workspace in PanelMenuItem(title: workspace.name) { model.apply(workspace) } }
-                    + [.separator, PanelMenuItem(title: "Save Workspace…") { model.showWorkspaceEditor = true }]
+                    + [.separator, PanelMenuItem(title: "Save Workspace…") { model.showWorkspaceEditor = true }, PanelMenuItem(title: "Manage Workspaces…") { model.showLibraryManagement = true }]
                 ).frame(width: 28, height: 28)
                 PanelMenu(symbol: "plus", help: "Add Items", items: [
                     PanelMenuItem(title: "New Draft") { model.create() },
@@ -26,7 +42,7 @@ struct DraftListPanel: View {
                 ]).frame(width: 28, height: 28)
                 }
                 Spacer(minLength: 4)
-                HStack(spacing: 8) {
+                HStack(spacing: MainWindowStyle.utilityTrailingSpacing) {
                 Button { model.showNoteSearch.toggle(); model.noteSearchFocus = UUID(); if !model.showNoteSearch { model.query = "" } } label: {
                     PanelIcon(symbol: model.showNoteSearch ? "magnifyingglass.circle.fill" : "magnifyingglass.circle")
                 }.help("Search Drafts")
@@ -38,22 +54,32 @@ struct DraftListPanel: View {
                     }, action: nil),
                     PanelMenuItem(title: "Show Tags", isOn: showTags) { showTags.toggle() },
                     PanelMenuItem(title: "Show Date", isOn: showDate) { showDate.toggle() },
+                    PanelMenuItem(title: "Search Titles Only", isOn: model.listOptions.searchTitlesOnly) { model.listOptions.searchTitlesOnly.toggle() },
+                    PanelMenuItem(title: "Case-sensitive Search", isOn: model.listOptions.caseSensitiveSearch) { model.listOptions.caseSensitiveSearch.toggle() },
+                    PanelMenuItem(title: "Preview Search Matches", isOn: model.listOptions.previewSearchMatches) { model.listOptions.previewSearchMatches.toggle() },
+                    PanelMenuItem(title: "Show Last Action", isOn: model.listOptions.showLastAction) { model.listOptions.showLastAction.toggle() },
+                    PanelMenuItem(title: "Highlight Flagged Drafts", isOn: model.listOptions.highlightFlagged) { model.listOptions.highlightFlagged.toggle() },
                     .separator,
                     PanelMenuItem(title: "Save as Workspace…") { model.showWorkspaceEditor = true },
                     PanelMenuItem(title: "Show Filters") { model.setFiltersVisible(true) },
                     PanelMenuItem(title: "Export Backup…") { model.exportBackup() }
                 ]).frame(width: 28, height: 28)
                 }
-            }.buttonStyle(.plain).foregroundStyle(.secondary).padding(.horizontal, 12).frame(height: 48)
+            }.buttonStyle(.plain).foregroundStyle(.secondary).padding(.horizontal, MainWindowStyle.utilityInset).frame(height: MainWindowStyle.utilityHeight)
             if model.showNoteSearch {
                 ReferenceSearchField(text: $model.query, placeholder: "Search Drafts", focusToken: model.noteSearchFocus)
-                    .frame(height: 28).padding(.horizontal, 10).padding(.bottom, 8)
+                    .frame(height: 30).padding(.horizontal, 10).padding(.bottom, 6).offset(y: MainWindowStyle.listSearchOffset)
             }
-            HStack { Text(model.title).font(.system(size: 22, weight: .regular)).foregroundStyle(.secondary); Spacer() }
-                .padding(.horizontal, 16).frame(height: 38)
-            FolderControl(folder: $model.folder).frame(height: 28).padding(.horizontal, 10).padding(.bottom, 8)
             HStack {
-                Text("\(model.visibleNotes.count) drafts")
+                (Text(model.title).foregroundColor(.secondary)
+                    + Text(model.tagFilterSummary == "No tag filters active" ? "" : ": " + model.tagFilterSummary).foregroundColor(.primary))
+                    .font(.system(size: 22, weight: .regular)).lineLimit(1)
+                Spacer()
+            }
+                .padding(.horizontal, 16).frame(height: 38)
+            FolderControl(folder: $model.folder).frame(height: 28).padding(.horizontal, 10).padding(.bottom, 8).offset(y: MainWindowStyle.listControlOffset)
+            HStack {
+                Text("\(model.visibleNotes.count) " + (model.visibleNotes.count == 1 ? "draft" : "drafts"))
                 Spacer()
                 PanelMenu(symbol: "chevron.down", help: "Sort Drafts", items:
                     NoteSort.allCases.map { sort in
@@ -62,7 +88,7 @@ struct DraftListPanel: View {
                     title: "Sort: " + model.sort.rawValue.capitalized + (model.ascending ? " ↑" : " ↓")
                 ).frame(width: 116, height: 20)
 
-            }.font(.system(size: 11)).foregroundStyle(.secondary).padding(.horizontal, 13).frame(height: 24)
+            }.font(.system(size: 11)).foregroundStyle(.secondary).padding(.horizontal, 13).frame(height: 24).offset(y: MainWindowStyle.listControlOffset)
             Divider()
             if model.visibleNotes.isEmpty {
                 PanelEmptyState(message: "No drafts found")
@@ -101,12 +127,14 @@ private struct NativeDraftTable: NSViewRepresentable {
         scroll.hasVerticalScroller = true
         scroll.autohidesScrollers = true
         scroll.drawsBackground = false
-        let table = NSTableView()
+        let table = DraftTableView()
         table.headerView = nil
-        table.rowHeight = 66
+        table.style = .inset
+        table.rowSizeStyle = .custom
+        table.rowHeight = 56
         table.intercellSpacing = NSSize(width: 0, height: 0)
         table.usesAlternatingRowBackgroundColors = false
-        table.gridStyleMask = [.solidHorizontalGridLineMask]
+        table.gridStyleMask = []
         table.selectionHighlightStyle = .regular
         table.allowsMultipleSelection = true
         table.allowsEmptySelection = true
@@ -116,6 +144,9 @@ private struct NativeDraftTable: NSViewRepresentable {
         table.addTableColumn(column)
         table.dataSource = context.coordinator
         table.delegate = context.coordinator
+        table.menuProvider = { [weak coordinator = context.coordinator] table, event, row in
+            coordinator?.tableView(table, menuFor: event, at: row)
+        }
         scroll.documentView = table
         context.coordinator.table = table
         return scroll
@@ -124,23 +155,46 @@ private struct NativeDraftTable: NSViewRepresentable {
         guard let table = scroll.documentView as? NSTableView else { return }
         let coordinator = context.coordinator
         coordinator.parent = self
-        if coordinator.noteIDs != model.visibleNotes.map(\.id) {
-            coordinator.noteIDs = model.visibleNotes.map(\.id)
+        let notes = model.visibleNotes
+        let indexes = IndexSet(notes.enumerated().compactMap { selection.contains($0.element.id) ? $0.offset : nil })
+        coordinator.synchronizingSelection = true
+        defer { coordinator.synchronizingSelection = false }
+        if coordinator.notes != notes || coordinator.options != [showPreview ? 1 : 0, previewLines, showTags ? 1 : 0, showDate ? 1 : 0, model.listOptions.showLastAction ? library.runs.count + 1 : 0, model.listOptions.previewSearchMatches ? model.query.hashValue : 0, model.listOptions.highlightFlagged ? 1 : 0] {
+            coordinator.notes = notes
+            coordinator.options = [showPreview ? 1 : 0, previewLines, showTags ? 1 : 0, showDate ? 1 : 0, model.listOptions.showLastAction ? library.runs.count + 1 : 0, model.listOptions.previewSearchMatches ? model.query.hashValue : 0, model.listOptions.highlightFlagged ? 1 : 0]
             table.reloadData()
-        } else {
-            table.reloadData(forRowIndexes: IndexSet(integersIn: 0..<table.numberOfRows), columnIndexes: IndexSet(integer: 0))
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0
+                table.noteHeightOfRows(withIndexesChanged: IndexSet(integersIn: 0..<notes.count))
+            }
         }
-        let indexes = IndexSet(model.visibleNotes.enumerated().compactMap { selection.contains($0.element.id) ? $0.offset : nil })
         if table.selectedRowIndexes != indexes { table.selectRowIndexes(indexes, byExtendingSelection: false) }
     }
 
     @MainActor final class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate {
         var parent: NativeDraftTable
         weak var table: NSTableView?
-        var noteIDs: [UUID] = []
-        private var menuActions: [MenuAction] = []
+        var notes: [Note] = []
+        var options: [Int] = []
+        var synchronizingSelection = false
         init(_ parent: NativeDraftTable) { self.parent = parent }
         func numberOfRows(in tableView: NSTableView) -> Int { parent.model.visibleNotes.count }
+        func tableViewColumnDidResize(_ notification: Notification) {
+            guard let table else { return }
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0
+                table.noteHeightOfRows(withIndexesChanged: IndexSet(integersIn: 0..<table.numberOfRows))
+            }
+        }
+        func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat {
+            guard parent.model.visibleNotes.indices.contains(row) else { return 56 }
+            let note = parent.model.visibleNotes[row]
+            return DraftRowPresentation.height(note: note, width: max(80, tableView.bounds.width - 44),
+                showPreview: parent.showPreview, previewLines: parent.previewLines,
+                showTags: parent.showTags, showDate: parent.showDate,
+                lastAction: parent.model.listOptions.showLastAction && parent.library.runs.contains(where: { $0.noteID == note.id }),
+                query: parent.model.listOptions.previewSearchMatches ? parent.model.query : "")
+        }
         func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
             let notes = parent.model.visibleNotes
             guard notes.indices.contains(row) else { return nil }
@@ -150,50 +204,62 @@ private struct NativeDraftTable: NSViewRepresentable {
             cell.host.rootView = DraftTableRow(note: note,
                 title: note.id == parent.model.editor.noteID && !parent.library.notes.contains(where: { $0.id == note.id }) && note.content.isEmpty ? "—blank—" : note.title,
                 showPreview: parent.showPreview, previewLines: parent.previewLines,
-                showTags: parent.showTags, showDate: parent.showDate)
+                showTags: parent.showTags, showDate: parent.showDate,
+                query: parent.model.listOptions.previewSearchMatches ? parent.model.query : "",
+                lastAction: parent.model.listOptions.showLastAction ? parent.library.runs.first(where: { $0.noteID == note.id }).map { $0.actionName + " · " + $0.status } : nil,
+                highlightFlagged: parent.model.listOptions.highlightFlagged, emphasized: cell.backgroundStyle == .emphasized)
             return cell
         }
         func tableViewSelectionDidChange(_ notification: Notification) {
-            guard let table else { return }
+            guard let table, !synchronizingSelection else { return }
             let notes = parent.model.visibleNotes
             parent.selection = Set(table.selectedRowIndexes.compactMap { notes.indices.contains($0) ? notes[$0].id : nil })
+            if parent.selection.count == 1 { parent.model.select(parent.selection.first, focusEditor: false) }
+            table.window?.makeFirstResponder(table)
+        }
+        func tableView(_ tableView: NSTableView, rowActionsForRow row: Int, edge: NSTableView.RowActionEdge) -> [NSTableViewRowAction] {
+            guard edge == .trailing, parent.model.visibleNotes.indices.contains(row) else { return [] }
+            let id = parent.model.visibleNotes[row].id
+            return parent.model.swipeCommands(for: id).map { $0.nativeAction(model: parent.model, table: tableView) }
         }
         func tableView(_ tableView: NSTableView, menuFor event: NSEvent, at row: Int) -> NSMenu? {
             let notes = parent.model.visibleNotes
             guard notes.indices.contains(row) else { return nil }
-            let note = notes[row]
-            let targets = parent.selection.contains(note.id) ? parent.selection : [note.id]
-            let menu = NSMenu()
-            menuActions = []
-            func add(_ title: String, _ action: @escaping () -> Void) {
-                let item = NSMenuItem(title: title, action: #selector(MenuAction.invoke(_:)), keyEquivalent: "")
-                let target = MenuAction(action)
-                menuActions.append(target)
-                item.target = target
-                menu.addItem(item)
-            }
-            add(note.isArchived ? "Move to Inbox" : "Archive") { self.parent.model.change(targets) { $0.isArchived.toggle() } }
-            add(note.flag > 0 ? "Remove Flag" : "Flag") { self.parent.model.change(targets) { $0.flag = $0.flag > 0 ? 0 : 1 } }
-            add(note.trashedAt == nil ? "Move to Trash" : "Restore") { self.parent.model.change(targets) { $0.trashedAt = $0.trashedAt == nil ? Date() : nil } }
-            menu.addItem(.separator())
-            add("Duplicate") { self.parent.model.perform { _ = try self.parent.library.createNote(content: note.content, tags: note.tags) } }
-            return menu
+            let ids = parent.model.contextTargets(rowID: notes[row].id, selection: parent.selection)
+            return parent.model.draftContextMenu(ids: ids)
         }
+    }
+}
+
+private final class DraftTableView: NSTableView {
+    var menuProvider: ((NSTableView, NSEvent, Int) -> NSMenu?)?
+    override func mouseDown(with event: NSEvent) {
+        window?.makeFirstResponder(self)
+        super.mouseDown(with: event)
+    }
+    override func menu(for event: NSEvent) -> NSMenu? {
+        let row = row(at: convert(event.locationInWindow, from: nil))
+        guard row >= 0 else { return nil }
+        return menuProvider?(self, event, row)
     }
 }
 
 private final class DraftHostingCell: NSTableCellView {
     let host = NSHostingView(rootView: DraftTableRow(note: Note(), title: "", showPreview: true, previewLines: 2, showTags: true, showDate: true))
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+    override var backgroundStyle: NSView.BackgroundStyle {
+        didSet { host.rootView.emphasized = backgroundStyle == .emphasized }
+    }
     init(identifier: NSUserInterfaceItemIdentifier) {
         super.init(frame: .zero)
         self.identifier = identifier
         host.translatesAutoresizingMaskIntoConstraints = false
         addSubview(host)
         NSLayoutConstraint.activate([
-            host.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+            host.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 6),
             host.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
-            host.topAnchor.constraint(equalTo: topAnchor, constant: 5),
-            host.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -5)
+            host.topAnchor.constraint(equalTo: topAnchor, constant: DraftRowPresentation.verticalInset),
+            host.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -DraftRowPresentation.bottomInset)
         ])
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -206,50 +272,72 @@ private struct DraftTableRow: View {
     var previewLines: Int
     var showTags: Bool
     var showDate: Bool
+    var query = ""
+    var lastAction: String?
+    var highlightFlagged = false
+    var emphasized = false
+    private var previewText: String { DraftRowPresentation.preview(note, query: query) }
+    private var primaryText: Color { emphasized ? .white : .primary }
+    private var secondaryText: Color { emphasized ? .white.opacity(0.68) : .secondary }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: DraftRowPresentation.contentSpacing) {
             HStack(spacing: 5) {
-                Text(title).font(.system(size: 13, weight: .semibold)).lineLimit(1)
+                Text(title).font(.system(size: DraftRowPresentation.titleSize, weight: .bold)).foregroundStyle(primaryText).lineLimit(1)
                 Spacer(minLength: 3)
                 if note.flag > 0 { Image(systemName: "flag.fill").font(.system(size: 9)).foregroundStyle(flagColor(note.flag)) }
+            }.frame(height: DraftRowPresentation.titleHeight)
+            if showPreview && !previewText.isEmpty {
+                Text(previewText).font(.system(size: DraftRowPresentation.previewSize, weight: query.isEmpty ? .regular : .semibold)).foregroundStyle(secondaryText).lineLimit(min(3, max(1, previewLines))).fixedSize(horizontal: false, vertical: true)
             }
-            if showPreview && !note.preview.isEmpty {
-                Text(note.preview).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(min(3, max(1, previewLines)))
+            if showTags && !note.tags.isEmpty {
+                HStack(spacing: 4) {
+                    ForEach(note.tags, id: \.self) { tag in
+                        Text(tag).font(.system(size: DraftRowPresentation.tagSize)).foregroundStyle(primaryText).lineLimit(1)
+                            .padding(.horizontal, 6).padding(.vertical, 1)
+                            .background(RoundedRectangle(cornerRadius: 6).fill((emphasized ? Color.white.opacity(0.08) : Color.accentColor.opacity(0.1))))
+                            .overlay(RoundedRectangle(cornerRadius: 6).stroke((emphasized ? Color.white.opacity(0.25) : Color.accentColor.opacity(0.25)), lineWidth: 0.5))
+                    }
+                }.frame(height: DraftRowPresentation.tagHeight).padding(.top, DraftRowPresentation.tagTopInset)
             }
-            if showDate || showTags {
-                HStack(spacing: 6) {
-                    if showDate { Text(note.modifiedAt, style: .relative) }
+            if let lastAction { Text(lastAction).font(.system(size: 10)).foregroundStyle(secondaryText).lineLimit(1) }
+            if showDate {
+                HStack {
                     Spacer(minLength: 0)
-                    if showTags { Text(note.tags.map { "#" + $0 }.joined(separator: " ")).lineLimit(1) }
-                }.font(.system(size: 10)).foregroundStyle(.tertiary)
+                    Text("Modified: " + DraftRowPresentation.modifiedDate(note.modifiedAt))
+                        .font(.system(size: DraftRowPresentation.dateSize)).foregroundStyle(emphasized ? Color.white.opacity(0.42) : Color.secondary.opacity(0.65)).lineLimit(1)
+                }.frame(height: DraftRowPresentation.dateHeight).padding(.top, DraftRowPresentation.dateTopInset)
             }
         }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading).contentShape(Rectangle())
+            .overlay { if highlightFlagged && note.flag > 0 { RoundedRectangle(cornerRadius: 6).strokeBorder(flagColor(note.flag).opacity(0.6), lineWidth: 1).allowsHitTesting(false) } }
+            .overlay(alignment: .bottom) {
+                GeometryReader { geometry in
+                    Path { path in
+                        path.move(to: .zero)
+                        path.addLine(to: CGPoint(x: geometry.size.width, y: 0))
+                    }
+                    .stroke(Color(nsColor: .separatorColor).opacity(0.45), style: StrokeStyle(lineWidth: 0.5, dash: [1, 1]))
+                }
+                .frame(height: 1).offset(y: 6).opacity(emphasized ? 0 : 1).allowsHitTesting(false)
+            }
     }
-}
-
-@MainActor private final class MenuAction: NSObject {
-    private let action: () -> Void
-    init(_ action: @escaping () -> Void) { self.action = action }
-    @objc func invoke(_ sender: Any?) { action() }
 }
 
 struct ActionListPanel: View {
     @ObservedObject var model: WindowModel
     @ObservedObject var library: LibraryStore
-    private var groups: [String] { Array(Set(library.actions.map(\.group))).sorted() }
+    private var groups: [String] { library.groupNames }
     private var actions: [DraftAction] {
-        let preferred = ["Copy", "Share", "Add to Reminders", "Add Calendar Event", "Save to File", "Markdown Preview"]
-        return library.actions.filter { (!model.actionQuery.isEmpty || model.actionGroup == "All Actions" || $0.group == model.actionGroup) && (model.actionQuery.isEmpty || $0.name.localizedStandardContains(model.actionQuery)) }
-            .sorted { a, b in
-                let x = preferred.firstIndex(of: a.name) ?? 100
-                let y = preferred.firstIndex(of: b.name) ?? 100
-                return x == y ? a.name.localizedStandardCompare(b.name) == .orderedAscending : x < y
-            }
+        library.orderedActions(on: model.actionQuery.isEmpty ? .list : .search).filter {
+            (!model.actionQuery.isEmpty || model.actionGroup == "All Actions" || $0.group == model.actionGroup)
+                && (model.actionQuery.isEmpty || $0.name.localizedStandardContains(model.actionQuery) || $0.presentation.description.localizedStandardContains(model.actionQuery))
+        }
     }
+
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
-                HStack(spacing: 20) {
+                HStack(spacing: MainWindowStyle.utilityLeadingSpacing) {
                 PanelMenu(symbol: "chevron.down.circle", help: "Action Groups", items:
                     [PanelMenuItem(title: "All Actions") { model.actionGroup = "All Actions" }]
                     + groups.map { group in PanelMenuItem(title: group) { model.actionGroup = group } }
@@ -257,11 +345,12 @@ struct ActionListPanel: View {
                 PanelMenu(symbol: "plus", help: "Add Actions", items: [
                     PanelMenuItem(title: "New Action…") { newAction() },
                     PanelMenuItem(title: "Import from Directory…") { model.showActionImporter = true },
-                    PanelMenuItem(title: "Import File…") { model.importFile() }
+                    PanelMenuItem(title: "Import File…") { model.importFile() },
+                    PanelMenuItem(title: "Manage Groups…") { model.showLibraryManagement = true }
                 ]).frame(width: 28, height: 28)
                 }
                 Spacer(minLength: 4)
-                HStack(spacing: 8) {
+                HStack(spacing: MainWindowStyle.utilityTrailingSpacing) {
                 Button { model.showActionSearch.toggle(); model.actionSearchFocus = UUID(); if !model.showActionSearch { model.actionQuery = "" } } label: { PanelIcon(symbol: model.showActionSearch ? "magnifyingglass.circle.fill" : "magnifyingglass.circle") }.help("Search Actions")
                 Button { model.showRunLog = true } label: { PanelIcon(symbol: "clock.arrow.circlepath") }.help("Action Log")
                 PanelMenu(symbol: "ellipsis.circle", help: "Action List Options", items: [
@@ -269,7 +358,7 @@ struct ActionListPanel: View {
                     PanelMenuItem(title: "Execution History…") { model.showRunLog = true }
                 ]).frame(width: 28, height: 28)
                 }
-            }.buttonStyle(.plain).foregroundStyle(.secondary).padding(.horizontal, 12).frame(height: 48)
+            }.buttonStyle(.plain).foregroundStyle(.secondary).padding(.horizontal, MainWindowStyle.utilityInset).frame(height: MainWindowStyle.utilityHeight)
             if model.showActionSearch {
                 ReferenceSearchField(text: $model.actionQuery, placeholder: "Search Actions", focusToken: model.actionSearchFocus)
                     .frame(height: 28).padding(.horizontal, 10).padding(.bottom, 8)
@@ -285,12 +374,15 @@ struct ActionListPanel: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
-                        ForEach(actions) { action in
+                        ForEach(Array(actions.enumerated()), id: \.element.id) { index, action in
+                            if !action.presentation.section.isEmpty && (index == 0 || actions[index - 1].presentation.section != action.presentation.section) {
+                                Text(action.presentation.section).font(.caption.weight(.semibold)).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 20).padding(.vertical, 6)
+                            }
                             Button { model.run(action) } label: {
-                                HStack(spacing: 10) {
+                                HStack(spacing: 8) {
                                     Image(systemName: action.unsupportedSteps.isEmpty ? action.symbol : "exclamationmark.triangle")
                                         .font(.system(size: 18, weight: .regular)).frame(width: 21).foregroundStyle(actionColor(action))
-                                    Text(action.name).font(.system(size: 14)).lineLimit(1)
+                                    Text(action.name).font(.system(size: MainWindowStyle.actionTitleSize)).lineLimit(1)
                                     Spacer(minLength: 0)
                                 }.padding(.horizontal, 20).frame(height: 28).contentShape(Rectangle())
                             }.buttonStyle(ActionRowButtonStyle()).disabled(model.currentNote == nil || model.runner.isRunning)
@@ -309,7 +401,7 @@ struct ActionListPanel: View {
                 HStack(spacing: 20) {
                     ForEach(Array(groups.enumerated()), id: \.element) { index, group in
                         Button { model.actionGroup = group } label: {
-                            Image(systemName: index == 0 ? "arrow.up.right.square" : "square.and.arrow.down")
+                            Image(systemName: library.actionGroups.first(where: { $0.name == group })?.symbol ?? "arrow.up.right.square")
                                 .font(.system(size: 18)).foregroundStyle(model.actionGroup == group ? Color.blue : .secondary)
                         }.buttonStyle(.plain).help(group).accessibilityLabel(group)
                     }
@@ -335,7 +427,7 @@ struct EditorActionBar: View {
     @ObservedObject var model: WindowModel
     @ObservedObject var session: EditorSession
     @ObservedObject var library: LibraryStore
-    private var groups: [String] { ["Editing"] + Set(library.actions.map(\.group)).filter { $0 != "Editing" }.sorted() }
+    private var groups: [String] { ["Editing"] + library.groupNames.filter { $0 != "Editing" } }
     var body: some View {
         ScrollView(.horizontal) {
             HStack(spacing: 20) {
@@ -349,33 +441,33 @@ struct EditorActionBar: View {
                     barButton("Redo", "arrow.uturn.forward") { NSApp.sendAction(NSSelectorFromString("redo:"), to: nil, from: nil) }
                     barButton("Move Left", "chevron.left") { move(-1) }
                     barButton("Move Right", "chevron.right") { move(1) }
+                    barButton("Move Back by Word", "chevron.left.2") { NSApp.sendAction(NSSelectorFromString("moveWordLeft:"), to: nil, from: nil) }
+                    barButton("Move Forward by Word", "chevron.right.2") { NSApp.sendAction(NSSelectorFromString("moveWordRight:"), to: nil, from: nil) }
+                    barButton("Find", "magnifyingglass") { NSApp.sendAction(#selector(NSTextView.performFindPanelAction(_:)), to: nil, from: findItem()) }
+                    barButton("Advanced Find", "plus.magnifyingglass") { model.perform { _ = try model.actionUIOperation(["operation": "showFind", "args": [true]]) } }
+                    barButton("Make Tasks", "checkmark.square") { model.edit(EditingScripts.makeTasks) }
+                    barButton("Toggle Tasks", "checklist") { model.edit(EditingScripts.toggleTasks) }
+                    barButton("Insert Date", "calendar.badge.plus") { model.edit(EditingScripts.insertDate) }
+                    barButton("Insert Dictation", "mic.badge.plus") { model.perform { _ = try model.actionUIOperation(["operation": "showDictate"]) } }
+                    barButton("Dictate New Draft", "mic") { if model.create() { model.perform { _ = try model.actionUIOperation(["operation": "showDictate"]) } } }
+                    barButton("Copy Selection", "doc.on.doc") { model.perform { _ = try model.host.perform("clipboard", values: ["text": session.selectedText.isEmpty ? session.content : session.selectedText]) } }
+                    barButton("Paste as Plain Text", "doc.on.clipboard") { NSApp.sendAction(NSSelectorFromString("pasteAsPlainText:"), to: nil, from: nil) }
+                    barButton("Indent", "increase.indent") { model.edit(EditingScripts.indent) }
+                    barButton("Outdent", "decrease.indent") { model.edit(EditingScripts.outdent) }
                     barButton("Move Line Up", "arrow.up.to.line") { moveLine(-1) }
                     barButton("Move Line Down", "arrow.down.to.line") { moveLine(1) }
                     barButton("Duplicate Line", "plus.square.on.square") { duplicateLine() }
                     barButton("Previous Marker", "arrow.up.to.line.compact") { moveToMarker(-1) }
                     barButton("Next Marker", "arrow.down.to.line.compact") { moveToMarker(1) }
                     barButton("Toggle Theme", "circle.lefthalf.filled") { toggleTheme() }
-                    barButton("Move Back by Word", "chevron.left.2") { NSApp.sendAction(NSSelectorFromString("moveWordLeft:"), to: nil, from: nil) }
-                    barButton("Move Forward by Word", "chevron.right.2") { NSApp.sendAction(NSSelectorFromString("moveWordRight:"), to: nil, from: nil) }
-                    barButton("Find", "magnifyingglass") { NSApp.sendAction(#selector(NSTextView.performFindPanelAction(_:)), to: nil, from: findItem()) }
-                    barButton("Advanced Find", "plus.magnifyingglass") { NSApp.sendAction(#selector(NSTextView.performFindPanelAction(_:)), to: nil, from: findItem(replace: true)) }
-                    barButton("Make Tasks", "checkmark.square") { model.edit(EditingScripts.makeTasks) }
-                    barButton("Toggle Tasks", "checklist") { model.edit(EditingScripts.toggleTasks) }
-                    barButton("Insert Date", "calendar.badge.plus") { model.edit(EditingScripts.insertDate) }
-                    barButton("Insert Dictation", "mic.badge.plus") { NSApp.sendAction(NSSelectorFromString("startDictation:"), to: nil, from: nil) }
-                    barButton("Dictate New Draft", "mic") { model.create(); DispatchQueue.main.async { NSApp.sendAction(NSSelectorFromString("startDictation:"), to: nil, from: nil) } }
-                    barButton("Indent", "increase.indent") { model.edit(EditingScripts.indent) }
-                    barButton("Outdent", "decrease.indent") { model.edit(EditingScripts.outdent) }
-                    barButton("Copy Selection", "doc.on.doc") { model.perform { _ = try model.host.perform("clipboard", values: ["text": session.selectedText.isEmpty ? session.content : session.selectedText]) } }
-                    barButton("Paste as Plain Text", "doc.on.clipboard") { NSApp.sendAction(NSSelectorFromString("pasteAsPlainText:"), to: nil, from: nil) }
                     barButton("Preview", "eye") { model.preview() }
                 }
-                ForEach(library.actions.filter { $0.group == model.actionBarGroup }) { action in
+                ForEach(library.orderedActions(on: .bar).filter { $0.group == model.actionBarGroup }) { action in
                     barButton(action.name, action.symbol) { model.run(action) }
                         .disabled(model.runner.isRunning)
                 }
-            }.padding(.horizontal, 12).frame(height: 31)
-        }.scrollIndicators(.hidden).frame(height: 31)
+            }.padding(.horizontal, 12).frame(height: MainWindowStyle.editingBarHeight)
+        }.scrollIndicators(.hidden).frame(height: MainWindowStyle.editingBarHeight)
             .onChange(of: library.actions) { _, _ in
                 if !groups.contains(model.actionBarGroup) { model.actionBarGroup = "Editing" }
             }
@@ -386,6 +478,7 @@ struct EditorActionBar: View {
     private func barColor(_ name: String) -> Color {
         if ["Move Left", "Move Right"].contains(name) { return .yellow }
         if name.contains("Word") || name == "Indent" || name == "Outdent" { return .orange }
+        if name == "Toggle Tasks" { return .purple }
         if name.contains("Find") || name.contains("Dictat") { return .green }
         return .blue
     }
@@ -454,7 +547,7 @@ struct CommandPalette: View {
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
     @FocusState private var focused: Bool
-    private var actions: [DraftAction] { library.actions.filter { query.isEmpty || $0.name.localizedStandardContains(query) } }
+    private var actions: [DraftAction] { library.orderedActions(on: .search).filter { query.isEmpty || $0.name.localizedStandardContains(query) || $0.presentation.description.localizedStandardContains(query) } }
     var body: some View {
         VStack(spacing: 0) {
             HStack {

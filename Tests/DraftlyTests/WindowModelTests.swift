@@ -1,11 +1,132 @@
 import Foundation
 import Testing
-import DraftlyCore
+@testable import DraftlyCore
 @testable import Draftly
 
 @Suite("Window transitions") @MainActor
 struct WindowModelTests {
     enum SaveFailure: Error { case unavailable }
+
+    private func checkWorkspaceDisplayOption(_ property: String, enabled: Bool, read: (DraftListOptions) -> Bool) throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Display 🐼", tags: ["display-contract"])
+        let model = WindowModel(library: library); model.select(note.id)
+        model.editor.selection = NSRange(location: 0, length: 7)
+        let action = DraftAction(name: property, steps: [ActionStep("script", ["script": """
+        const w=new Workspace();w.name='Display';w.tagFilter='display-contract';w.\(property)=\(enabled);
+        w.update();app.applyWorkspace(Workspace.find(w.name));
+        if(w.query('inbox').length!==1)throw new Error('display query');
+        """])])
+        #expect(model.runner.run(action), Comment(rawValue: model.runner.message ?? ""))
+        #expect(read(model.listOptions) == enabled)
+        #expect(model.visibleNotes.map(\.id) == [note.id])
+        #expect(model.editor.content == note.content && model.editor.selection == NSRange(location: 0, length: 7))
+        let restored = try LibraryStore(inMemory: true, seed: false); try restored.restore(library.backupData())
+        let other = WindowModel(library: restored); try other.applyScriptWorkspace(try #require(restored.workspaces.first))
+        #expect(read(other.listOptions) == enabled && other.visibleNotes.map(\.id) == [note.id])
+    }
+
+    @Test func workspaceShowDateAppliesAndSurvivesBackup() throws { try checkWorkspaceDisplayOption("showDate", enabled: false, read: { $0.showDate }) }
+    @Test func workspaceShowPreviewAppliesAndSurvivesBackup() throws { try checkWorkspaceDisplayOption("showPreview", enabled: false, read: { $0.showPreview }) }
+    @Test func workspaceShowTagsAppliesAndSurvivesBackup() throws { try checkWorkspaceDisplayOption("showTags", enabled: false, read: { $0.showTags }) }
+    @Test func workspaceShowSearchPreviewAppliesAndSurvivesBackup() throws { try checkWorkspaceDisplayOption("showSearchPreview", enabled: false, read: { $0.previewSearchMatches }) }
+    @Test func workspaceShowLastActionAppliesAndSurvivesBackup() throws { try checkWorkspaceDisplayOption("showLastAction", enabled: true, read: { $0.showLastAction }) }
+
+
+    @Test func advancedFindUsesItsOwnInterfaceWithoutChangingTheDraft() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Café 🐼")
+        let model = WindowModel(library: library); model.select(note.id)
+        model.editor.selection = NSRange(location: 0, length: 4)
+        _ = try model.actionUIOperation(["operation": "showFind", "args": [true, "café"]])
+        #expect(model.showAdvancedFind && model.advancedFindQuery == "café")
+        #expect(model.editor.noteID == note.id && model.editor.content == note.content)
+        #expect(model.editor.selection == NSRange(location: 0, length: 4))
+        _ = try model.actionUIOperation(["operation": "showFind", "args": [true]])
+        #expect(model.showAdvancedFind && model.advancedFindQuery.isEmpty)
+        _ = try model.actionUIOperation(["operation": "showFind", "args": [false]])
+        #expect(!model.showAdvancedFind)
+    }
+
+    @Test func scriptedInfoUsesItsTargetWithoutOpeningIt() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let first = try library.createNote(content:"Current")
+        let second = try library.createNote(content:"Info target")
+        let model = WindowModel(library:library);model.select(first.id)
+        _ = try model.actionUIOperation(["operation":"showDraftInfo", "value":["uuid":second.id.uuidString]])
+        #expect(model.infoDraft?.id == second.id)
+        #expect(model.editor.noteID == first.id)
+        #expect(model.showInfo)
+        #expect(throws: (any Error).self) { try model.actionUIOperation(["operation":"showChatConsole"]) }
+        #expect(throws: (any Error).self) { try model.actionUIOperation(["operation":"hideChatConsole"]) }
+    }
+
+    @Test func scriptedWorkspaceMatchesVisibleRowsAndAppliesGroups() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let source = try library.createNote(content: "Source")
+        let kept = try library.createNote(content: "Alpha", tags: ["keep"])
+        var flagged = try library.createNote(content: "Zulu", tags: ["keep"]); flagged.flag=1; try library.saveNote(flagged)
+        try library.saveAction(DraftAction(name: "Example", steps: []))
+        let model = WindowModel(library: library); model.select(source.id)
+        let action = DraftAction(name: "Workspace application", steps: [ActionStep("script", ["script": """
+        let w=Workspace.create();w.name='Contract';w.tagFilter='keep';w.inboxIncludesFlagged=false;
+        w.showTags=false;w.showSearchPreview=true;w.loadFolder='inbox';w.setInboxSort('name',false,true);
+        w.loadActionListGroup=ActionGroup.find('General');w.loadActionBarGroup=ActionGroup.find('General');
+        w.preferredDarkTheme=Theme.find('builtIn','Dark');w.preferredLightTheme=Theme.find('builtIn','Light');
+        w.update();app.applyWorkspace(w);
+        if(w.query('inbox').length!==1)throw new Error('query mismatch');
+        """])])
+        #expect(model.runner.run(action))
+        #expect(model.visibleNotes.map(\.id) == [kept.id])
+        #expect(model.actionGroup == "General" && model.actionBarGroup == "General")
+        #expect(!model.listOptions.showTags && model.listOptions.previewSearchMatches)
+        #expect(model.editor.noteID == source.id)
+        #expect(WorkspaceThemeValues.preference(model.workspaceScriptMetadata, key: "preferredDarkTheme") == "Dark")
+        #expect(WorkspaceThemeValues.preference(model.workspaceScriptMetadata, key: "preferredLightTheme") == "Light")
+        let restored = try LibraryStore(inMemory: true, seed: false)
+        try restored.restore(library.backupData())
+        let other = WindowModel(library: restored); other.apply(try #require(restored.workspaces.first))
+        #expect(other.visibleNotes.map(\.id) == [kept.id])
+    }
+
+    @Test func invalidScriptedWorkspaceDoesNotChangeTheWindow() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let model = WindowModel(library: library)
+        var workspace = Workspace(name: "Invalid"); workspace.query="Changed"
+        workspace.scriptMetadata=["api":"{\"loadActionListGroup\":{\"name\":\"Missing\"}}"]
+        #expect(throws: (any Error).self) { try model.applyScriptWorkspace(workspace) }
+        #expect(model.query.isEmpty)
+        workspace.scriptMetadata=["api":"{\"preferredLightTheme\":{\"name\":\"Missing\"}}"]
+        #expect(throws: (any Error).self) { try model.applyScriptWorkspace(workspace) }
+        #expect(model.query.isEmpty)
+    }
+
+    @Test func selectingFromTheListKeepsKeyboardFocus() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let first = try library.createNote(content: "First")
+        let second = try library.createNote(content: "Second")
+        let model = WindowModel(library: library)
+        model.select(first.id)
+        let focus = model.editor.focusToken
+        model.select(second.id, focusEditor: false)
+        #expect(model.editor.noteID == second.id)
+        #expect(model.editor.content == "Second")
+        #expect(model.editor.focusToken == focus)
+        model.select(first.id)
+        #expect(model.editor.focusToken != focus)
+    }
+
+    @Test func anEmptyNewDraftDoesNotAddAListRow() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let saved = try library.createNote(content: "Saved")
+        let model = WindowModel(library: library)
+        #expect(model.create())
+        #expect(model.visibleNotes.map(\.id) == [saved.id])
+        model.editor.content = "New text"
+        #expect(model.flush())
+        #expect(model.visibleNotes.count == 2)
+        #expect(model.visibleNotes.contains { $0.id == model.editor.noteID })
+    }
 
     @Test func libraryOpensWithDraftsStylePanels() throws {
         let library = try LibraryStore(inMemory: true, seed: false)
@@ -54,13 +175,18 @@ struct WindowModelTests {
         #expect(model.leftPanels == .drafts)
     }
 
-    @Test func quickSearchOpensTheListWithoutOpeningFilters() throws {
+    @Test func quickSearchDoesNotChangeListFiltersOrFocus() throws {
         let model = WindowModel(library: try LibraryStore(inMemory: true, seed: false))
         model.setDraftListVisible(false)
         let focus = model.noteSearchFocus
+        var opened = false
+        model.openQuickSearch = { opened = true }
+        model.query = "Keep this filter"
         _ = try model.actionUIOperation(["operation": "showQuickSearch"])
-        #expect(model.leftPanels == .drafts)
-        #expect(model.showNoteSearch && model.noteSearchFocus != focus)
+        #expect(opened)
+        #expect(model.leftPanels == .hidden)
+        #expect(!model.showNoteSearch && model.noteSearchFocus == focus)
+        #expect(model.query == "Keep this filter")
     }
 
     @Test func failedCaptureKeepsUnsavedTextAndSelection() throws {
@@ -111,9 +237,28 @@ struct WindowModelTests {
         var opened: [UUID] = []
         let model = WindowModel(library: library, onAccessDraft: { opened.append($0) })
 
+        let modified = try #require(library.notes.first { $0.id == note.id }).modifiedAt
         model.select(note.id)
 
         #expect(opened == [note.id])
+        #expect(library.notes.first { $0.id == note.id }?.accessedAt != nil)
+        #expect(library.notes.first { $0.id == note.id }?.modifiedAt == modified)
+    }
+
+    @Test func failedAccessKeepsTheCurrentEditorAndSelection() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let first = try library.createNote(content: "Current 🐼")
+        let second = try library.createNote(content: "Target")
+        let model = WindowModel(library: library)
+        model.select(first.id)
+        model.editor.selection = NSRange(location: 8, length: 2)
+        library.beforeBatchCommit = { throw SaveFailure.unavailable }
+        model.select(second.id)
+        #expect(model.editor.noteID == first.id)
+        #expect(model.editor.content == first.content)
+        #expect(model.editor.selection == NSRange(location: 8, length: 2))
+        #expect(library.notes.first { $0.id == second.id }?.accessedAt == nil)
+        #expect(library.error != nil)
     }
 
     @Test func clipboardCapturePreservesUnicodeAndLineBreaks() throws {
@@ -144,6 +289,26 @@ struct WindowModelTests {
         #expect(model.visibleNotes.count == 2)
         #expect(model.selectedWorkspace == nil)
         #expect(model.tagFilterSummary == "No tag filters active")
+    }
+
+    @Test func currentTagsFollowTheVisibleDraftsAndTagSearch() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        _ = try library.createNote(content: "Alpha", tags: ["work", "alpha"])
+        _ = try library.createNote(content: "Beta", tags: ["work", "beta"])
+        _ = try library.createNote(content: "Personal", tags: ["personal"])
+        _ = try library.createNote(content: "No tags")
+        let model = WindowModel(library: library)
+        model.tag = "work"
+        #expect(model.matchingTags == ["alpha", "beta", "personal", "work"])
+        model.showOnlyCurrentTags = true
+        #expect(model.matchingTags == ["alpha", "beta", "work"])
+        model.query = "Alpha"
+        #expect(model.matchingTags == ["alpha", "work"])
+        model.tagQuery = "alp"
+        #expect(model.matchingTags == ["alpha"])
+        model.tagQuery = ""; model.query = ""; model.tag = nil; model.tagPresence = false
+        #expect(model.matchingTags.isEmpty)
+        #expect(library.notes.count == 4)
     }
 
     @Test func pinningDraftAndFloatingWindowAreIndependent() throws {

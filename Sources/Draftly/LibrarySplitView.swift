@@ -1,4 +1,5 @@
 import AppKit
+import QuartzCore
 import SwiftUI
 
 struct LibrarySplitView: NSViewControllerRepresentable {
@@ -22,6 +23,7 @@ final class LibrarySplitController: NSSplitViewController {
     private var initialWidthConstraints: [NSLayoutConstraint] = []
     private var restoredWidthConstraints: [NSLayoutConstraint] = []
     private var panelWidths: [CGFloat] = [240, 280, 0, 260]
+    private var pendingPanels: [AnyView]?
 
     init(model: WindowModel, panels: [AnyView]) {
         self.model = model
@@ -30,13 +32,15 @@ final class LibrarySplitController: NSSplitViewController {
         splitView.isVertical = true
         splitView.dividerStyle = .thin
         splitView.setFrameSize(NSSize(width: 1200, height: 700))
-        let minimums: [CGFloat] = [180, 240, 240, 220]
+        let minimums: [CGFloat] = [160, 220, 240, 200]
         let maximums: [CGFloat] = [320, 400, 0, 400]
         let widths: [CGFloat] = [240, 280, 0, 260]
         for (index, host) in hosts.enumerated() {
             host.sizingOptions = []
             host.sceneBridgingOptions = []
-            let item = NSSplitViewItem(viewController: host)
+            let item = index == 0 ? NSSplitViewItem(sidebarWithViewController: host) : NSSplitViewItem(viewController: host)
+            if index == 0 { item.allowsFullHeightLayout = true; item.isSpringLoaded = false
+                item.preferredThicknessFraction = NSSplitViewItem.unspecifiedDimension }
             item.minimumThickness = minimums[index]
             if index != 2 { item.maximumThickness = maximums[index] }
             item.holdingPriority = NSLayoutConstraint.Priority(index == 2 ? 249 : 260)
@@ -64,6 +68,14 @@ final class LibrarySplitController: NSSplitViewController {
                 view.layoutSubtreeIfNeeded()
                 NSLayoutConstraint.deactivate(initialWidthConstraints)
                 initialWidthConstraints.removeAll()
+                if !splitViewItems[0].isCollapsed {
+                    if !splitViewItems[1].isCollapsed {
+                        splitView.setPosition(panelWidths[0] + panelWidths[1] + splitView.dividerThickness, ofDividerAt: 1)
+                    }
+                    let remaining = splitViewItems.dropFirst().filter { !$0.isCollapsed }.reduce(CGFloat(0)) { $0 + $1.minimumThickness }
+                    let maximum = splitView.bounds.width - remaining - splitView.dividerThickness * CGFloat(splitViewItems.count - 1)
+                    splitView.setPosition(min(panelWidths[0], maximum), ofDividerAt: 0)
+                }
             }
         }
         if let window = view.window {
@@ -74,14 +86,26 @@ final class LibrarySplitController: NSSplitViewController {
         }
     }
     func update(panels: [AnyView]) {
-        for (host, panel) in zip(hosts, panels) { host.rootView = panel }
+        pendingPanels = panels
+        guard !changingVisibility else { return }
+        let visibilityChanges = splitViewItems[0].isCollapsed == model.showFilters
+            || splitViewItems[1].isCollapsed == model.showDraftList
+            || splitViewItems[3].isCollapsed == model.showActions
+        if !visibilityChanges { applyPendingPanels() }
         updateVisibility()
+    }
+
+    private func applyPendingPanels() {
+        guard let panels = pendingPanels else { return }
+        pendingPanels = nil
+        for (host, panel) in zip(hosts, panels) { host.rootView = panel }
     }
 
     private func updateVisibility() {
         guard !changingVisibility else { return }
         let collapsed = [!model.showFilters, !model.showDraftList, false, !model.showActions]
         guard zip(splitViewItems, collapsed).contains(where: { $0.isCollapsed != $1 }) else { return }
+        view.layoutSubtreeIfNeeded()
         changingVisibility = true
         restoredWidthConstraints = []
         for (index, item) in splitViewItems.enumerated() where index != 2 {
@@ -102,10 +126,10 @@ final class LibrarySplitController: NSSplitViewController {
             return
         }
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = animate ? 0.2 : 0
+            context.duration = 0.2
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             for (item, hidden) in zip(splitViewItems, collapsed) where item.isCollapsed != hidden {
-                if animate { item.animator().isCollapsed = hidden }
-                else { item.isCollapsed = hidden }
+                item.animator().isCollapsed = hidden
             }
         } completionHandler: { [weak self] in
             MainActor.assumeIsolated { self?.finishVisibilityUpdate() }
@@ -113,10 +137,16 @@ final class LibrarySplitController: NSSplitViewController {
     }
 
     private func finishVisibilityUpdate() {
-        view.window?.layoutIfNeeded()
-        view.layoutSubtreeIfNeeded()
-        NSLayoutConstraint.deactivate(restoredWidthConstraints)
-        restoredWidthConstraints.removeAll()
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0
+            context.allowsImplicitAnimation = false
+            view.window?.layoutIfNeeded()
+            view.layoutSubtreeIfNeeded()
+            NSLayoutConstraint.deactivate(restoredWidthConstraints)
+            restoredWidthConstraints.removeAll()
+            applyPendingPanels()
+            view.layoutSubtreeIfNeeded()
+        }
         changingVisibility = false
         updateVisibility()
     }

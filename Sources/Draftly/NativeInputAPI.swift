@@ -14,9 +14,13 @@ import DraftlyCore
     }
     func transcribe(_ values: [String: Any], dictate: Bool) throws -> String {
         let authorization = SpeechResult()
-        SFSpeechRecognizer.requestAuthorization { status in authorization.setAuthorized(status == .authorized) }
+        let speechStatus = SFSpeechRecognizer.authorizationStatus()
+        if speechStatus == .notDetermined {
+            SFSpeechRecognizer.requestAuthorization { @Sendable status in authorization.setAuthorized(status == .authorized) }
+        } else { authorization.setAuthorized(speechStatus == .authorized) }
         let authorizationDeadline = Date().addingTimeInterval(60)
         while authorization.authorized == nil && Date() < authorizationDeadline { RunLoop.current.run(until: Date().addingTimeInterval(0.01)) }
+        guard authorization.authorized != nil else { throw DraftlyError.message("Speech authorization timed out.") }
         guard authorization.authorized == true else { throw DraftlyError.message("Speech recognition access is denied.") }
         let locale = values["locale"] as? String ?? ""
         guard let recognizer = SFSpeechRecognizer(locale: locale.isEmpty ? .current : Locale(identifier: locale)), recognizer.isAvailable else { throw DraftlyError.message("Speech recognition is unavailable for this language.") }
@@ -25,7 +29,7 @@ import DraftlyCore
             let panel = NSOpenPanel(); panel.allowedContentTypes = [.audio, .movie]
             guard panel.runModal() == .OK, let url = panel.url else { return "" }
             let request = SFSpeechURLRecognitionRequest(url: url)
-            let task = recognizer.recognitionTask(with: request) { response, error in result.update(response?.bestTranscription.formattedString, final: response?.isFinal == true, error: error) }
+            let task = recognizer.recognitionTask(with: request) { @Sendable response, error in result.update(response?.bestTranscription.formattedString, final: response?.isFinal == true, error: error) }
             defer { task.cancel() }
             let deadline = Date().addingTimeInterval(120)
             while !result.finished && Date() < deadline { RunLoop.current.run(until: Date().addingTimeInterval(0.01)) }
@@ -34,26 +38,36 @@ import DraftlyCore
             return result.text
         }
         let microphone = SpeechResult()
-        AVCaptureDevice.requestAccess(for: .audio) { microphone.setAuthorized($0) }
-        while microphone.authorized == nil { RunLoop.current.run(until: Date().addingTimeInterval(0.01)) }
+        let microphoneStatus = AVCaptureDevice.authorizationStatus(for: .audio)
+        if microphoneStatus == .notDetermined {
+            AVCaptureDevice.requestAccess(for: .audio) { @Sendable allowed in microphone.setAuthorized(allowed) }
+        } else { microphone.setAuthorized(microphoneStatus == .authorized) }
+        let microphoneDeadline = Date().addingTimeInterval(60)
+        while microphone.authorized == nil && Date() < microphoneDeadline { RunLoop.current.run(until: Date().addingTimeInterval(0.01)) }
+        guard microphone.authorized != nil else { throw DraftlyError.message("Microphone authorization timed out.") }
         guard microphone.authorized == true else { throw DraftlyError.message("Microphone access is denied.") }
         let engine = AVAudioEngine(), request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
         let input = engine.inputNode, format = input.outputFormat(forBus: 0)
         guard format.channelCount > 0 else { throw DraftlyError.message("No microphone is available.") }
-        input.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in request.append(buffer) }
-        let task = recognizer.recognitionTask(with: request) { response, error in result.update(response?.bestTranscription.formattedString, final: response?.isFinal == true, error: error) }
+        input.installTap(onBus: 0, bufferSize: 1024, format: format) { @Sendable buffer, _ in request.append(buffer) }
+        let task = recognizer.recognitionTask(with: request) { @Sendable response, error in result.update(response?.bestTranscription.formattedString, final: response?.isFinal == true, error: error) }
         defer { engine.stop(); input.removeTap(onBus: 0); request.endAudio(); task.cancel() }
         engine.prepare(); try engine.start()
         let alert = NSAlert(); alert.messageText = "Dictation"; alert.informativeText = "Speak, then choose Done."
         let field = NSTextField(wrappingLabelWithString: "Listening…"); field.frame = NSRect(x: 0, y: 0, width: 420, height: 140)
         alert.accessoryView = field; alert.addButton(withTitle: "Done"); alert.addButton(withTitle: "Cancel")
-        let timer = Timer(timeInterval: 0.1, repeats: true) { _ in Task { @MainActor in field.stringValue = result.text } }
+        let timer = Timer(timeInterval: 0.1, repeats: true) { _ in MainActor.assumeIsolated { field.stringValue = result.text } }
         RunLoop.main.add(timer, forMode: .modalPanel); defer { timer.invalidate() }
         guard alert.runModal() == .alertFirstButtonReturn else { return "" }
         if let error = result.error { throw error }; return result.text
     }
-    func scanDocument() throws -> String {
+    func scanDocument() -> String {
+        // macOS has no VisionKit document-scanning camera interface.
+        // The scripting contract returns an empty string when it is unavailable.
+        return ""
+    }
+    func recognizeDocument() throws -> String {
         let panel = NSOpenPanel(); panel.allowedContentTypes = [.image, .pdf]
         panel.message = "Choose an image or PDF to recognize text."
         guard panel.runModal() == .OK, let url = panel.url else { return "" }
@@ -72,7 +86,7 @@ import DraftlyCore
     }
 }
 
-private final class SpeechResult: @unchecked Sendable {
+final class SpeechResult: @unchecked Sendable {
     private let lock = NSLock(); private var value = "", done = false, failure: Error?, permission: Bool?
     var text: String { lock.lock(); defer { lock.unlock() }; return value }
     var finished: Bool { lock.lock(); defer { lock.unlock() }; return done }

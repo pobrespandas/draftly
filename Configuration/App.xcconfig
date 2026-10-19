@@ -1,3 +1,4 @@
 PRODUCT_BUNDLE_IDENTIFIER = com.andrestobelem.draftly
 DRAFTLY_CLOUDKIT_CONTAINER = iCloud.com.andrestobelem.draftly
+DRAFTLY_CLOUDKIT_ENVIRONMENT = Development
 #include? "Signing.xcconfig"

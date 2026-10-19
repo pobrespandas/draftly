@@ -7,9 +7,10 @@ import DraftlyCore
     func performAPI(_ operation: String, values: [String: Any]) throws -> Any? {
         switch operation {
         case "arrangeText": return arrangeText(values["text"] as? String ?? "")
-        case "dictate": return try transcribe(values, dictate: true)
+        case "dictate": return try dictationHandler?(values) ?? transcribe(values, dictate: true)
         case "transcribe": return try transcribe(values, dictate: false)
-        case "scanDocument": return try scanDocument()
+        case "scanDocument": return scanDocument()
+        case "recognizeDocument": return try recognizeDocument()
         case "fileAPI": return try fileAPI(values)
         case "bookmark": return try bookmarkRoot(values["name"] as? String ?? "").path
         case "forgetBookmark": UserDefaults.standard.removeObject(forKey: "bookmark.\(values["name"] as? String ?? "")"); return true

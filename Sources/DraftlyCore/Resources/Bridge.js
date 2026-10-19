@@ -8,18 +8,18 @@ function __call(op, value) {
 function __date(value) { return value == null ? undefined : new Date(value); }
 function __define(target, name, get, set) { Object.defineProperty(target, name, {get, set, configurable:true}); }
 function __normalTag(value) { return String(value).trim().normalize('NFC').toLowerCase(); }
+function __validateTextRange(text, location, length) {
+    if (!Number.isSafeInteger(location) || !Number.isSafeInteger(length) || location < 0 || length < 0 || location > text.length || length > text.length - location) throw new RangeError('The text range is outside the draft.');
+}
 function __range(text, location, length) {
-    if (location < 0 || length < 0 || location + length > text.length) throw new RangeError('The text range is outside the draft.');
-    let start = text.lastIndexOf('\n', Math.max(0, location - 1)) + 1;
-    if (location === 0) start = 0;
-    let end = text.indexOf('\n', Math.max(location, location + length - 1));
-    return [start, (end < 0 ? text.length : end + 1) - start];
+    __validateTextRange(text,location,length);
+    return __call('lineRange',{text,location,length});
 }
 class Syntax {
     constructor(name = 'Markdown', type = 'builtIn') { this.name = name; this.type = type; }
     static find(type, name) { return Syntax.getAll().find(s => s.type === type && s.name === name); }
     static getAll() { return __call('syntaxes').map(s => Object.assign(new Syntax(), s)); }
-    get installURL() { return 'draftly://syntax?name=' + encodeURIComponent(this.name); }
+    get installURL() { return __call('syntaxInstallURL',{name:this.name,type:this.type}); }
 }
 class Theme {
     constructor(name = 'Default', type = 'builtIn') { this.name = name; this.type = type; }
@@ -27,38 +27,18 @@ class Theme {
     static getAll() { return __call('themes').map(s => Object.assign(new Theme(), s)); }
     get installURL() { return 'draftly://theme?name=' + encodeURIComponent(this.name); }
 }
-class Task {
-    constructor(match, offset) {
-        this.line = match[0]; this.lineRange = [offset, this.line.length];
-        let i = this.line.indexOf('[') + 1;
-        this.state = match[1]; this.stateRange = [offset + i, 1];
-        this.isCompleted = /[xX]/.test(this.state);
-        this.label = match[2]; this.labelRange = [offset + this.line.indexOf(']') + 2, this.label.length];
-        this.interactive = true; this.interactiveRange = [offset + i - 1, 3];
-    }
-}
-function __tasks(text) {
-    let result = [], offset = 0;
-    for (let line of text.split('\n')) {
-        let match = /^\s*[-*+] \[([^\]])\] ?(.*)$/.exec(line);
-        if (match) result.push(new Task(match, offset));
-        offset += line.length + 1;
-    }
-    return result;
-}
-function __markers(text) {
-    let result = [], offset = 0;
-    for (let line of text.split('\n')) {
-        let m = /^(#{1,6}) (.+)$/.exec(line);
-        if (m) result.push({label:m[2], level:m[1].length, location:offset, length:line.length, range:[offset,line.length]});
-        offset += line.length + 1;
-    }
-    return result;
-}
+class Task { constructor(value = {}) { Object.assign(this,value);Object.freeze(this); } }
+function __syntaxAnalysis(text,syntax) { return __call('syntaxAnalysis',{text,syntax}); }
+function __tasks(text,syntax='Markdown') { return __syntaxAnalysis(text,syntax).tasks.map(t=>new Task(t)); }
+function __markers(text,syntax='Markdown') { return __syntaxAnalysis(text,syntax).markers; }
+function __taskChange(text,syntax,task,operation) { return __call('syntaxTaskChange',{text,syntax,task,operation}); }
 class Draft {
     constructor(value) {
         let v = value || __call('newDraft');
-        Object.assign(this, {content:'',tags:[],isArchived:false,isTrashed:false,flagType:0}, v);
+        if (v.uuid && __draftCache[v.uuid]) return __draftCache[v.uuid];
+        let {selectionStart,selectionLength,...fields}=v;
+        Object.assign(this, {content:'',tags:[],isArchived:false,isTrashed:false,flagType:0,createdLatitude:0,createdLongitude:0,modifiedLatitude:0,modifiedLongitude:0}, fields);
+        this._selectionStart=selectionStart||0;this._selectionLength=selectionLength||0;
         this._createdAt = __date(v.createdAt); this._modifiedAt = __date(v.modifiedAt); this._explicitModifiedAt=false;
         this._syntax = typeof v.syntax === 'string' ? new Syntax(v.syntax) : Object.assign(new Syntax(), v.syntax || {});
         this._templateTags = {};
@@ -66,11 +46,13 @@ class Draft {
     }
     static create() { return new Draft(); }
     static find(uuid) { if (__draftCache[uuid]) return __draftCache[uuid]; let v = __call('findDraft',{uuid}); return v ? new Draft(v) : undefined; }
-    static query(query = '', folder = 'all', tags = [], omitFlagged = false, sort = 'modified', descending = true) {
-        return __call('queryDrafts',{query,folder,tags,omitFlagged,sort,descending}).map(v => new Draft(v));
+    static query(query = '', folder = 'all', tags = [], omitTags = [], sort = 'modified', descending = false, flaggedToTop = false) {
+        // Accept the previous Draftly boolean argument for existing scripts.
+        let omitFlagged = typeof omitTags === 'boolean' ? omitTags : false;
+        return __call('queryDrafts',{query,folder,tags,omitTags:Array.isArray(omitTags)?omitTags:[],omitFlagged,sort,descending,flaggedToTop}).map(v => new Draft(v));
     }
     static queryByTitle(title) { return Draft.query('', 'all').filter(d => d.title.toLocaleLowerCase().includes(title.toLocaleLowerCase())); }
-    static flagged(flag) { return Draft.query('', 'flagged').filter(d => flag === undefined || d.flagType === (typeof flag === 'number' ? flag : ['none','orange','purple','green','blue','red','gray'].indexOf(flag))); }
+    static flagged(flag) { return Draft.query('', 'flagged').filter(d => flag === undefined || d.flagType === (typeof flag === 'number' ? flag : ['none','red','orange','yellow','green','blue','purple','gray'].indexOf(flag))); }
     static recentTags() { return Tag.recentTags(); }
     get createdAt(){return this._createdAt;}set createdAt(value){this._createdAt=__date(value);}
     get modifiedAt(){return this._modifiedAt;}set modifiedAt(value){this._modifiedAt=__date(value);this._explicitModifiedAt=true;}
@@ -78,30 +60,31 @@ class Draft {
     get displayTitle() { return this.title.replace(/^#+\s*/, '') || 'Untitled'; }
     get lines() { return this.content.split('\n'); }
     get syntax() { return this._syntax; }
-    set syntax(value) { this._syntax = typeof value === 'string' ? new Syntax(value) : value; }
+    set syntax(value) { this._syntax = typeof value === 'string' ? Syntax.getAll().find(s=>s.name===value)||new Syntax(value) : value; }
     get languageGrammar() { return this.syntax.name; }
     set languageGrammar(value) { this.syntax = value; }
     get isFlagged() { return this.flagType > 0; }
     set isFlagged(value) { this.flagType = value ? this.flagType || 1 : 0; }
     get folder() { return this.isTrashed ? 'trash' : this.isArchived ? 'archive' : 'inbox'; }
-    set folder(value) { this.isTrashed = value === 'trash'; this.isArchived = value === 'archive'; }
+    set folder(value) { if(!['inbox','archive','trash'].includes(value))throw new RangeError('The draft folder is invalid.');this.isTrashed = value === 'trash'; if(value!=='trash')this.isArchived = value === 'archive'; }
     get permalink() { return 'draftly://open?uuid=' + this.uuid; }
     get urls() { return __call('detectURLs',{text:this.content}); }
-    get linkedItems() { return Array.from(this.content.matchAll(/\[\[([^\]]+)\]\]/g), m => ({link:m[1],range:[m.index,m[0].length]})); }
+    get linkedItems() { return __syntaxAnalysis(this.content,this.syntax.name).links; }
     get selectionStart() { return this.uuid === __call('editorNoteID') ? editor.getSelectedRange()[0] : this._selectionStart || 0; }
     get selectionLength() { return this.uuid === __call('editorNoteID') ? editor.getSelectedRange()[1] : this._selectionLength || 0; }
     get versions() { return __call('versions',{uuid:this.uuid}).map(v => new Version(v)); }
     get actionLogs() { return __call('actionLogs',{uuid:this.uuid}).map(v => new ActionLog(v)); }
-    get tasks() { return __tasks(this.content); }
+    get tasks() { return __tasks(this.content,this.syntax.name); }
     get completedTasks() { return this.tasks.filter(t => t.isCompleted); }
     get incompleteTasks() { return this.tasks.filter(t => !t.isCompleted); }
-    get navigationMarkers() { return __markers(this.content); }
+    get navigationMarkers() { return __markers(this.content,this.syntax.name); }
     navigationMarkerAfter(location) { return this.navigationMarkers.find(m => m.location > location); }
     navigationMarkerBefore(location) { return this.navigationMarkers.filter(m => m.location < location).pop(); }
-    completeTask(task) { return this._task(task,'x'); }
-    resetTask(task) { return this._task(task,' '); }
-    advanceTask(task) { return this._task(task, task.isCompleted ? ' ' : 'x'); }
-    _task(task,state) { let r = task.stateRange; if(!r || r[0]<0 || r[0]+r[1]>this.content.length)return false; this.content = this.content.slice(0,r[0])+state+this.content.slice(r[0]+r[1]); return true; }
+    completeTask(task) { return this._task(task,'complete'); }
+    resetTask(task) { return this._task(task,'reset'); }
+    advanceTask(task) { return this._task(task,'advance'); }
+    _task(task,operation) { let c=__taskChange(this.content,this.syntax.name,task,operation);if(c.changed===false)return false;this.content=this.content.slice(0,c.range[0])+c.text+this.content.slice(c.range[0]+c.range[1]);return true; }
+
     addTag(tag) { tag = __normalTag(tag); if (tag && !this.hasTag(tag)) this.tags.push(tag); }
     removeTag(tag) { tag = __normalTag(tag); this.tags = this.tags.filter(t => __normalTag(t) !== tag); }
     hasTag(tag) { return this.tags.some(t => __normalTag(t) === __normalTag(tag)); }
@@ -110,10 +93,10 @@ class Draft {
     insert(text, line) { let lines = this.lines; lines.splice(Math.max(0,Math.min(line,lines.length)),0,text); this.content = lines.join('\n'); }
     linesWithPrefix(prefix) { return this.lines.filter(l => l.startsWith(prefix)); }
     bodyPreview(maxLength) { return this.lines.slice(1).join(' ').trim().slice(0,maxLength); }
-    update() { __call('updateDraft',{...this.toJSON(),_preserveDates:this._explicitModifiedAt}); }
+    update() { let v=__call('updateDraft',{...this.toJSON(),_preserveDates:this._explicitModifiedAt});this._modifiedAt=__date(v.modifiedAt);this.tags=v.tags;this._explicitModifiedAt=false; }
     saveVersion() { __call('saveVersion',{uuid:this.uuid,content:this.content}); }
     processTemplate(text) { return __call('template',{note:this,text,tags:Object.assign({},__tags,this._templateTags)}); }
-    processMustacheTemplate(text,additionalValues={},partials={}) { return MustacheTemplate.renderTemplate(text,{...this.toJSON(),title:this.title,displayTitle:this.displayTitle,body:this.lines.slice(1).join('\n'),...additionalValues},partials); }
+    processMustacheTemplate(text,additionalValues={},partials={}) { return MustacheTemplate.renderTemplate(text,{...this.toJSON(),title:this.title,displayTitle:this.displayTitle,body:this.lines.slice(1).join('\n'),...__tags,...this._templateTags,...additionalValues},partials); }
     setTemplateTag(key,value) { this._templateTags[key] = String(value); __tags[key] = String(value); __call('setTemplateTag',{key,value:String(value)}); }
     getTemplateTag(key) { return this._templateTags[key] === undefined ? __tags[key] : this._templateTags[key]; }
     toJSON() {
@@ -122,14 +105,19 @@ class Draft {
     }
 }
 class Version {
-    constructor(v) { Object.assign(this,v); this.createdAt = __date(v.createdAt); }
+    constructor(v) {
+        Object.assign(this,v);
+        for (const [key,value] of Object.entries({uuid:v.uuid,content:v.content,createdAt:__date(v.createdAt)})) {
+            Object.defineProperty(this,key,{value,writable:false,enumerable:true,configurable:false});
+        }
+    }
     get draft() { return Draft.find(this.draftUUID); }
     delete() { __call('deleteVersion',{uuid:this.uuid}); }
 }
 class ActionLog {
     constructor(v) { Object.assign(this,v); this.executedAt = __date(v.executedAt); }
     get draft() { return this.draftUUID ? Draft.find(this.draftUUID) : undefined; }
-    get action() { return this.actionName ? Action.find(this.actionName) : undefined; }
+    get action() { let value=__call('actionForLog',{uuid:this.uuid});return value?new Action(value):undefined; }
     delete() { __call('deleteLog',{uuid:this.uuid}); }
 }
 class Action {
@@ -146,14 +134,17 @@ class ActionGroup {
     get installURL() { return __call('groupInstallURL',{name:this.name}); }
 }
 class QueryDate {
-    constructor() { this.type = 'none'; this.field = 'modified'; this.days = 0; this.date = new Date(); }
+    constructor(value = {}) { Object.assign(this,{type:'none',field:'modified',days:0,date:new Date()},value);this.date=__date(this.date); }
     static create() { return new QueryDate(); }
 }
 class Workspace {
     constructor(v = {}) {
         Object.assign(this,{name:'',queryString:'',tagFilter:'',tagFilterRequireAll:true,inboxIncludesFlagged:true,archiveIncludesFlagged:true,flaggedStatus:'any',showDate:true,showPreview:true,showTags:true,showSearchPreview:true,showLastAction:false,startDate:new QueryDate(),endDate:new QueryDate(),_sorts:{}},v);
+        this.startDate=new QueryDate(this.startDate);this.endDate=new QueryDate(this.endDate);
+        for(let key of ['loadActionBarGroup','loadActionListGroup'])if(this[key])this[key]=new ActionGroup(this[key]);
+        for(let key of ['preferredDarkTheme','preferredLightTheme'])if(this[key])this[key]=Object.assign(new Theme(),this[key]);
     }
-    static create() { return new Workspace(); }
+    static create() { return new Workspace(__call('defaultWorkspace')); }
     static find(name) { let v = __call('findWorkspace',{name}); return v ? new Workspace(v) : undefined; }
     static getAll() { return __call('workspaces').map(v => new Workspace(v)); }
     setAllSort(sort,descending,flagged) { this._sorts.all = {sort,descending,flagged}; }
@@ -161,7 +152,7 @@ class Workspace {
     setArchiveSort(sort,descending,flagged) { this._sorts.archive = {sort,descending,flagged}; }
     setFlaggedSort(sort,descending) { this._sorts.flagged = {sort,descending}; }
     query(folder = 'all') { return __call('queryWorkspace',{workspace:this,folder}).map(v => new Draft(v)); }
-    update() { Object.assign(this,__call('updateWorkspace',this)); }
+    update() { Object.assign(this,new Workspace(__call('updateWorkspace',this))); }
     get installURL() { return 'draftly://workspace?data='+encodeURIComponent(JSON.stringify(this)); }
 }
 class Tag {
@@ -193,50 +184,58 @@ class Prompt {
     }
 }
 class SelectPromptItem {
-    constructor(id,title) { this.id=id; this.title=title; }
-    static create(id,title) { return new SelectPromptItem(id,title); }
+    constructor(id,title,subtitle,symbolName) { this.id=id; this.title=title; this.subtitle=subtitle; this.symbolName=symbolName; }
+    static create(id,title,subtitle,symbolName) { return new SelectPromptItem(id,title,subtitle,symbolName); }
 }
 class SelectPrompt {
     constructor() { this.title=''; this.message=''; this.items=[]; }
     static create() { return new SelectPrompt(); }
-    addItem(id,title) { let item = typeof id === 'object' ? id : new SelectPromptItem(id,title); this.items.push(item); return item; }
-    show() { let r=__call('selectPrompt',this); if(!r)return false; this.selectedItem=this.items[r.index];return true; }
+    addItem(id,title,subtitle,symbolName) {
+        if(id && typeof id==='object'){const item=id;id=item.id;title=item.title;subtitle=item.subtitle;symbolName=item.symbolName;}
+        if(typeof id!=='string'||typeof title!=='string'||this.items.some(item=>item.id===id)){__call('message',{message:'SelectPrompt.addItem requires a unique string ID and a string title.'});return false;}
+        this.items.push(new SelectPromptItem(id,title,subtitle,symbolName));return true;
+    }
+    show() { this.selectedItem=null;let r=__call('selectPrompt',this);if(!r||!Number.isInteger(r.index)||!this.items[r.index])return false;this.selectedItem=this.items[r.index];return true; }
 }
 var editor = {
-    getText:()=>__call('editorText'),setText:text=>__call('setEditorText',{text:String(text)}),
+    getText:()=>__call('editorText'),setText:text=>{__call('setEditorText',{text:String(text)});__syncEditorDraft();},
     getSelectedText:()=>__call('selection'),getSelectedRange:()=>__call('selectionRange'),
-    setSelectedText:text=>__call('replaceSelection',{text:String(text)}),setSelectedRange:(location,length)=>__call('setSelection',{location,length}),
-    getTextInRange:(location,length)=>__call('textInRange',{location,length}),setTextInRange:(location,length,text)=>__call('replaceRange',{location,length,text}),
+    setSelectedText:text=>{__call('replaceSelection',{text:String(text)});__syncEditorDraft();},setSelectedRange:(location,length)=>{__validateTextRange(editor.getText(),location,length);__call('setSelection',{location,length});},
+    getTextInRange:(location,length)=>{__validateTextRange(editor.getText(),location,length);return __call('textInRange',{location,length});},setTextInRange:(location,length,text)=>{__validateTextRange(editor.getText(),location,length);__call('replaceRange',{location,length,text});__syncEditorDraft();},
     getLineRange:(location,length=0)=>__range(editor.getText(),location,length),
     getSelectedLineRange:()=>__range(editor.getText(),...editor.getSelectedRange()),
-    load:d=>__call('loadDraft',d),activate:()=>__call('activate'),deactivate:()=>__call('ui',{operation:'deactivate'}),
-    save:()=>__call('saveEditor'),new:()=>__call('newEditor'),
-    navigationMarkers:()=>__markers(editor.getText()),navigationMarkerAfter:location=>__markers(editor.getText()).find(m=>m.location>location),
-    navigationMarkerBefore:location=>__markers(editor.getText()).filter(m=>m.location<location).pop(),
-    completeTask:task=>editor.setTextInRange(...task.stateRange,'x'),resetTask:task=>editor.setTextInRange(...task.stateRange,' '),
-    advanceTask:task=>editor.setTextInRange(...task.stateRange,task.isCompleted?' ':'x')
+    load:d=>{__rememberSelection();__call('loadDraft',d);__syncEditorDraft();},activate:()=>__call('activate'),deactivate:()=>__call('ui',{operation:'deactivate'}),
+    save:()=>{__call('saveEditor');},new:()=>{__rememberSelection();__call('newEditor');},
+    navigationMarkers:()=>__markers(editor.getText(),editor.draft.syntax.name),navigationMarkerAfter:location=>__markers(editor.getText(),editor.draft.syntax.name).find(m=>m.location>location),
+    navigationMarkerBefore:location=>__markers(editor.getText(),editor.draft.syntax.name).filter(m=>m.location<location).pop(),
+    completeTask:task=>__editTask(task,'complete'),resetTask:task=>__editTask(task,'reset'),advanceTask:task=>__editTask(task,'advance')
 };
+function __editTask(task,operation){let c=__taskChange(editor.getText(),editor.draft.syntax.name,task,operation);if(c.changed===false)return false;editor.setTextInRange(...c.range,c.text);return true;}
+function __rememberSelection(){let id=__call('editorNoteID'),range=__call('selectionRange');if(__draftCache[id]){__draftCache[id]._selectionStart=range[0];__draftCache[id]._selectionLength=range[1];}}
+function __syncEditorDraft(){let id=__call('editorNoteID');if(__draftCache[id])__draftCache[id].content=editor.getText();}
 __define(editor,'draft',()=>Draft.find(__call('editorNoteID')),d=>editor.load(d));
-__define(editor,'tasks',()=>__tasks(editor.getText()));
+__define(editor,'tasks',()=>__tasks(editor.getText(),editor.draft.syntax.name));
 __define(editor,'completedTasks',()=>editor.tasks.filter(t=>t.isCompleted));
 __define(editor,'incompleteTasks',()=>editor.tasks.filter(t=>!t.isCompleted));
 __define(editor,'urls',()=>__call('detectURLs',{text:editor.getText()}));
 __define(editor,'linkedItems',()=>editor.draft.linkedItems);
 __define(editor,'preferredTabString',()=>__call('ui',{operation:'get',key:'preferredTabString'}));
-for(let name of ['undo','redo','showFind','arrange','showArrange','dictate','showDictate','scanDocument','transcribe','nextDraft','previousDraft']) editor[name]=(...args)=>__call('ui',{operation:name,args});
+for(let name of ['undo','redo','showFind','arrange','showArrange','dictate','showDictate','scanDocument','transcribe','nextDraft','previousDraft']) editor[name]=(...args)=>{let result=__call('ui',{operation:name,args});if(name==='undo'||name==='redo')__syncEditorDraft();return result;};
 for(let name of ['isActive','linkModeEnabled','pinningEnabled','focusModeEnabled','typewriterScrollingEnabled']) __define(editor,name,()=>__call('ui',{operation:'get',key:name}),value=>__call('ui',{operation:'set',key:name,value}));
 __define(editor,'recentDrafts',()=>__call('recentDrafts').map(v=>new Draft(v)));
-__define(editor,'navigationMarkers',()=>__markers(editor.getText()));
+__define(editor,'navigationMarkers',()=>__markers(editor.getText(),editor.draft.syntax.name));
 var context = {configuredValues:{},callbackResponses:[],appleScriptResponses:[],previewValues:{},successParameters:{},
-    cancel:()=>{__cancelled=true;},fail:message=>{__failure=message||'Action failed';},addSuccessParameter:(key,value)=>{context.successParameters[key]=value;}};
+    cancel:message=>{if(message)__call('message',{message:String(message)});__cancelled=true;},fail:message=>{__failure=message||'Action failed';},addSuccessParameter:(name,value)=>{__call('successParameter',{name,value});context.successParameters[name]=value;}};
 __define(context,'isCancelled',()=>__cancelled);
 var app = {
     isPro:true,version:'0.1.0',areLiveActivitiesSupported:false,
+    startLiveActivity:()=>{throw new Error('Live Activities are unavailable on macOS.');},
+    stopLiveActivity:()=>{throw new Error('Live Activities are unavailable on macOS.');},
     displayInfoMessage:message=>__call('message',{message}),displaySuccessMessage:message=>__call('message',{message}),
     displayWarningMessage:message=>__call('message',{message}),displayErrorMessage:message=>__call('message',{message}),
     setClipboard:text=>__call('clipboard',{text}),getClipboard:()=>__call('getClipboard'),htmlToClipboard:html=>__call('htmlToClipboard',{html}),
     openURL:(url,useSafari)=>__call('openURL',{url,useSafari}),queueAction:(action,draft)=>__call('queueAction',{action,draft}),
-    applyWorkspace:workspace=>__call('applyWorkspace',workspace),setIdleDisabled:value=>__call('ui',{operation:'set',key:'isIdleDisabled',value}),
+    applyWorkspace:workspace=>__call('applyWorkspace',workspace===undefined?Workspace.create():workspace),setIdleDisabled:value=>__call('ui',{operation:'set',key:'isIdleDisabled',value}),
     selectDraft:()=>{let p=new SelectPrompt();Draft.query().forEach(d=>p.addItem(d.uuid,d.displayTitle));return p.show()?Draft.find(p.selectedItem.id):undefined;},
     openInNewWindow:d=>__call('ui',{operation:'openInNewWindow',draft:d}),lookup:text=>__call('lookup',{text})
 };
@@ -245,7 +244,7 @@ for(let key of ['isActionListVisible','isDraftListVisible','isIdleDisabled','cur
 __define(app,'currentWorkspace',()=>new Workspace(__call('currentWorkspace')));
 class Window {
     get currentWorkspace(){return app.currentWorkspace;}
-    applyWorkspace(w){app.applyWorkspace(w);}
+    applyWorkspace(w){return app.applyWorkspace(w);}
     get selectedDrafts(){return __call('selectedDrafts').map(v=>new Draft(v));}
 }
 var window = new Window();
@@ -288,6 +287,8 @@ class FileManager {
 }
 class HTTPResponse { constructor(v={}){Object.assign(this,{success:false,statusCode:0,responseText:'',headers:{}},v);} }
 class HTTP {constructor(){this.followRedirects=true;this.timeout=60;}static create(){return new HTTP();}request(settings){return new HTTPResponse(__call('http',{...settings,followRedirects:this.followRedirects,timeout:this.timeout}));}}
+class XMLRPCResponse { constructor(v={}) { Object.assign(this, {success:false,statusCode:0,params:[]},v); } }
+class XMLRPC { static request(url,methodName,params) { return new XMLRPCResponse(__call('xmlrpc',{url,methodName,params})); } }
 class URL {
     constructor(url,base){if(url!==undefined)Object.assign(this,__call('parseURL',{url,base}));}
     static parse(url,base){try{return new URL(url,base);}catch(e){return undefined;}}
@@ -305,7 +306,7 @@ class Shortcut {
     constructor(){this.name='';this.text='';this.waitForResponse=true;this.response={};this.status='created';}
     static create(name,text=''){let s=new Shortcut();s.name=name;s.text=text;return s;}
     get result(){return this.response.result;}
-    run(text){if(text!==undefined)this.text=text;try{let result=__call('shortcut',{name:this.name,text:this.text,waitForResponse:this.waitForResponse});this.response={result};this.status='success';__tags.shortcut_result=String(result);__call('setTemplateTag',{key:'shortcut_result',value:String(result)});return true;}catch(e){this.status='error';this.response={error:e.message};return false;}}
+    run(text){if(text!==undefined)this.text=text;try{let result=__call('shortcut',{name:this.name,text:this.text,waitForResponse:this.waitForResponse});this.response={result};this.status='success';if(this.waitForResponse)context.callbackResponses.push(this.response);__tags.shortcut_result=String(result);__call('setTemplateTag',{key:'shortcut_result',value:String(result)});return true;}catch(e){this.status='error';this.response={error:e.message};return false;}}
 }
 class AppleScript {
     constructor(source){this.source=source;}static create(source){return new AppleScript(source);}
@@ -330,14 +331,25 @@ class HTMLToMarkdown {constructor(){this.emphasisMark='_';this.strongMark='**';t
 class MustacheTemplate {
     constructor(template=''){this.template=template;this.contentType='html';}
     static createWithTemplate(template){return new MustacheTemplate(template);}
-    static createWithPath(path){return new MustacheTemplate(FileManager.createCloud().readString('/Library/Templates/'+path));}
+    static createWithPath(path){if(String(path).split('/').includes('..'))throw new Error('Use a path inside the Templates folder.');let t=new MustacheTemplate();t.path=String(path);return t;}
+    renderTemplate(name,data){
+        if(this.path===undefined)throw new Error('Use createWithPath before renderTemplate.');
+        if(String(name).includes('/')||String(name).includes('..'))throw new Error('Use a template name without a path.');
+        let fm=FileManager.createCloud(),root='/Library/Templates/'+this.path.replace(/^\/+|\/+$/g,'');
+        let partials={};for(let file of fm.listContents(root)){if(file.endsWith('.mustache')){let key=file.split('/').pop().slice(0,-9);partials[key]=fm.readString(file);}}
+        if(!Object.prototype.hasOwnProperty.call(partials,name))throw new Error('The Mustache template was not found: '+name);
+        return __call('mustache',{template:partials[name],data,partials,contentType:this.contentType});
+    }
     static renderTemplate(template,data,partials={}){let t=new MustacheTemplate(template);t.partials=partials;return t.render(data);}
     render(data){return __call('mustache',{template:this.template,data,partials:this.partials||{},contentType:this.contentType});}
 }
 var alert=message=>__call('alert',{message:String(message)});
 var console={log:(...args)=>__call('message',{message:args.map(String).join(' ')}),error:(...args)=>__call('message',{message:args.map(String).join(' ')}),warn:(...args)=>__call('message',{message:args.map(String).join(' ')})};
-class Script {complete(){__completed=true;}}var script=new Script();
+class Script {constructor(epoch){this.epoch=epoch;}complete(){if(this.epoch===__stepEpoch)__completed=true;}}var __stepEpoch=0,script=new Script(0);
+function __beginStep(){__stepEpoch++;__completed=false;__timers=[];script=new Script(__stepEpoch);}
+function __endStep(){__timers=[];__stepEpoch++;}
 var device=__call('device');
+__define(device,'batteryLevel',()=>__call('batteryLevel'));
 function require(path){return __require(path);}
 function strftime(date,format){return __call('formatDate',{date,format});}
 function adjustDate(date,adjustment){return new Date(__call('adjustDate',{date,adjustment}));}
@@ -347,7 +359,7 @@ class Autocomplete {
 var __timers=[],__timerID=0;
 function setTimeout(fn,delay=0,...args){let id=++__timerID;__timers.push({id,fn,args,time:Date.now()+delay});return id;}
 function clearTimeout(id){__timers=__timers.filter(t=>t.id!==id);}
-function __drainTimers(){let now=Date.now(),due=__timers.filter(t=>t.time<=now);__timers=__timers.filter(t=>t.time>now);due.forEach(t=>t.fn(...t.args));}
+function __drainTimers(){let now=Date.now(),due=__timers.filter(t=>t.time<=now);__timers=__timers.filter(t=>t.time>now);for(let t of due){if(__completed||__cancelled||__failure)break;t.fn(...t.args);}}
 class Alarm {
     constructor(v={}){Object.assign(this,v);if(v.absoluteDate)this.absoluteDate=__date(v.absoluteDate);this.relativeOffset=v.relativeOffset||0;}
     static alarmWithDate(date){return new Alarm({absoluteDate:date});}static alarmWithOffset(seconds){return new Alarm({relativeOffset:seconds});}

@@ -45,7 +45,7 @@ struct RunDraftActionIntent: AppIntent {
               let action = library.actions.first(where: { $0.name == name }) else { throw DraftlyError.message("The draft or action was not found.") }
         let host = NativeActionHost(); let editor = EditorSession(); editor.load(note)
         let runner = ActionRunner(library: library, editor: editor, host: host)
-        guard runner.run(action) else { throw DraftlyError.message(runner.message ?? "The action did not complete.") }
+        guard runner.runResult(action).succeeded else { throw DraftlyError.message(runner.message ?? "The action did not complete.") }
         return .result(value: runner.message ?? "Complete")
     }
 }

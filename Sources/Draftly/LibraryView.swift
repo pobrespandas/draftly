@@ -6,10 +6,27 @@ struct LibraryView: View {
     @StateObject private var model: WindowModel
     @ObservedObject private var hub = AppController.shared
     @State private var selection: Set<UUID> = []
-    @State private var showAdvancedTagFilters = false
-    @AppStorage("editor.fontName") private var fontName = "SFMono-Regular"
+    @State private var showTagSearch = false
+    @AppStorage("editor.fontName") private var fontName = "System"
     @AppStorage("editor.fontSize") private var fontSize = 17.0
     @AppStorage("editor.lineSpacing") private var lineSpacing = 2.0
+    @AppStorage("editor.horizontalMargin") private var horizontalMargin = 17.0
+    @AppStorage("editor.verticalMargin") private var verticalMargin = 17.0
+    @AppStorage("editor.maximumWidth") private var maximumWidth = 0.0
+    @AppStorage("editor.typewriter") private var typewriter = false
+    @AppStorage("editor.theme") private var themeName = "System"
+    @AppStorage("editor.themes") private var themeData = "[]"
+    private var workspaceThemeName: String? {
+        let isDark = model.darkTheme ?? (NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua)
+        let key = isDark ? "preferredDarkTheme" : "preferredLightTheme"
+        return (WorkspaceThemeValues.preference(model.workspaceScriptMetadata, key: key))
+    }
+    private var theme: EditorTheme? { EditorTheme.selected(name: workspaceThemeName ?? themeName, data: themeData) }
+    private var preferredScheme: ColorScheme? {
+        if workspaceThemeName == "Dark" { return .dark }
+        if workspaceThemeName == "Light" { return .light }
+        return model.darkTheme.map { $0 ? .dark : .light } ?? theme.map { $0.isDark ? .dark : .light }
+    }
     @AppStorage("capture.newDraftAfter") private var newDraftAfter = 300.0
     @Environment(\.openWindow) private var openWindow
 
@@ -22,40 +39,50 @@ struct LibraryView: View {
             panel(sidebar), panel(noteList), panel(editor), panel(actionPanel)
         ])
         .ignoresSafeArea(.container, edges: .top)
-        .preferredColorScheme(model.darkTheme.map { $0 ? .dark : .light })
-        .frame(minWidth: 850, minHeight: 560)
+        .preferredColorScheme(preferredScheme)
+        .frame(minWidth: 850, minHeight: 480)
         .background(WindowAccessor { window in
             model.window = window
+            if window.isKeyWindow { hub.commandWindow = model }
         })
         .focusedSceneValue(\.windowModel, model)
+        .sheet(isPresented: $model.showAdvancedFind) { AdvancedFindView(model: model) }
+        .sheet(item: $model.mergeRequest) { request in MergeDraftsView(model: model, request: request) }
         .sheet(item: $model.editingAction) { action in ActionEditor(action: action, library: library) }
         .sheet(isPresented: $model.showActionImporter) { ActionImportView(library: library) { actions in model.actionGroup = actions.first?.group ?? "General" } }
+        .sheet(isPresented: $model.showLibraryManagement) { LibraryManagementView(model: model, library: library) }
         .sheet(isPresented: $model.showWorkspaceEditor) { WorkspaceEditor(model: model, library: library) }
-        .sheet(isPresented: $model.showHistory) { HistoryView(model: model, library: library) }
+        .sheet(isPresented: $model.showHistory, onDismiss: { model.historyDraftID = nil }) { HistoryView(model: model, library: library, noteID: model.historyDraftID ?? model.editor.noteID) }
         .sheet(isPresented: $model.showRunLog) { RunLogView(library: library) }
         .sheet(isPresented: $model.showPalette) { CommandPalette(model: model, library: library) }
-        .sheet(isPresented: $model.showInfo) { if let note = model.currentNote { DraftInfoView(note: note) } }
+        .sheet(isPresented: $model.showInfo, onDismiss: { model.infoDraft = nil }) { if let note = model.infoDraft ?? model.currentNote { DraftInfoView(note: note) } }
         .alert("Draftly", isPresented: Binding(get: { library.error != nil }, set: { if !$0 { library.error = nil } })) {
             Button("OK") { library.error = nil }
         } message: { Text(library.error ?? "") }
-        .onChange(of: selection) { _, ids in if ids.count == 1 { model.select(ids.first) } }
+        .onChange(of: typewriter) { _, enabled in model.editor.typewriterScrollingEnabled = enabled }
+        .onChange(of: model.listOptions) { _, options in
+            if model.selectedWorkspace == nil, let data = try? JSONEncoder().encode(options) { UserDefaults.standard.set(data, forKey: "list.options") }
+        }
+        .onChange(of: selection) { _, ids in if ids.count == 1 { model.select(ids.first, focusEditor: false) } }
         .onChange(of: model.editor.noteID) { _, id in selection = id.map { [$0] } ?? [] }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.willResignActiveNotification)) { _ in model.applicationResigned() }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             if model.window?.isKeyWindow == true { model.applicationActivated(timeout: newDraftAfter) }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in model.flush() }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { event in
+            if let window = event.object as? NSWindow, window === model.window { hub.commandWindow = model }
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { event in
-            if let window = event.object as? NSWindow, window === model.window { model.actionPreview?.finish(false); model.flush() }
+            if let window = event.object as? NSWindow, window === model.window {
+                model.actionPreview?.finish(false); model.flush()
+                if hub.commandWindow === model { hub.commandWindow = nil }
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .draftlyOpenNote)) { event in
             guard model.window?.isKeyWindow == true, let id = event.object as? UUID else { return }
             model.folder = .inbox; model.clearFilters(); model.select(id)
             hub.pendingNoteID = nil
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .draftlyCapture)) { event in
-            guard model.window?.isKeyWindow == true else { return }
-            if model.capture(event.object as? String ?? "") { hub.pendingCaptureText = nil }
         }
         .onReceive(library.$notes) { notes in
             guard !model.hasUnsavedChanges, let id = model.editor.noteID,
@@ -63,40 +90,45 @@ struct LibraryView: View {
             model.editor.content = note.content
         }
         .onAppear {
+            model.editor.typewriterScrollingEnabled = typewriter
             hub.windows.add(model)
+            hub.commandWindow = model
             hub.openLibrary = { openWindow(id: "library") }
             hub.consumePendingMenuAction(for: model)
             if let id = hub.pendingNoteID { model.select(id); hub.pendingNoteID = nil }
             else if model.editor.noteID == nil { model.create() }
             if let id = model.editor.noteID { selection = [id] }
-            if let text = hub.pendingCaptureText, model.capture(text) { hub.pendingCaptureText = nil }
         }
     }
 
     private func panel<Content: View>(_ content: Content) -> AnyView {
         AnyView(content
             .focusedSceneValue(\.windowModel, model)
-            .preferredColorScheme(model.darkTheme.map { $0 ? .dark : .light }))
+            .preferredColorScheme(preferredScheme))
     }
 
     private var sidebar: some View {
         VStack(spacing: 0) {
             HStack {
-                Image(systemName: "line.3.horizontal.decrease.circle.fill").font(.system(size: 20))
-                Text("Filters").font(.system(size: 11, weight: .semibold)).textCase(.uppercase).tracking(0.35)
+                Image(systemName: model.activeTagFilters.isEmpty && model.excludedTagFilters.isEmpty && model.tagPresence == nil ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill").font(.system(size: 20))
+                Text("Filters").font(.system(size: 12, weight: .bold)).textCase(.uppercase).tracking(0.35).lineLimit(1).minimumScaleFactor(0.75)
                 Spacer()
                 Button { model.clearFilters() } label: { Image(systemName: "xmark.circle").font(.system(size: 20, weight: .light)) }.help("Clear Filters")
-                Menu {
-                    Button(showAdvancedTagFilters ? "Hide Advanced Tag Filters" : "Show Advanced Tag Filters") { showAdvancedTagFilters.toggle() }
-                    Divider()
-                    Button(model.multipleTagMode ? "Single Tag Mode" : "Multiple Tag Mode") { model.setMultipleTagMode(!model.multipleTagMode) }
-                    Divider()
-                    Button(model.matchAnyTag ? "Match All Tags ✓" : "Match All Tags") { model.matchAnyTag = false }
-                    Button(model.matchAnyTag ? "Match Any Tag ✓" : "Match Any Tag") { model.matchAnyTag = true }
-                    Button("Save Workspace…") { model.showWorkspaceEditor = true }
-                    Button("Hide Filters") { model.setFiltersVisible(false) }
-                } label: { Image(systemName: "ellipsis.circle").font(.system(size: 20, weight: .light)) }.menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
-            }.buttonStyle(.plain).foregroundStyle(.secondary).padding(.horizontal, 14).frame(height: 40)
+                PanelMenu(symbol: "ellipsis.circle", help: "Filter Options", items: [
+                    PanelMenuItem(title: showTagSearch ? "Hide Search" : "Show Search") {
+                        showTagSearch.toggle()
+                        if !showTagSearch { model.tagQuery = "" }
+                    },
+                    .section("Selection Mode"),
+                    PanelMenuItem(title: "Single Tag", isOn: !model.multipleTagMode) { model.setMultipleTagMode(false) },
+                    PanelMenuItem(title: "Multiple Tags", isOn: model.multipleTagMode) { model.setMultipleTagMode(true) },
+                    .section("Show"),
+                    PanelMenuItem(title: "All Tags", isOn: !model.showOnlyCurrentTags) { model.showOnlyCurrentTags = false },
+                    PanelMenuItem(title: "Only Current Tags", isOn: model.showOnlyCurrentTags) { model.showOnlyCurrentTags = true }
+
+                ]).frame(width: 20, height: 20)
+            }.buttonStyle(.plain).foregroundStyle(.secondary).padding(.horizontal, MainWindowStyle.sidebarInset).frame(height: 40).offset(y: 6)
+
             if !model.activeTagFilters.isEmpty || !model.excludedTagFilters.isEmpty || model.tagPresence != nil {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 5) {
@@ -110,9 +142,12 @@ struct LibraryView: View {
                     }.padding(.horizontal, 16).padding(.top, 10)
                 }.frame(height: 60, alignment: .top)
             } else {
-                Color.clear.frame(height: 60)
+                Text("No tag filters active").font(.system(size: 11)).italic().foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, MainWindowStyle.sidebarInset).padding(.top, 17)
+                    .frame(height: 60, alignment: .top)
             }
-            if showAdvancedTagFilters {
+            if showTagSearch {
                 HStack(spacing: 7) {
                     Image(systemName: "magnifyingglass").foregroundStyle(.tertiary)
                     TextField("Filter tags", text: $model.tagQuery).textFieldStyle(.plain).font(.system(size: 12))
@@ -121,18 +156,18 @@ struct LibraryView: View {
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 5) {
+                    HStack(spacing: 8) {
                         Image(systemName: "tag.circle").font(.system(size: 20, weight: .light))
                         Text("Tags")
-                    }.font(.system(size: 11, weight: .semibold)).textCase(.uppercase).tracking(0.3)
-                        .foregroundStyle(.secondary).padding(.horizontal, 12).padding(.top, 4).padding(.bottom, 12)
+                    }.font(.system(size: 12, weight: .bold)).textCase(.uppercase).tracking(0.3)
+                        .foregroundStyle(.secondary).padding(.horizontal, 8).padding(.top, 7).padding(.bottom, 7).offset(y: MainWindowStyle.tagsHeadingOffset)
                     Button { model.tagPresence = model.tagPresence == true ? nil : true } label: { filterRow("tagged", symbol: "tag.fill", selected: model.tagPresence == true) }
                         .buttonStyle(.plain).padding(.horizontal, 9).frame(height: 32).background(model.tagPresence == true ? Color.accentColor : .clear, in: RoundedRectangle(cornerRadius: 5))
                         .accessibilityLabel("Tagged, \(model.taggedCount) drafts")
                     Button { model.tagPresence = model.tagPresence == false ? nil : false } label: { filterRow("untagged", symbol: "tag.fill", selected: model.tagPresence == false) }
                         .buttonStyle(.plain).padding(.horizontal, 9).frame(height: 32).background(model.tagPresence == false ? Color.accentColor : .clear, in: RoundedRectangle(cornerRadius: 5))
                         .accessibilityLabel("Untagged, \(model.untaggedCount) drafts")
-                    ForEach(showAdvancedTagFilters ? model.matchingTags : model.allTags, id: \.self) { tag in
+                    ForEach(model.matchingTags, id: \.self) { tag in
                         HStack(spacing: 4) {
                             Button { model.toggleTag(tag) } label: { filterRow(tag, symbol: "tag", selected: model.selectedTags.contains(tag)) }
                                 .buttonStyle(.plain).accessibilityLabel("Filter by tag \(tag), \(model.count(forTag: tag)) drafts")
@@ -146,18 +181,18 @@ struct LibraryView: View {
                         .padding(.horizontal, 9).frame(height: 32)
                         .background(model.selectedTags.contains(tag) || model.excludedTags.contains(tag) ? Color.accentColor : .clear, in: RoundedRectangle(cornerRadius: 5))
                         .contextMenu {
-                            Button("Include Tag") { model.toggleTag(tag) }
-                            Button("Exclude Tag") { model.toggleExcludedTag(tag) }
+                            Button("Rename Tag") { model.promptRenameTag(tag) }
+                            Button("Delete Tag") { model.promptDeleteTag(tag) }
                         }
                     }
                     if model.matchingTags.isEmpty { Text(model.allTags.isEmpty ? "No tags yet" : "No matching tags").font(.system(size: 12)).foregroundStyle(.secondary).padding(12) }
                 }.padding(.horizontal, 10).frame(maxWidth: .infinity, alignment: .leading)
             }
-        }.background(Color.primary.opacity(0.04)).background(Color(nsColor: .windowBackgroundColor))
+        }
     }
 
     private func filterRow(_ title: String, symbol: String, selected: Bool = false) -> some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 12) {
             TagGlyph(symbol: symbol, weight: .medium).foregroundStyle(selected ? Color.white : Color.accentColor)
             Text(title).fontWeight(selected ? .semibold : .regular).lineLimit(1)
             Spacer(minLength: 6)
@@ -189,11 +224,12 @@ struct LibraryView: View {
                     Image(systemName: "square.and.pencil").font(.system(size: 46, weight: .ultraLight)).foregroundStyle(.tint)
                     Text("Your next thought starts here.").font(.title2.weight(.medium))
                     Text("Write first. Decide what to do with it later.").foregroundStyle(.secondary)
-                    Button("New Draft") { model.create() }.buttonStyle(.borderedProminent).keyboardShortcut("n")
+                    Button("New Draft") { model.create() }.buttonStyle(.borderedProminent).commandShortcut("New Draft")
                     Text("⌃⌥⌘N to capture from anywhere").font(.caption).foregroundStyle(.tertiary)
                 }.frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-        }.background(Color(nsColor: .textBackgroundColor))
+        }.background(Color(nsColor: theme.flatMap { EditorTheme.color($0.background) } ?? .textBackgroundColor))
+            .overlay(alignment: .bottom) { EditorStatusOverlay(message: model.status).padding(.bottom, MainWindowStyle.editingBarHeight + MainWindowStyle.footerHeight) }
     }
 
     private func editorContent(_ note: Note) -> some View {
@@ -207,14 +243,16 @@ struct LibraryView: View {
                 Divider()
             }
             ZStack {
-                EditorBody(model: model, session: model.editor, fontName: fontName, fontSize: fontSize, lineSpacing: lineSpacing, markdown: note.syntax == "Markdown")
+                EditorBody(model: model, session: model.editor, fontName: fontName, fontSize: fontSize, lineSpacing: lineSpacing, markdown: ScriptSyntax.isMarkdown(note.syntax), horizontalMargin: horizontalMargin, verticalMargin: verticalMargin, maximumWidth: maximumWidth, theme: theme)
                     .opacity(model.showPreview ? 0 : 1).allowsHitTesting(!model.showPreview)
                     .accessibilityHidden(model.showPreview)
                 if let request = model.actionPreview { ActionPreviewPane(request: request) }
-                else if model.showPreview { InlineMarkdownPreview(session: model.editor, htmlOverride: model.previewHTML) }
+                else if model.showPreview { InlineMarkdownPreview(session: model.editor, syntax: note.syntax, htmlOverride: model.previewHTML) }
             }
-            Divider()
-            EditorActionBar(model: model, session: model.editor, library: library)
+            if model.showActionBar {
+                Divider()
+                EditorActionBar(model: model, session: model.editor, library: library)
+            }
             Divider()
             EditorFooter(model: model, session: model.editor, library: library)
         }
@@ -246,8 +284,9 @@ private struct EditorBody: View {
     @ObservedObject var model: WindowModel
     @ObservedObject var session: EditorSession
     var fontName: String; var fontSize: Double; var lineSpacing: Double; var markdown: Bool
+    var horizontalMargin: Double; var verticalMargin: Double; var maximumWidth: Double; var theme: EditorTheme?
     var body: some View {
-        NativeEditor(session: session, fontName: fontName, fontSize: fontSize, lineSpacing: lineSpacing, markdown: markdown, linksEnabled: model.linksEnabled, isActive: !model.showPreview) { model.contentChanged() }
+        NativeEditor(session: session, fontName: fontName, fontSize: fontSize, lineSpacing: lineSpacing, markdown: markdown, syntax: model.currentNote?.syntax ?? "Markdown", syntaxDefinition: try? model.library.syntaxDefinition(named: model.currentNote?.syntax ?? "Markdown"), horizontalMargin: horizontalMargin, verticalMargin: verticalMargin, maximumWidth: maximumWidth, theme: theme, linksEnabled: model.linksEnabled, isActive: !model.showPreview) { model.contentChanged() }
     }
 }
 private struct EditorFooter: View {
@@ -256,44 +295,44 @@ private struct EditorFooter: View {
     @ObservedObject var library: LibraryStore
     var body: some View {
         GeometryReader { geometry in
-            HStack(spacing: geometry.size.width < 360 ? 5 : 13) {
+            ScrollView(.horizontal) {
+            HStack(spacing: geometry.size.width < 280 ? 2 : geometry.size.width < 360 ? 5 : 13) {
                 Button { model.isDraftPinned.toggle() } label: { Image(systemName: model.isDraftPinned ? "pin.fill" : "pin").frame(width: 14) }.help("Pin Current Draft")
                 Button { model.showInfo = true } label: { Image(systemName: "info.circle").frame(width: 14) }.help("Draft Info")
-                Button { model.showHistory = true } label: { Image(systemName: "arrow.uturn.backward").frame(width: 14) }.help("Version History")
-                Button { model.showRunLog = true } label: { Image(systemName: "clock.arrow.circlepath").frame(width: 14) }.help("Action Log")
+                Button { model.showHistory = true } label: { Image(systemName: "clock.arrow.circlepath").frame(width: 14) }.help("Version History")
+                Button { model.showRunLog = true } label: { Image(systemName: "clock.badge.checkmark").frame(width: 14) }.help("Action Log")
                 PanelMenu(symbol: "arrow.up.arrow.down", help: "Arrange", items: [
                     PanelMenuItem(title: "Sort Lines") { model.edit("editor.setText(editor.getText().split('\\n').sort().join('\\n'));") },
                     PanelMenuItem(title: "Reverse Lines") { model.edit("editor.setText(editor.getText().split('\\n').reverse().join('\\n'));") },
                     PanelMenuItem(title: "Remove Empty Lines") { model.edit("editor.setText(editor.getText().split('\\n').filter(x => x.trim()).join('\\n'));") }
                 ], symbolSize: 13).frame(width: 16, height: 20)
                 Button { model.linksEnabled.toggle() } label: { Image(systemName: "link").frame(width: 14).foregroundStyle(model.linksEnabled ? Color.accentColor : .secondary) }.help("Link Mode")
+                Spacer(minLength: 0)
                 Button { model.preview() } label: {
                     Image(systemName: model.showPreview ? "eye.fill" : "eye").frame(width: 14)
                         .foregroundStyle(model.showPreview ? Color.accentColor : .secondary)
                 }
                     .help(model.showPreview ? "Edit Markdown (⌥⌘P)" : "Preview Markdown (⌥⌘P)")
                     .accessibilityLabel(model.showPreview ? "Edit Markdown" : "Preview Markdown")
-                Spacer(minLength: 0)
                 PanelMenu(symbol: "", help: "Syntax Highlighting", items:
-                    ["Markdown", "Plain Text"].map { syntax in
+                    (ScriptSyntax.names + model.library.syntaxes.map(\.name)).map { syntax in
                         PanelMenuItem(title: syntax, isOn: model.currentNote?.syntax == syntax) {
                             if let id = session.noteID { model.change([id]) { $0.syntax = syntax } }
                         }
-                    }, title: model.currentNote?.syntax ?? "Markdown", showsChevron: false, textSize: geometry.size.width < 360 ? 11 : 12
+                    } + [.separator, PanelMenuItem(title: "Import Syntax…") { model.importSyntax(asFile: false) }, PanelMenuItem(title: "Add File Syntax…") { model.importSyntax(asFile: true) }], title: model.currentNote?.syntax ?? "Markdown", showsChevron: false, textSize: geometry.size.width < 360 ? 11 : 12
                 ).frame(width: geometry.size.width < 360 ? 58 : 64, height: 20)
                 Text("\(session.content.count)c \(session.content.split(whereSeparator: \.isWhitespace).count)w").monospacedDigit().lineLimit(1).minimumScaleFactor(0.75).layoutPriority(1)
-            }.buttonStyle(.plain).font(.system(size: geometry.size.width < 360 ? 11 : 12)).foregroundStyle(.secondary)
-                .padding(.horizontal, geometry.size.width < 360 ? 6 : 12).frame(height: 29)
-        }.frame(height: 29)
-        if !model.status.isEmpty {
-            Text(model.status).font(.caption).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading).padding(10).background(.quaternary.opacity(0.4))
-        }
+            }.frame(minWidth: geometry.size.width - (geometry.size.width < 280 ? 8 : geometry.size.width < 360 ? 12 : 24))
+                .buttonStyle(.plain).font(.system(size: MainWindowStyle.statusSymbolSize)).foregroundStyle(.secondary)
+                .padding(.horizontal, geometry.size.width < 280 ? 4 : geometry.size.width < 360 ? 6 : 12).frame(height: MainWindowStyle.footerHeight)
+            }.scrollIndicators(.hidden)
+        }.frame(height: MainWindowStyle.footerHeight)
     }
 }
 
 func flagColor(_ flag: Int) -> Color {
-    switch flag { case 2: .orange; case 3: .yellow; case 4: .green; case 5: .blue; case 6: .purple; default: .red }
+    switch flag { case 2: .orange; case 3: .yellow; case 4: .green; case 5: .blue; case 6: .purple; case 7: .gray; default: .red }
 }
 func flagName(_ flag: Int) -> String {
-    switch flag { case 2: "Orange"; case 3: "Yellow"; case 4: "Green"; case 5: "Blue"; case 6: "Purple"; default: "Red" }
+    switch flag { case 2: "Orange"; case 3: "Yellow"; case 4: "Green"; case 5: "Blue"; case 6: "Purple"; case 7: "Gray"; default: "Red" }
 }

@@ -21,7 +21,8 @@ does not prove that an external app, account, or permission is available.
 - `Draft`: create, find, query, content, tags, archive, trash, flag, syntax, update,
   dates, location metadata, versions, action logs, tasks, and template tags.
 - `editor`: text, UTF-16 ranges, selection, replacement, load, and activation.
-- `Workspace`: create, find, save, tag filters, date filters, query, and folder sorts.
+- `Workspace`: create, find, save, tag filters, date filters, query, draft views,
+  and sort orders.
 - `Prompt` and `SelectPrompt`: buttons, text fields, dates, numbers, switches,
   pickers, and multiple selection.
 - `context`: configured values, cancellation, and failure.
@@ -42,7 +43,7 @@ The editor preview uses a separate renderer.
 
 This list describes a subset of each object. Other Drafts properties and methods
 are not guaranteed. Missing methods fail in JavaScript. A failed or cancelled
-action does not apply its success disposition. Changes made by earlier steps
+action does not apply its after-success behavior. Changes made by earlier steps
 remain saved. There is no rollback of external side effects.
 
 Credential values use this Mac's Keychain. They are not part of backups or
@@ -60,8 +61,10 @@ Asynchronous script completion has a separate 120-second timeout. Native service
 require their macOS permissions. Automated tests do not grant those permissions
 or prove that each service works on this Mac.
 
-Compatibility work remains. XML-RPC, directory-based Mustache templates, some
-URL mutations, mail recipient options, and the chat console need further work.
+Compatibility work remains. Some URL mutations, mail recipient options, and
+the chat console need further work. XML-RPC and directory-based Mustache
+templates now have implementations and targeted tests. They do not prove full
+compatibility with all servers or template libraries.
 HTML-to-Markdown conversion supports a subset of HTML. Third-party service
 connectors and iOS-only APIs are outside this scope.
 
@@ -77,3 +80,52 @@ Templates support draft content, title, body, safe title, selection, tags,
 hashtags, UUID, permalink, dates, and custom tags. Unknown tags stay in the text.
 File templates can load local template files. Service wrappers, custom syntaxes,
 and themes require further compatibility work.
+
+## Roadmap implementation pass — 2026-10-19
+
+The reference inventory is `docs/research/action-api-matrix.json`. It records
+529 members from 44 official API pages. The installed UI reference is Drafts
+54.1.1. Each page has a URL and source hash. Most members remain marked
+`not-audited`; that status does not mean missing or supported. Explicit test
+and live-check fields hold separate evidence. Do not count the inventory as
+complete API coverage.
+
+XML-RPC supports raw XML requests, nested values, faults, and explicit transport
+errors. Tests cover encoding and response parsing, plus an invalid transport
+through JavaScript. No live XML-RPC server was used. Date and binary interop
+with real servers still needs acceptance checks.
+
+Mustache directory templates load named `.mustache` files and sibling partials.
+Tests use a host that supplies template files. Live iCloud Drive access remains
+unverified. The template path cannot leave the Templates folder through `..`.
+
+Action options now include descriptions, visibility, confirmation, notifications,
+sections, order, and after-success tags and flags. New optional fields preserve
+old action and backup decoding. Imports map known description, confirmation, and
+assigned-tag fields. Unknown visibility bit masks and notification enums remain
+in the raw payload; they are not claimed as mapped options.
+
+Action groups have records for names, symbols, and order. Backups include them
+through an optional field. Renames keep the saved group identity and update its
+actions. Local changes do not change the Core Data entity schema. Sync behavior
+for the new records still needs the two-Mac checks.
+
+The global Capture shortcut and standard macOS shortcuts remain fixed. The main
+app commands have local configurable shortcuts. Both the action inspector and
+the command editor use the same conflict validator.
+
+## Core audit — 2026-10-19
+
+See `docs/research/core-actions-audit.md` for corrections and remaining limits.
+The normalized matrix now includes exact signatures and member kinds. It keeps
+manual evidence during refresh. The 149 core and helper entries have review
+records and targeted test associations. They are not a claim of full parity.
+
+`Draft.query` now uses the documented omitted-tag array and ascending default.
+The previous boolean fourth argument remains accepted. Scripting color labels
+now match the existing Draftly UI indices. Existing stored values do not change.
+Workspace filters use the same rules in script queries and the visible list.
+Script text edits register native undo immediately. `ActionExecutionResult`
+provides one final result for existing entry points; `run` remains a boolean
+adapter. Access-date operations fail explicitly. Full syntax grammar and native
+entry-point acceptance remain open.

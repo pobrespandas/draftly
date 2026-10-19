@@ -26,23 +26,37 @@ To enable iCloud:
 5. Open the app on two Macs with the same iCloud account. Use the checklist in
    [validation.md](docs/validation.md).
 
-A Personal Team cannot provision iCloud or Push Notifications. The team found
-on the development Mac was a Personal Team. The iCloud build needs a team that
-supports these capabilities. No live sync result has been verified.
+The configured paid team now provisions CloudKit and Push Notifications. Apple
+reports its name as Andrés Tobelem, not pobrespandas. The signed build uses the
+private Development container. Server sync acceptance remains open.
 
 `Signing.xcconfig` is ignored by Git. The project supports automatic signing.
-CloudKit uses a private database. The app can save data while offline.
+CloudKit sync is eventual. Local saves do not prove a remote save.
+
+Signed Debug builds use `.build/icloud/Build/Products/Debug/Draftly.app`.
+Local builds keep their existing output. Run `scripts/package-personal.sh` for a
+signed Release package for registered Macs. See
+[icloud-distribution.md](docs/icloud-distribution.md) for profile limits,
+installation, updates, and the current server test result.
 
 ## Use Draftly
 
 - Press **⌘N** for a new draft. Press **⌃⌥⌘N** to capture from another app.
 - Empty drafts stay temporary until you type, add metadata, or run an action.
-- Use the menu bar icon to capture text or show the app.
+- Use the menu bar icon to open the independent Capture window. Pending capture
+  text stays on this Mac when the window closes or the app restarts. Save it as
+  a new draft, or append it to an existing draft.
+- Quick Search opens a separate search window. Find in Draft List keeps the list
+  search. Use Up, Down, Return, and Escape in Quick Search.
+- Swipe a draft row to show Trash and Archive. Archived rows offer Inbox, and
+  trashed rows offer Restore. Each row action affects only that row.
+- Right-click a sidebar tag to rename it or remove it from the library. Removing
+  a tag keeps the drafts. Saved workspace filters update with the tag.
 - Type in the editor. Content saves after a 500 ms pause and before navigation.
 - Enter tags separated by commas. Press Return to save a tag.
-- Use the flag menu, Archive, and Trash to organize drafts. Trash keeps notes.
-- Use Command-click or Shift-click in the note list for batch operations.
-- Save a workspace to keep a folder, search, tags, and sort order.
+- Use the flag menu, Archive, and Trash to organize drafts. Trash keeps drafts.
+- Use Command-click or Shift-click in the draft list for batch operations.
+- Save a workspace to keep a draft view, search, tags, and sort order.
 - Use the toolbar to show or hide filters, the draft list, and actions separately.
 - Use the bottom editor bar for undo, redo, tasks, dates, and indentation. Select
   an action group from its left menu to run that group's actions.
@@ -60,16 +74,20 @@ CloudKit uses a private database. The app can save data while offline.
   merges backups, Drafts JSON exports, text files, and action files.
 - Open Actions → Import from Directory to load an action. Review it in the action
   editor before running it.
-- Use Settings to change the editor font, size, and line spacing.
+- Use Settings to change the editor font, size, line spacing, margins, maximum
+  text width, typewriter scrolling, themes, and the main command shortcuts.
+- Use Actions → Manage Actions and Workspaces to edit groups, action order, and
+  saved workspaces. The action inspector controls visibility, confirmation,
+  notifications, and tags and flags applied after success.
 
-Each window has its own editor. Notes, revisions, workspaces, actions, and action
+Each window has its own editor. Drafts, revisions, workspaces, actions, and action
 groups are part of the library. File permissions stay on each Mac.
 
 ## Actions and automation
 
 Actions contain ordered steps. The action editor can create, change, reorder,
 duplicate, import, and export steps. It can set a group, a keyboard shortcut,
-configuration values, and an action to perform after success.
+configuration values, and the draft's organization state after success.
 
 The JavaScript bridge supports the five reference actions in
 [compatibility.md](docs/compatibility.md). Scripts share one context across steps.
@@ -85,8 +103,8 @@ Shortcuts can create, search, and open drafts, or run an action. URL examples:
 
 ```text
 draftly://create?text=Hello
-draftly://open?uuid=NOTE-UUID
-draftly://run?action=Copy&uuid=NOTE-UUID
+draftly://open?uuid=DRAFT-UUID
+draftly://run?action=Copy&uuid=DRAFT-UUID
 ```
 
 Percent-encode query values. External links that run actions require a prompt.
@@ -109,9 +127,9 @@ Reminders, Calendar, external apps, or the user's library. The five downloaded
 action snapshots have source URLs and SHA-256 hashes in the fixture manifest.
 
 The local library is in `~/Library/Application Support/Draftly`. The SQLite
-store includes notes, immutable content revisions, workspaces, actions, and logs.
+store includes drafts, immutable content revisions, workspaces, actions, and logs.
 Backups omit logs and local file permissions. A backup restores both copies when
-the same note ID has different content or metadata. The copied note keeps its
+the same draft ID has different content or metadata. The copied draft keeps its
 own revision history.
 
 The interface was checked against the installed Drafts Mac app. See the

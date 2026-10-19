@@ -10,9 +10,12 @@ public final class EditorSession: ObservableObject {
     @Published public var selection = NSRange(location: 0, length: 0)
     @Published public var focusToken = UUID()
     @Published public var typewriterScrollingEnabled = false
+    public var synchronizeScriptEdit: (() -> Void)?
+    public var performUndo: ((Bool) -> Void)?
+    public var focusForDictation: (() -> Bool)?
     public private(set) var recentNoteIDs: [UUID] = []
     public init() {}
-    public func load(_ note: Note) { if let id = noteID, id != note.id { recentNoteIDs.removeAll { $0 == id }; recentNoteIDs.insert(id, at: 0) }; noteID = note.id; content = note.content; selection = NSRange(location: 0, length: 0); focusToken = UUID() }
+    public func load(_ note: Note, focusEditor: Bool = true) { if let id = noteID, id != note.id { recentNoteIDs.removeAll { $0 == id }; recentNoteIDs.insert(id, at: 0) }; noteID = note.id; content = note.content; selection = NSRange(location: Int(note.scriptMetadata?["selectionStart"] ?? "0") ?? 0, length: Int(note.scriptMetadata?["selectionLength"] ?? "0") ?? 0); selection = safeSelection; if focusEditor { focusToken = UUID() } }
     public var safeSelection: NSRange {
         let count = (content as NSString).length
         let start = min(max(0, selection.location), count)
@@ -35,18 +38,46 @@ public protocol ActionHost: AnyObject {
 
 public extension ActionHost { func finishAction() {} }
 
+public enum ActionExecutionResult: Equatable, Sendable {
+    case success
+    case cancelled
+    case failure(String)
+    public var succeeded: Bool { self == .success }
+    public func callbackURL(parameters: [String: String], successParameters: [String: String] = [:]) -> URL? {
+        let key: String
+        var additions: [String: String] = [:]
+        switch self {
+        case .success: key = "x-success"; additions = successParameters
+        case .cancelled: key = "x-cancel"
+        case .failure(let message): key = "x-error"; additions = ["errorMessage": message]
+        }
+        guard let raw = parameters[key], var components = URLComponents(string: raw), components.scheme != nil else { return nil }
+        if !additions.isEmpty {
+            components.queryItems = (components.queryItems ?? []).filter { additions[$0.name] == nil }
+                + additions.keys.sorted().map { URLQueryItem(name: $0, value: additions[$0]) }
+        }
+        return components.url
+    }
+
+}
+
 @MainActor
 public final class ActionRunner: ObservableObject {
+    private static var runningLibraries: Set<ObjectIdentifier> = []
+    public internal(set) var successParameters: [String: String] = [:]
     public let library: LibraryStore
     public let editor: EditorSession
     public weak var host: (any ActionHost)?
     @Published public private(set) var isRunning = false
     @Published public var message: String?
     public var scriptTimeout: TimeInterval = 120
+    public var synchronousScriptTimeout: TimeInterval = 10
+    public var defaultWorkspace: (() -> Workspace)?
     public var currentWorkspace: (() -> Workspace)?
     public var uiOperation: (([String: Any]) throws -> Any?)?
     public var selectedDrafts: (() -> [Note])?
-    public var applyWorkspace: ((Workspace) -> Void)?
+    public var applyWorkspace: ((Workspace) throws -> Void)?
+    private var runOutcome: ActionExecutionResult = .failure("The action did not complete.")
     var queued: [(DraftAction, Note)] = []
     private var logs: [String] = []
     var customTags: [String: String] = [:]
@@ -57,15 +88,47 @@ public final class ActionRunner: ObservableObject {
 
     public func flushEditor() throws {
         guard let id = editor.noteID, var note = library.notes.first(where: { $0.id == id }) else { return }
-        if note.content != editor.content { note.content = editor.content; try library.saveNote(note) }
+        let contentChanged = note.content != editor.content
+        note.content = editor.content
+        let selection = editor.safeSelection
+        note.scriptMetadata = note.scriptMetadata ?? [:]
+        note.scriptMetadata?["selectionStart"] = String(selection.location)
+        note.scriptMetadata?["selectionLength"] = String(selection.length)
+        try library.saveNote(note, preserveDates: !contentChanged)
     }
 
-    @discardableResult public func run(_ action: DraftAction) -> Bool {
+    @discardableResult public func run(_ action: DraftAction) -> Bool { runResult(action).succeeded }
+
+    @discardableResult public func runResult(_ action: DraftAction) -> ActionExecutionResult {
+        guard !isRunning else { message = "An action is already running."; return .failure(message!) }
+        let libraryID = ObjectIdentifier(library)
+        guard Self.runningLibraries.insert(libraryID).inserted else {
+            message = "An action is already running in this library."
+            return .failure(message!)
+        }
+        defer { Self.runningLibraries.remove(libraryID) }
+        successParameters = [:]
+        _ = executeRun(action)
+        if !runOutcome.succeeded { successParameters = [:] }
+        return runOutcome
+    }
+
+    private func executeRun(_ action: DraftAction) -> Bool {
         guard !isRunning else { message = "An action is already running."; return false }
         isRunning = true; queued = []; logs = []; customTags = [:]
         let sourceNoteID = editor.noteID
         defer { isRunning = false; executing = []; host?.finishAction() }
         do {
+            if action.presentation.confirmBeforeRun {
+                let response = try platform("confirmAction", ["name": action.name]) as? Bool ?? false
+                guard response else {
+                    message = "\(action.name) cancelled"
+                    runOutcome = .cancelled
+                    var run = ActionRun(actionName: action.name, status: "Cancelled", message: "Confirmation cancelled")
+                    run.noteID = sourceNoteID; run.actionID = action.id; library.log(run)
+                    return false
+                }
+            }
             try flushEditor()
             guard let id = editor.noteID, let note = library.notes.first(where: { $0.id == id }) else { throw DraftlyError.message("Create or select a draft first.") }
             var completed = try execute(action, note: note)
@@ -73,21 +136,28 @@ public final class ActionRunner: ObservableObject {
             while completed && !queued.isEmpty {
                 count += 1
                 guard count <= 100 else { throw DraftlyError.message("The action queue exceeded 100 actions.") }
-                let (next, note) = queued.removeFirst()
-                editor.load(library.notes.first(where: { $0.id == note.id }) ?? note)
+                let (next, queuedNote) = queued.removeFirst()
+                try flushEditor()
+                let note = library.notes.first(where: { $0.id == queuedNote.id }) ?? queuedNote
+                try library.recordAccess(note.id)
+                editor.load(note)
                 completed = try execute(next, note: note)
             }
             try flushEditor()
+            runOutcome = completed ? .success : .cancelled
             let status = completed ? "Success" : "Cancelled"
             message = completed ? (logs.last ?? "\(action.name) completed") : "\(action.name) cancelled"
             var run = ActionRun(actionName: action.name, status: status, message: logs.joined(separator: "\n")); run.noteID = note.id; run.actionID = action.id
             library.log(run)
+            if completed && action.presentation.notifyOnSuccess { _ = try? platform("actionNotification", ["title": action.name, "message": message ?? "Complete"]) }
             return completed
         } catch {
             try? flushEditor()
             message = error.localizedDescription
+            runOutcome = .failure(error.localizedDescription)
             var run = ActionRun(actionName: action.name, status: "Error", message: error.localizedDescription); run.noteID = sourceNoteID; run.actionID = action.id
             library.log(run)
+            if action.presentation.notifyOnError { _ = try? platform("actionNotification", ["title": action.name, "message": error.localizedDescription]) }
             return false
         }
     }
@@ -99,8 +169,10 @@ public final class ActionRunner: ObservableObject {
         let context = JSContext()!
         var scriptError: String?
         context.exceptionHandler = { _, value in scriptError = value?.toString() ?? "JavaScript error" }
+        var acceptingCalls = true
+        defer { acceptingCalls = false }
         let bridge: @convention(block) (String, String) -> String = { [weak self] operation, text in
-            guard let self else { return "{\"error\":\"The action was closed.\"}" }
+            guard let self, acceptingCalls else { return "{\"error\":\"The action was closed.\"}" }
             do {
                 let values = (try? JSONSerialization.jsonObject(with: Data(text.utf8))) as? [String: Any] ?? [:]
                 let result = try self.dispatch(operation, values: values)
@@ -113,7 +185,7 @@ public final class ActionRunner: ObservableObject {
         }
         context.setObject(bridge, forKeyedSubscript: "__host" as NSString)
         let require: @convention(block) (String) -> JSValue? = { [weak self, weak context] path in
-            guard let self, let context else { return nil }
+            guard let self, let context, acceptingCalls else { return nil }
             do {
                 let source = try self.platform("requireScript", ["path": path]) as? String ?? ""
                 return context.evaluateScript(source, withSourceURL: URL(fileURLWithPath: path))
@@ -133,7 +205,10 @@ public final class ActionRunner: ObservableObject {
         var configured: [String: Any] = action.configuredValues
         for step in steps where step.type == "configurationKey" {
             let key = step.values["key"] ?? ""
-            let value = action.configuredValues[key] ?? ""
+            let dataType = step.values["dataType"] ?? "string"
+            let defaultKey = dataType == "boolean" ? "defaultBoolValue" : dataType == "number" ? "defaultNumberValue" : dataType == "text" ? "defaultTextValue" : "defaultStringValue"
+            let value = action.configuredValues[key] ?? step.values["defaultValue"] ?? step.values[defaultKey] ?? ""
+            configured[key] = value
             if step.values["dataType"] == "boolean" { configured[key] = value == "true" || value == "1" }
             if step.values["dataType"] == "number" { configured[key] = Double(value) ?? 0 }
         }
@@ -150,13 +225,14 @@ public final class ActionRunner: ObservableObject {
             case "configurationKey": break
             case "script":
                 let asynchronous = ["true", "1"].contains(step.values["allowAsync"] ?? step.values["allowAsynchronous"] ?? "false")
-                context.evaluateScript("__completed = false;")
+                context.evaluateScript("__beginStep();")
+                defer { context.evaluateScript("__endStep();") }
                 scriptError = nil
-                Self.limitExecution(context)
+                try Self.limitExecution(context, seconds: synchronousScriptTimeout)
                 let evaluation = context.evaluateScript(step.values["script"] ?? step.values["source"] ?? "")
                 if asynchronous, let evaluation, evaluation.isObject, evaluation.objectForKeyedSubscript("then")?.isObject == true {
                     context.setObject(evaluation, forKeyedSubscript: "__pendingResult" as NSString)
-                    context.evaluateScript("__pendingResult.catch(error => { __failure = String(error); });")
+                    context.evaluateScript("{ let epoch=__stepEpoch; __pendingResult.catch(error => { if(epoch===__stepEpoch)__failure = String(error); }); }")
                 }
                 if let scriptError { throw DraftlyError.message(scriptError) }
                 if asynchronous {
@@ -191,14 +267,26 @@ public final class ActionRunner: ObservableObject {
                 } else { _ = try platform("openURL", ["url": url]) }
             case "insertText": try editor.replace(editor.safeSelection, with: rendered); try flushEditor()
             case "createDraft":
-                let created = try library.createNote(content: rendered, tags: (step.values["tags"] ?? "").split(separator: ",").map(String.init))
-                if step.values["openInEditor"] != "false" { editor.load(created) }
+                let location = step.values["folder"] ?? step.values["location"] ?? "inbox"
+                guard ["inbox", "archive"].contains(location) else { throw DraftlyError.message("The new draft location is invalid.") }
+                let syntax = ["syntax", "assignSyntax", "syntaxName", "grammarName", "grammarType"].compactMap { step.values[$0] }.first { !$0.isEmpty } ?? "Markdown"
+                _ = try library.syntaxDefinition(named: syntax)
+                let open = step.values["openInEditor"] != "false"
+                var created = Note(content: rendered, tags: TagRules.normalize((try renderTemplate(step.values["tags"] ?? step.values["assignTags"] ?? "", note: current)).split(separator: ",").map(String.init)), flag: ["true", "1"].contains(step.values["flagged"] ?? "false") ? 1 : 0, isArchived: location == "archive", syntax: syntax, accessedAt: open ? Date() : nil)
+                if let flag = step.values["flagType"].flatMap(Int.init) { guard (0...7).contains(flag) else { throw DraftlyError.message("The new draft flag is invalid.") }; created.flag = flag }
+                try library.saveNote(created, preserveRevision: false, preserveDates: true)
+                if open { editor.load(created) }
             case "file":
                 let name = Templates.render(step.values["fileNameTemplate"] ?? step.values["name"] ?? "[[safe_title]].md", note: current)
                 _ = try platform("saveFile", ["text": rendered, "name": name, "bookmark": step.values["useBookmark"] == "true" ? step.values["bookmarkName"] ?? "" : "", "folder": Templates.render(step.values["folderTemplate"] ?? "", note: current), "mode": step.values["writeType"] ?? "create"])
             case "runShortcut":
                 let result = try platform("shortcut", ["name": step.values["name"] ?? "", "text": rendered])
-                if let result { customTags["shortcut_result"] = String(describing: result) }
+                if let result {
+                    customTags["shortcut_result"] = String(describing: result)
+                    if step.values["waitForResponse"] != "false" {
+                        context.evaluateScript("context.callbackResponses.push(\(try json(["result": result])));")
+                    }
+                }
             case "runAppleScript":
                 let result = try platform("appleScript", ["source": step.values["script"] ?? step.values["source"] ?? "", "subroutine": "execute", "arguments": [noteValue(current)]])
                 context.evaluateScript("context.appleScriptResponses.push(\(try json(result ?? NSNull())));")
@@ -210,15 +298,19 @@ public final class ActionRunner: ObservableObject {
             case "defineTemplateTag":
                 customTags[step.values["name"] ?? step.values["tagName"] ?? ""] = rendered
             case "configureWindow":
-                for (name, value) in step.values where name != "template" {
-                    let commands = ["showDraftList": ("showDraftList", "hideDraftList"), "showActionList": ("showActionList", "hideActionList"), "showFilters": ("showFilters", "hideFilters")]
-                    if let command = commands[name], value != "unchanged" { _ = try uiOperation?(["operation": value == "true" || value == "1" ? command.0 : command.1]) }
-                }
+                guard let uiOperation else { throw DraftlyError.message("Window configuration needs an open editor window.") }
+                _ = try uiOperation(["operation": "configureWindow", "values": step.values])
             case "prompt":
-                let response = try platform("prompt", ["title": step.values["title"] ?? "Prompt", "message": step.values["message"] ?? "", "isCancellable": true,
-                    "fields": [["key": "text", "label": "", "kind": "textView", "value": rendered]], "buttons": [["title": "Continue"]]]) as? [String: Any]
+                let key = step.values["key"] ?? "prompt"
+                let titles = (step.values["buttons"] ?? "OK").split(separator: "|", omittingEmptySubsequences: false).map(String.init)
+                guard !key.isEmpty, !titles.contains(where: { $0.isEmpty }) else { throw DraftlyError.message("The prompt key and button titles must not be empty.") }
+                let includeText = ["true", "1"].contains(step.values["includeTextField"] ?? "false")
+                let fields: [[String: Any]] = includeText ? [["key": "text", "label": "", "kind": "text", "value": try renderTemplate(step.values["textFieldDefault"] ?? "", note: current)]] : []
+                let response = try platform("prompt", ["title": try renderTemplate(step.values["title"] ?? "Prompt", note: current), "message": try renderTemplate(step.values["message"] ?? "", note: current), "isCancellable": step.values["includeCancelButton"] != "false", "fields": fields, "buttons": titles.map { ["title": $0] }]) as? [String: Any]
                 guard let response else { return false }
-                customTags["prompt_text"] = (response["fields"] as? [String: Any])?["text"] as? String ?? ""
+                guard let index = response["index"] as? Int, titles.indices.contains(index) else { throw DraftlyError.message("The prompt returned an invalid button.") }
+                customTags[key + "_button"] = titles[index]
+                customTags[key + "_text"] = (response["fields"] as? [String: Any])?["text"] as? String ?? ""
             case "mail", "message":
                 var values: [String: Any] = ["subject": try renderTemplate(step.values["subject"] ?? "", note: current), "body": rendered]
                 for key in ["toRecipients", "ccRecipients", "bccRecipients", "replyToRecipients"] { values[key] = try renderTemplate(step.values[key] ?? "", note: current).split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) } }
@@ -244,16 +336,21 @@ public final class ActionRunner: ObservableObject {
                 if try !execute(included, note: current) { return false }
             default: throw DraftlyError.message("Unsupported step: \(step.type)")
             }
+            context.evaluateScript("__tags = \(try json(customTags));")
         }
         if context.objectForKeyedSubscript("__cancelled")?.toBool() == true { return false }
         if let failure = context.objectForKeyedSubscript("__failure"), !failure.isNull, !failure.isUndefined { throw DraftlyError.message(failure.toString()) }
         try flushEditor()
         if var original = library.notes.first(where: { $0.id == note.id }) {
             switch action.afterSuccess {
-            case "archive", "1": original.isArchived = true; try library.saveNote(original)
-            case "trash", "2": original.trashedAt = Date(); try library.saveNote(original)
+            case "archive", "1": original.isArchived = true
+            case "trash", "2": original.trashedAt = Date()
             default: break
             }
+            original.tags = TagRules.normalize(original.tags + action.presentation.addTags)
+                .filter { !TagRules.normalize(action.presentation.removeTags).contains($0) }
+            if let flag = action.presentation.flagAfterSuccess { original.flag = min(7, max(0, flag)) }
+            try library.saveNote(original)
         }
         return true
     }
@@ -295,13 +392,14 @@ public final class ActionRunner: ObservableObject {
         }
         return result
     }
-    private static func limitExecution(_ context: JSContext) {
+    private static func limitExecution(_ context: JSContext, seconds: TimeInterval) throws {
+        guard seconds.isFinite, seconds > 0 else { throw DraftlyError.message("The synchronous script timeout must be positive and finite.") }
         // JavaScriptCore exports this limit on macOS. Do not require a private symbol at link time.
         typealias Callback = @convention(c) (JSContextRef?, UnsafeMutableRawPointer?) -> Bool
         typealias Limit = @convention(c) (JSContextGroupRef?, Double, Callback?, UnsafeMutableRawPointer?) -> Void
         if let symbol = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "JSContextGroupSetExecutionTimeLimit") {
             let limit = unsafeBitCast(symbol, to: Limit.self)
-            limit(JSContextGetGroup(context.jsGlobalContextRef), 10, { _, _ in true }, nil)
+            limit(JSContextGetGroup(context.jsGlobalContextRef), seconds, { _, _ in true }, nil)
         }
     }
 
@@ -312,9 +410,11 @@ public final class ActionRunner: ObservableObject {
     private func json(_ object: Any) throws -> String { String(decoding: try JSONSerialization.data(withJSONObject: object, options: [.fragmentsAllowed]), as: UTF8.self) }
     public func noteValue(_ note: Note) -> [String: Any] {
         var result: [String: Any] = ["uuid": note.id.uuidString, "content": note.content, "tags": note.tags, "isArchived": note.isArchived,
-            "isTrashed": note.trashedAt != nil, "isFlagged": note.flag > 0, "flagType": note.flag, "syntax": note.syntax,
+            "isTrashed": note.trashedAt != nil, "isFlagged": note.flag > 0, "flagType": note.flag, "syntax": ["name": note.syntax, "type": library.syntaxes.first(where: { $0.name == note.syntax })?.type ?? "builtIn"],
             "createdAt": APIValues.date(note.createdAt), "modifiedAt": APIValues.date(note.modifiedAt)]
-        for (key, value) in note.scriptMetadata ?? [:] { result[key] = Double(value) ?? 0 }
+        for key in ["createdLatitude", "createdLongitude", "modifiedLatitude", "modifiedLongitude", "selectionStart", "selectionLength"] {
+            result[key] = Double(note.scriptMetadata?[key] ?? "0") ?? 0
+        }
         return result
     }
     func decodedNote(_ values: [String: Any]) throws -> Note {
@@ -325,7 +425,7 @@ public final class ActionRunner: ObservableObject {
         note.isArchived = values["isArchived"] as? Bool ?? note.isArchived
         if let flagged = values["isFlagged"] as? Bool { note.flag = flagged ? 1 : 0 }
         note.syntax = values["syntax"] as? String ?? (values["syntax"] as? [String: Any])?["name"] as? String ?? note.syntax
-        if let flag = values["flagType"] as? Int { note.flag = min(6, max(0, flag)) }
+        if let flag = values["flagType"] as? Int { note.flag = min(7, max(0, flag)) }
         if let trashed = values["isTrashed"] as? Bool { note.trashedAt = trashed ? note.trashedAt ?? Date() : nil }
         note.createdAt = APIValues.parseDate(values["createdAt"]) ?? note.createdAt
         note.modifiedAt = APIValues.parseDate(values["modifiedAt"]) ?? note.modifiedAt
@@ -342,31 +442,46 @@ public final class ActionRunner: ObservableObject {
         case "queryDrafts":
             var workspace = Workspace(name: "Script")
             workspace.query = values["query"] as? String ?? ""
-            workspace.folder = NoteFolder(rawValue: values["folder"] as? String ?? "all") ?? .all
+            if let error = DraftQuery(workspace.query).error { throw DraftlyError.message(error) }
+            guard let folder = NoteFolder(rawValue: values["folder"] as? String ?? "all") else { throw DraftlyError.message("The draft query folder is invalid.") }
+            workspace.folder = folder
             workspace.tags = values["tags"] as? [String] ?? []
-            workspace.sort = values["sort"] as? String == "name" ? .title : NoteSort(rawValue: values["sort"] as? String ?? "modified") ?? .modified
+            workspace.excludedTags = values["omitTags"] as? [String] ?? []
+            let sortName = values["sort"] as? String ?? "modified"
+            guard ["name", "title", "modified", "created", "accessed"].contains(sortName) else { throw DraftlyError.message("The draft query sort is invalid.") }
+            workspace.sort = sortName == "name" ? .title : NoteSort(rawValue: sortName) ?? .modified
             workspace.ascending = !(values["descending"] as? Bool ?? true)
-            return workspace.filter(library.notes).filter { !(values["omitFlagged"] as? Bool ?? false) || $0.flag == 0 }.map(noteValue)
+            var notes = workspace.filter(library.notes).filter { !(values["omitFlagged"] as? Bool ?? false) || $0.flag == 0 }
+            if values["flaggedToTop"] as? Bool == true { notes = notes.filter { $0.flag > 0 } + notes.filter { $0.flag == 0 } }
+            return notes.map(noteValue)
         case "updateDraft":
             let note = try decodedNote(values); try library.saveNote(note, preserveDates: values["_preserveDates"] as? Bool ?? false)
-            if editor.noteID == note.id { editor.content = note.content }
-            return true
+            if editor.noteID == note.id { editor.content = note.content; editor.selection = editor.safeSelection; editor.synchronizeScriptEdit?() }
+            return library.notes.first(where: { $0.id == note.id }).map(noteValue)
         case "loadDraft":
-            try flushEditor(); let note = try decodedNote(values)
-            editor.load(library.notes.first(where: { $0.id == note.id }) ?? note); return true
+            try flushEditor(); let requested = try decodedNote(values)
+            guard let note = library.notes.first(where: { $0.id == requested.id }) else { throw DraftlyError.message("Save the draft before loading it into the editor.") }
+            try library.recordAccess(note.id)
+            editor.load(note); editor.synchronizeScriptEdit?(); return true
         case "editorText": return editor.content
-        case "setEditorText": editor.content = values["text"] as? String ?? ""; try flushEditor(); return true
+        case "setEditorText": editor.content = values["text"] as? String ?? ""; editor.selection = editor.safeSelection; try flushEditor(); editor.synchronizeScriptEdit?(); return true
         case "selection": return editor.selectedText
         case "selectionRange": return [editor.safeSelection.location, editor.safeSelection.length]
+        case "lineRange":
+            let text = (values["text"] as? String ?? editor.content) as NSString
+            let range = NSRange(location: values["location"] as? Int ?? 0, length: values["length"] as? Int ?? 0)
+            guard range.location >= 0, range.length >= 0, range.location <= text.length, range.length <= text.length - range.location else { throw DraftlyError.message("The text range is outside the draft.") }
+            let expanded = text.lineRange(for: range)
+            return [expanded.location, expanded.length]
         case "setSelection":
             editor.selection = NSRange(location: values["location"] as? Int ?? 0, length: values["length"] as? Int ?? 0)
-            editor.selection = editor.safeSelection; return true
-        case "replaceSelection": try editor.replace(editor.safeSelection, with: values["text"] as? String ?? ""); try flushEditor(); return true
+            editor.selection = editor.safeSelection; editor.synchronizeScriptEdit?(); return true
+        case "replaceSelection": try editor.replace(editor.safeSelection, with: values["text"] as? String ?? ""); try flushEditor(); editor.synchronizeScriptEdit?(); return true
         case "textInRange", "replaceRange":
             let range = NSRange(location: values["location"] as? Int ?? 0, length: values["length"] as? Int ?? 0)
-            guard range.location >= 0, range.length >= 0, NSMaxRange(range) <= (editor.content as NSString).length else { throw DraftlyError.message("The text range is outside the draft.") }
+            guard range.location >= 0, range.length >= 0, range.location <= (editor.content as NSString).length, range.length <= (editor.content as NSString).length - range.location else { throw DraftlyError.message("The text range is outside the draft.") }
             if operation == "textInRange" { return (editor.content as NSString).substring(with: range) }
-            try editor.replace(range, with: values["text"] as? String ?? ""); try flushEditor(); return true
+            try editor.replace(range, with: values["text"] as? String ?? ""); try flushEditor(); editor.synchronizeScriptEdit?(); return true
         case "template": return try renderTemplate(values["text"] as? String ?? "", note: decodedNote(values["note"] as? [String: Any] ?? [:]), tags: values["tags"] as? [String: String] ?? [:])
         case "setTemplateTag": customTags[values["key"] as? String ?? ""] = values["value"] as? String ?? ""; return true
         case "activate": editor.focusToken = UUID(); return true
@@ -380,7 +495,7 @@ public final class ActionRunner: ObservableObject {
         case "findWorkspace":
             return library.workspaces.first(where: { $0.name == values["name"] as? String }).map(workspaceValue)
         case "applyWorkspace":
-            applyWorkspace?(try decodeWorkspace(values)); return true
+            guard let applyWorkspace else { throw DraftlyError.message("Workspace application requires an open window.") }; try applyWorkspace(try decodeWorkspace(values)); return true
         case "base64Encode": return Data((values["text"] as? String ?? "").utf8).base64EncodedString()
         case "base64Decode": return Data(base64Encoded: values["text"] as? String ?? "").flatMap { String(data: $0, encoding: .utf8) }
         default: return try dispatchAPI(operation, values: values)

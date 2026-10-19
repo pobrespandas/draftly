@@ -26,7 +26,9 @@ products = add("products", f'isa = PBXGroup; name = Products; sourceTree = "<gro
 group = add("group", f'isa = PBXGroup; sourceTree = "<group>"; children = ({sourcegroup},{products});')
 sourcephase = add("sources", 'isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (' + ','.join(sources) + '); runOnlyForDeploymentPostprocessing = 0;')
 frameworks = add("frameworks", f'isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = ({corebuild}); runOnlyForDeploymentPostprocessing = 0;')
-resources = add("resources", 'isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;')
+icon = add("appicon", 'isa = PBXFileReference; lastKnownFileType = image.icns; path = Resources/Draftly.icns; sourceTree = SOURCE_ROOT;')
+iconbuild = add("appiconbuild", f'isa = PBXBuildFile; fileRef = {icon};')
+resources = add("resources", f'isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = ({iconbuild}); runOnlyForDeploymentPostprocessing = 0;')
 signing = add("signing", 'isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Configuration/App.xcconfig; sourceTree = SOURCE_ROOT;')
 for config in ["Debug", "Release"]:
     active = 'YES' if config == 'Debug' else 'NO'

@@ -24,14 +24,16 @@ public struct Note: Identifiable, Codable, Equatable {
     public var trashedAt: Date?
     public var createdAt: Date
     public var modifiedAt: Date
+    public var accessedAt: Date?
     public var syntax: String
     public var scriptMetadata: [String: String]?
     public init(id: UUID = UUID(), content: String = "", tags: [String] = [], flag: Int = 0,
                 isArchived: Bool = false, trashedAt: Date? = nil, createdAt: Date = Date(),
-                modifiedAt: Date = Date(), syntax: String = "Markdown") {
+                modifiedAt: Date = Date(), syntax: String = "Markdown", accessedAt: Date? = nil) {
         self.id = id; self.content = content; self.tags = tags; self.flag = flag
         self.isArchived = isArchived; self.trashedAt = trashedAt
         self.createdAt = createdAt; self.modifiedAt = modifiedAt; self.syntax = syntax
+        self.accessedAt = accessedAt
     }
     public var title: String {
         let line = content.components(separatedBy: .newlines).first ?? ""
@@ -50,7 +52,7 @@ public struct Revision: Identifiable, Codable, Equatable {
 }
 
 public enum NoteSort: String, Codable, CaseIterable {
-    case modified, created, title
+    case modified, created, title, accessed
 }
 
 public enum TagRules {
@@ -72,6 +74,8 @@ public enum TagRules {
 }
 
 public struct Workspace: Identifiable, Codable, Equatable {
+    public var order: Int?
+    public var listOptions: DraftListOptions?
     public var id: UUID = UUID()
     public var name: String
     public var query: String = ""
@@ -85,7 +89,9 @@ public struct Workspace: Identifiable, Codable, Equatable {
     public var ascending: Bool = false
     public init(name: String) { self.name = name }
     public func filter(_ notes: [Note]) -> [Note] {
-        notes.filter { n in
+        let options = listOptions ?? DraftListOptions()
+        let search = DraftQuery(query, caseSensitive: options.caseSensitiveSearch)
+        return notes.filter { n in
             let folderMatch: Bool
             switch folder {
             case .trash: folderMatch = n.trashedAt != nil
@@ -98,13 +104,23 @@ public struct Workspace: Identifiable, Codable, Equatable {
             let includes = tags.map { TagRules.matches($0, in: n.tags) }
             let excludes = (excludedTags ?? []).contains { TagRules.matches($0, in: n.tags) }
             let tagMatch = tags.isEmpty || ((matchAnyTag ?? false) ? includes.contains(true) : includes.allSatisfy { $0 })
-            return folderMatch && tagPresenceMatch && tagMatch && !excludes
-                && (query.isEmpty || n.content.localizedStandardContains(query) || n.tags.contains { $0.localizedStandardContains(query) })
+            return matchesScriptFilters(n) && folderMatch && tagPresenceMatch && tagMatch && !excludes
+                && search.matches(n, titlesOnly: options.searchTitlesOnly)
         }.sorted { a, b in
             if a.id == b.id { return false }
-            switch sort {
+            let effective = scriptSort(for: folder)
+            if effective?.2 == true && (a.flag > 0) != (b.flag > 0) { return a.flag > 0 }
+            let ascending = effective?.1 ?? ascending
+            switch effective?.0 ?? sort {
             case .modified: return ascending ? a.modifiedAt < b.modifiedAt : a.modifiedAt > b.modifiedAt
             case .created: return ascending ? a.createdAt < b.createdAt : a.createdAt > b.createdAt
+            case .accessed:
+                guard let left = a.accessedAt else {
+                    return b.accessedAt == nil && a.id.uuidString < b.id.uuidString
+                }
+                guard let right = b.accessedAt else { return true }
+                if left == right { return a.id.uuidString < b.id.uuidString }
+                return ascending ? left < right : left > right
             case .title: return ascending ? a.title.localizedStandardCompare(b.title) == .orderedAscending : a.title.localizedStandardCompare(b.title) == .orderedDescending
             }
         }
@@ -120,6 +136,7 @@ public struct ActionStep: Identifiable, Codable, Equatable {
 }
 
 public struct DraftAction: Identifiable, Codable, Equatable {
+    public var options: ActionPresentation?
     public var id: UUID = UUID()
     public var name: String
     public var symbol: String = "bolt"
@@ -151,12 +168,16 @@ public struct ActionRun: Identifiable, Codable {
 }
 
 public struct Backup: Codable {
+    public var syntaxes: [SyntaxDefinition]?
+    public var actionGroups: [ActionGroupRecord]?
     public var version: Int = 1
     public var notes: [Note]
     public var revisions: [Revision]
     public var workspaces: [Workspace]
     public var actions: [DraftAction]
-    public init(notes: [Note], revisions: [Revision], workspaces: [Workspace], actions: [DraftAction]) {
+    public init(notes: [Note], revisions: [Revision], workspaces: [Workspace], actions: [DraftAction], actionGroups: [ActionGroupRecord]? = nil, syntaxes: [SyntaxDefinition]? = nil) {
+        self.syntaxes = syntaxes
+        self.actionGroups = actionGroups
         self.notes = notes; self.revisions = revisions; self.workspaces = workspaces; self.actions = actions
     }
 }

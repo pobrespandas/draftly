@@ -7,13 +7,14 @@ struct ActionEditor: View {
     @Environment(\.dismiss) private var dismiss
     @State private var error: String?
     @State private var selectedStep: UUID?
+    private var shortcutConflict: String? { ActionShortcut.conflict(for: action, in: library.actions) }
     var body: some View {
         VStack(spacing: 0) {
             HStack {
                 Text("Edit Action: " + action.name).font(.headline)
                 Spacer()
                 Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
-                Button("Save") { save() }.keyboardShortcut(.defaultAction).disabled(action.name.trimmingCharacters(in: .whitespaces).isEmpty)
+                Button("Save") { save() }.keyboardShortcut(.defaultAction).disabled(action.name.trimmingCharacters(in: .whitespaces).isEmpty || shortcutConflict != nil)
             }.padding(16)
             Divider()
             HSplitView {
@@ -21,7 +22,25 @@ struct ActionEditor: View {
                     Section("Action") {
                         TextField("Name", text: $action.name)
                         TextField("Group", text: $action.group)
+                        TextField("Description", text: $action.presentation.description, axis: .vertical).lineLimit(2...4)
                         TextField("SF Symbol", text: $action.symbol)
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 6)) {
+                            ForEach(["bolt", "doc.on.doc", "square.and.arrow.up", "folder", "checklist", "calendar", "envelope", "message", "terminal", "globe", "wand.and.stars", "pencil"], id: \.self) { symbol in
+                                Button { action.symbol = symbol } label: { Image(systemName: symbol).frame(width: 24, height: 24).foregroundStyle(action.symbol == symbol ? Color.accentColor : .secondary) }.buttonStyle(.plain).help(symbol)
+                            }
+                        }
+                        TextField("Section", text: $action.presentation.section)
+                        Stepper("Order: \(action.presentation.order)", value: $action.presentation.order)
+                    }
+                    Section("Visibility") {
+                        Toggle("Action List", isOn: $action.presentation.showInList)
+                        Toggle("Editing Bar", isOn: $action.presentation.showInBar)
+                        Toggle("Command Palette", isOn: $action.presentation.showInSearch)
+                    }
+                    Section("Execution") {
+                        Toggle("Confirm Before Run", isOn: $action.presentation.confirmBeforeRun)
+                        Toggle("Notify on Success", isOn: $action.presentation.notifyOnSuccess)
+                        Toggle("Notify on Error", isOn: $action.presentation.notifyOnError)
                     }
                     Section("Keyboard Shortcut") {
                         TextField("Key", text: $action.shortcut)
@@ -32,9 +51,19 @@ struct ActionEditor: View {
                             }))
                         }
                     }
+                    if let shortcutConflict { Text(shortcutConflict).foregroundStyle(.red).font(.caption) }
                     Section("After Success") {
                         Picker("Move", selection: $action.afterSuccess) {
                             Text("Keep Draft").tag("none"); Text("Archive").tag("archive"); Text("Trash").tag("trash")
+                        }
+                    }
+                    Section("After-success Tags and Flag") {
+                        TextField("Add tags", text: Binding(get: { action.presentation.addTags.joined(separator: ", ") }, set: { action.presentation.addTags = TagRules.normalize($0.components(separatedBy: ",")) }))
+                        TextField("Remove tags", text: Binding(get: { action.presentation.removeTags.joined(separator: ", ") }, set: { action.presentation.removeTags = TagRules.normalize($0.components(separatedBy: ",")) }))
+                        Picker("Flag", selection: $action.presentation.flagAfterSuccess) {
+                            Text("Keep Current").tag(Int?.none)
+                            Text("Clear Flag").tag(Optional(0))
+                            ForEach(1...7, id: \.self) { value in Text(flagName(value)).tag(Optional(value)) }
                         }
                     }
                     if !action.configuredValues.isEmpty {
@@ -101,7 +130,7 @@ struct ActionEditor: View {
         guard let index = action.steps.firstIndex(where: { $0.id == id }), action.steps.indices.contains(index + offset) else { return }
         action.steps.swapAt(index, index + offset)
     }
-    private func save() { do { try library.saveAction(action); dismiss() } catch { self.error = error.localizedDescription } }
+    private func save() { guard shortcutConflict == nil else { return }; do { try library.saveAction(action); dismiss() } catch { self.error = error.localizedDescription } }
     private func export() {
         let panel = NSSavePanel(); panel.nameFieldStringValue = action.name + ".json"
         guard panel.runModal() == .OK, let url = panel.url else { return }
@@ -202,14 +231,14 @@ struct WorkspaceEditor: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             Text("Save Workspace").font(.title2.weight(.semibold))
-            Text("Save the current folder, search, sort order, and tag filters.").foregroundStyle(.secondary)
+            Text("Save the current draft view, search, sort order, and tag filters.").foregroundStyle(.secondary)
             TextField("Workspace name", text: $name).textFieldStyle(.roundedBorder)
             TextField("Included tags, separated by commas", text: $tags).textFieldStyle(.roundedBorder)
             TextField("Excluded tags, separated by commas", text: $excludedTags).textFieldStyle(.roundedBorder)
             Toggle("Match any included tag", isOn: $matchAnyTag)
             HStack { Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction); Spacer(); Button("Save") {
                 var w = Workspace(name: name); w.folder = model.folder; w.query = model.query; w.sort = model.sort; w.ascending = model.ascending
-                w.tagged = model.tagPresence
+                w.tagged = model.tagPresence; w.listOptions = model.listOptions
                 w.tags = TagRules.normalize(tags.split(separator: ",").map(String.init))
                 w.excludedTags = TagRules.normalize(excludedTags.split(separator: ",").map(String.init))
                 w.matchAnyTag = matchAnyTag
@@ -226,9 +255,10 @@ struct WorkspaceEditor: View {
 struct HistoryView: View {
     @ObservedObject var model: WindowModel
     @ObservedObject var library: LibraryStore
+    var noteID: UUID?
     @Environment(\.dismiss) private var dismiss
     @State private var selected: UUID?
-    var revisions: [Revision] { library.revisions.filter { $0.noteID == model.editor.noteID } }
+    var revisions: [Revision] { library.revisions.filter { $0.noteID == noteID } }
     var body: some View {
         VStack(spacing: 16) {
             HStack { Text("Revision History").font(.title2.weight(.semibold)); Spacer(); Button("Done") { dismiss() }.keyboardShortcut(.cancelAction) }
@@ -243,9 +273,9 @@ struct HistoryView: View {
             HStack {
                 Text("Each saved content change keeps a revision.").font(.caption).foregroundStyle(.secondary); Spacer()
                 Button("Restore Revision") {
-                    guard model.flush(), let revision = revisions.first(where: { $0.id == selected }), var note = model.currentNote else { return }
-                    note.content = revision.content
-                    model.perform { try library.saveNote(note); model.editor.load(note); dismiss() }
+                    guard let revision = revisions.first(where: { $0.id == selected }) else { return }
+                    model.restoreRevision(revision)
+                    if library.error == nil { dismiss() }
                 }.disabled(selected == nil)
             }
         }.padding(20).frame(width: 780, height: 560).onAppear { model.flush(); selected = revisions.first?.id }
@@ -265,5 +295,103 @@ struct RunLogView: View {
                 }.padding(.vertical, 5)
             }
         }.frame(width: 680, height: 460)
+    }
+}
+
+struct MergeDraftsView: View {
+    @ObservedObject var model: WindowModel
+    let request: WindowModel.MergeRequest
+    var body: some View {
+        MergeDialogContent(cancel: { model.mergeRequest = nil }, merge: { separator, blankLine, destination in
+            model.confirmMerge(request, separator: separator, includeBlankLine: blankLine, destination: destination)
+        }).frame(width: 400, height: 354)
+    }
+}
+
+private struct MergeDialogContent: NSViewRepresentable {
+    let cancel: () -> Void
+    let merge: (String, Bool, MergeDestination) -> Void
+    func makeCoordinator() -> Coordinator { Coordinator(cancel: cancel, merge: merge) }
+    func makeNSView(context: Context) -> NSView {
+        let view = FlippedView(frame: NSRect(x: 0, y: 0, width: 400, height: 354))
+        let coordinator = context.coordinator
+        func label(_ text: String, _ rect: NSRect, size: CGFloat = 13, color: NSColor = .labelColor) {
+            let label = NSTextField(wrappingLabelWithString: text)
+            label.font = .systemFont(ofSize: size); label.textColor = color
+            label.frame = rect; view.addSubview(label)
+        }
+        let icon = NSImageView(frame: NSRect(x: 22, y: 23, width: 24, height: 32))
+        icon.image = NSImage(systemSymbolName: "arrow.triangle.merge", accessibilityDescription: nil)
+        icon.symbolConfiguration = .init(pointSize: 28, weight: .regular)
+        icon.contentTintColor = .secondaryLabelColor
+        view.addSubview(icon)
+        let title = NSTextField(labelWithString: "Merge Drafts")
+        title.font = .boldSystemFont(ofSize: 16); title.frame = NSRect(x: 54, y: 31, width: 300, height: 22)
+        view.addSubview(title)
+        let divider = NSBox(frame: NSRect(x: 22, y: 61, width: 356, height: 1))
+        divider.boxType = .separator; view.addSubview(divider)
+        label("Selected drafts will be merged into one draft, in the order selected. Enter separator, or leave blank for new line.",
+              NSRect(x: 20, y: 76, width: 360, height: 34))
+        label("Separator", NSRect(x: 20, y: 131, width: 60, height: 16), size: 11, color: .secondaryLabelColor)
+        let field = coordinator.field
+        field.frame = NSRect(x: 82, y: 125, width: 294, height: 24)
+        field.bezelStyle = .roundedBezel; field.font = .systemFont(ofSize: 13)
+        field.setAccessibilityLabel("Separator"); field.delegate = coordinator
+        view.addSubview(field)
+        label("After merge move originals to:", NSRect(x: 20, y: 160, width: 360, height: 18), color: .secondaryLabelColor)
+        let picker = coordinator.picker
+        picker.frame = NSRect(x: 21, y: 183, width: 232, height: 24)
+        picker.segmentCount = 3; picker.segmentStyle = .rounded
+        picker.trackingMode = .selectOne; picker.font = .systemFont(ofSize: 12)
+        for (index, destination) in MergeDestination.allCases.enumerated() {
+            picker.setLabel(destination.rawValue, forSegment: index)
+        }
+        picker.setWidth(70, forSegment: 0); picker.setWidth(58, forSegment: 1); picker.setWidth(102, forSegment: 2)
+        picker.selectedSegment = 0
+        picker.setAccessibilityLabel("After merge move originals to")
+        view.addSubview(picker)
+        let checkbox = coordinator.checkbox
+        checkbox.frame = NSRect(x: 22, y: 216, width: 250, height: 18)
+        checkbox.font = .systemFont(ofSize: 11); checkbox.controlSize = .small
+        checkbox.isEnabled = false; view.addSubview(checkbox)
+        let cancel = NSButton(title: "Cancel", target: coordinator, action: #selector(Coordinator.cancelClicked))
+        cancel.frame = NSRect(x: 230, y: 304, width: 70, height: 28)
+        cancel.bezelStyle = .rounded; cancel.controlSize = .large; cancel.font = .systemFont(ofSize: 13)
+        cancel.keyEquivalent = "\u{1b}"; view.addSubview(cancel)
+        let merge = NSButton(title: "Merge", target: coordinator, action: #selector(Coordinator.mergeClicked))
+        merge.frame = NSRect(x: 308, y: 304, width: 70, height: 28)
+        merge.bezelStyle = .rounded; merge.controlSize = .large; merge.font = .systemFont(ofSize: 13)
+        merge.keyEquivalent = "\r"; view.addSubview(merge)
+        view.initialField = field
+        return view
+    }
+    func updateNSView(_ nsView: NSView, context: Context) {}
+    private final class FlippedView: NSView {
+        weak var initialField: NSTextField?
+        override var isFlipped: Bool { true }
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            guard let window, let initialField else { return }
+            window.initialFirstResponder = initialField
+            DispatchQueue.main.async { [weak self] in
+                guard let self, let field = self.initialField else { return }
+                self.window?.makeFirstResponder(field)
+            }
+        }
+    }
+    @MainActor final class Coordinator: NSObject, NSTextFieldDelegate {
+        let field = NSTextField(string: "")
+        let picker = NSSegmentedControl()
+        let checkbox = NSButton(checkboxWithTitle: "Include blank line", target: nil, action: nil)
+        let cancel: () -> Void
+        let merge: (String, Bool, MergeDestination) -> Void
+        init(cancel: @escaping () -> Void, merge: @escaping (String, Bool, MergeDestination) -> Void) {
+            self.cancel = cancel; self.merge = merge
+        }
+        func controlTextDidChange(_ obj: Notification) { checkbox.isEnabled = !field.stringValue.isEmpty }
+        @objc func cancelClicked() { cancel() }
+        @objc func mergeClicked() {
+            merge(field.stringValue, checkbox.state == .on, MergeDestination.allCases[max(0, picker.selectedSegment)])
+        }
     }
 }
