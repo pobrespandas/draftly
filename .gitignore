@@ -63,3 +63,48 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
+# Local research captures
+docs/research/screenshots/
+
+# Local logs
+*.[lL][oO][gG]
+*.log.*
+logs/
+
+# Local build output and preferences
+DerivedData/
+*.xcuserstate
+.DS_Store
+*.app/
+*.dmg
+*.xcarchive/
+
+# Local credentials and signing files
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.p12
+*.pfx
+*.pem
+*.key
+*.mobileprovision
+*.provisionprofile
+
+# Local libraries, exports, and backups
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+/backups/
+/exports/
+/libraries/
+
+# Local session handoff
+docs/claude-handoff.md
