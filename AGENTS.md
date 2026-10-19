@@ -1,5 +1,10 @@
 # Agent Instructions
 
+## Continuation
+
+- To resume the current Draftly work, read `docs/claude-handoff.md` first.
+  It records the unfinished contract review, test evidence, and next checks.
+
 ## Commits
 
 - Use Conventional Commits with a required scope: `type(scope): description`.
