@@ -3682,3 +3682,26 @@ No source or tests changed. The previous automatic result remains app437/core456
 The native check improves CPU responsiveness evidence but does not close native
 permission/dialog, CPU cancellation, or all worker lifetime acceptance. No
 screenshot or raw log is stored in the repository.
+
+
+### Native CPU cancellation — 20 October 2026
+
+Verified in use on QA executable fa4f515c36a19fe5. The first batched attempt
+again found the run already ended. History showed timeout. This attempt does
+not accept cancellation. Repeated with elapsed-time observations inside the
+Computer Use sequence. After action start, the menu showed enabled Cancel at
+about 1.96 seconds. Submitted Cancel by about 2.71 seconds. The immediate state
+did not yet show completion. A later observation showed the cancellation status;
+Execution History recorded QA CPU deadline as Cancelled.
+
+The completed write stayed in Inbox. No tail marker or archive ran. Closed
+history and ran QA Caught rejection successfully. This checks recovery of the
+execution gate. It does not measure the full cancellation latency. The worker
+sets its cancellation flag and finalizes when JavaScriptCore reaches its
+interruption checkpoint; this is not an instant-abort claim. The earlier
+automatic CPU test also reports latency near its configured synchronous limit.
+
+No code, test, or build changed. The previous full result remains app437/core456.
+Native permission/dialog, remaining entry-point, and lifetime checks remain
+pending. The strict worker and task-cancellation contracts remain partial.
+Both QA windows remain open; the second shows the neutral caught result.

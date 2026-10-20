@@ -17270,7 +17270,7 @@
       },
       "limitations": [
         "Worker queue affinity now has dispatch preconditions and a scalar lifecycle probe. Actual suspended-host/timer and cancellation cases verify the owner queue and non-main thread through explicit runtime close/release. This does not assert JavaScriptCore GC destructor timing.",
-        "Native permission/dialog and CPU-bound task cancellation acceptance remains pending on the ownership-assertion build. Recent Shortcuts deadline and overlap checks used the prior image870884f2388974b4."
+        "Current-build native menu cancellation during CPU passed. Native permission/dialog acceptance remains pending on the ownership-assertion build. Recent Shortcuts deadline and overlap checks used the prior image870884f2388974b4."
       ],
       "defaults": "The async runner creates a serial worker and a fresh runtime for a root execution. Its bridge carries JSON strings with execution and step identity. The legacy synchronous runner stays on MainActor.",
       "result": "JavaScriptCore evaluation remains on the worker while library/editor/UI operations run on MainActor. Awaiting script completion does not spin a RunLoop.",
@@ -17326,7 +17326,7 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Native permission/dialog and CPU-bound task cancellation acceptance remains pending on the ownership-assertion build. Recent Shortcuts deadline and overlap checks used the prior image870884f2388974b4.",
+        "reason": "Current QA passed CPU-loop panel responsiveness and menu cancellation, with history and subsequent-run checks. Native permission/dialog and other worker lifetime variants remain pending. Earlier Shortcuts checks used a prior executable.",
         "additionalChecks": [
           {
             "date": "2026-10-20",
@@ -17339,6 +17339,13 @@
             "fixture": "scripts/fixtures/engine-deadline-actions.json",
             "result": "Filters closed and reopened during CPU loop. In a repeat, Filters closed and the Actions menu still showed enabled Cancel and disabled runs before timeout. History recorded timeout for both runs. Attempted cancellation of the repeat lost to the deadline and is not accepted as CPU cancellation.",
             "evidence": "docs/validation.md: Native CPU worker responsiveness — 20 October 2026"
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "fa4f515c36a19fe557292b8ee73c1ed02e8a06e94456c55b7f4b20f69876ff4c",
+            "fixture": "scripts/fixtures/engine-deadline-actions.json",
+            "result": "Batched observed UI sequence found enabled Cancel about 1.96 seconds after start and submitted cancellation about 2.71 seconds after start. Later history recorded Cancelled. Completed text stayed in Inbox without tail or archive. A following action succeeded. This is not an immediate CPU interruption latency claim.",
+            "evidence": "docs/validation.md: Native CPU cancellation — 20 October 2026"
           }
         ]
       },
@@ -17597,6 +17604,13 @@
             "entryPoint": "Actions > Cancel Running Action",
             "result": "Command disabled at rest, enabled while waiting, then disabled after cancellation. History showed Cancelled, completed text stayed in Inbox, later insertion and archive did not run, and a later action succeeded.",
             "evidence": "docs/validation.md: Native cancel command — 20 October 2026"
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "fa4f515c36a19fe557292b8ee73c1ed02e8a06e94456c55b7f4b20f69876ff4c",
+            "fixture": "scripts/fixtures/engine-deadline-actions.json",
+            "result": "Batched observed UI sequence found enabled Cancel about 1.96 seconds after start and submitted cancellation about 2.71 seconds after start. Later history recorded Cancelled. Completed text stayed in Inbox without tail or archive. A following action succeeded. This is not an immediate CPU interruption latency claim.",
+            "evidence": "docs/validation.md: Native CPU cancellation — 20 October 2026"
           }
         ]
       },

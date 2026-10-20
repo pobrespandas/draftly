@@ -817,3 +817,9 @@ Current QA passed native CPU-loop responsiveness and deadline checks. A panel
 transition completed while Cancel remained enabled and runs were disabled. Both
 runs recorded timeout without tail or archive effects. CPU cancellation remains
 unaccepted: the attempted cancel lost to the deadline.
+
+
+Native CPU menu cancellation now passed on current QA: enabled Cancel was
+observed during the loop, history recorded Cancelled, and a later action
+succeeded. This does not claim instant interruption or close other native
+worker/cancellation variants.
