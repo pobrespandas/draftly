@@ -424,3 +424,9 @@ kept the completed child edit in Inbox, stopped later work, and delivered one
 observed cancel callback without success parameters. Native error/timeout,
 separate targets, picker, and backup recovery checks remain open. The matrix
 records partial acceptance and specific executed regression tests.
+
+Native URL queue failure and the production 120-second timeout also passed.
+Both kept the completed child text in Inbox, stopped later steps/actions and
+Archive, recorded Error, and delivered one observed matching error callback
+without success parameters. Separate targets and remaining native entry points
+still need acceptance. The queue record remains partial.

@@ -38,5 +38,64 @@
         }
       }
     ]
+  },
+  {
+    "name": "QA Queue failure root",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "context.addSuccessParameter('root','must be discarded');app.queueAction(Action.find('QA Queue failing child'),draft);app.queueAction(Action.find('QA Queue must not run'),draft);"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Queue failing child",
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Queue failure completed write — café 🐼');draft.update();context.fail('Neutral queued failure');"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "ERROR: child step ran after failure"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Queue timeout root",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "context.addSuccessParameter('root','must be discarded');app.queueAction(Action.find('QA Queue timeout child'),draft);app.queueAction(Action.find('QA Queue must not run'),draft);"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Queue timeout child",
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Queue timeout completed write — café 🐼');draft.update();",
+          "allowAsync": "true"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "ERROR: child step ran after timeout"
+        }
+      }
+    ]
   }
 ]

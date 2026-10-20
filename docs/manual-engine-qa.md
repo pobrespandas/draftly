@@ -203,3 +203,14 @@ helper must show cancel and no root success parameter. Check history and observe
 the received count again after inspecting the draft. The count describes only
 that observation interval. Repeat error, timeout, and separate-draft variants
 before accepting the full native queue contract.
+
+The fixture also has QA Queue failure root and QA Queue timeout root. Failure
+calls context.fail after saving its neutral text. Timeout saves its text in an
+allowAsync step and omits script.complete. Wait for the production 120-second
+deadline. Keep requests sequential and use a distinct case value in every
+callback URL. The helper counts all received callbacks; it does not correlate
+them with the active request. Confirm that the returned case matches the run.
+Both variants must use x-error, keep the child text in Inbox, omit success
+parameters, and skip both sentinels. Check the history status and error message.
+During timeout, toggle a panel to check that MainActor stays responsive. Restore
+its prior state. Do not change production deadlines to shorten native acceptance.

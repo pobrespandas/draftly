@@ -1734,3 +1734,30 @@ boundary is a Draftly safety limit; the Drafts limit has not been established.
 All three records remain partial. Error, timeout, multiple targets and remaining
 native entry points still require acceptance. Matrix structure has zero errors.
 
+## Native queued failure and timeout — 20 October 2026
+
+Verified in use on the same isolated QA build: imported the extended neutral
+queue fixture and ran the failure and timeout roots through URL confirmation.
+Failure saved Queue failure completed write — café 🐼, then called context.fail.
+The helper observed one qfailure-20261020-a error callback with Neutral queued
+failure and no root success parameter. The draft remained in Inbox. History
+recorded Error with that message. No child or later-action sentinel appeared.
+
+Timeout saved Queue timeout completed write — café 🐼 in an allowAsync step and
+omitted script.complete. The production scriptTimeout was 120 seconds and was
+not changed. At 02:43 local time, the helper observed one qtimeout-20261020-a
+error callback with The action operation timed out before it completed. The
+draft retained the exact text in Inbox. History recorded Error with the timeout
+message. Neither sentinel ran and Archive was not applied. Opening and closing
+filters during the wait succeeded; their original state was restored. After
+inspecting the draft and history, the helper still showed one callback.
+
+Distinct case values identify each sequential request. These counts describe
+the observation interval. The helper counts every received callback and does
+not correlate it internally with a request identity. Both QA apps were quit.
+No screenshot or raw session log is tracked. The fixture JSON has seven unique
+actions; only child actions have an Archive effect. This turn changed fixtures
+and acceptance records, not application code. The earlier full suites and build
+remain the application-code baseline. Separate targets, App Intents, and other
+native entry paths remain pending. The queue contract stays partial.
+
