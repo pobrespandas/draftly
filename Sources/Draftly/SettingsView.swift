@@ -4,6 +4,7 @@ import DraftlyCore
 
 struct SettingsView: View {
     @ObservedObject var controller: AppController
+    @StateObject private var loginItem = LoginItemPreferences()
     @AppStorage("settings.selectedTab") private var selectedTab = "general"
     @AppStorage(ApplicationAppearance.preferenceKey) private var appearance = "System"
     @AppStorage(GeneralPreferences.showInMenuBarKey) private var showInMenuBar = true
@@ -87,6 +88,31 @@ struct SettingsView: View {
                     Spacer()
                 }
                 Divider()
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle("Launch at login", isOn: Binding(
+                        get: { loginItem.isRegistered },
+                        set: { enabled in Task { await loginItem.setEnabled(enabled) } }
+                    ))
+                    .disabled(loginItem.isChanging || loginItem.status == .unavailable)
+                    if loginItem.status == .requiresApproval {
+                        Text("Allow Draftly in System Settings → Login Items.")
+                            .font(.caption).foregroundStyle(.secondary)
+                        Button("Open Login Items") { LoginItemPreferences.openSettings() }
+                    } else if loginItem.status == .unavailable {
+                        Text("Login registration is unavailable for this app installation.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    if let error = loginItem.error {
+                        Text(error).font(.caption).foregroundStyle(.red).textSelection(.enabled)
+                    }
+                }
+                .toggleStyle(.checkbox)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.leading, 205)
+                .onAppear { loginItem.refresh() }
+                .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+                    loginItem.refresh()
+                }
                 Toggle("Show in menu bar", isOn: $showInMenuBar)
                     .toggleStyle(.checkbox)
                     .frame(maxWidth: .infinity, alignment: .leading)

@@ -2699,3 +2699,30 @@ move. These are current reference values, not verified factory defaults. Startup
 choices, configurable global shortcuts, and the other included missing controls
 need implementation and acceptance. Do not infer Restore Last Draft from this
 inspection. Startup must preserve explicit URL/menu routing and pending edits.
+
+### Launch at login — 20 October 2026
+
+Implemented: General Settings uses SMAppService.mainApp registration. The model
+reads the system status, including external changes after app activation. It
+keeps approval pending distinct from enabled. Registration and removal errors
+remain visible. Overlapping changes cannot start a second operation. No local
+Boolean substitutes for system registration. A missing service disables the
+control with an explicit installation message.
+
+Reference: Apple ServiceManagement SMAppService mainApp, status, register, and
+unregister documentation was consulted on 20 October 2026. These framework
+contracts do not change the frozen Actions reference.
+
+Automatically tested: three isolated methods cover registration, approval,
+external status refresh, removal, both failure paths, and overlapping removal.
+They use injected operations; no test changes login items or opens Settings.
+Full regression passed 419 app methods and 416 core methods. The unsigned Debug
+build passed. These counts do not prove compatibility of unrelated contracts.
+
+Verified in use: refreshed signed isolated Engine QA. General shows Launch at
+login off and disabled, with the installation message. The actual service status
+maps to notFound. This proves the unavailable UI path on this QA installation.
+It does not prove registration, removal, approval, persistence, or launch at an
+actual login. Those checks remain pending on a service-capable installation.
+No system login item was added. Main-window-at-launch and configurable global
+shortcuts remain pending.

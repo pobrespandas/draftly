@@ -560,3 +560,10 @@ Drafts: launch-at-login and main-window-at-launch controls exist. Their Draftly
 implementation and lifecycle acceptance remain pending. See validation for the
 observed controls and limits. Workspaces, Settings, and personalization are not
 closed.
+
+
+Launch at login now uses the system service and exposes approval/errors. Three
+isolated contract methods, full regression (419 app and 416 core), and the
+unsigned build passed. QA showed the system notFound/unavailable path. Real
+registration and login acceptance remain pending. Main-window launch policy and
+configurable global shortcuts are not implemented by this change.
