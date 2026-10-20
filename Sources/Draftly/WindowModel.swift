@@ -376,57 +376,15 @@ final class WindowModel: ObservableObject {
               !note.content.isEmpty || !note.tags.isEmpty || note.flag > 0 else { return }
         create()
     }
-    func importFile() {
-        guard flush() else { return }
-        let panel = NSOpenPanel(); panel.allowsMultipleSelection = true; panel.allowedContentTypes = [.json, .plainText, .data]
-        guard panel.runModal() == .OK else { return }
-        perform {
-            for url in panel.urls {
-                let data = try Data(contentsOf: url)
-                if let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any], object["version"] != nil, object["revisions"] != nil { try library.restore(data) }
-                else if let actions = try? ActionImporter.decode(data) { for action in actions { try library.saveAction(action) } }
-                else if let notes = try? ActionImporter.importNotes(data) {
-                    for var note in notes {
-                        if let existing = library.notes.first(where: { $0.id == note.id }), existing.content != note.content { note.id = UUID() }
-                        try library.saveNote(note, preserveDates: true)
-                    }
-                } else if url.pathExtension.lowercased() != "json", let content = String(data: data, encoding: .utf8) {
-                    _ = try library.createNote(content: content)
-                } else { throw DraftlyError.message("This file is not a Draftly backup, Drafts export, or action file.") }
-            }
-            status = "Import complete"
-        }
-    }
-    func exportBackup() {
-        guard flush() else { return }
-        let panel = NSSavePanel(); panel.nameFieldStringValue = "Draftly Backup.json"; panel.allowedContentTypes = [.json]
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        perform { try library.backupData().write(to: url, options: .atomic); status = "Backup saved" }
-    }
-    func exportNote() {
-        guard flush(), let note = currentNote else { return }
-        perform { _ = try host.perform("saveFile", values: ["text": note.content, "name": note.title + ".md"]) }
-    }
+    func importFile() { DraftFileCommands(model: self).importFile() }
+    func exportBackup() { DraftFileCommands(model: self).exportBackup() }
+    func exportNote() { DraftFileCommands(model: self).exportNote() }
+
 }
 
 
 
 extension WindowModel {
-    func importSyntax(asFile: Bool) {
-        let panel = NSOpenPanel(); panel.allowsMultipleSelection = false
-        panel.message = asFile ? "Select a syntax file. File changes apply when the syntax is read." : "Import a Drafts syntax definition."
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        perform {
-            let active = url.startAccessingSecurityScopedResource(); defer { if active { url.stopAccessingSecurityScopedResource() } }
-            var value = try SyntaxDefinition(data: Data(contentsOf: url), type: asFile ? "file" : "custom")
-            if let existing = library.syntaxes.first(where: { $0.name == value.name }) {
-                let alert = NSAlert(); alert.messageText = "Replace syntax “\(value.name)”?"
-                alert.addButton(withTitle: "Replace"); alert.addButton(withTitle: "Cancel")
-                guard alert.runModal() == .alertFirstButtonReturn else { return }
-                value.id = existing.id
-            }
-            if asFile { try SyntaxFileAccess.register(url, id: value.id) }
-            try library.saveSyntax(value)
-        }
-    }
+    func importSyntax(asFile: Bool) { DraftFileCommands(model: self).importSyntax(asFile: asFile) }
+
 }

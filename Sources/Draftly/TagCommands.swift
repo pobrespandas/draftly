@@ -4,7 +4,7 @@ import DraftlyCore
 @MainActor
 extension WindowModel {
     @discardableResult func changeLibraryTag(_ old: String, to replacement: String?) -> Bool {
-        let windows = AppController.shared.windows.allObjects.filter { $0.library === library }
+        let windows = dependencies.windowModels().filter { $0.library === library }
         guard flush(), windows.allSatisfy({ $0 === self || $0.flush() }) else { return false }
         do {
             _ = try library.changeTag(old, to: replacement)

@@ -37,7 +37,7 @@ struct SettingsView: View {
                 .tabItem { Label("HTML", systemImage: "chevron.left.forwardslash.chevron.right") }.tag("html")
             editorSettings
                 .tabItem { Label("Editor", systemImage: "textformat") }.tag("editor")
-            Form { ShortcutPreferences() }
+            Form { ShortcutPreferences(app: controller) }
                 .formStyle(.grouped)
                 .tabItem { Label("Shortcuts", systemImage: "keyboard") }.tag("shortcuts")
         }

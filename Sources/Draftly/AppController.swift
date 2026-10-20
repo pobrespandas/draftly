@@ -94,6 +94,7 @@ final class AppController: ObservableObject {
 
     func makeWindowModel(library: LibraryStore) -> WindowModel {
         var dependencies = WindowDependencies()
+        dependencies.windowModels = { [weak self] in self?.windows.allObjects ?? [] }
         dependencies.makeActionHost = { [weak self] in self?.makeActionHost() ?? NativeActionHost() }
         dependencies.recoverDictation = { [weak self] in self?.capture(content: $0) }
         dependencies.openQuickSearch = { [weak self] in self?.showQuickSearch() }

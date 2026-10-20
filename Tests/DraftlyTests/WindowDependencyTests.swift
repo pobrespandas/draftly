@@ -40,4 +40,24 @@ struct WindowDependencyTests {
         #expect(searches == 1)
         #expect(library.notes.isEmpty && model.editor.noteID == nil)
     }
+    @Test func renamingATagFlushesTheInjectedPeerWindows() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let source = try library.createNote(content: "Neutral", tags: ["old"])
+        var windows: [WindowModel] = []
+        defer { windows.removeAll() }
+        var dependencies = WindowDependencies()
+        dependencies.windowModels = { windows }
+        let first = WindowModel(library: library, dependencies: dependencies)
+        let second = WindowModel(library: library, dependencies: dependencies)
+        windows = [first, second]
+        first.select(source.id)
+        second.select(source.id)
+        second.editor.content = "Pending café 🐼"
+        second.selectedTags = ["old"]
+        #expect(first.changeLibraryTag("old", to: "new"))
+        #expect(library.notes.first { $0.id == source.id }?.content == "Pending café 🐼")
+        #expect(library.notes.first { $0.id == source.id }?.tags == ["new"])
+        #expect(second.selectedTags == ["new"])
+    }
+
 }

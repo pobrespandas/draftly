@@ -177,7 +177,7 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
             }
         case "search":
             if index == 0 { model.showPalette = true }
-            else { AppController.shared.showQuickSearch() }
+            else { model.openQuickSearch() }
         default: break
         }
     }

@@ -24,7 +24,7 @@ private func shortcutModifiers(_ values: [String]) -> EventModifiers {
 
 struct ShortcutPreferences: View {
     @AppStorage("commands.bindings") private var configuration = "{}"
-    @ObservedObject private var app = AppController.shared
+    @ObservedObject var app: AppController
     @State private var selected = "New Draft"
     @State private var key = "n"
     @State private var modifiers = ["command"]
