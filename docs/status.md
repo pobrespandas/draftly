@@ -886,3 +886,10 @@ twelve response/option cases. Six background process tests cover input lifetime,
 cleanup, default wait, cancellation after launch, timeout, and launch errors.
 Full regression passed app443/core462; the unsigned build passed. Actual
 Shortcuts no-wait acceptance stays pending while the Mac is locked.
+
+
+Failed Shortcut processes now report an exit status when stderr has no useful
+text. Unicode diagnostics stay exact. Six process cases and four script/step
+cases pass; failures retain earlier effects and publish no successful result.
+Full regression passed app444/core463; the unsigned build passed. Actual
+Shortcuts and remaining status variants still need acceptance.

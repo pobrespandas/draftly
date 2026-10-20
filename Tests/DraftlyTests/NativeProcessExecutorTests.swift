@@ -101,6 +101,35 @@ struct NativeProcessExecutorTests {
         let result = try await NativeAutomationAdapter().runShortcutAsync(name: "neutral $(literal)", input: "café 🐼\n", executable: executable)
         #expect(result == "café 🐼\nneutral $(literal)")
     }
+    @Test(arguments: [false, true], ["", " \n\t", "Denied café 🐼\n"])
+    func shortcutFailureKeepsDiagnosticsAndNeverReturnsOutput(worker: Bool, message: String) async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let executable = root.appendingPathComponent("failed-shortcut")
+        try message.write(to: root.appendingPathComponent("message"), atomically: true, encoding: .utf8)
+        try """
+        #!/bin/sh
+        root=$(/usr/bin/dirname "$0")
+        printf '%s' "$4" > "$root/input-path"
+        printf 'Must not return' > "$6"
+        /bin/cat "$root/message" >&2
+        exit 7
+        """.write(to: executable, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: executable.path)
+        do {
+            if worker { _ = try await NativeAutomationAdapter().runShortcutAsync(name: "Neutral failure", input: "Keep", executable: executable) }
+            else { _ = try NativeAutomationAdapter().runShortcut(name: "Neutral failure", input: "Keep", executable: executable) }
+            Issue.record("A failed Shortcut must not return output.")
+        } catch {
+            let expected = message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ? "The Shortcut failed with exit status 7." : message
+            #expect(error.localizedDescription == expected)
+        }
+        let inputPath = try String(contentsOf: root.appendingPathComponent("input-path"), encoding: .utf8)
+        #expect(!FileManager.default.fileExists(atPath: URL(fileURLWithPath: inputPath).deletingLastPathComponent().path))
+    }
+
 }
 
 @Suite("Shortcut launch without waiting") @MainActor

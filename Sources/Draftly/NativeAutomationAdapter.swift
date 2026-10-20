@@ -44,7 +44,7 @@ struct NativeAutomationAdapter {
         let deadline = Date().addingTimeInterval(timeout)
         while process.isRunning && Date() < deadline { RunLoop.current.run(until: Date().addingTimeInterval(0.03)) }
         if process.isRunning { process.terminate(); throw DraftlyError.message(timeout == 60 ? "The Shortcut exceeded 60 seconds." : "The Shortcut exceeded its timeout.") }
-        guard process.terminationStatus == 0 else { throw DraftlyError.message((try? String(contentsOf: errors, encoding: .utf8)) ?? "The Shortcut failed.") }
+        guard process.terminationStatus == 0 else { throw shortcutFailure(status: process.terminationStatus, errors: errors) }
         return (try? String(contentsOf: output, encoding: .utf8)) ?? ""
     }
     func executeShell(_ values: [String: Any]) throws -> [String: Any] {
@@ -115,9 +115,15 @@ struct NativeAutomationAdapter {
         }
         let status = try await NativeProcessExecutor.run(process, timeout: timeout)
         guard status == 0 else {
-            throw DraftlyError.message((try? String(contentsOf: errors, encoding: .utf8)) ?? "The Shortcut failed.")
+            throw shortcutFailure(status: status, errors: errors)
         }
         return (try? String(contentsOf: output, encoding: .utf8)) ?? ""
+    }
+
+    private func shortcutFailure(status: Int32, errors: URL) -> DraftlyError {
+        let message = (try? String(contentsOf: errors, encoding: .utf8)) ?? ""
+        return .message(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? "The Shortcut failed with exit status \(status)." : message)
     }
 
     func executeAppleScript(_ values: [String: Any]) throws -> Any {

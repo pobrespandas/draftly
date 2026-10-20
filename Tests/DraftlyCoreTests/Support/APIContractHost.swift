@@ -8,6 +8,7 @@ import Testing
     var previewSuccess = true
     var callbackStatus = "success"
     var callbackParameters = ["result": "Returned + café"]
+    var shortcutFailureMessage: String?
     var confirmation = true
     var templateFiles: [String: String] = [:]
     var selectedIndex: Int? = 0
@@ -33,7 +34,9 @@ import Testing
         case "htmlPreview": return ["success": previewSuccess, "values": ["answer": ["value": 42]]]
         case "callbackURL": return ["status": callbackStatus, "parameters": callbackParameters]
         case "requireScript": return "function loadedHelper(value) { return value.toUpperCase(); }"
-        case "shortcut": return "Shortcut output"
+        case "shortcut":
+            if let shortcutFailureMessage { throw DraftlyError.message(shortcutFailureMessage) }
+            return "Shortcut output"
         case "appleScript": return ["value": 42]
         case "markdown": return MarkdownRenderer.render(values["text"] as? String ?? "")
         default: throw DraftlyError.message("Unexpected test operation: \(operation)")

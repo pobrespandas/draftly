@@ -3968,3 +3968,32 @@ Engine — disposable calls Run Draft Action; do not reuse it as an output-only
 fixture or assume it tests no-wait. No installed QA bundle was replaced this
 turn. The incoming callback-key native check from the previous turn also stays
 pending. No screenshot or raw log is stored in the repository.
+
+
+### Shortcut error diagnostics — 20 October 2026
+
+Implemented: both native Shortcut routes use one failure-message function.
+A failed process with empty or whitespace-only stderr now reports its exit
+status. A nonempty diagnostic stays unchanged, including Unicode and its final
+newline. A failed process never returns a file that it wrote before failing.
+
+Automatic: shortcutFailureKeepsDiagnosticsAndNeverReturnsOutput has six cases
+for legacy/async and empty/whitespace/Unicode diagnostics. Both empty variants
+failed on both routes before the fix. All six pass after the fix. Each case
+checks removal of the temporary input folder after failure. The executable is
+a neutral local fixture; it does not run Shortcuts or display a window.
+
+failedShortcutDoesNotPublishAResultAndStopsFollowingSteps adds four core cases
+for script/step and both runners. Script cases check initial created/empty/
+undefined state, false return and error status, the exact Unicode diagnostic,
+and no successful response, result, or result-tag replacement. The script then
+calls context.fail explicitly. Step cases propagate the native error directly.
+Both forms stop the following clipboard step and Archive, retain the earlier
+clipboard effect, and return the exact failure reason. This does not make all
+caught API errors fatal; scripts can inspect a false return.
+
+Full regression passed app444/core463. The unsigned Debug build passed. Native
+Shortcuts acceptance remains pending while the Mac is locked. No installed app
+was replaced. Matrix structure passes. Shortcut status remains partial for
+cancelled, timeout, invalid, typed results, and native behavior. No screenshot
+or raw log is stored in the repository.

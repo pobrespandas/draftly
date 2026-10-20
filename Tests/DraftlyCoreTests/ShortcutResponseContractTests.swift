@@ -43,4 +43,34 @@ struct ShortcutResponseContractTests {
         #expect(call.1["name"] as? String == "Neutral fixture")
         #expect(call.1["text"] as? String == "Input café 🐼")
     }
+    @Test(arguments: [false, true], [false, true])
+    func failedShortcutDoesNotPublishAResultAndStopsFollowingSteps(worker: Bool, step: Bool) async throws {
+        let (library, editor, host, runner) = try makeAPIContext()
+        defer { withExtendedLifetime(host) {} }
+        host.shortcutFailureMessage = "Denied café 🐼"
+        var steps = [ActionStep("defineTemplateTag", ["name": "shortcut_result", "template": "Initial"]),
+            ActionStep("script", ["script": "app.setClipboard('Completed effect');"])]
+        if step {
+            steps.append(ActionStep("runShortcut", ["name": "Neutral failure"]))
+        } else {
+            steps.append(ActionStep("script", ["script": """
+            var failed=Shortcut.create('Neutral failure');
+            if(failed.status!=='created'||Object.keys(failed.response).length!==0||failed.result!==undefined)throw new Error('initial result');
+            if(failed.run()!==false||failed.status!=='error'||failed.response.error!=='Denied café 🐼')throw new Error('failure return');
+            if(failed.result!==undefined||context.callbackResponses.length!==0)throw new Error('failure result published');
+            if(draft.processTemplate('[[shortcut_result]]')!=='Initial')throw new Error('failure tag changed');
+            context.fail('Denied café 🐼');
+            """]))
+        }
+        steps.append(ActionStep("clipboard", ["template": "Must not run"]))
+        var action = DraftAction(name: "Shortcut failure", steps: steps)
+        action.afterSuccess = "archive"
+        let report = worker ? await runner.runAsync(action) : runner.runReport(action)
+        #expect(report.reason == .error && report.result == .failure("Denied café 🐼"))
+        #expect(host.clipboard == "Completed effect")
+        #expect(host.calls.filter { $0.0 == "shortcut" }.count == 1)
+        #expect(library.notes.first { $0.id == editor.noteID }?.isArchived == false)
+        #expect(editor.content == "# Source\nBody")
+    }
+
 }
