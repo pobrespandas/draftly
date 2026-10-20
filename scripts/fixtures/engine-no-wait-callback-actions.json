@@ -1,0 +1,43 @@
+[
+  {
+    "name": "QA No-wait callback step",
+    "steps": [
+      {
+        "type": "callbackUrl",
+        "data": {
+          "url": "draftly-engine-echo://reply?status=success",
+          "waitForResponse": "false"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "if(context.callbackResponses.length!==0)throw new Error('Synthetic no-wait response');"
+        }
+      },
+      {
+        "type": "callbackUrl",
+        "data": {
+          "url": "draftly-engine-echo://reply?status=success"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "if(context.callbackResponses.length!==1||context.callbackResponses[0].value!=='Native café 🐼')throw new Error('Wrong first reply');editor.setText('Step callback first: '+context.callbackResponses[0].value);"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA No-wait callback script",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "var noWait=CallbackURL.create();noWait.baseURL='draftly-engine-echo://reply?status=success';noWait.waitForResponse=false;if(!noWait.open()||Object.keys(noWait.callbackResponse).length!==0||context.callbackResponses.length!==0)throw new Error('Synthetic script response');var waited=CallbackURL.create();waited.baseURL='draftly-engine-echo://reply?status=success';if(!waited.open()||context.callbackResponses.length!==1||context.callbackResponses[0].value!=='Native café 🐼')throw new Error('Wrong script reply');editor.setText('Script callback first: '+context.callbackResponses[0].value);"
+        }
+      }
+    ]
+  }
+]

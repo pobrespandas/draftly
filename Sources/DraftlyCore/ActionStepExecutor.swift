@@ -75,9 +75,11 @@ struct ActionStepExecutor {
                 let status = response["status"] as? String ?? "error"
                 if status == "cancelled" { return false }
                 guard status == "success" else { throw DraftlyError.message("The callback URL returned \(status).") }
-                let parameters = response["parameters"] as? [String: String] ?? [:]
-                for (key, value) in parameters { runner.customTags["callback_" + key] = value }
-                evaluate("context.callbackResponses.push(\(try json(parameters)));")
+                if step.values["waitForResponse"] != "false" {
+                    let parameters = response["parameters"] as? [String: String] ?? [:]
+                    for (key, value) in parameters { runner.customTags["callback_" + key] = value }
+                    evaluate("context.callbackResponses.push(\(try json(parameters)));")
+                }
             } else { _ = try platform("openURL", ["url": url]) }
         case "insertText": try editor.replace(editor.safeSelection, with: rendered); try flushEditor()
         case "createDraft":

@@ -855,3 +855,9 @@ Workspace, engine, and global acceptance remain pending.
 The application icon and menu template now share a simpler stacked-sheet mark.
 Asset generation, small-size render inspection, and the unsigned build passed.
 Live Dock, Finder, and menu appearance still need verification for this revision.
+
+
+No-wait callbacks now leave response collections and template tags unchanged.
+Both runner routes pass four specific cases. Native script and step checks pass.
+Full regression passed app437/core459; the unsigned build passed. Other callback
+contracts remain pending.

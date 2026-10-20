@@ -3837,3 +3837,27 @@ render. The menu path stays within its canvas. The unsigned Debug build passed.
 Both bundled resources match the source assets byte for byte. No automatic UI
 test ran. Dock, Finder, and live menu appearance remain unverified for this
 revision. Temporary renders and build logs stay outside the repository.
+
+
+### No-wait callback response collection — 20 October 2026
+
+Implemented: CallbackURL.open and callbackUrl steps publish response parameters
+only when they wait for a response. A successful no-wait launch does not append
+an empty response, replace callback tags, or expose host response data on the
+instance. Both runner routes use this rule. Launch return values stay unchanged.
+
+Automatic: CallbackResponseContractTests has four cases for script/step and
+legacy/worker routes. Each checks an empty collection and unchanged callback
+tag after no-wait launch. The next waiting reply is at index zero with exact
+Unicode data. All four cases failed before the fix and passed after it. Full
+regression passed app437/core459. The unsigned Debug build passed.
+
+Verified in use: imported engine-no-wait-callback-actions.json in isolated QA.
+The installed executable SHA-256 was
+358de71c6dda4b38c69ed9c3d5a70da5335190e298b12984861bcefbed319c19.
+Both script and step actions passed their no-wait assertions. The next local
+helper response retained Native café 🐼 at index zero. The editor showed the
+expected step and script result text. History showed Success for both actions.
+Closed history and quit QA before its next resource update. No external message
+was sent. Context.callbackResponses remains partial for other response variants.
+No screenshot or raw log is stored in the repo.

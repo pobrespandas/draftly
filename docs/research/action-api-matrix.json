@@ -7706,17 +7706,17 @@
           "contract": "If Callback URL or Run Shortcut action steps using the \"Wait for response\" option have been run in steps before the script step in an action, and the target app returned to Drafts using an x-success callback, this object will contain an array of objects with the parsed query parameters included in those responses, in the order they were received.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "ExecutionActionAPITests",
-            "test": "shortcutResponsesReachContextInExecutionOrder"
+            "suite": "CallbackResponseContractTests",
+            "test": "noWaitLaunchDoesNotPublishAResponseOrShiftTheNextReply"
           },
-          "liveCheck": null,
+          "liveCheck": "docs/validation.md: No-wait callback response collection — 20 October 2026",
           "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Context.callbackResponses"
           },
-          "defaults": "Empty at the start of execution. Host responses keep execution order.",
+          "defaults": "Empty at execution start. A no-wait launch adds no response or callback tags. Waiting success responses keep execution order.",
           "result": [
             "callbackResponses: { [x: string]: any }"
           ],
@@ -7724,7 +7724,30 @@
           "limitations": [
             "Not all native response variants and configuration defaults are covered."
           ],
-          "evidenceLevel": "Member-specific assertions. Native verification is separate."
+          "evidenceLevel": "Member-specific assertions. Native verification is separate.",
+          "automatedTestHistory": [
+            {
+              "suite": "ExecutionActionAPITests",
+              "test": "shortcutResponsesReachContextInExecutionOrder"
+            }
+          ],
+          "supportingTests": [
+            {
+              "suite": "ExecutionActionAPITests",
+              "test": "shortcutResponsesReachContextInExecutionOrder"
+            }
+          ],
+          "nativeVerification": {
+            "status": "pending",
+            "additionalChecks": [
+              {
+                "date": "2026-10-20",
+                "executableSHA256": "358de71c6dda4b38c69ed9c3d5a70da5335190e298b12984861bcefbed319c19",
+                "fixture": "scripts/fixtures/engine-no-wait-callback-actions.json",
+                "result": "Both native actions passed. No-wait script and step launches left the collection empty; the next waiting callback was first and retained Native café 🐼. History showed Success twice."
+              }
+            ]
+          }
         },
         {
           "member": "configuredValues",

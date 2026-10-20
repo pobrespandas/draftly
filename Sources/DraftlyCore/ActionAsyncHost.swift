@@ -117,9 +117,11 @@ import Foundation
             if status == "cancelled" { return false }
             if status == "timeout" { throw ActionExecutionInterruption.timeout }
             guard status == "success" else { throw DraftlyError.message("The callback URL returned \(status).") }
-            let parameters = response["parameters"] as? [String: String] ?? [:]
-            for (key, value) in parameters { customTags["callback_" + key] = value }
-            evaluate("context.callbackResponses.push(\(try json(parameters)));")
+            if step.values["waitForResponse"] != "false" {
+                let parameters = response["parameters"] as? [String: String] ?? [:]
+                for (key, value) in parameters { customTags["callback_" + key] = value }
+                evaluate("context.callbackResponses.push(\(try json(parameters)));")
+            }
             return true
         case "runShortcut":
             let result = try await nativeValue("shortcut", ["name": step.values["name"] ?? "", "text": rendered])
