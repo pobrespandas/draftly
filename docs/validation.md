@@ -4144,3 +4144,22 @@ Native acceptance on separate targets and all required entry routes remains
 pending. This test does not settle queued confirmation policy or replace native
 checks. The queue contract stays partial. The last unsigned build remains the
 successful grouped/mixed import build at 565413c.
+
+
+### Installed wrapped mixed import — 20 October 2026
+
+Native: refreshed the isolated Engine QA bundle from the successful build at
+565413c after normal Quit and confirmed process exit. Signed executable SHA-256:
+0170b10a3847c64a3116de7dec02a1f84d453af551949f4eafcab7389b8a4436.
+Imported engine-mixed-container-actions.json through File > Import. Both entries
+appeared in Actions. The native action completed with Native future fields ran
+café 🐼. The foreign action completed with Container foreign ran café 🐼.
+
+After another normal Quit and confirmed exit, reopened QA and exported a full
+backup through File. Data comparison passed complete native action equality,
+foreign UUID, exact foreign rawPayload, and foreign executable script. This
+verifies wrapped mixed dispatch, execution, restart, and backup export. It does
+not claim container inspector edits or native restore. The import contract
+remains partial for those remaining checks. The QA library stays isolated.
+The reproducible input is tracked; raw backup and logs stay in /tmp. No new
+automatic tests or build ran. Last regression remains app444/core468.

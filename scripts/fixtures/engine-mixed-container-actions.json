@@ -1,0 +1,93 @@
+{
+  "actions": [
+    {
+      "id": "251AAEC3-B0F5-5BBE-8BC0-DF8806A7D05D",
+      "name": "QA Container native",
+      "symbol": "doc.text",
+      "group": "General",
+      "shortcut": "",
+      "afterSuccess": "none",
+      "configuredValues": {},
+      "sourceURL": "fixture://native-future",
+      "rawPayload": "{\"originalForeign\":\"retained\"}",
+      "futureAction": {
+        "null": null,
+        "flag": false,
+        "decimal": 123456789.125,
+        "unicode": "café 🐼",
+        "nested": [
+          "value",
+          null,
+          true
+        ]
+      },
+      "options": {
+        "description": "Before native edit",
+        "showInList": true,
+        "showInBar": true,
+        "showInSearch": true,
+        "confirmBeforeRun": false,
+        "notifyOnSuccess": false,
+        "notifyOnError": false,
+        "addTags": [],
+        "removeTags": [],
+        "section": "",
+        "order": 0,
+        "futurePresentation": {
+          "null": null,
+          "flag": false,
+          "decimal": 123456789.125,
+          "unicode": "café 🐼",
+          "nested": [
+            "value",
+            null,
+            true
+          ]
+        }
+      },
+      "steps": [
+        {
+          "id": "6F322ABE-4578-5E4B-BF17-940472237909",
+          "type": "futureNativeStep",
+          "values": {
+            "value": "Keep café 🐼"
+          },
+          "isEnabled": false,
+          "futureStepMetadata": {
+            "null": null,
+            "flag": false,
+            "decimal": 123456789.125,
+            "unicode": "café 🐼",
+            "nested": [
+              "value",
+              null,
+              true
+            ]
+          }
+        },
+        {
+          "id": "0A286B48-472B-5217-8852-8AAF62194A9F",
+          "type": "script",
+          "values": {
+            "script": "editor.setText('Native future fields ran café 🐼');"
+          }
+        }
+      ]
+    },
+    {
+      "name": "QA Container foreign",
+      "uuid": "3B0451F1-A98F-5FDA-96E1-22E8F620FC22",
+      "futureForeign": {
+        "keep": "café 🐼"
+      },
+      "steps": [
+        {
+          "type": "script",
+          "data": {
+            "script": "editor.setText('Container foreign ran café 🐼');"
+          }
+        }
+      ]
+    }
+  ]
+}

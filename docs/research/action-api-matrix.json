@@ -17521,7 +17521,7 @@
       },
       "liveCheck": "docs/validation.md: Unknown-step import and observer control — 20 October 2026",
       "limitations": [
-        "Native-format unknown-field acceptance through the installed app remains pending. Earlier foreign-payload native checks still apply to their recorded scope. Wrapped or mixed-format native imports also need a dedicated preservation review."
+        "Single native inspector edit/restart/export and wrapped mixed native/foreign import, execution, restart, and backup export passed in the isolated installed app. Container-specific inspector edits and native restoration remain separate checks. Automatic plain/wrapped native/mixed dispatch cases pass."
       ],
       "defaults": "A missing isEnabled value enables a step. An explicitly false isEnabled value preserves the step but skips execution. The importer retains the original action payload.",
       "result": "Imported disabled unknown steps remain represented while following supported steps can execute. Enabled unknown steps prevent execution during preflight.",
@@ -17589,13 +17589,19 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Single native action import, inspector edits, execution, restart, and export passed in the isolated installed app. Thirteen export assertions preserved identities, disabled state, future fields, sourceURL, and rawPayload. Wrapped and mixed native imports still require review. Earlier foreign-payload evidence remains in history. Container dispatch now passes four automatic cases; installed grouped and mixed import acceptance remains pending.",
+        "reason": "Single native inspector edits and wrapped mixed import/execution/restart/export pass. Container-specific inspector edits and native backup restoration remain pending.",
         "additionalChecks": [
           {
             "date": "2026-10-20",
             "executableSHA256": "d58f3e5b45380631ea93b0364d0b63856b598ab0d57890bd0dc1a98cae7075b4",
             "fixture": "scripts/fixtures/engine-native-action-fields.json",
             "result": "Passed single native app path; edited Unicode name/description/value persisted after restart, history showed Success, and exported unknown data remained flat and exact."
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "0170b10a3847c64a3116de7dec02a1f84d453af551949f4eafcab7389b8a4436",
+            "fixture": "scripts/fixtures/engine-mixed-container-actions.json",
+            "result": "Both actions appeared in Actions and completed with their expected Unicode editor text. After process exit and restart, UI full backup export preserved complete native equality, foreign UUID, exact foreign rawPayload, and executable foreign script. No inspector edits or native restore ran for this container."
           }
         ]
       },

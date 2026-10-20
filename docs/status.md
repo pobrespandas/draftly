@@ -929,3 +929,8 @@ Queued error/cancel effects on another draft now have four specific legacy/async
 cases. They preserve completed effects, suppress success effects, stop the queue,
 and select the matching callback. Full regression passed app444/core468. Native
 entry coverage remains pending; no production change was needed.
+
+
+Installed wrapped mixed import now passes execution, restart, and UI backup
+export. The complete native action and foreign identity/payload/script survive.
+Container inspector edits and native restoration remain separate acceptance.
