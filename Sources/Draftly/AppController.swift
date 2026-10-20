@@ -70,7 +70,18 @@ final class AppController: ObservableObject {
         windowProvider: { [weak self] in self?.windows.allObjects ?? [] })
     lazy var quickSearchController = QuickSearchController(libraryProvider: { [weak self] in self?.library },
         openResult: { [weak self] in self?.openSearchResult($0) ?? false })
-    var openLibrary: (() -> Void)?
+    private var libraryWindowRequested = false
+    var openLibrary: (() -> Void)? {
+        didSet {
+            guard libraryWindowRequested, let openLibrary else { return }
+            libraryWindowRequested = false
+            openLibrary()
+        }
+    }
+    func requestLibraryWindow() {
+        if let openLibrary { openLibrary() }
+        else { libraryWindowRequested = true }
+    }
     let windows = NSHashTable<WindowModel>.weakObjects()
     private var pendingMenuAction: PendingMenuAction?
     init() { recentDrafts = RecentDraftStore(); start() }
@@ -110,7 +121,7 @@ final class AppController: ObservableObject {
         dependencies.openDraftWindow = { [weak self] id, tab, window in
             let before = Set(NSApp.windows.map(ObjectIdentifier.init))
             self?.queueNewWindowDraftSelection(id)
-            self?.openLibrary?()
+            self?.requestLibraryWindow()
             if tab, let window {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                     if let created = NSApp.windows.first(where: { !before.contains(ObjectIdentifier($0)) && $0.identifier?.rawValue.hasPrefix("library") == true }) { window.addTabbedWindow(created, ordered: .above) }
@@ -175,7 +186,7 @@ final class AppController: ObservableObject {
             if pendingNoteID != nil, pendingExcludedModels == nil, pendingTargetModel == nil { pendingTargetWindow = window }
             window.makeKeyAndOrderFront(nil)
             if let model = windows.allObjects.first(where: { $0.window === window }) { _ = consumePendingDraft(for: model) }
-        } else { openLibrary?() }
+        } else { requestLibraryWindow() }
     }
     @discardableResult func openSearchResult(_ id: UUID) -> Bool {
         guard library?.notes.contains(where: { $0.id == id && $0.trashedAt == nil }) == true else { return false }

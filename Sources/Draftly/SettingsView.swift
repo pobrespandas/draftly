@@ -8,6 +8,7 @@ struct SettingsView: View {
     @AppStorage("settings.selectedTab") private var selectedTab = "general"
     @AppStorage(ApplicationAppearance.preferenceKey) private var appearance = "System"
     @AppStorage(GeneralPreferences.showInMenuBarKey) private var showInMenuBar = true
+    @AppStorage(GeneralPreferences.showMainWindowAtLaunchKey) private var showMainWindowAtLaunch = true
     @AppStorage(GeneralPreferences.advancedFindKey) private var preferAdvancedFind = false
     @AppStorage("editor.fontName") private var fontName = "System"
     @AppStorage("editor.fontSize") private var fontSize = 17.0
@@ -113,6 +114,10 @@ struct SettingsView: View {
                 .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
                     loginItem.refresh()
                 }
+                Toggle("Show main window at launch", isOn: $showMainWindowAtLaunch)
+                    .toggleStyle(.checkbox)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.leading, 205)
                 Toggle("Show in menu bar", isOn: $showInMenuBar)
                     .toggleStyle(.checkbox)
                     .frame(maxWidth: .infinity, alignment: .leading)

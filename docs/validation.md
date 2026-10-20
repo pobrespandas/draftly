@@ -2726,3 +2726,40 @@ It does not prove registration, removal, approval, persistence, or launch at an
 actual login. Those checks remain pending on a service-capable installation.
 No system login item was added. Main-window-at-launch and configurable global
 shortcuts remain pending.
+
+### Main window at launch — 20 October 2026
+
+Implemented: General Settings stores Show main window at launch locally, with
+the previous enabled default. When disabled, the library scene suppresses its
+default presentation and restoration. Explicit requests still use openWindow.
+The app installs that opener at scene startup, without requiring a LibraryView.
+A request received before scene setup waits and replays once. It retains the
+pending draft identity. Replacing the opener does not replay a completed request.
+The app delegate handles a Dock reopen with no visible windows as an explicit
+request. Changing the preference does not close or replace an active editor.
+
+Automatically tested: the two added methods cover compatible defaults, stored
+choice, queued requests, replacement of the opener, and delivery of the selected
+draft without creating another note. Existing pending routing checks cover save
+failure and window ownership. Full regression passed 421 app and 416 core
+methods. Tests do not show windows or activate the app. The unsigned Debug build
+passed before native checks; final build results are recorded below.
+
+Verified in use on isolated QA: disabled the preference, quit, and started QA.
+The read-only helper reported zero visible normal windows and zero total window
+records. A URL then opened Busy owner retained with its existing content. Quit
+again and sent the same URL to the stopped app; a new process opened the correct
+draft. Closed the main window and used the capture shortcut. The independent
+Capture window opened with its previous neutral buffer intact. Opened Settings
+without a main window, restored the preference, quit, and started again. The
+main window opened. The seven saved drafts were retained. No screenshot or raw
+log is tracked.
+
+Native Dock reopen, multiple restored windows, failed-save startup, and signed
+installation variants remain pending. The last cleanup removed the redundant
+LibraryView opener and added the Dock delegate path after the native sequence.
+Those two final changes do not have new native acceptance. This entry does not
+close all startup, Settings, or engine acceptance.
+
+After the final opener cleanup and Dock handler, all ten focused preference and
+pending-routing methods passed. The final unsigned Xcode Debug build passed.

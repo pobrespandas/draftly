@@ -11,6 +11,9 @@ import DraftlyCore
 
 struct DraftlyApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
+    @Environment(\.openWindow) private var openWindow
+    @Environment(\.scenePhase) private var scenePhase
+    @AppStorage(GeneralPreferences.showMainWindowAtLaunchKey) private var showMainWindowAtLaunch = true
     @StateObject private var controller = AppController.shared
     var body: some Scene {
         WindowGroup(id: "library") {
@@ -27,6 +30,11 @@ struct DraftlyApp: App {
             }
         }
         .handlesExternalEvents(matching: [])
+        .defaultLaunchBehavior(showMainWindowAtLaunch ? .automatic : .suppressed)
+        .restorationBehavior(showMainWindowAtLaunch ? .automatic : .disabled)
+        .onChange(of: scenePhase, initial: true) {
+            controller.openLibrary = { openWindow(id: "library") }
+        }
         .defaultSize(width: 1033, height: 734)
         .commands { DraftlyCommands(controller: controller) }
         Settings { SettingsView(controller: controller) }

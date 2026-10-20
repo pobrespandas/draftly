@@ -2,7 +2,12 @@ import AppKit
 
 enum GeneralPreferences {
     static let showInMenuBarKey = "application.showInMenuBar"
+    static let showMainWindowAtLaunchKey = "application.showMainWindowAtLaunch"
     static let advancedFindKey = "editor.preferAdvancedFind"
+
+    static func showMainWindowAtLaunch(defaults: UserDefaults) -> Bool {
+        defaults.object(forKey: showMainWindowAtLaunchKey) as? Bool ?? true
+    }
 
     static func showInMenuBar(defaults: UserDefaults) -> Bool {
         defaults.object(forKey: showInMenuBarKey) as? Bool ?? true

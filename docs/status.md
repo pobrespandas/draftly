@@ -567,3 +567,11 @@ isolated contract methods, full regression (419 app and 416 core), and the
 unsigned build passed. QA showed the system notFound/unavailable path. Real
 registration and login acceptance remain pending. Main-window launch policy and
 configurable global shortcuts are not implemented by this change.
+
+
+Show main window at launch is implemented with local persistence and scene
+suppression/restoration policy. Early explicit window requests wait for the
+scene opener. Native QA passed disabled/enabled startup, warm and cold URL
+selection, and capture without the main window. Full regression passed 421 app
+and 416 core methods. Dock reopen and other installation/restoration variants
+remain pending. Configurable global shortcuts are still next.

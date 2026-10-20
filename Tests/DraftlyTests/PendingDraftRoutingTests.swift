@@ -13,6 +13,29 @@ struct PendingDraftRoutingTests {
         return (name, try #require(UserDefaults(suiteName: name)))
     }
 
+    @Test func windowRequestBeforeSceneSetupReplaysOnceWithoutLosingItsDraft() throws {
+        let (domain, defaults) = try preferences(); defer { defaults.removePersistentDomain(forName: domain) }
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let target = try library.createNote(content: "Cold route café 🐼")
+        let controller = makeController(library, defaults: defaults)
+        controller.queueDraftSelection(target.id)
+        controller.requestLibraryWindow()
+        controller.requestLibraryWindow()
+        var opens = 0
+        controller.openLibrary = { opens += 1 }
+        #expect(opens == 1)
+        #expect(controller.pendingNoteID == target.id)
+        controller.openLibrary = { opens += 1 }
+        #expect(opens == 1)
+        let model = controller.makeWindowModel(library: library)
+        controller.registerWindow(model)
+        #expect(model.editor.noteID == target.id)
+        #expect(model.editor.content == "Cold route café 🐼")
+        controller.requestLibraryWindow()
+        #expect(opens == 2)
+        #expect(library.notes.count == 1)
+    }
+
     @Test func coldSelectionSurvivesUntilTheModelRegisters() throws {
         let (domain, defaults) = try preferences(); defer { defaults.removePersistentDomain(forName: domain) }
         let library = try LibraryStore(inMemory: true, seed: false)

@@ -34,7 +34,6 @@ struct LibraryView: View {
         return model.darkTheme.map { $0 ? .dark : .light } ?? theme.map { $0.isDark ? .dark : .light }
     }
     @AppStorage("capture.newDraftAfter") private var newDraftAfter = 300.0
-    @Environment(\.openWindow) private var openWindow
 
     init(library: LibraryStore, controller: AppController) {
         self.hub = controller
@@ -98,7 +97,6 @@ struct LibraryView: View {
             model.editor.typewriterScrollingEnabled = typewriter
             hub.registerWindow(model)
             hub.commandWindow = model
-            hub.openLibrary = { openWindow(id: "library") }
             hub.consumePendingMenuAction(for: model)
             _ = hub.consumePendingDraft(for: model)
             if hub.pendingNoteID == nil && model.editor.noteID == nil { model.create() }

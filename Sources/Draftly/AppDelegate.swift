@@ -65,5 +65,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         for window in AppController.shared.windows.allObjects where !window.flush() { return .terminateCancel }
         return .terminateNow
     }
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        guard !flag else { return true }
+        AppController.shared.show()
+        return false
+    }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 }
