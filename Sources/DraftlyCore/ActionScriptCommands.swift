@@ -3,7 +3,7 @@ import Foundation
 @MainActor extension ActionRunner {
     func perform(_ command: ScriptCommand) throws -> Any? {
         switch command {
-        case .newDraft: return noteValue(Note())
+        case .newDraft: return ActionScriptValues.noteValue(Note(), syntaxes: library.syntaxes)
         case .findDraft(let id):
             guard let id else { return nil }
             return library.notes.first(where: { $0.id == id }).map(noteValue)
@@ -13,9 +13,12 @@ import Foundation
             return notes.map(noteValue)
         case .updateDraft(let input):
             let note = try input.resolve(in: library)
+            try validateScriptNote(note.id)
             try library.saveNote(note, preserveDates: input.preserveDates)
+            recordScriptSave(note)
             if editor.noteID == note.id {
                 editor.content = note.content
+                editor.acknowledgeSaved(note)
                 editor.selection = editor.safeSelection
                 editor.synchronizeScriptEdit?()
             }

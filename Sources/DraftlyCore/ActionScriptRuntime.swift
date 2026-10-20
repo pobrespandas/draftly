@@ -1,7 +1,7 @@
 import Foundation
 import JavaScriptCore
 
-@MainActor
+// The caller owns the execution queue and all JavaScript values.
 final class ActionScriptRuntime {
     let context = JSContext()!
     var scriptError: String?

@@ -12,8 +12,13 @@ public final class EditorSession: ObservableObject {
     public var performUndo: ((Bool) -> Void)?
     public var focusForDictation: (() -> Bool)?
     public private(set) var recentNoteIDs: [UUID] = []
+    private(set) var persistedDraft: (id: UUID, content: String)?
     public init() {}
-    public func load(_ note: Note, focusEditor: Bool = true) { if let id = noteID, id != note.id { recentNoteIDs.removeAll { $0 == id }; recentNoteIDs.insert(id, at: 0) }; noteID = note.id; content = note.content; selection = NSRange(location: Int(note.scriptMetadata?["selectionStart"] ?? "0") ?? 0, length: Int(note.scriptMetadata?["selectionLength"] ?? "0") ?? 0); selection = safeSelection; if focusEditor { focusToken = UUID() } }
+    public func load(_ note: Note, focusEditor: Bool = true) { if let id = noteID, id != note.id { recentNoteIDs.removeAll { $0 == id }; recentNoteIDs.insert(id, at: 0) }; noteID = note.id; content = note.content; acknowledgeSaved(note); selection = NSRange(location: Int(note.scriptMetadata?["selectionStart"] ?? "0") ?? 0, length: Int(note.scriptMetadata?["selectionLength"] ?? "0") ?? 0); selection = safeSelection; if focusEditor { focusToken = UUID() } }
+    public func acknowledgeSaved(_ note: Note) {
+        guard noteID == note.id else { return }
+        persistedDraft = (note.id, note.content)
+    }
     public var safeSelection: NSRange {
         let count = (content as NSString).length
         let start = min(max(0, selection.location), count)

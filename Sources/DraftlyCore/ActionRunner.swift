@@ -11,8 +11,10 @@ public final class ActionRunner: ObservableObject {
     public let editor: EditorSession
     public weak var host: (any ActionHost)?
     @Published public private(set) var isRunning = false
+    public private(set) var isApplyingScriptCommand = false
     @Published public var message: String?
     public var scriptTimeout: TimeInterval = 120
+    public var hostOperationTimeout: TimeInterval = 120
     public var synchronousScriptTimeout: TimeInterval = 10
     public var defaultWorkspace: (() -> Workspace)?
     public var currentWorkspace: (() -> Workspace)?
@@ -33,6 +35,7 @@ public final class ActionRunner: ObservableObject {
 
     public func flushEditor() throws {
         guard let id = editor.noteID, var note = library.notes.first(where: { $0.id == id }) else { return }
+        try validateScriptNote(note.id)
         let contentChanged = note.content != editor.content
         note.content = editor.content
         let selection = editor.safeSelection
@@ -40,6 +43,8 @@ public final class ActionRunner: ObservableObject {
         note.scriptMetadata?["selectionStart"] = String(selection.location)
         note.scriptMetadata?["selectionLength"] = String(selection.length)
         try library.saveNote(note, preserveDates: !contentChanged)
+        recordScriptSave(note)
+        editor.acknowledgeSaved(note)
     }
 
     @discardableResult public func run(_ action: DraftAction) -> Bool { runResult(action).succeeded }
@@ -48,7 +53,11 @@ public final class ActionRunner: ObservableObject {
         runReport(action).result
     }
 
-    public func cancel() { activeSession?.cancel() }
+    public func cancel() { activeSession?.cancel(); cancelWorker?() }
+    var cancelWorker: (() -> Void)?
+    var bridgeStepID: UUID?
+    var asyncExecutionID: UUID?
+    var scriptNoteContents: [UUID: String] = [:]
 
     @discardableResult public func runReport(_ action: DraftAction) -> ActionExecutionReport {
         let session = ActionExecutionSession(actionID: action.id)
@@ -71,6 +80,95 @@ public final class ActionRunner: ObservableObject {
         let report = session.finish(runOutcome, reason: reason, successParameters: successParameters)
         lastReport = report
         return report
+    }
+
+    public func runAsync(_ action: DraftAction) async -> ActionExecutionReport {
+        let session = ActionExecutionSession(actionID: action.id)
+        guard !isRunning else {
+            message = "An action is already running."
+            return session.finish(.failure(message!), reason: .busy, successParameters: [:])
+        }
+        let libraryID = ObjectIdentifier(library)
+        guard Self.runningLibraries.insert(libraryID).inserted else {
+            message = "An action is already running in this library."
+            return session.finish(.failure(message!), reason: .busy, successParameters: [:])
+        }
+        activeSession = session
+        asyncExecutionID = session.id
+        scriptNoteContents = [:]
+        if let id = editor.noteID, let stored = library.notes.first(where: { $0.id == id }) {
+            if let baseline = editor.persistedDraft, baseline.id == id, editor.content != stored.content {
+                scriptNoteContents[id] = baseline.content
+            } else { scriptNoteContents[id] = stored.content }
+        }
+        isRunning = true
+        queued = []; logs = []; customTags = [:]; successParameters = [:]
+        let sourceNoteID = editor.noteID
+        defer {
+            Self.runningLibraries.remove(libraryID)
+            isRunning = false; activeSession = nil; bridgeStepID = nil; cancelWorker = nil
+            asyncExecutionID = nil; scriptNoteContents = [:]
+            host?.finishAction()
+        }
+        return await withTaskCancellationHandler {
+            let result: ActionExecutionResult
+            let reason: ActionTerminationReason
+            do {
+                try Task.checkCancellation()
+                try checkCancellation()
+                if action.presentation.confirmBeforeRun,
+                   try platform("confirmAction", ["name": action.name]) as? Bool != true {
+                    throw ActionExecutionInterruption.cancelled
+                }
+                try flushEditor()
+                guard let id = editor.noteID, let note = library.notes.first(where: { $0.id == id }) else {
+                    throw DraftlyError.message("Create or select a draft first.")
+                }
+                try await executeAsync(action, note: note, session: session)
+                var count = 0
+                while !queued.isEmpty {
+                    try checkCancellation()
+                    count += 1
+                    guard count <= 100 else { throw DraftlyError.message("The action queue exceeded 100 actions.") }
+                    let (next, queuedNote) = queued.removeFirst()
+                    try flushEditor()
+                    let target = library.notes.first(where: { $0.id == queuedNote.id }) ?? queuedNote
+                    try library.recordAccess(target.id)
+                    editor.load(target)
+                    try await executeAsync(next, note: target, session: session)
+                }
+                try checkCancellation()
+                try Task.checkCancellation()
+                try flushEditor()
+                result = .success; reason = .success
+                message = logs.last ?? "\(action.name) completed"
+            } catch {
+                try? flushEditor()
+                if error is CancellationError || (error as? ActionExecutionInterruption) == .cancelled || session.cancellationRequested {
+                    result = .cancelled; reason = .cancelled
+                    message = "\(action.name) cancelled"
+                } else {
+                    result = .failure(error.localizedDescription)
+                    reason = (error as? ActionExecutionInterruption) == .timeout ? .timeout : .error
+                    message = error.localizedDescription
+                }
+            }
+            if !result.succeeded { successParameters = [:]; queued = [] }
+            var run = ActionRun(actionName: action.name, status: result.succeeded ? "Success" : result == .cancelled ? "Cancelled" : "Error",
+                                message: result.succeeded ? logs.joined(separator: "\n") : message ?? "")
+            run.noteID = sourceNoteID; run.actionID = action.id; library.log(run)
+            if result.succeeded && action.presentation.notifyOnSuccess || reason == .error && action.presentation.notifyOnError || reason == .timeout && action.presentation.notifyOnError {
+                _ = try? host?.perform("actionNotification", values: ["title": action.name, "message": message ?? ""])
+            }
+            let report = session.finish(result, reason: reason, successParameters: successParameters)
+            lastReport = report
+            return report
+        } onCancel: {
+            Task { @MainActor [weak self] in
+                guard self?.activeSession?.id == session.id else { return }
+                self?.cancel()
+            }
+        }
     }
 
     func checkCancellation() throws {
@@ -143,47 +241,36 @@ public final class ActionRunner: ObservableObject {
         })
         defer { runtime.close() }
         let context = runtime.context
-        let noteJSON = try json(noteValue(note))
-        var configured: [String: Any] = action.configuredValues
-        for step in steps where step.type == "configurationKey" {
-            let key = step.values["key"] ?? ""
-            let dataType = step.values["dataType"] ?? "string"
-            let defaultKey = dataType == "boolean" ? "defaultBoolValue" : dataType == "number" ? "defaultNumberValue" : dataType == "text" ? "defaultTextValue" : "defaultStringValue"
-            let value = action.configuredValues[key] ?? step.values["defaultValue"] ?? step.values[defaultKey] ?? ""
-            configured[key] = value
-            if step.values["dataType"] == "boolean" { configured[key] = value == "true" || value == "1" }
-            if step.values["dataType"] == "number" { configured[key] = Double(value) ?? 0 }
-        }
-        let values = try json(configured)
-        context.evaluateScript("var draft = new Draft(\(noteJSON)); var action = new Action(\(try json(actionValue(action)))); context.configuredValues = \(values); action.configuredValues = context.configuredValues;")
+        context.evaluateScript(try bootstrapSource(action, note: note, steps: steps))
         if let scriptError = runtime.scriptError { throw DraftlyError.message(scriptError) }
-        for step in steps where step.isEnabled != false {
-            try checkCancellation()
-            activeSession?.enter(actionID: action.id, step: step)
-            if context.objectForKeyedSubscript("__cancelled")?.toBool() == true { return false }
-            if let failure = context.objectForKeyedSubscript("__failure"), !failure.isNull, !failure.isUndefined { throw DraftlyError.message(failure.toString()) }
-            let text = step.values["template"] ?? step.values["text"] ?? "[[draft]]"
-            let current = library.notes.first(where: { $0.id == note.id }) ?? note
-            let rendered = try renderTemplate(text, note: current)
-            guard try ActionStepExecutor(runner: self).perform(step, text: text, rendered: rendered, current: current,
-                runtime: runtime, executeIncluded: { try self.execute($0, note: $1) }) else { return false }
-            context.evaluateScript("__tags = \(try json(customTags));")
+        func performSteps(_ items: [ActionStep], owner: UUID, path: Set<UUID>) throws -> Bool {
+            for step in items where step.isEnabled != false {
+                try checkCancellation()
+                activeSession?.enter(actionID: owner, step: step)
+                if context.objectForKeyedSubscript("__cancelled")?.toBool() == true { return false }
+                if let failure = context.objectForKeyedSubscript("__failure"), !failure.isNull, !failure.isUndefined { throw DraftlyError.message(failure.toString()) }
+                let text = step.values["template"] ?? step.values["text"] ?? "[[draft]]"
+                let current = library.notes.first(where: { $0.id == note.id }) ?? note
+                if step.type == "includeAction" {
+                    let included = try ActionStepExpansion.resolve(step, actions: library.actions) { try renderTemplate($0, note: current) }
+                    let includedSteps = try ActionStepExpansion.expand(included, actions: library.actions, path: path)
+                    context.evaluateScript(try additionalConfigurationSource(action, steps: includedSteps))
+                    guard try performSteps(included.steps, owner: included.id, path: path.union([included.id])) else { return false }
+                    continue
+                }
+                let rendered = try renderTemplate(text, note: current)
+                guard try ActionStepExecutor(runner: self).perform(step, text: text, rendered: rendered, current: current,
+                    runtime: runtime, executeIncluded: { try self.execute($0, note: $1) }) else { return false }
+                context.evaluateScript("__tags = \(try json(customTags));")
+            }
+            return true
         }
+        guard try performSteps(action.steps, owner: action.id, path: [action.id]) else { return false }
         try checkCancellation()
         if context.objectForKeyedSubscript("__cancelled")?.toBool() == true { return false }
         if let failure = context.objectForKeyedSubscript("__failure"), !failure.isNull, !failure.isUndefined { throw DraftlyError.message(failure.toString()) }
         try flushEditor()
-        if var original = library.notes.first(where: { $0.id == note.id }) {
-            switch action.afterSuccess {
-            case "archive", "1": original.isArchived = true
-            case "trash", "2": original.trashedAt = Date()
-            default: break
-            }
-            original.tags = TagRules.normalize(original.tags + action.presentation.addTags)
-                .filter { !TagRules.normalize(action.presentation.removeTags).contains($0) }
-            if let flag = action.presentation.flagAfterSuccess { original.flag = min(7, max(0, flag)) }
-            try library.saveNote(original)
-        }
+        try applySuccessEffects(action, noteID: note.id)
         return true
     }
 
@@ -211,14 +298,17 @@ public final class ActionRunner: ObservableObject {
         }
         return result
     }
-    static func limitExecution(_ context: JSContext, seconds: TimeInterval) throws {
+    nonisolated static func limitExecution(_ context: JSContext, seconds: TimeInterval, deadline: ScriptExecutionDeadline? = nil) throws {
         guard seconds.isFinite, seconds > 0 else { throw DraftlyError.message("The synchronous script timeout must be positive and finite.") }
         // JavaScriptCore exports this limit on macOS. Do not require a private symbol at link time.
         typealias Callback = @convention(c) (JSContextRef?, UnsafeMutableRawPointer?) -> Bool
         typealias Limit = @convention(c) (JSContextGroupRef?, Double, Callback?, UnsafeMutableRawPointer?) -> Void
         if let symbol = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "JSContextGroupSetExecutionTimeLimit") {
             let limit = unsafeBitCast(symbol, to: Limit.self)
-            limit(JSContextGetGroup(context.jsGlobalContextRef), seconds, { _, _ in true }, nil)
+            limit(JSContextGetGroup(context.jsGlobalContextRef), seconds, { _, state in
+                if let state { Unmanaged<ScriptExecutionDeadline>.fromOpaque(state).takeUnretainedValue().recordTimeout() }
+                return true
+            }, deadline.map { Unmanaged.passUnretained($0).toOpaque() })
         }
     }
 
@@ -229,7 +319,8 @@ public final class ActionRunner: ObservableObject {
     }
     func json(_ object: Any) throws -> String { String(decoding: try JSONSerialization.data(withJSONObject: object, options: [.fragmentsAllowed]), as: UTF8.self) }
     public func noteValue(_ note: Note) -> [String: Any] {
-        ActionScriptValues.noteValue(note, syntaxes: library.syntaxes)
+        if asyncExecutionID != nil, scriptNoteContents[note.id] == nil { scriptNoteContents[note.id] = note.content }
+        return ActionScriptValues.noteValue(note, syntaxes: library.syntaxes)
     }
     func decodedNote(_ values: [String: Any]) throws -> Note {
         try ActionScriptValues.decodedNote(values, notes: library.notes)
@@ -237,7 +328,10 @@ public final class ActionRunner: ObservableObject {
 
     func appendScriptLog(_ message: String) { logs.append(message) }
 
-    private func dispatch(_ operation: String, values: [String: Any]) throws -> Any? {
+    func dispatch(_ operation: String, values: [String: Any]) throws -> Any? {
+        let wasApplying = isApplyingScriptCommand
+        isApplyingScriptCommand = true
+        defer { isApplyingScriptCommand = wasApplying }
         if let command = try ScriptCommand(operation: operation, values: values) {
             return try perform(command)
         }

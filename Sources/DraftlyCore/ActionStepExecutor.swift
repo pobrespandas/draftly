@@ -8,17 +8,13 @@ struct ActionStepExecutor {
     func perform(_ step: ActionStep, text: String, rendered: String, current: Note,
                  runtime: ActionScriptRuntime,
                  executeIncluded: (DraftAction, Note) throws -> Bool) throws -> Bool {
+        guard step.type == "script" else {
+            return try performNative(step, text: text, rendered: rendered, current: current,
+                evaluate: { runtime.context.evaluateScript($0) }, executeIncluded: executeIncluded)
+        }
         let context = runtime.context
-        let library = runner.library, editor = runner.editor
-        func platform(_ operation: String, _ values: [String: Any]) throws -> Any? { try runner.platform(operation, values) }
-        func renderTemplate(_ text: String, note: Note) throws -> String { try runner.renderTemplate(text, note: note) }
-        func renderURL(_ text: String, note: Note, encodeTags: Bool) throws -> String { try runner.renderURL(text, note: note, encodeTags: encodeTags) }
-        func json(_ object: Any) throws -> String { try runner.json(object) }
-        func noteValue(_ note: Note) -> [String: Any] { runner.noteValue(note) }
-        func flushEditor() throws { try runner.flushEditor() }
         func checkCancellation() throws { try runner.checkCancellation() }
         switch step.type {
-        case "configurationKey": break
         case "script":
             let asynchronous = ["true", "1"].contains(step.values["allowAsync"] ?? step.values["allowAsynchronous"] ?? "false")
             if asynchronous, !runner.scriptTimeout.isFinite || runner.scriptTimeout <= 0 {
@@ -46,6 +42,24 @@ struct ActionStepExecutor {
                     RunLoop.current.run(until: Date().addingTimeInterval(0.005))
                 }
             }
+        default: break
+        }
+        return true
+    }
+
+    func performNative(_ step: ActionStep, text: String, rendered: String, current: Note,
+                       evaluate: (String) -> Void,
+                       executeIncluded: (DraftAction, Note) throws -> Bool) throws -> Bool {
+        let library = runner.library, editor = runner.editor
+        func platform(_ operation: String, _ values: [String: Any]) throws -> Any? { try runner.platform(operation, values) }
+        func renderTemplate(_ text: String, note: Note) throws -> String { try runner.renderTemplate(text, note: note) }
+        func renderURL(_ text: String, note: Note, encodeTags: Bool) throws -> String { try runner.renderURL(text, note: note, encodeTags: encodeTags) }
+        func json(_ object: Any) throws -> String { try runner.json(object) }
+        func noteValue(_ note: Note) -> [String: Any] { runner.noteValue(note) }
+        func flushEditor() throws { try runner.flushEditor() }
+        func checkCancellation() throws { try runner.checkCancellation() }
+        switch step.type {
+        case "configurationKey": break
         case "clipboard":
             let mode = step.values["writeType"] ?? "replace"
             guard ["replace", "append", "prepend"].contains(mode) else { throw DraftlyError.message("Unsupported clipboard write type: \(mode)") }
@@ -63,7 +77,7 @@ struct ActionStepExecutor {
                 guard status == "success" else { throw DraftlyError.message("The callback URL returned \(status).") }
                 let parameters = response["parameters"] as? [String: String] ?? [:]
                 for (key, value) in parameters { runner.customTags["callback_" + key] = value }
-                context.evaluateScript("context.callbackResponses.push(\(try json(parameters)));")
+                evaluate("context.callbackResponses.push(\(try json(parameters)));")
             } else { _ = try platform("openURL", ["url": url]) }
         case "insertText": try editor.replace(editor.safeSelection, with: rendered); try flushEditor()
         case "createDraft":
@@ -84,17 +98,17 @@ struct ActionStepExecutor {
             if let result {
                 runner.customTags["shortcut_result"] = String(describing: result)
                 if step.values["waitForResponse"] != "false" {
-                    context.evaluateScript("context.callbackResponses.push(\(try json(["result": result])));")
+                    evaluate("context.callbackResponses.push(\(try json(["result": result])));")
                 }
             }
         case "runAppleScript":
             let result = try platform("appleScript", ["source": step.values["script"] ?? step.values["source"] ?? "", "subroutine": "execute", "arguments": [noteValue(current)]])
-            context.evaluateScript("context.appleScriptResponses.push(\(try json(result ?? NSNull())));")
+            evaluate("context.appleScriptResponses.push(\(try json(result ?? NSNull())));")
         case "htmlpreview":
             let html = rendered.range(of: "<[^>]+>", options: .regularExpression) == nil ? MarkdownRenderer.page(try MarkdownPreferences.render(rendered, defaults: runner.markdownDefaults)) : rendered
             let result = try platform("htmlPreview", ["html": html, "hideInterface": step.values["hideInterface"] == "true"])
             if result as? Bool == false || (result as? [String: Any])?["success"] as? Bool == false { return false }
-            if let fields = (result as? [String: Any])?["values"] as? [String: Any] { context.evaluateScript("context.previewValues = \(try json(fields));") }
+            if let fields = (result as? [String: Any])?["values"] as? [String: Any] { evaluate("context.previewValues = \(try json(fields));") }
         case "defineTemplateTag":
             runner.customTags[step.values["name"] ?? step.values["tagName"] ?? ""] = rendered
         case "configureWindow":

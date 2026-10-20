@@ -1117,3 +1117,17 @@ requests without RunLoop polling. Six isolated URLProtocol tests passed for
 Unicode JSON, status and headers, HTTP errors, network errors, malformed inputs,
 request encoding, authentication, and cancellation. No external network was used.
 Redirects and real socket acceptance remain pending.
+
+## Worker execution and include contracts — 20 October 2026
+
+The new runAsync route owns a serial JavaScript worker, serialized host bridge,
+continuation-based completion, scheduled timers, cancellation, and typed reports.
+Legacy entry points remain. Shared configuration and success effects serve both
+routes. Includes resolve UUIDs and runtime name templates in the same context.
+Import keeps structural step UUIDs separate from include targets.
+
+Original action cases passed on both routes without changing fixture scripts.
+New cases cover reply expiry, duplicate completion, stale timers, CPU deadlines,
+queues, includes, concurrent content changes, deleted notes, and stale initial
+editor content. Remaining synchronous native capability waits and real external
+entry-point acceptance are not closed by these tests.

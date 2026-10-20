@@ -23,6 +23,9 @@ public enum ActionImporter {
                     else if JSONSerialization.isValidJSONObject(value), let json = try? JSONSerialization.data(withJSONObject: value) { values[key] = String(data: json, encoding: .utf8) }
                     else { values[key] = String(describing: value) }
                 }
+                if type == "includeAction", nested["uuid"] == nil {
+                    values.removeValue(forKey: "uuid")
+                }
                 var step = ActionStep(type, values)
                 step.isEnabled = raw["isEnabled"] as? Bool
                 if let value = raw["uuid"] as? String, let id = UUID(uuidString: value) { step.id = id }
