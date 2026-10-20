@@ -16455,7 +16455,7 @@
         "suite": "AsyncActionRunnerTests",
         "test": "timeoutAndRejectedPromisesStopLaterStepsAndSuccessEffects"
       },
-      "liveCheck": null,
+      "liveCheck": "docs/validation.md: Native action-list promise checks — 20 October 2026",
       "limitations": [
         "Native Shortcuts success and production CPU/120-second queued timeout passed on image870884f2388974b4, including a separate queued target. Native discarded/intrinsic/returned rejection URL checks remain recorded. Remaining native rejection and cancellation entry variants are pending."
       ],
@@ -16526,8 +16526,18 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Discarded and intrinsic async rejection now pass automatic and native URL checks. Returned rejection and timeout still need the remaining native entry-point checks on the current build; earlier production queued timeout evidence used the previous executable.",
-        "evidence": "docs/validation.md"
+        "reason": "Current Engine QA action-list checks passed for discarded rejection, intrinsic async rejection, and caught rejection. History records two errors and one success. Remaining returned rejection, timeout, cancellation, and other entry-point variants are pending.",
+        "evidence": "docs/validation.md",
+        "additionalChecks": [
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "839cc0f6069c115a3dbd6b4c0a66e5cb0767dca54f3368b3fbc47cdfc6c40aca",
+            "fixture": "scripts/fixtures/engine-promise-actions.json",
+            "entryPoint": "action list",
+            "result": "Two unhandled rejections stopped later insertText and archive disposition. Earlier draft write remained in Inbox. Caught rejection completed. Execution History showed Error, Error, Success.",
+            "evidence": "docs/validation.md: Native action-list promise checks — 20 October 2026"
+          }
+        ]
       },
       "automatedVerification": {
         "status": "passed",

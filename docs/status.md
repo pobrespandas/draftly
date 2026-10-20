@@ -780,3 +780,9 @@ fields now have specific partial evidence; full integration acceptance is open.
 Real loopback XML-RPC cancellation now has an error-envelope check and server
 confirmation of TCP disconnect. Full app436/core456 and matrix checks passed.
 This is transport evidence, not native UI cancellation acceptance.
+
+
+Current Engine QA passed native action-list checks for discarded, intrinsic,
+and caught promise rejection. Earlier text survived failure; later insertion
+and archive did not run. History showed two errors and one success. Other
+entry-point, timeout, and cancellation variants remain pending.

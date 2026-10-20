@@ -3528,3 +3528,27 @@ methods. Matrix structure passed. No production change or new app build was
 needed. Native UI cancellation, native timeout, other network conditions, and
 remaining XML-RPC contracts still require their own acceptance. No external
 server, visible window, or personal library was used.
+
+
+### Native action-list promise checks — 20 October 2026
+
+Verified in use: quit Engine QA through its app menu and confirmed its process
+was absent. Refreshed it from the latest unsigned Debug build and signed the QA
+bundle. Installed executable SHA-256:
+`839cc0f6069c115a3dbd6b4c0a66e5cb0767dca54f3368b3fbc47cdfc6c40aca`.
+The update preserves the isolated library and callback scheme.
+
+Imported scripts/fixtures/engine-promise-actions.json through File > Import.
+Created one neutral source draft and ran all three actions from the Imported
+action list. Discarded rejection showed its expected error and retained the
+completed write in Inbox. Neither its following error-marker insertion nor
+archive disposition ran. Intrinsic async rejection showed its expected error
+and kept that text. Caught rejection wrote its expected result and completed.
+Execution History showed Error for the first two actions and Success for the
+handled rejection. Closed the history and left the neutral result open in QA.
+
+No production code or automatic test changed. The previous full regression
+remains app436/core456. Matrix structure passes. The strict engine gate still
+has 27 diagnostics: this action-list check does not accept remaining entry
+points, returned rejection, timeout, or cancellation variants. No screenshot or
+raw log is stored in the repository. The full Mac plan remains open.
