@@ -3997,3 +3997,24 @@ Shortcuts acceptance remains pending while the Mac is locked. No installed app
 was replaced. Matrix structure passes. Shortcut status remains partial for
 cancelled, timeout, invalid, typed results, and native behavior. No screenshot
 or raw log is stored in the repository.
+
+
+### Included step ownership — 20 October 2026
+
+Automatic: includedStepsKeepTheirOwnerAndOneExecutionIdentity has six cases:
+legacy/async with selected name, UUID, or a template name. Each case includes a
+nested action and mixes native steps with JavaScript host requests. The host
+observes the actual current-step metadata during five effects. Their owner
+sequence is root, child, leaf, child, root. Step UUIDs, global indices, step
+types, and the single execution UUID match. Only the root history entry is
+created. All seven inclusion methods pass, including the final mixed-step
+version of this case. No visible window, permission, or audio operation ran.
+
+The suspected static-inclusion owner defect was not reproduced. The flat
+expansion prepares and validates configuration; execution walks the original
+action steps and records each included owner. Production code did not change.
+This test guards that distinction during later refactoring. It does not settle
+configuration-key precedence or queue confirmation policy. The shared-inclusion
+contract remains partial for its listed acceptance. Matrix structure passes.
+The prior full regression remains app444/core463; this turn ran the seven
+focused inclusion methods. No screenshot or raw log is stored in the repo.

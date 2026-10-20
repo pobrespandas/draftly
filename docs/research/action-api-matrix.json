@@ -17123,6 +17123,10 @@
         {
           "suite": "InitialConfigurationPersistenceTests",
           "test": "restoredConfirmationRetainsFalseAndZeroAndPromptsOnlyNewRequiredKey"
+        },
+        {
+          "suite": "EngineInclusionAcceptanceTests",
+          "test": "includedStepsKeepTheirOwnerAndOneExecutionIdentity"
         }
       ],
       "nativeVerification": {

@@ -893,3 +893,10 @@ text. Unicode diagnostics stay exact. Six process cases and four script/step
 cases pass; failures retain earlier effects and publish no successful result.
 Full regression passed app444/core463; the unsigned build passed. Actual
 Shortcuts and remaining status variants still need acceptance.
+
+
+Included step ownership now has six specific cases across both runners and
+name/UUID/template references, with nested native/script effects. The current
+engine preserves owner, step, index, and execution identity. Seven focused
+inclusion methods pass. No production change was needed. Configuration
+precedence and native acceptance still keep the inclusion contract partial.

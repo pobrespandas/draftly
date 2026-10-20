@@ -117,4 +117,42 @@ struct EngineInclusionAcceptanceTests {
         #expect(f.host.calls.filter { $0.0 == "clipboard" }.count == 1)
         #expect(f.editor.content == "Source" && f.library.notes.first?.isArchived == false)
     }
+    @Test(arguments: [false, true], ["name", "uuid", "template"])
+    func includedStepsKeepTheirOwnerAndOneExecutionIdentity(asynchronous: Bool, reference: String) async throws {
+        let childName = "Child café 🐼"
+        let f = try ScriptTestFixture(content: childName, host: APIContractHost())
+        let leafStep = ActionStep("script", ["script": "app.setClipboard('Leaf');"])
+        let leaf = DraftAction(name: "Nested leaf", steps: [leafStep])
+        let childPrefix = ActionStep("script", ["script": "app.setClipboard('Child prefix');"])
+        let childSuffix = ActionStep("clipboard", ["template": "Child suffix"])
+        let child = DraftAction(name: childName, steps: [childPrefix,
+            ActionStep("includeAction", ["uuid": leaf.id.uuidString]), childSuffix])
+        try f.library.saveAction(leaf); try f.library.saveAction(child)
+        let values = reference == "uuid" ? ["uuid": child.id.uuidString]
+            : ["name": reference == "template" ? "[[title]]" : childName]
+        let prefix = ActionStep("clipboard", ["template": "Root prefix"])
+        let suffix = ActionStep("script", ["script": "app.setClipboard('Root suffix');"])
+        let root = DraftAction(name: "Owner identity", steps: [prefix,
+            ActionStep("includeAction", values), suffix])
+        var observed: [ActionExecutionStep] = []
+        var executions: [UUID] = []
+        f.host.onPerform = { [weak runner = f.runner] operation in
+            guard operation == "clipboard", let session = runner?.activeSession,
+                  let step = session.currentStep else { return }
+            observed.append(step)
+            executions.append(session.id)
+        }
+        defer { f.host.onPerform = nil }
+        let report = asynchronous ? await f.runner.runAsync(root) : f.runner.runReport(root)
+        #expect(report.reason == .success && report.actionID == root.id)
+        #expect(observed.map(\.actionID) == [root.id, child.id, leaf.id, child.id, root.id])
+        #expect(observed.map(\.stepID) == [prefix.id, childPrefix.id, leafStep.id, childSuffix.id, suffix.id])
+        #expect(observed.map(\.index) == [0, 2, 4, 5, 6])
+        #expect(observed.map(\.type) == ["clipboard", "script", "script", "clipboard", "script"])
+        #expect(executions == Array(repeating: report.executionID, count: 5))
+        #expect(f.host.calls.filter { $0.0 == "clipboard" }.compactMap { $0.1["text"] as? String }
+            == ["Root prefix", "Child prefix", "Leaf", "Child suffix", "Root suffix"])
+        #expect(f.library.runs.count == 1 && f.library.runs.first?.actionID == root.id)
+    }
+
 }
