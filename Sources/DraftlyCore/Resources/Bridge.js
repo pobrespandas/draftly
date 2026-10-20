@@ -1,5 +1,5 @@
 // Keep one JavaScript context for all steps in an action.
-var __cancelled = false, __failure = null, __completed = false, __tags = {}, __draftCache = {};
+var __cancelled = false, __failure = null, __completed = false, __tags = Object.create(null), __draftCache = {};
 function __call(op, value) {
     var result = JSON.parse(__host(op, JSON.stringify(value === undefined ? {} : value)));
     if (result.error) throw new Error(result.error);
@@ -42,7 +42,7 @@ class Draft {
         this._selectionStart=selectionStart||0;this._selectionLength=selectionLength||0;
         this._createdAt = __date(v.createdAt); this._modifiedAt = __date(v.modifiedAt); this._explicitModifiedAt=false;
         this._syntax = typeof v.syntax === 'string' ? new Syntax(v.syntax) : Object.assign(new Syntax(), v.syntax || {});
-        this._templateTags = {};
+        this._templateTags = Object.create(null);
         __draftCache[this.uuid] = this;
     }
     static create() { return new Draft(); }
@@ -96,7 +96,7 @@ class Draft {
     bodyPreview(maxLength) { return this.lines.slice(1).join(' ').trim().slice(0,maxLength); }
     update() { let v=__call('updateDraft',{...this.toJSON(),_preserveDates:this._explicitModifiedAt});this._modifiedAt=__date(v.modifiedAt);this.tags=v.tags;this._explicitModifiedAt=false; }
     saveVersion() { __call('saveVersion',{uuid:this.uuid,content:this.content}); }
-    processTemplate(text) { return __call('template',{note:this,text,tags:Object.assign({},__tags,this._templateTags)}); }
+    processTemplate(text) { return __call('template',{note:this,text,tags:Object.assign(Object.create(null),__tags,this._templateTags)}); }
     processMustacheTemplate(text,additionalValues={},partials={}) { return MustacheTemplate.renderTemplate(text,{...this.toJSON(),title:this.title,displayTitle:this.displayTitle,body:this.lines.slice(1).join('\n'),...__tags,...this._templateTags,...additionalValues},partials); }
     setTemplateTag(key,value) { this._templateTags[key] = String(value); __tags[key] = String(value); __call('setTemplateTag',{key,value:String(value)}); }
     getTemplateTag(key) { return this._templateTags[key] === undefined ? __tags[key] : this._templateTags[key]; }

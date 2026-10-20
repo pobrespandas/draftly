@@ -60,7 +60,7 @@ import Foundation
                         }
                         if !updates.isEmpty { try await worker.evaluateSource(updates.joined(separator: "\n")) }
                     }
-                    try await worker.evaluateSource("__tags=\(try json(customTags));")
+                    try await worker.evaluateSource(try templateTagsSource())
                 }
             }
             try await performSteps(action.steps, owner: action.id, path: [action.id])

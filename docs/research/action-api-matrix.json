@@ -2498,25 +2498,31 @@
           "contract": "Get the current value of a custom template tag.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "DraftActionAPITests",
-            "test": "draftConveniencesMetadataAndTemplateContracts"
+            "suite": "DraftTemplateTagContractTests",
+            "test": "prototypeNamesSurviveBothRenderersAndLaterSteps"
           },
           "liveCheck": null,
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
           "result": [
             "getTemplateTag(tagName: string): string"
           ],
           "errors": "Host and storage errors throw JavaScript errors.",
           "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
+            "Native per-member comparison remains pending. These cases do not establish every template default, transform, host-error, or location/file capability contract."
           ],
-          "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
+          "evidenceLevel": "Specific legacy and worker contracts cover prototype-named tags, exact Unicode values, both renderers, and later native/script steps. A separate Mustache entry test covers additional values, partials, and argument preservation.",
           "compatibilityStatus": "partial",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.getTemplateTag"
-          }
+          },
+          "additionalAutomatedTests": [
+            {
+              "suite": "DraftActionAPITests",
+              "test": "draftConveniencesMetadataAndTemplateContracts"
+            }
+          ]
         },
         {
           "member": "processMustacheTemplate",
@@ -2530,25 +2536,31 @@
           "contract": "Runs the template string through the Mustache template engine to evaluate tags. Allows additional values and partials to be provided to the context.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "DraftActionAPITests",
-            "test": "draftConveniencesMetadataAndTemplateContracts"
+            "suite": "DraftTemplateTagContractTests",
+            "test": "mustacheAdditionalValuesAndPartialsOverrideTagsWithoutMutatingThem"
           },
           "liveCheck": null,
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
           "result": [
             "processMustacheTemplate( template: string, additionalValues: Object, partials: Object,): string"
           ],
           "errors": "Host and storage errors throw JavaScript errors.",
           "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
+            "Native per-member comparison remains pending. These cases do not establish every template default, transform, host-error, or location/file capability contract."
           ],
-          "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
+          "evidenceLevel": "Specific legacy and worker contracts cover prototype-named tags, exact Unicode values, both renderers, and later native/script steps. A separate Mustache entry test covers additional values, partials, and argument preservation.",
           "compatibilityStatus": "partial",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.processMustacheTemplate"
-          }
+          },
+          "additionalAutomatedTests": [
+            {
+              "suite": "DraftActionAPITests",
+              "test": "draftConveniencesMetadataAndTemplateContracts"
+            }
+          ]
         },
         {
           "member": "processTemplate",
@@ -2562,20 +2574,20 @@
           "contract": "Runs the template string through the Drafts Template engine to evaluate tags.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "DraftActionAPITests",
-            "test": "draftConveniencesMetadataAndTemplateContracts"
+            "suite": "DraftTemplateTagContractTests",
+            "test": "prototypeNamesSurviveBothRenderersAndLaterSteps"
           },
           "liveCheck": null,
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
           "result": [
             "processTemplate(template: string): string"
           ],
           "errors": "Host and storage errors throw JavaScript errors.",
           "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
+            "Native per-member comparison remains pending. These cases do not establish every template default, transform, host-error, or location/file capability contract."
           ],
-          "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
+          "evidenceLevel": "Specific legacy and worker contracts cover prototype-named tags, exact Unicode values, both renderers, and later native/script steps. A separate Mustache entry test covers additional values, partials, and argument preservation.",
           "compatibilityStatus": "partial",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
@@ -2589,7 +2601,13 @@
             "scope": "Configured processor and options reach percent delimiters in Actions and scripting. Includes Unicode, included templates, escaped delimiters, and source preservation.",
             "native": "pending",
             "log": "/tmp/draftly-template-preferences-all-tests.log"
-          }
+          },
+          "additionalAutomatedTests": [
+            {
+              "suite": "DraftActionAPITests",
+              "test": "draftConveniencesMetadataAndTemplateContracts"
+            }
+          ]
         },
         {
           "member": "setTemplateTag",
@@ -2603,25 +2621,31 @@
           "contract": "Set a custom template tag value for use in templates. For example, calling setTemplateTag(\"mytag\", \"mytext\") will create a tag [[mytag]], which subsequent action steps in the same action can use in their templates. These values are also available in Mustache templates, but as {{mytag}}.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "DraftActionAPITests",
-            "test": "draftConveniencesMetadataAndTemplateContracts"
+            "suite": "DraftTemplateTagContractTests",
+            "test": "prototypeNamesSurviveBothRenderersAndLaterSteps"
           },
           "liveCheck": null,
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
           "result": [
             "setTemplateTag(tagName: string, value: string): void"
           ],
           "errors": "Host and storage errors throw JavaScript errors.",
           "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
+            "Native per-member comparison remains pending. These cases do not establish every template default, transform, host-error, or location/file capability contract."
           ],
-          "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
+          "evidenceLevel": "Specific legacy and worker contracts cover prototype-named tags, exact Unicode values, both renderers, and later native/script steps. A separate Mustache entry test covers additional values, partials, and argument preservation.",
           "compatibilityStatus": "partial",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.setTemplateTag"
-          }
+          },
+          "additionalAutomatedTests": [
+            {
+              "suite": "DraftActionAPITests",
+              "test": "draftConveniencesMetadataAndTemplateContracts"
+            }
+          ]
         },
         {
           "member": "versions",

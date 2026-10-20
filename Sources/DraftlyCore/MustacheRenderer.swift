@@ -8,10 +8,19 @@ public enum MustacheRenderer {
         context.exceptionHandler = { _, error in failure = error?.toString() }
         context.evaluateScript(try String(contentsOf: url, encoding: .utf8))
         context.setObject(template, forKeyedSubscript: "__template" as NSString)
-        context.setObject(data, forKeyedSubscript: "__data" as NSString)
-        context.setObject(partials, forKeyedSubscript: "__partials" as NSString)
+        let dataSource: String
+        if JSONSerialization.isValidJSONObject([data]),
+           let encoded = try? JSONSerialization.data(withJSONObject: data, options: [.fragmentsAllowed]) {
+            context.setObject(String(decoding: encoded, as: UTF8.self), forKeyedSubscript: "__dataJSON" as NSString)
+            dataSource = "JSON.parse(__dataJSON)"
+        } else {
+            context.setObject(data, forKeyedSubscript: "__data" as NSString)
+            dataSource = "__data"
+        }
+        let partialsJSON = String(decoding: try JSONSerialization.data(withJSONObject: partials), as: UTF8.self)
+        context.setObject(partialsJSON, forKeyedSubscript: "__partialsJSON" as NSString)
         context.setObject(escape, forKeyedSubscript: "__escape" as NSString)
-        let value = context.evaluateScript("Mustache.render(__template, __data, __partials, {escape: __escape ? Mustache.escape : String})")
+        let value = context.evaluateScript("Mustache.render(__template, \(dataSource), JSON.parse(__partialsJSON), {escape: __escape ? Mustache.escape : String})")
         if let failure { throw DraftlyError.message(failure) }
         return value?.toString() ?? ""
     }

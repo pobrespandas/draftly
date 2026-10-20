@@ -3188,3 +3188,32 @@ carry specific evidence; their classification remains partial. Legacy records
 without actionID, native deletion, missing draft ownership, device/coordinate
 values, and other required native variants remain pending. No personal data or
 visible window was used. The installed QA image remains unchanged.
+
+
+### Prototype-named template tags — 20 October 2026
+
+Implemented: tag dictionaries and tag merges now have no JavaScript prototype.
+Both runners share parsed-JSON hydration between steps. This avoids object
+literal semantics for __proto__. Mustache receives JSON-compatible data and
+partials through parsed JSON instead of the native dictionary bridge, which
+also lost that key. Non-JSON Swift values retain the previous native bridge.
+The bundled Mustache Context cache now has no prototype and uses a safe own-key
+lookup. Its license remains unchanged.
+
+Tested automatically: the original contract failed at the exact __proto__ value
+on both runners. After the dictionary fix it exposed a second loss in Mustache.
+All three methods now pass, including both runner cases. They cover __proto__,
+constructor, toString, repeated hasOwnProperty lookup, exact Unicode text, void
+setter return, both renderers, later native/script steps, and shared hydration.
+They also cover additional-value precedence, partials, a __proto__ partial,
+unchanged inputs, and a Swift Date alongside an unrelated rendered field.
+Full regression passed 435 app methods and 440 core methods. The unsigned build
+and matrix structure passed. Prior matrix test references remain recorded as
+additional evidence. These template members remain partial.
+
+Native attempt: Computer Use inventory and QA launch worked after the earlier
+connection failure. Engine QA was refreshed to the pre-template build, Debug
+hash 0d81c6a9c25f18e0 before signing. Sending Command-Comma then failed with
+“native pipe closed before response”; a state read also failed. No live Settings
+refresh or template parity was accepted. The current template fix is not yet
+installed in QA. The physical global-key result remains pending.

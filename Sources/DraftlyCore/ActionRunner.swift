@@ -271,7 +271,7 @@ public final class ActionRunner: ObservableObject {
                 let rendered = try renderTemplate(text, note: current)
                 guard try ActionStepExecutor(runner: self).perform(step, text: text, rendered: rendered, current: current,
                     runtime: runtime, executeIncluded: { try self.execute($0, note: $1) }) else { return false }
-                context.evaluateScript("__tags = \(try json(customTags));")
+                context.evaluateScript(try templateTagsSource())
             }
             return true
         }
@@ -327,6 +327,11 @@ public final class ActionRunner: ObservableObject {
         guard let host else { throw DraftlyError.message("The operation \(operation) is unavailable.") }
         return try host.perform(operation, values: values)
     }
+    func templateTagsSource() throws -> String {
+        let encoded = try json(customTags)
+        return "__tags=Object.assign(Object.create(null),JSON.parse(\(try json(encoded))));"
+    }
+
     func json(_ object: Any) throws -> String { String(decoding: try JSONSerialization.data(withJSONObject: object, options: [.fragmentsAllowed]), as: UTF8.self) }
     public func noteValue(_ note: Note) -> [String: Any] {
         if asyncExecutionID != nil, scriptNoteContents[note.id] == nil { scriptNoteContents[note.id] = note.content }

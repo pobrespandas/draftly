@@ -683,3 +683,10 @@ worker tests cover failure, retry, void return, unrelated history, and disk reop
 Action relation tests cover rename, deletion, and same-name replacement. Full
 regression passed 435 app and 437 core methods; build and matrix structure passed.
 Required native and remaining member variants keep these contracts partial.
+
+
+Template tags now preserve names that overlap JavaScript prototype properties
+through both renderers and later steps. Three specific methods pass, including
+legacy and worker cases. Full regression passed 435 app and 440 core methods;
+build and matrix structure passed. Template members remain partial. Computer
+Use briefly reconnected but input failed again; native acceptance stays open.
