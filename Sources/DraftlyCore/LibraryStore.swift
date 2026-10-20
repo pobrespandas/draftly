@@ -19,6 +19,19 @@ public final class LibraryStore: ObservableObject {
     private var syncCoordinator: LibrarySyncCoordinator?
     public let cloudIdentifier: String?
 
+    enum ExecutionIdentity: Hashable {
+        case persistent(URL)
+        case memory(ObjectIdentifier)
+    }
+
+    var executionIdentity: ExecutionIdentity {
+        if let store = container.persistentStoreCoordinator.persistentStores.first(where: { $0.type != NSInMemoryStoreType }),
+           let url = store.url {
+            return .persistent(url.standardizedFileURL.resolvingSymlinksInPath().standardizedFileURL)
+        }
+        return .memory(ObjectIdentifier(self))
+    }
+
     public init(inMemory: Bool = false, cloudIdentifier: String? = nil, directory: URL? = nil, seed: Bool = true) throws {
         self.cloudIdentifier = inMemory ? nil : cloudIdentifier
         persistence = try LibraryRecordPersistence(inMemory: inMemory, cloudIdentifier: cloudIdentifier, directory: directory)

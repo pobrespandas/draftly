@@ -15903,17 +15903,61 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Native entry-point acceptance and all relevant failure branches are not closed."
+        "Real app entry-point checks for duplicate completion with failure and successive-step timer isolation remain pending."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
         "test": "finishedStepTimersCannotMutateTheNextStep"
       },
       "implementationEvidence": {
-        "file": "Sources/DraftlyCore/ActionAsyncExecution.swift",
-        "symbol": "executeAsync"
+        "file": "Sources/DraftlyCore/ActionScriptWorker.swift",
+        "symbol": "run / checkState / finish",
+        "additionalFiles": [
+          "Sources/DraftlyCore/Resources/Bridge.js",
+          "Sources/DraftlyCore/ActionExecutionSession.swift"
+        ]
       },
-      "reviewDate": "2026-10-19"
+      "reviewDate": "2026-10-20",
+      "defaults": "A script without allowAsync or allowAsynchronous runs synchronously. Async scripts wait for script.complete(). Async and host deadlines default to 120 seconds; synchronous evaluation defaults to 10 seconds. Each script step starts with an empty timer queue and a new script epoch.",
+      "result": "The first current-epoch completion permits the next step after the current evaluation finishes. Repeated completion does not create another result. Step end removes timers and invalidates old Script handles. A reported failure takes precedence over completion in the same evaluation.",
+      "errors": "Rejection, context failure, cancellation, and timeout stop later steps and success effects. Old-epoch completion and timers cannot complete or mutate a later step or execution.",
+      "contractCases": {
+        "normal": {
+          "test": {
+            "suite": "AsyncActionRunnerTests",
+            "test": "completionSuspendsWithoutBlockingMainActorAndPreservesSharedState"
+          },
+          "assertion": "Delayed completion suspends, preserves shared state, tolerates two complete calls, and saves the next step."
+        },
+        "defaults": {
+          "test": {
+            "suite": "EngineClosureContractTests",
+            "test": "omittedAsyncFlagUsesSynchronousCompletionAndCurrentDeadlineDefaults"
+          },
+          "assertion": "Absent async flags finish without script.complete(); configured deadlines initially equal 120, 120, and 10 seconds."
+        },
+        "errors": {
+          "test": {
+            "suite": "EngineClosureContractTests",
+            "test": "completionCannotOverrideFailureInTheSameEvaluation"
+          },
+          "assertion": "A rejected final promise or failure inside the completion timer wins over duplicate completion; later insert and archive do not run."
+        }
+      },
+      "supportingTests": [
+        {
+          "suite": "AsyncActionRunnerTests",
+          "test": "stepTimersAndOldScriptHandlesCannotCompleteLaterStepsOrRuns"
+        },
+        {
+          "suite": "ActionExecutionSessionTests",
+          "test": "completionIsFinalAndFailedRunsDropSuccessParameters"
+        }
+      ],
+      "nativeVerification": {
+        "status": "pending",
+        "reason": "The temporary app verified delayed completion. Old handles, duplicate completion with failure, and successive-step timer isolation have not been compared through real app entry points."
+      }
     },
     {
       "contract": "synchronous deadline",
@@ -15966,17 +16010,58 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Native entry-point acceptance and all relevant failure branches are not closed."
+        "Real overlapping requests from two app windows and URL/App Intent entry points remain pending."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
         "test": "anotherWindowCannotRunActionsInTheSameLibraryDuringAHostCall"
       },
       "implementationEvidence": {
-        "file": "Sources/DraftlyCore/ActionAsyncExecution.swift",
-        "symbol": "executeAsync"
+        "file": "Sources/DraftlyCore/ActionRunner.swift",
+        "symbol": "runReport / runAsync / runningLibraries",
+        "additionalFiles": [
+          "Sources/DraftlyCore/LibraryStore.swift",
+          "Sources/DraftlyCore/ActionScriptWorker.swift",
+          "Sources/DraftlyCore/ActionAsyncHost.swift"
+        ]
       },
-      "reviewDate": "2026-10-19"
+      "reviewDate": "2026-10-20",
+      "defaults": "The exclusion gate is process-local. Persistent LibraryStore instances use their standardized, symlink-resolved persistent-store URL. In-memory stores use instance identity. Rejected requests do not queue; distinct libraries can run independently.",
+      "result": "Only one execution owns a library at a time. A rejected request returns its own failure report with reason busy and no success parameters. It does not replace the owner session. The owner retains exclusion until the worker and cooperative host cleanup finish.",
+      "errors": "Legacy and async requests against an occupied library return busy before steps run. Cancellation and timeout retain exclusion through cooperative host cleanup. Hosts that ignore cancellation keep the library occupied until they return. This gate does not provide cross-process exclusion.",
+      "contractCases": {
+        "normal": {
+          "test": {
+            "suite": "AsyncActionRunnerTests",
+            "test": "libraryExclusionCoversLegacyAndAsyncRunnersWithoutBlockingOtherLibraries"
+          },
+          "assertion": "Legacy and async runners sharing a library return busy while an independent in-memory library succeeds."
+        },
+        "defaults": {
+          "test": {
+            "suite": "EngineClosureContractTests",
+            "test": "separateStoresForTheSameCanonicalFileShareExecutionExclusion"
+          },
+          "assertion": "Two independently loaded stores for the same file, including a symlink path, share the gate; rejection preserves the owner and release permits the next run."
+        },
+        "errors": {
+          "test": {
+            "suite": "AsyncHostDrainTests",
+            "test": "scriptRequestKeepsLibraryBusyUntilCancelledHostCleanupReturns"
+          },
+          "assertion": "Cancellation and timeout keep the session active and reject another runner until the controlled host cleanup is released."
+        }
+      },
+      "supportingTests": [
+        {
+          "suite": "ActionExecutionSessionTests",
+          "test": "rejectedReentryKeepsTheLegacyMessageAndDoesNotReplaceTheActiveReport"
+        }
+      ],
+      "nativeVerification": {
+        "status": "pending",
+        "reason": "Actual concurrent requests from two visible windows, URLs, and App Intents have not all been verified. Tests use real local stores and injected hosts without visible windows."
+      }
     },
     {
       "contract": "shared included scripts",

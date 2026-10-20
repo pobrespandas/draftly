@@ -5,7 +5,7 @@ import Combine
 @MainActor
 public final class ActionRunner: ObservableObject {
     var markdownDefaults: UserDefaults = .standard
-    private static var runningLibraries: Set<ObjectIdentifier> = []
+    private static var runningLibraries: Set<LibraryStore.ExecutionIdentity> = []
     public internal(set) var successParameters: [String: String] = [:]
     public let library: LibraryStore
     public let editor: EditorSession
@@ -66,7 +66,7 @@ public final class ActionRunner: ObservableObject {
             message = "An action is already running."
             return session.finish(.failure(message!), reason: .busy, successParameters: [:])
         }
-        let libraryID = ObjectIdentifier(library)
+        let libraryID = library.executionIdentity
         guard Self.runningLibraries.insert(libraryID).inserted else {
             message = "An action is already running in this library."
             return session.finish(.failure(message!), reason: .busy, successParameters: [:])
@@ -89,7 +89,7 @@ public final class ActionRunner: ObservableObject {
             message = "An action is already running."
             return session.finish(.failure(message!), reason: .busy, successParameters: [:])
         }
-        let libraryID = ObjectIdentifier(library)
+        let libraryID = library.executionIdentity
         guard Self.runningLibraries.insert(libraryID).inserted else {
             message = "An action is already running in this library."
             return session.finish(.failure(message!), reason: .busy, successParameters: [:])
