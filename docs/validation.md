@@ -4255,3 +4255,33 @@ RemovesObserverOnce covers injected owner-close and parent-task cancellation
 automatically; this manual check does not replace the other native entry paths.
 No new tests or build ran. The last full regression remains app444/core468.
 No screenshots or raw logs are tracked.
+
+
+### URL owner-close callback and real observer — 20 October 2026
+
+Native: used isolated Engine QA image99a067dd93e833bb, the unchanged promise
+fixture, and the local helper. The first URL target was not open in the editor,
+so it ran without a window owner. Loaded that target and edited it to Concurrent
+QA edit café 🐼. The background action cancelled and the helper received one
+cancel callback. This is concurrent-edit evidence, not owner-close evidence.
+
+Repeated with target A386D93F-D3D8-49EB-8F7F-205612F74D93 already visible.
+The confirmed run URL used QA Native async timeout and distinct success/cancel/
+error callbacks with case=owner-close-visible. Observed Async timeout completed
+write in the visible editor, then pressed the native window close button. The
+helper received exactly one callback with that case and result=cancel. History
+showed Cancelled. Completed text remained in Inbox without the tail or Archive.
+After inspecting history and text, the helper counter remained one. No external
+message was sent. No persistent no-window state or unbounded absence of late
+callbacks is claimed. Native App Intent and multiwindow ownership remain open.
+
+Automatic: realObserverFiltersByOwnerAndStopsAfterRemoval uses actual
+registerOwnerClose with two deferred, never-shown windows. A foreign-window
+notification produces no delivery. The owner notification delivers once.
+Repeated removal is safe; later owner/foreign notifications stay silent. Both
+windows remain invisible. This covers the real subscription object filter and
+removal, separately from the existing injected execution-lifetime tests.
+
+Full regression passed app445/core468. No production code changed and no new
+app build was needed. Matrix structure passes. Common-entry acceptance remains
+partial. Raw logs stay in /tmp; no screenshots are tracked.

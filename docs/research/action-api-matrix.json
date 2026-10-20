@@ -18287,6 +18287,11 @@
           "suite": "RunDraftActionIntentOverlapTests",
           "test": "headlessOwnerRejectsOtherEntryPointsBeforeTheySavePendingWindowEdits",
           "file": "Tests/DraftlyTests/RunDraftActionIntentOverlapTests.swift"
+        },
+        {
+          "suite": "AutomationOwnerCloseObserverTests",
+          "test": "realObserverFiltersByOwnerAndStopsAfterRemoval",
+          "file": "Tests/DraftlyTests/AutomationOwnerCloseObserverTests.swift"
         }
       ],
       "nativeVerification": {
@@ -18304,6 +18309,12 @@
             "executableSHA256": "99a067dd93e833bb4cd2a2912ac6596b8150ada162af5c5ee21b3799a102a841",
             "fixture": "scripts/fixtures/engine-promise-actions.json",
             "result": "Started QA Native async timeout from Actions, observed its completed editor write while awaiting finalization, then used Close and separately the window close button. Each showed an Untitled editor afterward. History recorded Cancelled twice. Both completed writes stayed in Inbox with no tail text. A subsequent QA Caught rejection completed successfully. This covers UI owner-close cancellation, not URL/Intent owner-close callbacks or a no-window state."
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "99a067dd93e833bb4cd2a2912ac6596b8150ada162af5c5ee21b3799a102a841",
+            "fixture": "scripts/fixtures/engine-promise-actions.json",
+            "result": "QA Native async timeout via confirmed run URL on visible draft A386D93F-D3D8-49EB-8F7F-205612F74D93: observed completed editor write, closed owner with native close control, helper received one callback case=owner-close-visible/result=cancel. History Cancelled, completed text stayed in Inbox, no tail/archive. Counter remained one after history/text checks. Separate unowned background control cancelled when target was edited; it is not owner-close evidence. Intent and multiwindow native paths remain pending."
           }
         ]
       },

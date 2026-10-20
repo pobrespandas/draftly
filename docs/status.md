@@ -952,3 +952,9 @@ Native UI close cancellation now passes at Command-W and the window close
 button: history recorded Cancelled, completed writes remained in Inbox, no
 tail or Archive ran, and a subsequent action succeeded. URL/Intent owner-close
 and multiwindow acceptance remain open.
+
+
+Native URL owner-close now returns one matching cancel callback and retains
+completed text without success effects. A new offscreen test covers real
+owner-notification filtering and observer removal. Full regression passed
+app445/core468. Intent and multiwindow native acceptance remain pending.
