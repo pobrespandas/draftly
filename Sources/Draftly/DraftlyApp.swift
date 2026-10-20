@@ -2,7 +2,13 @@ import SwiftUI
 import AppKit
 import DraftlyCore
 
-@main
+@main enum DraftlyLauncher {
+    @MainActor static func main() {
+        if let status = NativeAppleScriptProcess.runHelperIfRequested() { exit(status) }
+        DraftlyApp.main()
+    }
+}
+
 struct DraftlyApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
     @StateObject private var controller = AppController.shared

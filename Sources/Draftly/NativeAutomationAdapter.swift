@@ -101,49 +101,7 @@ struct NativeAutomationAdapter {
     }
 
     func executeAppleScript(_ values: [String: Any]) throws -> Any {
-        guard let script = NSAppleScript(source: values["source"] as? String ?? "") else { throw DraftlyError.message("The AppleScript could not be compiled.") }
-        var error: NSDictionary?
-        let result: NSAppleEventDescriptor
-        if let subroutine = values["subroutine"] as? String, !subroutine.isEmpty {
-            let event = NSAppleEventDescriptor(eventClass: AEEventClass(kASAppleScriptSuite), eventID: AEEventID(kASSubroutineEvent), targetDescriptor: nil, returnID: AEReturnID(kAutoGenerateReturnID), transactionID: AETransactionID(kAnyTransactionID))
-            event.setParam(NSAppleEventDescriptor(string: subroutine), forKeyword: AEKeyword(keyASSubroutineName))
-            let arguments = NSAppleEventDescriptor.list()
-            for (index, argument) in (values["arguments"] as? [Any] ?? []).enumerated() { arguments.insert(try appleDescriptor(argument), at: index + 1) }
-            event.setParam(arguments, forKeyword: AEKeyword(keyDirectObject))
-            result = script.executeAppleEvent(event, error: &error)
-        } else { result = script.executeAndReturnError(&error) }
-        if let error { throw DraftlyError.message(error[NSAppleScript.errorMessage] as? String ?? error.description) }
-        return appleValue(result)
-    }
-    private func appleDescriptor(_ value: Any) throws -> NSAppleEventDescriptor {
-        if value is NSNull { return .null() }
-        if let value = value as? String { return NSAppleEventDescriptor(string: value) }
-        if let number = value as? NSNumber {
-            if CFGetTypeID(number) == CFBooleanGetTypeID() { return NSAppleEventDescriptor(boolean: number.boolValue) }
-            return NSAppleEventDescriptor(double: number.doubleValue)
-        }
-        if let values = value as? [Any] { let list = NSAppleEventDescriptor.list(); for (i, v) in values.enumerated() { list.insert(try appleDescriptor(v), at: i + 1) }; return list }
-        if let values = value as? [String: Any] {
-            let record = NSAppleEventDescriptor.record(), fields = NSAppleEventDescriptor.list()
-            for (key, value) in values.sorted(by: { $0.key < $1.key }) { fields.insert(NSAppleEventDescriptor(string: key), at: fields.numberOfItems + 1); fields.insert(try appleDescriptor(value), at: fields.numberOfItems + 1) }
-            record.setDescriptor(fields, forKeyword: AEKeyword(keyASUserRecordFields)); return record
-        }
-        throw DraftlyError.message("The AppleScript argument type is unsupported.")
-    }
-    private func appleValue(_ value: NSAppleEventDescriptor) -> Any {
-        switch value.descriptorType {
-        case typeAEList: return (1...max(1, value.numberOfItems)).compactMap { value.atIndex($0).map(appleValue) }
-        case typeAERecord:
-            var record: [String: Any] = [:]
-            if let fields = value.forKeyword(AEKeyword(keyASUserRecordFields)), fields.numberOfItems > 1 {
-                for i in stride(from: 1, to: fields.numberOfItems, by: 2) { if let key = fields.atIndex(i)?.stringValue, let item = fields.atIndex(i + 1) { record[key] = appleValue(item) } }
-            }
-            return record
-        case typeBoolean, typeTrue, typeFalse: return value.booleanValue
-        case typeSInt16, typeSInt32, typeSInt64, typeIEEE32BitFloatingPoint, typeIEEE64BitFloatingPoint: return value.doubleValue
-        case typeNull: return NSNull()
-        default: return value.stringValue ?? ""
-        }
+        try NativeAppleScriptDescriptor.execute(values)
     }
 
 }
