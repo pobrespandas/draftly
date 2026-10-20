@@ -2093,3 +2093,50 @@ No production code, screenshots, or raw logs were added in this check.
 Matrix structure passed with zero errors. The strict engine check now reports
 33 diagnostics, reduced from 36 by this one completed record. Three of fourteen
 engine records are complete. These counts are not API compatibility percentages.
+
+
+## Direct UI CPU deadline and automation timeout mapping — 20 October 2026
+
+Computer Use selected QA CPU deadline from the action-list search in the isolated
+QA app, using Debug image 3d28cc07b2ff04f6 before signing. The action wrote CPU
+completed write before its infinite loop. Filters closed at the 4.7 second
+observation and reopened at 8.6 seconds. The timeout appeared by the 11.5 second
+observation. These are sampled observations, not a precise execution duration.
+The configured synchronous limit remains 10 seconds. Inbox and the prior text
+remained; the tail sentinel and Archive did not run. History recorded Error at
+03:31 with the timeout message. App Intent CPU timeout remains pending.
+
+Automatic: the focused AutomationTimeoutBoundaryTests and
+AutomationEditorContextTests run passed nine methods. The new case executes a
+real worker timeout with an injected 20 ms async limit through
+AutomationActionExecution. It checks the final timeout report, retained execution
+identity in AutomationActionError, error callback mapping without success
+parameters, completed saved text, no tail or Archive, and one history record.
+Existing busy-before-save tests cover two owner contexts.
+
+This is coordinator and mapping evidence. RunDraftActionIntent.perform still
+uses the shared AppController, and ApplicationURLRouter uses native confirmation
+and callback delivery. The test does not invoke the App Intents framework or
+prove one external callback delivery. Native acceptance remains separate.
+
+
+## Current-build native queued timeout — 20 October 2026
+
+The same isolated QA image ran QA Queue timeout root through a normal run URL.
+The child wrote Queue timeout completed write — café 🐼 and waited without calling
+complete. The root had queued a later sentinel action and added a success
+parameter. The child requested Archive on success. The production async deadline
+remained 120 seconds; it was not reduced for this manual check.
+
+The helper showed no callback at about 0.8, 28.2, 62.4, and 111.8 seconds. By the
+132.2 second observation it showed exactly one error callback, with the timeout
+message and no root success parameter. These sampled observations bracket the
+result; they do not measure an exact 120-second duration. The editor retained the
+child text in Inbox. Neither the child sentinel nor the later queued action ran.
+History recorded QA Queue timeout root Error at 03:34.
+
+The action search was cleared, then QA and the helper were quit. This repeats the
+older queued-timeout evidence on the current image. It does not cover separate
+queued target timeout or App Intent timeout. Matrix structure passed; strict
+engine remains at 33 diagnostics. Python37 passed. No production execution code
+changed for these timeout checks.

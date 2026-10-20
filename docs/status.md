@@ -495,3 +495,11 @@ removed old timers, current-step waiting, duplicate completion, and failure
 precedence. The specific automatic cases passed in a focused five-suite run.
 That engine record is complete. Returned rejection also passed natively; its
 shared timeout record remains partial. Entry-point acceptance is still open.
+
+
+Current-image direct UI CPU timeout and native URL 120-second queued timeout
+passed. Filters stayed responsive during CPU work. Both failures kept prior text
+in Inbox and stopped later steps/Archive. The queued timeout delivered exactly
+one error callback without success parameters. The new actual-worker automation
+boundary case and existing context cases passed (nine methods). App Intent and
+separate-target variants remain pending; no broader closure is claimed.

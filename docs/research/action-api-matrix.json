@@ -15997,7 +15997,7 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Native URL CPU timeout passed on the current build with the production 10-second synchronous deadline, responsive filters, retained prior text, and one observed error callback. Direct UI and App Intent CPU timeout accesses remain pending."
+        "Native CPU timeout passed through URL and direct action-list execution. Direct UI filters stayed responsive and earlier text remained in Inbox without the tail or Archive. App Intent CPU timeout acceptance remains pending."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
@@ -16058,7 +16058,7 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Native URL CPU timeout passed on the current build with the production 10-second synchronous deadline, responsive filters, retained prior text, and one observed error callback. Direct UI and App Intent CPU timeout accesses remain pending.",
+        "reason": "Native CPU timeout passed through URL and direct action-list execution. Direct UI filters stayed responsive and earlier text remained in Inbox without the tail or Archive. App Intent CPU timeout acceptance remains pending.",
         "evidence": "docs/validation.md"
       },
       "automatedVerification": {
@@ -16078,7 +16078,7 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Discarded, intrinsic async, and returned rejection now pass automatic and native URL checks. Timeout and remaining native entry-point cases remain pending on the current build; earlier production queued timeout used the previous executable."
+        "Discarded, intrinsic, and returned rejection plus the production 120-second queued timeout passed native URL checks on the current build. Remaining native entry-point rejection/timeout variants are pending."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
@@ -16485,7 +16485,7 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Native URL cancellation, failure, and production 120-second timeout passed on one draft. Separate-source/target cancellation also passed with a matching visible editor left on the processed target. Separate-target failure/timeout and remaining native entry points are pending."
+        "Native URL cancellation, failure, and production timeout passed on one draft. Timeout was repeated on the current image with one error callback and retained child text in Inbox. Separate-source/target cancellation passed earlier; separate-target failure/timeout and remaining entry points are pending."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
@@ -16602,7 +16602,7 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Dedicated URL/App Intent timeout and busy-result callback tests are missing.",
+        "A real worker timeout has coordinator and error/callback mapping tests. Busy-before-save has two owner-context cases. Native URL production timeout passed on the current image. App Intent timeout/busy delivery and remaining current-build URL busy variants remain pending.",
         "Recorded native success/error/cancel callbacks used an older QA executable; repeat applicable variants on the current build."
       ],
       "defaults": "No callback URL is produced if the matching x-success, x-cancel, or x-error parameter is absent or lacks a scheme. Success parameters default to an empty map.",
@@ -16640,6 +16640,11 @@
         {
           "suite": "ExecutionActionAPITests",
           "test": "contextSuccessParametersAreExportedOnlyForSuccessfulRuns"
+        },
+        {
+          "suite": "AutomationTimeoutBoundaryTests",
+          "test": "actualScriptTimeoutRetainsItsReasonThroughAutomationAndResultMappings",
+          "file": "Tests/DraftlyTests/AutomationTimeoutBoundaryTests.swift"
         }
       ],
       "nativeVerification": {
@@ -16651,7 +16656,15 @@
         "revision": "a308158",
         "date": "2026-10-20",
         "evidence": "docs/validation.md",
-        "scope": "The named contract cases were included in the recorded regression run. This is not native acceptance."
+        "scope": "The named contract cases were included in the recorded regression run. This is not native acceptance.",
+        "additionalRuns": [
+          {
+            "date": "2026-10-20",
+            "command": "swift test --filter AutomationTimeoutBoundaryTests|AutomationEditorContextTests",
+            "result": "Passed nine methods. The new case uses an actual worker timeout and checks automation report and result mappings, not system App Intent delivery.",
+            "evidence": "docs/validation.md"
+          }
+        ]
       }
     },
     {
@@ -17161,7 +17174,7 @@
         "result": "Real QA cold-launch Run awaited delayed success and returned its success parameters. URL failure and cancellation returned matching callbacks. Development-signed QA App Intent through Shortcuts returned success, delayed failure, and cancellation messages. Timeout, busy, concurrent-entry, and window-close variants remain pending."
       },
       "limitations": [
-        "Dedicated timeout and busy report propagation from every URL and App Intent access are still missing.",
+        "A real worker timeout has coordinator and error/callback mapping tests. Busy-before-save has two owner-context cases. Native URL production timeout passed on the current image. App Intent timeout/busy delivery and remaining current-build URL busy variants remain pending.",
         "Current-build native multiwindow concurrency, timeout, busy, and remaining App Intent variants remain pending. Earlier QA passed cold URL and Intent success/error/cancel only."
       ],
       "defaults": "A window model permits one pending or running action request at a time. It reserves execution before starting its Task. A repeated request is ignored rather than queued. The default is limited here to window scheduling; automation uses its separate save and target checks.",
@@ -17218,6 +17231,11 @@
         {
           "suite": "AutomationActionErrorTests",
           "test": "allFailuresRetainTheReasonIdentityAndOriginalResult"
+        },
+        {
+          "suite": "AutomationTimeoutBoundaryTests",
+          "test": "actualScriptTimeoutRetainsItsReasonThroughAutomationAndResultMappings",
+          "file": "Tests/DraftlyTests/AutomationTimeoutBoundaryTests.swift"
         }
       ],
       "nativeVerification": {
@@ -17229,7 +17247,15 @@
         "revision": "a308158",
         "date": "2026-10-20",
         "evidence": "docs/validation.md",
-        "scope": "The named contract cases were included in the recorded regression run. This is not native acceptance."
+        "scope": "The named contract cases were included in the recorded regression run. This is not native acceptance.",
+        "additionalRuns": [
+          {
+            "date": "2026-10-20",
+            "command": "swift test --filter AutomationTimeoutBoundaryTests|AutomationEditorContextTests",
+            "result": "Passed nine methods. The new case uses an actual worker timeout and checks automation report and result mappings, not system App Intent delivery.",
+            "evidence": "docs/validation.md"
+          }
+        ]
       },
       "windowContextReview": {
         "date": "2026-10-20",
