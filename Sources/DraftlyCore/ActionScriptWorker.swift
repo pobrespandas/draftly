@@ -168,6 +168,9 @@ final class ActionScriptWorker: @unchecked Sendable {
                 do {
                     guard !self.cancellation.isCancelled else { throw ActionExecutionInterruption.cancelled }
                     guard let runtime = self.runtime else { throw ScriptWorkerFailure(message: "The action was closed.") }
+                    guard synchronousTimeout.isFinite, synchronousTimeout > 0 else {
+                        throw ScriptWorkerFailure(message: "The synchronous script timeout must be positive and finite.")
+                    }
                     if asynchronous, !timeout.isFinite || timeout <= 0 {
                         throw ScriptWorkerFailure(message: "The asynchronous script timeout must be positive and finite.")
                     }
