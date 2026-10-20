@@ -1487,3 +1487,45 @@ saved.
 Standalone HTML, real bookmark access after restart, timeout and permission
 variants, external composer behavior, and further API options remain pending.
 The engine and complete Mac plan remain open.
+
+## Awaited print, sharing, and arrangement — 20 October 2026
+
+Implemented: async print sheets, sharing outcomes, and arrangement requests.
+showArrange uses a window-owned task and guards its captured draft and content.
+The new first-party print, share, and openIn paths await their native result.
+Cancel stops later steps and success effects. Legacy sync sharing is unchanged;
+its immediate success and temporary file cleanup still require work.
+
+Automatically tested: 350 app tests in 52 suites and 332 core tests in 47 suites
+passed. The focused native batch passed 35 tests in four suites. These include
+absolute deadlines, duplicate and late replies, file retention after handoff,
+cleanup before handoff, cancellation, stale arrangement results, save failure,
+selection, and native Undo/Redo. Drivers are injected; no window or printer opens
+in these tests. The unsigned Xcode build passed. The 32 Python tests passed.
+The matrix structure check reports zero errors. Strict engine acceptance still
+reports 42 evidence diagnostics. No compatibility classification was promoted.
+
+Verified in use: refreshed all executable images, resources, and frameworks in
+the isolated development-signed QA bundle. Source Debug library hash starts with
+b6c10a5587d8fbcd before signing. At 01:50 local time, native print Cancel and share
+picker Escape kept the draft exactly café 🐼. Neither Late print nor Late share
+was inserted. Execution History records both as Cancelled. No print or message
+was sent. The print preview showed two pages for a short text; page sizing needs
+review before print output acceptance.
+
+At 01:51, UI QA Arrange result showed First and Second 🐼 as separate rows. Move
+Up and Done saved Second 🐼 followed by First. QA Show Arrange opened the same
+organizer; Cancel kept that content. Both UI actions appear as Success in history.
+The automatic test establishes showArrange's immediate return. This native check
+does not establish completion timing while its dialog remains open.
+
+A URL attempt to call editor.arrange without a window-bound UI adapter returned
+an explicit active-editor error before presentation. It is recorded as Error,
+not accepted as URL/editor integration. Print and Share URL runs used an explicit
+neutral draft UUID and external-action confirmation.
+
+Pending: real print output, service completion and external composer ownership,
+native arrangement Undo/navigation/window-close variants, and URL access to editor
+UI operations. A transferred sharing file remains until the service callback.
+If the service never replies, no cleanup time can be guaranteed. No screenshot
+was saved. QA and its helper were quit after checking history.

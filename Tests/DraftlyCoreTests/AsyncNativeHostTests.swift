@@ -108,6 +108,16 @@ struct AsyncInputBridgeTests {
         #expect(f.editor.content == "Keep")
     }
 
+    @Test func arrangementReturnsItsResultWithoutChangingTheEditor() async throws {
+        let f = try ScriptTestFixture(content: "Keep", host: AsyncInputHost())
+        f.runner.uiOperation = { _ in Issue.record("The synchronous window adapter ran."); return nil }
+        let report = await f.runner.runAsync(ScriptTestAction.make("context.addSuccessParameter('text',editor.arrange('First\\nSecond 🐼'));", name: "Arrange"))
+        #expect(report.reason == .success && report.successParameters["text"] == "café 🐼")
+        #expect(f.host.calls == ["arrangeText"] && f.editor.content == "Keep")
+        let payload = try JSONSerialization.jsonObject(with: Data(f.host.lastPayload.utf8)) as? [String: String]
+        #expect(payload?["text"] == "First\nSecond 🐼")
+    }
+
     @Test func appleScriptStepUsesTheAsyncHostAndKeepsStructuredResults() async throws {
         let f = try ScriptTestFixture(content: "Keep", host: AsyncInputHost())
         let report = await f.runner.runAsync(DraftAction(name: "AppleScript", steps: [
@@ -142,7 +152,7 @@ struct AsyncInputBridgeTests {
 @MainActor private final class AsyncInputHost: ActionHost {
     var calls: [String] = []
     var lastPayload = ""
-    func supportsAsync(_ operation: String) -> Bool { ["transcribe", "dictate", "appleScript", "confirmAction"].contains(operation) }
+    func supportsAsync(_ operation: String) -> Bool { ["transcribe", "dictate", "arrangeText", "appleScript", "confirmAction"].contains(operation) }
     func perform(_ operation: String, values: [String: Any]) throws -> Any? {
         Issue.record("The synchronous host ran."); return nil
     }

@@ -185,3 +185,28 @@ Caught native interruptions cannot start more host calls. Absolute deadlines als
 reject replies that arrive before a delayed timer task can run. Exact tests and
 real HTML/export acceptance are in docs/validation.md. Printing, arrangement,
 sharing outcomes, and remaining native capability acceptance still need work.
+
+## Printing, sharing, and arrangement — 20 October 2026
+
+The new route awaits print and sharing callbacks. Print accepts Text or HTML and
+validates string or numeric margins in points. Its default margin is 72 points.
+Cancel closes only the request's own sheet. A spooled print job cannot be recalled.
+AppKit's Boolean print callback does not distinguish every failure from cancel.
+
+Sharing waits for service completion. Closing the picker returns false. An action
+step treats false as cancellation and stops later steps and success effects. A
+script can inspect the Boolean result. Shared files remain available until the
+service callback, including after an action timeout. If a service never calls
+back, the file has no confirmed cleanup time. It can remain after process exit.
+macOS cannot recall work
+already transferred to another app.
+
+Editor.arrange waits and returns the arranged text. User Cancel returns its exact
+input. Editor.showArrange returns immediately. Its window owns the pending task.
+A result applies only to the captured draft and unchanged content. Navigation,
+window cancellation, and user edits invalidate the pending request. Accepted
+changes use the editor's Undo path. Legacy synchronous adapters remain available.
+
+Native checks and exact automatic results are recorded separately in validation.
+Strict engine acceptance remains open. Location templates and template-directory
+access still need review for native waits during synchronous template rendering.

@@ -24,9 +24,9 @@ retain historical results. Later results supersede earlier counts.
 
 | Check | Latest result |
 | --- | --- |
-| App tests | 229 passed after speech, location, and automation checks |
-| Core tests | 309 passed; original actions run on both routes |
-| Python tools | 28 passed |
+| App tests | 350 passed after print, sharing, and arrangement checks |
+| Core tests | 332 passed; original actions run on both routes |
+| Python tools | 32 passed |
 | Local Xcode build after native services and canonical exclusion | Passed; signing disabled |
 | Matrix structure check | 0 errors |
 | Whitespace check | Passed |

@@ -16742,6 +16742,26 @@
         {
           "suite": "ActionCallbackRouterTests",
           "test": "concurrentCallbacksStayWithTheirOwnRequest"
+        },
+        {
+          "suite": "NativePrintRequestTests",
+          "test": "aLateCallbackCannotBeatTheDeadlineWhenTheTimerHasNotRun"
+        },
+        {
+          "suite": "NativeSharingRequestTests",
+          "test": "completionAfterTheAbsoluteDeadlineCannotReportSuccess"
+        },
+        {
+          "suite": "WindowArrangementTests",
+          "test": "showReturnsBeforePresentationAndCommitsWithNativeUndoAndSelection"
+        },
+        {
+          "suite": "AsyncInputBridgeTests",
+          "test": "arrangementReturnsItsResultWithoutChangingTheEditor"
+        },
+        {
+          "suite": "AsyncFilePreviewStepTests",
+          "test": "cancelledNativeOutputStopsStepsAndSuccessEffects"
         }
       ],
       "nativeVerification": {
@@ -16754,6 +16774,12 @@
         "date": "2026-10-20",
         "evidence": "docs/validation.md",
         "scope": "The named contract cases were included in the recorded regression run. This is not native acceptance."
+      },
+      "nativeWaitReview": {
+        "date": "2026-10-20",
+        "evidence": "docs/validation.md",
+        "accepted": "Native print Cancel and share picker Escape retain text and record cancellation. UI arrange reorders Unicode lines. Show Arrange Cancel keeps text.",
+        "pending": "Actual service completion, print output, arrangement close/navigation paths, location and template-directory waits. Legacy sync sharing remains unchanged."
       }
     },
     {

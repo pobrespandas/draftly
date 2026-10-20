@@ -102,11 +102,16 @@ import Foundation
             if request.operation == "ui",
                let values = try JSONSerialization.jsonObject(with: Data(request.payload.utf8)) as? [String: Any],
                let operation = values["operation"] as? String,
-               ["transcribe", "dictate"].contains(operation), host?.supportsAsync(operation) == true {
+               ["transcribe", "dictate", "arrange"].contains(operation), host?.supportsAsync(operation == "arrange" ? "arrangeText" : operation) == true {
                 guard uiOperation != nil else { throw DraftlyError.message("This action needs an active Draftly editor window.") }
                 let args = values["args"] as? [Any] ?? []
-                let payload = operation == "dictate" ? try json(["locale": args.first as? String ?? ""]) : "{}"
-                let response = try await platformAsync(operation, payload: payload)
+                let payload: String
+                switch operation {
+                case "dictate": payload = try json(["locale": args.first as? String ?? ""])
+                case "arrange": payload = try json(["text": args.first as? String ?? ""])
+                default: payload = "{}"
+                }
+                let response = try await platformAsync(operation == "arrange" ? "arrangeText" : operation, payload: payload)
                 try checkCancellation()
                 guard activeSession?.id == request.executionID, bridgeStepID == request.stepID else {
                     throw DraftlyError.message("The action was closed.")

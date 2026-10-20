@@ -21,7 +21,7 @@ final class NativeActionHost: ActionHost {
 
     func supportsAsync(_ operation: String) -> Bool {
         if NativePromptAdapter.operations.contains(operation) { return true }
-        return ["callbackURL", "shellScript", "shortcut", "eventAPI", "reminder", "event", "location", "speak", "transcribe", "modelModes", "modelRespond", "appleScript", "dictate", "htmlPreview", "saveFile", "bookmark", "fileAPI", "composeMail", "composeMessage"].contains(operation)
+        return ["callbackURL", "shellScript", "shortcut", "eventAPI", "reminder", "event", "location", "speak", "transcribe", "modelModes", "modelRespond", "appleScript", "dictate", "htmlPreview", "saveFile", "bookmark", "fileAPI", "composeMail", "composeMessage", "print", "arrangeText", "share", "shareFile", "shareURL"].contains(operation)
     }
 
     func performAsync(_ operation: String, payload: String) async throws -> String {
@@ -37,6 +37,9 @@ final class NativeActionHost: ActionHost {
             return String(decoding: try JSONSerialization.data(withJSONObject: ["value": result ?? NSNull()]), as: UTF8.self)
         }
         switch operation {
+        case "share", "shareFile", "shareURL": result = try await NativeSharingRequest.run(operation, values, reportCleanupError: { [weak self] message in self?.onError(message) })
+        case "print": result = try await NativePrintRequest.run(values)
+        case "arrangeText": result = try await arrangeTextAsync(values["text"] as? String ?? "")
         case "htmlPreview": result = try await interactivePreviewAsync(values)
         case "saveFile", "bookmark", "fileAPI": result = try await NativeFileAdapter(testFileRoot: testFileRoot).performAsync(operation, values: values)
         case "composeMail", "composeMessage": result = try await NativeMessageAdapter().composeAsync(operation, values)

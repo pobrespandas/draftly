@@ -125,3 +125,16 @@ against `Export café 🐼\nSecond line`. Check all four results in Execution Hi
 Remove only that neutral export and temporary folder after the check. These cases
 passed in the fully refreshed 20 October 2026 QA build. No message fixture is
 included; real sending needs an authorized recipient and content.
+
+## Print, sharing, and arrangement checks
+
+Import scripts/fixtures/engine-print-share-arrange-actions.json. Use a neutral
+draft. Run QA Print cancelled and press Cancel in the native print sheet. Do not
+print. Run QA Share cancelled and press Escape in the picker. Do not select a
+recipient or service. Both runs must keep the draft and record Cancelled.
+
+From the window action list, run QA Arrange result. Select Second 🐼, press Move
+Up, then Done. The draft must contain Second 🐼 followed by First. Run QA Show
+Arrange and Cancel; the draft must stay unchanged. The latter action can succeed
+before the organizer closes. Compare history and content. Native timing, Undo,
+navigation, window close, service completion, and output need separate acceptance.

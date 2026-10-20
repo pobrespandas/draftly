@@ -52,6 +52,13 @@ import Foundation
     func performSuspendingStep(_ step: ActionStep, text: String, rendered: String, current: Note,
                                evaluate: (String) -> Void) async throws -> Bool? {
         switch step.type {
+        case "share":
+            return try await nativeValue("share", ["text": rendered]) as? Bool != false
+        case "openIn":
+            let name = try renderTemplate(step.values["name"] ?? "[[safe_title]].txt", note: current)
+            return try await nativeValue("shareFile", ["text": rendered, "name": name]) as? Bool != false
+        case "print":
+            return try await nativeValue("print", step.values.merging(["text": rendered]) { _, new in new }) as? Bool != false
         case "prompt":
             let prompt = try ActionPromptStep(step) { try renderTemplate($0, note: current) }
             guard let tags = try prompt.tags(from: await nativeValue("prompt", prompt.values)) else { return false }

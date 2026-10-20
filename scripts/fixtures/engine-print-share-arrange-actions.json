@@ -1,0 +1,60 @@
+[
+  {
+    "name": "QA Print cancelled",
+    "steps": [
+      {
+        "type": "print",
+        "data": {
+          "template": "Neutral print café 🐼",
+          "printFormat": "Text",
+          "topMargin": "72"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "Late print"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Share cancelled",
+    "steps": [
+      {
+        "type": "share",
+        "data": {
+          "template": "Neutral share café 🐼"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "Late share"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Arrange result",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "let text=editor.arrange('First\\nSecond 🐼');editor.setText(text);"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Show Arrange",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.showArrange();context.addSuccessParameter('returned','yes');"
+        }
+      }
+    ]
+  }
+]

@@ -47,6 +47,19 @@ struct AsyncFilePreviewStepTests {
         #expect(f.editor.content == "Keep" && f.library.notes.first?.isArchived == false)
     }
 
+    @Test(arguments: ["print", "share", "openIn"])
+    func cancelledNativeOutputStopsStepsAndSuccessEffects(type: String) async throws {
+        let host = FilePreviewStepHost()
+        host.response = #"{"value":false}"#
+        let f = try ScriptTestFixture(content: "Keep 🐼", host: host)
+        var action = DraftAction(name: "Cancel output", steps: [ActionStep(type), ActionStep("insertText", ["template": "Late"])])
+        action.afterSuccess = "archive"
+        #expect(await f.runner.runAsync(action).reason == .cancelled)
+        #expect(host.calls == [type == "openIn" ? "shareFile" : type])
+        #expect(host.payloads.first?["text"] as? String == "Keep 🐼")
+        #expect(f.editor.content == "Keep 🐼" && f.library.notes.first?.isArchived == false)
+    }
+
     @Test(arguments: ["mail", "message"], ["sent", "userCancelled"])
     func messageStepsRespectTheNativeOutcome(type: String, status: String) async throws {
         let host = FilePreviewStepHost()
@@ -68,7 +81,7 @@ struct AsyncFilePreviewStepTests {
     var calls: [String] = []
     var payloads: [[String: Any]] = []
     var response = #"{"value":true}"#
-    func supportsAsync(_ operation: String) -> Bool { ["saveFile", "htmlPreview", "composeMail", "composeMessage"].contains(operation) }
+    func supportsAsync(_ operation: String) -> Bool { ["saveFile", "htmlPreview", "composeMail", "composeMessage", "print", "share", "shareFile"].contains(operation) }
     func perform(_ operation: String, values: [String: Any]) throws -> Any? {
         Issue.record("The synchronous native host ran."); return nil
     }
