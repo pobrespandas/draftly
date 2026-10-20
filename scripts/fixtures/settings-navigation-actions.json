@@ -1,0 +1,26 @@
+[
+  {
+    "name": "QA Navigation Archive",
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "void 0;"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Navigation Trash",
+    "afterSuccess": "trash",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "void 0;"
+        }
+      }
+    ]
+  }
+]

@@ -599,3 +599,10 @@ separately from editor navigation. Multiple-target execution retains its agreed
 last processed draft. Eight contract methods, the full regression (432 app and
 419 core), and the unsigned build passed. Native interaction and exact Drafts
 comparison remain open; see validation for the fallback and batch policies.
+
+
+Native After Success navigation now passes Actions-menu Archive to scratch,
+Trash to the next visible draft, original archived text retention, and preference
+persistence after restart. The preference was restored to Create New Draft.
+Action-panel, URL presentation, Undo, and exact Drafts acceptance remain open.
+The neutral action fixture is saved under scripts/fixtures for repeat runs.

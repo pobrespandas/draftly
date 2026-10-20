@@ -2872,3 +2872,31 @@ shows a window. Native Settings persistence, action-panel execution, URL display
 behavior, selection/focus/Undo, and exact Drafts behavior remain pending. QA is
 still on the earlier image for the requested physical global-shortcut check.
 This entry does not close Settings or full action acceptance.
+
+### Native After Success navigation — 20 October 2026
+
+Verified in use on isolated Engine QA. Refreshed from the Debug build; the debug
+library hash before signing starts with 5abde529d2c39aa1. Imported the reproducible
+settings-navigation-actions.json fixture. Both actions appeared in the Actions
+menu. Created Navigation A café 🐼 with a neutral second line. Ran QA Navigation
+Archive. The action completed and the editor became an empty Untitled scratch.
+Last Draft reopened the original text. Its Archive control was disabled and
+Move to Inbox was enabled. The original content was retained.
+
+Changed General to Open Next Draft. Created Navigation C café 🐼, then Navigation
+B café 🐼, with the list sorted by Modified descending. Ran QA Navigation Trash
+on B. The action completed and selected C, the next visible row, with its full
+text intact. Quit QA, confirmed that it stopped, and restarted. General still
+showed Open Next Draft. Restored Create New Draft and confirmed the value.
+
+Three neutral drafts were added. Inbox now shows eight drafts. A remains in
+Archive and B remains in Trash. No permanent deletion occurred. No screenshot
+or raw log is tracked. QA remains open with the original capture shortcut for
+the pending physical global-key check. The helper remains open.
+
+This accepts the tested Actions-menu paths and preference persistence. It does
+not accept action-panel invocation, native URL result presentation, Undo across
+navigation, fallback at the end of the list, or exact Drafts action behavior.
+Their automatic or earlier evidence remains separate. No new source behavior
+changed in this verification turn, so the prior build and test results apply
+only at their recorded scope.
