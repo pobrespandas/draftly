@@ -4053,3 +4053,50 @@ when an earlier classification lacked required coverage; this is not a claim
 that execution regressed. Wrapped and mixed native imports need their own
 preservation review. No installed app or personal library changed. No screenshot
 or raw log is stored in the repository.
+
+
+### Installed callback, native import, and Shortcuts checks — 20 October 2026
+
+Native checks used Draftly Engine QA and its isolated library
+1CBCA092-DAB6-4BFC-9FEC-E4216CDE78AD. The signed executable SHA-256 was
+d58f3e5b45380631ea93b0364d0b63856b598ab0d57890bd0dc1a98cae7075b4.
+No production code changed during these checks.
+
+QA Returned callback keys passed with the updated local callback helper. The
+editor showed Returned callback keys preserved café 🐼. History showed Success.
+The script checked own prototype-named keys, quotes, newlines, and callback tags.
+This closes that native response-key variant, not all callback contracts.
+
+The native future-fields fixture passed import, inspector edits, execution,
+restart, and export. The edited name, description, and disabled step value
+persisted. Thirteen export assertions passed: identities, enabled state, script,
+three future objects, sourceURL, and rawPayload stayed intact. No synthetic
+unknownFields wrapper appeared. Wrapped and mixed native imports still need
+review. The import contract remains partial for that coverage.
+
+The neutral Shortcut Draftly QA Output — disposable contains Wait 5 seconds
+and Text Native shortcut output café 🐼. It completed from the Shortcuts editor.
+Keep this fixture; deletion can also remove its iCloud copy.
+
+QA Shortcut no-wait script and QA Shortcut no-wait step passed. The editor
+reported 5 ms and 2 ms. History showed Success for both. Their assertions checked
+empty responses and an unchanged result tag. These checks prove launch return,
+not completion of the detached Shortcut. QA Shortcut waited script reached the
+60-second native timeout. No following editor write ran. The app remained
+responsive. The waited step fixture has not run.
+
+Two direct shortcuts run controls also stayed pending without output. They were
+terminated after 47 and 66 seconds. The fixture worked in the Shortcuts editor;
+the cause of the CLI stall is not established. Actual waited output and typed
+responses remain pending. No transport fallback or success claim was added.
+
+Fixtures are stored in scripts/fixtures/engine-native-action-fields.json and
+scripts/fixtures/engine-shortcut-wait-actions.json. Raw exports and logs stay in
+/tmp. No screenshots are stored in the repository. No new automatic tests or
+build ran in this native-only check. The last full regression remains
+app444/core466 with a successful unsigned build.
+
+The generic Shortcuts x-callback control stayed pending and was cancelled from
+Actions > Cancel Running Action. The app showed the cancellation, restored
+enabled actions, and kept the editor text. No output callback was accepted.
+This control does not establish that the URL route fixes the CLI stall.

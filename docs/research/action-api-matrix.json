@@ -7723,7 +7723,7 @@
           "errors": "Host errors stop the relevant step.",
           "limitations": [
             "Not all native response variants and configuration defaults are covered.",
-            "Returned prototype-named keys, quotes, and newlines pass both runner routes for script and step callbacks. The dedicated native response-key fixture is pending because the Mac locked before helper update."
+            "Returned prototype-named keys, quotes, and newlines pass both runner routes for script and step callbacks. The native response-key fixture passed with the updated local helper on 20 October 2026."
           ],
           "evidenceLevel": "Member-specific assertions. Native verification is separate.",
           "automatedTestHistory": [
@@ -7754,6 +7754,12 @@
                 "executableSHA256": "358de71c6dda4b38c69ed9c3d5a70da5335190e298b12984861bcefbed319c19",
                 "fixture": "scripts/fixtures/engine-no-wait-callback-actions.json",
                 "result": "Both native actions passed. No-wait script and step launches left the collection empty; the next waiting callback was first and retained Native café 🐼. History showed Success twice."
+              },
+              {
+                "date": "2026-10-20",
+                "executableSHA256": "d58f3e5b45380631ea93b0364d0b63856b598ab0d57890bd0dc1a98cae7075b4",
+                "fixture": "scripts/fixtures/engine-callback-response-key-actions.json",
+                "result": "Passed: own prototype-named keys, Unicode, quotes, newlines, and callback tags. Editor showed Returned callback keys preserved café 🐼; history showed Success."
               }
             ]
           }
@@ -12398,7 +12404,7 @@
           "result": "Waiting success stores result. No-wait keeps an empty response. A caught host failure stores its diagnostic in error.",
           "errors": "Failure adds no context callback response and does not replace an earlier shortcut_result tag. Native dictionary and typed response conversion remain pending.",
           "limitations": [
-            "Actual Shortcuts no-wait acceptance is pending while the Mac is locked. Dictionary/typed response conversion and all status/error variants remain separate acceptance. App termination during detached execution is not verified."
+            "Actual no-wait launch return passed for script and step. Waited output is not accepted; CLI controls stalled. Dictionary/typed response conversion and all status/error variants remain separate acceptance. App termination during detached execution is not verified."
           ],
           "supportingTests": [
             {
@@ -12428,7 +12434,15 @@
           ],
           "nativeVerification": {
             "status": "pending",
-            "reason": "The Mac is locked. Background process fixtures verify launch and file ownership, not actual Shortcuts execution."
+            "reason": "Actual no-wait script and step launch-return checks passed. Waited script reached native timeout. Two direct CLI controls stalled despite success from the Shortcuts editor. Waited step and remaining response/status variants are pending.",
+            "additionalChecks": [
+              {
+                "date": "2026-10-20",
+                "executableSHA256": "d58f3e5b45380631ea93b0364d0b63856b598ab0d57890bd0dc1a98cae7075b4",
+                "fixture": "scripts/fixtures/engine-shortcut-wait-actions.json",
+                "result": "No-wait script and step passed empty response and unchanged tag checks. This does not prove detached completion. Waited script timed out without its final write. Generic x-callback control stayed pending and was cancelled; the UI restored enabled actions and retained editor text."
+              }
+            ]
           }
         },
         {
@@ -12457,7 +12471,7 @@
           "result": "Returns the waiting response.result value. Returns undefined for no-wait and caught host failure.",
           "errors": "Reading this convenience property has no separate documented error for a valid response object. Execution errors belong to run().",
           "limitations": [
-            "Actual Shortcuts no-wait acceptance is pending while the Mac is locked. Dictionary/typed response conversion and all status/error variants remain separate acceptance. App termination during detached execution is not verified."
+            "Actual no-wait launch return passed for script and step. Waited output is not accepted; CLI controls stalled. Dictionary/typed response conversion and all status/error variants remain separate acceptance. App termination during detached execution is not verified."
           ],
           "supportingTests": [
             {
@@ -12487,7 +12501,15 @@
           ],
           "nativeVerification": {
             "status": "pending",
-            "reason": "The Mac is locked. Background process fixtures verify launch and file ownership, not actual Shortcuts execution."
+            "reason": "Actual no-wait script and step launch-return checks passed. Waited script reached native timeout. Two direct CLI controls stalled despite success from the Shortcuts editor. Waited step and remaining response/status variants are pending.",
+            "additionalChecks": [
+              {
+                "date": "2026-10-20",
+                "executableSHA256": "d58f3e5b45380631ea93b0364d0b63856b598ab0d57890bd0dc1a98cae7075b4",
+                "fixture": "scripts/fixtures/engine-shortcut-wait-actions.json",
+                "result": "No-wait script and step passed empty response and unchanged tag checks. This does not prove detached completion. Waited script timed out without its final write. Generic x-callback control stayed pending and was cancelled; the UI restored enabled actions and retained editor text."
+              }
+            ]
           }
         },
         {
@@ -12517,7 +12539,15 @@
           },
           "nativeVerification": {
             "status": "pending",
-            "reason": "The Mac is locked. Actual Shortcuts status variants remain pending."
+            "reason": "Actual no-wait script and step launch-return checks passed. Waited script reached native timeout. Two direct CLI controls stalled despite success from the Shortcuts editor. Waited step and remaining response/status variants are pending.",
+            "additionalChecks": [
+              {
+                "date": "2026-10-20",
+                "executableSHA256": "d58f3e5b45380631ea93b0364d0b63856b598ab0d57890bd0dc1a98cae7075b4",
+                "fixture": "scripts/fixtures/engine-shortcut-wait-actions.json",
+                "result": "No-wait script and step passed empty response and unchanged tag checks. This does not prove detached completion. Waited script timed out without its final write. Generic x-callback control stayed pending and was cancelled; the UI restored enabled actions and retained editor text."
+              }
+            ]
           },
           "limitations": [
             "Current assertions cover created, success, and generic error. Cancellation, timeout, invalid, and actual Shortcuts acceptance remain pending."
@@ -12575,7 +12605,7 @@
           "result": "The Boolean option is forwarded to the host. False continues after launch and suppresses response/result publication.",
           "errors": "Valid Boolean assignment has no separate documented throwing error. Execution failures belong to run().",
           "limitations": [
-            "Actual Shortcuts no-wait acceptance is pending while the Mac is locked. Dictionary/typed response conversion and all status/error variants remain separate acceptance. App termination during detached execution is not verified."
+            "Actual no-wait launch return passed for script and step. Waited output is not accepted; CLI controls stalled. Dictionary/typed response conversion and all status/error variants remain separate acceptance. App termination during detached execution is not verified."
           ],
           "supportingTests": [
             {
@@ -12605,7 +12635,15 @@
           ],
           "nativeVerification": {
             "status": "pending",
-            "reason": "The Mac is locked. Background process fixtures verify launch and file ownership, not actual Shortcuts execution."
+            "reason": "Actual no-wait script and step launch-return checks passed. Waited script reached native timeout. Two direct CLI controls stalled despite success from the Shortcuts editor. Waited step and remaining response/status variants are pending.",
+            "additionalChecks": [
+              {
+                "date": "2026-10-20",
+                "executableSHA256": "d58f3e5b45380631ea93b0364d0b63856b598ab0d57890bd0dc1a98cae7075b4",
+                "fixture": "scripts/fixtures/engine-shortcut-wait-actions.json",
+                "result": "No-wait script and step passed empty response and unchanged tag checks. This does not prove detached completion. Waited script timed out without its final write. Generic x-callback control stayed pending and was cancelled; the UI restored enabled actions and retained editor text."
+              }
+            ]
           }
         },
         {
@@ -12634,7 +12672,7 @@
           "result": "Returns true after the host accepts execution, or false on a caught host error. No-wait exposes no result. Waiting success exposes the returned string.",
           "errors": "A host error returns false, sets status to error, preserves its diagnostic, and publishes no successful response or result tag. A first-party step propagates the error. The script test calls context.fail explicitly to stop its action.",
           "limitations": [
-            "Actual Shortcuts no-wait acceptance is pending while the Mac is locked. Dictionary/typed response conversion and all status/error variants remain separate acceptance. App termination during detached execution is not verified."
+            "Actual no-wait launch return passed for script and step. Waited output is not accepted; CLI controls stalled. Dictionary/typed response conversion and all status/error variants remain separate acceptance. App termination during detached execution is not verified."
           ],
           "supportingTests": [
             {
@@ -12664,7 +12702,15 @@
           ],
           "nativeVerification": {
             "status": "pending",
-            "reason": "The Mac is locked. Background process fixtures verify launch and file ownership, not actual Shortcuts execution."
+            "reason": "Actual no-wait script and step launch-return checks passed. Waited script reached native timeout. Two direct CLI controls stalled despite success from the Shortcuts editor. Waited step and remaining response/status variants are pending.",
+            "additionalChecks": [
+              {
+                "date": "2026-10-20",
+                "executableSHA256": "d58f3e5b45380631ea93b0364d0b63856b598ab0d57890bd0dc1a98cae7075b4",
+                "fixture": "scripts/fixtures/engine-shortcut-wait-actions.json",
+                "result": "No-wait script and step passed empty response and unchanged tag checks. This does not prove detached completion. Waited script timed out without its final write. Generic x-callback control stayed pending and was cancelled; the UI restored enabled actions and retained editor text."
+              }
+            ]
           }
         },
         {
@@ -17530,7 +17576,15 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Native-format unknown fields now pass edit, repeated import, export, backup, restore, and execution tests. The installed app import/inspector/export path for this variant is pending while the Mac is locked. Earlier foreign-payload native acceptance remains in history."
+        "reason": "Single native action import, inspector edits, execution, restart, and export passed in the isolated installed app. Thirteen export assertions preserved identities, disabled state, future fields, sourceURL, and rawPayload. Wrapped and mixed native imports still require review. Earlier foreign-payload evidence remains in history.",
+        "additionalChecks": [
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "d58f3e5b45380631ea93b0364d0b63856b598ab0d57890bd0dc1a98cae7075b4",
+            "fixture": "scripts/fixtures/engine-native-action-fields.json",
+            "result": "Passed single native app path; edited Unicode name/description/value persisted after restart, history showed Success, and exported unknown data remained flat and exact."
+          }
+        ]
       },
       "automatedVerification": {
         "status": "passed",

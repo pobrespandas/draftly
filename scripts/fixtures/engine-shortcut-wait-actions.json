@@ -1,0 +1,136 @@
+[
+  {
+    "name": "QA Shortcut no-wait script",
+    "steps": [
+      {
+        "type": "defineTemplateTag",
+        "data": {
+          "name": "shortcut_result",
+          "template": "Initial"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "var shortcutBegan=Date.now();"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "var shortcut=Shortcut.create('Draftly QA Output — disposable','Neutral input café 🐼');shortcut.waitForResponse=false;if(!shortcut.run())throw new Error(shortcut.status+': '+JSON.stringify(shortcut.response));if(shortcut.result!==undefined||Object.keys(shortcut.response).length!==0)throw new Error('Synthetic no-wait output');"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "var elapsed=Date.now()-shortcutBegan;if(context.callbackResponses.length!==0||draft.processTemplate('[[shortcut_result]]')!=='Initial')throw new Error('No-wait published output');if(elapsed>=5000)throw new Error('No-wait did not return before the fixture wait');editor.setText('Shortcut no-wait script finished in '+elapsed+' ms café 🐼');"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Shortcut waited script",
+    "steps": [
+      {
+        "type": "defineTemplateTag",
+        "data": {
+          "name": "shortcut_result",
+          "template": "Initial"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "var shortcutBegan=Date.now();"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "var shortcut=Shortcut.create('Draftly QA Output — disposable','Neutral input café 🐼');if(!shortcut.run())throw new Error(shortcut.status+': '+JSON.stringify(shortcut.response));if(shortcut.result!=='Native shortcut output café 🐼')throw new Error('Wrong awaited result');"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "var elapsed=Date.now()-shortcutBegan;if(context.callbackResponses.length!==1||context.callbackResponses[0].result!=='Native shortcut output café 🐼')throw new Error('Wrong awaited response');if(draft.processTemplate('[[shortcut_result]]')!=='Native shortcut output café 🐼')throw new Error('Wrong awaited tag');editor.setText('Shortcut waited script finished in '+elapsed+' ms café 🐼');"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Shortcut no-wait step",
+    "steps": [
+      {
+        "type": "defineTemplateTag",
+        "data": {
+          "name": "shortcut_result",
+          "template": "Initial"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "var shortcutBegan=Date.now();"
+        }
+      },
+      {
+        "type": "runShortcut",
+        "data": {
+          "name": "Draftly QA Output — disposable",
+          "template": "Neutral input café 🐼",
+          "waitForResponse": "false"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "var elapsed=Date.now()-shortcutBegan;if(context.callbackResponses.length!==0||draft.processTemplate('[[shortcut_result]]')!=='Initial')throw new Error('No-wait published output');if(elapsed>=5000)throw new Error('No-wait did not return before the fixture wait');editor.setText('Shortcut no-wait step finished in '+elapsed+' ms café 🐼');"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Shortcut waited step",
+    "steps": [
+      {
+        "type": "defineTemplateTag",
+        "data": {
+          "name": "shortcut_result",
+          "template": "Initial"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "var shortcutBegan=Date.now();"
+        }
+      },
+      {
+        "type": "runShortcut",
+        "data": {
+          "name": "Draftly QA Output — disposable",
+          "template": "Neutral input café 🐼"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "var elapsed=Date.now()-shortcutBegan;if(context.callbackResponses.length!==1||context.callbackResponses[0].result!=='Native shortcut output café 🐼')throw new Error('Wrong awaited response');if(draft.processTemplate('[[shortcut_result]]')!=='Native shortcut output café 🐼')throw new Error('Wrong awaited tag');editor.setText('Shortcut waited step finished in '+elapsed+' ms café 🐼');"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Shortcut callback control",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "var began=Date.now();var cb=CallbackURL.create();cb.baseURL='shortcuts://x-callback-url/run-shortcut';cb.addParameter('name','Draftly QA Output — disposable');cb.addParameter('input','text');cb.addParameter('text','Neutral input café 🐼');if(!cb.open())throw new Error('Shortcut callback '+cb.status);if(cb.callbackResponse.result!=='Native shortcut output café 🐼')throw new Error('Wrong callback output '+JSON.stringify(cb.callbackResponse));editor.setText('Shortcut callback control finished in '+(Date.now()-began)+' ms café 🐼');"
+        }
+      }
+    ]
+  }
+]

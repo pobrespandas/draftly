@@ -908,3 +908,12 @@ and typed-collision cases pass. Full regression passed app444/core466; the
 unsigned build passed. Installed-app acceptance is pending while the Mac is
 locked. The import contract returns to partial for that newly exposed coverage
 gap; earlier native foreign-payload evidence stays recorded.
+
+
+Installed QA acceptance now passes returned callback keys and single native
+action import/edit/restart/export with unknown fields. Wrapped and mixed native
+imports remain open. Actual Shortcut no-wait script and step checks pass launch
+return and response suppression. Waited execution reached timeout; two direct
+CLI controls also stalled, although the Shortcut editor completed the fixture.
+The cause is not established. Waited output is not accepted. See validation.md
+for the isolated library, build identity, and exact check scope.
