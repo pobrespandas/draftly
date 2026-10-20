@@ -343,3 +343,12 @@ QA helper. The `parameterKeys=true` option adds fixed neutral response keys,
 including `__proto__`, `constructor`, and a quoted multiline value. Run the
 action in the isolated QA app. Check the expected editor text and Success in
 history. Preparing or importing the fixture does not prove acceptance.
+
+
+## Delayed reply observation
+
+The helper shows Reply pending while it waits. Replies opened counts successful
+NSWorkspace URL opens. It does not mean Draftly accepted the response or that
+an action succeeded. For QA Native late, cancel and run QA Caught rejection
+before the eight-second reply. After the helper reports a successful open,
+check the editor and history. The cancelled tail must not replace the new result.

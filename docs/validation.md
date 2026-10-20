@@ -4351,3 +4351,34 @@ RunDraftActionIntentTests also passed, including actual perform cancellation
 and typed pre-start cancellation. No production code or app build changed. The
 last full regression remains app445/core468. Matrix structure passes. No raw
 logs or screenshots are tracked. Common-entry parity remains partial.
+
+
+### Native delayed reply after cancellation — 20 October 2026
+
+Implemented in the manual helper only: a separate field now shows a pending
+reply delay, the number of successful NSWorkspace opens, and the last open
+result. It does not count an open as a completed Draftly action. The target
+remains restricted to the isolated QA callback scheme and callback host.
+No Draftly production code changed. Compiled the helper, passed its window
+inventory self-test, quit the installed helper, confirmed process exit,
+replaced its executable, and signed the test bundle locally.
+
+Native: isolated Engine QA image99a067dd93e833bb. Imported the unchanged
+engine-native-actions.json fixture. Ran QA Native late, cancelled through
+Actions > Cancel Running Action, and completed QA Caught rejection in one
+observed UI sequence before the eight-second reply. The helper first showed
+Reply pending: 8.0 seconds. It later showed Replies opened: 1, Last open
+succeeded: true, Delay: 8.0 seconds. This is the actual NSWorkspace open result,
+not an acknowledgement that Draftly accepted the expired response.
+
+After that open, History still showed QA Native late as Cancelled and
+QA Caught rejection as Success. The editor retained Caught rejection completed;
+Must not replace edited text did not appear. This verifies the expired native
+callback cannot run the old tail or overwrite the subsequent completed action
+in this sequence. It does not cover a reply arriving during a second pending
+wait, every native capability, or unbounded future delivery. Host-request and
+task-cancellation contracts remain partial for other acceptance.
+
+No screenshot or raw log is tracked. The helper input fixture stays unchanged.
+Last full regression remains app445/core468; only existing router tests were
+rerun for this helper/native acceptance change. The app was not rebuilt.

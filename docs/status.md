@@ -970,3 +970,9 @@ Native App Intent owner-close now reports cancellation in Shortcuts, retains
 completed draft text without success effects, and permits a subsequent successful
 Intent. Existing actual-perform and lifetime/error tests pass. Same-draft
 multiwindow ownership and other capability variants remain open.
+
+
+A native delayed callback after cancellation no longer has acceptance pending
+for the completed-next-action sequence: the helper confirmed its delayed URL
+open, while history and editor retained Cancelled/Success and the next result.
+Other late-response and native capability variants remain open.

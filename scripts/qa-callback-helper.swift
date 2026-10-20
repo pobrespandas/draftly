@@ -52,6 +52,8 @@ struct QAWindowInventory {
     private lazy var inventoryToggle = NSButton(checkboxWithTitle: "Monitor QA windows (read only)", target: self, action: #selector(toggleInventory))
     private lazy var refreshButton = NSButton(title: "Refresh window inventory", target: self, action: #selector(refreshInventory))
     private var inventoryTimer: Timer?
+    private let replyField = NSTextField(wrappingLabelWithString: "No reply has been opened.")
+    private var openedReplyCount = 0
     private var receivedCallbackCount = 0
     private var openRequestID = UUID()
 
@@ -82,7 +84,9 @@ struct QAWindowInventory {
         refreshButton.isEnabled = false
         inventoryField.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
         stack.addArrangedSubview(inventoryControls); stack.addArrangedSubview(inventoryField)
+        stack.addArrangedSubview(replyField)
         stack.frame = NSRect(x: 20, y: 20, width: 580, height: 350)
+        replyField.widthAnchor.constraint(equalToConstant: 580).isActive = true
         targetField.widthAnchor.constraint(equalToConstant: 580).isActive = true
         resultField.widthAnchor.constraint(equalToConstant: 580).isActive = true
         inventoryField.widthAnchor.constraint(equalToConstant: 580).isActive = true
@@ -167,9 +171,12 @@ struct QAWindowInventory {
             callback.queryItems = (callback.queryItems ?? []) + response
             guard let destination = callback.url else { continue }
             let delay = min(10, max(0, Double(value("delay") ?? "0") ?? 0))
+            replyField.stringValue = "Reply pending: \(delay) seconds."
             Task { @MainActor in
                 try? await Task.sleep(for: .seconds(delay))
-                NSWorkspace.shared.open(destination)
+                let opened = NSWorkspace.shared.open(destination)
+                if opened { self.openedReplyCount += 1 }
+                self.replyField.stringValue = "Replies opened: \(self.openedReplyCount). Last open succeeded: \(opened). Delay: \(delay) seconds."
                 if self.panel == nil { application.terminate(nil) }
             }
         }

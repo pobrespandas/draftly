@@ -18009,6 +18009,12 @@
             "fixture": "scripts/fixtures/engine-prompt-actions.json",
             "result": "Prompt cancellation discarded field edits and retained draft text; acceptance applied Unicode. SelectPrompt cancellation retained text; subtitle search and Return selected id two. History confirmed Cancelled/Success for both. Other fields, permission dialogs, and native interruption paths remain pending.",
             "evidence": "docs/validation.md: Native worker prompt boundaries — 20 October 2026"
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "99a067dd93e833bb4cd2a2912ac6596b8150ada162af5c5ee21b3799a102a841",
+            "fixture": "scripts/fixtures/engine-native-actions.json",
+            "result": "Ran QA Native late, cancelled from Actions, then completed QA Caught rejection before delayed reply. Updated local helper showed Reply pending:8 seconds then Replies opened:1/Last open succeeded:true. After the native URL open, history remained Cancelled for late and Success for next action; editor retained Caught rejection completed, not the old callback tail. This covers a delayed native callback after cancellation and a subsequent completed action, not delivery during a second pending wait or every capability."
           }
         ]
       },
@@ -18123,6 +18129,12 @@
             "fixture": "scripts/fixtures/engine-deadline-actions.json",
             "result": "Batched observed UI sequence found enabled Cancel about 1.96 seconds after start and submitted cancellation about 2.71 seconds after start. Later history recorded Cancelled. Completed text stayed in Inbox without tail or archive. A following action succeeded. This is not an immediate CPU interruption latency claim.",
             "evidence": "docs/validation.md: Native CPU cancellation — 20 October 2026"
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "99a067dd93e833bb4cd2a2912ac6596b8150ada162af5c5ee21b3799a102a841",
+            "fixture": "scripts/fixtures/engine-native-actions.json",
+            "result": "Ran QA Native late, cancelled from Actions, then completed QA Caught rejection before delayed reply. Updated local helper showed Reply pending:8 seconds then Replies opened:1/Last open succeeded:true. After the native URL open, history remained Cancelled for late and Success for next action; editor retained Caught rejection completed, not the old callback tail. This covers a delayed native callback after cancellation and a subsequent completed action, not delivery during a second pending wait or every capability."
           }
         ]
       },
