@@ -1,0 +1,24 @@
+[
+  {
+    "name": "QA Async prompt keyboard",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "var p=Prompt.create();p.title='Neutral prompt QA';p.addTextField('text','Text','café 🐼');p.addButton('Accept');if(!p.show()){context.cancel();}else{editor.setText(p.fieldValues.text);}"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Async selection keyboard",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "var p=SelectPrompt.create();p.title='Neutral selection QA';p.addItem('one','One','First');p.addItem('two','Two','Second');if(!p.show()){context.cancel();}else{editor.setText('Selected: '+p.selectedItem.id);}"
+        }
+      }
+    ]
+  }
+]

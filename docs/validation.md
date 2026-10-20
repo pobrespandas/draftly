@@ -1323,3 +1323,20 @@ Return, Escape, Cmd-period, and window close in the actual prompt presenter;
 transcribe a neutral file; check EventKit permission and persistence; and check
 Apple model availability and tools. Existing manual acceptance used an older QA
 executable. It does not accept this delivery. No screenshots were saved.
+
+## Real async prompt keyboard acceptance — 20 October 2026
+
+Computer Use used the refreshed a308158 QA executable, development-signed, with
+its existing isolated local library. The habitual app was unchanged. The helper
+now accepts installation URLs for actions, while it still checks the QA bundle
+identity and test flag. Reproducible inputs are in
+`scripts/fixtures/engine-prompt-actions.json`.
+
+Prompt Return stored `café 🐼`. Escape and Cmd-period each cancelled, retained the
+note, and released the runner for the next action. SelectPrompt filtered on the
+subtitle Second and Return stored `Selected: two`. Escape cancelled its next run
+without a text change. Execution History showed one prompt success, two prompt
+cancellations, one selector success, and one selector cancellation. QA was quit
+and no QA process remained. The helper remains available. No screenshots were
+saved. The alert exposes no visible close control. Other window-close paths,
+confirmation variants, and remaining native adapters still need acceptance.

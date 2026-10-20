@@ -77,3 +77,15 @@ Native callback timeout, entry-point timeout/busy/concurrency, speech, location,
 Calendar, and Reminders still require their separate real checks. Deleting a
 shortcut affects iCloud and other devices. Confirm deletion if normal recovery is
 not available; retain the disposable fixtures while that confirmation is pending.
+
+## Async prompt keyboard checks
+
+Import `scripts/fixtures/engine-prompt-actions.json` with a `draftly://action?data=`
+URL through the helper. Select a neutral QA draft. Run QA Async prompt keyboard.
+Return must store the Unicode field text. Repeat with Escape and Cmd-period;
+both must cancel and keep the source text. Run QA Async selection keyboard.
+Type Second in its search field, then press Return. The note must read
+`Selected: two`. Repeat and press Escape; the note must stay unchanged. Check
+Execution History for the matching success and cancellation results. These checks
+passed on the development-signed a308158 QA build on 20 October 2026. The alert
+has no visible close control; other window-close paths still need acceptance.

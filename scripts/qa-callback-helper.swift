@@ -38,7 +38,7 @@ import AppKit
     @objc private func openInQA() {
         panel?.makeFirstResponder(nil)
         guard let url = URL(string: targetField.stringValue), url.scheme == "draftly",
-              ["open", "create", "capture", "run", "runAction", "x-callback-url"].contains(url.host ?? ""),
+              ["open", "create", "capture", "run", "runAction", "action", "x-callback-url"].contains(url.host ?? ""),
               let app = NSWorkspace.shared.urlForApplication(toOpen: URL(string: "draftly-engine-qa://callback")!),
               let bundle = Bundle(url: app), bundle.bundleIdentifier == "com.andrestobelem.draftly.engine-qa",
               bundle.object(forInfoDictionaryKey: "DraftlyUITesting") as? Bool == true else {
