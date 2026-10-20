@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 import Testing
 import DraftlyCore
@@ -6,14 +7,34 @@ import DraftlyCore
 @Suite("Automation action editor safety") @MainActor
 struct AutomationActionExecutionTests {
     private func delayedAction() -> DraftAction {
-        DraftAction(name: "Delayed automation", steps: [ActionStep("script", ["allowAsync": "true", "script": "draft.addTag('waiting');draft.update();setTimeout(()=>{draft.content='Stale';draft.update();script.complete();},500);"])])
+        DraftAction(name: "Delayed automation", steps: [
+            ActionStep("script", ["allowAsync": "true", "script": "draft.addTag('waiting');draft.update();"]),
+            ActionStep("insertText", ["template": "Stale"])
+        ])
     }
-    private func waitForAction(_ library: LibraryStore, id: UUID) async throws {
-        let deadline = ContinuousClock.now + .seconds(5)
-        while library.notes.first(where: { $0.id == id })?.tags.contains("waiting") != true, ContinuousClock.now < deadline {
-            try await Task.sleep(for: .milliseconds(5))
+
+    private func startAndWaitForAction(_ library: LibraryStore, id: UUID,
+        run: @escaping @MainActor () async throws -> AutomationActionExecution.Output
+    ) async throws -> Task<AutomationActionExecution.Output, Error> {
+        let ready = AsyncStream.makeStream(of: Bool.self)
+        let subscription = library.$notes.sink { notes in
+            if notes.first(where: { $0.id == id })?.tags.contains("waiting") == true {
+                ready.continuation.yield(true)
+            }
         }
-        #expect(library.notes.first(where: { $0.id == id })?.tags.contains("waiting") == true)
+        let task = Task {
+            defer { ready.continuation.finish() }
+            return try await run()
+        }
+        var iterator = ready.stream.makeAsyncIterator()
+        let started = await iterator.next()
+        subscription.cancel()
+        guard started == true else {
+            task.cancel()
+            _ = try await task.value
+            throw DraftlyError.message("Automation ended before its ready signal.")
+        }
+        return task
     }
 
     @Test func pendingVisibleEditsAreSavedBeforeAutomationLoadsTheDraft() async throws {
@@ -60,8 +81,9 @@ struct AutomationActionExecutionTests {
         let library = try LibraryStore(inMemory: true, seed: false)
         let note = try library.createNote(content: "Stored")
         let model = WindowModel(library: library); model.select(note.id)
-        let task = Task { try await AutomationActionExecution.run(delayedAction(), noteID: note.id, library: library, models: [model], host: model.host) }
-        try await waitForAction(library, id: note.id)
+        let task = try await startAndWaitForAction(library, id: note.id) {
+            try await AutomationActionExecution.run(delayedAction(), noteID: note.id, library: library, models: [model], host: model.host)
+        }
         model.editor.content = "User text"; model.contentChanged()
         let output = try await task.value
         #expect(output.report.reason == .cancelled)
@@ -73,8 +95,9 @@ struct AutomationActionExecutionTests {
         let library = try LibraryStore(inMemory: true, seed: false)
         let note = try library.createNote(content: "Stored")
         let host = NativeActionHost()
-        let task = Task { try await AutomationActionExecution.run(delayedAction(), noteID: note.id, library: library, models: [], host: host) }
-        try await waitForAction(library, id: note.id)
+        let task = try await startAndWaitForAction(library, id: note.id) {
+            try await AutomationActionExecution.run(delayedAction(), noteID: note.id, library: library, models: [], host: host)
+        }
         var external = try #require(library.notes.first { $0.id == note.id })
         external.content = "External"; try library.saveNote(external)
         let output = try await task.value

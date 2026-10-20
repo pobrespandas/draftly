@@ -4481,3 +4481,19 @@ cause under the full run remains unresolved; the full app run is not accepted.
 Matrix structure passes. No screenshots or raw logs are tracked.
 
 The unsigned app build also passed for the tint change.
+
+
+### Automation readiness test synchronization — 20 October 2026
+
+Refactored the two existing automation cancellation tests. Subscribe to draft
+publications before starting the action. Wait for its saved ready tag instead
+of polling for five seconds. Finish the signal stream when the action ends,
+so an early result produces a test error instead of a lost readiness signal.
+The script stays pending until cancellation; a later insert step must not run.
+Removed the half-second completion race from these editor-safety tests.
+No production code changed. This does not establish the cause of the earlier
+full-run failures or replace separate timer and callback contract tests.
+
+Automatic: all five automation safety methods passed. The full regression
+then completed successfully: app447/core471. No visible windows were opened.
+Native tint comparison remains pending. No raw logs or screenshots are tracked.

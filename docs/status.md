@@ -1008,3 +1008,9 @@ an inspector selector. Unknown names survive export and backup. Focused tests
 and core471 passed. The full app run had two automation start-marker failures;
 the isolated five-test recheck passed. Full-run cause and native palette
 acceptance remain pending.
+
+
+Automation cancellation tests now wait for a saved ready signal instead of
+racing startup and a completion timer. Full regression passed app447/core471.
+No production execution behavior changed. Native action tint acceptance is
+still pending.
