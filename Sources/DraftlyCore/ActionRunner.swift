@@ -78,6 +78,9 @@ public final class ActionRunner: ObservableObject {
     public var uiOperation: (([String: Any]) throws -> Any?)?
     public var selectedDrafts: (() -> [Note])?
     public var applyWorkspace: ((Workspace) throws -> Void)?
+    @Published public private(set) var activeSession: ActionExecutionSession?
+    public private(set) var lastReport: ActionExecutionReport?
+    private var terminationReason: ActionTerminationReason = .error
     private var runOutcome: ActionExecutionResult = .failure("The action did not complete.")
     var queued: [(DraftAction, Note)] = []
     private var logs: [String] = []
@@ -101,17 +104,36 @@ public final class ActionRunner: ObservableObject {
     @discardableResult public func run(_ action: DraftAction) -> Bool { runResult(action).succeeded }
 
     @discardableResult public func runResult(_ action: DraftAction) -> ActionExecutionResult {
-        guard !isRunning else { message = "An action is already running."; return .failure(message!) }
+        runReport(action).result
+    }
+
+    public func cancel() { activeSession?.cancel() }
+
+    @discardableResult public func runReport(_ action: DraftAction) -> ActionExecutionReport {
+        let session = ActionExecutionSession(actionID: action.id)
+        guard !isRunning else {
+            message = "An action is already running."
+            return session.finish(.failure(message!), reason: .busy, successParameters: [:])
+        }
         let libraryID = ObjectIdentifier(library)
         guard Self.runningLibraries.insert(libraryID).inserted else {
             message = "An action is already running in this library."
-            return .failure(message!)
+            return session.finish(.failure(message!), reason: .busy, successParameters: [:])
         }
-        defer { Self.runningLibraries.remove(libraryID) }
+        activeSession = session
+        defer { Self.runningLibraries.remove(libraryID); activeSession = nil }
+        terminationReason = .error
         successParameters = [:]
         _ = executeRun(action)
         if !runOutcome.succeeded { successParameters = [:] }
-        return runOutcome
+        let reason: ActionTerminationReason = runOutcome.succeeded ? .success : runOutcome == .cancelled ? .cancelled : terminationReason
+        let report = session.finish(runOutcome, reason: reason, successParameters: successParameters)
+        lastReport = report
+        return report
+    }
+
+    private func checkCancellation() throws {
+        if activeSession?.cancellationRequested == true { throw ActionExecutionInterruption.cancelled }
     }
 
     private func executeRun(_ action: DraftAction) -> Bool {
@@ -120,6 +142,7 @@ public final class ActionRunner: ObservableObject {
         let sourceNoteID = editor.noteID
         defer { isRunning = false; executing = []; host?.finishAction() }
         do {
+            try checkCancellation()
             if action.presentation.confirmBeforeRun {
                 let response = try platform("confirmAction", ["name": action.name]) as? Bool ?? false
                 guard response else {
@@ -135,6 +158,7 @@ public final class ActionRunner: ObservableObject {
             var completed = try execute(action, note: note)
             var count = 0
             while completed && !queued.isEmpty {
+                try checkCancellation()
                 count += 1
                 guard count <= 100 else { throw DraftlyError.message("The action queue exceeded 100 actions.") }
                 let (next, queuedNote) = queued.removeFirst()
@@ -155,10 +179,12 @@ public final class ActionRunner: ObservableObject {
         } catch {
             try? flushEditor()
             message = error.localizedDescription
-            runOutcome = .failure(error.localizedDescription)
-            var run = ActionRun(actionName: action.name, status: "Error", message: error.localizedDescription); run.noteID = sourceNoteID; run.actionID = action.id
+            let cancelled = (error as? ActionExecutionInterruption) == .cancelled
+            if (error as? ActionExecutionInterruption) == .timeout { terminationReason = .timeout }
+            runOutcome = cancelled ? .cancelled : .failure(error.localizedDescription)
+            var run = ActionRun(actionName: action.name, status: cancelled ? "Cancelled" : "Error", message: error.localizedDescription); run.noteID = sourceNoteID; run.actionID = action.id
             library.log(run)
-            if action.presentation.notifyOnError { _ = try? platform("actionNotification", ["title": action.name, "message": error.localizedDescription]) }
+            if !cancelled && action.presentation.notifyOnError { _ = try? platform("actionNotification", ["title": action.name, "message": error.localizedDescription]) }
             return false
         }
     }
@@ -217,6 +243,8 @@ public final class ActionRunner: ObservableObject {
         context.evaluateScript("var draft = new Draft(\(noteJSON)); var action = new Action(\(try json(actionValue(action)))); context.configuredValues = \(values); action.configuredValues = context.configuredValues;")
         if let scriptError { throw DraftlyError.message(scriptError) }
         for step in steps where step.isEnabled != false {
+            try checkCancellation()
+            activeSession?.enter(actionID: action.id, step: step)
             if context.objectForKeyedSubscript("__cancelled")?.toBool() == true { return false }
             if let failure = context.objectForKeyedSubscript("__failure"), !failure.isNull, !failure.isUndefined { throw DraftlyError.message(failure.toString()) }
             let text = step.values["template"] ?? step.values["text"] ?? "[[draft]]"
@@ -226,6 +254,9 @@ public final class ActionRunner: ObservableObject {
             case "configurationKey": break
             case "script":
                 let asynchronous = ["true", "1"].contains(step.values["allowAsync"] ?? step.values["allowAsynchronous"] ?? "false")
+                if asynchronous, !scriptTimeout.isFinite || scriptTimeout <= 0 {
+                    throw DraftlyError.message("The asynchronous script timeout must be positive and finite.")
+                }
                 context.evaluateScript("__beginStep();")
                 defer { context.evaluateScript("__endStep();") }
                 scriptError = nil
@@ -239,10 +270,11 @@ public final class ActionRunner: ObservableObject {
                 if asynchronous {
                     let deadline = Date().addingTimeInterval(scriptTimeout)
                     while context.objectForKeyedSubscript("__completed")?.toBool() != true {
+                        try checkCancellation()
                         if context.objectForKeyedSubscript("__cancelled")?.toBool() == true { return false }
                         if let failure = context.objectForKeyedSubscript("__failure"), !failure.isNull, !failure.isUndefined { throw DraftlyError.message(failure.toString()) }
                         if let scriptError { throw DraftlyError.message(scriptError) }
-                        guard Date() < deadline else { throw DraftlyError.message("The asynchronous script timed out before script.complete().") }
+                        guard Date() < deadline else { throw ActionExecutionInterruption.timeout }
                         context.evaluateScript("__drainTimers();")
                         RunLoop.current.run(until: Date().addingTimeInterval(0.005))
                     }
@@ -339,6 +371,7 @@ public final class ActionRunner: ObservableObject {
             }
             context.evaluateScript("__tags = \(try json(customTags));")
         }
+        try checkCancellation()
         if context.objectForKeyedSubscript("__cancelled")?.toBool() == true { return false }
         if let failure = context.objectForKeyedSubscript("__failure"), !failure.isNull, !failure.isUndefined { throw DraftlyError.message(failure.toString()) }
         try flushEditor()
@@ -405,6 +438,7 @@ public final class ActionRunner: ObservableObject {
     }
 
     func platform(_ operation: String, _ values: [String: Any]) throws -> Any? {
+        try checkCancellation()
         guard let host else { throw DraftlyError.message("The operation \(operation) is unavailable.") }
         return try host.perform(operation, values: values)
     }
