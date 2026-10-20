@@ -2162,3 +2162,17 @@ Native: no new failure-injection UI check was run. Earlier native import evidenc
 uses the prior QA executable; this new transaction behavior is backed by specific
 store/route tests. The isolated QA bundle still contains image3d28cc07b2ff04f6.
 Refresh it before accepting later source-level changes through Computer Use.
+
+
+## Automation cancellation before startup — 20 October 2026
+
+Implemented: a cancelled task now receives a not-started cancellation report from
+AutomationActionExecution.run. It no longer throws a raw CancellationError before
+window resolution. The report retains the root action and target note identities.
+This lets callers use the same typed cancellation mapping as a running action.
+
+Automatic: AutomationPrestartCancellationTests passed. Cancellation precedes the
+resolver, pending draft save, script effects, and history creation. Pending user
+text remains dirty and stored text stays unchanged. AutomationActionError maps
+the returned report to cancelled. The focused automation/context/boundary run
+also passed. This background case does not prove native Shortcut delivery.

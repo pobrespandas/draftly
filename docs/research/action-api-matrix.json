@@ -17254,6 +17254,11 @@
           "suite": "AutomationTimeoutBoundaryTests",
           "test": "actualScriptTimeoutRetainsItsReasonThroughAutomationAndResultMappings",
           "file": "Tests/DraftlyTests/AutomationTimeoutBoundaryTests.swift"
+        },
+        {
+          "suite": "AutomationPrestartCancellationTests",
+          "test": "cancellationReturnsAReportBeforeResolutionOrPendingSave",
+          "file": "Tests/DraftlyTests/AutomationPrestartCancellationTests.swift"
         }
       ],
       "nativeVerification": {

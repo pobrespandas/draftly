@@ -59,7 +59,9 @@ import DraftlyCore
                     models: [WindowModel], host: any ActionHost,
                     resolveModel: ModelResolver = { AutomationActionExecution.visibleModel($0, noteID: $1) },
                     registerClose: CloseRegistration = { AutomationActionExecution.registerOwnerClose($0, close: $1) }) async throws -> Output {
-        try Task.checkCancellation()
+        guard !Task.isCancelled else {
+            return notStarted(action, noteID: noteID, reason: .cancelled, message: "The action was cancelled before it started.")
+        }
         let models = models.filter { $0.library === library }
         let candidate = resolveModel(models, noteID)
         let model = candidate.flatMap { $0.library === library && $0.editor.noteID == noteID ? $0 : nil }
