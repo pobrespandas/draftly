@@ -39,7 +39,8 @@ runner checks included steps before it starts. Cancellation stops queued actions
 Action scripts use MultiMarkdown 6.8.0, cmark-gfm 0.29.0.gfm.13, and Mustache
 4.2.0. The vendor manifest records their sources and hashes. MultiMarkdown uses
 separate token allocations, as its library header recommends for host apps.
-The editor preview uses a separate renderer.
+Markdown Settings select the default processor for editor previews and Action
+templates. Explicit script engine objects keep their own options.
 
 This list describes a subset of each object. Other Drafts properties and methods
 are not guaranteed. Missing methods fail in JavaScript. A failed or cancelled

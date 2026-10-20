@@ -53,8 +53,8 @@ final class NativeActionHost: ActionHost {
             NSPasteboard.general.setData(data, forType: .html)
             NSPasteboard.general.setString(rich.string, forType: .string)
             return true
-        case "markdown": return MarkdownRenderer.render(text)
-        case "previewMarkdown": showHTML(MarkdownRenderer.page(MarkdownRenderer.render(text))); return true
+        case "markdown": return try MarkdownPreferences.render(text)
+        case "previewMarkdown": showHTML(MarkdownRenderer.page(try MarkdownPreferences.render(text))); return true
         case "htmlPreview": return interactivePreview(values)
         case "openURL":
             guard let string = values["url"] as? String, let url = URL(string: string), let scheme = url.scheme,

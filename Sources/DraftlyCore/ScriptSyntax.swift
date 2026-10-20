@@ -4,7 +4,7 @@ public enum ScriptSyntax {
     public static let names = ["Plain Text", "Markdown", "TaskPaper", "JavaScript", "Simple List", "MultiMarkdown", "GitHub Markdown"]
     public static func isMarkdown(_ syntax: String) -> Bool { ["Markdown", "MultiMarkdown", "GitHub Markdown"].contains(syntax) }
     public static func preview(_ content: String, syntax: String) throws -> String {
-        if isMarkdown(syntax) { return try ScriptMarkdown.render(content, engine: syntax == "MultiMarkdown" ? "multi" : "github") }
+        if isMarkdown(syntax) { return try MarkdownPreferences.render(content, syntax: syntax) }
         return "<pre>" + MarkdownRenderer.escape(content) + "</pre>"
     }
 }

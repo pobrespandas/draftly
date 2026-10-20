@@ -81,6 +81,54 @@ struct ActionTests {
         #expect(call.1["bookmark"] as? String == "Obsidian Vault")
         #expect(call.1["text"] as? String == "# Meeting\nBody\n\nwork\n")
     }
+    @Test func htmlPreviewStepUsesConfiguredMarkdownAndPreservesExplicitHTML() throws {
+        let name = "Draftly-HTMLPreview-Step-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
+        defaults.set("github", forKey: MarkdownPreferences.engineKey)
+        defaults.set(#"{"strikethrough":true,"sourcePOS":false}"#, forKey: MarkdownPreferences.githubKey)
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let editor = EditorSession()
+        let source = try library.createNote(content: "~~Café 🐼~~")
+        editor.load(source)
+        let host = TestHost()
+        let runner = ActionRunner(library: library, editor: editor, host: host)
+        runner.markdownDefaults = defaults
+        let data = Data(#"{"name":"Preview contract","steps":[{"type":"htmlpreview","data":{"template":"[[draft]]"}}]}"#.utf8)
+        let action = try #require(ActionImporter.decode(data).first)
+        #expect(runner.run(action), Comment(rawValue: runner.message ?? ""))
+        let enabled = try #require(host.calls.last { $0.0 == "htmlPreview" }?.1["html"] as? String)
+        #expect(enabled.contains("<del>Café 🐼</del>"))
+        defaults.set(#"{"strikethrough":false,"sourcePOS":false}"#, forKey: MarkdownPreferences.githubKey)
+        #expect(runner.run(action))
+        let disabled = try #require(host.calls.last { $0.0 == "htmlPreview" }?.1["html"] as? String)
+        #expect(!disabled.contains("<del>"))
+        #expect(editor.content == source.content)
+        let html = "<html><body><strong>Neutral café 🐼</strong></body></html>"
+        editor.load(try library.createNote(content: html))
+        #expect(runner.run(action))
+        #expect(host.calls.last { $0.0 == "htmlPreview" }?.1["html"] as? String == html)
+    }
+
+    @Test func templateMarkdownPreferencesReachActionStepsAndScripting() throws {
+        let name = "Draftly-Template-Step-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
+        defaults.set("github", forKey: MarkdownPreferences.engineKey)
+        defaults.set(#"{"strikethrough":true,"sourcePOS":false}"#, forKey: MarkdownPreferences.githubKey)
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let editor = EditorSession()
+        editor.load(try library.createNote(content: "~~Café 🐼~~"))
+        let host = TestHost()
+        let runner = ActionRunner(library: library, editor: editor, host: host)
+        runner.markdownDefaults = defaults
+        let data = Data(#"{"name":"Template preferences","steps":[{"type":"clipboard","data":{"template":"%%[[draft]]%%"}},{"type":"script","data":{"script":"if (!draft.processTemplate('%%[[draft]]%%').includes('<del>Café 🐼</del>')) throw new Error('Template preferences missing');"}}]}"#.utf8)
+        let action = try #require(ActionImporter.decode(data).first)
+        #expect(runner.run(action), Comment(rawValue: runner.message ?? ""))
+        let html = try #require(host.calls.first { $0.0 == "clipboard" }?.1["text"] as? String)
+        #expect(html.contains("<del>Café 🐼</del>"))
+    }
+
     @Test func cancellationDoesNotArchiveOrRunLaterSteps() throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let note = try library.createNote(content: "Do not archive")

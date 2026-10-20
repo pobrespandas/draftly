@@ -63,6 +63,7 @@ public enum ActionExecutionResult: Equatable, Sendable {
 
 @MainActor
 public final class ActionRunner: ObservableObject {
+    var markdownDefaults: UserDefaults = .standard
     private static var runningLibraries: Set<ObjectIdentifier> = []
     public internal(set) var successParameters: [String: String] = [:]
     public let library: LibraryStore
@@ -277,8 +278,8 @@ public final class ActionRunner: ObservableObject {
                 try library.saveNote(created, preserveRevision: false, preserveDates: true)
                 if open { editor.load(created) }
             case "file":
-                let name = Templates.render(step.values["fileNameTemplate"] ?? step.values["name"] ?? "[[safe_title]].md", note: current)
-                _ = try platform("saveFile", ["text": rendered, "name": name, "bookmark": step.values["useBookmark"] == "true" ? step.values["bookmarkName"] ?? "" : "", "folder": Templates.render(step.values["folderTemplate"] ?? "", note: current), "mode": step.values["writeType"] ?? "create"])
+                let name = try renderTemplate(step.values["fileNameTemplate"] ?? step.values["name"] ?? "[[safe_title]].md", note: current)
+                _ = try platform("saveFile", ["text": rendered, "name": name, "bookmark": step.values["useBookmark"] == "true" ? step.values["bookmarkName"] ?? "" : "", "folder": try renderTemplate(step.values["folderTemplate"] ?? "", note: current), "mode": step.values["writeType"] ?? "create"])
             case "runShortcut":
                 let result = try platform("shortcut", ["name": step.values["name"] ?? "", "text": rendered])
                 if let result {
@@ -291,7 +292,7 @@ public final class ActionRunner: ObservableObject {
                 let result = try platform("appleScript", ["source": step.values["script"] ?? step.values["source"] ?? "", "subroutine": "execute", "arguments": [noteValue(current)]])
                 context.evaluateScript("context.appleScriptResponses.push(\(try json(result ?? NSNull())));")
             case "htmlpreview":
-                let html = rendered.range(of: "<[^>]+>", options: .regularExpression) == nil ? MarkdownRenderer.page(MarkdownRenderer.render(rendered)) : rendered
+                let html = rendered.range(of: "<[^>]+>", options: .regularExpression) == nil ? MarkdownRenderer.page(try MarkdownPreferences.render(rendered, defaults: markdownDefaults)) : rendered
                 let result = try platform("htmlPreview", ["html": html, "hideInterface": step.values["hideInterface"] == "true"])
                 if result as? Bool == false || (result as? [String: Any])?["success"] as? Bool == false { return false }
                 if let fields = (result as? [String: Any])?["values"] as? [String: Any] { context.evaluateScript("context.previewValues = \(try json(fields));") }
@@ -375,7 +376,7 @@ public final class ActionRunner: ObservableObject {
             values["latitude"] = String(location["latitude"] ?? 0); values["longitude"] = String(location["longitude"] ?? 0)
         }
         var loadError: Error?
-        let result = Templates.render(text, note: note, selection: editor.selectedText, custom: values, selectionRange: editor.safeSelection, loadTemplate: { path in
+        let result = try Templates.renderConfigured(text, note: note, selection: editor.selectedText, custom: values, selectionRange: editor.safeSelection, defaults: markdownDefaults, loadTemplate: { path in
             do { return try self.platform("fileAPI", ["operation": "readString", "storage": "local", "path": "Templates/" + path]) as? String }
             catch { loadError = error; return nil }
         })

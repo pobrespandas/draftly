@@ -244,6 +244,9 @@ struct WindowAccessor: NSViewRepresentable {
 }
 
 struct InlineMarkdownPreview: NSViewRepresentable {
+    @AppStorage(MarkdownPreferences.engineKey) private var processor = "multi"
+    @AppStorage(MarkdownPreferences.multiKey) private var multiOptions = "{}"
+    @AppStorage(MarkdownPreferences.githubKey) private var githubOptions = "{}"
     @ObservedObject var session: EditorSession
     var syntax = "Markdown"
     var htmlOverride: String?

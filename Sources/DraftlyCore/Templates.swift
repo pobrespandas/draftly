@@ -3,9 +3,12 @@ import Darwin
 
 public enum Templates {
     public static func render(_ template: String, note: Note, selection: String = "", custom: [String: String] = [:], now: Date = Date(), selectionRange: NSRange? = nil, loadTemplate: ((String) -> String?)? = nil) -> String {
-        render(template, note: note, selection: selection, custom: custom, now: now, selectionRange: selectionRange, loadTemplate: loadTemplate, depth: 0)
+        render(template, note: note, selection: selection, custom: custom, now: now, selectionRange: selectionRange, loadTemplate: loadTemplate, depth: 0, markdown: MarkdownRenderer.render)
     }
-    private static func render(_ template: String, note: Note, selection: String, custom: [String: String], now: Date, selectionRange: NSRange?, loadTemplate: ((String) -> String?)?, depth: Int) -> String {
+    public static func renderConfigured(_ template: String, note: Note, selection: String = "", custom: [String: String] = [:], now: Date = Date(), selectionRange: NSRange? = nil, defaults: UserDefaults = .standard, loadTemplate: ((String) -> String?)? = nil) throws -> String {
+        try render(template, note: note, selection: selection, custom: custom, now: now, selectionRange: selectionRange, loadTemplate: loadTemplate, depth: 0, markdown: { try MarkdownPreferences.render($0, defaults: defaults) })
+    }
+    private static func render(_ template: String, note: Note, selection: String, custom: [String: String], now: Date, selectionRange: NSRange?, loadTemplate: ((String) -> String?)?, depth: Int, markdown: (String) throws -> String) rethrows -> String {
         guard depth < 20 else { return template }
         let escaped = "\u{E000}" + UUID().uuidString + "\u{E001}"
         var input = template.replacingOccurrences(of: "\\[[", with: escaped + "[[")
@@ -57,20 +60,22 @@ public enum Templates {
                     if parts.count > 2 { date = (try? ScriptUtilities.adjustDate(["date": APIValues.date(date), "adjustment": parts[1]])) ?? date; format = parts[2] }
                     replacement = formatDate(date, format: format)
                 case "template":
-                    if parts.count > 1, let source = loadTemplate?(parts[1]) { replacement = render(source, note: note, selection: selection, custom: custom, now: now, selectionRange: selectionRange, loadTemplate: loadTemplate, depth: depth + 1) }
+                    if parts.count > 1, let source = loadTemplate?(parts[1]) { replacement = try render(source, note: note, selection: selection, custom: custom, now: now, selectionRange: selectionRange, loadTemplate: loadTemplate, depth: depth + 1, markdown: markdown) }
                     else { replacement = nil }
                 default: replacement = nil
                 }
             }
             if let replacement { output.replaceSubrange(full, with: replacement) }
         }
-        for (pattern, transform) in [("\\{\\{([\\s\\S]*?)\\}\\}", { (text: String) in text.addingPercentEncoding(withAllowedCharacters: CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))) ?? text }), ("%%([\\s\\S]*?)%%", { MarkdownRenderer.render($0) })] {
+        for (pattern, isMarkdown) in [("\\{\\{([\\s\\S]*?)\\}\\}", false), ("%%([\\s\\S]*?)%%", true)] {
             let pattern = try! NSRegularExpression(pattern: pattern)
             let source = output
             for match in pattern.matches(in: source, range: NSRange(source.startIndex..., in: source)).reversed() {
                 if (source as NSString).substring(to: match.range.location).hasSuffix(escaped) { continue }
                 guard let range = Range(match.range, in: output), let inner = Range(match.range(at: 1), in: source) else { continue }
-                output.replaceSubrange(range, with: transform(String(source[inner])))
+                let text = String(source[inner])
+                let replacement = isMarkdown ? try markdown(text) : text.addingPercentEncoding(withAllowedCharacters: CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))) ?? text
+                output.replaceSubrange(range, with: replacement)
             }
         }
         return output.replacingOccurrences(of: escaped, with: "")
