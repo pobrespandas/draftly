@@ -204,7 +204,7 @@ struct EditorPropertyContractTests {
 
     private func focusFixture(_ model: WindowModel) async throws -> FocusFixture {
         _ = NSApplication.shared
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 500, height: 360),
+        let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 500, height: 360),
                               styleMask: [.titled], backing: .buffered, defer: false)
         let container = NSView(frame: NSRect(x: 0, y: 0, width: 500, height: 360))
         let host = NSHostingView(rootView: NativeEditor(session: model.editor, fontName: "System", fontSize: 17,

@@ -44,7 +44,7 @@ struct HTMLPreferencesTests {
         let view = DraftTextView(frame: NSRect(x: 0, y: 0, width: 300, height: 200))
         view.isRichText = false
         view.allowsUndo = true
-        let window = NSWindow(contentRect: view.frame, styleMask: [.titled], backing: .buffered, defer: false)
+        let window = OffscreenTestWindow(contentRect: view.frame, styleMask: [.titled], backing: .buffered, defer: false)
         window.contentView = view
         window.makeFirstResponder(view)
         view.string = "Before XX after"

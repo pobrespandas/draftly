@@ -11,7 +11,7 @@ struct ReferenceToolbarLayoutTests {
         let model = WindowModel(library: try LibraryStore(inMemory: true, seed: false))
         model.showActions = false
         let controller = LibrarySplitController(model: model, panels: (0..<4).map { _ in AnyView(Color.clear) })
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1200, height: 800),
+        let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 1200, height: 800),
                               styleMask: [.titled, .resizable], backing: .buffered, defer: false)
         window.contentViewController = controller
         defer { window.contentViewController = nil }

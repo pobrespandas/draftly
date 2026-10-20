@@ -16,7 +16,7 @@ struct EditorRedrawTests {
                                  markdown: false, onChange: {}).environment(\.colorScheme, scheme))
         }
         let host = NSHostingView(rootView: editor(.light))
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 500, height: 400),
+        let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 500, height: 400),
                               styleMask: [.titled], backing: .buffered, defer: false)
         window.appearance = NSAppearance(named: .darkAqua)
         window.contentView = host
@@ -46,7 +46,7 @@ struct EditorRedrawTests {
         session.load(Note(content: String(repeating: String(repeating: "Long draft 🐼 ", count: 20) + "\n", count: 60)))
         let theme = EditorTheme(name: "Redraw contract", foreground: "F0F0F0", background: "17324D")
         let host = NSHostingView(rootView: NativeEditor(session: session, fontName: "System", fontSize: 17, lineSpacing: 2, markdown: false, theme: theme, onChange: {}))
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 500, height: 400), styleMask: [.titled], backing: .buffered, defer: false)
+        let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 500, height: 400), styleMask: [.titled], backing: .buffered, defer: false)
         window.appearance = try #require(NSAppearance(named: appearanceName))
         window.contentView = host
         host.layoutSubtreeIfNeeded()
@@ -72,7 +72,7 @@ struct EditorRedrawTests {
         let cleanSession = EditorSession()
         cleanSession.load(short, focusEditor: false)
         let cleanHost = NSHostingView(rootView: NativeEditor(session: cleanSession, fontName: "System", fontSize: 17, lineSpacing: 2, markdown: false, theme: theme, onChange: {}))
-        let cleanWindow = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 500, height: 400), styleMask: [.titled], backing: .buffered, defer: false)
+        let cleanWindow = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 500, height: 400), styleMask: [.titled], backing: .buffered, defer: false)
         cleanWindow.appearance = window.appearance
         cleanWindow.contentView = cleanHost
         cleanHost.layoutSubtreeIfNeeded()

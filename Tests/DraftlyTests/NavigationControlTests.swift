@@ -11,7 +11,7 @@ struct NavigationControlTests {
             symbol: "arrowtriangle.down.fill", help: "Navigate", items: [.section("No navigation markers")],
             symbolSize: 11, symbolDimensions: NSSize(width: 11, height: 6.5)
         ).frame(width: 20, height: 25))
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 20, height: 25),
+        let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 20, height: 25),
                               styleMask: [.borderless], backing: .buffered, defer: false)
         window.contentView = host
         defer { window.contentView = nil }

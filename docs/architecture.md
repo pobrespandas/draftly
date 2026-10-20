@@ -61,3 +61,14 @@ The Record schema, store URL, history settings, merge policy, backup contract,
 and operation boundaries remain unchanged. All 267 core tests passed, including
 reopen, rollback, backup, and cloud-state cases. This is not new two-client
 CloudKit acceptance. That acceptance remains separate.
+
+## Background test policy
+
+The user requested tests that do not interrupt normal Mac use. Three visible
+animation tests and their fixture were removed. OffscreenTestWindow rejects
+window ordering and activation. Hidden layout, responder, rendering, storage,
+Undo, and scripting tests remain. Visible animation acceptance now requires a
+separate manual session. Do not claim that offscreen tests prove visible motion.
+
+The updated background suite passed 169 app and 267 core tests. No visible
+Computer Use session will run as part of this refactoring acceptance.

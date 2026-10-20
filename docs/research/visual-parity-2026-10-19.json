@@ -37,9 +37,6 @@
       "allUserPanelWidthsSurviveHideAndShowWithoutACompletionResize",
       "shortDraftClearsLongDraftAndKeepsSelection",
       "explicitColorSchemeChangesTheCanvasWithoutChangingEditorState",
-      "individualVisibleTransitionsHaveIntermediateFramesWithoutBackwardMotion",
-      "rapidVisibleRequestsKeepTheCurrentAnimationMonotonicAndApplyTheLatestState",
-      "reducedMotionPolicyUsesImmediateNativeLayoutWithoutChangingSystemPreferences",
       "neutralUnicodeFixtureMatchesTheObservedDraftsFooter",
       "nativeNavigationImageKeepsTheMeasuredWideTriangle",
       "unchangedLongContentDoesNotRepeatTokenization",
@@ -369,5 +366,15 @@
     "reason": "These assertions repeated a toolbar identifier array. Native layout, animation, and toggle behavior tests remain. Historical counts describe their original run."
   },
   "sessionEvidenceRemoved": "The user requested removal of docs/research/evidence on 2026-10-19. Historical results remain summaries. Removed artifacts cannot support new acceptance without repeating the checks.",
-  "captureArtifactsRemoved": "All local screenshots and capture artifacts were removed at the user request on 2026-10-19. Generate new captures before visual acceptance."
+  "captureArtifactsRemoved": "All local screenshots and capture artifacts were removed at the user request on 2026-10-19. Generate new captures before visual acceptance.",
+  "backgroundTestPolicy": {
+    "date": "2026-10-19",
+    "retiredTests": [
+      "individualVisibleTransitionsHaveIntermediateFramesWithoutBackwardMotion",
+      "rapidVisibleRequestsKeepTheCurrentAnimationMonotonicAndApplyTheLatestState",
+      "reducedMotionPolicyUsesImmediateNativeLayoutWithoutChangingSystemPreferences"
+    ],
+    "reason": "The user requested removal of tests that show or move visible windows.",
+    "remainingCoverage": "Offscreen layout and model tests remain. Visible animation acceptance requires a separate manual session."
+  }
 }
