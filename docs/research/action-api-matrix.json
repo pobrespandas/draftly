@@ -18321,6 +18321,12 @@
             "executableSHA256": "99a067dd93e833bb4cd2a2912ac6596b8150ada162af5c5ee21b3799a102a841",
             "fixture": "scripts/fixtures/engine-promise-actions.json",
             "result": "Target visible in library-AppWindow-1; created separate Untitled library-AppWindow-2. Confirmed URL with case=two-window-owner. Closed window2 while window1 retained completed target text: helper callback count stayed zero. Closed window1: helper received one matching cancel callback. Read-only window monitor was disabled afterward. This covers different-draft/nonowner URL cancellation filtering, not same-draft owner preference, Intent, or all native capabilities."
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "99a067dd93e833bb4cd2a2912ac6596b8150ada162af5c5ee21b3799a102a841",
+            "fixture": "scripts/fixtures/engine-promise-actions.json",
+            "result": "Existing Draftly QA Engine — disposable Shortcuts fixture configured Run Draft Action to QA Native async timeout and visible QA UUID A386D93F-D3D8-49EB-8F7F-205612F74D93. Observed target write while Shortcuts waited, then closed owner. Shortcuts displayed QA Native async timeout cancelled and returned to Run. History Cancelled; Inbox text retained with no tail/archive. Changing only action to QA Caught rejection then completed in Shortcuts and history showed Success. Native single-owner Intent cancellation passes; same-draft multiwindow and broader entry/capability variants remain pending."
           }
         ]
       },

@@ -964,3 +964,9 @@ Native two-window URL ownership passed: closing the non-owner kept callback
 count zero; closing the owner produced one matching cancel callback. Intent
 and same-draft ownership variants remain pending. A remaining-window menu
 context observation needs source review before a fix is claimed.
+
+
+Native App Intent owner-close now reports cancellation in Shortcuts, retains
+completed draft text without success effects, and permits a subsequent successful
+Intent. Existing actual-perform and lifetime/error tests pass. Same-draft
+multiwindow ownership and other capability variants remain open.

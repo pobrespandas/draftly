@@ -4321,3 +4321,33 @@ the actual key model, and focused commands prefer their focused model. A nil
 commandWindow between key events is not enough to prove a defect. Do not add
 an arbitrary hash-table fallback. Next check must establish foreground/key/main
 state at the missing-menu moment. No production fix follows from this evidence.
+
+
+### Native App Intent owner-close — 20 October 2026
+
+Native: isolated Engine QA image99a067dd93e833bb. Used existing Shortcut
+Draftly QA Engine — disposable, editor ID D11EC900-D6B4-48DD-AE0D-7CD51353D655.
+Set Run Draft Action name to QA Native async timeout and Draft UUID to
+A386D93F-D3D8-49EB-8F7F-205612F74D93. Opened that draft in QA through the
+local helper before running the Shortcut. Shortcuts showed Stop while QA
+completed its initial editor write. Pressed the owner's native window close
+button. Shortcuts displayed QA Native async timeout cancelled. After OK, it
+returned to Run and displayed that cancellation beside the action.
+
+QA showed the completed text in Inbox without the tail or Archive. History
+showed Cancelled. Changed only the action name to QA Caught rejection and ran
+the same Shortcut. It completed and displayed QA Caught rejection completed.
+QA History showed Success. The library was not left busy.
+
+The existing Shortcut now keeps QA Caught rejection and the QA UUID above. It
+remains a neutral reusable fixture; do not delete it without confirmation. No
+new Shortcut was created or external message sent. This closes the single-owner
+Intent cancellation variant. It does not claim same-draft multiwindow owner
+preference, all native dialogs, or late response variants. The native UI shows
+the cancellation message; typed reason identity has separate automatic tests.
+
+Automatic: thirteen existing error/observer/editor-context methods passed.
+RunDraftActionIntentTests also passed, including actual perform cancellation
+and typed pre-start cancellation. No production code or app build changed. The
+last full regression remains app445/core468. Matrix structure passes. No raw
+logs or screenshots are tracked. Common-entry parity remains partial.
