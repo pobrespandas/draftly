@@ -757,3 +757,9 @@ XML-RPC CDATA coverage passed seven focused tests against the unchanged parser.
 The earlier loss claim was an inference that runtime checks did not confirm.
 Params and error now have specific partial evidence. Real transport character
 sets, server/native acceptance, grammar, and date/binary mapping remain open.
+
+
+XML-RPC now rejects duplicate payload blocks, extra param values, and multiple
+types in a value. Five malformed cases reproduced silent acceptance before the
+fix. Full app436/core453, unsigned build, and matrix structure passed. This is
+a bounded grammar correction; XML-RPC and the full Mac plan remain partial.

@@ -3457,3 +3457,23 @@ injected transport. Params and error have specific partial evidence. Real
 server, native use, complete grammar, and date/binary mapping remain pending.
 This change adds tests and audit records only. It does not claim a new full
 regression or a full XML-RPC acceptance.
+
+
+### XML-RPC response structure — 20 October 2026
+
+Implemented: responses must contain one params or fault block. Each param must
+contain one value. A typed value cannot contain multiple type elements. The
+parser now rejects these ambiguous structures instead of ignoring extra nodes.
+The change keeps the existing array of response parameters for compatibility.
+It does not claim to enforce all XML-RPC grammar or extension rules.
+
+Reference: https://xmlrpc.com/spec.md, response format, consulted 20 October
+2026. This protocol source does not replace the frozen Drafts API reference.
+
+Automatic: the new parameterized contract failed before the change with 12
+issues. All five malformed structures pass after the change. Eight focused
+XML-RPC methods passed. Full regression passed 436 app methods and 453 core
+methods. The unsigned Debug build and matrix structure check passed. Native
+server acceptance, date/binary mapping, and remaining grammar are still open.
+Engine QA remains open with the prior visual build; do not claim this parser
+change is installed there. No new screenshot or raw log is stored in the repo.

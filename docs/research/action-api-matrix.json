@@ -10265,6 +10265,10 @@
             {
               "suite": "XMLRPCTests",
               "test": "cdataUsesTheParserEncodingAndPreservesFaultMessages"
+            },
+            {
+              "suite": "XMLRPCTests",
+              "test": "ambiguousResponseStructuresDoNotReportSuccess"
             }
           ]
         }
@@ -10324,6 +10328,12 @@
           "result": "Failure description, including decoded fault text.",
           "limitations": [
             "Real server and native acceptance remain pending. Complete XML grammar, transport character sets, and JavaScript date/binary mapping are not accepted."
+          ],
+          "supportingTests": [
+            {
+              "suite": "XMLRPCTests",
+              "test": "ambiguousResponseStructuresDoNotReportSuccess"
+            }
           ]
         },
         {
@@ -10368,6 +10378,12 @@
           "result": "Decoded parameter array.",
           "limitations": [
             "Real server and native acceptance remain pending. Complete XML grammar, transport character sets, and JavaScript date/binary mapping are not accepted."
+          ],
+          "supportingTests": [
+            {
+              "suite": "XMLRPCTests",
+              "test": "ambiguousResponseStructuresDoNotReportSuccess"
+            }
           ]
         },
         {

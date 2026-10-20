@@ -49,13 +49,21 @@ public enum ScriptXMLRPC {
             guard parser.parse(), let root = tree.root, root.name == "methodResponse" else {
                 throw DraftlyError.message("The XML-RPC response is invalid.")
             }
+            guard root.children.count == 1,
+                  let payload = root.children.first,
+                  ["params", "fault"].contains(payload.name) else {
+                throw DraftlyError.message("The XML-RPC response must contain either parameters or a fault.")
+            }
+            if payload.name == "fault" {
+                guard payload.children.count == 1 else { throw DraftlyError.message("The XML-RPC fault is invalid.") }
+            }
             if let fault = root.children.first(where: { $0.name == "fault" })?.children.first,
                let values = try decode(fault) as? [String: Any] {
                 return ["success": false, "statusCode": statusCode, "params": [], "faultCode": values["faultCode"] ?? 0, "error": values["faultString"] ?? "XML-RPC fault"]
             }
             guard let params = root.children.first(where: { $0.name == "params" }) else { throw DraftlyError.message("The XML-RPC response has no parameters.") }
             let values = try params.children.map { node -> Any in
-                guard node.name == "param", let value = node.children.first, value.name == "value" else { throw DraftlyError.message("An XML-RPC parameter is invalid.") }
+                guard node.name == "param", node.children.count == 1, let value = node.children.first, value.name == "value" else { throw DraftlyError.message("An XML-RPC parameter is invalid.") }
                 return try decode(value)
             }
             return ["success": statusCode == 200, "statusCode": statusCode, "params": values]
@@ -83,7 +91,7 @@ public enum ScriptXMLRPC {
         return "<value>\(inner)</value>"
     }
     private static func decode(_ node: Node) throws -> Any {
-        guard node.name == "value" else { throw DraftlyError.message("An XML-RPC value is invalid.") }
+        guard node.name == "value", node.children.count <= 1 else { throw DraftlyError.message("An XML-RPC value is invalid.") }
         guard let child = node.children.first else { return node.text }
         switch child.name {
         case "string", "dateTime.iso8601", "base64": return child.text

@@ -47,6 +47,20 @@ struct XMLRPCTests {
         #expect(result["error"] as? String == "Denied café 🐼 <&")
     }
 
+    @Test(arguments: [
+        "<methodResponse><params/><params/></methodResponse>",
+        "<methodResponse><fault/><params/></methodResponse>",
+        "<methodResponse><unexpected/><params/></methodResponse>",
+        "<methodResponse><params><param><value>first</value><value>ignored</value></param></params></methodResponse>",
+        "<methodResponse><params><param><value><string>first</string><int>2</int></value></param></params></methodResponse>"
+    ])
+    func ambiguousResponseStructuresDoNotReportSuccess(_ xml: String) {
+        let result = ScriptXMLRPC.response(Data(xml.utf8), statusCode: 200)
+        #expect(result["success"] as? Bool == false)
+        #expect(!(result["error"] as? String ?? "").isEmpty)
+        #expect((result["params"] as? [Any])?.isEmpty == true)
+    }
+
     @Test func faultsAndMalformedResponsesNeverReportSuccess() {
         let fault = "<methodResponse><fault><value><struct><member><name>faultCode</name><value><int>42</int></value></member><member><name>faultString</name><value><string>Denied</string></value></member></struct></value></fault></methodResponse>"
         let result = ScriptXMLRPC.response(Data(fault.utf8), statusCode: 200)
