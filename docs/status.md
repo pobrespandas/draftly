@@ -996,3 +996,8 @@ A full regression recheck completed successfully: app446/core471. Matrix
 structure passes. The prior core stall did not reproduce; its cause remains
 unknown. This result replaces the incomplete run as the latest full test
 evidence, but does not close native inspector acceptance or API parity.
+
+
+Native inspector acceptance now passes for editing bar Label and Show Icon:
+cancel discards both changes, save retains both, and the fixture was restored.
+Other imported options and full inspector parity remain pending.

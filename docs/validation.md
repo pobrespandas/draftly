@@ -4446,3 +4446,18 @@ The command completed with exit zero: app446/core471. Matrix structure also
 passes. The earlier incomplete run did not reproduce. Its cause is unknown;
 this recheck does not establish a fix for that stall. Native inspector
 edit/cancel acceptance and the remaining roadmap contracts stay pending.
+
+
+### Editing bar inspector acceptance — 20 October 2026
+
+Native: isolated Engine QA image cfe943f562b25968b. Opened QA Bar text action
+through Library Organization. Label showed Text café 🐼 and Show Icon was off.
+Changed both values and cancelled. Reopened the action: both original values
+remained. Saved Label as Saved café 🐼 with Show Icon on. Reopened and confirmed
+both saved values. Restored the original label and icon choice with Save.
+The main bar again showed the star and Text café 🐼. No draft text changed.
+
+This closes the native edit/save/cancel check for these two controls. It does
+not close all imported presentation options or inspector visual parity.
+No production code changed. No screenshot is tracked. The latest full test
+result remains app446/core471; no tests were rerun for this manual check.
