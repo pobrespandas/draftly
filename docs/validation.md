@@ -4198,3 +4198,35 @@ fix is established by these observations.
 Matrix structure passes. The engine strict gate reports 28 diagnostics for
 remaining contracts, down from 30. These are diagnostics, not a compatibility
 percentage. The full Mac goal remains open.
+
+
+### Library Organization editor access — 20 October 2026
+
+Implemented: management rows now use a scroll view with explicit bordered
+buttons. The screen does not use row selection. This exposes Edit and reorder
+controls separately instead of combining a row into one accessibility element.
+Action editing uses a local sheet, as group and workspace editing do. It no
+longer sets the parent window editor while dismissing management. Cancel and
+Save return to the same management section. Stored action formats do not change.
+
+Native: on isolated Engine QA image99a067dd93e833bb, Actions > Manage Actions
+and Workspaces > Actions exposes individual Edit/up/down buttons. Edit on
+QA Container native opened the inspector. Changed its name, cancelled, and
+reopened: the original name remained. Saved description Management save café 🐼
+and reopened: the description remained. Cancel returned to management. Group
+Edit opened its editor; Cancel returned without changing the group. Done
+closed management. No personal library changed.
+
+Earlier List rows remained combined after an explicit button style and contain
+accessibility modifier. Those changes alone did not resolve Computer Use access.
+The final scroll view passed the native path. This evidence does not prove how
+a physical click behaved in the old build or establish a SwiftUI internal cause.
+The platform button-style API was checked against Apple documentation through
+Context7; the frozen Drafts reference did not change.
+
+Automatic: ten existing ActionCatalogPresentationTests and
+WorkspaceOptionsEditorTests methods passed. The final unsigned Debug build
+passed. No new UI-opening automatic test was added. The native check establishes
+this presentation path; the inspector's wider visual parity, all options, and
+workspace management acceptance remain open. No screenshot or raw log is
+stored in the repository.

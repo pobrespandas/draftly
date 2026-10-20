@@ -9,6 +9,7 @@ struct LibraryManagementView: View {
     @State private var group: ActionGroupRecord?
     @State private var oldGroupName: String?
     @State private var workspace: Workspace?
+    @State private var action: DraftAction?
     @State private var selectedGroup = ""
     @State private var section = Section.groups
     private enum Section: String, CaseIterable { case groups = "Groups", actions = "Actions", workspaces = "Workspaces" }
@@ -21,37 +22,41 @@ struct LibraryManagementView: View {
             switch section {
             case .groups:
                 VStack {
-                    List {
-                        ForEach(Array(library.groupNames.enumerated()), id: \.element) { index, name in
-                            HStack {
-                                Text(name).font(.headline); Spacer()
-                                Button("Edit") {
-                                    oldGroupName = name
-                                    group = library.actionGroups.first { $0.name == name } ?? ActionGroupRecord(name: name)
-                                }
-                                Button("↑") { reorderGroups(name, offset: -1) }.disabled(index == 0)
-                                Button("↓") { reorderGroups(name, offset: 1) }.disabled(index + 1 == library.groupNames.count)
-                                Button("Remove") {
-                                    model.perform { try library.removeActionGroup(name, movingActionsTo: name == "General" ? "Imported" : "General") }
-                                }.help("Move actions to General, or Imported when removing General")
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 8) {
+                            ForEach(Array(library.groupNames.enumerated()), id: \.element) { index, name in
+                                HStack {
+                                    Text(name).font(.headline); Spacer()
+                                    Button("Edit") {
+                                        oldGroupName = name
+                                        group = library.actionGroups.first { $0.name == name } ?? ActionGroupRecord(name: name)
+                                    }
+                                    Button("↑") { reorderGroups(name, offset: -1) }.disabled(index == 0)
+                                    Button("↓") { reorderGroups(name, offset: 1) }.disabled(index + 1 == library.groupNames.count)
+                                    Button("Remove") {
+                                        model.perform { try library.removeActionGroup(name, movingActionsTo: name == "General" ? "Imported" : "General") }
+                                    }.help("Move actions to General, or Imported when removing General")
+                                }.buttonStyle(.bordered)
                             }
-                        }
+                        }.padding(12)
                     }
                     HStack { Button("New Group") { oldGroupName = nil; var value = ActionGroupRecord(name: "New Group"); value.order = library.groupNames.count; group = value }; Spacer() }.padding()
                 }
             case .actions:
                 VStack {
                     Picker("Group", selection: $selectedGroup) { ForEach(library.groupNames, id: \.self) { Text($0).tag($0) } }.padding(.horizontal)
-                    List {
-                        let actions = library.orderedActions().filter { $0.group == selectedGroup }
-                        ForEach(Array(actions.enumerated()), id: \.element.id) { index, action in
-                            HStack {
-                                Image(systemName: action.symbol); Text(action.name); Spacer()
-                                Button("Edit") { model.editingAction = action; dismiss() }
-                                Button("↑") { reorderActions(actions, index: index, offset: -1) }.disabled(index == 0)
-                                Button("↓") { reorderActions(actions, index: index, offset: 1) }.disabled(index + 1 == actions.count)
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 8) {
+                            let actions = library.orderedActions().filter { $0.group == selectedGroup }
+                            ForEach(Array(actions.enumerated()), id: \.element.id) { index, action in
+                                HStack {
+                                    Image(systemName: action.symbol); Text(action.name); Spacer()
+                                    Button("Edit") { self.action = action }
+                                    Button("↑") { reorderActions(actions, index: index, offset: -1) }.disabled(index == 0)
+                                    Button("↓") { reorderActions(actions, index: index, offset: 1) }.disabled(index + 1 == actions.count)
+                                }.buttonStyle(.bordered)
                             }
-                        }
+                        }.padding(12)
                     }
                 }
             case .workspaces:
@@ -60,22 +65,25 @@ struct LibraryManagementView: View {
                         Text("Default settings").tag("")
                         ForEach(library.workspaces) { Text($0.name).tag($0.id.uuidString) }
                     }.padding(.horizontal)
-                    List {
-                        ForEach(Array(library.workspaces.enumerated()), id: \.element.id) { index, item in
-                            HStack {
-                                Text(item.name); Spacer()
-                                Button("Edit") { workspace = item }
-                                Button("Duplicate") { var copy = item; copy.id = UUID(); copy.name += " Copy"; workspace = copy }
-                                Button("↑") { reorderWorkspaces(index, offset: -1) }.disabled(index == 0)
-                                Button("↓") { reorderWorkspaces(index, offset: 1) }.disabled(index + 1 == library.workspaces.count)
-                                Button("Delete") { model.perform { try library.deleteWorkspace(item.id); if defaultWorkspaceID == item.id.uuidString { defaultWorkspaceID = "" }; if model.selectedWorkspace == item.id { model.clearFilters() } } }
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 8) {
+                            ForEach(Array(library.workspaces.enumerated()), id: \.element.id) { index, item in
+                                HStack {
+                                    Text(item.name); Spacer()
+                                    Button("Edit") { workspace = item }
+                                    Button("Duplicate") { var copy = item; copy.id = UUID(); copy.name += " Copy"; workspace = copy }
+                                    Button("↑") { reorderWorkspaces(index, offset: -1) }.disabled(index == 0)
+                                    Button("↓") { reorderWorkspaces(index, offset: 1) }.disabled(index + 1 == library.workspaces.count)
+                                    Button("Delete") { model.perform { try library.deleteWorkspace(item.id); if defaultWorkspaceID == item.id.uuidString { defaultWorkspaceID = "" }; if model.selectedWorkspace == item.id { model.clearFilters() } } }
+                                }.buttonStyle(.bordered)
                             }
-                        }
+                        }.padding(12)
                     }
                     HStack { Button("New Workspace") { workspace = Workspace(name: "New Workspace") }; Spacer() }.padding()
                 }
             }
         }.frame(width: 720, height: 520).onAppear { selectedGroup = library.groupNames.first ?? "General" }
+            .sheet(item: $action) { value in ActionEditor(action: value, library: library) }
             .sheet(item: $group) { value in GroupSettingsView(group: value, previousName: oldGroupName, library: library) }
             .sheet(item: $workspace) { value in WorkspaceSettingsView(workspace: value, library: library) }
     }

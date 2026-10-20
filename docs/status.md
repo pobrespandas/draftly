@@ -940,3 +940,9 @@ Unknown disabled imports now passes its added native/container acceptance:
 inspector edits survive restart, native restore recovers exact definitions,
 and the restored action executes. That engine record is complete. Other engine
 records remain partial. Library Organization editing needs a separate UI review.
+
+
+Library Organization now exposes separate row buttons and opens the action
+inspector locally. Native Edit, Cancel, Save, reopen, group Edit/Cancel, and Done
+passed in QA. Ten relevant existing tests and the unsigned build passed. This
+resolves the observed management access path, not full inspector parity.
