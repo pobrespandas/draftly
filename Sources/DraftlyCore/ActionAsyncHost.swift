@@ -51,6 +51,9 @@ import Foundation
     func performSuspendingStep(_ step: ActionStep, text: String, rendered: String, current: Note,
                                evaluate: (String) -> Void) async throws -> Bool? {
         switch step.type {
+        case "speak":
+            let value = try await nativeValue("speak", ["text": rendered, "settings": ["autoStart": step.values["autoStart"] != "false", "autoClose": step.values["autoClose"] != "false"]])
+            return value as? Bool != false
         case "reminder":
             _ = try await nativeValue("reminder", ["text": rendered])
             return true

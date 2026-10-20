@@ -1235,3 +1235,22 @@ App Intent delivery, actual Shortcuts, or the native 120-second timeout.
 
 The helper source and neutral actions are reproducible inputs under scripts.
 No screenshots were saved. The QA app was quit after the session.
+
+## Speech, location, and persistent-library exclusion — 20 October 2026
+
+Speech uses delegate completion and cancellable nonmodal notices. It retains
+NSSpeechSynthesizer voice identifiers and the existing rate mapping. Location
+uses authorization and location callbacks. Cancellation and timeout stop updates
+and invalidate callbacks. Native speech steps use the async host boundary.
+Injected tests produce no audio, windows, or permission requests. Real speech,
+location, and notice acceptance remain pending.
+
+Library exclusion now uses the canonical persistent-store URL inside the process.
+Two LibraryStore instances opening the same file, including through a symlink,
+share the gate. In-memory stores retain separate identities. This is not a
+cross-process lock or a claim of full concurrent-store cache coherence.
+
+The full background run passed 229 app tests in 38 suites and 309 core tests in
+41 suites. The unsigned local Xcode build passed. Two engine records now have
+specific defaults, results, errors, and per-case tests. Both remain partial;
+actual overlapping entry points and the listed native cases remain pending.
