@@ -4516,3 +4516,17 @@ be accepted from this state. Named-color rendering and inspector save/cancel
 are verified in QA; other colors, appearance modes, and exact Drafts palette
 comparison remain pending. No screenshot is tracked. No production code or
 build changed after the accepted app447/core471 regression.
+
+
+### Native import evidence fields — 20 October 2026
+
+Corrected the unknown disabled imports matrix entry. Its passed native record
+now has the required date and evidence link at the nativeVerification level.
+The existing dated checks and the Native container editing and recovery record
+support those fields. No new acceptance or production behavior is claimed.
+
+Extended the existing auditor evidence test: nested dated checks alone must
+not satisfy the required top-level date and evidence fields. All25 auditor
+tests pass. The engine strict gate now reports27 diagnostics. Other engine
+contracts remain partial. This is a record correction, not a compatibility
+percentage or a newly completed engine capability.

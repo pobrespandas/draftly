@@ -256,6 +256,10 @@ class StrictParityTests(unittest.TestCase):
     def test_complete_contract_requires_cases_and_native_evidence(self):
         entry = self.complete_entry()
         self.assertEqual(audit.parity_errors(entry, "Device.model", set()), [])
+        entry["nativeVerification"] = {"status": "passed", "additionalChecks": [{"date": "2026-10-20"}]}
+        self.assertIn("Incomplete native verification: Device.model", audit.parity_errors(entry, "Device.model", set()))
+        entry["nativeVerification"].update(date="2026-10-20", evidence="docs/validation.md")
+        self.assertEqual(audit.parity_errors(entry, "Device.model", set()), [])
         entry.pop("nativeVerification")
         entry["contractCases"].pop("errors")
         errors = audit.parity_errors(entry, "Device.model", set())

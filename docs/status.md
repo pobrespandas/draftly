@@ -1020,3 +1020,9 @@ Native tint acceptance passes for imported green/orange rendering in list and
 bar, plus inspector save/cancel and restoration. Drafts has an empty action
 list and disabled creation/directory controls. Exact palette comparison and
 remaining color/appearance cases stay pending.
+
+
+Corrected required native import evidence fields using the existing verified
+recovery record. All25 auditor tests pass. The engine strict gate reports27
+diagnostics; other engine contracts remain partial. No new native acceptance
+is claimed by this record correction.

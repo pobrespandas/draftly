@@ -17607,7 +17607,9 @@
             "fixture": "scripts/fixtures/engine-mixed-container-actions.json",
             "result": "Edited native name, description, and disabled-step value through list context-menu inspector. After confirmed process exit and restart, exported native action exactly matched the expected edited object. Restored earlier QA backup through File Import. Every exported action matched that backup exactly, and restored native execution completed with expected Unicode text."
           }
-        ]
+        ],
+        "date": "2026-10-20",
+        "evidence": "docs/validation.md: Native container editing and recovery — 20 October 2026"
       },
       "automatedVerification": {
         "status": "passed",
