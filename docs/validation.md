@@ -4497,3 +4497,22 @@ full-run failures or replace separate timer and callback contract tests.
 Automatic: all five automation safety methods passed. The full regression
 then completed successfully: app447/core471. No visible windows were opened.
 Native tint comparison remains pending. No raw logs or screenshots are tracked.
+
+
+### Native action tint acceptance — 20 October 2026
+
+Updated the isolated QA app after normal Quit and confirmed process exit.
+Signed executable SHA256:
+1b8988d3183ec0675c0e5d3125665b1c22b3e155a9b82124b3a8039db45e5d20.
+Imported scripts/fixtures/action-tint-actions.json with stable test identities.
+The editing bar showed green text and an orange star. The action list showed
+green and orange stars. The inspector read Green for the imported text action.
+Saved Purple and reopened: Purple remained. Selected Green, cancelled, and
+reopened: Purple remained. Restored Green with Save. No draft text changed.
+
+Drafts reference: its action table is empty. Add Items shows New Action,
+New Separator, and Visit Directory disabled. Exact palette comparison cannot
+be accepted from this state. Named-color rendering and inspector save/cancel
+are verified in QA; other colors, appearance modes, and exact Drafts palette
+comparison remain pending. No screenshot is tracked. No production code or
+build changed after the accepted app447/core471 regression.

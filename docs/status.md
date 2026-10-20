@@ -1014,3 +1014,9 @@ Automation cancellation tests now wait for a saved ready signal instead of
 racing startup and a completion timer. Full regression passed app447/core471.
 No production execution behavior changed. Native action tint acceptance is
 still pending.
+
+
+Native tint acceptance passes for imported green/orange rendering in list and
+bar, plus inspector save/cancel and restoration. Drafts has an empty action
+list and disabled creation/directory controls. Exact palette comparison and
+remaining color/appearance cases stay pending.
