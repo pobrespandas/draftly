@@ -91,6 +91,15 @@ Incoming text held separately from an editor draft until it is saved or discarde
 
 ### Actions
 
+**Action configuration**:
+Values that a user chooses for the configured-value steps of an action.
+
+**Configuration default**:
+A value supplied by an action author before the user chooses a value.
+
+**Confirmed configuration**:
+Action configuration that the user has accepted. A default alone is not confirmation.
+
 **Action**:
 A named sequence of steps that performs work with a draft.
 _Avoid_: Script (for the whole action)

@@ -1,11 +1,13 @@
 import Foundation
 
 @MainActor extension ActionRunner {
-    func executeAsync(_ action: DraftAction, note: Note, session: ActionExecutionSession) async throws {
+    func executeAsync(_ initialAction: DraftAction, note: Note, session: ActionExecutionSession) async throws {
         guard hostOperationTimeout.isFinite, hostOperationTimeout > 0 else {
             throw DraftlyError.message("The host operation timeout must be positive and finite.")
         }
-        let steps = try ActionStepExpansion.expand(action, actions: library.actions)
+        let steps = try ActionStepExpansion.expand(initialAction, actions: library.actions)
+        var configurationSteps = steps
+        var action = try await prepareInitialConfigurationAsync(initialAction, steps: steps)
         let initialStepID = UUID()
         bridgeStepID = initialStepID
         let authority = ActionBridgeRequestAuthority()
@@ -28,6 +30,8 @@ import Foundation
                             try ActionStepExpansion.resolve(step, actions: self.library.actions, render: render)
                         }
                         let includedSteps = try ActionStepExpansion.expand(included, actions: library.actions, path: path)
+                        configurationSteps += includedSteps
+                        action = try await prepareInitialConfigurationAsync(action, steps: configurationSteps)
                         try await worker.evaluateSource(additionalConfigurationSource(action, steps: includedSteps))
                         try await performSteps(included.steps, owner: included.id, path: path.union([included.id]))
                         continue

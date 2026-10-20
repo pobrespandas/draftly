@@ -1958,3 +1958,33 @@ and state that distinguishes defaults from confirmed configuration. Those remain
 implementation work. No guessed precedence or first-party import key was added.
 The shared-inclusion record remains partial.
 
+
+
+## Required first-use configuration — 20 October 2026
+
+Implemented: `configurationKey.data.requiresInitialConfiguration` requests typed
+configuration before execution. Imported defaults do not confirm user choice.
+Each accepted required step records its identity, key, and type in namespaced
+action metadata. Unknown values and payloads remain intact. Static includes
+prepare before root effects. Dynamic includes prepare before child effects.
+Confirmation belongs to the root action. Duplicate-key and child-value precedence
+remain an open reference comparison; this change does not settle that contract.
+
+Automatic: `swift test` passed 388 app tests and 390 core tests. The two new suites
+contain fourteen test methods. They cover typed values, invalid responses,
+confirmation reuse, new required fields, optional and disabled steps, atomic
+rollback, cancellation, concurrent edits, ephemeral actions, and static/dynamic
+inclusion ordering on both runner routes. Existing original scripts were not
+changed. An initial expectation incorrectly allowed a response to edit an already
+confirmed field. The corrected case expects the prior value to remain. The full
+regression run passed after that correction.
+
+Native: pending. The repeatable fixture is
+`scripts/fixtures/engine-configuration-actions.json`. Keyboard cancellation,
+accepted input, reuse after restart, and included-action prompts need manual QA.
+No screenshot or raw log is retained in the repository. This record does not close
+shared-inclusion parity.
+
+Build: unsigned Xcode Debug build passed. Tooling: all 37 Python tests passed.
+The matrix structure check reports zero errors. The strict engine gate retains
+36 diagnostics; this feature does not promote the shared-inclusion record.

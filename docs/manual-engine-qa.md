@@ -280,3 +280,14 @@ the new name from a template tag. Both must increment the same shared variable.
 Check Included visits: 2 — café 🐼, Success history, and callback parameters
 visits=2 and shared=retained. A fresh import restores the original child name
 for another run; repeat the inspector rename before execution.
+
+
+## Required initial configuration
+
+Import `scripts/fixtures/engine-configuration-actions.json` in QA. Select neutral
+text. Run the action, change Neutral label, then press Escape. The note and saved
+configuration must stay unchanged. Run again, enter neutral Unicode text, and
+choose Configure. The editor must show that value. Run again and restart QA;
+neither run should ask for the confirmed field. Add a new required key and check
+that only the new field appears. Check static and template-based included actions
+separately. These steps are prepared, not recorded as passed.

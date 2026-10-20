@@ -468,5 +468,9 @@ two disposable Shortcuts were deleted and their absence was verified.
 
 Native inclusion by UUID survived a real inspector rename. Template-name
 inclusion resolved the renamed action and both calls shared one global. The
-shared-inclusion record stays partial: configuration precedence and the required
-first-use configuration prompt/state remain unresolved.
+shared-inclusion record stays partial: configuration precedence and native first-use configuration acceptance remain
+unresolved. Both runners now prompt for required first-use values, distinguish
+confirmation from imported defaults, and save accepted values atomically.
+Cancellation, storage failure, concurrent edits, and included-action ordering
+have specific background tests. The regression run passed 388 app and 390 core
+tests. Native configuration checks remain pending.

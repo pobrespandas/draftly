@@ -35,6 +35,15 @@ references are checked before execution. Dynamic cycles fail when resolved;
 prior effects remain. Included actions do not apply their own success effects.
 Dynamic configuration adds missing keys without replacing existing script state.
 
+Required configured values prompt before first use on both runners. Imported
+defaults do not count as confirmation. Confirmation belongs to the root action
+and records each required step identity, key, and type. New required definitions
+prompt again; accepted fields stay confirmed. Static includes prepare before
+root effects. Dynamic includes prepare before child effects and retain earlier
+root effects on cancellation. Accepted values save atomically before execution.
+A concurrent action edit rejects the stale response. Ephemeral actions do not
+install themselves. Native acceptance and duplicate-key precedence remain open.
+
 The canonical include fields are `uuid` and `name`. The archived advanced-step
 reference describes identity selection and name templates. Public Directory
 examples confirm those serialized keys: `https://actions.getdrafts.com/a/2P8`

@@ -230,8 +230,10 @@ public final class ActionRunner: ObservableObject {
         }
     }
 
-    private func execute(_ action: DraftAction, note: Note) throws -> Bool {
-        let steps = try ActionStepExpansion.expand(action, actions: library.actions)
+    private func execute(_ initialAction: DraftAction, note: Note) throws -> Bool {
+        let steps = try ActionStepExpansion.expand(initialAction, actions: library.actions)
+        var configurationSteps = steps
+        var action = try prepareInitialConfiguration(initialAction, steps: steps)
         guard !executing.contains(action.id) else { throw DraftlyError.message("An included action refers to itself.") }
         executing.insert(action.id); defer { executing.remove(action.id) }
         let runtime = try ActionScriptRuntime(dispatch: { [weak self] operation, values in
@@ -256,6 +258,8 @@ public final class ActionRunner: ObservableObject {
                 if step.type == "includeAction" {
                     let included = try ActionStepExpansion.resolve(step, actions: library.actions) { try renderTemplate($0, note: current) }
                     let includedSteps = try ActionStepExpansion.expand(included, actions: library.actions, path: path)
+                    configurationSteps += includedSteps
+                    action = try prepareInitialConfiguration(action, steps: configurationSteps)
                     context.evaluateScript(try additionalConfigurationSource(action, steps: includedSteps))
                     guard try performSteps(included.steps, owner: included.id, path: path.union([included.id])) else { return false }
                     continue

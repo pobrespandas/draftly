@@ -16246,7 +16246,7 @@
       "liveCheck": "docs/validation.md: Native selected identity and template inclusion — 20 October 2026",
       "limitations": [
         "Configuration key collision/type precedence still needs comparison. The archived reference does not specify the winner, and child saved values versus inline defaults remain unresolved.",
-        "Requires configuration before first use is documented but no confirmed-configuration state or first-use prompt exists. Native selected-UUID after rename and template-name inclusion passed independently of these configuration gaps."
+        "Required first-use configuration now has separate confirmation state, typed prompts, atomic persistence, and cancellation on both runners. Native keyboard, restart, and included-action configuration checks remain pending. Selected-UUID and template-name native evidence does not cover configuration."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
@@ -16303,6 +16303,30 @@
         {
           "suite": "EngineInclusionAcceptanceTests",
           "test": "repeatedSiblingIncludesReuseGlobalsWithoutSharingAncestry"
+        },
+        {
+          "suite": "InitialConfigurationExecutionTests",
+          "test": "importedDefaultsRequireConfirmationAndAcceptedValuesPersistBeforeExecution"
+        },
+        {
+          "suite": "InitialConfigurationExecutionTests",
+          "test": "newlyRequiredKeyInvalidatesPriorConfirmation"
+        },
+        {
+          "suite": "InitialConfigurationExecutionTests",
+          "test": "rejectedConfigurationDoesNotPersistOrExecute"
+        },
+        {
+          "suite": "InitialConfigurationExecutionTests",
+          "test": "concurrentActionEditDuringPromptIsNotOverwritten"
+        },
+        {
+          "suite": "InitialConfigurationExecutionTests",
+          "test": "includedRequiredConfigurationCancelsBeforeChildEffects"
+        },
+        {
+          "suite": "InitialConfigurationDefinitionTests",
+          "test": "confirmationUnionKeepsRootAndIncludedFieldsConfirmed"
         }
       ],
       "nativeVerification": {
@@ -16315,7 +16339,15 @@
         "revision": "a308158",
         "date": "2026-10-20",
         "evidence": "docs/validation.md",
-        "scope": "The named contract cases were included in the recorded regression run. This is not native acceptance."
+        "scope": "The named contract cases were included in the recorded regression run. This is not native acceptance.",
+        "additionalRuns": [
+          {
+            "date": "2026-10-20",
+            "command": "swift test",
+            "result": "Passed: 388 app tests and 390 core tests. The first-use configuration cases ran on both legacy and async entry routes.",
+            "evidence": "docs/validation.md"
+          }
+        ]
       }
     },
     {
