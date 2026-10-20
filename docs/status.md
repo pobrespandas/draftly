@@ -219,8 +219,9 @@ Pending:
   Native create/save/edit-cancel/restart/render and selection/Undo passed in QA.
   Native backup recovery, legacy migration, and Mac+VM sync remain pending.
 - Drafts theme file import now validates and preserves complete source, with
-  review and explicit rendering limits. Verify its native flows and complete
-  scope/interface rendering. Verify MultiMarkdown/TaskPaper in all accesses.
+  review and explicit rendering limits. Native file import/save/replace/cancel
+  passed. Exact scope rendering now has background tests for Markdown/custom
+  syntax. Verify it natively and complete other syntax/interface coverage. Verify MultiMarkdown/TaskPaper in all accesses.
 - Verify restart, backup, selection, content, and Undo after configuration changes.
 - Keep local device preferences separate from shared library definitions.
 

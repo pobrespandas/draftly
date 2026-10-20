@@ -48,7 +48,7 @@ struct EditorLayoutPreferences: View {
         }
         .sheet(item: $editing) { value in
             ThemeSettingsView(theme: value, otherNames: themes.filter { $0.id != value.id }.map(\.name)) { theme in
-                try library.saveTheme(theme)
+                try library.saveTheme(DraftsThemeImport.applyingEditorChanges(theme))
                 themeName = theme.name
             }
         }

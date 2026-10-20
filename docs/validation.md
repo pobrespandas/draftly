@@ -2576,3 +2576,43 @@ The imported fixture remains selected in QA. No personal library was changed.
 Limits: Import as New rename, cancellation at the name-conflict alert, native
 UUID inspection, restore, full scope/interface styling, and sync remain pending.
 No screenshot or raw log is tracked.
+
+### Imported theme scope rendering — 20 October 2026
+
+Implemented: exact theme scope resolution supplies colors, weight, traits, and
+relative size. Named editor colors resolve independently from interface colors.
+The renderer applies Markdown heading/level, bold, italic, strike, inline-code,
+quotation, and link scopes. Custom syntax ranges use their exact supplied scopes.
+Selection and caret use imported interface colors. Unspecified scope fields keep
+the current attributes. Full theme equality invalidates the editor cache, so a
+source-only style change no longer waits for a text or basic-color change.
+
+The user font is the base. Relative size factors are Draftly policy: extraSmall
+0.8, small 0.9, normal 1, large 1.1, extraLarge 1.2. The reference specifies size
+names and relative behavior, not exact factors. These factors need comparison
+with Drafts and are not accepted as measured parity. Theme source has no inferred
+ancestor scope inheritance. Normal text style is applied before syntax styles.
+Edits to imported basic colors update their known source fields while retaining
+other scopes and unknown data. Unchanged source remains structurally unchanged.
+
+Automatically tested: resolver cases cover nine weights, five sizes, all 16
+trait combinations, malformed options, exact matching, and source retention.
+App tests inspect actual text attributes for Markdown/custom scopes, UTF-16
+selection, monospace, heading size, underline/strike/italic, and colors. A source-
+only change updates hosted editor attributes and caret/selection colors. Hosted
+checks use an offscreen test window; no window is shown or moved. A core edit
+case checks source/basic-field coherence. Full regression and build follow.
+
+Pending: native rendering and Undo acceptance for this new path, remaining
+built-in syntax scope mappings, active-link styling, current-line highlighting,
+other interface colors, and comparison of relative sizes. The UI notice still
+states that unsupported styling is retained without being applied. This does
+not close complete theme parity or the broader Mac plan.
+
+Regression result: the full run passed 415 app methods and 416 core methods.
+A final focused editor run passed both methods after making text.heading take
+precedence over the legacy text.header alias. Its fixture includes conflicting
+alias styles and checks that the legacy italic trait does not leak into the
+chosen heading style. The full run was before this last alias correction.
+The unsigned Xcode Debug build passed after the alias correction. QA has not yet
+been refreshed for this renderer; native acceptance remains pending.

@@ -55,9 +55,15 @@ struct NativeEditor: NSViewRepresentable {
         let background = theme.flatMap { EditorTheme.color($0.background) } ?? (colorScheme == .dark ? NSColor.black : .white)
         if text.backgroundColor != background { text.backgroundColor = background }
         if scroll.backgroundColor != background { scroll.backgroundColor = background }
+        if coordinator.defaultSelectionAttributes == nil { coordinator.defaultSelectionAttributes = text.selectedTextAttributes }
+        var selection = coordinator.defaultSelectionAttributes ?? [:]
+        if let color = theme?.interfaceColor(named: "textSelection").flatMap(EditorTheme.color) { selection[.backgroundColor] = color }
+        text.selectedTextAttributes = selection
+        text.insertionPointColor = theme?.interfaceColor(named: "textCaret").flatMap(EditorTheme.color)
+            ?? theme.flatMap { EditorTheme.color($0.foreground) } ?? .textColor
         let changedNote = coordinator.noteID != session.noteID || coordinator.style.isEmpty
         let changedText = text.string != session.content
-        let changedStyle = coordinator.style != "\(fontName):\(fontSize):\(lineSpacing):\(markdown):\(syntax):\(linksEnabled):\(syntaxDefinition?.source ?? ""):\(theme?.foreground ?? ""):\(theme?.heading ?? "")"
+        let changedStyle = coordinator.theme != theme || coordinator.style != "\(fontName):\(fontSize):\(lineSpacing):\(markdown):\(syntax):\(linksEnabled):\(syntaxDefinition?.source ?? ""):\(theme?.foreground ?? ""):\(theme?.heading ?? "")"
         if changedNote { text.undoManager?.removeAllActions(); coordinator.noteID = session.noteID }
         if changedText {
             if !changedNote {
@@ -68,6 +74,7 @@ struct NativeEditor: NSViewRepresentable {
         }
         if changedText || changedStyle || changedNote {
             coordinator.highlight()
+            coordinator.theme = theme
             coordinator.style = "\(fontName):\(fontSize):\(lineSpacing):\(markdown):\(syntax):\(linksEnabled):\(syntaxDefinition?.source ?? ""):\(theme?.foreground ?? ""):\(theme?.heading ?? "")"
         }
         if changedText || changedNote { coordinator.invalidateDisplay() }
@@ -84,6 +91,8 @@ struct NativeEditor: NSViewRepresentable {
         var updating = false
         var noteID: UUID?
         var style = ""
+        var theme: EditorTheme?
+        var defaultSelectionAttributes: [NSAttributedString.Key: Any]?
         var focusToken: UUID?
         init(_ parent: NativeEditor) { self.parent = parent; noteID = parent.session.noteID }
         func textDidChange(_ notification: Notification) {
@@ -131,12 +140,19 @@ struct NativeEditor: NSViewRepresentable {
         func highlight() {
             guard let view = textView, let storage = view.textStorage else { return }
             let range = NSRange(location: 0, length: storage.length)
-            let font = parent.fontName == "System" ? NSFont.systemFont(ofSize: parent.fontSize) : NSFont(name: parent.fontName, size: parent.fontSize) ?? NSFont.monospacedSystemFont(ofSize: parent.fontSize, weight: .regular)
+            var font = parent.fontName == "System" ? NSFont.systemFont(ofSize: parent.fontSize) : NSFont(name: parent.fontName, size: parent.fontSize) ?? NSFont.monospacedSystemFont(ofSize: parent.fontSize, weight: .regular)
+            let baseFont = font
             let foreground = parent.theme.flatMap { EditorTheme.color($0.foreground) } ?? NSColor.textColor
             let heading = parent.theme.flatMap { EditorTheme.color($0.heading) } ?? NSColor.systemBlue
             let paragraph = NSMutableParagraphStyle(); paragraph.lineSpacing = parent.lineSpacing
+            var baseAttributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: foreground, .paragraphStyle: paragraph]
+            if var style = parent.theme?.scopeStyle(named: "text.normal") {
+                style.foreground = nil; style.background = nil
+                baseAttributes.merge(ThemeTextAttributes.make(style, currentFont: font, baseFont: baseFont)) { _, new in new }
+                font = baseAttributes[.font] as? NSFont ?? font
+            }
             storage.beginEditing()
-            storage.setAttributes([.font: font, .foregroundColor: foreground, .paragraphStyle: paragraph], range: range)
+            storage.setAttributes(baseAttributes, range: range)
             if parent.markdown {
                 let rules: [(String, [NSAttributedString.Key: Any])] = [
                     ("(?m)^#{1,6} .*$", [.foregroundColor: heading, .font: NSFontManager.shared.convert(font, toHaveTrait: .boldFontMask)]),
@@ -183,8 +199,44 @@ struct NativeEditor: NSViewRepresentable {
                     if let url = match.url { storage.addAttributes([.link: url, .foregroundColor: NSColor.linkColor], range: match.range) }
                 }
             }
+            if let theme = parent.theme {
+                func apply(_ scope: String, range: NSRange) {
+                    guard range.length > 0, let style = theme.scopeStyle(named: scope) else { return }
+                    storage.enumerateAttribute(.font, in: range) { value, run, _ in
+                        let current = value as? NSFont ?? font
+                        storage.addAttributes(ThemeTextAttributes.make(style, currentFont: current, baseFont: baseFont), range: run)
+                    }
+                }
+                if parent.markdown {
+                    let headingScope = theme.scopeStyle(named: "text.heading") == nil ? "text.header" : "text.heading"
+                    let scopedRules = [
+                        ("(?m)^#{1,6} .*$", headingScope),
+                        ("\\*\\*[^*]+\\*\\*", "text.bold"),
+                        ("(?<!\\*)\\*[^*\\n]+\\*(?!\\*)", "text.italic"),
+                        ("~~[^~]+~~", "text.strikethrough"),
+                        ("`[^`]+`", "code.inline"),
+                        ("(?m)^>.*$", "text.quotation"),
+                        ("\\[[^\\]]+\\]\\([^)]+\\)", "text.link")
+                    ]
+                    for (pattern, scope) in scopedRules {
+                        if let regex = try? NSRegularExpression(pattern: pattern) {
+                            for match in regex.matches(in: view.string, range: range) { apply(scope, range: match.range) }
+                        }
+                    }
+                    for level in 1...6 {
+                        if let regex = try? NSRegularExpression(pattern: "(?m)^#{\(level)} .*$") {
+                            for match in regex.matches(in: view.string, range: range) { apply("text.heading0\(level)", range: match.range) }
+                        }
+                    }
+                }
+                if let definition = parent.syntaxDefinition {
+                    for (range, scopes) in definition.styledRanges(in: view.string) {
+                        for scope in scopes.split(separator: ",").map({ $0.trimmingCharacters(in: .whitespaces) }) { apply(scope, range: range) }
+                    }
+                }
+            }
             storage.endEditing()
-            view.typingAttributes = [.font: font, .foregroundColor: foreground, .paragraphStyle: paragraph]
+            view.typingAttributes = baseAttributes
         }
     }
 }

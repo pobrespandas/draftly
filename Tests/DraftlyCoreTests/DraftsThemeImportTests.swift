@@ -18,6 +18,20 @@ struct DraftsThemeImportTests {
         try JSONSerialization.data(withJSONObject: object)
     }
 
+    @Test func editorColorChangesUpdateKnownSourceFieldsAndKeepOtherScopes() throws {
+        let initial = try DraftsThemeImport.decode(data: data(source()))
+        #expect(try DraftsThemeImport.applyingEditorChanges(initial) == initial)
+        var edited = initial
+        edited.name = "Edited"; edited.foreground = "102030"; edited.background = "405060"; edited.heading = "708090"
+        let saved = try DraftsThemeImport.applyingEditorChanges(edited)
+        #expect(saved.scopeStyle(named: "text.normal")?.foreground == "102030")
+        #expect(saved.scopeStyle(named: "text.header")?.foreground == "708090")
+        #expect(saved.interfaceColor(named: "textBackground") == "405060")
+        guard case .object(let source) = saved.unknownFields["draftsSource"] else { Issue.record("Missing source"); return }
+        #expect(source["future"] == (try JSONDecoder().decode([String: ThemeJSONValue].self, from: data(self.source())))["future"])
+        #expect(source["name"] == .string("Edited"))
+    }
+
     @Test func namedColorsAndExplicitIdentityMapWithoutLosingTheSource() throws {
         let input = try data(source())
         let identity = UUID()

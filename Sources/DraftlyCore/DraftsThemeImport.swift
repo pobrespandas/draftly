@@ -1,7 +1,36 @@
 import Foundation
 
 public enum DraftsThemeImport {
-    public static let limitations = "Draftly applies the editor background, normal text, heading color, and dark mode. Other interface colors and scope styles are preserved but are not applied."
+    public static let limitations = "Draftly applies supported editor scopes, colors, selection, and caret. Other interface colors and unsupported styling are preserved but are not applied."
+
+    public static func applyingEditorChanges(_ value: EditorThemeDefinition) throws -> EditorThemeDefinition {
+        guard case .object(var source) = value.unknownFields["draftsSource"] else { return value }
+        try value.validate()
+        let original = try decode(data: JSONEncoder().encode(ThemeJSONValue.object(source)))
+        func hex(_ value: String) -> String { "#" + value.trimmingCharacters(in: CharacterSet(charactersIn: "# ")) }
+        func object(_ value: ThemeJSONValue?) -> [String: ThemeJSONValue] {
+            if case .object(let result) = value { return result }; return [:]
+        }
+        var colors = object(source["colors"]), scopes = object(source["scopes"])
+        var interface = object(colors["interface"])
+        func setForeground(_ name: String, _ color: String) {
+            var scope = object(scopes[name]), settings = object(scope["settings"])
+            settings["foreground"] = .string(hex(color))
+            scope["settings"] = .object(settings); scopes[name] = .object(scope)
+        }
+        if original.foreground != value.foreground {
+            interface["textForeground"] = .string(hex(value.foreground))
+            setForeground("text.normal", value.foreground)
+        }
+        if original.background != value.background { interface["textBackground"] = .string(hex(value.background)) }
+        if original.heading != value.heading { setForeground(scopes["text.heading"] != nil ? "text.heading" : "text.header", value.heading) }
+        if original.name != value.name { source["name"] = .string(value.name) }
+        if original.isDark != value.isDark { source["isDark"] = .bool(value.isDark) }
+        colors["interface"] = .object(interface); source["colors"] = .object(colors); source["scopes"] = .object(scopes)
+        var result = value; result.unknownFields["draftsSource"] = .object(source)
+        try result.validate()
+        return result
+    }
 
     public static func decode(data: Data, id: UUID = UUID()) throws -> EditorThemeDefinition {
         guard String(data: data, encoding: .utf8) != nil else {
