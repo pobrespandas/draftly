@@ -180,7 +180,12 @@ def parity_errors(entry, label, approved_exclusions):
     if status == "complete":
         references = [entry.get("automatedTest"), entry.get("legacyAutomatedTest")]
         references.extend(case.get("test") for case in (cases.values() if isinstance(cases, dict) else []) if isinstance(case, dict))
-        references.extend(entry.get("supportingTests", []))
+        for field in ("supportingTests", "additionalAutomatedTests"):
+            supporting = entry.get(field, [])
+            if not isinstance(supporting, list):
+                errors.append("Invalid test reference collection " + field + ": " + label)
+            else:
+                references.extend(supporting)
         for reference in references:
             if reference is not None and not valid_test_reference(reference):
                 errors.append("Invalid contract test reference: " + label + ": " + str(reference))

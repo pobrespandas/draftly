@@ -690,3 +690,9 @@ through both renderers and later steps. Three specific methods pass, including
 legacy and worker cases. Full regression passed 435 app and 440 core methods;
 build and matrix structure passed. Template members remain partial. Computer
 Use briefly reconnected but input failed again; native acceptance stays open.
+
+
+Strict audit now validates historical additionalAutomatedTests as well as
+supportingTests and reports malformed collections without a crash. All 38
+Python tooling tests pass; matrix structure has zero errors. Strict core remains
+at 800 diagnostics and engine at 27. Neither gate is accepted.

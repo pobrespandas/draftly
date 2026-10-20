@@ -3217,3 +3217,23 @@ hash 0d81c6a9c25f18e0 before signing. Sending Command-Comma then failed with
 “native pipe closed before response”; a state read also failed. No live Settings
 refresh or template parity was accepted. The current template fix is not yet
 installed in QA. The physical global-key result remains pending.
+
+
+### Additional contract test evidence guard — 20 October 2026
+
+Implemented: strict parity now checks both supportingTests and the historical
+additionalAutomatedTests field. It rejects malformed collections with a clear
+diagnostic instead of aborting. Existing evidence remains unchanged.
+
+Tested automatically: the new alias case first failed because a missing test
+was ignored; the malformed supporting collection also raised an exception.
+All 38 Python tooling tests now pass with the bundled runtime and Pillow. The
+system Python attempt lacked Pillow and does not count as a complete run. Cases
+cover valid/missing references, malformed collection values, known-issue tests,
+and preservation of the historical field during reference refresh. No network,
+visible window, Swift source, or app data was involved.
+
+The normal matrix check has zero errors. Strict core reports 800 diagnostics;
+strict engine reports 27. These are acceptance diagnostics, not member counts
+or compatibility percentages. Both strict gates remain open. No new Swift
+regression or app build was required for this Python-only change.

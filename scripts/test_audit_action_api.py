@@ -45,10 +45,12 @@ class ReferenceTests(unittest.TestCase):
                     "contractCases": {"errors": {"test": {"suite": "Fixture", "test": "pending"}}}}
                 self.assertTrue(any("Fixture.pending contains withKnownIssue" in error for error in audit.parity_errors(entry, "fixture", set())))
                 entry["contractCases"] = {}
-                entry["supportingTests"] = [{"suite": "Fixture", "test": "pending"}]
-                self.assertTrue(any("Fixture.pending contains withKnownIssue" in error for error in audit.parity_errors(entry, "fixture", set())))
-                entry["supportingTests"] = [{"suite": "Fixture", "test": "missing"}]
-                self.assertTrue(any("Invalid contract test reference" in error for error in audit.parity_errors(entry, "fixture", set())))
+                for field in ["supportingTests", "additionalAutomatedTests"]:
+                    entry[field] = [{"suite": "Fixture", "test": "pending"}]
+                    self.assertTrue(any("Fixture.pending contains withKnownIssue" in error for error in audit.parity_errors(entry, "fixture", set())))
+                    entry[field] = [{"suite": "Fixture", "test": "missing"}]
+                    self.assertTrue(any("Invalid contract test reference" in error for error in audit.parity_errors(entry, "fixture", set())))
+                    del entry[field]
 
     def test_explicit_test_file_resolves_different_suite_and_keeps_issue_guard(self):
         import tempfile
@@ -102,11 +104,12 @@ class ReferenceTests(unittest.TestCase):
 
     def test_refresh_keeps_evidence_and_removed_members(self):
         old = {"objects": [{"object": "Draft", "members": [
-            {"anchor": "query", "automatedTest": "contractTest", "signatures": ["old"], "limitations": ["known"], "reviewDate": "2026-10-19", "customEvidence": "saved"},
+            {"anchor": "query", "automatedTest": "contractTest", "signatures": ["old"], "limitations": ["known"], "reviewDate": "2026-10-19", "customEvidence": "saved", "additionalAutomatedTests": [{"suite": "Fixture", "test": "specific"}]},
             {"anchor": "removed", "implementation": "partial"}]}]}
         new = [{"object": "Draft", "members": [{"anchor": "query", "signatures": ["new"]}]}]
         merged = audit.merge_evidence(new, old)[0]["members"]
         self.assertEqual(merged[0]["automatedTest"], "contractTest")
+        self.assertEqual(merged[0]["additionalAutomatedTests"], [{"suite": "Fixture", "test": "specific"}])
         self.assertTrue(merged[0]["referenceChanged"])
         self.assertEqual(merged[0]["customEvidence"], "saved")
         self.assertEqual(merged[0]["reviewDate"], "2026-10-19")
@@ -161,6 +164,20 @@ class ReferenceTests(unittest.TestCase):
 
 
 class StrictParityTests(unittest.TestCase):
+    def test_additional_test_alias_is_validated_and_bad_collections_do_not_crash(self):
+        for field in ["supportingTests", "additionalAutomatedTests"]:
+            with self.subTest(field=field):
+                entry = self.complete_entry()
+                entry[field] = [{"suite": "UtilityActionAPITests", "test": "missingContractCase"}]
+                errors = audit.parity_errors(entry, "Draft.fixture", set())
+                self.assertTrue(any("Invalid contract test reference" in error for error in errors))
+                entry[field] = [entry["automatedTest"]]
+                self.assertEqual(audit.parity_errors(entry, "Draft.fixture", set()), [])
+                for invalid in [None, "suite", {"suite": "Fixture"}]:
+                    entry[field] = invalid
+                    self.assertIn("Invalid test reference collection " + field + ": Draft.fixture",
+                                  audit.parity_errors(entry, "Draft.fixture", set()))
+
     def test_empty_inventory_cannot_pass_parity(self):
         errors = audit.validate_matrix({}, require_parity=True)
         self.assertIn("Missing scope object: Draft", errors)
