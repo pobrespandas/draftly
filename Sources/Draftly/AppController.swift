@@ -88,7 +88,10 @@ final class AppController: ObservableObject {
                 .flatMap(UUID.init(uuidString:)) ?? UUID()
             if cloudTesting && cloud == nil { throw DraftlyError.message("The iCloud test build has no CloudKit container.") }
             let directory = testing || cloudTesting ? FileManager.default.temporaryDirectory.appendingPathComponent("Draftly-UITesting").appendingPathComponent(testLibraryID.uuidString) : nil
-            library = try LibraryStore(cloudIdentifier: cloud, directory: directory, seed: !cloudTesting)
+            let store = try LibraryStore(cloudIdentifier: cloud, directory: directory, seed: !cloudTesting)
+            do { try LocalThemeMigration.run(in: store) }
+            catch { store.error = "Theme migration failed: " + error.localizedDescription }
+            library = store
             startupError = nil
         } catch { startupError = error.localizedDescription }
     }

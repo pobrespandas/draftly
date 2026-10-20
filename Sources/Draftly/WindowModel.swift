@@ -285,13 +285,13 @@ final class WindowModel: ObservableObject {
 
     func applyScriptWorkspace(_ workspace: Workspace) throws {
         let resolved = try WorkspacePresentationResolver.resolve(workspace, groupNames: library.groupNames,
-            groups: library.actionGroups, themes: dependencies.preferences.themes)
+            groups: library.actionGroups, themes: library.themes)
         applyResolvedWorkspace(resolved)
     }
 
     func saveAndApplyWorkspace(_ workspace: Workspace) throws {
         let resolved = try WorkspacePresentationResolver.resolve(workspace, groupNames: library.groupNames,
-            groups: library.actionGroups, themes: dependencies.preferences.themes)
+            groups: library.actionGroups, themes: library.themes)
         try library.saveWorkspace(resolved)
         cancelActionForUserEdit()
         applyResolvedWorkspace(resolved)

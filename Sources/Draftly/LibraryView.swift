@@ -15,16 +15,22 @@ struct LibraryView: View {
     @AppStorage("editor.maximumWidth") private var maximumWidth = 0.0
     @AppStorage("editor.typewriter") private var typewriter = false
     @AppStorage("editor.theme") private var themeName = "System"
-    @AppStorage("editor.themes") private var themeData = "[]"
-    private var workspaceThemeName: String? {
+    private var workspaceThemeReference: [String: Any]? {
         let isDark = model.darkTheme ?? (NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua)
         let key = isDark ? "preferredDarkTheme" : "preferredLightTheme"
-        return (WorkspaceThemeValues.preference(model.workspaceScriptMetadata, key: key))
+        return model.workspaceSnapshot(name: "Current").apiOptions[key] as? [String: Any]
     }
-    private var theme: EditorTheme? { EditorTheme.selected(name: workspaceThemeName ?? themeName, data: themeData) }
+    private var theme: EditorTheme? {
+        guard let reference = workspaceThemeReference else { return library.themes.first { $0.name == themeName } }
+        guard reference["type"] as? String == "custom" else { return nil }
+        if let id = (reference["uuid"] as? String).flatMap(UUID.init(uuidString:)) { return library.themes.first { $0.id == id } }
+        return library.themes.first { $0.name == reference["name"] as? String }
+    }
     private var preferredScheme: ColorScheme? {
-        if workspaceThemeName == "Dark" { return .dark }
-        if workspaceThemeName == "Light" { return .light }
+        if let reference = workspaceThemeReference, reference["type"] as? String != "custom" {
+            if reference["name"] as? String == "Dark" { return .dark }
+            if reference["name"] as? String == "Light" { return .light }
+        }
         return model.darkTheme.map { $0 ? .dark : .light } ?? theme.map { $0.isDark ? .dark : .light }
     }
     @AppStorage("capture.newDraftAfter") private var newDraftAfter = 300.0

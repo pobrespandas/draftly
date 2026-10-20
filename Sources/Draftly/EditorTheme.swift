@@ -1,12 +1,10 @@
 import AppKit
 
-struct EditorTheme: Codable, Identifiable, Equatable {
-    var id = UUID()
-    var name = "New Theme"
-    var foreground = "202020"
-    var background = "FFFFFF"
-    var heading = "007AFF"
-    var isDark = false
+import DraftlyCore
+
+typealias EditorTheme = EditorThemeDefinition
+
+extension EditorThemeDefinition {
     static func selected(name: String, data: String) -> EditorTheme? {
         (try? JSONDecoder().decode([EditorTheme].self, from: Data(data.utf8)))?.first { $0.name == name }
     }

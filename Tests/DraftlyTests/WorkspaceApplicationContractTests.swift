@@ -76,14 +76,8 @@ struct WorkspaceApplicationContractTests {
         #expect(model.runner.run(action), Comment(rawValue: model.runner.message ?? ""))
     }
 
-    private func withThemes(_ themes: [EditorTheme], body: () throws -> Void) throws {
-        let defaults = UserDefaults.standard
-        let original = defaults.object(forKey: "editor.themes")
-        defer {
-            if let original { defaults.set(original, forKey: "editor.themes") }
-            else { defaults.removeObject(forKey: "editor.themes") }
-        }
-        defaults.set(String(decoding: try JSONEncoder().encode(themes), as: UTF8.self), forKey: "editor.themes")
+    private func withThemes(_ themes: [EditorTheme], library: LibraryStore, body: () throws -> Void) throws {
+        try library.saveThemes(themes)
         try body()
     }
 
@@ -176,7 +170,7 @@ struct WorkspaceApplicationContractTests {
         dark.foreground = "EEEEEE"; dark.background = "202020"
         var light = EditorTheme(); light.name = "Paper café"
         let selectedPreference = UserDefaults.standard.object(forKey: "editor.theme") as? String
-        try withThemes([dark, light]) {
+        try withThemes([dark, light], library: model.library) {
             let before = state(model)
             var workspace = Workspace(name: "Theme identities")
             workspace.scriptMetadata = try metadata([
@@ -186,7 +180,7 @@ struct WorkspaceApplicationContractTests {
             try model.applyScriptWorkspace(workspace)
             #expect(WorkspaceThemeValues.preference(model.workspaceScriptMetadata, key: "preferredDarkTheme") == dark.name)
             #expect(WorkspaceThemeValues.preference(model.workspaceScriptMetadata, key: "preferredLightTheme") == light.name)
-            let data = try #require(UserDefaults.standard.string(forKey: "editor.themes"))
+            let data = String(decoding: try JSONEncoder().encode(model.library.themes), as: UTF8.self)
             #expect(EditorTheme.selected(name: dark.name, data: data) == dark)
             #expect(EditorTheme.selected(name: light.name, data: data) == light)
             workspace.scriptMetadata = try metadata([
@@ -207,7 +201,7 @@ struct WorkspaceApplicationContractTests {
         let group = ActionGroupRecord(name: "Candidate group")
         try model.library.saveActionGroup(group)
         var theme = EditorTheme(); theme.name = "Existing theme"
-        try withThemes([theme]) {
+        try withThemes([theme], library: model.library) {
             model.query = "Keep query"; model.actionGroup = "Keep list"; model.actionBarGroup = "Keep bar"
             model.folder = .flagged
             let before = state(model)

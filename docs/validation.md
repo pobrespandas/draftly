@@ -2454,3 +2454,42 @@ are separate and legible. Each selection showed its corresponding list and
 controls. The saved QA Workspace options 🐼 remained in Workspaces. The app was
 quit after inspection. This check accepts this layout regression only; full
 Drafts inspector comparison remains pending. Captures stayed transient.
+
+### Shared theme definitions and local migration — 20 October 2026
+
+Implemented: EditorThemeDefinition uses stable UUIDs and generic theme records.
+It keeps unknown JSON fields structurally, including nested arrays and objects.
+JSON whitespace and key order are not retained. Theme saves, deletion, migration,
+and restore roll back on storage failure. Name and color validation runs before
+writes. Themes are an optional backup field; version-one backups without that
+field remain readable. The Core Data schema is unchanged.
+
+Editor rendering, Settings, Workspace selectors/resolution, and the scripting
+theme catalog now read library themes. Built-in and custom references remain
+distinct, including a custom theme named Dark, Light, or Default. Theme editing
+uses a temporary copy and reports save errors without dismissing the sheet.
+
+Startup migrates legacy editor.themes once per device and library. A generic
+migration marker commits with the themes. Local legacy data is removed only
+after success. The existing library definition wins when its UUID already exists;
+a conflicting name with another UUID returns an error. Migration errors remain
+visible and keep legacy data for retry. A device-specific local marker identity
+lets a second Mac migrate its own definitions. A prior migration prevents deleted
+themes from being imported again. Theme choice, font, margins, and other device
+preferences stay local.
+
+Automatically tested: five core cases cover old shape, unknown fields, reopen,
+backup compatibility, validation, rollback, migration markers, and deletion.
+Three app cases cover local preference preservation, invalid data, retry after
+storage failure, two device identities, and no reimport after deletion. Existing
+Workspace tests now use actual library themes instead of global theme defaults.
+The focused migration run passed all eight cases. Full regression and build
+results follow. No native windows or permission requests ran in these tests.
+
+Pending: native create/edit/cancel/restart, restored theme application, full
+Drafts theme import, and connected Mac+VM sync. Shared record storage does not
+prove synchronization acceptance. Execution history backup remains separate.
+
+Final regression result: 412 app methods and 399 core methods passed. The
+unsigned Xcode Debug build passed. These totals show regression coverage only;
+native UI and connected sync acceptance remain pending.

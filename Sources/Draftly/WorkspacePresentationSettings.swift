@@ -5,7 +5,6 @@ struct WorkspacePresentationSettings: View {
     @Binding var workspace: Workspace
     @ObservedObject var library: LibraryStore
     @Binding var error: String?
-    @AppStorage("editor.themes") private var themeData = "[]"
     private struct Choice: Identifiable {
         let id: String
         let title: String
@@ -18,7 +17,7 @@ struct WorkspacePresentationSettings: View {
         }
     }
     private var themes: [Choice] {
-        let custom = (try? JSONDecoder().decode([EditorTheme].self, from: Data(themeData.utf8))) ?? []
+        let custom = library.themes
         return ["Default", "Light", "Dark"].map { Choice(id: $0, title: $0, value: ["name": $0]) }
             + custom.map { Choice(id: $0.id.uuidString, title: $0.name,
                 value: ["name": $0.name, "uuid": $0.id.uuidString, "type": "custom"]) }

@@ -214,7 +214,9 @@ Pending:
   implemented. Group and theme selectors are also implemented. Their saved
   selections and Cancel passed a native QA check; full application/restart
   coverage and visual parity remain open.
-- Store shared themes with stable identities; migrate local themes once.
+- Shared themes now use generic library records with stable identities and
+  optional backup data. Local definitions migrate once per device and library.
+  Native restart and Mac+VM synchronization acceptance remain pending.
 - Complete Drafts theme import and verify MultiMarkdown/TaskPaper in all accesses.
 - Verify restart, backup, selection, content, and Undo after configuration changes.
 - Keep local device preferences separate from shared library definitions.
@@ -255,7 +257,8 @@ See [iCloud evidence](research/icloud-acceptance-2026-10-19.json).
 
 Pending:
 
-- Add shared themes and execution history to compatible backups.
+- Shared themes are included in compatible backups with rollback tests. Add
+  execution history and verify the complete recovery contract.
 - Repeat restore/migration and unknown-field checks for all new fields.
 - Repeat the broad main-container matrix with both clients connected: metadata,
   revisions, actions/groups/order, workspaces, syntax, themes, Trash/Restore,

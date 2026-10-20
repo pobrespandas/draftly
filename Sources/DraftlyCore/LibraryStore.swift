@@ -10,6 +10,7 @@ public final class LibraryStore: ObservableObject {
     @Published public private(set) var workspaces: [Workspace] = []
     @Published public private(set) var actionGroups: [ActionGroupRecord] = []
     @Published public private(set) var actions: [DraftAction] = []
+    @Published public private(set) var themes: [EditorThemeDefinition] = []
     @Published public private(set) var syntaxes: [SyntaxDefinition] = []
     @Published public private(set) var runs: [ActionRun] = []
     @Published public var error: String?
@@ -59,6 +60,7 @@ public final class LibraryStore: ObservableObject {
         func decode<T: Decodable>(_ kind: String, _ type: T.Type) throws -> [T] {
             try persistence.decode(kind, type)
         }
+        themes = try decode("theme", EditorThemeDefinition.self).sorted { $0.name < $1.name }
         syntaxes = try decode("syntax", SyntaxDefinition.self).sorted { $0.name < $1.name }
         let accessDates = Dictionary(try decode("noteAccess", NoteAccess.self).map { ($0.id, $0.date) }, uniquingKeysWith: max)
         notes = try decode("note", Note.self).map { value in
@@ -253,13 +255,51 @@ public final class LibraryStore: ObservableObject {
         do { try persist(value, id: value.id, kind: "syntax"); try beforeBatchCommit?(); try commit() }
         catch { container.viewContext.rollback(); try? reload(); throw error }
     }
+    private struct ThemeMigration: Codable { var id: UUID; var name: String }
+
+    private func validateThemes(_ values: [EditorThemeDefinition]) throws {
+        for value in values { try value.validate() }
+        guard Set(values.map(\.id)).count == values.count else { throw DraftlyError.message("The themes contain duplicate identities.") }
+        let replacements = Set(values.map(\.id))
+        let combined = themes.filter { !replacements.contains($0.id) } + values
+        guard Set(combined.map(\.name)).count == combined.count else { throw DraftlyError.message("Use unique theme names.") }
+    }
+    public func saveTheme(_ value: EditorThemeDefinition) throws { try saveThemes([value]) }
+    public func saveThemes(_ values: [EditorThemeDefinition]) throws {
+        try validateThemes(values)
+        do {
+            for value in values { try persist(value, id: value.id, kind: "theme") }
+            try beforeBatchCommit?(); try commit()
+        } catch { container.viewContext.rollback(); try? reload(); throw error }
+    }
+    public func deleteTheme(_ id: UUID) throws {
+        do { try delete(id, kind: "theme", beforeCommit: beforeBatchCommit) }
+        catch { container.viewContext.rollback(); try? reload(); throw error }
+    }
+    public func hasThemeMigration(_ migrationID: String) throws -> Bool {
+        try persistence.decode("themeMigration", ThemeMigration.self).contains(where: { $0.name == migrationID })
+    }
+    public func migrateThemes(_ values: [EditorThemeDefinition], migrationID: String) throws {
+        guard !migrationID.isEmpty else { throw DraftlyError.message("The theme migration ID is empty.") }
+        if try hasThemeMigration(migrationID) { return }
+        let incoming = values.filter { value in !themes.contains(where: { $0.id == value.id }) }
+        try validateThemes(incoming)
+        do {
+            for value in incoming { try persist(value, id: value.id, kind: "theme") }
+            let marker = ThemeMigration(id: UUID(), name: migrationID)
+            try persist(marker, id: marker.id, kind: "themeMigration")
+            try beforeBatchCommit?(); try commit()
+        } catch { container.viewContext.rollback(); try? reload(); throw error }
+    }
     public func backupData() throws -> Data {
         let encoder = JSONEncoder(); encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        return try encoder.encode(Backup(notes: notes, revisions: revisions, workspaces: workspaces, actions: actions, actionGroups: actionGroups, syntaxes: syntaxes))
+        return try encoder.encode(Backup(notes: notes, revisions: revisions, workspaces: workspaces, actions: actions, actionGroups: actionGroups, syntaxes: syntaxes, themes: themes))
     }
     public func restore(_ data: Data) throws {
         let backup = try JSONDecoder().decode(Backup.self, from: data)
         guard backup.version == 1 else { throw DraftlyError.message("This backup version is not supported.") }
+        let themesToRestore = backup.themes ?? []
+        try validateThemes(themesToRestore)
         let syntaxesToRestore = try (backup.syntaxes ?? []).map { try SyntaxDefinition(data: Data($0.source.utf8), type: $0.type, id: $0.id) }
         guard Set(syntaxesToRestore.map(\.name)).count == syntaxesToRestore.count,
               !syntaxesToRestore.contains(where: { incoming in ScriptSyntax.names.contains(incoming.name) || syntaxes.contains(where: { $0.name == incoming.name && $0.id != incoming.id }) }) else { throw DraftlyError.message("The backup contains conflicting syntax names.") }
@@ -276,6 +316,7 @@ public final class LibraryStore: ObservableObject {
             if let newID = remapped[revision.noteID] { revision.noteID = newID; revision.id = UUID() }
             try persist(revision, id: revision.id, kind: "revision")
         }
+        for theme in themesToRestore { try persist(theme, id: theme.id, kind: "theme") }
         for syntax in syntaxesToRestore { try persist(syntax, id: syntax.id, kind: "syntax") }
         for workspace in backup.workspaces { try persist(workspace, id: workspace.id, kind: "workspace") }
         for group in backup.actionGroups ?? [] { try persist(group, id: group.id, kind: "actionGroup") }

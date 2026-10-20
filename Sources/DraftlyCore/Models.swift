@@ -169,6 +169,7 @@ public struct ActionRun: Identifiable, Codable {
 }
 
 public struct Backup: Codable {
+    public var themes: [EditorThemeDefinition]?
     public var syntaxes: [SyntaxDefinition]?
     public var actionGroups: [ActionGroupRecord]?
     public var version: Int = 1
@@ -176,7 +177,8 @@ public struct Backup: Codable {
     public var revisions: [Revision]
     public var workspaces: [Workspace]
     public var actions: [DraftAction]
-    public init(notes: [Note], revisions: [Revision], workspaces: [Workspace], actions: [DraftAction], actionGroups: [ActionGroupRecord]? = nil, syntaxes: [SyntaxDefinition]? = nil) {
+    public init(notes: [Note], revisions: [Revision], workspaces: [Workspace], actions: [DraftAction], actionGroups: [ActionGroupRecord]? = nil, syntaxes: [SyntaxDefinition]? = nil, themes: [EditorThemeDefinition]? = nil) {
+        self.themes = themes
         self.syntaxes = syntaxes
         self.actionGroups = actionGroups
         self.notes = notes; self.revisions = revisions; self.workspaces = workspaces; self.actions = actions

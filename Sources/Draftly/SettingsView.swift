@@ -68,7 +68,7 @@ struct SettingsView: View {
                 HStack { Text("Size"); Slider(value: $fontSize, in: 11...28, step: 1); Text("\(Int(fontSize)) pt").monospacedDigit() }
                 HStack { Text("Line spacing"); Slider(value: $lineSpacing, in: 0...16, step: 1); Text("\(Int(lineSpacing)) pt").monospacedDigit() }
             }
-            EditorLayoutPreferences()
+            if let library = controller.library { EditorLayoutPreferences(library: library) }
         }.formStyle(.grouped)
     }
 

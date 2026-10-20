@@ -71,9 +71,7 @@ struct NativeCoreContractsTests {
         let model = WindowModel(library: try LibraryStore(inMemory: true, seed: false))
         var group = ActionGroupRecord(name: "Original"); try model.library.saveActionGroup(group)
         var theme = EditorTheme(); theme.name = "Renamed theme"
-        let defaults = UserDefaults.standard, original = defaults.object(forKey: "editor.themes")
-        defer { if let original { defaults.set(original, forKey: "editor.themes") } else { defaults.removeObject(forKey: "editor.themes") } }
-        defaults.set(String(decoding: try JSONEncoder().encode([theme]), as: UTF8.self), forKey: "editor.themes")
+        try model.library.saveTheme(theme)
         var workspace = Workspace(name: "Identity")
         workspace.scriptMetadata = ["api": String(decoding: try JSONSerialization.data(withJSONObject: [
             "loadActionListGroup": ["uuid": group.id.uuidString, "name": "Original"],

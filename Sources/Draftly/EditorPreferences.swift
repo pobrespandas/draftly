@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import DraftlyCore
 
 enum EditorTextLayout {
     static let horizontalMargin = 5.0
@@ -10,14 +11,15 @@ enum EditorTextLayout {
 }
 
 struct EditorLayoutPreferences: View {
+    @ObservedObject var library: LibraryStore
     @AppStorage("editor.horizontalMargin") private var horizontal = EditorTextLayout.horizontalMargin
     @AppStorage("editor.verticalMargin") private var vertical = EditorTextLayout.verticalMargin
     @AppStorage("editor.maximumWidth") private var maximum = 0.0
     @AppStorage("editor.typewriter") private var typewriter = false
     @AppStorage("editor.theme") private var themeName = "System"
-    @AppStorage("editor.themes") private var themeData = "[]"
     @State private var editing: EditorTheme?
-    private var themes: [EditorTheme] { (try? JSONDecoder().decode([EditorTheme].self, from: Data(themeData.utf8))) ?? [] }
+    @State private var error: String?
+    private var themes: [EditorTheme] { library.themes }
     var body: some View {
         Section("Editor Layout") {
             HStack { Text("Horizontal Margin"); Slider(value: $horizontal, in: 0...80, step: 1); Text("\(Int(horizontal)) pt") }
@@ -35,16 +37,16 @@ struct EditorLayoutPreferences: View {
                 if let current = themes.first(where: { $0.name == themeName }) {
                     Button("Edit") { editing = current }
                     Button("Delete") {
-                        themeData = String(decoding: (try? JSONEncoder().encode(themes.filter { $0.id != current.id })) ?? Data("[]".utf8), as: UTF8.self)
-                        themeName = "System"
+                        do { try library.deleteTheme(current.id); themeName = "System"; error = nil }
+                        catch { self.error = error.localizedDescription }
                     }
                 }
             }
+            if let error { Text(error).foregroundStyle(.red) }
         }
         .sheet(item: $editing) { value in
             ThemeSettingsView(theme: value, otherNames: themes.filter { $0.id != value.id }.map(\.name)) { theme in
-                var values = themes.filter { $0.id != theme.id }; values.append(theme)
-                themeData = String(decoding: (try? JSONEncoder().encode(values)) ?? Data("[]".utf8), as: UTF8.self)
+                try library.saveTheme(theme)
                 themeName = theme.name
             }
         }
@@ -54,7 +56,8 @@ struct EditorLayoutPreferences: View {
 private struct ThemeSettingsView: View {
     @State var theme: EditorTheme
     var otherNames: [String]
-    let save: (EditorTheme) -> Void
+    let save: (EditorTheme) throws -> Void
+    @State private var error: String?
     @Environment(\.dismiss) private var dismiss
     private var valid: Bool {
         !theme.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && theme.name != "System" && !otherNames.contains(theme.name)
@@ -68,7 +71,8 @@ private struct ThemeSettingsView: View {
             TextField("Headings · RRGGBB", text: $theme.heading)
             Toggle("Dark Appearance", isOn: $theme.isDark)
             Text("Heading and **text** preview").padding().foregroundStyle(Color(nsColor: EditorTheme.color(theme.foreground) ?? .textColor)).background(Color(nsColor: EditorTheme.color(theme.background) ?? .textBackgroundColor))
-            HStack { Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction); Spacer(); Button("Save") { theme.name = theme.name.trimmingCharacters(in: .whitespacesAndNewlines); save(theme); dismiss() }.keyboardShortcut(.defaultAction).disabled(!valid) }
+            if let error { Text(error).foregroundStyle(.red) }
+            HStack { Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction); Spacer(); Button("Save") { theme.name = theme.name.trimmingCharacters(in: .whitespacesAndNewlines); do { try save(theme); dismiss() } catch { self.error = error.localizedDescription } }.keyboardShortcut(.defaultAction).disabled(!valid) }
         }.padding(20).frame(width: 440)
     }
 }

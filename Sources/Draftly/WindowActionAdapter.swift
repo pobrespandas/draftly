@@ -45,7 +45,7 @@ struct WindowActionAdapter {
         }
         switch operation {
         case "themes":
-            let saved = model.dependencies.preferences.themes
+            let saved = model.library.themes
             return ["Default", "Dark", "Light"].map { ["name": $0, "type": "builtIn"] } + saved.map { ["name": $0.name, "type": "custom", "uuid": $0.id.uuidString] }
         case "configureWindow":
             let options = values["values"] as? [String: String] ?? [:]

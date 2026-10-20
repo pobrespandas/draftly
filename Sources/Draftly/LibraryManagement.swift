@@ -160,7 +160,7 @@ private struct WorkspaceSettingsView: View {
             HStack { Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction); Spacer(); Button("Save") {
                 do {
                     let resolved = try WorkspacePresentationResolver.resolve(workspace, groupNames: library.groupNames,
-                        groups: library.actionGroups, themes: WindowPreferences().themes)
+                        groups: library.actionGroups, themes: library.themes)
                     try library.saveWorkspace(resolved); dismiss()
                 } catch { self.error = error.localizedDescription }
             }.keyboardShortcut(.defaultAction).disabled(workspace.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
