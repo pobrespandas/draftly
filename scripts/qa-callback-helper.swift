@@ -52,6 +52,8 @@ struct QAWindowInventory {
     private lazy var inventoryToggle = NSButton(checkboxWithTitle: "Monitor QA windows (read only)", target: self, action: #selector(toggleInventory))
     private lazy var refreshButton = NSButton(title: "Refresh window inventory", target: self, action: #selector(refreshInventory))
     private var inventoryTimer: Timer?
+    private var receivedCallbackCount = 0
+    private var openRequestID = UUID()
 
     static func main() {
         if ProcessInfo.processInfo.arguments.contains("--window-inventory-self-test") {
@@ -119,6 +121,9 @@ struct QAWindowInventory {
 
     @objc private func openInQA() {
         panel?.makeFirstResponder(nil)
+        receivedCallbackCount = 0
+        let requestID = UUID(); openRequestID = requestID
+        resultField.stringValue = "Callbacks received: 0"
         guard let url = URL(string: targetField.stringValue), url.scheme == "draftly",
               ["open", "create", "capture", "run", "runAction", "action", "x-callback-url"].contains(url.host ?? ""),
               let app = NSWorkspace.shared.urlForApplication(toOpen: URL(string: "draftly-engine-qa://callback")!),
@@ -129,7 +134,10 @@ struct QAWindowInventory {
         }
         NSWorkspace.shared.open([url], withApplicationAt: app, configuration: .init()) { [weak self] _, error in
             let message = error?.localizedDescription ?? "Delivered: " + url.absoluteString
-            Task { @MainActor in self?.resultField.stringValue = message }
+            Task { @MainActor in
+                guard let self, self.openRequestID == requestID, self.receivedCallbackCount == 0 else { return }
+                self.resultField.stringValue = "Callbacks received: 0\n" + message
+            }
         }
     }
 
@@ -138,7 +146,9 @@ struct QAWindowInventory {
             guard url.scheme == "draftly-engine-echo",
                   let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems else { continue }
             if url.host == "received" {
-                resultField.stringValue = query.map { $0.name + "=" + ($0.value ?? "") }.joined(separator: "\n")
+                receivedCallbackCount += 1
+                resultField.stringValue = "Callbacks received: \(receivedCallbackCount)\n"
+                    + query.map { $0.name + "=" + ($0.value ?? "") }.joined(separator: "\n")
                 panel?.makeKeyAndOrderFront(nil)
                 continue
             }
