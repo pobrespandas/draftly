@@ -13,6 +13,14 @@ public struct ActionExecutionReport: Equatable, Sendable {
     public let result: ActionExecutionResult
     public let reason: ActionTerminationReason
     public let successParameters: [String: String]
+
+    public static func notStarted(actionID: UUID, reason: ActionTerminationReason, message: String) -> Self {
+        precondition(reason != .success, "An unstarted action cannot succeed.")
+        let now = Date()
+        return Self(executionID: UUID(), actionID: actionID, startedAt: now, finishedAt: now,
+                    result: reason == .cancelled ? .cancelled : .failure(message),
+                    reason: reason, successParameters: [:])
+    }
 }
 
 public struct ActionExecutionStep: Equatable, Sendable {

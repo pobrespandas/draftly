@@ -4,6 +4,17 @@ import Testing
 
 @Suite("Action execution session") @MainActor
 struct ActionExecutionSessionTests {
+    @Test(arguments: [ActionTerminationReason.busy, .cancelled, .error, .timeout])
+    func rejectedStartsHaveASeparateFinalReportWithoutSuccessParameters(_ reason: ActionTerminationReason) {
+        let actionID = UUID()
+        let report = ActionExecutionReport.notStarted(actionID: actionID, reason: reason, message: "Neutral rejection")
+        let other = ActionExecutionReport.notStarted(actionID: actionID, reason: reason, message: "Neutral rejection")
+        #expect(report.actionID == actionID && report.executionID != other.executionID)
+        #expect(report.startedAt == report.finishedAt && report.successParameters.isEmpty)
+        #expect(report.reason == reason)
+        #expect(report.result == (reason == .cancelled ? .cancelled : .failure("Neutral rejection")))
+    }
+
     @Test func completionIsFinalAndFailedRunsDropSuccessParameters() {
         let session = ActionExecutionSession(actionID: UUID())
         let step = ActionStep("script")

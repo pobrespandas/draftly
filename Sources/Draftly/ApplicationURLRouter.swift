@@ -69,7 +69,10 @@ struct ApplicationURLRouter {
                     let output = try await AutomationActionExecution.run(action, noteID: note.id, library: library,
                         models: controller.windows.allObjects, host: host)
                     if case .failure(let message) = output.report.result { library.error = message }
-                    show(output.noteID)
+                    if output.report.result.succeeded,
+                       !controller.windows.allObjects.contains(where: { $0.library === library && $0.editor.noteID == output.noteID && $0.window?.isVisible == true }) {
+                        show(output.noteID)
+                    }
                     if let callback = output.report.result.callbackURL(parameters: callbackParameters, successParameters: output.report.successParameters) { NSWorkspace.shared.open(callback) }
                 } catch {
                     library.error = error.localizedDescription
