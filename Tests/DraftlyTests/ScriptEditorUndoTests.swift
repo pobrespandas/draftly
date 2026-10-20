@@ -71,6 +71,7 @@ struct ScriptEditorUndoTests {
             do { _ = try model.actionUIOperation(["operation": "showDictate"]) }
             catch { Issue.record(error); continuation.resume() }
         }
+        await model.dictationSession.wait()
         #expect(model.editor.content == "Dictated 🐼" && text.string == "Dictated 🐼")
         text.manager.undo()
         #expect(model.editor.content == "Original 🐼" && model.editor.selection == NSRange(location: 0, length: 8))

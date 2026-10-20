@@ -30,7 +30,9 @@ final class WindowModel: ObservableObject {
     @Published var selectedWorkspace: UUID?
     @Published var sort: NoteSort = .modified { didSet { updateWorkspaceSort() } }
     @Published var ascending = false { didSet { updateWorkspaceSort() } }
-    private(set) var dictationActive = false
+    let dictationSession = WindowDictationSession()
+    var dictationActive: Bool { dictationSession.isActive }
+    var presentDictation: (@MainActor () async throws -> String)?
     var recoverDictation: (String) -> Void
     @Published var showActionBar = true
     @Published var showActions = false
@@ -152,22 +154,17 @@ final class WindowModel: ObservableObject {
     func showDictation() throws {
         guard !dictationActive else { throw DraftlyError.message("Dictation is already active in this window.") }
         guard editor.focusForDictation != nil else { throw DraftlyError.message("The editor dictation interface is unavailable.") }
-        editor.focusToken = UUID(); showPreview = false; dictationActive = true
-        RunLoop.main.perform(inModes: [.default]) { [weak self] in
-            MainActor.assumeIsolated {
-                guard let self else { return }
-                defer { self.dictationActive = false }
-                guard self.editor.focusForDictation?() == true else { self.library.error = "The editor dictation interface is unavailable."; return }
-                let id = self.editor.noteID, content = self.editor.content, selection = self.editor.safeSelection
-                do {
-                    guard let text = try self.host.perform("dictate", values: [:]) as? String, !text.isEmpty else { return }
-                    if self.editor.noteID == id && self.editor.content == content {
-                        try self.editor.replace(selection, with: text)
-                        self.editor.synchronizeScriptEdit?(); self.contentChanged(); _ = self.flush()
-                    } else { self.recoverDictation(text) }
-                } catch { self.library.error = error.localizedDescription }
+        editor.focusToken = UUID(); showPreview = false
+        let host = self.host
+        let present = presentDictation ?? {
+            let response = try await host.performAsync("dictate", payload: "{}")
+            guard let envelope = try JSONSerialization.jsonObject(with: Data(response.utf8)) as? [String: Any] else {
+                throw DraftlyError.message("Dictation returned an invalid response.")
             }
+            if let error = envelope["error"] as? String { throw DraftlyError.message(error) }
+            return envelope["value"] as? String ?? ""
         }
+        dictationSession.start(model: self, present: present)
     }
     var currentNote: Note? { library.notes.first { $0.id == editor.noteID } ?? scratchNote }
     @Published var workspaceScriptMetadata: [String: String]?
@@ -342,6 +339,7 @@ final class WindowModel: ObservableObject {
         return report
     }
     func cancelActions() {
+        dictationSession.cancel()
         arrangementSession.cancel()
         actionTask?.cancel()
         runner.cancel()

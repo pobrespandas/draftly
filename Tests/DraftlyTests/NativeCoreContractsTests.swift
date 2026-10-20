@@ -104,6 +104,7 @@ struct NativeCoreContractsTests {
                 #expect(throws: (any Error).self) { try model.actionUIOperation(["operation": "showDictate"]) }
             } catch { Issue.record(error); continuation.resume() }
         }
+        await model.dictationSession.wait()
         #expect(calls == 1 && model.editor.content == "Keep text")
         model.editor.focusForDictation = nil
         #expect(throws: (any Error).self) { try model.actionUIOperation(["operation": "showDictate"]) }
@@ -119,12 +120,14 @@ struct NativeCoreContractsTests {
             do { _ = try model.actionUIOperation(["operation": "showDictate"]) }
             catch { Issue.record(error); continuation.resume() }
         }
+        await model.dictationSession.wait()
         #expect(recovered == "Recovered speech" && model.editor.content == "Changed destination" && !model.dictationActive)
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             model.host.dictationHandler = { _ in continuation.resume(); throw DraftlyError.message("Expected input failure") }
             do { _ = try model.actionUIOperation(["operation": "showDictate"]) }
             catch { Issue.record(error); continuation.resume() }
         }
+        await model.dictationSession.wait()
         #expect(model.library.error == "Expected input failure" && model.editor.content == "Changed destination")
     }
     @Test func configureWindowPreflightsReferencesAndAppliesAllControls() throws {
