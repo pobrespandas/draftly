@@ -18298,6 +18298,12 @@
             "executableSHA256": "fa4f515c36a19fe557292b8ee73c1ed02e8a06e94456c55b7f4b20f69876ff4c",
             "result": "A second window created during a neutral async wait loaded another draft and disabled all run menu entries without offering cancellation of the owner. Owner cancellation re-enabled those entries; the second window then ran an action successfully.",
             "evidence": "docs/validation.md: Library execution availability across windows — 20 October 2026"
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "99a067dd93e833bb4cd2a2912ac6596b8150ada162af5c5ee21b3799a102a841",
+            "fixture": "scripts/fixtures/engine-promise-actions.json",
+            "result": "Started QA Native async timeout from Actions, observed its completed editor write while awaiting finalization, then used Close and separately the window close button. Each showed an Untitled editor afterward. History recorded Cancelled twice. Both completed writes stayed in Inbox with no tail text. A subsequent QA Caught rejection completed successfully. This covers UI owner-close cancellation, not URL/Intent owner-close callbacks or a no-window state."
           }
         ]
       },

@@ -4230,3 +4230,28 @@ passed. No new UI-opening automatic test was added. The native check establishes
 this presentation path; the inspector's wider visual parity, all options, and
 workspace management acceptance remain open. No screenshot or raw log is
 stored in the repository.
+
+
+### Native UI owner-close cancellation — 20 October 2026
+
+Native: used isolated Engine QA image99a067dd93e833bb and the unchanged
+engine-promise-actions.json fixture. Started QA Native async timeout from
+Actions. Observed Async timeout completed write before finalization. Used
+Command-W. The next observation showed an Untitled editor; Cancel Running
+Action was disabled. Started the fixture again and pressed the observed native
+window close button. The next observation again showed Untitled.
+
+Execution History showed two new Cancelled entries. The two completed writes
+remained in Inbox. No ERROR tail text appeared and Archive did not apply.
+Then ran QA Caught rejection, which completed with Caught rejection completed.
+The library was available for the next run. No production code changed.
+
+This verifies UI cancellation at the observed close boundaries. It does not
+claim a persistent no-window state: Computer Use returned an Untitled window
+after both operations. It does not verify URL or App Intent owner-close
+callbacks, multiwindow ownership, or late native capability responses. The
+common-entry contract stays partial. Existing ownerLifetimeCancelsItsChildAnd
+RemovesObserverOnce covers injected owner-close and parent-task cancellation
+automatically; this manual check does not replace the other native entry paths.
+No new tests or build ran. The last full regression remains app444/core468.
+No screenshots or raw logs are tracked.

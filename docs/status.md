@@ -946,3 +946,9 @@ Library Organization now exposes separate row buttons and opens the action
 inspector locally. Native Edit, Cancel, Save, reopen, group Edit/Cancel, and Done
 passed in QA. Ten relevant existing tests and the unsigned build passed. This
 resolves the observed management access path, not full inspector parity.
+
+
+Native UI close cancellation now passes at Command-W and the window close
+button: history recorded Cancelled, completed writes remained in Inbox, no
+tail or Archive ran, and a subsequent action succeeded. URL/Intent owner-close
+and multiwindow acceptance remain open.
