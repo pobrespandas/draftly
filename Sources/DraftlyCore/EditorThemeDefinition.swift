@@ -1,30 +1,5 @@
 import Foundation
 
-public indirect enum ThemeJSONValue: Codable, Equatable, Sendable {
-    case null, bool(Bool), number(Decimal), string(String), array([ThemeJSONValue]), object([String: ThemeJSONValue])
-
-    public init(from decoder: Decoder) throws {
-        let value = try decoder.singleValueContainer()
-        if value.decodeNil() { self = .null }
-        else if let result = try? value.decode(Bool.self) { self = .bool(result) }
-        else if let result = try? value.decode(Decimal.self) { self = .number(result) }
-        else if let result = try? value.decode(String.self) { self = .string(result) }
-        else if let result = try? value.decode([ThemeJSONValue].self) { self = .array(result) }
-        else { self = .object(try value.decode([String: ThemeJSONValue].self)) }
-    }
-    public func encode(to encoder: Encoder) throws {
-        var value = encoder.singleValueContainer()
-        switch self {
-        case .null: try value.encodeNil()
-        case .bool(let result): try value.encode(result)
-        case .number(let result): try value.encode(result)
-        case .string(let result): try value.encode(result)
-        case .array(let result): try value.encode(result)
-        case .object(let result): try value.encode(result)
-        }
-    }
-}
-
 public struct EditorThemeDefinition: Codable, Identifiable, Equatable, Sendable {
     public var id = UUID()
     public var name = "New Theme"

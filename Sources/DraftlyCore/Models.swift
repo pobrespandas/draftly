@@ -155,9 +155,10 @@ public struct DraftAction: Identifiable, Codable, Equatable {
     public var unsupportedSteps: [String] { steps.filter { $0.isEnabled != false }.map(\.type).filter { !Self.supportedSteps.contains($0) } }
 }
 
-public struct ActionRun: Identifiable, Codable {
+public struct ActionRun: Identifiable, Codable, Equatable {
     public var id: UUID = UUID()
     public var date: Date = Date()
+    public var unknownFields: [String: JSONValue] = [:]
     public var actionName: String
     public var status: String
     public var message: String
@@ -169,6 +170,7 @@ public struct ActionRun: Identifiable, Codable {
 }
 
 public struct Backup: Codable {
+    public var runs: [ActionRun]?
     public var themes: [EditorThemeDefinition]?
     public var syntaxes: [SyntaxDefinition]?
     public var actionGroups: [ActionGroupRecord]?
@@ -177,7 +179,8 @@ public struct Backup: Codable {
     public var revisions: [Revision]
     public var workspaces: [Workspace]
     public var actions: [DraftAction]
-    public init(notes: [Note], revisions: [Revision], workspaces: [Workspace], actions: [DraftAction], actionGroups: [ActionGroupRecord]? = nil, syntaxes: [SyntaxDefinition]? = nil, themes: [EditorThemeDefinition]? = nil) {
+    public init(notes: [Note], revisions: [Revision], workspaces: [Workspace], actions: [DraftAction], actionGroups: [ActionGroupRecord]? = nil, syntaxes: [SyntaxDefinition]? = nil, themes: [EditorThemeDefinition]? = nil, runs: [ActionRun]? = nil) {
+        self.runs = runs
         self.themes = themes
         self.syntaxes = syntaxes
         self.actionGroups = actionGroups

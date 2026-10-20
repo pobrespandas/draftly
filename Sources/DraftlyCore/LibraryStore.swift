@@ -293,11 +293,15 @@ public final class LibraryStore: ObservableObject {
     }
     public func backupData() throws -> Data {
         let encoder = JSONEncoder(); encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        return try encoder.encode(Backup(notes: notes, revisions: revisions, workspaces: workspaces, actions: actions, actionGroups: actionGroups, syntaxes: syntaxes, themes: themes))
+        return try encoder.encode(Backup(notes: notes, revisions: revisions, workspaces: workspaces, actions: actions, actionGroups: actionGroups, syntaxes: syntaxes, themes: themes, runs: runs))
     }
     public func restore(_ data: Data) throws {
         let backup = try JSONDecoder().decode(Backup.self, from: data)
         guard backup.version == 1 else { throw DraftlyError.message("This backup version is not supported.") }
+        let runsToRestore = backup.runs ?? []
+        guard Set(runsToRestore.map(\.id)).count == runsToRestore.count else {
+            throw DraftlyError.message("The backup contains duplicate execution identities.")
+        }
         let themesToRestore = backup.themes ?? []
         try validateThemes(themesToRestore)
         let syntaxesToRestore = try (backup.syntaxes ?? []).map { try SyntaxDefinition(data: Data($0.source.utf8), type: $0.type, id: $0.id) }
@@ -315,6 +319,11 @@ public final class LibraryStore: ObservableObject {
         for var revision in backup.revisions {
             if let newID = remapped[revision.noteID] { revision.noteID = newID; revision.id = UUID() }
             try persist(revision, id: revision.id, kind: "revision")
+        }
+        for var run in runsToRestore {
+            if let noteID = run.noteID, let newID = remapped[noteID] { run.noteID = newID }
+            if let existing = runs.first(where: { $0.id == run.id }), existing != run { run.id = UUID() }
+            try persist(run, id: run.id, kind: "run")
         }
         for theme in themesToRestore { try persist(theme, id: theme.id, kind: "theme") }
         for syntax in syntaxesToRestore { try persist(syntax, id: syntax.id, kind: "syntax") }

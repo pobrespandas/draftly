@@ -168,7 +168,7 @@ struct SettingsView: View {
                     let folder = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Draftly")
                     NSWorkspace.shared.open(folder)
                 }
-                Text("Use File → Export Full Backup to save drafts, revisions, workspaces, and actions.").font(.caption).foregroundStyle(.secondary)
+                Text("Use File → Export Full Backup to save drafts, revisions, workspaces, actions, themes, and execution history.").font(.caption).foregroundStyle(.secondary)
             }
         }.formStyle(.grouped)
     }

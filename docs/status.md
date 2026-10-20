@@ -261,8 +261,8 @@ See [iCloud evidence](research/icloud-acceptance-2026-10-19.json).
 
 Pending:
 
-- Shared themes are included in compatible backups with rollback tests. Add
-  execution history and verify the complete recovery contract.
+- Shared themes and execution history are included in compatible backups with
+  rollback tests. Verify the complete recovery contract through the native UI.
 - Repeat restore/migration and unknown-field checks for all new fields.
 - Repeat the broad main-container matrix with both clients connected: metadata,
   revisions, actions/groups/order, workspaces, syntax, themes, Trash/Restore,
@@ -613,3 +613,8 @@ on a visible owner. The URL left the scratch selected and delivered one success
 callback. Undo/Redo in that scratch and the original archived text passed their
 checks. Older Undo stack retention, headless variants, list-end behavior, exact
 Drafts comparison, and the physical global-key check remain pending.
+
+
+Execution history now joins themes in compatible version 1 backups. Six specific
+methods and the full regression (432 app and 425 core) passed. The unsigned build
+passed. Native recovery and connected synchronization remain pending.

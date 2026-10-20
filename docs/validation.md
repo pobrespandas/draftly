@@ -2930,3 +2930,31 @@ QA and the helper remain open for the physical-key check. No source change,
 screenshot, or raw log was added in this verification turn. Exact Drafts action
 behavior, list-end fallback, multiple-window native navigation, and remaining
 Settings acceptance stay open. No new automatic test run is claimed.
+
+### Execution history backup — 20 October 2026
+
+Implemented: version 1 backups now include optional runs. Older backups without
+the field remain readable and do not remove existing history. Export includes
+all stored execution records, including records whose draft or action no longer
+exists. IDs, dates, status, messages, and relations are retained. Restore remaps
+a run's draft relation when it creates a conflict copy of that draft. A run-ID
+collision with different data keeps both records. Identical records keep their
+identity without duplication. Duplicate run IDs within an incoming backup are
+rejected before any write. All restore writes share the existing transaction.
+
+ActionRun now preserves unknown JSON fields through storage and backup. The
+generic lossless JSON value moved to JSONValue. ThemeJSONValue remains a public
+alias, so existing theme APIs retain source compatibility. Known date fields
+continue to use the encoder/decoder date strategies. No Core Data schema or
+public scripting identifier changed. Credential storage and local file grants
+remain outside the backup contract.
+
+Automatically tested: six methods cover exact metadata and unknown fields,
+large numeric values, Unicode, disk reopen, repeated restore, older backups,
+orphan records, conflicting drafts/logs with relation remapping, atomic failure,
+duplicate identities, and date strategy compatibility. Full regression passed
+432 app and 425 core methods. No test opens a window or accesses a user library.
+Native export/import/restart and connected Mac+VM synchronization remain pending.
+This entry does not accept the full backup or synchronization matrix.
+
+The unsigned Xcode Debug build passed after the history backup changes.

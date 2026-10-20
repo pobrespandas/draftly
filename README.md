@@ -128,10 +128,12 @@ action snapshots have source URLs and SHA-256 hashes in the fixture manifest.
 
 The local library is in `~/Library/Application Support/Draftly`. The SQLite
 store includes drafts, immutable content revisions, workspaces, actions, and logs.
-Backups include action groups and syntax definitions. They omit execution
-history, credentials, and local file permissions. A backup restores both copies when
-the same draft ID has different content or metadata. The copied draft keeps its
-own revision history.
+Backups include action groups, syntax definitions, themes, and execution
+history. They omit credentials and local file permissions. A backup restores both
+copies when the same draft ID has different content or metadata. The copied
+draft keeps its revisions and restored execution history. Conflicting execution
+records also keep both variants. Older backups without execution history remain
+supported.
 
 The interface was checked against the installed Drafts Mac app. See the
 [interface reference](docs/research/drafts-mac.md) for the controls used.
