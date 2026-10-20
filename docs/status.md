@@ -990,3 +990,9 @@ export and backup. Focused tests, the app build, and native QA button execution
 passed. The full app suite passed 446 tests. The full core run did not finish
 and was stopped; its cause remains open. Native inspector edit/cancel acceptance
 and other imported presentation options remain pending.
+
+
+A full regression recheck completed successfully: app446/core471. Matrix
+structure passes. The prior core stall did not reproduce; its cause remains
+unknown. This result replaces the incomplete run as the latest full test
+evidence, but does not close native inspector acceptance or API parity.

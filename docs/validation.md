@@ -4436,3 +4436,13 @@ and ran their scripts. The editor showed each expected Unicode result.
 The new inspector controls still need a native edit/cancel check. This change
 does not close inspector parity or imported color and visibility contracts.
 No screenshots or raw logs are tracked.
+
+
+### Full regression recheck — 20 October 2026
+
+Confirmed that the stopped core test process was absent before a new run.
+Repeated the full suite with the current committed editing bar change.
+The command completed with exit zero: app446/core471. Matrix structure also
+passes. The earlier incomplete run did not reproduce. Its cause is unknown;
+this recheck does not establish a fix for that stall. Native inspector
+edit/cancel acceptance and the remaining roadmap contracts stay pending.
