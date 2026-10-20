@@ -11,6 +11,26 @@ import DraftlyCore
     }
 
     typealias ModelResolver = @MainActor ([WindowModel], UUID) -> WindowModel?
+    typealias CloseRegistration = @MainActor (WindowModel, @escaping @MainActor () -> Void) -> (@MainActor () -> Void)
+
+    private final class OwnerLifetime {
+        var closed = false
+        var task: Task<ActionExecutionReport?, Never>?
+        func close() { closed = true; task?.cancel() }
+        func attach(_ task: Task<ActionExecutionReport?, Never>) {
+            self.task = task
+            if closed { task.cancel() }
+        }
+    }
+
+    static func registerOwnerClose(_ model: WindowModel, close: @escaping @MainActor () -> Void) -> (@MainActor () -> Void) {
+        guard let window = model.window else { return {} }
+        let subscription = NotificationCenter.default.publisher(for: NSWindow.willCloseNotification, object: window).sink { _ in
+            MainActor.assumeIsolated { close() }
+        }
+        return { subscription.cancel() }
+    }
+
     struct WindowState {
         var isVisible: Bool
         var isKey: Bool
@@ -37,7 +57,8 @@ import DraftlyCore
 
     static func run(_ action: DraftAction, noteID: UUID, library: LibraryStore,
                     models: [WindowModel], host: any ActionHost,
-                    resolveModel: ModelResolver = { AutomationActionExecution.visibleModel($0, noteID: $1) }) async throws -> Output {
+                    resolveModel: ModelResolver = { AutomationActionExecution.visibleModel($0, noteID: $1) },
+                    registerClose: CloseRegistration = { AutomationActionExecution.registerOwnerClose($0, close: $1) }) async throws -> Output {
         try Task.checkCancellation()
         let models = models.filter { $0.library === library }
         let candidate = resolveModel(models, noteID)
@@ -46,6 +67,12 @@ import DraftlyCore
             return notStarted(action, noteID: noteID, reason: .busy, message: "An action is already running in this library.")
         }
         let ownerWindow = model?.window
+        let lifetime = OwnerLifetime()
+        let removeCloseObserver = model.map { registerClose($0) { lifetime.close() } }
+        defer { removeCloseObserver?(); lifetime.task = nil }
+        guard !lifetime.closed else {
+            return notStarted(action, noteID: noteID, reason: .cancelled, message: "The target window closed before the action started.")
+        }
         for model in models {
             guard model.flush() else { throw DraftlyError.message("Pending edits could not be saved. The action was not started.") }
         }
@@ -90,8 +117,14 @@ import DraftlyCore
         defer { subscriptions.forEach { $0.cancel() } }
         let report: ActionExecutionReport
         if let model {
-            if let completed = await model.runAsync(action) { report = completed }
-            else if Task.isCancelled {
+            let operation = Task { @MainActor in
+                guard !lifetime.closed, !Task.isCancelled else { return Optional<ActionExecutionReport>.none }
+                return await model.runAsync(action)
+            }
+            lifetime.attach(operation)
+            let completed = await withTaskCancellationHandler { await operation.value } onCancel: { operation.cancel() }
+            if let completed { report = completed }
+            else if lifetime.closed || Task.isCancelled || operation.isCancelled {
                 return notStarted(action, noteID: editor.noteID, reason: .cancelled, message: "The action was cancelled before it started.")
             } else if model.actionPending || runner.isRunning {
                 return notStarted(action, noteID: editor.noteID, reason: .busy, message: "An action is already running in the target window.")

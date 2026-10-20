@@ -119,6 +119,57 @@ struct AutomationEditorContextTests {
         #expect(library.notes.first?.content == expected)
     }
 
+    @Test func ownerCloseBeforeChildStartsDoesNotFlushOrExecute() async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let target = try library.createNote(content: "Stored")
+        var saves = 0, removals = 0
+        let model = WindowModel(library: library, saveDraft: { note in saves += 1; try library.saveNote(note) })
+        model.select(target.id)
+        model.editor.content = "Pending"; model.contentChanged()
+        let action = DraftAction(name: "Never start", steps: [ActionStep("script", ["script": "editor.setText('Late');"])])
+        let output = try await AutomationActionExecution.run(action, noteID: target.id, library: library,
+            models: [model], host: UnusedAutomationContextHost(), resolveModel: { _, _ in model },
+            registerClose: { _, close in close(); return { removals += 1 } })
+        #expect(output.report.reason == .cancelled)
+        #expect(saves == 0 && removals == 1 && library.runs.isEmpty)
+        #expect(model.runner.lastReport == nil && !model.actionPending)
+        #expect(model.editor.content == "Pending" && model.hasUnsavedChanges)
+        #expect(library.notes.first?.content == "Stored")
+    }
+
+    @Test(arguments: ["owner close", "parent cancellation"])
+    func ownerLifetimeCancelsItsChildAndRemovesObserverOnce(interruption: String) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let target = try library.createNote(content: "Source")
+        let model = WindowModel(library: library), alternate = WindowModel(library: library)
+        model.select(target.id); alternate.select(target.id)
+        let host = WaitingAutomationContextHost(); model.runner.host = host
+        var closeOwner: (@MainActor () -> Void)?, removals = 0, resolutions = 0
+        let action = DraftAction(name: "Owner lifetime", steps: [ActionStep("script", ["script": "editor.arrange('Neutral');editor.setText('Late');"])])
+        let task = Task { try await AutomationActionExecution.run(action, noteID: target.id, library: library,
+            models: [alternate, model], host: UnusedAutomationContextHost(), resolveModel: { _, _ in resolutions += 1; return model },
+            registerClose: { _, close in closeOwner = close; return { removals += 1; closeOwner = nil } }) }
+        await host.waitForStart()
+        if interruption == "owner close" { closeOwner?() } else { task.cancel() }
+        let output = try await task.value
+        #expect(output.report.reason == .cancelled && resolutions == 1 && removals == 1)
+        #expect(closeOwner == nil && !model.actionPending && !model.runner.isRunning)
+        #expect(alternate.runner.lastReport == nil && !host.finish("Late response"))
+        #expect(model.editor.content == target.content && library.notes.first?.content == target.content)
+    }
+
+    @Test func successfulOwnedRunRemovesCloseObserverOnce() async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let target = try library.createNote(content: "Source")
+        let model = WindowModel(library: library); model.select(target.id)
+        var removals = 0
+        let output = try await AutomationActionExecution.run(DraftAction(name: "Success", steps: []), noteID: target.id,
+            library: library, models: [model], host: UnusedAutomationContextHost(), resolveModel: { _, _ in model },
+            registerClose: { _, _ in { removals += 1 } })
+        #expect(output.report.reason == .success && removals == 1)
+        #expect(!model.actionPending && !model.runner.isRunning)
+    }
+
     @Test func aResolverCannotBorrowAModelForAnotherNote() async throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let target = try library.createNote(content: "Target"), other = try library.createNote(content: "Other")
