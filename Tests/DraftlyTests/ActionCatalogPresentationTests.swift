@@ -5,6 +5,21 @@ import DraftlyCore
 
 @Suite("Action catalog presentation")
 struct ActionCatalogPresentationTests {
+    @Test func barLabelsRespectTextChoiceAndKeepFullNameForAccessibility() {
+        var action = DraftAction(name: "Full action café 🐼", steps: [])
+        #expect(ActionBarLabel(action).text == action.name && ActionBarLabel(action).usesIcon)
+        action.presentation.barLabel = "Short 🐼"
+        action.presentation.barUsesIcon = false
+        let text = ActionBarLabel(action)
+        #expect(text.text == "Short 🐼" && !text.usesIcon)
+        #expect(text.accessibilityLabel == action.name)
+        action.presentation.barLabel = ""
+        #expect(ActionBarLabel(action).text == action.name)
+        action.presentation.barUsesIcon = true
+        #expect(ActionBarLabel(action).usesIcon)
+        #expect(action.presentation.barLabel == "")
+    }
+
     private func action(_ name: String, group: String = "General", section: String = "", separator: Bool = false) -> DraftAction {
         var action = DraftAction(name: name, steps: [])
         action.group = group

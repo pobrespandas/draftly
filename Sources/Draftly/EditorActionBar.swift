@@ -2,6 +2,19 @@ import SwiftUI
 import AppKit
 import DraftlyCore
 
+struct ActionBarLabel: Equatable {
+    let text: String
+    let usesIcon: Bool
+    let accessibilityLabel: String
+
+    init(_ action: DraftAction) {
+        let label = action.presentation.barLabel ?? ""
+        text = label.isEmpty ? action.name : label
+        usesIcon = action.presentation.barUsesIcon ?? true
+        accessibilityLabel = action.name
+    }
+}
+
 struct EditorActionBar: View {
     @ObservedObject var model: WindowModel
     @ObservedObject var session: EditorSession
@@ -45,7 +58,7 @@ struct EditorActionBar: View {
                     if entry.kind == .separator {
                         Divider().frame(height: 18).help(entry.source.name)
                     } else if let action = entry.runnableAction {
-                        barButton(action.name, action.symbol) { model.run(action) }
+                        configuredActionButton(action)
                             .disabled(!model.canRunActions)
                     }
                 }
@@ -54,6 +67,18 @@ struct EditorActionBar: View {
             .onChange(of: library.actions) { _, _ in
                 if !groups.contains(model.actionBarGroup) { model.actionBarGroup = "Editing" }
             }
+    }
+    private func configuredActionButton(_ action: DraftAction) -> some View {
+        let label = ActionBarLabel(action)
+        return Button { model.run(action) } label: {
+            Group {
+                if label.usesIcon {
+                    Image(systemName: action.symbol).font(.system(size: 17, weight: .regular)).frame(width: 22)
+                } else {
+                    Text(label.text).font(.system(size: 13)).lineLimit(1).fixedSize()
+                }
+            }.foregroundStyle(barColor(action.name))
+        }.buttonStyle(.plain).help(action.name).accessibilityLabel(label.accessibilityLabel)
     }
     private func barButton(_ name: String, _ symbol: String, action: @escaping () -> Void) -> some View {
         Button(action: action) { Image(systemName: symbol).font(.system(size: 17, weight: .regular)).foregroundStyle(barColor(name)).frame(width: 22) }.buttonStyle(.plain).help(name).accessibilityLabel(name)

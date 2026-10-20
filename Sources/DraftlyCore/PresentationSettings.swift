@@ -5,6 +5,8 @@ public enum ActionSurface { case list, bar, search }
 public struct ActionPresentation: Codable, Equatable {
     public var unknownFields: [String: JSONValue] = [:]
     public var description = ""
+    public var barLabel: String?
+    public var barUsesIcon: Bool?
     public var showInList = true
     public var showInBar = true
     public var showInSearch = true

@@ -4414,3 +4414,25 @@ the new token and verifies the fresh Unicode response. All six router methods
 pass. Full regression passed app445/core468. Matrix structure passes. No
 visible automatic test or new production build ran. No screenshots or raw
 logs are tracked.
+
+
+### Imported editing bar options — 20 October 2026
+
+Implemented: import shortName and keyUseIcon into optional presentation fields.
+Old libraries keep the existing icon default. Native export and backup preserve
+these fields and the original payload. The editing bar uses the selected text
+or icon. Its accessibility label keeps the full action name. The inspector
+exposes Label and Show Icon on its temporary edit copy.
+
+Automatic: seven catalog tests and eight import/preservation tests passed.
+The unsigned app build passed. The full app suite passed 446 tests. The full
+core run did not finish and was stopped; it is not an accepted full regression.
+The cause remains unresolved. The last complete core regression was 468 tests.
+
+Native: isolated Engine QA image cfe943f562b25968b. Imported the neutral
+scripts/fixtures/action-bar-label-actions.json fixture. The bar showed a star
+and Text café 🐼. Both buttons retained their full action names in accessibility
+and ran their scripts. The editor showed each expected Unicode result.
+The new inspector controls still need a native edit/cancel check. This change
+does not close inspector parity or imported color and visibility contracts.
+No screenshots or raw logs are tracked.

@@ -1,0 +1,32 @@
+[
+  {
+    "name": "QA Bar text action",
+    "group": "QA Bar",
+    "shortName": "Text café 🐼",
+    "keyUseIcon": false,
+    "icon": "symbol||doc.text",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Text bar action ran café 🐼');"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Bar icon action",
+    "group": "QA Bar",
+    "shortName": "Icon label",
+    "keyUseIcon": true,
+    "icon": "symbol||star",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Icon bar action ran café 🐼');"
+        }
+      }
+    ]
+  }
+]

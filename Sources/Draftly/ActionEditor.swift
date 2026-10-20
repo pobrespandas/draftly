@@ -33,6 +33,12 @@ struct ActionEditor: View {
                         TextField("Section", text: $action.presentation.section)
                         Stepper("Order: \(action.presentation.order)", value: $action.presentation.order)
                     }
+                    Section("Editing Bar") {
+                        TextField("Label", text: Binding(get: { action.presentation.barLabel ?? "" },
+                            set: { action.presentation.barLabel = $0 }))
+                        Toggle("Show Icon", isOn: Binding(get: { action.presentation.barUsesIcon ?? true },
+                            set: { action.presentation.barUsesIcon = $0 }))
+                    }
                     Section("Visibility") {
                         Toggle("Action List", isOn: $action.presentation.showInList)
                         Toggle("Editing Bar", isOn: $action.presentation.showInBar)

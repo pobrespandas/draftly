@@ -983,3 +983,10 @@ the cancelled request keeps Cancelled and the next accepts only fresh data.
 The existing router cancellation test now rejects the old token during a new
 pending request. Full regression passed app445/core468. Other capabilities
 and entry variants remain open.
+
+
+Imported editing bar labels and icon choices now affect rendering and survive
+export and backup. Focused tests, the app build, and native QA button execution
+passed. The full app suite passed 446 tests. The full core run did not finish
+and was stopped; its cause remains open. Native inspector edit/cancel acceptance
+and other imported presentation options remain pending.
