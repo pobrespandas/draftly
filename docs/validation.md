@@ -3025,3 +3025,36 @@ callback helper remain open for the physical global-key check. No screenshot or
 raw backup is tracked. Connected Mac+VM synchronization, nonempty syntax/group
 recovery, native conflict recovery, signed updates, and the rest of the approved
 Mac plan remain open.
+
+### Native backup content conflict and history remapping — 20 October 2026
+
+Used the separate Recovery QA library from the previous acceptance. Opened
+Navigation URL café 🐼 in Archive, identity
+638B9094-2E65-45F4-B038-4C5EBF784204. Added a neutral final line, Current recovery
+edit café 🐼. Import flushed that edit before the file panel opened. Selected
+the original history backup by its exact path and confirmed its filename.
+Import completed without replacing the current editor text. Archive showed
+both the edited note and the unedited recovered note.
+
+Exported the result through File → Export Full Backup to a temporary file.
+Decoded JSON comparison confirmed the edited original retained its identity and
+full new text. The recovered copy, 49879704-0B6E-4529-A748-EE2877916DC3, retained
+all source fields except its new identity. Its source revision received a new
+identity and the new note relation. The source execution also received a new
+identity and that relation. All other execution fields, including date, action
+identity, status, and message, matched the source. The original execution stayed
+unchanged and linked to the edited original. Every source action, theme,
+workspace, and execution record remained present and unchanged.
+
+The export held 15 notes, 63 revisions, and 76 execution records. These include
+the earlier extra neutral fixture and its revision. The global Execution History
+sheet showed both corresponding Archive successes. It was not a note-filtered
+view. Selecting the recovered copy after export recorded a normal new access;
+the exact field comparison used the export made before that selection.
+
+Recovery QA quit was confirmed. The conflict export remains temporary, outside
+the repository. This accepts the tested native content-conflict graph. It does
+not accept every metadata conflict, repeated conflict import, forced native
+storage failure, or connected synchronization. The previous restart acceptance
+and automatic conflict contracts remain separate. No source code or test suite
+changed in this verification turn.

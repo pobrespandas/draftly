@@ -633,3 +633,10 @@ restart, and export again. All source records matched by identity and full data,
 including 75 execution records. One unrelated neutral note/revision from a
 selection mistake remained as an explicit destination extra. Syntax/group arrays
 were empty. This does not close conflict, failure, or connected-sync acceptance.
+
+
+Native content-conflict recovery passed in Recovery QA. Both texts survived.
+The recovered revision and execution use the copied note identity; the existing
+execution still uses the edited original. Export comparison verified the graph.
+Other conflict variants, native storage failure, syntax/groups, and connected
+sync remain pending.
