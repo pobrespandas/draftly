@@ -81,7 +81,7 @@ stored. These observations do not prove external callbacks or App Intent deliver
 
 ## Remaining work
 
-- Verify real URLs, callbacks, App Intents, multiple windows, and native dialogs.
+- Verify cold-launch URLs, callback timeout, App Intents, multiple windows, and native dialogs.
 - Complete cancellation and deadlines in remaining native capability adapters.
 - Verify HTTP redirects and socket behavior with a local server.
 - Complete contract cases and native acceptance in the engine matrix.
@@ -120,4 +120,9 @@ The runner keeps the library reserved until supported host operations finish the
 cleanup. Hosts must suspend and cooperate with cancellation. A host that ignores
 cancellation keeps the library reserved; its late reply cannot resume a closed
 script. Other native adapters still need an audit of their synchronous waits.
-Real callback delivery through macOS and actual Shortcut execution remain pending.
+Computer Use verified real callback success, cancellation, error, and a late reply
+after user cancellation. Scene routing now keeps the original window. Native
+callback timeout, actual Shortcut execution, and App Intents remain pending.
+Calendar and Reminders authorization and query waits also use the async boundary;
+their real permission and persistence checks remain pending. Event editing still
+uses its modal dialog. See docs/validation.md for the accepted cases.

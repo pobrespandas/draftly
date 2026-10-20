@@ -18,11 +18,13 @@ struct DraftlyApp: App {
                         Button("Try Again") { controller.start() }
                     }.padding(40).frame(minWidth: 600, minHeight: 400)
                 }
-            }.onOpenURL { controller.handle($0) }
+            }
         }
+        .handlesExternalEvents(matching: [])
         .defaultSize(width: 1033, height: 734)
         .commands { DraftlyCommands(controller: controller) }
         Settings { SettingsView(controller: controller) }
+            .handlesExternalEvents(matching: [])
             .commands {
                 if let library = controller.library {
                     LibraryApplicationCommands(library: library, models: { controller.windows.allObjects })

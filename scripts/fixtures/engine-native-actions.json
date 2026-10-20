@@ -1,0 +1,81 @@
+[
+  {
+    "name": "QA Native success",
+    "steps": [
+      {
+        "type": "callbackUrl",
+        "data": {
+          "url": "draftly-engine-echo://reply?status=success"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Callback: '+context.callbackResponses[0].value);"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Native cancelled",
+    "steps": [
+      {
+        "type": "callbackUrl",
+        "data": {
+          "url": "draftly-engine-echo://reply?status=cancelled"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Callback: '+context.callbackResponses[0].value);"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Native error",
+    "steps": [
+      {
+        "type": "callbackUrl",
+        "data": {
+          "url": "draftly-engine-echo://reply?status=error"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Callback: '+context.callbackResponses[0].value);"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Native late",
+    "steps": [
+      {
+        "type": "callbackUrl",
+        "data": {
+          "url": "draftly-engine-echo://reply?status=success&delay=8"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Must not replace edited text');"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Native shell",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "let s=ShellScript.create(\"printf 'Shell café 🐼'\");if(!s.execute())throw new Error(s.standardError);editor.setText(s.standardOutput);"
+        }
+      }
+    ]
+  }
+]

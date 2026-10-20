@@ -24,10 +24,10 @@ retain historical results. Later results supersede earlier counts.
 
 | Check | Latest result |
 | --- | --- |
-| App tests | 192 passed after native async waits |
+| App tests | 212 passed after native waits and automation safety |
 | Core tests | 306 passed; original actions run on both routes |
 | Python tools | 28 passed |
-| Local Xcode build after native async waits | Passed; signing disabled |
+| Local Xcode build after external URL scene fix | Passed; signing disabled |
 | Matrix structure check | 0 errors |
 | Whitespace check | Passed |
 | Strict core and global parity | Still open |

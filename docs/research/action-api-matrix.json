@@ -16110,9 +16110,13 @@
         "test": "timedOutHostReplyCannotChangeTheNextScript"
       },
       "reviewDate": "2026-10-20",
-      "liveCheck": null,
+      "liveCheck": {
+        "date": "2026-10-20",
+        "evidence": "docs/validation.md",
+        "result": "Separate QA app and local helper: real macOS success, cancel, error, and late callback delivery. User typing cancelled an eight-second wait; late reply retained text and did not create another window. Native 120-second timeout and other entry points remain pending."
+      },
       "limitations": [
-        "Execution and step IDs isolate replies. ActionCallbackRouterTests covers token expiry and synchronous delivery. AsyncHostDrainTests.scriptRequestKeepsLibraryBusyUntilCancelledHostCleanupReturns covers request cleanup before library release. NativeProcessExecutorTests covers local process termination. Actual callback delivery and Shortcut execution remain pending."
+        "Execution and step IDs isolate replies. AsyncHostDrainTests covers cleanup before library release. NativeProcessExecutorTests covers local process termination. Native callback timeout, actual Shortcut execution, App Intent delivery, and remaining capability variants are pending."
       ]
     },
     {

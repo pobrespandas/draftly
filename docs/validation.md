@@ -1213,3 +1213,25 @@ stored text, and the action's own native editor changes. The full run passed 212
 app tests in 36 suites and 306 core tests in 40 suites. Targeted automation and
 native-host tests passed after restricting the mutation marker to text operations.
 Real App Intent invocation and the full multiple-window acceptance remain pending.
+
+## Real callback delivery and scene creation — 20 October 2026
+
+Computer Use ran a separate local QA app and a neutral callback helper. Both used
+QA-only URL schemes. The normal Draftly URL registration stayed unchanged.
+The helper returned Unicode through macOS URL delivery. Success updated the draft;
+cancellation and error stopped the following script and retained its text.
+Typing during an eight-second callback wait cancelled the action. After the late
+reply, the exact user text remained. Execution History showed the matching
+Success, Cancelled, and Error entries. A neutral shell action also completed from
+the interface and wrote its Unicode output into the editor.
+
+The first real callback exposed an extra blank window. Moving URL receipt to the
+application delegate alone did not fix it. Excluding the library and Settings
+scenes from automatic external-event scene creation fixed the observed case.
+The repeated success, cancellation, error, and late-reply checks kept the original
+library window. Three routing tests and the unsigned build passed after this fix.
+These observations do not prove cold-launch open/create/capture/run URLs, actual
+App Intent delivery, actual Shortcuts, or the native 120-second timeout.
+
+The helper source and neutral actions are reproducible inputs under scripts.
+No screenshots were saved. The QA app was quit after the session.

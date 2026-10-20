@@ -35,6 +35,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }, 1, &type, nil, nil)
         if AppController.shared.library?.cloudIdentifier != nil { NSApp.registerForRemoteNotifications() }
     }
+    func application(_ application: NSApplication, open urls: [URL]) {
+        Self.routeExternalURLs(urls, receiveCallback: ActionCallbackRouter.receive) {
+            AppController.shared.handle($0)
+        }
+    }
+
+    static func routeExternalURLs(_ urls: [URL], receiveCallback: (URL) -> Bool, handle: (URL) -> Void) {
+        for url in urls where !receiveCallback(url) { handle(url) }
+    }
+
     func setStatusItemVisible(_ visible: Bool) { statusController?.setStatusItemVisible(visible) }
     func openStatusMenuForTesting() { statusController?.openStatusMenuForTesting() }
     @objc func captureSelectionDirectly(_ pasteboard: NSPasteboard, userData: String?, error: AutoreleasingUnsafeMutablePointer<NSString?>) {
