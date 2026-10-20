@@ -829,3 +829,10 @@ Current QA passed Prompt and SelectPrompt accept/cancel through the worker
 bridge. Unicode, discarded field edits, subtitle search, selected identity,
 and final history status were checked. Other options and interruption paths
 remain pending; this does not close these APIs or the engine.
+
+
+Failed executions now retain prior script console output in stored history.
+Both runners, context.fail/throw/cancel, repeated Unicode lines, multiline text,
+and custom cancellation reasons passed tests. Native history output passed.
+Full app437/core457 and final unsigned build passed. Old lost output cannot
+be recovered; no history format or existing record is changed.

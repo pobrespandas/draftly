@@ -6866,7 +6866,25 @@
           "limitations": [
             "Native per-member acceptance remains pending. This test does not establish every ActionLog contract."
           ],
-          "evidenceLevel": "Specific readonly and value assertions; status spellings also preserve the stored payload."
+          "evidenceLevel": "Specific readonly and value assertions; status spellings also preserve the stored payload.",
+          "supportingTests": [
+            {
+              "suite": "DraftActionLogContractTests",
+              "test": "failedAndCancelledRunsRetainEarlierScriptLogs"
+            }
+          ],
+          "nativeVerification": {
+            "status": "pending",
+            "additionalChecks": [
+              {
+                "date": "2026-10-20",
+                "executableSHA256": "1c671b32048654b7c8fdb6dbf6479401a43be391b2b3c5fb5c0c82be4096c298",
+                "fixture": "scripts/fixtures/engine-log-actions.json",
+                "result": "History retained repeated Unicode console messages and multiline output on failure and cancellation. Error also showed its terminal reason. Draft text did not change. This checks persisted UI output, not every native ActionLog scripting access.",
+                "evidence": "docs/validation.md: Retain logs before failed execution — 20 October 2026"
+              }
+            ]
+          }
         },
         {
           "member": "status",

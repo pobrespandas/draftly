@@ -4,6 +4,23 @@ import Testing
 
 @Suite("Draft action log member contracts") @MainActor
 struct DraftActionLogContractTests {
+    @Test(arguments: [false, true], ["throw new Error('Neutral failure');", "context.fail('Neutral failure');", "context.cancel();"])
+    func failedAndCancelledRunsRetainEarlierScriptLogs(worker: Bool, ending: String) async throws {
+        let (library, _, _, runner) = try makeAPIContext("Neutral source")
+        let action = ScriptTestAction.make("console.log('Before café 🐼');console.log('Before café 🐼');console.log('Line one\\nLine two');" + ending, name: "Log retention")
+        if worker { _ = await runner.runAsync(action) }
+        else { _ = runner.runReport(action) }
+        let run = try #require(library.runs.first)
+        #expect(run.actionName == "Log retention")
+        #expect(run.status == (ending.contains("context.cancel") ? "Cancelled" : "Error"))
+        #expect(run.message.hasPrefix("Before café 🐼\nBefore café 🐼\nLine one\nLine two"))
+        if !ending.contains("context.cancel") { #expect(run.message.contains("Neutral failure")) }
+        if !ending.contains("context.cancel") { #expect(run.message.components(separatedBy: "Neutral failure").count == 2) }
+        let read = makeAPIAction("check(draft.actionLogs.find(v=>v.actionName==='Log retention').log.includes('Before café 🐼'),'retained log accessor');")
+        if worker { #expect((await runner.runAsync(read)).result.succeeded) }
+        else { #expect(runner.run(read)) }
+    }
+
     @Test(arguments: [false, true])
     func deleteReturnsVoidAndRollsBackAStorageFailure(worker: Bool) async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

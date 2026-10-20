@@ -3731,3 +3731,32 @@ Matrix structure passes. Prompt and SelectPrompt show retain their current
 classification; remaining fields, options, timeout, window-close, and permission
 dialog paths require separate acceptance. Worker and host lifetime remain
 partial. No screenshot or raw log is stored in the repo.
+
+
+### Retain logs before failed execution — 20 October 2026
+
+The suspected visual duplication was not reproduced. A screenshot showed each
+message once. Computer Use AX text repeated some selectable message strings.
+No presentation change is warranted from that observation.
+
+Implemented: async error/cancellation and legacy error logs now retain earlier
+console output. Error details append to that output. Legacy cancellation keeps
+its existing log behavior. A supplied context.cancel reason remains exact; a
+generic cancellation summary does not replace it. Repeated console calls and
+multiline messages stay intact. Successful log output is unchanged. Existing
+history is not rewritten, and previously discarded output cannot be recovered.
+
+Automatic: the first four cases failed before the change with eight issues,
+including ActionLog.log reads. Full regression then caught two custom-cancel
+reason expectations. Preserved that contract and added context.fail coverage.
+The final six expanded cases pass on both runners. Full regression passed
+app437/core457. The final unsigned Debug build passed.
+
+Native: refreshed stopped QA to signed executable SHA-256:
+`1c671b32048654b7c8fdb6dbf6479401a43be391b2b3c5fb5c0c82be4096c298`.
+Imported engine-log-actions.json and ran both actions on Selected: two. The
+draft stayed unchanged. History visibly retained both intentional repeated
+Unicode lines and multiline output for Error and Cancelled. Error also showed
+its final failure reason. Closed history. No screenshot or raw log is retained
+in the repository. Matrix structure passes; ActionLog remains partial for its
+remaining acceptance. QA now has one open window after application refresh.
