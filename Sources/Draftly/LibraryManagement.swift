@@ -139,6 +139,7 @@ private struct WorkspaceSettingsView: View {
             Toggle("Match Any Tag", isOn: Binding(get: { workspace.matchAnyTag ?? false }, set: { workspace.matchAnyTag = $0 }))
             Picker("Tags", selection: $workspace.tagged) { Text("Any").tag(Bool?.none); Text("Tagged").tag(Optional(true)); Text("Untagged").tag(Optional(false)) }
             WorkspaceFilterSettings(workspace: $workspace, error: $error)
+            WorkspacePresentationSettings(workspace: $workspace, library: library, error: $error)
             Toggle("Show Preview", isOn: list.showPreview)
             Stepper("Preview Lines: \(list.wrappedValue.previewLines)", value: list.previewLines, in: 1...3)
             Toggle("Show Tags", isOn: list.showTags); Toggle("Show Date", isOn: list.showDate)
@@ -149,7 +150,11 @@ private struct WorkspaceSettingsView: View {
             Toggle("Highlight Flagged Drafts", isOn: list.highlightFlagged)
             if let error { Text(error).foregroundStyle(.red) }
             HStack { Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction); Spacer(); Button("Save") {
-                do { try library.saveWorkspace(workspace); dismiss() } catch { self.error = error.localizedDescription }
+                do {
+                    let resolved = try WorkspacePresentationResolver.resolve(workspace, groupNames: library.groupNames,
+                        groups: library.actionGroups, themes: WindowPreferences().themes)
+                    try library.saveWorkspace(resolved); dismiss()
+                } catch { self.error = error.localizedDescription }
             }.keyboardShortcut(.defaultAction).disabled(workspace.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
         }.formStyle(.grouped).frame(width: 500, height: 660)
     }

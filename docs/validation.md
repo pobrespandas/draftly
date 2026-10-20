@@ -2407,3 +2407,33 @@ remain open. This entry does not close Workspaces or personalization.
 Regression result: 408 app methods and 394 core methods passed. The unsigned
 Xcode Debug app build passed after project regeneration. Native acceptance stays
 pending; these counts do not prove visual or API parity.
+
+### Workspace presentation selectors — 20 October 2026
+
+Implemented: Workspace Settings has action-list and action-bar group selectors,
+and light/dark preferred-theme selectors. Group and custom-theme choices store
+identities. No Override removes only that option. Missing references remain
+visible until the user replaces or clears them. Save resolves all references
+before persistence. Changing a reference retains its unknown fields and removes
+obsolete name, UUID, and type fields before setting the new identity.
+
+Automatically tested: the new reference mutation case checks retained unknown
+fields, custom-to-built-in theme changes, group identity resolution, and clearing
+one reference without removing another. The full run passed 409 app methods and
+394 core methods. The unsigned Xcode Debug build passed.
+
+Verified in native QA: refreshed all runtime images and signed the isolated app.
+The pre-sign Debug library SHA-256 starts with 61365f518ab762a2. Created the neutral
+QA Workspace options 🐼 in the isolated library. Selected Inbox order Accessed,
+Flagged First on, absolute Start Date 20 October 2026 on Modified, Action List
+Imported, and Dark Appearance Dark. Save and reopening Edit retained all values.
+Changing Flagged First off and cancelling retained the saved on value when Edit
+was reopened. Cancelling the first new workspace left the list empty. The form
+scrolls to controls; its visible sections and date field were inspected.
+
+Limits: no comparison with Drafts geometry, custom-theme native selection,
+relative-date input, full application to the main window, or process restart was
+accepted in this check. Library Organization tab labels visibly overlap; repair
+and recheck that layout. Shared themes are still local preferences and require
+the planned library migration. QA was quit; the neutral workspace stays for the
+remaining checks. No screenshot or raw log is tracked.

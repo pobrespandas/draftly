@@ -40,6 +40,23 @@ struct WorkspaceOptionsEditorTests {
         #expect(Set(workspace.filter([unknown, included]).map(\.id)) == [unknown.id, included.id])
     }
 
+    @Test func referenceChangesPreserveUnknownFieldsAndClearOldIdentity() throws {
+        var workspace = Workspace(name: "References")
+        workspace.scriptMetadata = ["api": #"{"preferredLightTheme":{"uuid":"old","name":"Old","type":"custom","future":true},"loadActionListGroup":{"name":"Old group"}}"#]
+        try WorkspaceOptionsEditor.setReference(["name": "Light"], key: "preferredLightTheme", in: &workspace)
+        let theme = try #require(workspace.apiOptions["preferredLightTheme"] as? [String: Any])
+        #expect(theme["name"] as? String == "Light")
+        #expect(theme["uuid"] == nil && theme["type"] == nil)
+        #expect(theme["future"] as? Bool == true)
+        let group = ActionGroupRecord(name: "Current group")
+        try WorkspaceOptionsEditor.setReference(["uuid": group.id.uuidString, "name": group.name], key: "loadActionListGroup", in: &workspace)
+        let resolved = try WorkspacePresentationResolver.resolve(workspace, groupNames: [group.name], groups: [group], themes: [])
+        #expect((resolved.apiOptions["loadActionListGroup"] as? [String: Any])?["uuid"] as? String == group.id.uuidString)
+        try WorkspaceOptionsEditor.setReference(nil, key: "preferredLightTheme", in: &workspace)
+        #expect(workspace.apiOptions["preferredLightTheme"] == nil)
+        #expect(workspace.apiOptions["loadActionListGroup"] != nil)
+    }
+
     @Test func editingCopyAndEncodingFailureLeaveOriginalUnchanged() throws {
         let original = Workspace(name: "Original")
         var copy = original

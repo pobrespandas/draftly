@@ -211,7 +211,9 @@ Pending:
 - Complete individual Markdown options, escaped line breaks, live changes, and
   visual/click checks for reference-help controls.
 - Verify workspace date/flag/per-folder sort controls in native use. They are
-  implemented. Group and theme controls remain to be exposed.
+  implemented. Group and theme selectors are also implemented. Their saved
+  selections and Cancel passed a native QA check; full application/restart
+  coverage and visual parity remain open.
 - Store shared themes with stable identities; migrate local themes once.
 - Complete Drafts theme import and verify MultiMarkdown/TaskPaper in all accesses.
 - Verify restart, backup, selection, content, and Undo after configuration changes.

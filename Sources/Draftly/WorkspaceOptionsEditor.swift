@@ -8,6 +8,17 @@ enum WorkspaceOptionsEditor {
         try store(options, in: &workspace)
     }
 
+    static func setReference(_ reference: [String: String]?, key: String, in workspace: inout Workspace) throws {
+        var options = workspace.apiOptions
+        if let reference {
+            var value = options[key] as? [String: Any] ?? [:]
+            for field in ["uuid", "name", "type"] { value.removeValue(forKey: field) }
+            for (field, entry) in reference { value[field] = entry }
+            options[key] = value
+        } else { options.removeValue(forKey: key) }
+        try store(options, in: &workspace)
+    }
+
     static func setSort(_ sort: NoteSort, ascending: Bool, flaggedFirst: Bool,
                         folder: NoteFolder, in workspace: inout Workspace) throws {
         var options = workspace.apiOptions
