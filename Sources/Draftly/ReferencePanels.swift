@@ -89,7 +89,7 @@ struct DraftListPanel: View {
                 ).frame(width: 116, height: 20)
 
             }.font(.system(size: 11)).foregroundStyle(.secondary).padding(.horizontal, 13).frame(height: 24).offset(y: MainWindowStyle.listControlOffset)
-            Divider()
+            Divider().offset(y: MainWindowStyle.listControlOffset).zIndex(1)
             if model.visibleNotes.isEmpty {
                 PanelEmptyState(message: "No drafts found")
             } else {
@@ -283,17 +283,17 @@ private struct DraftTableRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DraftRowPresentation.contentSpacing) {
             HStack(spacing: 5) {
-                Text(title).font(.system(size: DraftRowPresentation.titleSize, weight: .bold)).foregroundStyle(primaryText).lineLimit(1)
+                Text(title).font(Font(DraftRowPresentation.titleFont)).foregroundStyle(primaryText).lineLimit(1)
                 Spacer(minLength: 3)
                 if note.flag > 0 { Image(systemName: "flag.fill").font(.system(size: 9)).foregroundStyle(flagColor(note.flag)) }
             }.frame(height: DraftRowPresentation.titleHeight)
             if showPreview && !previewText.isEmpty {
-                Text(previewText).font(.system(size: DraftRowPresentation.previewSize, weight: query.isEmpty ? .regular : .semibold)).foregroundStyle(secondaryText).lineLimit(min(3, max(1, previewLines))).fixedSize(horizontal: false, vertical: true)
+                Text(previewText).font(Font(DraftRowPresentation.previewFont(query: query))).foregroundStyle(secondaryText).lineLimit(min(3, max(1, previewLines))).fixedSize(horizontal: false, vertical: true)
             }
             if showTags && !note.tags.isEmpty {
                 HStack(spacing: 4) {
                     ForEach(note.tags, id: \.self) { tag in
-                        Text(tag).font(.system(size: DraftRowPresentation.tagSize)).foregroundStyle(primaryText).lineLimit(1)
+                        Text(tag).font(Font(DraftRowPresentation.tagFont)).foregroundStyle(primaryText).lineLimit(1)
                             .padding(.horizontal, 6).padding(.vertical, 1)
                             .background(RoundedRectangle(cornerRadius: 6).fill((emphasized ? Color.white.opacity(0.08) : Color.accentColor.opacity(0.1))))
                             .overlay(RoundedRectangle(cornerRadius: 6).stroke((emphasized ? Color.white.opacity(0.25) : Color.accentColor.opacity(0.25)), lineWidth: 0.5))
@@ -305,8 +305,9 @@ private struct DraftTableRow: View {
                 HStack {
                     Spacer(minLength: 0)
                     Text("Modified: " + DraftRowPresentation.modifiedDate(note.modifiedAt))
-                        .font(.system(size: DraftRowPresentation.dateSize)).foregroundStyle(emphasized ? Color.white.opacity(0.42) : Color.secondary.opacity(0.65)).lineLimit(1)
+                        .font(Font(DraftRowPresentation.dateFont)).foregroundStyle(emphasized ? Color.white.opacity(0.42) : Color.secondary.opacity(0.65)).lineLimit(1)
                 }.frame(height: DraftRowPresentation.dateHeight).padding(.top, DraftRowPresentation.dateTopInset)
+                    .offset(y: DraftRowPresentation.dateBaselineOffset)
             }
         }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading).contentShape(Rectangle())
             .overlay { if highlightFlagged && note.flag > 0 { RoundedRectangle(cornerRadius: 6).strokeBorder(flagColor(note.flag).opacity(0.6), lineWidth: 1).allowsHitTesting(false) } }
@@ -467,7 +468,7 @@ struct EditorActionBar: View {
                         .disabled(model.runner.isRunning)
                 }
             }.padding(.horizontal, 12).frame(height: MainWindowStyle.editingBarHeight)
-        }.scrollIndicators(.hidden).frame(height: MainWindowStyle.editingBarHeight)
+        }.scrollIndicators(.visible).frame(height: MainWindowStyle.editingBarHeight)
             .onChange(of: library.actions) { _, _ in
                 if !groups.contains(model.actionBarGroup) { model.actionBarGroup = "Editing" }
             }

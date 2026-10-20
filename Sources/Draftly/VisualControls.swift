@@ -187,22 +187,26 @@ struct DraftTagStrip: View {
                 Image(systemName: (model.currentNote?.flag ?? 0) > 0 ? "flag.fill" : "flag")
                     .foregroundStyle((model.currentNote?.flag ?? 0) > 0 ? flagColor(model.currentNote?.flag ?? 1) : .secondary)
             }.help("Flag")
-            Menu {
-                Button("No Flag") { if let note = model.currentNote { model.change([note.id]) { $0.flag = 0 } } }
-                ForEach(1...7, id: \.self) { flag in Button(flagName(flag)) { if let note = model.currentNote { model.change([note.id]) { $0.flag = flag } } } }
-            } label: { Image(systemName: "chevron.down").font(.system(size: 10)) }
-                .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().help("Flag Color")
+            PanelMenu(symbol: "chevron.down", help: "Flag Color", items:
+                [PanelMenuItem(title: "No Flag", isOn: (model.currentNote?.flag ?? 0) == 0) {
+                    if let note = model.currentNote { model.change([note.id]) { $0.flag = 0 } }
+                }] + (1...7).map { flag in
+                    PanelMenuItem(title: flagName(flag), isOn: model.currentNote?.flag == flag) {
+                        if let note = model.currentNote { model.change([note.id]) { $0.flag = flag } }
+                    }
+                }, symbolSize: 11,
+                symbolDimensions: NSSize(width: MainWindowStyle.flagChevronWidth, height: MainWindowStyle.flagChevronHeight)
+            ).frame(width: 24, height: 25)
             TagCapsuleField(tags: Binding(get: { model.currentNote?.tags ?? [] }, set: { tags in
                 guard let noteID = session.noteID else { return }
                 model.change([noteID]) { $0.tags = TagRules.normalize(tags) }
             }), noteID: session.noteID, suggestions: model.allTags).frame(height: 25)
-            Menu {
-                if headings.isEmpty { Text("No navigation markers") }
-                ForEach(Array(headings.enumerated()), id: \.offset) { _, heading in
-                    Button(heading.0) { session.selection = heading.1; session.focusToken = UUID() }
-                }
-            } label: { Image(systemName: "arrowtriangle.down.fill").font(.system(size: 11)) }
-                .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().help("Navigate")
+            PanelMenu(symbol: "arrowtriangle.down.fill", help: "Navigate", items:
+                headings.isEmpty ? [.section("No navigation markers")] : headings.map { heading in
+                    PanelMenuItem(title: heading.0) { session.selection = heading.1; session.focusToken = UUID() }
+                }, symbolSize: 11,
+                symbolDimensions: NSSize(width: MainWindowStyle.navigationSymbolWidth, height: MainWindowStyle.navigationSymbolHeight)
+            ).frame(width: 20, height: 25)
         }.buttonStyle(.plain).font(.system(size: 14)).foregroundStyle(.secondary).padding(.horizontal, 20).frame(height: 45)
     }
 }
@@ -240,6 +244,7 @@ struct PanelMenu: NSViewRepresentable {
     var showsChevron = true
     var symbolSize: CGFloat = 20
     var textSize: CGFloat = 11
+    var symbolDimensions: NSSize? = nil
     func makeCoordinator() -> Coordinator { Coordinator(self) }
     func makeNSView(context: Context) -> NSButton {
         let button = NSButton(image: NSImage(), target: context.coordinator, action: #selector(Coordinator.open(_:)))
@@ -252,8 +257,21 @@ struct PanelMenu: NSViewRepresentable {
         context.coordinator.parent = self
         let image = symbol.isEmpty ? nil : NSImage(systemSymbolName: symbol, accessibilityDescription: help)?
             .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: symbolSize, weight: .light))
-        image?.size = NSSize(width: symbolSize, height: symbolSize)
-        button.image = image; button.toolTip = help; button.setAccessibilityLabel(help)
+        image?.size = symbolDimensions ?? NSSize(width: symbolSize, height: symbolSize)
+        if symbol == "arrowtriangle.down.fill", let size = symbolDimensions {
+            let triangle = NSImage(size: size, flipped: true) { rect in
+                NSColor.labelColor.setFill()
+                let path = NSBezierPath()
+                path.move(to: NSPoint(x: rect.minX, y: rect.minY))
+                path.line(to: NSPoint(x: rect.maxX, y: rect.minY))
+                path.line(to: NSPoint(x: rect.midX, y: rect.maxY))
+                path.close(); path.fill()
+                return true
+            }
+            triangle.isTemplate = true
+            button.image = triangle
+        } else { button.image = image }
+        button.toolTip = help; button.setAccessibilityLabel(help)
         if let title {
             button.imagePosition = showsChevron ? .imageRight : .noImage
             button.image = showsChevron ? NSImage(systemSymbolName: "chevron.down", accessibilityDescription: nil)?
@@ -299,7 +317,7 @@ struct PanelMenu: NSViewRepresentable {
 // Shared dimensions for the main window.
 enum MainWindowStyle {
     static let actionTitleSize: CGFloat = 13
-    static let statusSymbolSize: CGFloat = 11
+    static let statusSymbolSize: CGFloat = 13
     static let utilityHeight: CGFloat = 48
     static let utilityInset: CGFloat = 9
     static let utilityLeadingSpacing: CGFloat = 12
@@ -308,7 +326,14 @@ enum MainWindowStyle {
     static let listControlOffset: CGFloat = 2
     static let tagsHeadingOffset: CGFloat = -2
     static let sidebarInset: CGFloat = 18
+    static let flagChevronWidth: CGFloat = 8
+    static let flagChevronHeight: CGFloat = 4.5
+    static let navigationSymbolWidth: CGFloat = 11
+    static let navigationSymbolHeight: CGFloat = 6.5
     static let editingBarHeight: CGFloat = 31
+    static let footerCompactSpacing: CGFloat = 6
+    static let footerRegularSpacing: CGFloat = 13
+    static let footerSecondarySymbolSize: CGFloat = 12
     static let footerHeight: CGFloat = 29
 }
 

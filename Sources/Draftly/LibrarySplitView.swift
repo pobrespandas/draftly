@@ -22,11 +22,16 @@ final class LibrarySplitController: NSSplitViewController {
     private var changingVisibility = false
     private var initialWidthConstraints: [NSLayoutConstraint] = []
     private var restoredWidthConstraints: [NSLayoutConstraint] = []
+    private var restoredMinimumThickness: [Int: CGFloat] = [:]
     private var panelWidths: [CGFloat] = [240, 280, 0, 260]
     private var pendingPanels: [AnyView]?
+    private let animationsEnabled: @MainActor () -> Bool
 
-    init(model: WindowModel, panels: [AnyView]) {
+    init(model: WindowModel, panels: [AnyView], animationsEnabled: @escaping @MainActor () -> Bool = {
+        !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+    }) {
         self.model = model
+        self.animationsEnabled = animationsEnabled
         hosts = panels.map { NSHostingController(rootView: $0) }
         super.init(nibName: nil, bundle: nil)
         splitView.isVertical = true
@@ -76,6 +81,10 @@ final class LibrarySplitController: NSSplitViewController {
                     let maximum = splitView.bounds.width - remaining - splitView.dividerThickness * CGFloat(splitViewItems.count - 1)
                     splitView.setPosition(min(panelWidths[0], maximum), ofDividerAt: 0)
                 }
+                if !splitViewItems[3].isCollapsed {
+                    let width = restorationWidths(collapsed: splitViewItems.map(\.isCollapsed))[3]
+                    splitView.setPosition(splitView.bounds.width - width - splitView.dividerThickness, ofDividerAt: 2)
+                }
             }
         }
         if let window = view.window {
@@ -105,25 +114,36 @@ final class LibrarySplitController: NSSplitViewController {
         guard !changingVisibility else { return }
         let collapsed = [!model.showFilters, !model.showDraftList, false, !model.showActions]
         guard zip(splitViewItems, collapsed).contains(where: { $0.isCollapsed != $1 }) else { return }
-        view.layoutSubtreeIfNeeded()
         changingVisibility = true
         restoredWidthConstraints = []
         for (index, item) in splitViewItems.enumerated() where index != 2 {
             if !item.isCollapsed {
                 let width = item.viewController.view.frame.width
                 if width > 0 { panelWidths[index] = width }
-            } else if !collapsed[index] {
-                let width = item.viewController.view.widthAnchor.constraint(equalToConstant: panelWidths[index])
+            }
+        }
+        let restoredWidths = restorationWidths(collapsed: collapsed)
+        for (index, item) in splitViewItems.enumerated() where index != 2 {
+            if !collapsed[index] {
+                let target = restoredWidths[index]
+                restoredMinimumThickness[index] = item.minimumThickness
+                // Set the native expansion target before animation starts.
+                item.minimumThickness = target
+                let width = item.viewController.view.widthAnchor.constraint(equalToConstant: target)
                 width.priority = .defaultHigh
                 width.isActive = true
                 restoredWidthConstraints.append(width)
             }
         }
-        let animate = view.window?.isVisible == true && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        let animate = view.window?.isVisible == true && animationsEnabled()
         if !animate {
             for (item, hidden) in zip(splitViewItems, collapsed) { item.isCollapsed = hidden }
+            applyPanelPositions(restoredWidths, collapsed: collapsed)
             DispatchQueue.main.async { [weak self] in self?.finishVisibilityUpdate() }
             return
+        }
+        if zip(splitViewItems, collapsed).contains(where: { $0.isCollapsed && !$1 }) {
+            primeExpansionWidths(restoredWidths, collapsed: collapsed)
         }
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.2
@@ -136,6 +156,51 @@ final class LibrarySplitController: NSSplitViewController {
         }
     }
 
+    private func applyPanelPositions(_ widths: [CGFloat], collapsed: [Bool]) {
+        view.window?.layoutIfNeeded()
+        view.layoutSubtreeIfNeeded()
+        if !collapsed[3] {
+            splitView.setPosition(splitView.bounds.width - widths[3] - splitView.dividerThickness, ofDividerAt: 2)
+            view.layoutSubtreeIfNeeded()
+        }
+        if !collapsed[0] {
+            splitView.setPosition(widths[0], ofDividerAt: 0)
+            view.layoutSubtreeIfNeeded()
+        }
+        if !collapsed[1] {
+            let start = collapsed[0] ? 0 : splitViewItems[0].viewController.view.frame.maxX + splitView.dividerThickness
+            splitView.setPosition(start + widths[1], ofDividerAt: 1)
+            view.layoutSubtreeIfNeeded()
+        }
+    }
+
+    private func primeExpansionWidths(_ widths: [CGFloat], collapsed: [Bool]) {
+        let original = splitViewItems.map(\.isCollapsed)
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0
+            context.allowsImplicitAnimation = false
+            for (item, hidden) in zip(splitViewItems, collapsed) { item.isCollapsed = hidden }
+            applyPanelPositions(widths, collapsed: collapsed)
+            for (item, hidden) in zip(splitViewItems, original) { item.isCollapsed = hidden }
+            applyPanelPositions(panelWidths, collapsed: original)
+        }
+    }
+
+    private func restorationWidths(collapsed: [Bool]) -> [CGFloat] {
+        let visible = splitViewItems.indices.filter { !collapsed[$0] }
+        let minimums = splitViewItems.enumerated().map { index, item in
+            restoredMinimumThickness[index] ?? item.minimumThickness
+        }
+        let dividerWidth = splitView.dividerThickness * CGFloat(max(0, visible.count - 1))
+        let spare = max(0, splitView.bounds.width - dividerWidth - visible.reduce(CGFloat(0)) { $0 + minimums[$1] })
+        let fixedPanels = visible.filter { $0 != 2 }
+        let requested = fixedPanels.reduce(CGFloat(0)) { $0 + max(0, panelWidths[$1] - minimums[$1]) }
+        let fraction = requested > 0 ? min(1, spare / requested) : 0
+        return panelWidths.enumerated().map { index, width in
+            minimums[index] + max(0, width - minimums[index]) * fraction
+        }
+    }
+
     private func finishVisibilityUpdate() {
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0
@@ -144,6 +209,8 @@ final class LibrarySplitController: NSSplitViewController {
             view.layoutSubtreeIfNeeded()
             NSLayoutConstraint.deactivate(restoredWidthConstraints)
             restoredWidthConstraints.removeAll()
+            for (index, minimum) in restoredMinimumThickness { splitViewItems[index].minimumThickness = minimum }
+            restoredMinimumThickness.removeAll()
             applyPendingPanels()
             view.layoutSubtreeIfNeeded()
         }

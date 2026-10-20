@@ -1,0 +1,373 @@
+{
+  "date": "2026-10-19",
+  "reference": {
+    "app": "Drafts",
+    "version": "54.1.1",
+    "font": "System 17 pt",
+    "lineHeight": 1.1,
+    "evidence": null
+  },
+  "status": "open",
+  "implemented": [
+    "Shared 15 pt semibold title font and shared preview, tag, and date fonts.",
+    "Dates move down two points without changing the 81-point two-preview row pitch.",
+    "Native toolbar spaces use a 2:1 leading/trailing ratio. Share stays beside folder commands.",
+    "Actions restores its 260-point default width and saved user widths before native expansion.",
+    "Sidebar labels and headings, navigation and flag symbols, and footer symbols were adjusted.",
+    "Default editor margins use 5 horizontal and 19 vertical points. Existing stored preferences are preserved.",
+    "The default dark canvas is black. Its color follows the explicit SwiftUI appearance.",
+    "The navigation triangle uses an 11 × 6.5 point native template path. Its final pixels still need inspection.",
+    "The list summary divider moves down two points without moving count text or rows.",
+    "The footer uses Foundation word tokens. It retains emoji and omits punctuation and whitespace.",
+    "Compact footer controls keep six points of spacing. Pin and link use 12-point symbols. Native horizontal scrolling remains.",
+    "Each footer caches its last text statistics. Unchanged content does not repeat tokenization. Content changes invalidate the cache.",
+    "Word counting joins overlapping tokenizer fragments in long paragraphs. Adjacent Japanese and Chinese tokens remain separate."
+  ],
+  "automated": {
+    "coreTests": 254,
+    "appTests": 156,
+    "result": "passed",
+    "build": "Isolated local Xcode build passed.",
+    "log": "/tmp/draftly-toggle-app-tests.log",
+    "buildLog": "/tmp/draftly-toggle-build.log",
+    "specificTests": [
+      "titleUsesTheMeasuredSemiboldReferenceFont",
+      "actionsUsesItsDefaultWidthWhenInitiallyVisible",
+      "actionsOpensAtItsDefaultWidthWithoutACompletionResize",
+      "allUserPanelWidthsSurviveHideAndShowWithoutACompletionResize",
+      "shortDraftClearsLongDraftAndKeepsSelection",
+      "explicitColorSchemeChangesTheCanvasWithoutChangingEditorState",
+      "individualVisibleTransitionsHaveIntermediateFramesWithoutBackwardMotion",
+      "rapidVisibleRequestsKeepTheCurrentAnimationMonotonicAndApplyTheLatestState",
+      "reducedMotionPolicyUsesImmediateNativeLayoutWithoutChangingSystemPreferences",
+      "neutralUnicodeFixtureMatchesTheObservedDraftsFooter",
+      "nativeNavigationImageKeepsTheMeasuredWideTriangle",
+      "unchangedLongContentDoesNotRepeatTokenization",
+      "changedContentOfTheSameLengthInvalidatesTheCache",
+      "emptyContentReplacesThePreviousCachedValue",
+      "footerCachesDoNotShareWindowState",
+      "longWordSequencesDoNotCountOverlappingFrameworkFragments",
+      "oneLongWordKeepsOverlappingFrameworkRangesAsOneToken"
+    ],
+    "captureValidatorTests": 4,
+    "captureValidatorResult": "passed"
+  },
+  "verifiedInUse": [
+    {
+      "check": "Actions reopen",
+      "result": "Four toggles preserved editor text and final divider widths.",
+      "evidence": null,
+      "limit": "Final geometry does not prove every intermediate animation frame."
+    },
+    {
+      "check": "Light canvas after dark mode",
+      "result": "The corrected build displays readable text in light mode at all three QA sizes.",
+      "evidence": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "check": "Narrow toolbar",
+      "result": "At 850 points, native overflow opens Quick Search and Command Palette. Cancel preserves the selected note and list query. Actions closes and reopens.",
+      "limit": "Float on Top was invoked and restored. Its window-level state was not independently observed.",
+      "evidence": [
+        null,
+        null
+      ]
+    }
+  ],
+  "measurements": [
+    {
+      "region": "Normal two-preview rows",
+      "referencePitchPoints": 81,
+      "draftlyPitchPoints": 81,
+      "limit": "Regional measurement. The original capture states differ outside this region."
+    },
+    {
+      "region": "Title ink height",
+      "referencePixels": 23,
+      "draftlyPixels": 23,
+      "scale": 2
+    },
+    {
+      "region": "Editor origin",
+      "change": "Horizontal default reduced by 12 points; vertical default increased by 2 points.",
+      "limit": "The dark 1115 capture confirms the intended origin. Full canonical paired acceptance remains pending."
+    }
+  ],
+  "captures": {
+    "date": "2026-10-19",
+    "reference": "Drafts 54.1.1",
+    "captures": [
+      {
+        "file": null,
+        "pixels": [
+          2400,
+          1600
+        ],
+        "windowPoints": [
+          1200,
+          800
+        ],
+        "canvasScale": [
+          2.0,
+          2.0
+        ],
+        "whitePaddingDetected": false,
+        "usableForFullWindowMeasurement": false,
+        "reasons": [],
+        "sha256": "cb240c172017609a293e8d275167b202ff75aeffd52db0020abae7e4a7521abb",
+        "artifactStatus": "removed at user request"
+      },
+      {
+        "file": null,
+        "pixels": [
+          2066,
+          1468
+        ],
+        "windowPoints": [
+          1033,
+          734
+        ],
+        "canvasScale": [
+          2.0,
+          2.0
+        ],
+        "whitePaddingDetected": false,
+        "usableForFullWindowMeasurement": false,
+        "reasons": [],
+        "sha256": "61a735eb939ea5896e5bdd19cce9dcbaf38293d938a8726d5392d9e31cfe7378",
+        "artifactStatus": "removed at user request"
+      },
+      {
+        "file": null,
+        "pixels": [
+          1700,
+          1200
+        ],
+        "windowPoints": [
+          850,
+          600
+        ],
+        "canvasScale": [
+          2.0,
+          2.0
+        ],
+        "whitePaddingDetected": false,
+        "usableForFullWindowMeasurement": false,
+        "reasons": [],
+        "sha256": "195e623549ef71b85f5f2361a680691781054d129ad8397eae8e17e84f67fe16",
+        "artifactStatus": "removed at user request"
+      },
+      {
+        "file": null,
+        "pixels": [
+          2230,
+          1290
+        ],
+        "windowPoints": [
+          1115,
+          645
+        ],
+        "canvasScale": [
+          2.0,
+          2.0
+        ],
+        "whitePaddingDetected": false,
+        "usableForFullWindowMeasurement": false,
+        "reasons": [],
+        "sha256": "d515ec6144c20374c2721c5f3f6bbf90586bb90ab64ceeda96713bbbd70c30fb",
+        "artifactStatus": "removed at user request"
+      },
+      {
+        "file": null,
+        "pixels": [
+          2164,
+          1290
+        ],
+        "windowPoints": [
+          1082,
+          645
+        ],
+        "canvasScale": [
+          2.0,
+          2.0
+        ],
+        "whitePaddingDetected": false,
+        "usableForFullWindowMeasurement": false,
+        "reasons": [],
+        "sha256": "00a72961edd378c4492a9b2c690197ac6cf52744ca7125d81d894b335a5d5a4d",
+        "artifactStatus": "removed at user request"
+      }
+    ],
+    "rejectedComparisons": {
+      "drafts-equivalent-light-1115.png": "Dark appearance and three search snippets. It does not match the light normal-preview QA state.",
+      "drafts-normal-light-1115.png": "This image shows the Drafts Pro upgrade window. It is not a main-window capture.",
+      "draftly-status-menu.jpg": "The native screenshot contains the main window without the popup. Its AX text proves menu entries, but the image cannot prove icon parity.",
+      "draftly-light-before-scheme-fix-850.jpg": "The editor retained a black canvas in light mode. The corrected final image replaces it for acceptance."
+    },
+    "closure": "Open. These valid captures do not prove full visual parity or the complete visual state matrix."
+  },
+  "pending": [
+    "Paired reference captures at 1033 × 734 and 1200 × 800 with equivalent panel widths and states.",
+    "Full one-point static alignment matrix.",
+    "Final same-build dark and inactive-state checks.",
+    "One/two/three preview lines, search previews, multiple selection, tabs, and independent windows.",
+    "Menu icon pixels: AX entries were captured, but the popup is absent from the window image.",
+    "Dock, Finder, app switcher, swipe, VM redraw, Quit, Merge, capture, and Quick Search regression.",
+    "The normal habitual app remains unchanged.",
+    "Repeat native transition review outside the automated visible-window fixture.",
+    "Measure full typing performance with long content. The cache only removes unchanged-content tokenization.",
+    "Version History symbol remains about1.5 points wider in the regional comparison. Recheck an equivalent active state."
+  ],
+  "referenceLimitations": [
+    "Manual appearance selection opened the Drafts Pro upgrade screen. The screen was closed without a purchase.",
+    "The current fully expanded reference window stopped shrinking at 1082 × 645 points. Further canonical layouts remain unverified."
+  ],
+  "followUpPass": {
+    "automatic": "234 core and 109 app tests passed. The local build passed. Visible native test windows sampled presentation frames every 8 ms. Individual and rapid transitions had intermediate frames and no backward excursion above one point. Saved widths, text, identity, and selection survived. An injected policy tested Reduce Motion without changing system preferences.",
+    "native": "At 850 × 600, Quick Search and Command Palette opened from toolbar overflow. Cancel preserved the selected note and list query. Actions closed and reopened. The rebuilt app displayed 149c 26w for neutral fixture50, matching the recorded Drafts value. Float on Top was invoked and restored; window-level state was not independently observed.",
+    "unverified": "The Mac locked before final captures. The new navigation path and moved divider are implemented but not visually accepted. Earlier screenshots precede these changes.",
+    "evidence": [
+      null,
+      null
+    ]
+  },
+  "latestPass": {
+    "automatic": "254 core and154 app tests passed. The final app-only run passed154 tests. The isolated local build passed.",
+    "native": "Unlocked. Regional glyphs, divider placement, compact spacing, and horizontal access were inspected in the latest build.",
+    "limits": "Full paired canonical and visual state acceptance remains pending. Services invocation from another app remains pending."
+  },
+  "tokenizerBenchmark": {
+    "evidence": null,
+    "reproducer": "scripts/benchmark-editor-statistics.py",
+    "scope": "Native tokenizer with Python callback overhead. This does not measure SwiftUI typing or cache hits.",
+    "result": "100000-character Latin fixture counts 20000 words after joining one overlapping fragment. A single 100000-character word counts once after joining two overlaps."
+  },
+  "captureServices": {
+    "implemented": [
+      "Two service entries: direct save and capture with options. The old selector remains an options adapter.",
+      "Selected text is read from the provided pasteboard. Plain text, RTF, RTFD, and URL types include legacy aliases.",
+      "Direct save uses only incoming text. It keeps an earlier capture intact. A failed save retains incoming text and reports the error.",
+      "Append flushes pending destination edits, then synchronizes matching editors. Immediate later saves preserve appended text, selection, and Undo."
+    ],
+    "automatic": {
+      "targetedTests": 42,
+      "targetedSuites": 4,
+      "fullCoreTests": 234,
+      "fullAppTests": 154,
+      "result": "passed",
+      "build": "passed",
+      "checks": [
+        "Service selectors and registration",
+        "Private pasteboard contents and change count",
+        "Unicode, spaces, line breaks, RTF, RTFD, URL, and legacy types",
+        "Missing, empty, unsupported, unreadable selections and callback errors",
+        "Direct save, pending capture, disk failures, and unavailable library",
+        "Append with pending edits, immediate flush, window isolation, selection, native Undo/Redo, and unavailable destinations"
+      ]
+    },
+    "native": "Pending. The Mac is unlocked, but invocation from another app has not yet been accepted.",
+    "reference": null,
+    "builtBundle": null,
+    "limits": "The normal app remains unchanged. The isolated QA bundle includes both entries. Registration and menus must be checked after launch and unlock."
+  },
+  "verifiedVisualFollowUp": {
+    "state": "The Mac is unlocked. The latest QA app is open in light mode at850 ×600 with neutral fixture50, query Prueba visual, and all panels.",
+    "captures": null,
+    "measurements": {
+      "navigate": "11 ×6.5 points, matching the reference. Center is one point higher.",
+      "pin": "9 ×13.5 points vsreference10 ×13.5.",
+      "link": "12.5 ×12.5 points vsreference12 ×12.",
+      "compactGaps": "Info toVersions6 points; Versions toActionLog6.5 points; ActionLog toArrange4.5 points. No touching icons.",
+      "divider": "After zIndex correction, the line is visible atpixels544–545 in the1200 capture, matching reference position at2x."
+    },
+    "horizontalAccess": "Native scroll indicators expose Scroll Left/Right actions. In850 width, footer Scroll Right reveals149c26w. Repeated Action Bar Scroll Right reaches scrollbar value1 and the last actions. Screenshot and AX evidence are saved.",
+    "limits": "Regional measurements do not close full-window parity. Paired canonical Drafts captures and the remaining state matrix are pending. The native Services flows are also pending."
+  },
+  "actionsToggle": {
+    "implemented": "The Actions toggle uses primary label color when open and secondary label color when closed. Its native image changes only when panel visibility changes.",
+    "automatic": "Five toolbar tests pass, including native model-driven image updates, unchanged image on unrelated updates, and contrast in Aqua/Dark Aqua. The isolated build passes. The final app suite passes156 tests.",
+    "native": "Light-mode screenshots show the open icon darker than the closed icon. The same measured icon region has a darkest20pixel mean of72.4 open versus113.35 closed. This is a same-app state comparison, not full Drafts pixel acceptance.",
+    "evidence": [
+      null,
+      null
+    ],
+    "referenceLimit": "Drafts was toggled and restored to open. Its captured window remained inactive, so exact reference tint acceptance remains separate."
+  },
+  "settings": {
+    "status": "open",
+    "implemented": [
+      "Native category toolbar: General, iCloud, Bookmarks, Editor, Shortcuts.",
+      "General appearance, menu bar visibility, preferred find interface, capture timeout, and Editor Settings navigation.",
+      "Application menu: Settings, Editor Settings, Library Summary, Empty Trash.",
+      "Bookmarks list, unique name sheet, folder selection, and Forget use the existing action bookmark keys.",
+      "Markdown processor and supported MultiMarkdown/GitHub options control generic Markdown preview and native conversion. Explicit script engine objects keep their own settings.",
+      "HTML category controls HTML paste conversion, supported marks, link placement, and ignore options. HTML decoding keeps UTF-8 and whitespace.",
+      "Action templates, file names, folders, and scripting processTemplate use configured Markdown conversion for percent delimiters. The legacy Swift nonthrowing function remains available.",
+      "Empty Trash uses a shared library command. It is available without a command window, flushes registered editors, confirms the count, and rejects a changed Trash set."
+    ],
+    "automaticEvidence": [
+      "ApplicationAppearanceTests",
+      "GeneralPreferencesTests",
+      "LibrarySummaryTests",
+      "WindowModelTests.findPreferenceSelectsTheDefaultButExplicitArgumentsWin",
+      "BookmarkPreferencesTests",
+      "BookmarkFileAccessTests",
+      "MarkdownPreferencesTests",
+      "HTMLPreferencesTests",
+      "LibraryTrashCommandTests: no-window confirmation, cancellation, active drafts, empty Trash, changed Trash, and failed editor save."
+    ],
+    "nativeVerified": [
+      "General, Editor, and Shortcuts navigation.",
+      "Light appearance and return to System.",
+      "Cmd-F opens Advanced Find when enabled and native find when disabled.",
+      "Application menu order with one Settings entry. Library Summary shows actual QA counts.",
+      "Create a neutral folder bookmark and forget it without deleting the neutral file.",
+      "Bookmark name is retained after a save error."
+    ],
+    "capture": {
+      "path": null,
+      "points": [
+        770,
+        438
+      ],
+      "pixels": [
+        1540,
+        876
+      ],
+      "scale": 2,
+      "valid": false,
+      "artifactStatus": "removed at user request"
+    },
+    "pending": [
+      "Other included categories and General options.",
+      "Application menu icons and separators. Native Empty Trash availability and cancellation with no library window.",
+      "Appearance restart, Dark, multiple windows, editor selection and Undo.",
+      "Bookmark restart, real Action invocation, stale and denied permissions, populated row comparison, help link, and final accessibility change.",
+      "Native Markdown category and live preview acceptance. Computer Use pipe closed twice while the QA process remained live.",
+      "MultiMarkdown escaped line breaks, native template preference acceptance, Markdown help link, and remaining per-option contracts.",
+      "HTML visual layout and real paste from another app remain pending. Computer Use native pipe remains closed."
+    ],
+    "initialBookmarkFailure": "First native save returned a file-open error. A fresh signed QA process with balanced scoped access saved successfully. The exact initial cause is not proven.",
+    "markdownOptionContracts": {
+      "automatic": "MarkdownPreferencesTests: five tests pass. Specific output checks cover engine selection, smart quotes, strikethrough, header labels, hard breaks, source positions, safe-over-unsafe precedence, malformed preferences, and unknown Boolean options.",
+      "log": "/tmp/draftly-markdown-options-contracts.log",
+      "native": "Pending. Settings observation fails with a native pipe error.",
+      "remaining": "Other option contracts, escaped line breaks, native template and live preview changes, help, and visual parity."
+    }
+  },
+  "retiredTests": {
+    "date": "2026-10-19",
+    "tests": [
+      "shareKeepsOnlyANativeFixedGapFromFolderCommands",
+      "trailingElasticSpaceSeparatesShareFromSearchAndActionControls",
+      "historyUsesTwoNativeElasticSpacesToWeightTheLeadingGap"
+    ],
+    "reason": "These assertions repeated a toolbar identifier array. Native layout, animation, and toggle behavior tests remain. Historical counts describe their original run."
+  },
+  "sessionEvidenceRemoved": "The user requested removal of docs/research/evidence on 2026-10-19. Historical results remain summaries. Removed artifacts cannot support new acceptance without repeating the checks.",
+  "captureArtifactsRemoved": "All local screenshots and capture artifacts were removed at the user request on 2026-10-19. Generate new captures before visual acceptance."
+}

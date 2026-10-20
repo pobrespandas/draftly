@@ -19,14 +19,16 @@ struct EditorTheme: Codable, Identifiable, Equatable {
 }
 
 enum EditorTextLayout {
+    static let horizontalMargin = 5.0
+    static let verticalMargin = 19.0
     static func inset(width: CGFloat, margin: CGFloat, maximumWidth: CGFloat) -> CGFloat {
         max(margin, maximumWidth > 0 ? (width - maximumWidth) / 2 : margin)
     }
 }
 
 struct EditorLayoutPreferences: View {
-    @AppStorage("editor.horizontalMargin") private var horizontal = 17.0
-    @AppStorage("editor.verticalMargin") private var vertical = 17.0
+    @AppStorage("editor.horizontalMargin") private var horizontal = EditorTextLayout.horizontalMargin
+    @AppStorage("editor.verticalMargin") private var vertical = EditorTextLayout.verticalMargin
     @AppStorage("editor.maximumWidth") private var maximum = 0.0
     @AppStorage("editor.typewriter") private var typewriter = false
     @AppStorage("editor.theme") private var themeName = "System"
@@ -35,8 +37,8 @@ struct EditorLayoutPreferences: View {
     private var themes: [EditorTheme] { (try? JSONDecoder().decode([EditorTheme].self, from: Data(themeData.utf8))) ?? [] }
     var body: some View {
         Section("Editor Layout") {
-            HStack { Text("Horizontal Margin"); Slider(value: $horizontal, in: 8...80, step: 1); Text("\(Int(horizontal)) pt") }
-            HStack { Text("Vertical Margin"); Slider(value: $vertical, in: 8...80, step: 1); Text("\(Int(vertical)) pt") }
+            HStack { Text("Horizontal Margin"); Slider(value: $horizontal, in: 0...80, step: 1); Text("\(Int(horizontal)) pt") }
+            HStack { Text("Vertical Margin"); Slider(value: $vertical, in: 0...80, step: 1); Text("\(Int(vertical)) pt") }
             HStack { Text("Maximum Text Width"); TextField("0 for unlimited", value: $maximum, format: .number).frame(width: 100); Text("pt · 0 = unlimited").font(.caption) }
             Toggle("Typewriter Scrolling", isOn: $typewriter)
         }

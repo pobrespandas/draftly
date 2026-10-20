@@ -10,11 +10,20 @@ struct DraftRowPresentation {
     static let tagTopInset: CGFloat = 5
     static let dateHeight: CGFloat = 13
     static let dateTopInset: CGFloat = 2
-    static let titleSize: CGFloat = 14
+    static let dateBaselineOffset: CGFloat = 2
+    static let titleSize: CGFloat = 15
+    static let titleWeight: NSFont.Weight = .semibold
     static let previewSize: CGFloat = 13
     static let previewLineHeight: CGFloat = 16
     static let tagSize: CGFloat = 10
     static let dateSize: CGFloat = 11
+
+    static var titleFont: NSFont { .systemFont(ofSize: titleSize, weight: titleWeight) }
+    static var tagFont: NSFont { .systemFont(ofSize: tagSize) }
+    static var dateFont: NSFont { .systemFont(ofSize: dateSize) }
+    static func previewFont(query: String = "") -> NSFont {
+        .systemFont(ofSize: previewSize, weight: query.isEmpty ? .regular : .semibold)
+    }
 
     static func preview(_ note: Note, query: String = "") -> String {
         let lines = note.content.components(separatedBy: .newlines)
@@ -37,7 +46,7 @@ struct DraftRowPresentation {
         let text = preview(note, query: query)
         if showPreview && !text.isEmpty {
             let measured = (text as NSString).boundingRect(with: NSSize(width: max(1, width), height: 1000),
-                options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: [.font: NSFont.systemFont(ofSize: previewSize, weight: query.isEmpty ? .regular : .semibold)]).height
+                options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: [.font: previewFont(query: query)]).height
             height += min(ceil(measured), CGFloat(min(3, max(1, previewLines))) * previewLineHeight) + contentSpacing
         }
         if showTags && !note.tags.isEmpty { height += tagHeight + tagTopInset + contentSpacing }

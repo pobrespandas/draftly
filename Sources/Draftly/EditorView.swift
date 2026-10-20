@@ -4,6 +4,7 @@ import WebKit
 import DraftlyCore
 
 struct NativeEditor: NSViewRepresentable {
+    @Environment(\.colorScheme) private var colorScheme
     @ObservedObject var session: EditorSession
     var fontName: String
     var fontSize: Double
@@ -11,8 +12,8 @@ struct NativeEditor: NSViewRepresentable {
     var markdown: Bool
     var syntax = "Markdown"
     var syntaxDefinition: SyntaxDefinition?
-    var horizontalMargin = 17.0
-    var verticalMargin = 17.0
+    var horizontalMargin = EditorTextLayout.horizontalMargin
+    var verticalMargin = EditorTextLayout.verticalMargin
     var maximumWidth = 0.0
     var theme: EditorTheme?
     var linksEnabled = false
@@ -51,7 +52,7 @@ struct NativeEditor: NSViewRepresentable {
             text.horizontalMargin = max(0, horizontalMargin); text.verticalMargin = max(0, verticalMargin)
             text.maximumLineWidth = max(0, maximumWidth); text.updateTextInsets()
         }
-        let background = theme.flatMap { EditorTheme.color($0.background) } ?? NSColor.textBackgroundColor
+        let background = theme.flatMap { EditorTheme.color($0.background) } ?? (colorScheme == .dark ? NSColor.black : .white)
         if text.backgroundColor != background { text.backgroundColor = background }
         if scroll.backgroundColor != background { scroll.backgroundColor = background }
         let changedNote = coordinator.noteID != session.noteID || coordinator.style.isEmpty

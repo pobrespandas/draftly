@@ -8,12 +8,13 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
     private weak var splitView: NSSplitView?
     private var subscriptions: Set<AnyCancellable> = []
     private var refreshPending = false
+    private var actionsVisible: Bool?
     private var items: [NSToolbarItem.Identifier: NSToolbarItem] = [:]
-    // Native flexible space contracts before controls enter the overflow menu.
-    private let order: [NSToolbarItem.Identifier] = (
+    // Keep Share with draft commands. Let trailing space absorb window width.
+    static let defaultItemIdentifiers: [NSToolbarItem.Identifier] = (
         ["filters", NSToolbarItem.Identifier.sidebarTrackingSeparator.rawValue, "drafts"]
-        + [NSToolbarItem.Identifier.flexibleSpace.rawValue]
-        + ["last", "NSToolbarSpaceItem", "navigate", "NSToolbarSpaceItem", "capture", "flag", "tags", "folders", "NSToolbarFlexibleSpaceItem", "share", "NSToolbarSpaceItem", "search", "actions", "float"]
+        + [NSToolbarItem.Identifier.flexibleSpace.rawValue, NSToolbarItem.Identifier.flexibleSpace.rawValue]
+        + ["last", "NSToolbarSpaceItem", "navigate", "NSToolbarSpaceItem", "capture", "flag", "tags", "folders", "NSToolbarSpaceItem", "share", "NSToolbarFlexibleSpaceItem", "search", "actions", "float"]
     ).map { NSToolbarItem.Identifier($0) }
     init(model: WindowModel, window: NSWindow, splitView: NSSplitView) {
         self.model = model
@@ -31,8 +32,8 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
         }
         refresh()
     }
-    func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] { order }
-    func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] { order }
+    func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] { Self.defaultItemIdentifiers }
+    func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] { Self.defaultItemIdentifiers }
     func toolbar(_ toolbar: NSToolbar, itemForItemIdentifier identifier: NSToolbarItem.Identifier, willBeInsertedIntoToolbar flag: Bool) -> NSToolbarItem? {
         let item: NSToolbarItem
         switch identifier.rawValue {
@@ -66,12 +67,27 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
                 item.image = item.image?.withSymbolConfiguration(.init(pointSize: 11, weight: .regular))
                 item.image?.size = NSSize(width: 12, height: 12)
             }
+            if identifier.rawValue == "actions" {
+                item.image = Self.actionsToggleImage(isVisible: model?.showActions ?? false)
+            }
             item.isBordered = identifier.rawValue != "float"
             item.target = self; item.action = #selector(pressed(_:))
         }
         item.autovalidates = false
         items[identifier] = item
         return item
+    }
+    static func actionsToggleImage(isVisible: Bool) -> NSImage? {
+        guard let symbol = NSImage(systemSymbolName: "sidebar.right", accessibilityDescription: nil) else { return nil }
+        let image = NSImage(size: symbol.size, flipped: false) { rect in
+            symbol.draw(in: rect)
+            (isVisible ? NSColor.labelColor : NSColor.secondaryLabelColor).setFill()
+            rect.fill(using: .sourceIn)
+            return true
+        }
+        image.isTemplate = false
+        image.accessibilityDescription = "Toggle Actions"
+        return image
     }
     private static func panelToggleImage(filters: Bool) -> NSImage {
         let image = NSImage(size: NSSize(width: 18, height: 14), flipped: false) { _ in
@@ -110,6 +126,10 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
     }
     private func refresh() {
         guard let model else { return }
+        if actionsVisible != model.showActions, let item = items[NSToolbarItem.Identifier("actions")] {
+            item.image = Self.actionsToggleImage(isVisible: model.showActions)
+            actionsVisible = model.showActions
+        }
         let title = model.currentNote?.title ?? "Draftly"
         if model.window?.title != title { model.window?.title = title }
         setEnabled(model.lastNoteID != nil, for: items[NSToolbarItem.Identifier("last")])

@@ -35,6 +35,14 @@ struct DraftRowPresentationTests {
                                            showTags: false, showDate: true, lastAction: false) == 81)
     }
 
+    @Test func titleUsesTheMeasuredSemiboldReferenceFont() throws {
+        let font = DraftRowPresentation.titleFont
+        #expect(font.pointSize == 15)
+        let traits = try #require(font.fontDescriptor.object(forKey: .traits) as? [NSFontDescriptor.TraitKey: Any])
+        let weight = try #require(traits[.weight] as? NSNumber)
+        #expect(abs(weight.doubleValue - Double(NSFont.Weight.semibold.rawValue)) < 0.001)
+    }
+
     @Test func optionalRowsUseTheSameVerticalMetricsAsTheView() {
         let note = Note(content: "Title", tags: ["work"])
         func height(tags: Bool = false, date: Bool = false) -> CGFloat {
