@@ -10,6 +10,13 @@ Keep the installed Draftly app unchanged. For Debug updates, copy every file fro
 Contents/MacOS, including Draftly.debug.dylib and __preview.dylib. Replacing only
 the launcher leaves old code. Compare each source and destination hash before
 signing. Preserve the isolated Info.plist. Verify the complete signed bundle.
+For later updates, use `scripts/refresh-engine-qa.py SOURCE_APP QA_APP --identity
+"Apple Development identity"`. It requires an existing isolated bundle and an
+absent QA process. It refreshes runtime files and resources, keeps Info.plist,
+checks copied hashes, signs, and verifies. Its process check normalizes executable
+paths, including /var and /private/var aliases. It rejects the habitual app and
+normal URL scheme.
+
 Set these Info.plist values on the copy:
 
 - `CFBundleIdentifier`: `com.andrestobelem.draftly.engine-qa`

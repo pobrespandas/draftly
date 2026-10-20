@@ -177,6 +177,11 @@ Run the Python checks with a Python environment that provides Pillow:
 python3 -m unittest discover -s scripts -p 'test_*.py'
 ```
 
+Use [manual engine QA](docs/manual-engine-qa.md) for isolated native checks.
+Refresh its existing bundle with `scripts/refresh-engine-qa.py`; copy all Debug
+runtime files, not only the launcher. The script keeps the QA identity and checks
+that its process is absent before replacement.
+
 Keep acceptance summaries and frozen reference snapshots. Screenshots, session
 evidence, raw logs, and generated caches stay local and ignored. They were removed
 after the current cleanup. Generate new artifacts when a new check needs them.
