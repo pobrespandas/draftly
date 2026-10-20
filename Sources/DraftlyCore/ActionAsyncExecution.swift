@@ -42,10 +42,14 @@ import Foundation
                         if let suspended {
                             guard suspended else { throw ActionExecutionInterruption.cancelled }
                         } else {
-                            guard try ActionStepExecutor(runner: self).performNative(step, text: text, rendered: rendered, current: current,
-                                evaluate: { updates.append($0) }, executeIncluded: { _, _ in
-                                    throw DraftlyError.message("The included action was not expanded.")
-                                }) else { throw ActionExecutionInterruption.cancelled }
+                            let perform = {
+                                try ActionStepExecutor(runner: self).performNative(step, text: text, rendered: rendered, current: current,
+                                    evaluate: { updates.append($0) }, executeIncluded: { _, _ in
+                                        throw DraftlyError.message("The included action was not expanded.")
+                                    })
+                            }
+                            let completed = try ["insertText", "createDraft"].contains(step.type) ? withScriptMutation(perform) : perform()
+                            guard completed else { throw ActionExecutionInterruption.cancelled }
                         }
                         if !updates.isEmpty { try await worker.evaluateSource(updates.joined(separator: "\n")) }
                     }

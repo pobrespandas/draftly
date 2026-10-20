@@ -62,14 +62,19 @@ struct ApplicationURLRouter {
                 if let callback = ActionExecutionResult.cancelled.callbackURL(parameters: callbackParameters) { NSWorkspace.shared.open(callback) }
                 return
             }
-            let host = controller.makeActionHost(); let editor = EditorSession(); editor.load(note)
-            let runner = ActionRunner(library: library, editor: editor, host: host)
+            let host = controller.makeActionHost()
             Task { @MainActor in
-                let report = await runner.runAsync(action)
-                if case .failure(let message) = report.result { library.error = message }
-                show(editor.noteID)
-                if let callback = report.result.callbackURL(parameters: callbackParameters, successParameters: report.successParameters) { NSWorkspace.shared.open(callback) }
-                _ = host
+                do {
+                    let output = try await AutomationActionExecution.run(action, noteID: note.id, library: library,
+                        models: controller.windows.allObjects, host: host)
+                    if case .failure(let message) = output.report.result { library.error = message }
+                    show(output.noteID)
+                    if let callback = output.report.result.callbackURL(parameters: callbackParameters, successParameters: output.report.successParameters) { NSWorkspace.shared.open(callback) }
+                } catch {
+                    library.error = error.localizedDescription
+                    let result: ActionExecutionResult = error is CancellationError ? .cancelled : .failure(error.localizedDescription)
+                    if let callback = result.callbackURL(parameters: callbackParameters) { NSWorkspace.shared.open(callback) }
+                }
             }
         default: break
         }

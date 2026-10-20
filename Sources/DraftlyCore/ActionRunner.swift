@@ -329,6 +329,13 @@ public final class ActionRunner: ObservableObject {
 
     func appendScriptLog(_ message: String) { logs.append(message) }
 
+    func withScriptMutation<T>(_ body: () throws -> T) rethrows -> T {
+        let wasApplying = isApplyingScriptCommand
+        isApplyingScriptCommand = true
+        defer { isApplyingScriptCommand = wasApplying }
+        return try body()
+    }
+
     func dispatch(_ operation: String, values: [String: Any]) throws -> Any? {
         let wasApplying = isApplyingScriptCommand
         isApplyingScriptCommand = true

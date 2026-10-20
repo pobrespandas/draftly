@@ -1199,3 +1199,17 @@ The full integrated run also passed. System permission dialogs cannot be withdra
 by EventKit; cancellation ends the action wait and ignores any later grant.
 The calendar event editor still uses a modal dialog. Real permissions and item
 persistence remain pending; these cases are not native acceptance.
+
+## Automation editor safety — 20 October 2026
+
+URLs and App Intents share an injected action execution coordinator. It saves
+pending visible edits before loading its private editor. Visible typing and stored
+text changes cancel a pending action. The private editor retains the competing
+text, so cancellation cannot flush stale text over it. Synchronous draft creation
+and insertion mark their own mutations; this marker does not span native waits.
+
+Five background tests passed: pending edits, failed saves, visible typing, external
+stored text, and the action's own native editor changes. The full run passed 212
+app tests in 36 suites and 306 core tests in 40 suites. Targeted automation and
+native-host tests passed after restricting the mutation marker to text operations.
+Real App Intent invocation and the full multiple-window acceptance remain pending.

@@ -43,12 +43,10 @@ struct RunDraftActionIntent: AppIntent {
     @MainActor func perform() async throws -> some IntentResult & ReturnsValue<String> {
         guard let library = AppController.shared.library, let id = UUID(uuidString: uuid), let note = library.notes.first(where: { $0.id == id }),
               let action = library.actions.first(where: { $0.name == name }) else { throw DraftlyError.message("The draft or action was not found.") }
-        let host = AppController.shared.makeActionHost(); let editor = EditorSession(); editor.load(note)
-        let runner = ActionRunner(library: library, editor: editor, host: host)
-        let report = await runner.runAsync(action)
-        _ = host
-        guard report.result.succeeded else { throw DraftlyError.message(runner.message ?? "The action did not complete.") }
-        return .result(value: runner.message ?? "Complete")
+        let output = try await AutomationActionExecution.run(action, noteID: note.id, library: library,
+            models: AppController.shared.windows.allObjects, host: AppController.shared.makeActionHost())
+        guard output.report.result.succeeded else { throw DraftlyError.message(output.message.isEmpty ? "The action did not complete." : output.message) }
+        return .result(value: output.message.isEmpty ? "Complete" : output.message)
     }
 }
 
