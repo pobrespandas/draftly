@@ -61,20 +61,20 @@ struct NativeEventKitWaitTests {
         do { try await request.requireFullAccess(reminders: true, timeout: 0.02); Issue.record("Authorization did not time out.") }
         catch { #expect((error as? ActionExecutionInterruption) == .timeout) }
         callback?(true, nil)
-        await Task.yield()
     }
 
     @Test func authorizationCancellationDoesNotWaitForTheSystemDialog() async throws {
+        let started = AsyncStream.makeStream(of: Bool.self)
         var callback: (@Sendable (Bool, Error?) -> Void)?
-        let request = EventKitAuthorizationRequest(status: { _ in .notDetermined }, request: { _, completion in callback = completion })
+        let request = EventKitAuthorizationRequest(status: { _ in .notDetermined }, request: { _, completion in callback = completion; started.continuation.yield(true); started.continuation.finish() })
         let task = Task { try await request.requireFullAccess(reminders: true) }
-        try await Task.sleep(for: .milliseconds(20))
+        var events = started.stream.makeAsyncIterator()
+        try #require(await events.next() == true)
         #expect(callback != nil)
         task.cancel()
         do { try await task.value; Issue.record("The cancelled authorization succeeded.") }
         catch { #expect(error is CancellationError) }
         callback?(true, nil)
-        await Task.yield()
     }
 
     @Test func reminderFetchSuccessReleasesItsCancellationToken() async throws {
@@ -89,21 +89,23 @@ struct NativeEventKitWaitTests {
     }
 
     @Test func reminderFetchCancellationCancelsTheUnderlyingRequestAndIgnoresLateResults() async throws {
+        let started = AsyncStream.makeStream(of: Bool.self)
         var callback: (@Sendable (EventKitReminderResult) -> Void)?
         var cancelled = false
         let fetch = EventKitReminderFetchRequest { completion in
             callback = completion
+            started.continuation.yield(true); started.continuation.finish()
             return { cancelled = true }
         }
         let task = Task { try await fetch.fetch() }
-        try await Task.sleep(for: .milliseconds(20))
+        var events = started.stream.makeAsyncIterator()
+        try #require(await events.next() == true)
         #expect(callback != nil)
         task.cancel()
         do { _ = try await task.value; Issue.record("The cancelled fetch succeeded.") }
         catch { #expect(error is CancellationError) }
         #expect(cancelled)
         callback?(EventKitReminderResult(reminders: []))
-        await Task.yield()
     }
 
     @Test func reminderFetchTimeoutCancelsTheUnderlyingRequest() async {

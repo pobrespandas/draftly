@@ -70,7 +70,8 @@ struct NativeLocationRequestTests {
     @Test func cancellationStopsUpdatesAndRejectsLateCallbacks() async throws {
         let driver = LocationDriverFixture()
         let task = Task { try await NativeLocationRequest.current(driver: driver) }
-        try await Task.sleep(for: .milliseconds(20))
+        var started = driver.started.stream.makeAsyncIterator()
+        try #require(await started.next() == true)
         let lateLocation = driver.onLocation
         let lateAuthorization = driver.onAuthorization
         task.cancel()
@@ -112,6 +113,7 @@ struct NativeLocationRequestTests {
 
 @MainActor
 private final class LocationDriverFixture: NativeLocationDriving {
+    let started = AsyncStream.makeStream(of: Bool.self)
     var servicesEnabled = true
     var authorizationStatus: CLAuthorizationStatus = .authorizedAlways
     var onAuthorization: ((CLAuthorizationStatus) -> Void)?
@@ -125,9 +127,10 @@ private final class LocationDriverFixture: NativeLocationDriving {
     var invalidated = false
 
     func requestAuthorization() { authorizationRequests += 1; whenAuthorizationRequested?() }
-    func startUpdating() { starts += 1; whenStarted?() }
+    func startUpdating() { starts += 1; started.continuation.yield(true); started.continuation.finish(); whenStarted?() }
     func stopUpdating() { stops += 1 }
     func invalidate() {
+        started.continuation.finish()
         invalidated = true; onAuthorization = nil; onLocation = nil; onFailure = nil
         whenStarted = nil; whenAuthorizationRequested = nil
     }
