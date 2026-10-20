@@ -54,3 +54,12 @@ live window metadata. Exit status zero means that PID filtering, ordering,
 normal-window counts, missing titles, empty titles, and malformed-row rejection
 passed the in-memory fixtures. This check does not validate live Core Graphics
 visibility or privacy behavior.
+
+## Recorded control — 20 October 2026
+
+The helper observed PID498 with window16182. Close without an action left zero
+visible normal windows. Direct qa.getAXState then created window16188. Repeat
+zero-window checks by observing only the helper. A direct QA observation changes
+the tested state. The source-close prompt case also stayed at zero visible normal
+windows until an explicit Open URL. History then confirmed cancellation. Titles
+were unavailable throughout. See validation for the exact tested build and scope.

@@ -24,8 +24,8 @@ retain historical results. Later results supersede earlier counts.
 
 | Check | Latest result |
 | --- | --- |
-| App tests | 379 passed after editor context and startup routing checks |
-| Core tests | 345 passed; original actions run on both routes |
+| App tests | 382 passed after owner lifetime and deadline checks |
+| Core tests | 350 passed; original actions run on both routes |
 | Python tools | 32 passed |
 | Local Xcode build after native services and canonical exclusion | Passed; signing disabled |
 | Matrix structure check | 0 errors |
@@ -402,3 +402,9 @@ The final run passed 315 app tests, 330 core tests, and 32 Python tooling tests.
 The unsigned build and normal matrix check passed. Strict engine acceptance is
 open with 42 diagnostics; all 14 engine records remain partial. API member
 classifications are unchanged. See docs/validation.md for exact evidence.
+
+The engine unknown disabled imports contract has passed its specific automatic
+and native checks. Thirteen engine records remain partial; strict engine parity
+reports 39 diagnostics. This is separate from the 562-member API inventory. See
+the latest validation entry for the independent window-close control and payload
+round trip.

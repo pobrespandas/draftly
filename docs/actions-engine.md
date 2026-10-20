@@ -253,3 +253,16 @@ poll the RunLoop. It checks captured text, selection, draft identity, and stored
 content before insertion. A changed destination sends accepted speech to the
 recovery flow. Cancel and owner release stop the request. Native voice and close
 acceptance remain separate from injected automatic tests.
+
+## Startup cancellation and deadline boundaries — 20 October 2026
+
+An owner-close subscription now covers the interval before the automation child
+starts. Close and parent cancellation cancel that child; cleanup removes the
+subscription. The worker validates its synchronous deadline before combining
+limits. Invalid synchronous limits cannot be hidden by a valid async limit.
+
+The unknown disabled import engine contract passed native import, inspector,
+export, and execution checks, plus the dedicated backup/restore test. It is one
+complete engine contract. The other thirteen remain partial. Independent window
+metadata confirmed no visible reopen after source close; direct CUA observation
+caused the earlier extra window in a no-action control. See validation for scope.

@@ -159,3 +159,16 @@ its action records Cancelled, and the source text stays unchanged. Do not count
 the new-window behavior as accepted yet: an Untitled window appeared in the
 20 October 2026 check. Diagnose that behavior separately. Do not start microphone
 recording for these checks.
+
+## Unknown imported steps
+
+Import scripts/fixtures/engine-import-actions.json. In Engine import QA, inspect
+QA Disabled future step and export it to a temporary folder. Check that the native
+export retains rawPayload and isEnabled false. Cancel editing. Run both actions.
+Disabled must succeed. Enabled must fail before Must not run appears in the draft.
+Check the two history results. Remove the neutral export after checking it.
+
+For source-close checks, use docs/manual-window-inventory.md. The independent
+20 October 2026 control resolved the extra-window report for the tested case:
+direct CUA observation reopened QA after it had zero windows. Observe only the
+helper until an explicit reopen is part of the next test.

@@ -1606,3 +1606,55 @@ Native App Intent failures, busy and timeout from real accesses, multiple-window
 selection, closure before execution starts, and the new voice path remain pending.
 The strict engine gate is still open. QA and its helper were quit. No screenshot
 was saved.
+
+## Unknown-step import and observer control — 20 October 2026
+
+Implemented: a per-execution owner-close subscription cancels the automation
+child before startup or during a wait. Parent cancellation also cancels it.
+Cleanup removes the subscription once. The worker validates the synchronous
+limit before taking the smaller async/sync limit. Infinity no longer hides an
+invalid synchronous setting. The separate QA helper now offers opt-in CGWindow
+metadata monitoring without activating or controlling Draftly.
+
+Automatically tested: 382 app tests in 57 suites and 350 core tests in 52 suites
+passed. The unsigned Xcode build and 32 Python tests passed. The standalone helper
+compiled, and its metadata self-check returned zero before NSApplication startup.
+Deadline tests cover NaN, infinity, zero, negative values, sync and async modes,
+and both directions of the smaller CPU limit. They assert typed failure and no
+later clipboard, insertion, or Archive effects. Owner tests cover a synchronous
+close before task creation, close during a wait, parent cancellation, and cleanup.
+The dedicated import test covers JSON export, reimport, backup, restore, retained
+identity, nested unknown data, disabled state, and execution after restoration.
+
+Verified in use: the full development-signed QA refresh used source Debug library
+hash prefix 84449a7bfbd8c787 before signing. The updated helper was also signed.
+The helper had no window titles because macOS withheld them. No new permission
+was requested. PID498 initially had visible normal window16182. Closing it in a
+no-action control left zero visible normal windows. Direct qa.getAXState then
+created visible window16188 under the same PID. This reproduces the observation
+effect without any action or callback. It supersedes the earlier unresolved
+Untitled-window report for this tested path.
+
+The action case opened the neutral target explicitly and ran the URL prompt.
+The Window menu selected First. Closing it closed the prompt. Two separate helper
+Refresh readings showed zero visible normal windows. QA was not observed directly
+between those readings. An explicit Open URL then reopened the target for content
+and history checks. Text remained First followed by Second 🐼. History recorded
+Cancelled at 02:19 local time. This verifies cancellation without an unexpected
+visible reopen in that source-close case. More window combinations remain open.
+
+The neutral engine-import-actions fixture was imported through the helper. The
+inspector displayed futureStep, futureOption, and nested JSON with null. Export
+Action wrote one file in a fresh temporary directory. Its rawPayload parsed equal
+to the exact source object, including Boolean, null, and café 🐼. isEnabled stayed
+false. The temporary export and directory were removed. Cancel left editing
+unchanged. QA Disabled future step then recorded Success. QA Enabled future step
+recorded Error with Unsupported steps before its preceding Must not run insertion.
+The draft remained unchanged; both history entries are at 02:21.
+
+The engine unknown disabled imports contract is now complete on this evidence.
+This closes that named engine contract only. Inspector editing, separator import,
+and the remaining API contracts keep their own acceptance. The strict engine
+gate now has 39 diagnostics across thirteen partial records. One engine record
+is complete. The 562-member API inventory is unchanged. QA and the helper were
+quit; the helper monitor was turned off. No screenshot or raw log was saved in Git.
