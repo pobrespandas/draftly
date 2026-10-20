@@ -958,3 +958,9 @@ Native URL owner-close now returns one matching cancel callback and retains
 completed text without success effects. A new offscreen test covers real
 owner-notification filtering and observer removal. Full regression passed
 app445/core468. Intent and multiwindow native acceptance remain pending.
+
+
+Native two-window URL ownership passed: closing the non-owner kept callback
+count zero; closing the owner produced one matching cancel callback. Intent
+and same-draft ownership variants remain pending. A remaining-window menu
+context observation needs source review before a fix is claimed.

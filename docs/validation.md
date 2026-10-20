@@ -4285,3 +4285,39 @@ removal, separately from the existing injected execution-lifetime tests.
 Full regression passed app445/core468. No production code changed and no new
 app build was needed. Matrix structure passes. Common-entry acceptance remains
 partial. Raw logs stay in /tmp; no screenshots are tracked.
+
+
+### Native URL ownership with two windows — 20 October 2026
+
+Native: isolated Engine QA image99a067dd93e833bb. Opened target draft
+A386D93F-D3D8-49EB-8F7F-205612F74D93 in library-AppWindow-1. Used File >
+New Window to create Untitled library-AppWindow-2. Sent a confirmed run URL
+for QA Native async timeout with local success/cancel/error callbacks carrying
+case=two-window-owner. The current window remained Untitled window2.
+
+Pressed window2's native close button. Window1 still showed Async timeout
+completed write. The helper received zero callbacks. Then pressed window1's
+native close button. The helper received exactly one callback with
+case=two-window-owner and result=cancel. This extends the single-owner URL
+check with a real non-owner close. It does not verify same-draft ownership
+preference, App Intent cancellation, or all late capability responses.
+
+The helper's read-only window monitor ran during the check and was disabled
+afterward. It included auxiliary window records, so its normal-window count
+is not used to assert exactly two library windows. The observed library IDs
+and editor contents identify the two windows. No screenshot or raw log is
+tracked. No production code, new test, or build changed. Last full regression
+remains app445/core468. Matrix structure passes. Common-entry parity stays
+partial for the other required variants.
+
+Follow-up: after closing window2, window1's menu bar did not expose Actions or
+Visual QA. Raise and editor click did not restore those entries in Computer
+Use. AppController clears commandWindow when its registered window closes.
+Review whether the remaining visible model needs a deterministic fallback.
+The observation alone does not establish the cause or physical-click behavior.
+
+Read-only review found an existing restoration path: didBecomeKey registers
+the actual key model, and focused commands prefer their focused model. A nil
+commandWindow between key events is not enough to prove a defect. Do not add
+an arbitrary hash-table fallback. Next check must establish foreground/key/main
+state at the missing-menu moment. No production fix follows from this evidence.
