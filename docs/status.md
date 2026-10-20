@@ -24,8 +24,8 @@ retain historical results. Later results supersede earlier counts.
 
 | Check | Latest result |
 | --- | --- |
-| App tests | 358 passed after template, layout, and automation checks |
-| Core tests | 344 passed; original actions run on both routes |
+| App tests | 379 passed after editor context and startup routing checks |
+| Core tests | 345 passed; original actions run on both routes |
 | Python tools | 32 passed |
 | Local Xcode build after native services and canonical exclusion | Passed; signing disabled |
 | Matrix structure check | 0 errors |

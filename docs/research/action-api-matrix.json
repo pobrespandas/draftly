@@ -16952,6 +16952,22 @@
         {
           "suite": "AutomationActionExecutionTests",
           "test": "failedVisibleSavePreventsAutomation"
+        },
+        {
+          "suite": "AutomationEditorContextTests",
+          "test": "matchingContextUsesItsActualEditorUndoAndUIWithoutChangingAnotherDraft"
+        },
+        {
+          "suite": "AutomationEditorContextTests",
+          "test": "busyReservationIsRejectedBeforeAnyPendingDraftIsSaved"
+        },
+        {
+          "suite": "AutomationEditorContextTests",
+          "test": "ownedContextCancelsWithoutRetargetingOrOverwritingConcurrentText"
+        },
+        {
+          "suite": "AutomationActionErrorTests",
+          "test": "allFailuresRetainTheReasonIdentityAndOriginalResult"
         }
       ],
       "nativeVerification": {
@@ -16964,6 +16980,12 @@
         "date": "2026-10-20",
         "evidence": "docs/validation.md",
         "scope": "The named contract cases were included in the recorded regression run. This is not native acceptance."
+      },
+      "windowContextReview": {
+        "date": "2026-10-20",
+        "evidence": "docs/validation.md",
+        "accepted": "Cold Open selected the target. URL showArrange kept its panel, changed the real editor, and supported native Cmd-Z. Closing a source window cancelled its waiting prompt and retained text.",
+        "pending": "An Untitled window appeared after close; its cause is unresolved. Multiple windows, pre-start close, actual busy/timeout and typed App Intent failures remain pending."
       }
     }
   ],

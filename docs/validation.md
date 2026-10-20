@@ -1565,3 +1565,44 @@ Cancelled. No print job was sent. QA and its helper were quit. No screenshot was
 saved. Real template folder permissions, location, physical or PDF print output,
 window-bound automation operations, and wider native acceptance remain pending.
 Strict engine closure remains open; no status was promoted from these totals.
+
+## Automation window context and startup routing — 20 October 2026
+
+Implemented: fixed editor context for URL and App Intent actions, early busy
+rejection, retained startup targets, typed App Intent errors, and nonblocking
+showDictate. Cancellation and failure no longer reveal the URL target. Success
+does not reselect an already visible result. This fixes a real regression where
+URL showArrange opened its panel and then immediately cancelled it by selecting
+the same draft.
+
+Automatically tested: 379 app tests in 57 suites and 345 core tests in 50 suites
+passed after the final route correction. The 32 Python tests and unsigned Xcode
+build passed. Matrix structure has zero errors. Routing tests cover delayed model
+registration, save failure and retry, invalid targets, explicit new selection,
+new-window exclusion, and closed destinations. Context tests cover key/main/visible
+selection, native Undo, save order, early busy without saves, cancellation, stale
+text, and no retarget. Error tests retain final reason, result, and execution ID.
+Dictation tests use injected presenters. They cover immediate return, cancellation,
+recovery, selection changes, stored changes, save failure, owner release, and Undo.
+They do not open a microphone, show a window, or request a permission.
+
+Verified in use: the final isolated QA bundle was fully refreshed and signed.
+Source Debug library hash starts with caf9b8271cd70940 before signing. The earlier
+intermediate bundle is not accepted for the final showArrange correction. A cold
+Open URL selected the neutral draft First followed by Second 🐼 without a manual
+row selection. A warm URL QA Show Arrange then kept its native panel open after
+the action returned. Move Up and Done changed the real editor to Second 🐼
+followed by First. Cmd-Z restored First followed by Second 🐼.
+
+A URL QA Async prompt keyboard was left waiting. The Window menu selected its
+source window First. Closing that window closed the prompt, kept the saved text,
+and recorded Cancelled at 02:10 local time. An Untitled window appeared after
+close. The route did not explicitly reveal a cancelled result. Static review
+found no cancellation path that opens a library window. The cause of the new
+window is unresolved; do not claim full no-reopen acceptance. CUA or native
+lifecycle behavior needs an isolated follow-up.
+
+Native App Intent failures, busy and timeout from real accesses, multiple-window
+selection, closure before execution starts, and the new voice path remain pending.
+The strict engine gate is still open. QA and its helper were quit. No screenshot
+was saved.

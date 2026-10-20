@@ -145,3 +145,17 @@ accepts text without a window editor. Window-bound UI methods need separate test
 The updated QA Print cancelled preview must show one page for the short fixture.
 Cancel and verify that Late print is absent. Do not send a printer job. These
 cases passed in the fully refreshed 01:59 local QA run on 20 October 2026.
+
+## Editor context and source close
+
+From a cold QA launch, open the explicit neutral draft UUID. The target must be
+selected without a row click. Run QA Show Arrange by URL while that draft is
+visible. The panel must stay open after the action returns. Move a line, accept,
+and use Cmd-Z in the real editor. Confirm the saved text and history.
+
+Run QA Async prompt keyboard by URL and leave its prompt open. In the Window
+menu, choose the source draft window and close it. Check that the prompt closes,
+its action records Cancelled, and the source text stays unchanged. Do not count
+the new-window behavior as accepted yet: an Untitled window appeared in the
+20 October 2026 check. Diagnose that behavior separately. Do not start microphone
+recording for these checks.

@@ -229,3 +229,27 @@ Arrange accepts text through automation without borrowing a window's editor.
 Window-bound operations still require a window adapter. Print layout now uses
 paper size, margins, scale, and fitted text height. HTML import specifies UTF-8.
 The neutral native preview shows one page. Actual print output remains pending.
+
+## Automation editor context and dictation — 20 October 2026
+
+Automation resolves its editor context once. It prefers a visible matching key
+window, then a matching main window, then another visible matching window. It
+uses that model's runner and editor. It never lends another draft's UI to a
+separate editor. Without a matching window, independent operations use the
+headless route. Window-bound operations still require a matching context.
+
+A busy model rejects the request before any pending edits are saved. Rejected
+starts have a final report with a separate execution identity. App Intents retain
+the final reason and result in a localized error. URL callbacks retain their
+existing success, cancel, and error destinations. The URL route does not select
+the same visible result again; this preserves nonblocking editor panels.
+
+Draft opening requests survive window startup and save failure. A new window or
+tab request excludes models that already exist. A closed destination cannot hand
+its pending request to another model. Missing targets report an error.
+
+showDictate now owns an async window session. It returns immediately and does not
+poll the RunLoop. It checks captured text, selection, draft identity, and stored
+content before insertion. A changed destination sends accepted speech to the
+recovery flow. Cancel and owner release stop the request. Native voice and close
+acceptance remain separate from injected automatic tests.
