@@ -21,6 +21,24 @@ struct NativePromptAdapter {
     }
 
     func prompt(_ values: [String: Any]) throws -> Any? {
+        let content = try preparePrompt(values)
+        defer { withExtendedLifetime(content.retained) {} }
+        while true {
+            let index = content.alert.runModal().rawValue - NSApplication.ModalResponse.alertFirstButtonReturn.rawValue
+            guard (0..<content.buttonCount).contains(index) else { return nil }
+            if let fields = content.read() { return ["index": index, "fields": fields] }
+            let error = NSAlert(); error.messageText = "Enter a valid number."; error.runModal()
+        }
+    }
+
+    struct PromptContent {
+        let alert: NSAlert
+        let buttonCount: Int
+        let read: () -> [String: Any]?
+        let retained: [AnyObject]
+    }
+
+    func preparePrompt(_ values: [String: Any]) throws -> PromptContent {
         let alert = NSAlert(); alert.messageText = values["title"] as? String ?? "Action"; alert.informativeText = values["message"] as? String ?? ""
         if let symbol = values["symbolName"] as? String { alert.icon = NSImage(systemSymbolName: symbol, accessibilityDescription: nil) }
         let help = PromptHelp(url: values["helpURL"] as? String); alert.delegate = help; alert.showsHelp = help.url != nil
@@ -118,18 +136,23 @@ struct NativePromptAdapter {
         alert.buttons[defaultIndex].keyEquivalentModifierMask = []
         if values["isCancellable"] as? Bool != false { let cancel = alert.addButton(withTitle: "Cancel"); cancel.keyEquivalent = "\u{1b}" }
         alert.window.initialFirstResponder = focus
-        defer { withExtendedLifetime(datePolicies) {} }
-        while true {
-            let index = alert.runModal().rawValue - NSApplication.ModalResponse.alertFirstButtonReturn.rawValue
-            guard index >= 0, index < max(1, buttons.count) else { return nil }
-            var result: [String: Any] = [:]; var invalid = false
-            for (key, read) in readers { if let value = read() { result[key] = value } else { invalid = true } }
-            if !invalid { return ["index": index, "fields": result] }
-            let error = NSAlert(); error.messageText = "Enter a valid number."; error.runModal()
-        }
+        return PromptContent(alert: alert, buttonCount: max(1, buttons.count), read: {
+            var result: [String: Any] = [:]
+            for (key, read) in readers {
+                guard let value = read() else { return nil }
+                result[key] = value
+            }
+            return result
+        }, retained: [help] + datePolicies)
     }
 
     func selectPrompt(_ values: [String: Any]) -> Any? {
+        guard let content = prepareSelection(values) else { return nil }
+        guard content.alert.runModal() == .alertFirstButtonReturn, let index = content.choices.selectedIndex else { return nil }
+        return ["index": index]
+    }
+
+    func prepareSelection(_ values: [String: Any]) -> (alert: NSAlert, choices: SearchablePromptChoices)? {
         let items = values["items"] as? [[String: Any]] ?? []
         guard !items.isEmpty else { return nil }
         let alert = NSAlert(); alert.messageText = values["title"] as? String ?? "Select a draft"
@@ -137,9 +160,8 @@ struct NativePromptAdapter {
         alert.informativeText = values["message"] as? String ?? ""
         let choices = SearchablePromptChoices(items: items)
         alert.accessoryView = choices.view; alert.window.initialFirstResponder = choices.search
-        alert.addButton(withTitle: "Select"); alert.addButton(withTitle: "Cancel")
-        guard alert.runModal() == .alertFirstButtonReturn, let index = choices.selectedIndex else { return nil }
-        return ["index": index]
+        alert.addButton(withTitle: "Select"); alert.addButton(withTitle: "Cancel").keyEquivalent = "\u{1b}"
+        return (alert, choices)
     }
 
 }

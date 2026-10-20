@@ -118,7 +118,7 @@ public final class ActionRunner: ObservableObject {
                 try Task.checkCancellation()
                 try checkCancellation()
                 if action.presentation.confirmBeforeRun,
-                   try platform("confirmAction", ["name": action.name]) as? Bool != true {
+                   try await nativeValue("confirmAction", ["name": action.name]) as? Bool != true {
                     throw ActionExecutionInterruption.cancelled
                 }
                 try flushEditor()

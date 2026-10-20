@@ -39,7 +39,7 @@ import Foundation
         }
     }
 
-    private func nativeValue(_ operation: String, _ values: [String: Any]) async throws -> Any? {
+    func nativeValue(_ operation: String, _ values: [String: Any]) async throws -> Any? {
         let response = try await platformAsync(operation, payload: json(values))
         guard let envelope = try JSONSerialization.jsonObject(with: Data(response.utf8)) as? [String: Any] else {
             throw DraftlyError.message("The native operation returned an invalid response.")
@@ -51,11 +51,16 @@ import Foundation
     func performSuspendingStep(_ step: ActionStep, text: String, rendered: String, current: Note,
                                evaluate: (String) -> Void) async throws -> Bool? {
         switch step.type {
+        case "prompt":
+            let prompt = try ActionPromptStep(step) { try renderTemplate($0, note: current) }
+            guard let tags = try prompt.tags(from: await nativeValue("prompt", prompt.values)) else { return false }
+            customTags.merge(tags) { _, new in new }
+            return true
         case "speak":
             let value = try await nativeValue("speak", ["text": rendered, "settings": ["autoStart": step.values["autoStart"] != "false", "autoClose": step.values["autoClose"] != "false"]])
             return value as? Bool != false
-        case "reminder":
-            _ = try await nativeValue("reminder", ["text": rendered])
+        case "reminder", "event":
+            _ = try await nativeValue(step.type, ["text": rendered])
             return true
         case "listInReminders":
             let name = try renderTemplate(step.values["list"] ?? step.values["listTemplate"] ?? "Reminders", note: current)

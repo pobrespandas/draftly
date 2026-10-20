@@ -79,3 +79,53 @@ struct AsyncNativeHostTests {
         _ = await iterator.next()
     }
 }
+
+@Suite("Async input bridge contracts") @MainActor
+struct AsyncInputBridgeTests {
+    @Test func transcriptionReturnsTextWithoutChangingTheEditor() async throws {
+        let f = try ScriptTestFixture(content: "Keep", host: AsyncInputHost())
+        f.runner.uiOperation = { _ in Issue.record("The synchronous window adapter ran."); return nil }
+        let report = await f.runner.runAsync(ScriptTestAction.make("context.addSuccessParameter('text',editor.transcribe());", name: "Transcribe"))
+        #expect(report.reason == .success)
+        #expect(report.successParameters["text"] == "café 🐼")
+        #expect(f.editor.content == "Keep" && f.library.notes.first?.content == "Keep")
+        #expect(f.host.calls == ["transcribe"])
+    }
+
+    @Test func transcriptionWithoutAWindowFailsBeforeTheHostRuns() async throws {
+        let f = try ScriptTestFixture(content: "Keep", host: AsyncInputHost())
+        let report = await f.runner.runAsync(ScriptTestAction.make("editor.transcribe();", name: "No window"))
+        #expect(report.reason == .error && f.host.calls.isEmpty)
+        #expect(f.editor.content == "Keep")
+    }
+
+    @Test func modelToolsRejectCallsOutsideAnAction() throws {
+        let f = try ScriptTestFixture(content: "Keep", host: AsyncInputHost())
+        #expect(throws: DraftlyError.self) {
+            try f.runner.performModelTool("draft.create", json: #"{"text":"Late"}"#)
+        }
+        #expect(f.library.notes.count == 1 && f.editor.content == "Keep")
+    }
+
+    @Test func declinedAsyncConfirmationDoesNotRunAnyStep() async throws {
+        let f = try ScriptTestFixture(content: "Keep", host: AsyncInputHost())
+        var action = DraftAction(name: "Confirm", steps: [ActionStep("insertText", ["template": "Late"])])
+        action.presentation.confirmBeforeRun = true
+        let report = await f.runner.runAsync(action)
+        #expect(report.reason == .cancelled && f.host.calls == ["confirmAction"])
+        #expect(f.editor.content == "Keep")
+    }
+}
+
+@MainActor private final class AsyncInputHost: ActionHost {
+    var calls: [String] = []
+    func supportsAsync(_ operation: String) -> Bool { ["transcribe", "confirmAction"].contains(operation) }
+    func perform(_ operation: String, values: [String: Any]) throws -> Any? {
+        Issue.record("The synchronous host ran."); return nil
+    }
+    func performAsync(_ operation: String, payload: String) async throws -> String {
+        calls.append(operation)
+        await Task.yield()
+        return operation == "transcribe" ? #"{"value":"café 🐼"}"# : #"{"value":false}"#
+    }
+}

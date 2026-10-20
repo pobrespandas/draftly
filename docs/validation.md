@@ -1286,3 +1286,40 @@ The manual automation QA executable used the 7a45c7a baseline, before this sessi
 speech/location adapters and canonical exclusion change. Those later changes have
 automatic-test and build evidence only. Repeat their applicable native cases on
 a fresh signed QA build before closing those contracts.
+
+## Async native input and model adapters — 20 October 2026
+
+Implemented:
+
+- File transcription suspends for authorization, file selection, and recognition.
+  Cancellation and deadlines close the picker and stop recognition. Picker Cancel
+  returns empty text. `editor.transcribe()` uses this route when a window exists.
+  It returns text without changing the editor. Live dictation remains separate.
+- Calendar editing uses a nonmodal panel. Accept validates dates and checks
+  cancellation before saving. Cancel does not save. Event creation uses the same
+  async authorization and dialog boundary.
+- Apple model requests suspend with a deadline and reject overlapping requests
+  for one session. Cancellation waits for cleanup and discards the session.
+  Tools require an active request. Discarded sessions invalidate cached tools.
+  Core tool calls reject closed actions and mark their own stored changes.
+- Prompts, selection prompts, alerts, and action confirmation suspend through the
+  host boundary. The legacy and async prompt steps share payload and tag rules.
+  Their synchronous legacy entry points remain available.
+
+Automatic evidence uses injected drivers and presenters. It covers typed prompt
+fields, button indices, invalid numbers, filtered selection indices, cancellation,
+transcription cleanup, event validation and commit, model session exclusion, late
+model tools, and async editor transcription. Cancellation fixtures now wait for
+an explicit start signal, not an assumed delay. No test opens a visible dialog,
+plays audio, or requests a real permission.
+
+The final run passed 260 app tests in 42 suites and 313 core tests in 42 suites.
+The unsigned Xcode build passed. Normal matrix validation passed with zero errors.
+The strict engine gate still reports 120 evidence diagnostics. No API member was
+promoted on the basis of these test totals.
+
+Real system acceptance is pending for these new adapters. In particular, check
+Return, Escape, Cmd-period, and window close in the actual prompt presenter;
+transcribe a neutral file; check EventKit permission and persistence; and check
+Apple model availability and tools. Existing manual acceptance used an older QA
+executable. It does not accept this delivery. No screenshots were saved.

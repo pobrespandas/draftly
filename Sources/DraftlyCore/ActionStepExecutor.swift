@@ -115,16 +115,9 @@ struct ActionStepExecutor {
             guard let uiOperation = runner.uiOperation else { throw DraftlyError.message("Window configuration needs an open editor window.") }
             _ = try uiOperation(["operation": "configureWindow", "values": step.values])
         case "prompt":
-            let key = step.values["key"] ?? "prompt"
-            let titles = (step.values["buttons"] ?? "OK").split(separator: "|", omittingEmptySubsequences: false).map(String.init)
-            guard !key.isEmpty, !titles.contains(where: { $0.isEmpty }) else { throw DraftlyError.message("The prompt key and button titles must not be empty.") }
-            let includeText = ["true", "1"].contains(step.values["includeTextField"] ?? "false")
-            let fields: [[String: Any]] = includeText ? [["key": "text", "label": "", "kind": "text", "value": try renderTemplate(step.values["textFieldDefault"] ?? "", note: current)]] : []
-            let response = try platform("prompt", ["title": try renderTemplate(step.values["title"] ?? "Prompt", note: current), "message": try renderTemplate(step.values["message"] ?? "", note: current), "isCancellable": step.values["includeCancelButton"] != "false", "fields": fields, "buttons": titles.map { ["title": $0] }]) as? [String: Any]
-            guard let response else { return false }
-            guard let index = response["index"] as? Int, titles.indices.contains(index) else { throw DraftlyError.message("The prompt returned an invalid button.") }
-            runner.customTags[key + "_button"] = titles[index]
-            runner.customTags[key + "_text"] = (response["fields"] as? [String: Any])?["text"] as? String ?? ""
+            let prompt = try ActionPromptStep(step) { try renderTemplate($0, note: current) }
+            guard let tags = try prompt.tags(from: platform("prompt", prompt.values)) else { return false }
+            runner.customTags.merge(tags) { _, new in new }
         case "mail", "message":
             var values: [String: Any] = ["subject": try renderTemplate(step.values["subject"] ?? "", note: current), "body": rendered]
             for key in ["toRecipients", "ccRecipients", "bccRecipients", "replyToRecipients"] { values[key] = try renderTemplate(step.values[key] ?? "", note: current).split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) } }

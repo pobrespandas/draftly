@@ -359,3 +359,16 @@ Push only the tested commits, after reviewing their staged diff and running the
 checks in README. A complete Mac parity claim is not justified. Engine async
 work, native acceptance, and strict gates remain open. No history rewrite or
 force push is needed for the current branch state.
+
+## Async native input delivery — 20 October 2026
+
+The async host now covers prompts and confirmation, file transcription, calendar
+editing and creation, and Apple model responses. Model tools reject closed
+requests and discarded sessions. Legacy adapters remain compatible. Live
+dictation and the remaining synchronous native adapters still need review.
+
+The final background run passed 260 app tests and 313 core tests. The unsigned
+Xcode build and normal matrix check passed. The strict engine gate remains open
+with 120 evidence diagnostics. Real acceptance for the new dialogs, transcription,
+EventKit persistence, and model tools is pending. See docs/validation.md for
+specific cases. The full Mac plan remains open.

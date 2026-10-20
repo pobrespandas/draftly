@@ -253,6 +253,12 @@ enum ScriptUtilities {
 
 @MainActor public extension ActionRunner {
     func performModelTool(_ operation: String, json: String) throws -> String {
+        guard isRunning else { throw DraftlyError.message("The action is no longer running.") }
+        try checkCancellation()
+        return try withScriptMutation { try performActiveModelTool(operation, json: json) }
+    }
+
+    private func performActiveModelTool(_ operation: String, json: String) throws -> String {
         let values = (try JSONSerialization.jsonObject(with: Data(json.utf8))) as? [String: Any] ?? [:]
         let result: Any
         switch operation {
@@ -260,12 +266,20 @@ enum ScriptUtilities {
             var workspace = Workspace(name: "Model"); workspace.folder = NoteFolder(rawValue: values["folder"] as? String ?? "all") ?? .all
             workspace.query = values["query"] as? String ?? ""; workspace.tags = values["tags"] as? [String] ?? []; result = workspace.filter(library.notes).map(noteValue)
         case "draft.find": result = library.notes.first { $0.id.uuidString == values["uuid"] as? String }.map(noteValue) ?? [:]
-        case "draft.create": result = noteValue(try library.createNote(content: values["text"] as? String ?? "", tags: values["tags"] as? [String] ?? []))
+        case "draft.create":
+            let note = try library.createNote(content: values["text"] as? String ?? "", tags: values["tags"] as? [String] ?? [])
+            recordScriptSave(note); result = noteValue(note)
         case "draft.append", "draft.prepend":
             guard var note = library.notes.first(where: { $0.id.uuidString == values["uuid"] as? String }) else { throw DraftlyError.message("The model target draft was not found.") }
             let text = values["text"] as? String ?? ""
             note.content = operation == "draft.append" ? note.content + "\n" + text : text + "\n" + note.content
-            try library.saveNote(note); if editor.noteID == note.id { editor.content = note.content }; result = noteValue(note)
+            try validateScriptNote(note.id)
+            try library.saveNote(note); recordScriptSave(note)
+            if editor.noteID == note.id {
+                editor.content = note.content; editor.acknowledgeSaved(note)
+                editor.synchronizeScriptEdit?()
+            }
+            result = noteValue(note)
         case "editor.open":
             guard let note = library.notes.first(where: { $0.id.uuidString == values["uuid"] as? String }) else { throw DraftlyError.message("The model target draft was not found.") }
             try flushEditor(); try library.recordAccess(note.id); editor.load(note); result = true

@@ -125,11 +125,24 @@ after user cancellation. Scene routing now keeps the original window. Native
 callback timeout and native Shortcut success remain pending. Real App Intents
 passed success, delayed failure, and cancellation; other variants remain pending.
 Calendar and Reminders authorization and query waits also use the async boundary;
-their real permission and persistence checks remain pending. Event editing still
-uses its modal dialog. See docs/validation.md for the accepted cases.
+their real permission and persistence checks remain pending. Event editing now uses an async panel in the new route;
+its real dialog and persistence acceptance remain pending. See docs/validation.md for the accepted cases.
 
 Speech and location now have cancellable async adapters with injected tests. Their
 real system acceptance remains pending. The current regression run passed 229 app
 and 309 core tests, plus the unsigned local build. Canonical persistent-store URLs
 now identify process-local library exclusion, including symlink paths. This does
 not provide cross-process locking or full cache coherence between store instances.
+
+## Additional async native waits — 20 October 2026
+
+The new host route also supports prompts, confirmation, alerts, file transcription,
+calendar editing, event creation, and Apple model responses. Prompts share their
+field builders with the legacy presenter. Prompt steps share payload and result
+mapping across both runners. Model tools have request and session lifetime guards;
+core tool mutations use the script mutation marker and update saved snapshots.
+
+Injected tests check cancellation and cleanup without visible windows or system
+permissions. The unsigned build passed. Real dialog keyboard behavior, EventKit
+persistence, transcription, and Apple model use remain pending. Live dictation and
+other native synchronous adapters still need review. See docs/validation.md.

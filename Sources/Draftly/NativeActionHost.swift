@@ -20,22 +20,31 @@ final class NativeActionHost: ActionHost {
     func finishAction() { models.clear() }
 
     func supportsAsync(_ operation: String) -> Bool {
-        ["callbackURL", "shellScript", "shortcut", "eventAPI", "reminder", "location", "speak"].contains(operation)
+        if NativePromptAdapter.operations.contains(operation) { return true }
+        return ["callbackURL", "shellScript", "shortcut", "eventAPI", "reminder", "event", "location", "speak", "transcribe", "modelModes", "modelRespond"].contains(operation)
     }
 
     func performAsync(_ operation: String, payload: String) async throws -> String {
         guard let values = try JSONSerialization.jsonObject(with: Data(payload.utf8)) as? [String: Any] else {
             throw DraftlyError.message("The native operation payload must be an object.")
         }
+        if operation == "modelModes" || operation == "modelRespond" {
+            return try await models.performAsync(operation, payload: payload)
+        }
         let result: Any?
+        if NativePromptAdapter.operations.contains(operation) {
+            result = try await NativePromptAdapter().performAsync(operation, values: values)
+            return String(decoding: try JSONSerialization.data(withJSONObject: ["value": result ?? NSNull()]), as: UTF8.self)
+        }
         switch operation {
         case "callbackURL": result = try await ActionCallbackRouter.openAsync(values)
         case "shellScript": result = try await NativeAutomationAdapter().executeShellAsync(values)
         case "shortcut": result = try await NativeAutomationAdapter().runShortcutAsync(name: values["name"] as? String ?? "", input: values["text"] as? String ?? "")
         case "eventAPI": result = try await eventAPIAsync(values)
-        case "reminder": result = try await NativeSystemAdapter(events: events, reportError: onError).performAsync(operation, values: values)
+        case "reminder", "event": result = try await NativeSystemAdapter(events: events, reportError: onError).performAsync(operation, values: values)
         case "location": result = try await NativeLocationRequest.current()
         case "speak": result = try await NativeSpeechRequest.run(values)
+        case "transcribe": result = try await NativeTranscriptionRequest.run(values)
         default: result = try perform(operation, values: values)
         }
         return String(decoding: try JSONSerialization.data(withJSONObject: ["value": result ?? NSNull()]), as: UTF8.self)
