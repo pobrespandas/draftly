@@ -3552,3 +3552,26 @@ remains app436/core456. Matrix structure passes. The strict engine gate still
 has 27 diagnostics: this action-list check does not accept remaining entry
 points, returned rejection, timeout, or cancellation variants. No screenshot or
 raw log is stored in the repository. The full Mac plan remains open.
+
+
+### Native returned rejection and wait timeout — 20 October 2026
+
+Verified in use on Engine QA executable 839cc0f6069c115a. Added two neutral
+fixtures to engine-promise-actions.json. Imported only the two new records
+through a temporary subset file, to avoid duplicate earlier actions.
+
+Returned rejection wrote its neutral text, failed with the expected message,
+and left the draft in Inbox without the following error-marker insertion.
+The async timeout action started near 09:53:20 UTC with the production default
+120-second limit. While waiting, Filters and Actions panels closed and reopened.
+Action rows stayed disabled. No content was edited during the wait. The final
+history at local 06:55 recorded an operation timeout. Earlier text remained in
+Inbox, with no error-marker insertion or archive disposition. A caught-rejection
+action then succeeded, which checks that subsequent execution was available.
+
+The error toast was not captured before it disappeared. Execution History is
+the observed timeout evidence. This is not a precise latency measurement or
+CPU-bound worker acceptance. The gate stays partial for remaining entry points
+and cancellation checks. JSON fixture validation and matrix structure pass.
+No production code changed and no new Swift regression is claimed. The previous
+full run remains app436/core456. QA remains open on the neutral caught result.

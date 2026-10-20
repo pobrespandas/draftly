@@ -3,21 +3,87 @@
     "name": "QA Discarded rejection",
     "afterSuccess": "archive",
     "steps": [
-      {"type": "script", "data": {"allowAsync": "true", "script": "editor.setText('Promise completed write');draft.update();context.addSuccessParameter('discard','value');Promise.reject(new Error('Neutral discarded rejection'));void 0;"}},
-      {"type": "insertText", "data": {"template": "ERROR: rejection tail ran"}}
+      {
+        "type": "script",
+        "data": {
+          "allowAsync": "true",
+          "script": "editor.setText('Promise completed write');draft.update();context.addSuccessParameter('discard','value');Promise.reject(new Error('Neutral discarded rejection'));void 0;"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "ERROR: rejection tail ran"
+        }
+      }
     ]
   },
   {
     "name": "QA Intrinsic async rejection",
     "steps": [
-      {"type": "script", "data": {"allowAsync": "true", "script": "void (async function(){throw new Error('Neutral intrinsic rejection');})();"}},
-      {"type": "insertText", "data": {"template": "ERROR: intrinsic tail ran"}}
+      {
+        "type": "script",
+        "data": {
+          "allowAsync": "true",
+          "script": "void (async function(){throw new Error('Neutral intrinsic rejection');})();"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "ERROR: intrinsic tail ran"
+        }
+      }
     ]
   },
   {
     "name": "QA Caught rejection",
     "steps": [
-      {"type": "script", "data": {"allowAsync": "true", "script": "void (async function(){try{await Promise.reject(new Error('Handled'));}catch(error){editor.setText('Caught rejection completed');draft.update();script.complete();}})();"}}
+      {
+        "type": "script",
+        "data": {
+          "allowAsync": "true",
+          "script": "void (async function(){try{await Promise.reject(new Error('Handled'));}catch(error){editor.setText('Caught rejection completed');draft.update();script.complete();}})();"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Returned rejection",
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "allowAsync": "true",
+          "script": "editor.setText('Returned rejection completed write');draft.update();context.addSuccessParameter('discard','value');Promise.reject(new Error('Neutral returned rejection'));"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "ERROR: returned rejection tail ran"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Native async timeout",
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "allowAsync": "true",
+          "script": "editor.setText('Async timeout completed write');draft.update();context.addSuccessParameter('discard','value');void 0;"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "ERROR: native timeout tail ran"
+        }
+      }
     ]
   }
 ]

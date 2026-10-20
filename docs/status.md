@@ -786,3 +786,10 @@ Current Engine QA passed native action-list checks for discarded, intrinsic,
 and caught promise rejection. Earlier text survived failure; later insertion
 and archive did not run. History showed two errors and one success. Other
 entry-point, timeout, and cancellation variants remain pending.
+
+
+Engine QA action-list acceptance now includes returned promise rejection and
+the production 120-second async wait timeout. History confirmed both errors.
+Panels responded during the wait; completed writes and Inbox state survived.
+A subsequent action succeeded. Other entry points and CPU-bound responsiveness
+remain unaccepted.

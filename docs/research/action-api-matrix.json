@@ -16526,7 +16526,7 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Current Engine QA action-list checks passed for discarded rejection, intrinsic async rejection, and caught rejection. History records two errors and one success. Remaining returned rejection, timeout, cancellation, and other entry-point variants are pending.",
+        "reason": "Current Engine QA action-list checks passed for discarded, intrinsic, returned, and caught rejection, plus a production 120-second wait timeout. History confirmed errors; earlier text and Inbox state survived. Other entry-point and cancellation variants remain pending.",
         "evidence": "docs/validation.md",
         "additionalChecks": [
           {
@@ -16536,6 +16536,14 @@
             "entryPoint": "action list",
             "result": "Two unhandled rejections stopped later insertText and archive disposition. Earlier draft write remained in Inbox. Caught rejection completed. Execution History showed Error, Error, Success.",
             "evidence": "docs/validation.md: Native action-list promise checks — 20 October 2026"
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "839cc0f6069c115a3dbd6b4c0a66e5cb0767dca54f3368b3fbc47cdfc6c40aca",
+            "fixture": "scripts/fixtures/engine-promise-actions.json",
+            "entryPoint": "action list",
+            "result": "Returned rejection and native async timeout recorded errors. Timeout started near 09:53:20 UTC and history reported it at local 06:55. Earlier writes remained in Inbox, later insertions and archive did not run. A caught-rejection action succeeded after timeout.",
+            "evidence": "docs/validation.md: Native returned rejection and wait timeout — 20 October 2026"
           }
         ]
       },
@@ -17318,7 +17326,14 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Native permission/dialog and CPU-bound task cancellation acceptance remains pending on the ownership-assertion build. Recent Shortcuts deadline and overlap checks used the prior image870884f2388974b4."
+        "reason": "Native permission/dialog and CPU-bound task cancellation acceptance remains pending on the ownership-assertion build. Recent Shortcuts deadline and overlap checks used the prior image870884f2388974b4.",
+        "additionalChecks": [
+          {
+            "date": "2026-10-20",
+            "result": "During a production asynchronous wait, Filters and Actions panels closed and reopened while action buttons stayed disabled. This checks wait responsiveness, not CPU-bound JavaScript responsiveness.",
+            "evidence": "docs/validation.md: Native returned rejection and wait timeout — 20 October 2026"
+          }
+        ]
       },
       "automatedVerification": {
         "status": "passed",
