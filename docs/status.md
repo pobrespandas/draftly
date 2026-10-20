@@ -710,3 +710,9 @@ application adapter, installation, backup, defaults, precedence, and invalid inp
 Full app435/core444 and unsigned build passed. Create/query/update are partial
 again until affected native checks are repeated; previous evidence is preserved.
 Strict core has 809 diagnostics. The full plan remains open.
+
+
+Next/previous editor navigation now retains the prior cached Draft selection.
+The two extended methods pass all four legacy/worker cases after failing before
+the fix. Full app435/core444, unsigned build, and matrix structure passed. Native
+selection/focus acceptance and remaining error variants stay pending.

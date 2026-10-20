@@ -3278,3 +3278,24 @@ this retained-state regression. Native verification must repeat the affected
 query, application, and default-copy cases before closure. Strict core now reports
 809 diagnostics; engine remains separately recorded at 27. These are diagnostic
 counts, not a compatibility percentage. The full Mac goal remains open.
+
+
+### Editor navigation retains cached draft selection — 20 October 2026
+
+Implemented: nextDraft and previousDraft remember the current selection before
+calling the window adapter, as load and new already do. A retained Draft object
+therefore reports its last UTF-16 selection after navigation. Void returns and
+other editor operations retain their existing behavior.
+
+Extended the two existing navigation methods to cover legacy and worker routes,
+Unicode selection, skipped drafts, and no-wrap boundaries. All four cases first
+failed at the retained selection assertion and now pass. All 12 editor-property
+methods pass. No visible window was created or moved by these navigation cases.
+Full regression passed 435 app methods and 444 core methods. The unsigned Debug
+build and matrix structure check passed. Specific references replace generic
+associations for Editor.nextDraft, Editor.previousDraft, Draft.selectionStart,
+and Draft.selectionLength; earlier tests remain as supporting evidence.
+
+Native focus, visible navigation, and the remaining member-specific error cases
+remain pending. These entries remain partial. The read-only editor audit found
+this defect and ran no compiler or UI. The installed QA image is unchanged.

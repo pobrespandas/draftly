@@ -113,34 +113,52 @@ struct EditorPropertyContractTests {
         #expect(model.editor.noteID == third.id)
     }
 
-    @Test func nextDraftReturnsVoidAndUsesVisibleOrderWithoutWrappingAtTheEnd() throws {
+    @Test(arguments: [false, true])
+    func nextDraftReturnsVoidAndUsesVisibleOrderWithoutWrappingAtTheEnd(worker: Bool) async throws {
         let model = try model()
         _ = try model.library.createNote(content: "Beta", tags: ["skip"])
-        let last = try model.library.createNote(content: "Gamma", tags: ["keep"])
+        let last = try model.library.createNote(content: "Gamma 🐼 café", tags: ["keep"])
         model.sort = .title; model.ascending = true; model.tag = "keep"
-        #expect(model.runner.run(action("""
+        let value = action("""
+        const original=editor.draft;editor.setSelectedRange(0,8);
         check(editor.nextDraft()===undefined,'next returns void');
+        check(original.selectionStart===0&&original.selectionLength===8,'previous Unicode selection retained');
         check(editor.draft.uuid==='\(last.id.uuidString)','next visible draft');
+        editor.setSelectedRange(2,1);
         check(editor.nextDraft()===undefined,'end returns void');
         check(editor.draft.uuid==='\(last.id.uuidString)','end stays selected');
-        """)), Comment(rawValue: model.runner.message ?? ""))
+        check(editor.getSelectedRange().join(',')==='2,1','end preserves selection');
+        """)
+        let succeeded: Bool
+        if worker { succeeded = await model.runner.runAsync(value).result.succeeded }
+        else { succeeded = model.runner.run(value) }
+        #expect(succeeded, Comment(rawValue: model.runner.message ?? ""))
         #expect(model.editor.noteID == last.id)
         #expect(model.editor.content == last.content)
     }
 
-    @Test func previousDraftReturnsVoidAndUsesVisibleOrderWithoutWrappingAtTheStart() throws {
+    @Test(arguments: [false, true])
+    func previousDraftReturnsVoidAndUsesVisibleOrderWithoutWrappingAtTheStart(worker: Bool) async throws {
         let model = try model()
         let first = try #require(model.editor.noteID)
         _ = try model.library.createNote(content: "Beta", tags: ["skip"])
-        let last = try model.library.createNote(content: "Gamma", tags: ["keep"])
+        let last = try model.library.createNote(content: "Gamma 🐼 café", tags: ["keep"])
         model.sort = .title; model.ascending = true; model.tag = "keep"
         model.select(last.id)
-        #expect(model.runner.run(action("""
+        let value = action("""
+        const original=editor.draft;editor.setSelectedRange(6,2);
         check(editor.previousDraft()===undefined,'previous returns void');
+        check(original.selectionStart===6&&original.selectionLength===2,'previous Unicode selection retained');
         check(editor.draft.uuid==='\(first.uuidString)','previous visible draft');
+        editor.setSelectedRange(0,5);
         check(editor.previousDraft()===undefined,'start returns void');
         check(editor.draft.uuid==='\(first.uuidString)','start stays selected');
-        """)), Comment(rawValue: model.runner.message ?? ""))
+        check(editor.getSelectedRange().join(',')==='0,5','start preserves selection');
+        """)
+        let succeeded: Bool
+        if worker { succeeded = await model.runner.runAsync(value).result.succeeded }
+        else { succeeded = model.runner.run(value) }
+        #expect(succeeded, Comment(rawValue: model.runner.message ?? ""))
         #expect(model.editor.noteID == first)
         #expect(model.editor.content == "Alpha 🐼\nBody")
     }

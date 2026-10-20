@@ -227,7 +227,14 @@ __define(editor,'incompleteTasks',()=>editor.tasks.filter(t=>!t.isCompleted));
 __define(editor,'urls',()=>__call('detectURLs',{text:editor.getText()}));
 __define(editor,'linkedItems',()=>editor.draft.linkedItems);
 __define(editor,'preferredTabString',()=>__call('ui',{operation:'get',key:'preferredTabString'}));
-for(let name of ['undo','redo','showFind','arrange','showArrange','dictate','showDictate','scanDocument','transcribe','nextDraft','previousDraft']) editor[name]=(...args)=>{let result=__call('ui',{operation:name,args});if(name==='undo'||name==='redo')__syncEditorDraft();if(name==='nextDraft'||name==='previousDraft')return;return result;};
+for(let name of ['undo','redo','showFind','arrange','showArrange','dictate','showDictate','scanDocument','transcribe','nextDraft','previousDraft']) editor[name]=(...args)=>{
+    const navigation=name==='nextDraft'||name==='previousDraft';
+    if(navigation)__rememberSelection();
+    let result=__call('ui',{operation:name,args});
+    if(name==='undo'||name==='redo')__syncEditorDraft();
+    if(navigation)return;
+    return result;
+};
 for(let name of ['isActive','linkModeEnabled','pinningEnabled','focusModeEnabled','typewriterScrollingEnabled']) __define(editor,name,()=>__call('ui',{operation:'get',key:name}),value=>__call('ui',{operation:'set',key:name,value}));
 __define(editor,'recentDrafts',()=>__call('recentDrafts').map(v=>new Draft(v)));
 __define(editor,'navigationMarkers',()=>__markers(editor.getText(),editor.draft.syntax.name));

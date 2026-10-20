@@ -1130,25 +1130,35 @@
           "contract": "The length of the last text selection.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "SyntaxActionAPITests",
-            "test": "editorLinksAndMarkersExposeTheDocumentedFields"
+            "suite": "EditorPropertyContractTests",
+            "test": "nextDraftReturnsVoidAndUsesVisibleOrderWithoutWrappingAtTheEnd"
           },
           "liveCheck": null,
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
           "result": [
             "selectionLength: number"
           ],
           "errors": "Host and storage errors throw JavaScript errors.",
           "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
+            "Native navigation/selection acceptance and the remaining member-specific defaults and errors are not closed by these offscreen adapter cases."
           ],
-          "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
+          "evidenceLevel": "Specific legacy and worker navigation tests retain the prior Draft UTF-16 selection and cover visible order, void return, filtered-out drafts, and no-wrap boundary selection.",
           "compatibilityStatus": "partial",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.selectionLength"
-          }
+          },
+          "supportingTests": [
+            {
+              "suite": "SyntaxActionAPITests",
+              "test": "editorLinksAndMarkersExposeTheDocumentedFields"
+            },
+            {
+              "suite": "EditorPropertyContractTests",
+              "test": "previousDraftReturnsVoidAndUsesVisibleOrderWithoutWrappingAtTheStart"
+            }
+          ]
         },
         {
           "member": "selectionStart",
@@ -1162,25 +1172,35 @@
           "contract": "The index location in the string of the beginning of the last text selection.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "SyntaxActionAPITests",
-            "test": "editorLinksAndMarkersExposeTheDocumentedFields"
+            "suite": "EditorPropertyContractTests",
+            "test": "nextDraftReturnsVoidAndUsesVisibleOrderWithoutWrappingAtTheEnd"
           },
           "liveCheck": null,
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
           "result": [
             "selectionStart: number"
           ],
           "errors": "Host and storage errors throw JavaScript errors.",
           "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
+            "Native navigation/selection acceptance and the remaining member-specific defaults and errors are not closed by these offscreen adapter cases."
           ],
-          "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
+          "evidenceLevel": "Specific legacy and worker navigation tests retain the prior Draft UTF-16 selection and cover visible order, void return, filtered-out drafts, and no-wrap boundary selection.",
           "compatibilityStatus": "partial",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.selectionStart"
-          }
+          },
+          "supportingTests": [
+            {
+              "suite": "SyntaxActionAPITests",
+              "test": "editorLinksAndMarkersExposeTheDocumentedFields"
+            },
+            {
+              "suite": "EditorPropertyContractTests",
+              "test": "previousDraftReturnsVoidAndUsesVisibleOrderWithoutWrappingAtTheStart"
+            }
+          ]
         },
         {
           "member": "syntax",
@@ -3240,25 +3260,31 @@
           "contract": "Load next draft in draft list in editor.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "EditorActionAPITests",
-            "test": "editorInterfaceMembersDelegateWithoutLosingArguments"
+            "suite": "EditorPropertyContractTests",
+            "test": "nextDraftReturnsVoidAndUsesVisibleOrderWithoutWrappingAtTheEnd"
           },
           "liveCheck": null,
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
           "result": [
             "nextDraft(): void"
           ],
           "errors": "Host and storage errors throw JavaScript errors.",
           "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
+            "Native navigation/selection acceptance and the remaining member-specific defaults and errors are not closed by these offscreen adapter cases."
           ],
-          "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
+          "evidenceLevel": "Specific legacy and worker navigation tests retain the prior Draft UTF-16 selection and cover visible order, void return, filtered-out drafts, and no-wrap boundary selection.",
           "compatibilityStatus": "partial",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Editor.nextDraft"
-          }
+          },
+          "supportingTests": [
+            {
+              "suite": "EditorActionAPITests",
+              "test": "editorInterfaceMembersDelegateWithoutLosingArguments"
+            }
+          ]
         },
         {
           "member": "previousDraft",
@@ -3272,25 +3298,31 @@
           "contract": "Load previous draft in draft list in editor.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "EditorActionAPITests",
-            "test": "editorInterfaceMembersDelegateWithoutLosingArguments"
+            "suite": "EditorPropertyContractTests",
+            "test": "previousDraftReturnsVoidAndUsesVisibleOrderWithoutWrappingAtTheStart"
           },
           "liveCheck": null,
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
           "result": [
             "previousDraft(): void"
           ],
           "errors": "Host and storage errors throw JavaScript errors.",
           "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
+            "Native navigation/selection acceptance and the remaining member-specific defaults and errors are not closed by these offscreen adapter cases."
           ],
-          "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
+          "evidenceLevel": "Specific legacy and worker navigation tests retain the prior Draft UTF-16 selection and cover visible order, void return, filtered-out drafts, and no-wrap boundary selection.",
           "compatibilityStatus": "partial",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Editor.previousDraft"
-          }
+          },
+          "supportingTests": [
+            {
+              "suite": "EditorActionAPITests",
+              "test": "editorInterfaceMembersDelegateWithoutLosingArguments"
+            }
+          ]
         },
         {
           "member": "redo",
