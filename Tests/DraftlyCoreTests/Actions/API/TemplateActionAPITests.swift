@@ -4,11 +4,40 @@ import Testing
 
 @Suite("Template scripting API") @MainActor
 struct TemplateActionAPITests {
-    @Test func mustacheDirectoryLoadsNamedTemplateAndPartials() throws {
+    @Test(arguments: [false, true])
+    func mustacheDirectoryLoadsNamedTemplateAndPartials(worker: Bool) async throws {
         let (_, _, host, runner) = try makeAPIContext()
-        host.templateFiles = ["/Library/Templates/Letters/main.mustache": "Hello {{name}} {{> footer}}", "/Library/Templates/Letters/footer.mustache": "{{value}}"]
-        #expect(runner.run(makeAPIAction("let t=MustacheTemplate.createWithPath('Letters'); t.contentType='text'; check(t.renderTemplate('main',{name:'café',value:'<&'})==='Hello café <&','directory partial');")), Comment(rawValue: runner.message ?? ""))
+        host.templateFiles = [
+            "/Library/Templates/Letters/main.mustache": "Hello {{name}} {{> footer}}",
+            "/Library/Templates/Letters/footer.mustache": "{{value}}",
+            "/Library/Templates/Letters/__proto__.mustache": "{{value}}",
+            "/Library/Templates/Letters/special.mustache": "{{>__proto__}}|{{>__proto__}}"
+        ]
+        let action = makeAPIAction(#"""
+        const factory=new MustacheTemplate();
+        const t=factory.createWithPath('Letters');check(t!==factory&&t.contentType==='html','new directory instance and default HTML');t.contentType='text';
+        check(MustacheTemplate.createWithPath('Letters').renderTemplate('footer',{value:'Static'})==='Static','static compatibility');
+        const made=factory.createWithTemplate('{{value}}');check(made!==factory&&made.contentType==='html','new template instance and default HTML');
+        check(made.render({value:'Instance café 🐼'})==='Instance café 🐼','instance template factory');
+        check(t.renderTemplate('main',{name:'café',value:'<&'})==='Hello café <&','directory partial');
+        check(t.renderTemplate('__proto__',{value:'café 🐼'})==='café 🐼','prototype template name');
+        check(t.renderTemplate('special',{value:'café 🐼'})==='café 🐼|café 🐼','repeated prototype partial');
+        t.contentType='html';check(t.renderTemplate('special',{value:'<&'})==='&lt;&amp;|&lt;&amp;','HTML partial escaping');
+        let missing=false;try{t.renderTemplate('absent',{})}catch(e){missing=String(e).includes('not found')}
+        check(missing,'explicit missing template');
+        for(const name of ['../main','Letters/main']){
+            let rejected=false;try{t.renderTemplate(name,{})}catch(e){rejected=true}
+            check(rejected,'reject template traversal');
+        }
+        let rejected=false;try{MustacheTemplate.createWithPath('Letters/../Other')}catch(e){rejected=true}
+        check(rejected,'reject directory traversal');
+        """#)
+        let succeeded: Bool
+        if worker { succeeded = await runner.runAsync(action).result.succeeded }
+        else { succeeded = runner.run(action) }
+        #expect(succeeded, Comment(rawValue: runner.message ?? ""))
         #expect(!host.calls.contains { $0.0 == "fileAPI" && $0.1["operation"] as? String == "readString" && $0.1["path"] as? String == "/Library/Templates/Letters" })
+        #expect(!host.calls.contains { $0.0 == "fileAPI" && ($0.1["path"] as? String ?? "").contains("..") })
     }
     @Test func templateRangesEscapesDatesAndMarkup() {
         let note = Note(content: "# Title\nOne\nTwo\nThree")

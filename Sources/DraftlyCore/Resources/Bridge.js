@@ -348,13 +348,15 @@ function __renderMustache(template,data,partials,contentType) {
 }
 class MustacheTemplate {
     constructor(template=''){this.template=template;this.contentType='html';}
+    createWithTemplate(template){return MustacheTemplate.createWithTemplate(template);}
     static createWithTemplate(template){return new MustacheTemplate(template);}
+    createWithPath(path){return MustacheTemplate.createWithPath(path);}
     static createWithPath(path){if(String(path).split('/').includes('..'))throw new Error('Use a path inside the Templates folder.');let t=new MustacheTemplate();t.path=String(path);return t;}
     renderTemplate(name,data){
         if(this.path===undefined)throw new Error('Use createWithPath before renderTemplate.');
         if(String(name).includes('/')||String(name).includes('..'))throw new Error('Use a template name without a path.');
         let fm=FileManager.createCloud(),root='/Library/Templates/'+this.path.replace(/^\/+|\/+$/g,'');
-        let partials={};for(let file of fm.listContents(root)){if(file.endsWith('.mustache')){let key=file.split('/').pop().slice(0,-9);partials[key]=fm.readString(file);}}
+        let partials=Object.create(null);for(let file of fm.listContents(root)){if(file.endsWith('.mustache')){let key=file.split('/').pop().slice(0,-9);partials[key]=fm.readString(file);}}
         if(!Object.prototype.hasOwnProperty.call(partials,name))throw new Error('The Mustache template was not found: '+name);
         return __renderMustache(partials[name],data,partials,this.contentType);
     }

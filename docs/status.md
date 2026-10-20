@@ -730,3 +730,10 @@ context on MainActor. The async route therefore uses its worker and script
 deadline. Two worker contracts and existing template/tag cases pass. Full
 app435/core447, unsigned build, and matrix structure passed. Native and remaining
 engine/Mustache acceptance stay partial.
+
+
+Directory Mustache rendering now retains prototype-named files and partials.
+Instance factory methods coexist with the original static calls. The extended
+directory contract passes both runners, including defaults, escaping, missing
+files, and traversal rejection. Full app435/core447 and unsigned build passed.
+Three audited members remain partial pending their specific native checks.

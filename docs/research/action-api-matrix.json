@@ -11913,10 +11913,32 @@
             "createWithPath(path: string): MustacheTemplate"
           ],
           "contract": "Create a new object configured to point to a directory of Mustache template files in iCloud Drive. When using this method, other Mustache template located in the same directory will be available to be used as partials in the rendering process.",
-          "implementation": "implemented",
-          "automatedTest": "ActionAPITests.mustacheDirectoryLoadsNamedTemplateAndPartials",
+          "implementation": "implemented-with-targeted-tests",
+          "automatedTest": {
+            "suite": "TemplateActionAPITests",
+            "test": "mustacheDirectoryLoadsNamedTemplateAndPartials"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "automatedTestHistory": [
+            "ActionAPITests.mustacheDirectoryLoadsNamedTemplateAndPartials"
+          ],
+          "reviewDate": "2026-10-20",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "MustacheTemplate.createWithPath"
+          },
+          "nativeVerification": {
+            "status": "pending",
+            "reason": "Real iCloud Drive, persistent folder permissions, and Drafts behavior comparison remain unverified."
+          },
+          "limitations": [
+            "Host-fixture tests cover both runners. Native directory access, persistent permissions, and per-member comparison with Drafts remain pending."
+          ],
+          "defaults": "A fresh object defaults to HTML contentType. The reference specifies no default for the required input.",
+          "result": "A new MustacheTemplate. Instance methods and existing static entry points are available.",
+          "errors": "createWithPath rejects parent traversal. Parsing and file access happen when rendering; remaining invalid-input cases are not closed.",
+          "evidenceLevel": "Specific instance factories, static compatibility, HTML/text output, prototype-named files/partials, missing templates, and rejected traversal paths on legacy and worker routes."
         },
         {
           "member": "createWithTemplate",
@@ -11928,10 +11950,29 @@
             "createWithTemplate(template: string): MustacheTemplate"
           ],
           "contract": "Create a new object with a template",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "implemented-with-targeted-tests",
+          "automatedTest": {
+            "suite": "TemplateActionAPITests",
+            "test": "mustacheDirectoryLoadsNamedTemplateAndPartials"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-20",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "MustacheTemplate.createWithTemplate"
+          },
+          "nativeVerification": {
+            "status": "pending",
+            "reason": "Compare the documented instance factory and retained static entry point with Drafts. This member does not access files."
+          },
+          "limitations": [
+            "Instance creation, default HTML contentType, and returned object rendering are tested on both runners. Invalid non-string inputs and factory behavior comparison with Drafts remain pending."
+          ],
+          "defaults": "A fresh object defaults to HTML contentType. The reference specifies no default for the required input.",
+          "result": "A new MustacheTemplate. Instance methods and existing static entry points are available.",
+          "errors": "Construction stores the template. Invalid-template errors occur on render. Invalid non-string input behavior remains unverified.",
+          "evidenceLevel": "Specific instance factories, static compatibility, HTML/text output, prototype-named files/partials, missing templates, and rejected traversal paths on legacy and worker routes."
         },
         {
           "member": "render",
@@ -11970,10 +12011,32 @@
             "renderTemplate(templateName: string, data: any): string"
           ],
           "contract": "Use in combination with createWithPath(path) to render the template using the data passsed.",
-          "implementation": "implemented",
-          "automatedTest": "ActionAPITests.mustacheDirectoryLoadsNamedTemplateAndPartials",
+          "implementation": "implemented-with-targeted-tests",
+          "automatedTest": {
+            "suite": "TemplateActionAPITests",
+            "test": "mustacheDirectoryLoadsNamedTemplateAndPartials"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "automatedTestHistory": [
+            "ActionAPITests.mustacheDirectoryLoadsNamedTemplateAndPartials"
+          ],
+          "reviewDate": "2026-10-20",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "MustacheTemplate.renderTemplate"
+          },
+          "nativeVerification": {
+            "status": "pending",
+            "reason": "Real iCloud Drive, persistent folder permissions, and Drafts behavior comparison remain unverified."
+          },
+          "limitations": [
+            "Host-fixture tests cover both runners. Native directory access, persistent permissions, and per-member comparison with Drafts remain pending."
+          ],
+          "defaults": "The object defaults to HTML escaping. Setting contentType to text disables that escaping.",
+          "result": "The named template and same-directory partials render to a string.",
+          "errors": "Missing template and invalid template paths throw. Native file access errors require separate acceptance.",
+          "evidenceLevel": "Specific instance factories, static compatibility, HTML/text output, prototype-named files/partials, missing templates, and rejected traversal paths on legacy and worker routes."
         }
       ]
     },

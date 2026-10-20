@@ -3347,3 +3347,28 @@ check passed. Worker and Mustache evidence remains partial.
 Native responsiveness, cancellation, directory permissions/iCloud Drive, and
 comparison with Drafts remain separate acceptance work. The Mac unlock question
 is pending. No visible window or user content was used by the automatic tests.
+
+
+### Directory Mustache names and factory methods — 20 October 2026
+
+Implemented: directory partial collection has no JavaScript prototype. A file
+named __proto__.mustache is now available as a named template and as a partial.
+Instance createWithPath/createWithTemplate methods now delegate to the retained
+static methods. This supports the instance method form in the frozen inventory
+without removing existing static calls. Each factory returns a fresh object.
+
+Extended the existing directory method to both runners instead of adding a
+duplicate test. Both cases first failed because __proto__ was reported missing.
+The instance case then failed because its method was absent. Both now pass.
+Cases cover default HTML contentType, static compatibility, fresh instance
+factories, named and repeated prototype partials, text/HTML escaping, missing
+templates, and traversal rejection before invalid file paths reach the host.
+These use an injected file host, not a real cloud folder. Nine focused methods
+and the full regression passed: 435 app methods and 447 core methods. The
+unsigned Debug build and matrix structure passed.
+
+Three Mustache members now have partial classifications and specific evidence
+instead of obsolete generic test strings. The old strings remain in history.
+Real iCloud Drive, persistent folder permissions, invalid-input variants, and
+comparison of factory forms with Drafts remain unaccepted. The Mac unlock
+question is still pending; no QA update or native check occurred this turn.
