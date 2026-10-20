@@ -46,7 +46,7 @@ struct EditorActionBar: View {
                         Divider().frame(height: 18).help(entry.source.name)
                     } else if let action = entry.runnableAction {
                         barButton(action.name, action.symbol) { model.run(action) }
-                            .disabled(model.runner.isRunning)
+                            .disabled(!model.canRunActions)
                     }
                 }
             }.padding(.horizontal, 12).frame(height: MainWindowStyle.editingBarHeight)

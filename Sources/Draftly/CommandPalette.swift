@@ -14,14 +14,14 @@ struct CommandPalette: View {
             HStack {
                 Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
                 TextField("Find an action…", text: $query).textFieldStyle(.plain).font(.title3).focused($focused)
-                    .onSubmit { if let action = actions.first { dismiss(); model.run(action) } }
+                    .onSubmit { if model.canRunActions, let action = actions.first { dismiss(); model.run(action) } }
                 Button("Done") { dismiss() }.keyboardShortcut(.cancelAction)
             }.padding(20)
             Divider()
             List(actions) { action in
-                Button { dismiss(); model.run(action) } label: {
+                Button { guard model.canRunActions else { return }; dismiss(); model.run(action) } label: {
                     HStack(spacing: 12) { Image(systemName: action.symbol).foregroundStyle(.tint).frame(width: 22); Text(action.name); Spacer(); Text(action.group).font(.caption).foregroundStyle(.secondary) }.padding(.vertical, 6).contentShape(Rectangle())
-                }.buttonStyle(.plain)
+                }.buttonStyle(.plain).disabled(!model.canRunActions)
             }
         }.frame(width: 560, height: 400).onAppear { focused = true }
     }

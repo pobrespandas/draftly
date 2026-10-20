@@ -71,7 +71,7 @@ struct ActionListPanel: View {
                                             Text(action.name).font(.system(size: MainWindowStyle.actionTitleSize)).lineLimit(1)
                                             Spacer(minLength: 0)
                                         }.padding(.horizontal, 20).frame(height: 28).contentShape(Rectangle())
-                                    }.buttonStyle(ActionRowButtonStyle()).disabled(model.currentNote == nil || model.runner.isRunning)
+                                    }.buttonStyle(ActionRowButtonStyle()).disabled(!model.canRunActions)
                                 }
                             }.contextMenu {
                                 Button("Edit…") { model.editingAction = action }

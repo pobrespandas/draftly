@@ -3603,3 +3603,31 @@ Remaining cancellation entry points and host capabilities retain their pending
 status. During this check, other runnable menu actions remained enabled while
 busy; their availability needs a separate correction. Do not treat this new
 command as full menu or engine acceptance.
+
+
+### Action availability during execution — 20 October 2026
+
+Implemented: menu, action list, action bar, and command palette use the window
+canRunActions state. It requires a current draft and no pending or active run
+in that window. The palette submit path keeps the sheet open when execution
+is unavailable. Cancel keeps its separate availability. The core library gate
+still rejects conflicting runs from other windows or headless callers. This
+change does not provide a shared busy publisher across windows.
+
+Automatic: extended the existing explicit-cancellation test with availability
+checks before, during, and after the run. All five ActionEditorInterruptionTests
+methods passed. The unsigned Debug build passed. The prior full regression
+remains app437/core456; it was not repeated for these presentation guards.
+
+Native: refreshed stopped Engine QA. Signed executable SHA-256:
+`090bff45a8f2e28b596b90415661c83daedc23e5ec06772441f746992b671852`.
+Started the neutral async wait from Actions. Every runnable menu action became
+disabled while Cancel remained enabled. Opened the palette, filtered to the
+caught-rejection action, and pressed Return. The sheet stayed open with its
+query and did not execute. Closed the sheet and cancelled the waiting run.
+The menu actions became enabled again and Cancel became disabled. The draft
+kept its prior write in Inbox. Closed the menu. No personal text changed.
+
+The action bar and list share the tested predicate, but this turn did not
+inspect their native disabled appearance. Cross-window busy presentation also
+remains pending. These limits do not claim full UI or engine acceptance.

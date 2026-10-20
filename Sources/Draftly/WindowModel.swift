@@ -362,6 +362,7 @@ final class WindowModel: ObservableObject {
         return .notStarted(actionID: action.id, reason: .busy, message: status)
     }
     var canCancelActions: Bool { actionPending || runner.isRunning }
+    var canRunActions: Bool { currentNote != nil && !canCancelActions }
     func cancelActions() {
         dictationSession.cancel()
         arrangementSession.cancel()

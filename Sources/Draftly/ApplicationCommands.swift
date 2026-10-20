@@ -138,8 +138,8 @@ private struct WindowCommands: Commands {
                 } else if let action = entry.runnableAction {
                     if ActionShortcut.conflict(for: action, in: model.library.actions) == nil,
                        let key = ActionShortcut(action).key.first {
-                        Button(action.name) { model.run(action) }.keyboardShortcut(KeyEquivalent(key), modifiers: modifiers(action))
-                    } else { Button(action.name) { model.run(action) } }
+                        Button(action.name) { model.run(action) }.keyboardShortcut(KeyEquivalent(key), modifiers: modifiers(action)).disabled(!model.canRunActions)
+                    } else { Button(action.name) { model.run(action) }.disabled(!model.canRunActions) }
                 }
             }
         }

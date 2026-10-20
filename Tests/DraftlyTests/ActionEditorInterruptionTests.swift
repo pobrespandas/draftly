@@ -22,16 +22,19 @@ struct ActionEditorInterruptionTests {
         let note = try library.createNote(content: "Neutral source")
         let model = WindowModel(library: library); model.select(note.id)
         #expect(!model.canCancelActions)
+        #expect(model.canRunActions)
         var action = delayedEdit()
         action.afterSuccess = "archive"
         action.steps.append(ActionStep("insertText", ["template": "ERROR: cancellation tail ran"]))
         let task = Task { await model.runAsync(action) }
         try await waitUntilWaiting(library, id: note.id)
         #expect(model.canCancelActions)
+        #expect(!model.canRunActions)
         model.cancelActions()
         let report = await task.value
         #expect(report?.reason == .cancelled)
         #expect(!model.canCancelActions)
+        #expect(model.canRunActions)
         #expect(model.editor.content == "Neutral source")
         let stored = try #require(library.notes.first { $0.id == note.id })
         #expect(stored.tags == ["waiting"] && !stored.isArchived)
@@ -40,6 +43,7 @@ struct ActionEditorInterruptionTests {
         #expect((await model.runAsync(next))?.reason == .success)
         #expect(model.editor.content.contains("Next run"))
         #expect(!model.canCancelActions)
+        #expect(model.canRunActions)
     }
 
     @Test func userNavigationCancelsDelayedEditorWrite() async throws {

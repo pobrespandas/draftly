@@ -799,3 +799,9 @@ Actions now exposes Cancel Running Action for the current window. Automatic
 checks and native menu/history checks passed, including a later successful run.
 Full app437/core456 and unsigned build passed. Other menu action availability
 while busy and remaining native cancellation variants are still open.
+
+
+Action entry controls now share the current-window availability rule, including
+the pending phase. Menu and palette behavior passed native busy/cancel checks.
+Five focused tests and the unsigned build passed. Cross-window busy presentation
+and native list/bar disabled appearance remain pending.
