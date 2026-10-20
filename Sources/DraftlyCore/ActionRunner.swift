@@ -34,6 +34,10 @@ public final class ActionRunner: ObservableObject {
         self.library = library; self.editor = editor; self.host = host
     }
 
+    public static func isExecuting(in library: LibraryStore) -> Bool {
+        runningLibraries.contains(library.executionIdentity)
+    }
+
     public func flushEditor() throws {
         guard let id = editor.noteID, var note = library.notes.first(where: { $0.id == id }) else { return }
         try validateScriptNote(note.id)

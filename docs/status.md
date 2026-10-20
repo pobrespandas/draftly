@@ -517,3 +517,10 @@ success, errors, busy reservation, CPU/async deadlines, and cancellation. The fu
 run passed 401 app and 391 core methods. Xcode metadata extraction passed without
 new visible parameters. Native Shortcut dispatch remains pending. Review found a
 separate headless-owner overlap gap before pending saves; it is not accepted yet.
+
+
+The headless-owner overlap gap is fixed. Canonical library exclusion is checked
+before pending saves or selection changes in automation and single/batch window
+actions. A real overlapping intent regression failed before the correction and
+now passes across five accesses. The final full run passed 402 app and 391 core
+methods. Native system delivery of these new cases remains pending.

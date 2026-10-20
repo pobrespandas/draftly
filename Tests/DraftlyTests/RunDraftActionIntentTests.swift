@@ -52,7 +52,7 @@ struct RunDraftActionIntentTests {
         let note = try library.createNote(content: "Stored")
         var saves = 0
         let model = WindowModel(library: library, saveDraft: { note in saves += 1; try library.saveNote(note) })
-        model.select(note.id); model.editor.content = "Pending"; model.contentChanged(); model.actionPending = true
+        model.select(note.id); model.editor.content = "Pending"; model.hasUnsavedChanges = true; model.actionPending = true
         defer { model.actionPending = false }
         let action = DraftAction(name: "Intent busy", steps: [ActionStep("script", ["script": "editor.setText('ERROR: busy execution');"])])
         try library.saveAction(action)

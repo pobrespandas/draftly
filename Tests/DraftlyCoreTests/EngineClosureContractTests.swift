@@ -57,6 +57,7 @@ struct EngineClosureContractTests {
         var iterator = started.stream.makeAsyncIterator()
         _ = await iterator.next()
         let ownerID = runner.activeSession?.id
+        #expect(ActionRunner.isExecuting(in: library) && ActionRunner.isExecuting(in: secondLibrary))
         let next = ScriptTestAction.make("", name: "Other store")
         #expect(second.runReport(next).reason == .busy)
         let rejected = await second.runAsync(next)
@@ -64,6 +65,7 @@ struct EngineClosureContractTests {
         #expect(runner.activeSession?.id == ownerID)
         runner.cancel()
         #expect(await task.value.reason == .cancelled)
+        #expect(!ActionRunner.isExecuting(in: library) && !ActionRunner.isExecuting(in: secondLibrary))
         #expect(await second.runAsync(next).reason == .success)
     }
 }

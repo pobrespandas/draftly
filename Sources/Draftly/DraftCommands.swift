@@ -137,11 +137,12 @@ extension WindowModel {
         await executeActionBatch(action, on: ids)
     }
     private func executeActionBatch(_ action: DraftAction, on ids: [UUID]) async {
-        guard !Task.isCancelled else { return }
+        guard !Task.isCancelled, libraryBusyReport(for: action) == nil else { return }
         do {
             _ = try checkedDrafts(ids)
             for id in ids {
-                guard !Task.isCancelled, flush(), library.notes.contains(where: { $0.id == id }) else { break }
+                guard !Task.isCancelled, libraryBusyReport(for: action) == nil,
+                      flush(), library.notes.contains(where: { $0.id == id }) else { break }
                 select(id, fromAction: true)
                 guard editor.noteID == id else { break }
                 let report = await runner.runAsync(action)

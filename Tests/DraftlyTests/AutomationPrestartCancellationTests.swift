@@ -11,7 +11,7 @@ struct AutomationPrestartCancellationTests {
         let model = WindowModel(library: library)
         model.select(note.id)
         model.editor.content = "Pending user text"
-        model.contentChanged()
+        model.hasUnsavedChanges = true
         let action = DraftAction(name: "Cancelled before automation", steps: [
             ActionStep("script", ["script": "editor.setText('ERROR: cancelled action ran');"])
         ])

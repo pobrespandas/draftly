@@ -328,7 +328,9 @@ final class WindowModel: ObservableObject {
         return await executeAction(action)
     }
     private func executeAction(_ action: DraftAction) async -> ActionExecutionReport? {
-        guard !Task.isCancelled, flush() else { return nil }
+        guard !Task.isCancelled else { return nil }
+        if let busy = libraryBusyReport(for: action) { return busy }
+        guard flush() else { return nil }
         if var note = scratchNote {
             note.content = editor.content
             do { try library.saveNote(note); scratchNote = nil } catch { library.error = error.localizedDescription; return nil }
@@ -337,6 +339,11 @@ final class WindowModel: ObservableObject {
         status = runner.message ?? ""
         tagsText = currentNote?.tags.joined(separator: ", ") ?? ""
         return report
+    }
+    func libraryBusyReport(for action: DraftAction) -> ActionExecutionReport? {
+        guard ActionRunner.isExecuting(in: library) else { return nil }
+        status = "An action is already running in this library."
+        return .notStarted(actionID: action.id, reason: .busy, message: status)
     }
     func cancelActions() {
         dictationSession.cancel()

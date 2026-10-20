@@ -63,11 +63,11 @@ import DraftlyCore
             return notStarted(action, noteID: noteID, reason: .cancelled, message: "The action was cancelled before it started.")
         }
         let models = models.filter { $0.library === library }
-        let candidate = resolveModel(models, noteID)
-        let model = candidate.flatMap { $0.library === library && $0.editor.noteID == noteID ? $0 : nil }
-        if models.contains(where: { $0.actionPending || $0.runner.isRunning }) {
+        if ActionRunner.isExecuting(in: library) || models.contains(where: { $0.actionPending || $0.runner.isRunning }) {
             return notStarted(action, noteID: noteID, reason: .busy, message: "An action is already running in this library.")
         }
+        let candidate = resolveModel(models, noteID)
+        let model = candidate.flatMap { $0.library === library && $0.editor.noteID == noteID ? $0 : nil }
         let ownerWindow = model?.window
         let lifetime = OwnerLifetime()
         let removeCloseObserver = model.map { registerClose($0) { lifetime.close() } }

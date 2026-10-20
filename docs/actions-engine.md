@@ -66,6 +66,10 @@ They do not replace the final report or use a global test override. Public inten
 parameters remain Action Name and Draft UUID. System Shortcut dispatch remains
 a separate native acceptance requirement.
 
+Automation and window actions check canonical library ownership before pending
+saves or batch selection. This includes owners without a window. The runner still
+acquires the same gate before execution. A busy preflight does not flush drafts.
+
 User navigation and text changes cancel a pending window action before a delayed
 script can change the new draft or overwrite user input. Synchronous script
 commands expose a read-only mutation marker to the app adapter, so script-driven

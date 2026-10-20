@@ -2212,3 +2212,38 @@ Review found another open boundary: a headless owner is absent from supplied
 WindowModels. A second automation request can flush pending window edits before
 the runner rejects its library as busy. A specific overlap regression and a
 preflight check against the shared library gate are the next correction.
+
+
+## Reject headless-owner overlap before pending saves — 20 October 2026
+
+The first actual-intent regression reproduced the gap: the second request returned
+busy, but had already saved pending target text. Three assertions failed for
+save count, stored content, and dirty state. The owner was a real headless intent
+waiting in the worker, not a synthetic busy flag.
+
+Implemented: ActionRunner.isExecuting(in:) reads the canonical library execution
+gate. Automation checks that gate before resolving a window or flushing pending
+edits. WindowModel checks it before a single action and before batch preparation
+and each batch iteration. Rejection returns a busy report or updates the existing
+batch status. It does not save a scratch draft or change the selected draft. The
+runner still acquires the gate when execution starts; this query does not replace
+that authoritative exclusion.
+
+Automatic: the final full run passed 402 app methods and 391 core methods. The
+headless owner rejects five accesses: actual intent perform, immediate and
+scheduled window actions, and immediate and scheduled batch actions. All retain
+the pending target text, dirty state, stored content, and selection without a
+second history record or runner start. Cancelling the owner records Cancelled
+and finishes its host once. No real clipboard, window, or permission is used.
+Fixtures construct dirty state directly so auto-save timing cannot race this
+preflight check.
+
+The canonical store test also checks the read-only query during execution and
+after cancellation for two store wrappers, with and without a symlink. The focused
+EngineClosureContractTests run passed its three methods. Native Shortcuts dispatch
+and the new pre-save guard through system delivery remain pending.
+
+Final unsigned Debug Xcode build and metadata extraction passed. Only name and
+uuid remain exposed for RunDraftActionIntent. Python37 and matrix structure
+passed. The strict engine result remains separately recorded; native gaps are
+not cleared by this automatic run.

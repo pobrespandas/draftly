@@ -16181,7 +16181,7 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Native URL overlap across two independent QA windows passed: second request returned busy without changing its target, original request finished successfully. App Intent and remaining overlap variants are pending."
+        "Native URL overlap across two independent QA windows passed on its recorded image. Actual headless-intent overlap now has five passing background entry cases and canonical gate checks. Native App Intent overlap and verification of the latest pre-save guard remain pending."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
@@ -16227,6 +16227,11 @@
         {
           "suite": "ActionExecutionSessionTests",
           "test": "rejectedReentryKeepsTheLegacyMessageAndDoesNotReplaceTheActiveReport"
+        },
+        {
+          "suite": "RunDraftActionIntentOverlapTests",
+          "test": "headlessOwnerRejectsOtherEntryPointsBeforeTheySavePendingWindowEdits",
+          "file": "Tests/DraftlyTests/RunDraftActionIntentOverlapTests.swift"
         }
       ],
       "nativeVerification": {
@@ -16239,7 +16244,15 @@
         "revision": "a308158",
         "date": "2026-10-20",
         "evidence": "docs/validation.md",
-        "scope": "The named per-case tests were included in the recorded regression run. Native acceptance remains pending."
+        "scope": "The named per-case tests were included in the recorded regression run. Native acceptance remains pending.",
+        "additionalRuns": [
+          {
+            "date": "2026-10-20",
+            "command": "swift test",
+            "result": "Passed 402 app methods and 391 core methods. Actual headless intent ownership rejects five intent/window/batch entry cases before pending-save or selection changes; canonical file aliases observe the same gate.",
+            "evidence": "docs/validation.md"
+          }
+        ]
       }
     },
     {
@@ -17196,7 +17209,7 @@
         "result": "Real QA cold-launch Run awaited delayed success and returned its success parameters. URL failure and cancellation returned matching callbacks. Development-signed QA App Intent through Shortcuts returned success, delayed failure, and cancellation messages. Timeout, busy, concurrent-entry, and window-close variants remain pending."
       },
       "limitations": [
-        "RunDraftActionIntent.perform now has direct in-process tests for success, CPU/async timeout, busy window reservation, invalid targets, explicit script failure, and pre-start/running cancellation. Native Shortcuts dispatch, headless-owner overlap before pending saves, and remaining current-build URL busy variants remain open.",
+        "Actual RunDraftActionIntent.perform has in-process tests for all final outcomes and valid/invalid targets. Headless-owner overlap now rejects intent, scheduled/immediate window and batch requests before pending saves. System Shortcuts dispatch and remaining current-build URL busy variants need native acceptance.",
         "Current-build native multiwindow concurrency, timeout, busy, and remaining App Intent variants remain pending. Earlier QA passed cold URL and Intent success/error/cancel only."
       ],
       "defaults": "A window model permits one pending or running action request at a time. It reserves execution before starting its Task. A repeated request is ignored rather than queued. The default is limited here to window scheduling; automation uses its separate save and target checks.",
@@ -17298,6 +17311,11 @@
           "suite": "RunDraftActionIntentTests",
           "test": "preCancelledIntentReturnsTypedCancellationWithoutEffects",
           "file": "Tests/DraftlyTests/RunDraftActionIntentTests.swift"
+        },
+        {
+          "suite": "RunDraftActionIntentOverlapTests",
+          "test": "headlessOwnerRejectsOtherEntryPointsBeforeTheySavePendingWindowEdits",
+          "file": "Tests/DraftlyTests/RunDraftActionIntentOverlapTests.swift"
         }
       ],
       "nativeVerification": {
@@ -17321,6 +17339,12 @@
             "date": "2026-10-20",
             "command": "swift test",
             "result": "Passed 401 app methods and 391 core methods after separating timeout setup from the waiting step. Includes actual RunDraftActionIntent.perform, not native Shortcuts dispatch.",
+            "evidence": "docs/validation.md"
+          },
+          {
+            "date": "2026-10-20",
+            "command": "swift test",
+            "result": "Passed 402 app methods and 391 core methods. Actual headless intent ownership rejects five intent/window/batch entry cases before pending-save or selection changes; canonical file aliases observe the same gate.",
             "evidence": "docs/validation.md"
           }
         ]
