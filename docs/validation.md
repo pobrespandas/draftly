@@ -2338,3 +2338,18 @@ JavaScriptCore's garbage collector. Native permission/dialog and CPU-bound task
 cancellation cases still need acceptance on this assertion build. The prior
 Shortcuts evidence identifies its earlier image explicitly. The worker record
 remains partial. No screenshots or raw logs were added.
+
+### Initial action catalog — 20 October 2026
+
+Implemented: new empty libraries seed Copy, Share, Add to Reminders, Add Calendar
+Event, Save to File, and Markdown Preview. The list order matches that sequence.
+Each entry has its runnable step and icon. An existing nonempty catalog receives
+no new defaults. These entries are editable library data.
+
+Automatically tested: DefaultActionCatalogTests passed both disk-backed cases.
+The cases check all six names, step types, group, icons, unique identities,
+reopen identity, retained user edits, and an existing custom catalog.
+
+Native verification: this check did not execute sharing, file panels, Calendar,
+or Reminders. Their permissions and dialog variants retain their separate
+acceptance status. Catalog loading does not prove native execution parity.
