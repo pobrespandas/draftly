@@ -1,5 +1,85 @@
 # Core Actions audit — 2026-10-19
 
+## Version storage and Prompt transport follow-up — 2026-10-19
+
+Implemented: revision saves now use the commit hook and rollback on failure.
+Prompt field options cannot replace required arguments. Prompt.show rejects
+invalid responses before changing published field values or the chosen button.
+
+Automatically tested: nine version tests and eleven Prompt tests passed. The
+full run passed 254 core and 154 app tests. The local build and 15 auditor tests
+passed. Version tests include SQLite reopen, empty content, pending Unicode text,
+readonly history, isolation, and failure followed by an unrelated commit.
+Prompt tests include cancellation and 19 invalid response forms.
+
+Draft.saveVersion and Draft.versions now have specific contract evidence.
+The inventory is 106 complete, 139 partial, 312 unclassified, three unavailable,
+and two excluded members. Strict core acceptance stays open with 820 diagnostics.
+Prompt members remain partial. Native options and presentation need acceptance.
+The native version-history interface is separate from stored-value contracts.
+
+The raw test and strict-check transcripts were removed at the user's request.
+The results above are historical summaries. Repeat the checks for new acceptance.
+
+## Metadata and editor focus follow-up — 2026-10-19
+
+Implemented: Draft UUID is read-only. UUID lookup accepts either letter case.
+Title extraction handles CRLF and Unicode line separators. Editor activation
+closes the preview and restores focus. Deactivation preserves other text fields.
+The active property checks the editor view. Navigation and focus methods have
+void returns.
+
+Automatically tested: 234 core tests and 92 app tests passed in the final full
+run. The local Xcode build, matrix validation, and 15 auditor tests passed.
+Draft metadata has 36 specific tests. Workspace application has seven tests;
+identity has three. Editor properties have 12 tests.
+
+Verified in use: `core-next-acceptance.json` passed strict UUID assignment,
+case-independent lookup, CRLF title, focus, UTF-16 selection, Undo, and Redo.
+See `screenshots/delivery-one-2026-10-19/core-next-passed.txt` and its screenshot.
+The final editor text is recorded in `core-next-final.txt`.
+
+Recorded 21 additional Draft member contracts. The matrix now has 104 complete,
+141 partial, 312 unclassified, three unavailable, and two excluded members.
+Strict core acceptance remains open with 842 diagnostics. Counts are inventory.
+Draft.query remains partial for missing archived reference dependencies and
+parent-tag behavior. Workspace.installURL has a shared decoder and receiver, with external URL
+installation acceptance pending. Editor tab preferences
+remain syntax-independent. These differences are not accepted as parity.
+
+Workspace installation follow-up: the URL receiver now uses the same decoder as
+scripting. Invalid payloads fail before storage. Unknown fields and identities
+survive decoding and backup restoration. Five Workspace identity tests passed.
+The final full run passed 234 core and 92 app tests. The Xcode build passed.
+External URL opening remains pending; installURL stays partial.
+
+## Delivery one evidence closure — 2026-10-19
+
+Recorded: 22 members now have specific evidence for Draft tag methods, eight
+Editor text/selection/save/new methods, and eleven Workspace filter, query,
+and presentation members. Draft.tags stays partial because the archived property
+is readonly but Draftly preserves its legacy assignment behavior.
+
+Automatically tested: 221 core tests passed. New files check explicit editor
+save and new before the runner's final flush, storage failure preservation,
+native UTF-16 range undo, and exact Workspace query orders and filters.
+The separate native run passed 42 tests in four suites. Four explicit persistence
+tests passed in the core target. The regular matrix check and 15 auditor tests
+passed. Strict core acceptance remains open with 978 diagnostics.
+
+Verified in use: last action appeared on the neutral row. Normal search preview
+showed the body, while matching preview showed line 3. The final paired snapshots
+have identical editor content. An external edit before that pair is recorded
+separately. The isolated replay passed all Editor, tag, and Workspace assertions.
+Two earlier replay fixtures collided with existing tags and are rejected.
+Evidence and actions are in `screenshots/delivery-one-2026-10-19`.
+
+The matrix has 83 complete, 162 partial, 312 unclassified, three unavailable,
+and two excluded members. Counts are inventory, not compatibility percentages.
+The handoff now starts after this evidence closure. Metadata tests prepared for
+delivery two also exposed writable UUID, case-sensitive lookup, and title line
+boundary defects. These fixes pass but need their own reviewed acceptance.
+
 ## Draft, Editor, and Workspace follow-up — 2026-10-19
 
 Implemented: line expansion uses native UTF-16 boundaries for LF, CR, CRLF,

@@ -153,6 +153,12 @@ final class AppController: ObservableObject {
         func parameter(_ name: String) -> String? { items.first { $0.name == name }?.value }
         let endpoint = url.host == "x-callback-url" ? String(url.path.dropFirst()) : url.host
         switch endpoint {
+        case "workspace":
+            do {
+                let workspace = try WorkspaceInstallation.decode(url)
+                try library?.saveWorkspace(workspace)
+                show()
+            } catch { library?.error = error.localizedDescription }
         case "action":
             do { for action in try ActionImporter.installationActions(url) { try library?.saveAction(action) }; show() }
             catch { library?.error = error.localizedDescription }

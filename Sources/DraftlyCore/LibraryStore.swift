@@ -331,7 +331,13 @@ public final class LibraryStore: ObservableObject {
         catch { container.viewContext.rollback(); try? reload(); throw error }
     }
     public func deleteRun(_ id: UUID) throws { try delete(id, kind: "run") }
-    public func saveRevision(_ revision: Revision) throws { try persist(revision, id: revision.id, kind: "revision"); try commit() }
+    public func saveRevision(_ revision: Revision) throws {
+        do {
+            try persist(revision, id: revision.id, kind: "revision")
+            try beforeBatchCommit?()
+            try commit()
+        } catch { container.viewContext.rollback(); try? reload(); throw error }
+    }
     private func delete(_ id: UUID, kind: String, beforeCommit: (() throws -> Void)? = nil) throws {
         let key = "\(kind):\(id.uuidString)"
         let request = NSFetchRequest<NSManagedObject>(entityName: "Record")

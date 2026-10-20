@@ -438,7 +438,9 @@ public final class ActionRunner: ObservableObject {
     private func dispatch(_ operation: String, values: [String: Any]) throws -> Any? {
         switch operation {
         case "newDraft": return noteValue(Note())
-        case "findDraft": return library.notes.first(where: { $0.id.uuidString == values["uuid"] as? String }).map(noteValue)
+        case "findDraft":
+            guard let id = (values["uuid"] as? String).flatMap(UUID.init(uuidString:)) else { return nil }
+            return library.notes.first(where: { $0.id == id }).map(noteValue)
         case "queryDrafts":
             var workspace = Workspace(name: "Script")
             workspace.query = values["query"] as? String ?? ""
@@ -484,7 +486,10 @@ public final class ActionRunner: ObservableObject {
             try editor.replace(range, with: values["text"] as? String ?? ""); try flushEditor(); editor.synchronizeScriptEdit?(); return true
         case "template": return try renderTemplate(values["text"] as? String ?? "", note: decodedNote(values["note"] as? [String: Any] ?? [:]), tags: values["tags"] as? [String: String] ?? [:])
         case "setTemplateTag": customTags[values["key"] as? String ?? ""] = values["value"] as? String ?? ""; return true
-        case "activate": editor.focusToken = UUID(); return true
+        case "activate":
+            editor.focusToken = UUID()
+            if let uiOperation { _ = try uiOperation(["operation": "activate"]) }
+            return nil
         case "message": logs.append(values["message"] as? String ?? ""); return true
         case "findAction":
             return library.actions.first(where: { $0.name == values["name"] as? String }).map(actionValue)

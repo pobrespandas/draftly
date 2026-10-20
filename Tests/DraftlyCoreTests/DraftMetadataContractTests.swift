@@ -234,13 +234,20 @@ struct DraftMetadataContractTests {
 
     @Test func draftFlagTypeSupportsEveryDocumentedIndexAndSetsFlaggedStatus() throws {
         let f = try DraftMetadataFixture()
-        #expect(f.run(#"""
-        check(draft.flagType===0,'default type');
-        for(let value=0;value<=6;value++){
-          draft.flagType=value;check(draft.isFlagged===(value>0),'derived flag status');
-          draft.update();check(draft.flagType===value,'stored type');
+        #expect(f.run("check(draft.flagType===0,'default type');"), Comment(rawValue: f.runner.message ?? ""))
+        for value in 0...6 {
+            #expect(f.run("draft.flagType=\(value);check(draft.isFlagged===(\(value)>0),'derived flag status');draft.update();check(draft.flagType===\(value),'current type');"), Comment(rawValue: f.runner.message ?? ""))
+            let saved = try #require(f.library.notes.first { $0.id == f.editor.noteID })
+            #expect(saved.flag == value)
+            let restored = try LibraryStore(inMemory: true, seed: false)
+            try restored.restore(f.library.backupData())
+            let reopened = try #require(restored.notes.first { $0.id == saved.id })
+            #expect(reopened.flag == value)
+            let editor = EditorSession(), host = DraftMetadataHost()
+            editor.load(reopened)
+            let runner = ActionRunner(library: restored, editor: editor, host: host)
+            #expect(runner.run(f.action("check(draft.flagType===\(value) && draft.isFlagged===(\(value)>0),'reopened flag state');")), Comment(rawValue: runner.message ?? ""))
         }
-        """#), Comment(rawValue: f.runner.message ?? ""))
         #expect(f.library.notes.first?.flag == 6)
     }
 
@@ -332,18 +339,149 @@ struct DraftMetadataContractTests {
         #expect(f.editor.content == "Metadata source")
     }
 
+    @Test func draftQuerySelectsEveryDocumentedFolderAndExcludesTrashFromAll() throws {
+        let f = try DraftMetadataFixture()
+        let inbox = Note(content: "Folder matrix Inbox", tags: ["folder-matrix"])
+        let flaggedInbox = Note(content: "Folder matrix Flagged Inbox", tags: ["folder-matrix"], flag: 2)
+        let archive = Note(content: "Folder matrix Archive", tags: ["folder-matrix"], isArchived: true)
+        let flaggedArchive = Note(content: "Folder matrix Flagged Archive", tags: ["folder-matrix"], flag: 4, isArchived: true)
+        let trash = Note(content: "Folder matrix Trash", tags: ["folder-matrix"], trashedAt: Date())
+        let archivedTrash = Note(content: "Folder matrix Archived Trash", tags: ["folder-matrix"], flag: 5, isArchived: true, trashedAt: Date())
+        try f.library.saveNotes([inbox, flaggedInbox, archive, flaggedArchive, trash, archivedTrash])
+        let cases: [(String, [Note])] = [
+            ("inbox", [inbox, flaggedInbox]), ("archive", [archive, flaggedArchive]),
+            ("trash", [trash, archivedTrash]), ("flagged", [flaggedInbox, flaggedArchive]),
+            ("all", [inbox, flaggedInbox, archive, flaggedArchive])
+        ]
+        for (folder, notes) in cases {
+            let ids = notes.map { $0.id.uuidString }.sorted().joined(separator: ",")
+            #expect(f.run("const result=Draft.query('','\(folder)',['folder-matrix'],[],'name');check(result.every(d=>d instanceof Draft),'Draft array');check(result.map(d=>d.uuid).sort().join(',')==='\(ids)','folder \(folder)');check(Draft.query('No folder matrix match','\(folder)',['folder-matrix'],[],'name').length===0,'empty folder query result');"), Comment(rawValue: f.runner.message ?? ""))
+        }
+    }
+
+    @Test func draftQueryRequiresEveryIncludedTagAndOmitsAnyExcludedTag() throws {
+        let f = try DraftMetadataFixture()
+        let both = Note(content: "Tag matrix Both", tags: ["red", "blue"])
+        let redOnly = Note(content: "Tag matrix Red only", tags: ["red"])
+        let blueOnly = Note(content: "Tag matrix Blue only", tags: ["blue"])
+        let blocked = Note(content: "Tag matrix Blocked", tags: ["red", "blue", "blocked"])
+        let skipped = Note(content: "Tag matrix Skipped", tags: ["red", "blue", "skip"])
+        let other = Note(content: "Tag matrix Other", tags: ["redfish", "bluebird"])
+        try f.library.saveNotes([both, redOnly, blueOnly, blocked, skipped, other])
+        let allIncluded = [both, blocked, skipped].map { $0.id.uuidString }.sorted().joined(separator: ",")
+        let afterExclusions = [both, redOnly, blueOnly, other].map { $0.id.uuidString }.sorted().joined(separator: ",")
+        #expect(f.run("function ids(tags,omit){return Draft.query('Tag matrix','all',tags,omit,'name').map(d=>d.uuid).sort().join(',');}check(ids(['red','blue'],[])==='\(allIncluded)','AND includes');check(ids(['red','blue'],['blocked','skip'])==='\(both.id.uuidString)','OR excludes');check(ids([],['blocked','skip'])==='\(afterExclusions)','exclude without include');check(ids(['red','red','blue'],[])==='\(allIncluded)','repeated included tag');check(ids(['red'],['red'])==='','excluded tag takes precedence');check(Draft.query('Tag matrix','all',[],[],'name').length===6,'empty tag lists do not filter');"), Comment(rawValue: f.runner.message ?? ""))
+    }
+
+    @Test func draftQueryTagNamesNormalizeUnicodeAndKeepExactNameBoundaries() throws {
+        let f = try DraftMetadataFixture()
+        let exact = Note(content: "Tag boundary Exact", tags: ["café", "work/project"])
+        let longer = Note(content: "Tag boundary Longer", tags: ["caféteria", "work/projectile"])
+        let plain = Note(content: "Tag boundary Plain", tags: ["cafe", "workshop/project"])
+        try f.library.saveNotes([exact, longer, plain])
+        #expect(f.run("const result=Draft.query('Tag boundary','all',[' CAFE\\u0301 ','WORK/PROJECT'],[],'name');check(result.length===1 && result[0].uuid==='\(exact.id.uuidString)','Unicode normalized exact tags');check(Draft.query('Tag boundary','all',[],[' CAFÉ '],'name').map(d=>d.uuid).sort().join(',')==='\([longer, plain].map { $0.id.uuidString }.sorted().joined(separator: ","))','normalized excluded tag');check(Draft.query('Tag boundary','all',['work/project'],[],'name').length===1,'similar tag prefix does not match');"), Comment(rawValue: f.runner.message ?? ""))
+    }
+
+    @Test func draftQuerySortsCreatedAndModifiedDatesInBothDirections() throws {
+        let f = try DraftMetadataFixture()
+        let alpha = Note(content: "Date order Alpha", tags: ["date-order"], createdAt: Date(timeIntervalSince1970: 100), modifiedAt: Date(timeIntervalSince1970: 400))
+        let beta = Note(content: "Date order Beta", tags: ["date-order"], createdAt: Date(timeIntervalSince1970: 300), modifiedAt: Date(timeIntervalSince1970: 200))
+        let gamma = Note(content: "Date order Gamma", tags: ["date-order"], createdAt: Date(timeIntervalSince1970: 200), modifiedAt: Date(timeIntervalSince1970: 300))
+        try f.library.saveNotes([alpha, beta, gamma], preserveRevision: false, preserveDates: true)
+        for (sort, ascending) in [("created", [alpha, gamma, beta]), ("modified", [beta, gamma, alpha])] {
+            let ids = ascending.map { $0.id.uuidString }.joined(separator: ",")
+            let reversed = ascending.reversed().map { $0.id.uuidString }.joined(separator: ",")
+            #expect(f.run("function ids(descending){return Draft.query('','all',['date-order'],[],'\(sort)',descending).map(d=>d.uuid).join(',');}check(Draft.query('','all',['date-order'],[],'\(sort)').map(d=>d.uuid).join(',')==='\(ids)','\(sort) ascending default');check(ids(false)==='\(ids)' && ids(true)==='\(reversed)','\(sort) direction');"), Comment(rawValue: f.runner.message ?? ""))
+        }
+        for note in [alpha, beta, gamma] {
+            let saved = try #require(f.library.notes.first { $0.id == note.id })
+            #expect(saved.createdAt == note.createdAt && saved.modifiedAt == note.modifiedAt)
+        }
+    }
+
+    @Test func draftQuerySortsUnknownAccessDatesLastAndUsesStableUUIDTies() throws {
+        let f = try DraftMetadataFixture()
+        let older = Note(content: "Access query Older", tags: ["access-query"], accessedAt: Date(timeIntervalSince1970: 100))
+        let newer = Note(content: "Access query Newer", tags: ["access-query"], accessedAt: Date(timeIntervalSince1970: 200))
+        let unknownA = Note(id: try #require(UUID(uuidString: "00000000-0000-0000-0000-000000000001")), content: "Access query Unknown A", tags: ["access-query"])
+        let unknownB = Note(id: try #require(UUID(uuidString: "00000000-0000-0000-0000-000000000002")), content: "Access query Unknown B", tags: ["access-query"])
+        try f.library.saveNotes([unknownB, newer, unknownA, older], preserveDates: true)
+        let ascending = [older, newer, unknownA, unknownB].map { $0.id.uuidString }.joined(separator: ",")
+        let descending = [newer, older, unknownA, unknownB].map { $0.id.uuidString }.joined(separator: ",")
+        #expect(f.run("function ids(descending){return Draft.query('','all',['access-query'],[],'accessed',descending).map(d=>d.uuid).join(',');}check(ids(false)==='\(ascending)','known first ascending and unknown UUID tie');check(ids(true)==='\(descending)','known first descending and unknown UUID tie');check(Draft.query('','all',['access-query'],[],'accessed').map(d=>d.uuid).join(',')==='\(ascending)','access ascending default');"), Comment(rawValue: f.runner.message ?? ""))
+        #expect(f.library.notes.first { $0.id == older.id }?.accessedAt == older.accessedAt)
+        #expect(f.library.notes.first { $0.id == newer.id }?.accessedAt == newer.accessedAt)
+        #expect(f.library.notes.first { $0.id == unknownA.id }?.accessedAt == nil)
+        #expect(f.library.notes.first { $0.id == unknownB.id }?.accessedAt == nil)
+    }
+
+    @Test func draftQueryFlaggedFirstKeepsTheSelectedDateAndNameOrder() throws {
+        let f = try DraftMetadataFixture()
+        let alpha = Note(content: "Flag order Alpha", tags: ["flag-order"], createdAt: Date(timeIntervalSince1970: 100), modifiedAt: Date(timeIntervalSince1970: 400), accessedAt: Date(timeIntervalSince1970: 300))
+        let beta = Note(content: "Flag order Beta", tags: ["flag-order"], flag: 2, createdAt: Date(timeIntervalSince1970: 300), modifiedAt: Date(timeIntervalSince1970: 200), accessedAt: Date(timeIntervalSince1970: 100))
+        let gamma = Note(content: "Flag order Gamma", tags: ["flag-order"], flag: 5, createdAt: Date(timeIntervalSince1970: 200), modifiedAt: Date(timeIntervalSince1970: 300), accessedAt: Date(timeIntervalSince1970: 200))
+        let unknown = Note(content: "Flag order Unknown", tags: ["flag-order"], createdAt: Date(timeIntervalSince1970: 400), modifiedAt: Date(timeIntervalSince1970: 100))
+        try f.library.saveNotes([alpha, beta, gamma, unknown], preserveDates: true)
+        let cases: [(String, Bool, [Note])] = [
+            ("name", false, [beta, gamma, alpha, unknown]), ("name", true, [gamma, beta, unknown, alpha]),
+            ("created", false, [gamma, beta, alpha, unknown]), ("created", true, [beta, gamma, unknown, alpha]),
+            ("modified", false, [beta, gamma, unknown, alpha]), ("modified", true, [gamma, beta, alpha, unknown]),
+            ("accessed", false, [beta, gamma, alpha, unknown]), ("accessed", true, [gamma, beta, alpha, unknown])
+        ]
+        for (sort, descending, expected) in cases {
+            let ids = expected.map { $0.id.uuidString }.joined(separator: ",")
+            #expect(f.run("check(Draft.query('','all',['flag-order'],[],'\(sort)',\(descending),true).map(d=>d.uuid).join(',')==='\(ids)','flagged first \(sort) \(descending)');"), Comment(rawValue: f.runner.message ?? ""))
+        }
+    }
+
+    @Test func draftQueryStructuredSearchUsesTheSameDocumentedInputArguments() throws {
+        let f = try DraftMetadataFixture()
+        let first = Note(content: "Search red title\nA blue parachute and café", tags: ["search-query", "topic"], flag: 1)
+        let second = Note(content: "Search green title\nRed kite", tags: ["search-query"])
+        let third = Note(content: "Other title\nblue red", tags: ["search-query"], flag: 5)
+        try f.library.saveNotes([first, second, third])
+        let cases: [(String, [Note])] = [
+            ("cafe", [first]), ("\"blue parachute\"", [first]), ("red AND blue", [first, third]),
+            ("red -blue", [second]), ("missing OR café", [first]),
+            ("title:green", [second]), ("tag:topic", [first]), ("flag:red", [first]),
+            ("/Search red title/", [first]), ("No matching search content", [])
+        ]
+        for (query, expected) in cases {
+            let encodedQuery = String(decoding: try JSONEncoder().encode(query), as: UTF8.self)
+            let ids = expected.map { $0.id.uuidString }.sorted().joined(separator: ",")
+            #expect(f.run("check(Draft.query(\(encodedQuery),'all',['search-query'],[],'name').map(d=>d.uuid).sort().join(',')==='\(ids)','structured search');"), Comment(rawValue: f.runner.message ?? ""))
+        }
+    }
+
+    @Test func draftQueryDoesNotChangeStoredTextDatesAccessOrVersions() throws {
+        let f = try DraftMetadataFixture()
+        let known = Note(content: "Read query Known 🐼", tags: ["read-query"], createdAt: Date(timeIntervalSince1970: 100), modifiedAt: Date(timeIntervalSince1970: 200), accessedAt: Date(timeIntervalSince1970: 300))
+        let unknown = Note(content: "Read query Unknown", tags: ["read-query"], createdAt: Date(timeIntervalSince1970: 400), modifiedAt: Date(timeIntervalSince1970: 500))
+        try f.library.saveNotes([known, unknown], preserveDates: true)
+        let before = f.library.notes.filter { $0.id == known.id || $0.id == unknown.id }
+        let revisions = f.library.revisions.filter { $0.noteID == known.id || $0.noteID == unknown.id }
+        #expect(f.run("for(const sort of ['name','created','modified','accessed'])for(const descending of [false,true]){const result=Draft.query('Read query','all',['read-query'],[],sort,descending);check(result.length===2,'read query results');}"), Comment(rawValue: f.runner.message ?? ""))
+        let after = f.library.notes.filter { $0.id == known.id || $0.id == unknown.id }
+        #expect(Dictionary(uniqueKeysWithValues: before.map { ($0.id, $0) }) == Dictionary(uniqueKeysWithValues: after.map { ($0.id, $0) }))
+        #expect(f.library.revisions.filter { $0.noteID == known.id || $0.noteID == unknown.id } == revisions)
+        #expect(f.editor.content == "Metadata source")
+    }
+
     @Test func draftQueryByTitleMatchesOnlyTheFirstLineAndKeepsIdentity() throws {
         let f = try DraftMetadataFixture()
         let title = try f.library.createNote(content: "Project Café\nBody")
         _ = try f.library.createNote(content: "Unrelated title\nProject Café in body")
-        #expect(f.run("const matches=Draft.queryByTitle('cAFé');check(matches.length===1 && matches[0].uuid==='\(title.id.uuidString)','title-only case-insensitive match');check(matches[0]===Draft.find(matches[0].uuid),'shared identity');check(Draft.queryByTitle('absent title').length===0,'no matches');"), Comment(rawValue: f.runner.message ?? ""))
+        let expectedIDs = f.library.notes.map { $0.id.uuidString }.sorted().joined(separator: ",")
+        #expect(f.run("const matches=Draft.queryByTitle('cAFé');check(matches.length===1 && matches[0].uuid==='\(title.id.uuidString)','title-only case-insensitive match');check(matches[0]===Draft.find(matches[0].uuid),'shared identity');check(Draft.queryByTitle('absent title').length===0,'no matches');check(Draft.queryByTitle('').map(d=>d.uuid).sort().join(',')==='\(expectedIDs)','empty title matches each available first line');"), Comment(rawValue: f.runner.message ?? ""))
     }
 
     @Test func draftFlaggedOmitsUnflaggedAndTrashedDraftsAndFiltersNamedColors() throws {
         let f = try DraftMetadataFixture()
+        #expect(f.run("check(Draft.flagged().length===0 && Draft.flagged('red').length===0,'no eligible flags');"), Comment(rawValue: f.runner.message ?? ""))
         let red = Note(content: "Flag red", flag: 1), blue = Note(content: "Flag blue", flag: 5)
+        let archived = Note(content: "Archived green", flag: 4, isArchived: true)
         let trashed = Note(content: "Trashed red", flag: 1, trashedAt: Date())
-        try f.library.saveNotes([red, blue, trashed])
-        #expect(f.run("const all=Draft.flagged();check(all.length===2 && all.every(d=>d.isFlagged && !d.isTrashed),'default all flags');const red=Draft.flagged('red');check(red.length===1 && red[0].uuid==='\(red.id.uuidString)','named type');check(red[0]===Draft.find(red[0].uuid),'shared identity');check(Draft.flagged('green').length===0,'no matching color');"), Comment(rawValue: f.runner.message ?? ""))
+        try f.library.saveNotes([red, blue, archived, trashed])
+        #expect(f.run("const all=Draft.flagged();check(all.length===3 && all.every(d=>d.isFlagged && !d.isTrashed),'default all flags');check(all.some(d=>d.uuid==='\(archived.id.uuidString)' && d.isArchived),'archived flagged draft included');const red=Draft.flagged('red');check(red.length===1 && red[0].uuid==='\(red.id.uuidString)','named type');check(red[0]===Draft.find(red[0].uuid),'shared identity');const green=Draft.flagged('green');check(green.length===1 && green[0].uuid==='\(archived.id.uuidString)','archived named color');check(Draft.flagged('purple').length===0,'no matching color');"), Comment(rawValue: f.runner.message ?? ""))
     }
 }

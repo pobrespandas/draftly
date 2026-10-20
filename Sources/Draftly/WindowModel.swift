@@ -140,7 +140,7 @@ final class WindowModel: ObservableObject {
             case "canCreateTab": return window != nil
             case "linkModeEnabled": return linksEnabled
             case "pinningEnabled", "focusModeEnabled": return isDraftPinned
-            case "isActive": return window?.firstResponder is NSTextView
+            case "isActive": return window?.firstResponder is DraftTextView
             case "preferredTabString": return "\t"
             case "typewriterScrollingEnabled": return editor.typewriterScrollingEnabled
             case "isIdleDisabled": return idleActivity != nil
@@ -223,7 +223,11 @@ final class WindowModel: ObservableObject {
             if operation == "loadActionGroup" { actionGroup = name; showActions = true } else { actionBarGroup = name }
         case "nextDraft": navigate(1)
         case "previousDraft": navigate(-1)
-        case "deactivate": window?.makeFirstResponder(nil)
+        case "activate":
+            showPreview = false
+            _ = editor.focusForDictation?()
+        case "deactivate":
+            if window?.firstResponder is DraftTextView { window?.makeFirstResponder(nil) }
         case "undo", "redo":
             guard let performUndo = editor.performUndo else { throw DraftlyError.message("The editor undo manager is unavailable.") }; performUndo(operation == "redo")
         case "showFind":

@@ -56,26 +56,45 @@
             "createdAt: Date"
           ],
           "contract": "Date the draft was created. This property is generally maintained by Drafts automatically and is it not recommended it be set directly unless needed to maintain information from an external source when importing.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "draftMetadataDatesSyntaxAndQueriesRoundTrip"
+            "suite": "DraftMetadataContractTests",
+            "test": "draftCreatedAtIsATypedWritableDatePreservedByStorage"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "createdAt: Date"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "A new Draft has a current creation timestamp.",
+          "result": "Date is typed, accepts an imported timestamp with milliseconds, survives save, a new script execution, backup and restore.",
+          "errors": "Valid Date assignment is local. Storage errors belong to update. Invalid Date values are not specified by this reference.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.createdAt"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftCreatedAtIsATypedWritableDatePreservedByStorage"
+              },
+              "assertion": "Date is typed, accepts an imported timestamp with milliseconds, survives save, a new script execution, backup and restore."
+            },
+            "defaults": {
+              "assertion": "A new Draft has a current creation timestamp.",
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftCreatedAtIsATypedWritableDatePreservedByStorage"
+              }
+            },
+            "errors": {
+              "notApplicable": "Valid Date assignment is local. Storage errors belong to update. Invalid Date values are not specified by this reference."
+            }
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This member contract reads or changes a Draft value or library record. Its exact automatic test checks that behavior. Native rendering, editor Undo, and URL opening are accepted under their separate effect-owning member contracts."
           }
         },
         {
@@ -88,26 +107,45 @@
             "modifiedAt: Date"
           ],
           "contract": "Date the draft was last modified. This property is generally maintained by Drafts automatically and is it not recommended it be set directly unless needed to maintain information from an external source when importing.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "draftMetadataDatesSyntaxAndQueriesRoundTrip"
+            "suite": "DraftMetadataContractTests",
+            "test": "draftModifiedAtPreservesExplicitDatesAndUpdatesOnNormalSave"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "modifiedAt: Date"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "A new Draft has a current modified timestamp.",
+          "result": "Date is typed, accepts an imported timestamp with milliseconds, and a later ordinary edit receives a newer automatic modified time.",
+          "errors": "Valid Date assignment is local. Storage errors belong to update. Invalid Date values are not specified by this reference.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.modifiedAt"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftModifiedAtPreservesExplicitDatesAndUpdatesOnNormalSave"
+              },
+              "assertion": "Date is typed, accepts an imported timestamp with milliseconds, and a later ordinary edit receives a newer automatic modified time."
+            },
+            "defaults": {
+              "assertion": "A new Draft has a current modified timestamp.",
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftModifiedAtPreservesExplicitDatesAndUpdatesOnNormalSave"
+              }
+            },
+            "errors": {
+              "notApplicable": "Valid Date assignment is local. Storage errors belong to update. Invalid Date values are not specified by this reference."
+            }
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This member contract reads or changes a Draft value or library record. Its exact automatic test checks that behavior. Native rendering, editor Undo, and URL opening are accepted under their separate effect-owning member contracts."
           }
         },
         {
@@ -231,26 +269,45 @@
             "createdLatitude: number"
           ],
           "contract": "Numeric latitude where the draft was created. This value will be 0 if no location information was available.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "draftMetadataDatesSyntaxAndQueriesRoundTrip"
+            "suite": "DraftMetadataContractTests",
+            "test": "draftCreatedLatitudeDefaultsToZeroAndPersistsSignedFractions"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "createdLatitude: number"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "Absent location defaults to zero.",
+          "result": "A finite signed fractional latitude survives update, a new script execution, backup and restore.",
+          "errors": "Valid finite numeric assignment is local. Range validation is not specified; storage errors belong to update.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.createdLatitude"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftCreatedLatitudeDefaultsToZeroAndPersistsSignedFractions"
+              },
+              "assertion": "A finite signed fractional latitude survives update, a new script execution, backup and restore."
+            },
+            "defaults": {
+              "assertion": "Absent location defaults to zero.",
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftCreatedLatitudeDefaultsToZeroAndPersistsSignedFractions"
+              }
+            },
+            "errors": {
+              "notApplicable": "Valid finite numeric assignment is local. Range validation is not specified; storage errors belong to update."
+            }
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This member contract reads or changes a Draft value or library record. Its exact automatic test checks that behavior. Native rendering, editor Undo, and URL opening are accepted under their separate effect-owning member contracts."
           }
         },
         {
@@ -263,26 +320,45 @@
             "createdLongitude: number"
           ],
           "contract": "Numeric longitude where the draft was created. This value will be 0 if no location information was available.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "draftMetadataDatesSyntaxAndQueriesRoundTrip"
+            "suite": "DraftMetadataContractTests",
+            "test": "draftCreatedLongitudeDefaultsToZeroAndPersistsSignedFractions"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "createdLongitude: number"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "Absent location defaults to zero.",
+          "result": "A finite signed fractional longitude survives update, a new script execution, backup and restore.",
+          "errors": "Valid finite numeric assignment is local. Range validation is not specified; storage errors belong to update.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.createdLongitude"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftCreatedLongitudeDefaultsToZeroAndPersistsSignedFractions"
+              },
+              "assertion": "A finite signed fractional longitude survives update, a new script execution, backup and restore."
+            },
+            "defaults": {
+              "assertion": "Absent location defaults to zero.",
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftCreatedLongitudeDefaultsToZeroAndPersistsSignedFractions"
+              }
+            },
+            "errors": {
+              "notApplicable": "Valid finite numeric assignment is local. Range validation is not specified; storage errors belong to update."
+            }
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This member contract reads or changes a Draft value or library record. Its exact automatic test checks that behavior. Native rendering, editor Undo, and URL opening are accepted under their separate effect-owning member contracts."
           }
         },
         {
@@ -295,26 +371,45 @@
             "modifiedLatitude: number"
           ],
           "contract": "Numeric longitude where the draft was last modified. This value will be 0 if no location information was available.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "draftMetadataDatesSyntaxAndQueriesRoundTrip"
+            "suite": "DraftMetadataContractTests",
+            "test": "draftModifiedLatitudeDefaultsToZeroAndPersistsSignedFractions"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "modifiedLatitude: number"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "Absent location defaults to zero.",
+          "result": "A finite signed fractional latitude survives update, a new script execution, backup and restore.",
+          "errors": "Valid finite numeric assignment is local. Range validation is not specified; storage errors belong to update.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.modifiedLatitude"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftModifiedLatitudeDefaultsToZeroAndPersistsSignedFractions"
+              },
+              "assertion": "A finite signed fractional latitude survives update, a new script execution, backup and restore."
+            },
+            "defaults": {
+              "assertion": "Absent location defaults to zero.",
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftModifiedLatitudeDefaultsToZeroAndPersistsSignedFractions"
+              }
+            },
+            "errors": {
+              "notApplicable": "Valid finite numeric assignment is local. Range validation is not specified; storage errors belong to update."
+            }
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This member contract reads or changes a Draft value or library record. Its exact automatic test checks that behavior. Native rendering, editor Undo, and URL opening are accepted under their separate effect-owning member contracts."
           }
         },
         {
@@ -327,26 +422,45 @@
             "modifiedLongitude: number"
           ],
           "contract": "Numeric longitude where the draft was last modified. This value will be 0 if no location information was available.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "draftMetadataDatesSyntaxAndQueriesRoundTrip"
+            "suite": "DraftMetadataContractTests",
+            "test": "draftModifiedLongitudeDefaultsToZeroAndPersistsSignedFractions"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "modifiedLongitude: number"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "Absent location defaults to zero.",
+          "result": "A finite signed fractional longitude survives update, a new script execution, backup and restore.",
+          "errors": "Valid finite numeric assignment is local. Range validation is not specified; storage errors belong to update.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.modifiedLongitude"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftModifiedLongitudeDefaultsToZeroAndPersistsSignedFractions"
+              },
+              "assertion": "A finite signed fractional longitude survives update, a new script execution, backup and restore."
+            },
+            "defaults": {
+              "assertion": "Absent location defaults to zero.",
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftModifiedLongitudeDefaultsToZeroAndPersistsSignedFractions"
+              }
+            },
+            "errors": {
+              "notApplicable": "Valid finite numeric assignment is local. Range validation is not specified; storage errors belong to update."
+            }
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This member contract reads or changes a Draft value or library record. Its exact automatic test checks that behavior. Native rendering, editor Undo, and URL opening are accepted under their separate effect-owning member contracts."
           }
         },
         {
@@ -500,26 +614,41 @@
             "new Draft(): Draft"
           ],
           "contract": "Create new instance.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "draftConveniencesMetadataAndTemplateContracts"
+            "suite": "DraftMetadataContractTests",
+            "test": "draftConstructorCreatesIndependentUnsavedValues"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "new Draft(): Draft"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "The constructor takes no documented arguments. Empty values are asserted.",
+          "result": "New objects have independent identities, empty text and tags. Editing one does not save it or change another.",
+          "errors": "Creation has no persistence operation. Typed construction has no documented error case.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.constructor"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftConstructorCreatesIndependentUnsavedValues"
+              },
+              "assertion": "New objects have independent identities, empty text and tags. Editing one does not save it or change another."
+            },
+            "defaults": {
+              "notApplicable": "The constructor takes no documented arguments. Empty values are asserted."
+            },
+            "errors": {
+              "notApplicable": "Creation has no persistence operation. Typed construction has no documented error case."
+            }
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This member contract reads or changes a Draft value or library record. Its exact automatic test checks that behavior. Native rendering, editor Undo, and URL opening are accepted under their separate effect-owning member contracts."
           }
         },
         {
@@ -532,26 +661,45 @@
             "content: string"
           ],
           "contract": "The full text content.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "draftConveniencesMetadataAndTemplateContracts"
+            "suite": "DraftMetadataContractTests",
+            "test": "draftContentPreservesExactUnicodeWithoutImplicitSaving"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "content: string"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "A fresh Draft has empty text. The member test also assigns empty text without a save.",
+          "result": "Content retains exact Unicode, CRLF and empty string; local edits do not update visible editor or storage.",
+          "errors": "The property accepts string values. The reference defines no error for a valid string; update owns persistence errors.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.content"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftContentPreservesExactUnicodeWithoutImplicitSaving"
+              },
+              "assertion": "Content retains exact Unicode, CRLF and empty string; local edits do not update visible editor or storage."
+            },
+            "defaults": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftConstructorCreatesIndependentUnsavedValues"
+              },
+              "assertion": "A fresh Draft has empty text. The member test also assigns empty text without a save."
+            },
+            "errors": {
+              "notApplicable": "The property accepts string values. The reference defines no error for a valid string; update owns persistence errors."
+            }
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This member contract reads or changes a Draft value or library record. Its exact automatic test checks that behavior. Native rendering, editor Undo, and URL opening are accepted under their separate effect-owning member contracts."
           }
         },
         {
@@ -564,26 +712,49 @@
             "displayTitle: string"
           ],
           "contract": "Generally, the first line of the draft, but cleaned up as it would be displayed in the draft list in the user interface, removing Markdown header characters, etc.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "draftConveniencesMetadataAndTemplateContracts"
+            "suite": "DraftMetadataContractTests",
+            "test": "draftDisplayTitleRemovesMarkdownHeadersAndIsReadOnly"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "displayTitle: string"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "Empty content uses the existing Untitled display fallback. The reference does not prescribe this label.",
+          "result": "Display title removes Markdown heading characters, keeps Unicode, and cannot replace content.",
+          "errors": "Read-only assignment behavior is asserted; no storage operation occurs.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.displayTitle"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftDisplayTitleRemovesMarkdownHeadersAndIsReadOnly"
+              },
+              "assertion": "Display title removes Markdown heading characters, keeps Unicode, and cannot replace content."
+            },
+            "defaults": {
+              "assertion": "Empty content uses the existing Untitled display fallback. The reference does not prescribe this label.",
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftDisplayTitleRemovesMarkdownHeadersAndIsReadOnly"
+              }
+            },
+            "errors": {
+              "assertion": "Read-only assignment behavior is asserted; no storage operation occurs.",
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftDisplayTitleRemovesMarkdownHeadersAndIsReadOnly"
+              }
+            }
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This member contract reads or changes a Draft value or library record. Its exact automatic test checks that behavior. Native rendering, editor Undo, and URL opening are accepted under their separate effect-owning member contracts."
           }
         },
         {
@@ -596,27 +767,45 @@
             "flagType: draftFlagType"
           ],
           "contract": "Current flagged type. Setting this value will also set isFlagged to true if the draft is not already flagged. Supports integer values between 0 and 6.",
-          "implementation": "partial-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "grayFlagAndTrashKeepArchiveState"
+            "suite": "DraftMetadataContractTests",
+            "test": "draftFlagTypeSupportsEveryDocumentedIndexAndSetsFlaggedStatus"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "flagType: draftFlagType"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "Draftly keeps its existing color indices: red=1, orange=2, yellow=3, green=4, blue=5, purple=6, gray=7. Existing stored values are unchanged.",
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "The new Draft starts with flag zero.",
+          "result": "Each documented index 0 through 6 persists in the library, survives backup restore, and is read in a fresh JavaScript execution with the correct isFlagged value.",
+          "errors": "Values outside 0 through 6 have no error policy in the frozen reference. Gray 7 remains a supported Draftly extension.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.flagType"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftFlagTypeSupportsEveryDocumentedIndexAndSetsFlaggedStatus"
+              },
+              "assertion": "Each documented index 0 through 6 persists in the library, survives backup restore, and is read in a fresh JavaScript execution with the correct isFlagged value."
+            },
+            "defaults": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftFlagTypeSupportsEveryDocumentedIndexAndSetsFlaggedStatus"
+              },
+              "assertion": "The new Draft starts with flag zero."
+            },
+            "errors": {
+              "notApplicable": "Values outside 0 through 6 have no error policy in the frozen reference. Gray 7 remains a supported Draftly extension."
+            }
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This member contract reads or changes a Draft value or library record. Its exact automatic test checks that behavior. Native rendering, editor Undo, and URL opening are accepted under their separate effect-owning member contracts."
           }
         },
         {
@@ -629,26 +818,49 @@
             "folder: draftFolder"
           ],
           "contract": "The folder the draft resides in. Values \"inbox\", \"archive\", \"trash\" are supported.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "grayFlagAndTrashKeepArchiveState"
+            "suite": "DraftMetadataContractTests",
+            "test": "draftFolderMovesBetweenSupportedLocationsAndRejectsUnknownValues"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "folder: draftFolder"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "A fresh Draft starts in Inbox.",
+          "result": "Inbox, Archive and Trash assignments persist and are visible to their matching folder query.",
+          "errors": "An invalid all destination raises RangeError and preserves the prior Inbox state.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.folder"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftFolderMovesBetweenSupportedLocationsAndRejectsUnknownValues"
+              },
+              "assertion": "Inbox, Archive and Trash assignments persist and are visible to their matching folder query."
+            },
+            "defaults": {
+              "assertion": "A fresh Draft starts in Inbox.",
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftFolderMovesBetweenSupportedLocationsAndRejectsUnknownValues"
+              }
+            },
+            "errors": {
+              "assertion": "An invalid all destination raises RangeError and preserves the prior Inbox state.",
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftFolderMovesBetweenSupportedLocationsAndRejectsUnknownValues"
+              }
+            }
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This member contract reads or changes a Draft value or library record. Its exact automatic test checks that behavior. Native rendering, editor Undo, and URL opening are accepted under their separate effect-owning member contracts."
           }
         },
         {
@@ -661,26 +873,45 @@
             "isArchived: boolean"
           ],
           "contract": "Is the draft current in the archive. If false, the draft is in the inbox.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "grayFlagAndTrashKeepArchiveState"
+            "suite": "DraftMetadataContractTests",
+            "test": "draftIsArchivedPersistsAndKeepsItsStateWhileTrashed"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "isArchived: boolean"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "A fresh Inbox draft is not archived.",
+          "result": "Archive state persists, remains set in Trash, and restores to Archive.",
+          "errors": "Valid Boolean assignments have no documented error. Storage errors belong to update.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.isArchived"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftIsArchivedPersistsAndKeepsItsStateWhileTrashed"
+              },
+              "assertion": "Archive state persists, remains set in Trash, and restores to Archive."
+            },
+            "defaults": {
+              "assertion": "A fresh Inbox draft is not archived.",
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftIsArchivedPersistsAndKeepsItsStateWhileTrashed"
+              }
+            },
+            "errors": {
+              "notApplicable": "Valid Boolean assignments have no documented error. Storage errors belong to update."
+            }
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This member contract reads or changes a Draft value or library record. Its exact automatic test checks that behavior. Native rendering, editor Undo, and URL opening are accepted under their separate effect-owning member contracts."
           }
         },
         {
@@ -693,26 +924,45 @@
             "isFlagged: boolean"
           ],
           "contract": "Current flagged status.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "grayFlagAndTrashKeepArchiveState"
+            "suite": "DraftMetadataContractTests",
+            "test": "draftIsFlaggedAssignsPreservesAndClearsFlagType"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "isFlagged: boolean"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "New Draft starts unflagged. Draftly chooses red index 1 when setting true without an existing color.",
+          "result": "True sets an available flag, keeps an existing color, and false clears the flag.",
+          "errors": "Valid Boolean assignments have no documented error. Storage errors belong to update.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.isFlagged"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftIsFlaggedAssignsPreservesAndClearsFlagType"
+              },
+              "assertion": "True sets an available flag, keeps an existing color, and false clears the flag."
+            },
+            "defaults": {
+              "assertion": "New Draft starts unflagged. Draftly chooses red index 1 when setting true without an existing color.",
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftIsFlaggedAssignsPreservesAndClearsFlagType"
+              }
+            },
+            "errors": {
+              "notApplicable": "Valid Boolean assignments have no documented error. Storage errors belong to update."
+            }
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This member contract reads or changes a Draft value or library record. Its exact automatic test checks that behavior. Native rendering, editor Undo, and URL opening are accepted under their separate effect-owning member contracts."
           }
         },
         {
@@ -725,26 +975,45 @@
             "isTrashed: boolean"
           ],
           "contract": "Is the draft currently in the trash.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "grayFlagAndTrashKeepArchiveState"
+            "suite": "DraftMetadataContractTests",
+            "test": "draftIsTrashedPersistsAndRestoresWithoutLosingContentOrFlag"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "isTrashed: boolean"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "A new Draft is not trashed.",
+          "result": "Trash hides from Inbox; restoring keeps text, flag and original Inbox location.",
+          "errors": "Valid Boolean assignments have no documented error. Storage errors belong to update.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.isTrashed"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftIsTrashedPersistsAndRestoresWithoutLosingContentOrFlag"
+              },
+              "assertion": "Trash hides from Inbox; restoring keeps text, flag and original Inbox location."
+            },
+            "defaults": {
+              "assertion": "A new Draft is not trashed.",
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftIsTrashedPersistsAndRestoresWithoutLosingContentOrFlag"
+              }
+            },
+            "errors": {
+              "notApplicable": "Valid Boolean assignments have no documented error. Storage errors belong to update."
+            }
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This member contract reads or changes a Draft value or library record. Its exact automatic test checks that behavior. Native rendering, editor Undo, and URL opening are accepted under their separate effect-owning member contracts."
           }
         },
         {
@@ -808,26 +1077,47 @@
             "permalink: string"
           ],
           "contract": "URL which can be used to open the draft. URLs are cross-platform, but specific to an individual user's drafts datastore.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "draftConveniencesMetadataAndTemplateContracts"
+            "suite": "DraftMetadataContractTests",
+            "test": "draftPermalinkUsesStableDraftlyIdentityAndIsReadOnly"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "permalink: string"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
+          "defaults": "Link derives from identity, without optional arguments.",
+          "result": "Link is draftly://open?uuid plus stable identity and cannot be replaced.",
+          "errors": "Read-only assignment behavior is asserted. Opening the URL is a separate native acceptance case.",
           "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
+            "Open the generated draftly:// permalink in the isolated native app. Verify the same saved UUID and contents. The string-only test does not complete URL opening acceptance."
           ],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
           "compatibilityStatus": "partial",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.permalink"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftPermalinkUsesStableDraftlyIdentityAndIsReadOnly"
+              },
+              "assertion": "Link is draftly://open?uuid plus stable identity and cannot be replaced."
+            },
+            "defaults": {
+              "notApplicable": "Link derives from identity, without optional arguments."
+            },
+            "errors": {
+              "assertion": "Read-only assignment behavior is asserted. Opening the URL is a separate native acceptance case.",
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftPermalinkUsesStableDraftlyIdentityAndIsReadOnly"
+              }
+            }
+          },
+          "nativeVerification": {
+            "status": "pending",
+            "reason": "Open the generated draftly:// permalink in the isolated native app. Verify the same saved UUID and contents. The string-only test does not complete URL opening acceptance."
           }
         },
         {
@@ -936,26 +1226,50 @@
             "title: string"
           ],
           "contract": "The first line.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "draftConveniencesMetadataAndTemplateContracts"
+            "suite": "DraftMetadataContractTests",
+            "test": "draftTitleReturnsTheReadOnlyFirstLineAcrossLineEndings"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "title: string"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "Empty content produces empty raw title.",
+          "result": "Title is the raw first logical line, including empty first line and Markdown characters. Assignment does not change title or source.",
+          "errors": "Read-only assignment behavior is asserted; no storage operation occurs.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.title"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftTitleReturnsTheReadOnlyFirstLineAcrossLineEndings"
+              },
+              "assertion": "Title is the raw first logical line, including empty first line and Markdown characters. Assignment does not change title or source."
+            },
+            "defaults": {
+              "assertion": "Empty content produces empty raw title.",
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftTitleReturnsTheReadOnlyFirstLineAcrossLineEndings"
+              }
+            },
+            "errors": {
+              "assertion": "Read-only assignment behavior is asserted; no storage operation occurs.",
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftTitleReturnsTheReadOnlyFirstLineAcrossLineEndings"
+              }
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-19",
+            "evidence": "docs/research/screenshots/delivery-one-2026-10-19/core-next-passed.txt; core-next-final.txt. The original action checks CRLF title, strict UUID assignment, and lowercase identity."
           }
         },
         {
@@ -1000,26 +1314,46 @@
             "uuid: string"
           ],
           "contract": "Unique identifier.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "draftConveniencesMetadataAndTemplateContracts"
+            "suite": "DraftMetadataContractTests",
+            "test": "draftUUIDIsUniqueStableAndReadOnly"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "uuid: string"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "Identity has no optional arguments or default value; construction always supplies a new UUID.",
+          "result": "Identity is a valid unique UUID string, survives update, resolves to the cached Draft, and cannot be replaced.",
+          "errors": "Read-only assignment behavior is asserted. Invalid manually assigned identities must not overwrite this property.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.uuid"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftUUIDIsUniqueStableAndReadOnly"
+              },
+              "assertion": "Identity is a valid unique UUID string, survives update, resolves to the cached Draft, and cannot be replaced."
+            },
+            "defaults": {
+              "notApplicable": "Identity has no optional arguments or default value; construction always supplies a new UUID."
+            },
+            "errors": {
+              "assertion": "Read-only assignment behavior is asserted. Invalid manually assigned identities must not overwrite this property.",
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftUUIDIsUniqueStableAndReadOnly"
+              }
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-19",
+            "evidence": "docs/research/screenshots/delivery-one-2026-10-19/core-next-passed.txt; core-next-final.txt. The original action checks CRLF title, strict UUID assignment, and lowercase identity."
           }
         },
         {
@@ -1289,26 +1623,45 @@
             "toJSON(): object"
           ],
           "contract": "Provide standard object representation of draft, compatible with JSON.stringify.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "draftConveniencesMetadataAndTemplateContracts"
+            "suite": "DraftMetadataContractTests",
+            "test": "draftToJSONReturnsAStandardSerializableObject"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "toJSON(): object"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "Default Markdown syntax and false trash state appear in the representation.",
+          "result": "A plain object exposes identity, content, tags, state, syntax, dates and coordinates; JSON.stringify preserves Unicode and converts dates to ISO strings.",
+          "errors": "Valid typed values serialize without host or storage calls; the reference defines no invalid-value case.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.toJSON"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftToJSONReturnsAStandardSerializableObject"
+              },
+              "assertion": "A plain object exposes identity, content, tags, state, syntax, dates and coordinates; JSON.stringify preserves Unicode and converts dates to ISO strings."
+            },
+            "defaults": {
+              "assertion": "Default Markdown syntax and false trash state appear in the representation.",
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftToJSONReturnsAStandardSerializableObject"
+              }
+            },
+            "errors": {
+              "notApplicable": "Valid typed values serialize without host or storage calls; the reference defines no invalid-value case."
+            }
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This member contract reads or changes a Draft value or library record. Its exact automatic test checks that behavior. Native rendering, editor Undo, and URL opening are accepted under their separate effect-owning member contracts."
           }
         },
         {
@@ -1321,26 +1674,47 @@
             "update(): void"
           ],
           "contract": "Save changes made to the draft to the database. update() must be called to save changes made to a draft.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "draftConveniencesMetadataAndTemplateContracts"
+            "suite": "DraftMetadataContractTests",
+            "test": "draftUpdateReturnsVoidAndSynchronizesStoredEditorAndCachedValues"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "update(): void"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
+          "defaults": "The method has no arguments. Pending changes are not persisted until update.",
+          "result": "Update returns undefined, persists changed content, tags and flag, and synchronizes editor and cached query/find references.",
+          "errors": "A storage failure produces the exact Error: Metadata storage failure result, preserves stored notes, revisions and editor content, and does not execute the later statement.",
           "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
+            "Verify the immediate native editor update and selection/Undo coherence in a reproducible live action. The automatic test proves stored and editor-model values; the UI acceptance remains separate."
           ],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
           "compatibilityStatus": "partial",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.update"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftUpdateReturnsVoidAndSynchronizesStoredEditorAndCachedValues"
+              },
+              "assertion": "Update returns undefined, persists changed content, tags and flag, and synchronizes editor and cached query/find references."
+            },
+            "defaults": {
+              "notApplicable": "The method has no arguments. Pending changes are not persisted until update."
+            },
+            "errors": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftUpdateStorageFailureThrowsAndPreservesStoredEditorAndVersions"
+              },
+              "assertion": "A storage failure produces the exact Error: Metadata storage failure result, preserves stored notes, revisions and editor content, and does not execute the later statement."
+            }
+          },
+          "nativeVerification": {
+            "status": "pending",
+            "reason": "Verify the immediate native editor update and selection/Undo coherence in a reproducible live action. The automatic test proves stored and editor-model values; the UI acceptance remains separate."
           }
         },
         {
@@ -1353,26 +1727,45 @@
             "create(): Draft"
           ],
           "contract": "Create a new draft object. This is an in-memory object only, unless \"update()\" is called to save the draft.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "draftConveniencesMetadataAndTemplateContracts"
+            "suite": "DraftMetadataContractTests",
+            "test": "draftCreateReturnsIndependentUnsavedDrafts"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "create(): Draft"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "Factory has no documented arguments. Empty content, Inbox, and unflagged state are asserted.",
+          "result": "Factory returns Draft objects with unique identities, default state, and no stored record until update.",
+          "errors": "Factory has no persistence operation. Typed creation has no documented error case.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.create"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftCreateReturnsIndependentUnsavedDrafts"
+              },
+              "assertion": "Factory returns Draft objects with unique identities, default state, and no stored record until update."
+            },
+            "defaults": {
+              "assertion": "Factory has no documented arguments. Empty content, Inbox, and unflagged state are asserted.",
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftCreateReturnsIndependentUnsavedDrafts"
+              }
+            },
+            "errors": {
+              "notApplicable": "Factory has no persistence operation. Typed creation has no documented error case."
+            }
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This member contract reads or changes a Draft value or library record. Its exact automatic test checks that behavior. Native rendering, editor Undo, and URL opening are accepted under their separate effect-owning member contracts."
           }
         },
         {
@@ -1385,26 +1778,42 @@
             "find(uuid: string): Draft"
           ],
           "contract": "Find an existing draft based on UUID.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "queryUsesOmittedTagsAscendingOrderAndStableDraftIdentity"
+            "suite": "DraftMetadataContractTests",
+            "test": "draftFindReturnsMissingValuesAndReusesSavedIdentity"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "find(uuid: string): Draft"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "UUID is a required argument with no documented default.",
+          "result": "Missing stored identity returns undefined; repeated lookup shares identity and retains unsaved changes.",
+          "errors": "The reference defines no error case. A separate canonical-UUID test checks uppercase/lowercase forms of the same valid UUID.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.find"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftFindReturnsMissingValuesAndReusesSavedIdentity"
+              },
+              "assertion": "Missing stored identity returns undefined; repeated lookup shares identity and retains unsaved changes."
+            },
+            "defaults": {
+              "notApplicable": "UUID is a required argument with no documented default."
+            },
+            "errors": {
+              "notApplicable": "The reference defines no error case. A separate canonical-UUID test checks uppercase/lowercase forms of the same valid UUID."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-19",
+            "evidence": "docs/research/screenshots/delivery-one-2026-10-19/core-next-passed.txt; core-next-final.txt. The original action checks CRLF title, strict UUID assignment, and lowercase identity."
           }
         },
         {
@@ -1417,27 +1826,45 @@
             "flagged(flagType?: string): Draft[]"
           ],
           "contract": "Perform a search for drafts and return an array of matching draft objects.",
-          "implementation": "partial-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "grayFlagAndTrashKeepArchiveState"
+            "suite": "DraftMetadataContractTests",
+            "test": "draftFlaggedOmitsUnflaggedAndTrashedDraftsAndFiltersNamedColors"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "flagged(flagType?: string): Draft[]"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "Color labels now match the existing Draftly UI. This corrects the earlier scripting color-label mismatch.",
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "An omitted flag type includes every eligible flagged color.",
+          "result": "The default query includes flagged Inbox and Archive notes, omits unflagged and trashed notes, filters named colors and shares cached identity. Empty eligibility and absent colors both return empty arrays.",
+          "errors": "The reference defines no invalid-color error behavior. Known string color names are covered.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.flagged"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftFlaggedOmitsUnflaggedAndTrashedDraftsAndFiltersNamedColors"
+              },
+              "assertion": "The default query includes flagged Inbox and Archive notes, omits unflagged and trashed notes, filters named colors and shares cached identity. Empty eligibility and absent colors both return empty arrays."
+            },
+            "defaults": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftFlaggedOmitsUnflaggedAndTrashedDraftsAndFiltersNamedColors"
+              },
+              "assertion": "An omitted flag type includes every eligible flagged color."
+            },
+            "errors": {
+              "notApplicable": "The reference defines no invalid-color error behavior. Known string color names are covered."
+            }
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This member contract reads or changes a Draft value or library record. Its exact automatic test checks that behavior. Native rendering, editor Undo, and URL opening are accepted under their separate effect-owning member contracts."
           }
         },
         {
@@ -1450,21 +1877,19 @@
             "query( queryString: string, filter: \"inbox\" | \"flagged\" | \"archive\" | \"trash\" | \"all\", tags: string[], omitTags: string[], sort: sortBy, sortDescending?: boolean, sortFlaggedToTop?: boolean,): Draft[]"
           ],
           "contract": "Perform a search for drafts and return an array of matching draft objects.",
-          "implementation": "partial-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "queryUsesOmittedTagsAscendingOrderAndStableDraftIdentity"
+            "suite": "DraftMetadataContractTests",
+            "test": "draftQuerySelectsEveryDocumentedFolderAndExcludesTrashFromAll"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "query( queryString: string, filter: \"inbox\" | \"flagged\" | \"archive\" | \"trash\" | \"all\", tags: string[], omitTags: string[], sort: sortBy, sortDescending?: boolean, sortFlaggedToTop?: boolean,): Draft[]"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
+          "defaults": "Omitting sortDescending produces ascending title order. Omitting sortFlaggedToTop retains normal descending order with the flagged item after an unflagged item; setting true moves the flagged item first.",
+          "result": "Each documented folder returns the exact intended UUID set of Draft values. Inbox and Archive omit Trash; Flagged includes eligible flags in both locations; All excludes Trash. A no-match query returns an empty array in every folder.",
+          "errors": "Unknown folder, unknown sort, and an invalid regular expression throw without changing source editor text.",
           "limitations": [
-            "Regular-expression search uses Foundation regular expressions.",
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
+            "The archived Draft page references the sortBy type alias and the filtering User Guide. The dated archive does not include those dependency pages. Capture and review them separately without silently replacing the frozen 19 October reference.",
+            "TagRules.matches also accepts slash descendants of a parent filter. The frozen Draft.query parameter prose does not define that hierarchy boundary. Verify it against the filtering guide or installed Drafts before treating that behavior as parity."
           ],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
           "compatibilityStatus": "partial",
@@ -1486,7 +1911,72 @@
               }
             ],
             "nativeVerification": "QA library: Accessed sort opens a selected draft and moves it to the top. Personal library unchanged."
-          }
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftQuerySelectsEveryDocumentedFolderAndExcludesTrashFromAll"
+              },
+              "assertion": "Each documented folder returns the exact intended UUID set of Draft values. Inbox and Archive omit Trash; Flagged includes eligible flags in both locations; All excludes Trash. A no-match query returns an empty array in every folder."
+            },
+            "defaults": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftQueryDefaultsOrderingFiltersAndErrorsHaveSpecificCoverage"
+              },
+              "assertion": "Omitting sortDescending produces ascending title order. Omitting sortFlaggedToTop retains normal descending order with the flagged item after an unflagged item; setting true moves the flagged item first."
+            },
+            "errors": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftQueryDefaultsOrderingFiltersAndErrorsHaveSpecificCoverage"
+              },
+              "assertion": "Unknown folder, unknown sort, and an invalid regular expression throw without changing source editor text."
+            }
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "Draft.query returns model values and has no native UI operation. Exact bridge tests verify results and no access side effects. Query-versus-visible-list acceptance belongs to Workspace application."
+          },
+          "additionalContractTests": [
+            {
+              "suite": "DraftMetadataContractTests",
+              "test": "draftQueryDefaultsOrderingFiltersAndErrorsHaveSpecificCoverage"
+            },
+            {
+              "suite": "DraftMetadataContractTests",
+              "test": "draftQueriesKeepPendingCachedValuesThroughUpdateAndEditorLoad"
+            },
+            {
+              "suite": "DraftMetadataContractTests",
+              "test": "draftQueryRequiresEveryIncludedTagAndOmitsAnyExcludedTag"
+            },
+            {
+              "suite": "DraftMetadataContractTests",
+              "test": "draftQueryTagNamesNormalizeUnicodeAndKeepExactNameBoundaries"
+            },
+            {
+              "suite": "DraftMetadataContractTests",
+              "test": "draftQuerySortsCreatedAndModifiedDatesInBothDirections"
+            },
+            {
+              "suite": "DraftMetadataContractTests",
+              "test": "draftQuerySortsUnknownAccessDatesLastAndUsesStableUUIDTies"
+            },
+            {
+              "suite": "DraftMetadataContractTests",
+              "test": "draftQueryFlaggedFirstKeepsTheSelectedDateAndNameOrder"
+            },
+            {
+              "suite": "DraftMetadataContractTests",
+              "test": "draftQueryStructuredSearchUsesTheSameDocumentedInputArguments"
+            },
+            {
+              "suite": "DraftMetadataContractTests",
+              "test": "draftQueryDoesNotChangeStoredTextDatesAccessOrVersions"
+            }
+          ]
         },
         {
           "member": "queryByTitle",
@@ -1498,26 +1988,45 @@
             "queryByTitle(title: string): Draft[]"
           ],
           "contract": "Search for drafts containing the title string in the first line of their content. This mimics the logic used by the /open?title=Title URL scheme to locate drafts by title when triggering embedded cross-links.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "queryUsesOmittedTagsAscendingOrderAndStableDraftIdentity"
+            "suite": "DraftMetadataContractTests",
+            "test": "draftQueryByTitleMatchesOnlyTheFirstLineAndKeepsIdentity"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "queryByTitle(title: string): Draft[]"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "The title string is required. Empty-string behavior is explicitly asserted.",
+          "result": "Case-insensitive Unicode title search excludes body-only matches, shares cached identity, returns no matches for an absent title, and matches all eligible first lines for an empty string.",
+          "errors": "The reference defines no error for a valid string. No-match is a valid empty array, not an error.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.queryByTitle"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftQueryByTitleMatchesOnlyTheFirstLineAndKeepsIdentity"
+              },
+              "assertion": "Case-insensitive Unicode title search excludes body-only matches, shares cached identity, returns no matches for an absent title, and matches all eligible first lines for an empty string."
+            },
+            "defaults": {
+              "test": {
+                "suite": "DraftMetadataContractTests",
+                "test": "draftQueryByTitleMatchesOnlyTheFirstLineAndKeepsIdentity"
+              },
+              "assertion": "The title string is required. Empty-string behavior is explicitly asserted."
+            },
+            "errors": {
+              "notApplicable": "The reference defines no error for a valid string. No-match is a valid empty array, not an error."
+            }
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This member contract reads or changes a Draft value or library record. Its exact automatic test checks that behavior. Native rendering, editor Undo, and URL opening are accepted under their separate effect-owning member contracts."
           }
         },
         {
@@ -1533,7 +2042,7 @@
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
             "suite": "ActionAPITests",
-            "test": "draftConveniencesMetadataAndTemplateContracts"
+            "test": "draftTagsPersistNormalizedValuesWithoutImplicitSaving"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
@@ -1543,13 +2052,17 @@
           ],
           "errors": "Host and storage errors throw JavaScript errors.",
           "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
+            "The archived property is readonly. Draftly still accepts direct replacement to preserve existing scripts. The current setter is not accepted as reference parity."
           ],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
           "compatibilityStatus": "partial",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.tags"
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "The remaining difference is the JavaScript property descriptor. The native tag values have separate persistence evidence."
           }
         },
         {
@@ -1562,26 +2075,41 @@
             "addTag(tag: string): void"
           ],
           "contract": "Assign a tag",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
             "suite": "ActionAPITests",
-            "test": "draftConveniencesMetadataAndTemplateContracts"
+            "test": "draftAddTagNormalizesUnicodeAndAvoidsDuplicates"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "addTag(tag: string): void"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "The tag argument is required. There are no optional arguments or documented default values. Empty and whitespace-only strings are covered as explicit Draftly behavior.",
+          "result": "Assigns Unicode and hierarchical tags; returns undefined; normalizes NFC, whitespace and case; does not add duplicates or empty tags.",
+          "errors": "The archived typed member declares no error result for valid inputs.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.addTag"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "draftAddTagNormalizesUnicodeAndAvoidsDuplicates"
+              },
+              "assertion": "Assigns Unicode and hierarchical tags; returns undefined; normalizes NFC, whitespace and case; does not add duplicates or empty tags."
+            },
+            "defaults": {
+              "notApplicable": "The tag argument is required. There are no optional arguments or documented default values. Empty and whitespace-only strings are covered as explicit Draftly behavior."
+            },
+            "errors": {
+              "notApplicable": "The typed method changes local state only. It performs no storage or host operation and the reference declares no error case."
+            }
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This is an in-memory value contract. Dedicated tests cover its result; native persistence is checked separately."
           }
         },
         {
@@ -1594,26 +2122,41 @@
             "hasTag(tag: string): boolean"
           ],
           "contract": "Check whether a tag is currently assigned to the draft.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
             "suite": "ActionAPITests",
-            "test": "draftConveniencesMetadataAndTemplateContracts"
+            "test": "draftHasTagUsesNormalizedExactNames"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "hasTag(tag: string): boolean"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "The tag argument is required. There are no optional arguments or documented default values.",
+          "result": "Returns boolean false for empty/absent tags and parent names; returns true for an exact hierarchical tag or a normalized Unicode name.",
+          "errors": "The archived typed member declares no error result for valid inputs.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.hasTag"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "draftHasTagUsesNormalizedExactNames"
+              },
+              "assertion": "Returns boolean false for empty/absent tags and parent names; returns true for an exact hierarchical tag or a normalized Unicode name."
+            },
+            "defaults": {
+              "notApplicable": "The tag argument is required. There are no optional arguments or documented default values."
+            },
+            "errors": {
+              "notApplicable": "The typed method reads local state only. It performs no storage or host operation and the reference declares no error case."
+            }
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This is an in-memory value contract. Dedicated tests cover its result; native persistence is checked separately."
           }
         },
         {
@@ -1626,26 +2169,41 @@
             "removeTag(tag: string): void"
           ],
           "contract": "Remove a tag if it is assigned to the draft.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
             "suite": "ActionAPITests",
-            "test": "draftConveniencesMetadataAndTemplateContracts"
+            "test": "draftRemoveTagRemovesOnlyNormalizedMatchesAndReturnsVoid"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "removeTag(tag: string): void"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "The tag argument is required. There are no optional arguments or documented default values. The absent-tag no-op is tested.",
+          "result": "Returns undefined; removes matching Unicode/case variants; preserves other tags; removing an absent tag is a no-op.",
+          "errors": "The archived typed member declares no error result for valid inputs.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.removeTag"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "draftRemoveTagRemovesOnlyNormalizedMatchesAndReturnsVoid"
+              },
+              "assertion": "Returns undefined; removes matching Unicode/case variants; preserves other tags; removing an absent tag is a no-op."
+            },
+            "defaults": {
+              "notApplicable": "The tag argument is required. There are no optional arguments or documented default values. The absent-tag no-op is tested."
+            },
+            "errors": {
+              "notApplicable": "The typed method changes local state only. It performs no storage or host operation and the reference declares no error case."
+            }
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This is an in-memory value contract. Dedicated tests cover its result; native persistence is checked separately."
           }
         },
         {
@@ -2024,6 +2582,15 @@
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.processTemplate"
+          },
+          "markdownPreferenceEvidence": {
+            "tests": [
+              "ActionTests.templateMarkdownPreferencesReachActionStepsAndScripting",
+              "MarkdownPreferencesTests.configuredTemplatesUsePreferencesForDirectAndIncludedMarkdown"
+            ],
+            "scope": "Configured processor and options reach percent delimiters in Actions and scripting. Includes Unicode, included templates, escaped delimiters, and source preservation.",
+            "native": "pending",
+            "log": "/tmp/draftly-template-preferences-all-tests.log"
           }
         },
         {
@@ -2068,27 +2635,52 @@
             "versions: Version[]"
           ],
           "contract": "Array of versions representing the entire saved version history for this draft.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "draftConveniencesMetadataAndTemplateContracts"
+            "suite": "DraftVersionContractTests",
+            "test": "draftVersionsReturnsAllOwnVersionsNewestFirstAndCannotBeAssigned"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "versions: Version[]"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
-          "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "defaults": "No caller arguments. A draft with no saved versions returns an empty array.",
+          "result": "Returns all saved versions for this draft, newest first. Each entry is a Version. The property cannot be assigned. Editing the returned array does not change storage.",
+          "errors": "No error result is documented. This property reads the loaded revision collection and does not start a separate storage write.",
+          "limitations": [],
+          "evidenceLevel": "Member-specific bridge and storage assertions. This is not acceptance of the native history interface.",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.versions"
-          }
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "DraftVersionContractTests",
+                "test": "draftVersionsReturnsAllOwnVersionsNewestFirstAndCannotBeAssigned"
+              },
+              "assertion": "Returns all saved versions for this draft, newest first. Each entry is a Version. The property cannot be assigned. Editing the returned array does not change storage."
+            },
+            "defaults": {
+              "test": {
+                "suite": "DraftVersionContractTests",
+                "test": "draftSaveVersionReturnsVoidAndSnapshotsPendingContentWithoutUpdatingDraft"
+              },
+              "assertion": "Initial history is an empty array."
+            },
+            "errors": {
+              "notApplicable": "No error return is documented for reading the loaded version collection."
+            }
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This member only reads or writes stored revision values through the JavaScript bridge. Isolated SQLite reopen and backup restoration test persistence. Native history-window acceptance remains separate and pending."
+          },
+          "additionalAutomatedTests": [
+            {
+              "suite": "DraftVersionContractTests",
+              "test": "draftSaveVersionPersistsSnapshotsAndRollsBackFailedSaveAcrossReopen"
+            }
+          ]
         },
         {
           "member": "saveVersion",
@@ -2100,27 +2692,56 @@
             "saveVersion(): void"
           ],
           "contract": "Create a version in the version history representing the current state of the draft.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "draftConveniencesMetadataAndTemplateContracts"
+            "suite": "DraftVersionContractTests",
+            "test": "draftSaveVersionReturnsVoidAndSnapshotsPendingContentWithoutUpdatingDraft"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "saveVersion(): void"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
-          "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "defaults": "No optional input arguments. Each save creates a new identity and timestamp, including empty content.",
+          "result": "Returns undefined. Saves the current local content as an immutable version without updating the draft, editor text, dates, or selection.",
+          "errors": "Storage failures throw a JavaScript error, stop later statements, and roll back the revision. A later unrelated commit and SQLite reopen do not restore the failed version.",
+          "limitations": [],
+          "evidenceLevel": "Member-specific bridge and storage assertions. This is not acceptance of the native history interface.",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Draft.saveVersion"
-          }
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "DraftVersionContractTests",
+                "test": "draftSaveVersionReturnsVoidAndSnapshotsPendingContentWithoutUpdatingDraft"
+              },
+              "assertion": "Returns undefined. Saves the current local content as an immutable version without updating the draft, editor text, dates, or selection."
+            },
+            "defaults": {
+              "test": {
+                "suite": "DraftVersionContractTests",
+                "test": "draftSaveVersionAcceptsEmptyContentAndCreatesIndependentVersionsEveryTime"
+              },
+              "assertion": "Empty content produces distinct saved versions with new dates."
+            },
+            "errors": {
+              "test": {
+                "suite": "DraftVersionContractTests",
+                "test": "draftSaveVersionFailureThrowsStopsTheScriptAndDoesNotLeakOnLaterCommit"
+              },
+              "assertion": "Storage failures throw a JavaScript error, stop later statements, and roll back the revision. A later unrelated commit and SQLite reopen do not restore the failed version."
+            }
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This member only reads or writes stored revision values through the JavaScript bridge. Isolated SQLite reopen and backup restoration test persistence. Native history-window acceptance remains separate and pending."
+          },
+          "additionalAutomatedTests": [
+            {
+              "suite": "DraftVersionContractTests",
+              "test": "draftSaveVersionPersistsSnapshotsAndRollsBackFailedSaveAcrossReopen"
+            }
+          ]
         }
       ]
     },
@@ -2529,26 +3150,60 @@
             "new(): void"
           ],
           "contract": "Creates a new blank draft and loads it into the editor.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
             "suite": "ActionAPITests",
-            "test": "draftConveniencesMetadataAndTemplateContracts"
+            "test": "editorNewReturnsVoidAndPreservesThePreviousDraft"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "new(): void"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "The method has no optional input arguments.",
+          "result": "Returns undefined, saves previous text/selection, opens a new empty Inbox draft and synchronizes the native undo state.",
+          "errors": "The archived typed member declares no error result for valid inputs.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Editor.new"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "editorNewReturnsVoidAndPreservesThePreviousDraft"
+              },
+              "assertion": "Returns undefined, saves previous text/selection, opens a new empty Inbox draft and synchronizes the native undo state."
+            },
+            "defaults": {
+              "notApplicable": "The method has no optional input arguments."
+            },
+            "errors": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "editorNewSaveFailureKeepsTheCurrentDraftAndPendingText"
+              },
+              "assertion": "A failed prior save retains current identity and pending text; no new draft is created."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-19",
+            "evidence": "docs/research/screenshots/delivery-one-2026-10-19/core-replay-passed.txt; core-replay-final.txt; last-action.txt; normal-search.txt; match-search.txt; preview-comparison.json. The isolated action passed, and presentation checks preserved the editor."
+          },
+          "pendingSaveEvidence": {
+            "test": {
+              "suite": "EditorPersistenceContractTests",
+              "test": "newSavesPendingPreviousTextAndSelectionBeforeLoadingTheBlankDraft"
+            },
+            "assertion": "The host observes previous pending content and selection saved before the new blank note is loaded."
+          },
+          "nativeUndoEvidence": {
+            "test": {
+              "suite": "ScriptEditorUndoTests",
+              "test": "newDraftEditsUndoWithinTheSameActionWithoutRestoringPreviousText"
+            },
+            "assertion": "Undo after new and edit restores empty new text, not the previous draft."
           }
         },
         {
@@ -2657,26 +3312,53 @@
             "save(): void"
           ],
           "contract": "Save any current changes to the draft.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
             "suite": "ActionAPITests",
-            "test": "draftConveniencesMetadataAndTemplateContracts"
+            "test": "editorSaveReturnsVoidAndPreservesPendingTextOnFailure"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "save(): void"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "The method has no optional input arguments.",
+          "result": "Returns undefined after saving pending text and selection; a failure preserves unsaved text and stops later statements.",
+          "errors": "The archived typed member declares no error result for valid inputs.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Editor.save"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "editorSaveReturnsVoidAndPreservesPendingTextOnFailure"
+              },
+              "assertion": "Returns undefined after saving pending text and selection; a failure preserves unsaved text and stops later statements."
+            },
+            "defaults": {
+              "notApplicable": "The method has no optional input arguments."
+            },
+            "errors": {
+              "test": {
+                "suite": "EditorPersistenceContractTests",
+                "test": "saveStorageFailureKeepsStoredContentAndThePendingSelection"
+              },
+              "assertion": "Stored content remains unchanged; pending content and selection survive the error."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-19",
+            "evidence": "docs/research/screenshots/delivery-one-2026-10-19/core-replay-passed.txt; core-replay-final.txt; last-action.txt; normal-search.txt; match-search.txt; preview-comparison.json. The isolated action passed, and presentation checks preserved the editor."
+          },
+          "pendingSaveEvidence": {
+            "test": {
+              "suite": "EditorPersistenceContractTests",
+              "test": "savePersistsPendingTextAndSelectionBeforeTheActionFinishes"
+            },
+            "assertion": "The host observes the saved Note and selection before the runner final flush."
           }
         },
         {
@@ -3316,26 +3998,42 @@
             "getText(): string"
           ],
           "contract": "Get the full text currently loaded in the editor.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
             "suite": "ActionAPITests",
-            "test": "editorMutationsKeepCachedDraftAndUnicodeRangesCoherent"
+            "test": "editorGetTextReturnsCurrentUnicodeContentIncludingEmptyText"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "getText(): string"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "The method has no optional input arguments.",
+          "result": "Returns exact current Unicode and CRLF text, including an empty string.",
+          "errors": "The archived typed member declares no error result for valid inputs.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Editor.getText"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "editorGetTextReturnsCurrentUnicodeContentIncludingEmptyText"
+              },
+              "assertion": "Returns exact current Unicode and CRLF text, including an empty string."
+            },
+            "defaults": {
+              "notApplicable": "The method has no optional input arguments."
+            },
+            "errors": {
+              "notApplicable": "No member-specific error branch is documented for valid typed values. Storage errors belong to explicit persistence operations."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-19",
+            "evidence": "docs/research/screenshots/delivery-one-2026-10-19/core-replay-passed.txt; core-replay-final.txt; last-action.txt; normal-search.txt; match-search.txt; preview-comparison.json. The isolated action passed, and presentation checks preserved the editor."
           }
         },
         {
@@ -3348,26 +4046,46 @@
             "getTextInRange(location: number, length: number): string"
           ],
           "contract": "Get the substring in a range from the text in the editor.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
             "suite": "ActionAPITests",
-            "test": "editorMutationsKeepCachedDraftAndUnicodeRangesCoherent"
+            "test": "editorGetTextInRangeReturnsExactUTF16SubstringsWithoutChangingSelection"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "getTextInRange(location: number, length: number): string"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "The method has no optional input arguments.",
+          "result": "Returns the exact UTF-16 substring and preserves selection; an empty end range returns an empty string.",
+          "errors": "Invalid UTF-16 ranges throw RangeError without changing text or selection.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Editor.getTextInRange"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "editorGetTextInRangeReturnsExactUTF16SubstringsWithoutChangingSelection"
+              },
+              "assertion": "Returns the exact UTF-16 substring and preserves selection; an empty end range returns an empty string."
+            },
+            "defaults": {
+              "notApplicable": "The method has no optional input arguments."
+            },
+            "errors": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "editorGetTextInRangeReturnsExactUTF16SubstringsWithoutChangingSelection"
+              },
+              "assertion": "Invalid UTF-16 ranges throw RangeError without changing text or selection."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-19",
+            "evidence": "docs/research/screenshots/delivery-one-2026-10-19/core-replay-passed.txt; core-replay-final.txt; last-action.txt; normal-search.txt; match-search.txt; preview-comparison.json. The isolated action passed, and presentation checks preserved the editor."
           }
         },
         {
@@ -3474,26 +4192,46 @@
             "setSelectedRange(location: number, length: number): void"
           ],
           "contract": "Update the text selection in the editor by passing the start location and the length of the new selection.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
             "suite": "ActionAPITests",
-            "test": "editorMutationsKeepCachedDraftAndUnicodeRangesCoherent"
+            "test": "editorSetSelectedRangeReturnsVoidAndRejectsInvalidUTF16Ranges"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "setSelectedRange(location: number, length: number): void"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "The method has no optional input arguments.",
+          "result": "Returns undefined, sets the UTF-16 selection, and preserves it on invalid input.",
+          "errors": "Invalid UTF-16 ranges throw RangeError without changing text or selection.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Editor.setSelectedRange"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "editorSetSelectedRangeReturnsVoidAndRejectsInvalidUTF16Ranges"
+              },
+              "assertion": "Returns undefined, sets the UTF-16 selection, and preserves it on invalid input."
+            },
+            "defaults": {
+              "notApplicable": "The method has no optional input arguments."
+            },
+            "errors": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "editorSetSelectedRangeReturnsVoidAndRejectsInvalidUTF16Ranges"
+              },
+              "assertion": "Invalid UTF-16 ranges throw RangeError without changing text or selection."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-19",
+            "evidence": "docs/research/screenshots/delivery-one-2026-10-19/core-replay-passed.txt; core-replay-final.txt; last-action.txt; normal-search.txt; match-search.txt; preview-comparison.json. The isolated action passed, and presentation checks preserved the editor."
           }
         },
         {
@@ -3506,26 +4244,53 @@
             "setSelectedText(text: string): void"
           ],
           "contract": "Replace the contents of the last text selection with a string.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
             "suite": "ActionAPITests",
-            "test": "editorMutationsKeepCachedDraftAndUnicodeRangesCoherent"
+            "test": "editorSetSelectedTextReturnsVoidAndUpdatesCachedDraftAndStorage"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "setSelectedText(text: string): void"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "The method has no optional input arguments.",
+          "result": "Returns undefined, replaces the Unicode selection, updates the cache and storage, and moves the cursor.",
+          "errors": "The archived typed member declares no error result for valid inputs. Storage errors propagate and preserve pending text.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Editor.setSelectedText"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "editorSetSelectedTextReturnsVoidAndUpdatesCachedDraftAndStorage"
+              },
+              "assertion": "Returns undefined, replaces the Unicode selection, updates the cache and storage, and moves the cursor."
+            },
+            "defaults": {
+              "notApplicable": "The method has no optional input arguments."
+            },
+            "errors": {
+              "test": {
+                "suite": "EditorPersistenceContractTests",
+                "test": "mutationStorageFailuresKeepTheStoredDraftAndPendingSelection"
+              },
+              "assertion": "A failed commit preserves the stored Note and revisions, retains pending text and selection, and stops later statements for this mutation."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-19",
+            "evidence": "docs/research/screenshots/delivery-one-2026-10-19/core-replay-passed.txt; core-replay-final.txt; last-action.txt; normal-search.txt; match-search.txt; preview-comparison.json. The isolated action passed, and presentation checks preserved the editor."
+          },
+          "storageFailureEvidence": {
+            "test": {
+              "suite": "EditorPersistenceContractTests",
+              "test": "mutationStorageFailuresKeepTheStoredDraftAndPendingSelection"
+            },
+            "assertion": "Each mutation preserves the stored Note and revisions, keeps pending text and selection, and stops later statements after a failed commit."
           }
         },
         {
@@ -3538,26 +4303,53 @@
             "setText(text: string): void"
           ],
           "contract": "Replace the contents of the editor with a string.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
             "suite": "ActionAPITests",
-            "test": "editorMutationsKeepCachedDraftAndUnicodeRangesCoherent"
+            "test": "editorSetTextReturnsVoidAndUpdatesAllCurrentReferences"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "setText(text: string): void"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "The method has no optional input arguments.",
+          "result": "Returns undefined, immediately updates cached/current content and storage, and clamps selection after shorter or empty text.",
+          "errors": "The archived typed member declares no error result for valid inputs. Storage errors propagate and preserve pending text.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Editor.setText"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "editorSetTextReturnsVoidAndUpdatesAllCurrentReferences"
+              },
+              "assertion": "Returns undefined, immediately updates cached/current content and storage, and clamps selection after shorter or empty text."
+            },
+            "defaults": {
+              "notApplicable": "The method has no optional input arguments."
+            },
+            "errors": {
+              "test": {
+                "suite": "EditorPersistenceContractTests",
+                "test": "mutationStorageFailuresKeepTheStoredDraftAndPendingSelection"
+              },
+              "assertion": "A failed commit preserves the stored Note and revisions, retains pending text and selection, and stops later statements for this mutation."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-19",
+            "evidence": "docs/research/screenshots/delivery-one-2026-10-19/core-replay-passed.txt; core-replay-final.txt; last-action.txt; normal-search.txt; match-search.txt; preview-comparison.json. The isolated action passed, and presentation checks preserved the editor."
+          },
+          "storageFailureEvidence": {
+            "test": {
+              "suite": "EditorPersistenceContractTests",
+              "test": "mutationStorageFailuresKeepTheStoredDraftAndPendingSelection"
+            },
+            "assertion": "Each mutation preserves the stored Note and revisions, keeps pending text and selection, and stops later statements after a failed commit."
           }
         },
         {
@@ -3570,26 +4362,60 @@
             "setTextInRange(location: number, length: number, text: string): void"
           ],
           "contract": "Replace the text in the passed range with new text.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
             "suite": "ActionAPITests",
-            "test": "editorMutationsKeepCachedDraftAndUnicodeRangesCoherent"
+            "test": "editorSetTextInRangeReturnsVoidAndRejectsInvalidRanges"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "setTextInRange(location: number, length: number, text: string): void"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "The method has no optional input arguments.",
+          "result": "Returns undefined, replaces the UTF-16 range, updates current references and places the cursor after inserted text.",
+          "errors": "Invalid UTF-16 ranges throw RangeError without changing text or selection. Storage errors propagate and preserve pending text.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Editor.setTextInRange"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "editorSetTextInRangeReturnsVoidAndRejectsInvalidRanges"
+              },
+              "assertion": "Returns undefined, replaces the UTF-16 range, updates current references and places the cursor after inserted text."
+            },
+            "defaults": {
+              "notApplicable": "The method has no optional input arguments."
+            },
+            "errors": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "editorSetTextInRangeReturnsVoidAndRejectsInvalidRanges"
+              },
+              "assertion": "Invalid UTF-16 ranges throw RangeError without changing text or selection."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-19",
+            "evidence": "docs/research/screenshots/delivery-one-2026-10-19/core-replay-passed.txt; core-replay-final.txt; last-action.txt; normal-search.txt; match-search.txt; preview-comparison.json. The isolated action passed, and presentation checks preserved the editor."
+          },
+          "storageFailureEvidence": {
+            "test": {
+              "suite": "EditorPersistenceContractTests",
+              "test": "mutationStorageFailuresKeepTheStoredDraftAndPendingSelection"
+            },
+            "assertion": "Each mutation preserves the stored Note and revisions, keeps pending text and selection, and stops later statements after a failed commit."
+          },
+          "nativeUndoEvidence": {
+            "test": {
+              "suite": "EditorRangeUndoContractTests",
+              "test": "setTextInRangeRestoresUnicodeTextAndSelectionWithNativeUndoAndRedo"
+            },
+            "assertion": "Native Unicode/CRLF replacement supports Undo and Redo, restores selection, and updates storage."
           }
         },
         {
@@ -3898,26 +4724,46 @@
             "archiveIncludesFlagged: boolean"
           ],
           "contract": "Should flagged drafts be included in archive.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
             "suite": "ActionAPITests",
-            "test": "workspaceDefaultsAndAllFolderSortsRoundTrip"
+            "test": "workspaceArchiveIncludesFlaggedOnlyChangesArchiveResults"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "archiveIncludesFlagged: boolean"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "The archived member does not specify a property default. Draftly default: true.",
+          "result": "A false value removes flagged drafts only from Archive; the property persists.",
+          "errors": "The archived typed member declares no error result for valid inputs.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Workspace.archiveIncludesFlagged"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "workspaceArchiveIncludesFlaggedOnlyChangesArchiveResults"
+              },
+              "assertion": "A false value removes flagged drafts only from Archive; the property persists."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "workspaceArchiveIncludesFlaggedOnlyChangesArchiveResults"
+              },
+              "assertion": "The test checks the Draftly default before changing the value."
+            },
+            "errors": {
+              "notApplicable": "No member-specific error branch is documented for valid typed values. Storage errors belong to explicit persistence operations."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-19",
+            "evidence": "docs/research/screenshots/delivery-one-2026-10-19/core-replay-passed.txt; core-replay-final.txt; last-action.txt; normal-search.txt; match-search.txt; preview-comparison.json. The isolated action passed, and presentation checks preserved the editor."
           }
         },
         {
@@ -3930,26 +4776,46 @@
             "inboxIncludesFlagged: boolean"
           ],
           "contract": "Should flagged drafts be included in inbox.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
             "suite": "ActionAPITests",
-            "test": "workspaceDefaultsAndAllFolderSortsRoundTrip"
+            "test": "workspaceInboxIncludesFlaggedOnlyChangesInboxResults"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "inboxIncludesFlagged: boolean"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "The archived member does not specify a property default. Draftly default: true.",
+          "result": "A false value removes flagged drafts only from Inbox; the property persists.",
+          "errors": "The archived typed member declares no error result for valid inputs.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Workspace.inboxIncludesFlagged"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "workspaceInboxIncludesFlaggedOnlyChangesInboxResults"
+              },
+              "assertion": "A false value removes flagged drafts only from Inbox; the property persists."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "workspaceInboxIncludesFlaggedOnlyChangesInboxResults"
+              },
+              "assertion": "The test checks the Draftly default before changing the value."
+            },
+            "errors": {
+              "notApplicable": "No member-specific error branch is documented for valid typed values. Storage errors belong to explicit persistence operations."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-19",
+            "evidence": "docs/research/screenshots/delivery-one-2026-10-19/core-replay-passed.txt; core-replay-final.txt; last-action.txt; normal-search.txt; match-search.txt; preview-comparison.json. The isolated action passed, and presentation checks preserved the editor."
           }
         },
         {
@@ -4140,26 +5006,46 @@
             "showDate: boolean"
           ],
           "contract": "Show date information in list.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "workspaceDefaultsAndAllFolderSortsRoundTrip"
+            "suite": "WindowModelTests",
+            "test": "workspaceShowDateAppliesAndSurvivesBackup"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "showDate: boolean"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "The archived property does not specify its default. Draftly uses true except showLastAction, which uses false.",
+          "result": "The property applies to the native list options and survives backup restoration without changing editor text or selection.",
+          "errors": "The archived typed member declares no error result for valid inputs.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
-            "file": "Sources/DraftlyCore/Resources/Bridge.js",
-            "symbol": "Workspace.showDate"
+            "file": "Sources/Draftly/WindowModel.swift",
+            "symbol": "applyScriptWorkspace -> listOptions.showDate"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "WindowModelTests",
+                "test": "workspaceShowDateAppliesAndSurvivesBackup"
+              },
+              "assertion": "The property applies to the native list options and survives backup restoration without changing editor text or selection."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "workspaceConstructorIsIndependentAndDoesNotPersist"
+              },
+              "assertion": "Constructor tests assert each presentation property separately before changes."
+            },
+            "errors": {
+              "notApplicable": "No member-specific error branch is documented for valid typed values. Storage errors belong to explicit persistence operations."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-19",
+            "evidence": "docs/research/screenshots/delivery-one-2026-10-19/core-replay-passed.txt; core-replay-final.txt; last-action.txt; normal-search.txt; match-search.txt; preview-comparison.json. The isolated action passed, and presentation checks preserved the editor."
           }
         },
         {
@@ -4172,26 +5058,46 @@
             "showLastAction: boolean"
           ],
           "contract": "Show last logged action for draft in list.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "workspaceDefaultsAndAllFolderSortsRoundTrip"
+            "suite": "WindowModelTests",
+            "test": "workspaceShowLastActionAppliesAndSurvivesBackup"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "showLastAction: boolean"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "The archived property does not specify its default. Draftly uses true except showLastAction, which uses false.",
+          "result": "The property applies to the native list options and survives backup restoration without changing editor text or selection.",
+          "errors": "The archived typed member declares no error result for valid inputs.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
-            "file": "Sources/DraftlyCore/Resources/Bridge.js",
-            "symbol": "Workspace.showLastAction"
+            "file": "Sources/Draftly/WindowModel.swift",
+            "symbol": "applyScriptWorkspace -> listOptions.showLastAction"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "WindowModelTests",
+                "test": "workspaceShowLastActionAppliesAndSurvivesBackup"
+              },
+              "assertion": "The property applies to the native list options and survives backup restoration without changing editor text or selection."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "workspaceConstructorIsIndependentAndDoesNotPersist"
+              },
+              "assertion": "Constructor tests assert each presentation property separately before changes."
+            },
+            "errors": {
+              "notApplicable": "No member-specific error branch is documented for valid typed values. Storage errors belong to explicit persistence operations."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-19",
+            "evidence": "docs/research/screenshots/delivery-one-2026-10-19/core-replay-passed.txt; core-replay-final.txt; last-action.txt; normal-search.txt; match-search.txt; preview-comparison.json. The isolated action passed, and presentation checks preserved the editor."
           }
         },
         {
@@ -4204,26 +5110,46 @@
             "showPreview: boolean"
           ],
           "contract": "Show preview of draft body in list.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "workspaceDefaultsAndAllFolderSortsRoundTrip"
+            "suite": "WindowModelTests",
+            "test": "workspaceShowPreviewAppliesAndSurvivesBackup"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "showPreview: boolean"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "The archived property does not specify its default. Draftly uses true except showLastAction, which uses false.",
+          "result": "The property applies to the native list options and survives backup restoration without changing editor text or selection.",
+          "errors": "The archived typed member declares no error result for valid inputs.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
-            "file": "Sources/DraftlyCore/Resources/Bridge.js",
-            "symbol": "Workspace.showPreview"
+            "file": "Sources/Draftly/WindowModel.swift",
+            "symbol": "applyScriptWorkspace -> listOptions.showPreview"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "WindowModelTests",
+                "test": "workspaceShowPreviewAppliesAndSurvivesBackup"
+              },
+              "assertion": "The property applies to the native list options and survives backup restoration without changing editor text or selection."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "workspaceConstructorIsIndependentAndDoesNotPersist"
+              },
+              "assertion": "Constructor tests assert each presentation property separately before changes."
+            },
+            "errors": {
+              "notApplicable": "No member-specific error branch is documented for valid typed values. Storage errors belong to explicit persistence operations."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-19",
+            "evidence": "docs/research/screenshots/delivery-one-2026-10-19/core-replay-passed.txt; core-replay-final.txt; last-action.txt; normal-search.txt; match-search.txt; preview-comparison.json. The isolated action passed, and presentation checks preserved the editor."
           }
         },
         {
@@ -4236,26 +5162,46 @@
             "showSearchPreview: boolean"
           ],
           "contract": "When a queryString value is set for the workspace, replace the preview text content with a summary of matches in the text.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "workspaceDefaultsAndAllFolderSortsRoundTrip"
+            "suite": "WindowModelTests",
+            "test": "workspaceShowSearchPreviewAppliesAndSurvivesBackup"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "showSearchPreview: boolean"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "The archived property does not specify its default. Draftly uses true except showLastAction, which uses false.",
+          "result": "The property applies to the native list options and survives backup restoration without changing editor text or selection.",
+          "errors": "The archived typed member declares no error result for valid inputs.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
-            "file": "Sources/DraftlyCore/Resources/Bridge.js",
-            "symbol": "Workspace.showSearchPreview"
+            "file": "Sources/Draftly/WindowModel.swift",
+            "symbol": "applyScriptWorkspace -> listOptions.previewSearchMatches"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "WindowModelTests",
+                "test": "workspaceShowSearchPreviewAppliesAndSurvivesBackup"
+              },
+              "assertion": "The property applies to the native list options and survives backup restoration without changing editor text or selection."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "workspaceConstructorIsIndependentAndDoesNotPersist"
+              },
+              "assertion": "Constructor tests assert each presentation property separately before changes."
+            },
+            "errors": {
+              "notApplicable": "No member-specific error branch is documented for valid typed values. Storage errors belong to explicit persistence operations."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-19",
+            "evidence": "docs/research/screenshots/delivery-one-2026-10-19/core-replay-passed.txt; core-replay-final.txt; last-action.txt; normal-search.txt; match-search.txt; preview-comparison.json. The isolated action passed, and presentation checks preserved the editor."
           }
         },
         {
@@ -4268,26 +5214,46 @@
             "showTags: boolean"
           ],
           "contract": "Show draft tags in list.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "workspaceDefaultsAndAllFolderSortsRoundTrip"
+            "suite": "WindowModelTests",
+            "test": "workspaceShowTagsAppliesAndSurvivesBackup"
           },
           "liveCheck": "2026-10-19: Core acceptance action applied a saved workspace; one visible row, core tag, title ascending, hidden row tags.",
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "showTags: boolean"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "The archived property does not specify its default. Draftly uses true except showLastAction, which uses false.",
+          "result": "The property applies to the native list options and survives backup restoration without changing editor text or selection.",
+          "errors": "The archived typed member declares no error result for valid inputs.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
-            "file": "Sources/DraftlyCore/Resources/Bridge.js",
-            "symbol": "Workspace.showTags"
+            "file": "Sources/Draftly/WindowModel.swift",
+            "symbol": "applyScriptWorkspace -> listOptions.showTags"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "WindowModelTests",
+                "test": "workspaceShowTagsAppliesAndSurvivesBackup"
+              },
+              "assertion": "The property applies to the native list options and survives backup restoration without changing editor text or selection."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "workspaceConstructorIsIndependentAndDoesNotPersist"
+              },
+              "assertion": "Constructor tests assert each presentation property separately before changes."
+            },
+            "errors": {
+              "notApplicable": "No member-specific error branch is documented for valid typed values. Storage errors belong to explicit persistence operations."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-19",
+            "evidence": "docs/research/screenshots/delivery-one-2026-10-19/core-replay-passed.txt; core-replay-final.txt; last-action.txt; normal-search.txt; match-search.txt; preview-comparison.json. The isolated action passed, and presentation checks preserved the editor."
           }
         },
         {
@@ -4340,26 +5306,50 @@
             "flaggedStatus: flagStatus"
           ],
           "contract": "Filter by flagged status of drafts.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
             "suite": "ActionAPITests",
-            "test": "workspaceDefaultsAndAllFolderSortsRoundTrip"
+            "test": "workspaceFlaggedStatusFiltersEveryFolderAndRejectsUnknownValues"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "flaggedStatus: flagStatus"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "The archived member does not specify a property default. Draftly default: \"any\".",
+          "result": "Any, flagged, and unflagged return matching rows and survive storage; invalid values fail.",
+          "errors": "The archived typed member declares no error result for valid inputs.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Workspace.flaggedStatus"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "workspaceFlaggedStatusFiltersEveryFolderAndRejectsUnknownValues"
+              },
+              "assertion": "Any, flagged, and unflagged return matching rows and survive storage; invalid values fail."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "workspaceFlaggedStatusFiltersEveryFolderAndRejectsUnknownValues"
+              },
+              "assertion": "The test checks the Draftly default before changing the value."
+            },
+            "errors": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "workspaceFlaggedStatusFiltersEveryFolderAndRejectsUnknownValues"
+              },
+              "assertion": "An unknown flag status throws rather than returning a misleading result."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-19",
+            "evidence": "docs/research/screenshots/delivery-one-2026-10-19/core-replay-passed.txt; core-replay-final.txt; last-action.txt; normal-search.txt; match-search.txt; preview-comparison.json. The isolated action passed, and presentation checks preserved the editor."
           }
         },
         {
@@ -4444,26 +5434,53 @@
             "tagFilter: string"
           ],
           "contract": "Comma-delimited list tag string like \"blue, !green\" using \"!\" to omit a tag.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
             "suite": "ActionAPITests",
-            "test": "workspacePersistsFiltersDatesAndFolderSorts"
+            "test": "workspaceTagFilterCombinesInclusionsAndExclusionsAndSurvivesStorage"
           },
           "liveCheck": "2026-10-19: Core acceptance action applied a saved workspace; one visible row, core tag, title ascending, hidden row tags.",
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "tagFilter: string"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "The archived member does not specify a property default. Draftly default: \"\".",
+          "result": "Comma-delimited included and excluded tags filter drafts and retain normalized values in storage.",
+          "errors": "The archived typed member declares no error result for valid inputs.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Workspace.tagFilter"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "workspaceTagFilterCombinesInclusionsAndExclusionsAndSurvivesStorage"
+              },
+              "assertion": "Comma-delimited included and excluded tags filter drafts and retain normalized values in storage."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "workspaceTagFilterCombinesInclusionsAndExclusionsAndSurvivesStorage"
+              },
+              "assertion": "The test checks the Draftly default before changing the value."
+            },
+            "errors": {
+              "notApplicable": "No member-specific error branch is documented for valid typed values. Storage errors belong to explicit persistence operations."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-19",
+            "evidence": "docs/research/screenshots/delivery-one-2026-10-19/core-replay-passed.txt; core-replay-final.txt; last-action.txt; normal-search.txt; match-search.txt; preview-comparison.json. The isolated action passed, and presentation checks preserved the editor."
+          },
+          "unicodeFilterEvidence": {
+            "test": {
+              "suite": "WorkspaceFilterContractTests",
+              "test": "tagFilterNormalizesUnicodeDuplicatesAndExclusionsForANDAndOR"
+            },
+            "assertion": "Canonical Unicode, duplicate tokens, inclusion/exclusion, and AND/OR return exact expected fixture identities."
           }
         },
         {
@@ -4476,26 +5493,53 @@
             "tagFilterRequireAll: boolean"
           ],
           "contract": "If true, all (AND) tags in the tag filter must match, if false match any of the tags (OR)",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
             "suite": "ActionAPITests",
-            "test": "workspacePersistsFiltersDatesAndFolderSorts"
+            "test": "workspaceTagFilterRequireAllChangesANDToORWithoutWeakeningExclusions"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "tagFilterRequireAll: boolean"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "The archived member does not specify a property default. Draftly default: true.",
+          "result": "True applies AND; false applies OR; exclusions still apply and the value persists.",
+          "errors": "The archived typed member declares no error result for valid inputs.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Workspace.tagFilterRequireAll"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "workspaceTagFilterRequireAllChangesANDToORWithoutWeakeningExclusions"
+              },
+              "assertion": "True applies AND; false applies OR; exclusions still apply and the value persists."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "workspaceTagFilterRequireAllChangesANDToORWithoutWeakeningExclusions"
+              },
+              "assertion": "The test checks the Draftly default before changing the value."
+            },
+            "errors": {
+              "notApplicable": "No member-specific error branch is documented for valid typed values. Storage errors belong to explicit persistence operations."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-19",
+            "evidence": "docs/research/screenshots/delivery-one-2026-10-19/core-replay-passed.txt; core-replay-final.txt; last-action.txt; normal-search.txt; match-search.txt; preview-comparison.json. The isolated action passed, and presentation checks preserved the editor."
+          },
+          "unicodeFilterEvidence": {
+            "test": {
+              "suite": "WorkspaceFilterContractTests",
+              "test": "tagFilterNormalizesUnicodeDuplicatesAndExclusionsForANDAndOR"
+            },
+            "assertion": "Canonical Unicode, duplicate tokens, inclusion/exclusion, and AND/OR return exact expected fixture identities."
           }
         },
         {
@@ -4510,8 +5554,8 @@
           "contract": "URL which can be used to install this Workspace in another installation of Drafts. Useful for sharing and backups.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "workspaceDefaultsAndAllFolderSortsRoundTrip"
+            "suite": "WorkspaceIdentityContractTests",
+            "test": "installationLinkUsesTheSharedEvaluatorAndPreservesUnknownFields"
           },
           "liveCheck": null,
           "reviewDate": "2026-10-19",
@@ -4521,13 +5565,40 @@
           ],
           "errors": "Host and storage errors throw JavaScript errors.",
           "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
+            "The URL receiver and shared validation are implemented and tested. Opening an installation link from another app and comparing installation behavior with Drafts remain unverified."
           ],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
           "compatibilityStatus": "partial",
           "implementationEvidence": {
-            "file": "Sources/DraftlyCore/Resources/Bridge.js",
-            "symbol": "Workspace.installURL"
+            "file": "Sources/DraftlyCore/WorkspaceInstallation.swift",
+            "symbol": "WorkspaceInstallation.decode -> APIValues.workspace; AppController.handle(workspace)"
+          },
+          "relatedContractTests": [
+            {
+              "test": {
+                "suite": "WorkspaceIdentityContractTests",
+                "test": "installURLContainsLosslessUnicodeConfigurationAndDoesNotMutateTheWorkspace"
+              },
+              "assertion": "Generated links preserve Unicode, dates, filters, ordering, and unknown fields without mutating the Workspace."
+            },
+            {
+              "test": {
+                "suite": "WorkspaceIdentityContractTests",
+                "test": "invalidInstallationLinksFailBeforeChangingTheLibrary"
+              },
+              "assertion": "Missing data, duplicate payloads, invalid identity, folder, and flag status fail before storing changes."
+            },
+            {
+              "test": {
+                "suite": "WorkspaceIdentityContractTests",
+                "test": "installURLPayloadDecodesAndSurvivesBackupWithItsConfiguration"
+              },
+              "assertion": "Decoded values and identity survive backup restoration."
+            }
+          ],
+          "nativeVerification": {
+            "status": "pending",
+            "reason": "The receiving endpoint was added after the native metadata/focus replay. No external URL installation acceptance is claimed."
           }
         },
         {
@@ -4623,23 +5694,19 @@
             "query(filter: \"inbox\" | \"flagged\" | \"archive\" | \"trash\" | \"all\"): Draft[]"
           ],
           "contract": "Query for a list of drafts contained in the workspace.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
             "suite": "ActionAPITests",
-            "test": "workspacePersistsFiltersDatesAndFolderSorts"
+            "test": "workspaceQueryCoversAllFoldersAndRejectsInvalidFolder"
           },
           "liveCheck": "2026-10-19: Core acceptance action applied a saved workspace; one visible row, core tag, title ascending, hidden row tags.",
           "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "query(filter: \"inbox\" | \"flagged\" | \"archive\" | \"trash\" | \"all\"): Draft[]"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
+          "defaults": "Draftly accepts omitted filter as all. The archived signature requires filter.",
+          "result": "Returns matching cached Draft objects for all five folders and applies the folder sort. Invalid folders fail.",
+          "errors": "The archived typed member declares no error result for valid inputs.",
+          "limitations": [],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Workspace.query"
@@ -4651,7 +5718,93 @@
               "test": "accessedQueriesPersistWorkspaceAndOnlyEditorLoadsRecordAccess"
             },
             "scope": "Access date filters and sort. This evidence does not close other member branches."
-          }
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "workspaceQueryCoversAllFoldersAndRejectsInvalidFolder"
+              },
+              "assertion": "Returns matching cached Draft objects for all five folders and applies the folder sort. Invalid folders fail."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "workspaceQueryCoversAllFoldersAndRejectsInvalidFolder"
+              },
+              "assertion": "The test checks the Draftly default before changing the value."
+            },
+            "errors": {
+              "test": {
+                "suite": "ActionAPITests",
+                "test": "workspaceQueryCoversAllFoldersAndRejectsInvalidFolder"
+              },
+              "assertion": "An invalid query folder throws."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-19",
+            "evidence": "docs/research/screenshots/delivery-one-2026-10-19/core-replay-passed.txt; core-replay-final.txt; last-action.txt; normal-search.txt; match-search.txt; preview-comparison.json. The isolated action passed, and presentation checks preserved the editor."
+          },
+          "relatedContractTests": [
+            {
+              "test": {
+                "suite": "WorkspaceFilterContractTests",
+                "test": "queryCreatedSortUsesExactOrderInEveryConfigurableFolder"
+              },
+              "assertion": "Exact creation-date orders in all configurable folders."
+            },
+            {
+              "test": {
+                "suite": "WorkspaceFilterContractTests",
+                "test": "queryModifiedSortUsesExactOrderInEveryConfigurableFolder"
+              },
+              "assertion": "Exact modification-date orders in all configurable folders."
+            },
+            {
+              "test": {
+                "suite": "WorkspaceFilterContractTests",
+                "test": "queryNameSortUsesExactOrderInEveryConfigurableFolder"
+              },
+              "assertion": "Exact title orders in all configurable folders."
+            },
+            {
+              "test": {
+                "suite": "WorkspaceFilterContractTests",
+                "test": "queryAccessedSortKeepsUnknownDatesLastInBothDirections"
+              },
+              "assertion": "Access order excludes invented history and keeps unknown dates last."
+            },
+            {
+              "test": {
+                "suite": "WorkspaceFilterContractTests",
+                "test": "queryFlaggedFirstPrecedesNameSortWithoutChangingFlaggedFolder"
+              },
+              "assertion": "Flags precede regular name ordering where configured."
+            },
+            {
+              "test": {
+                "suite": "WorkspaceFilterContractTests",
+                "test": "queryFiltersAndFolderSortsSurviveSaveAndBackupRestoration"
+              },
+              "assertion": "Exact query results survive persistence and backup restoration."
+            },
+            {
+              "test": {
+                "suite": "WorkspaceFilterContractTests",
+                "test": "queryAccessFiltersExcludeUnknownDatesWithoutRecordingAnAccess"
+              },
+              "assertion": "Active access filters exclude unknown dates without recording access."
+            },
+            {
+              "test": {
+                "suite": "WorkspaceFilterContractTests",
+                "test": "invalidQueryDatesSortsAndFoldersDoNotReplaceTheStoredWorkspace"
+              },
+              "assertion": "Invalid configuration fails before replacing saved values."
+            }
+          ]
         },
         {
           "member": "update",
@@ -6742,19 +7895,20 @@
           "contract": "Add a date and/or time picker to the prompt, with the arguments as below. The fieldValues entry for this will be a date object.",
           "implementation": "native-prompt-controls",
           "automatedTest": {
-            "suite": "NativeCoreContractsTests",
-            "test": "promptDateIntervalsHaveDefaultsAndValidateBounds"
+            "suite": "PromptResponseContractTests",
+            "test": "addDatePickerKeepsItsInitialDateAndUnknownOptionsAndReturnsVoid"
           },
           "liveCheck": null,
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-19",
           "implementationEvidence": {
-            "file": "Sources/Draftly/NativeActionHost.swift",
-            "symbol": "prompt(_:) / PromptDatePolicy"
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Prompt.addDatePicker"
           },
           "limitations": [
-            "Minute intervals have unit coverage. Native date bounds, modes, and returned Date values still need acceptance."
-          ]
+            "Native option, keyboard-default, and presentation acceptance remains pending. These bridge tests do not close the full member contract."
+          ],
+          "evidenceLevel": "Member-specific transport and field assertions. Native options and presentation remain pending."
         },
         {
           "member": "addDivider",
@@ -6790,17 +7944,21 @@
           ],
           "contract": "Add an information text label to the prompt.",
           "implementation": "native-prompt-controls",
-          "automatedTest": null,
+          "automatedTest": {
+            "suite": "PromptResponseContractTests",
+            "test": "addLabelKeepsItsIdentityAndUnknownOptionsAndReturnsVoid"
+          },
           "liveCheck": null,
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-19",
           "implementationEvidence": {
-            "file": "Sources/Draftly/NativeActionHost.swift",
-            "symbol": "prompt(_:) / PromptDatePolicy"
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Prompt.addLabel"
           },
           "limitations": [
-            "Body, caption, and headline styles still need native acceptance."
-          ]
+            "Native option, keyboard-default, and presentation acceptance remains pending. These bridge tests do not close the full member contract."
+          ],
+          "evidenceLevel": "Member-specific transport and field assertions. Native options and presentation remain pending."
         },
         {
           "member": "addNumberField",
@@ -6813,17 +7971,21 @@
           ],
           "contract": "Add a text input field setup to accept numberic values to the prompt",
           "implementation": "native-prompt-controls",
-          "automatedTest": null,
+          "automatedTest": {
+            "suite": "PromptResponseContractTests",
+            "test": "addNumberFieldKeepsItsExplicitDecimalPolicyAndReturnsVoid"
+          },
           "liveCheck": null,
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-19",
           "implementationEvidence": {
-            "file": "Sources/Draftly/NativeActionHost.swift",
-            "symbol": "prompt(_:) / PromptDatePolicy"
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Prompt.addNumberField"
           },
           "limitations": [
-            "Fractional rejection, retry, and cancellation still need native acceptance."
-          ]
+            "Native option, keyboard-default, and presentation acceptance remains pending. These bridge tests do not close the full member contract."
+          ],
+          "evidenceLevel": "Member-specific transport and field assertions. Native options and presentation remain pending."
         },
         {
           "member": "addPasswordField",
@@ -6951,17 +8113,21 @@
           ],
           "contract": "Add a text input field to the prompt",
           "implementation": "native-prompt-controls",
-          "automatedTest": null,
+          "automatedTest": {
+            "suite": "PromptResponseContractTests",
+            "test": "addTextFieldKeepsRequiredArgumentsAndUnknownOptionsAndReturnsVoid"
+          },
           "liveCheck": null,
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-19",
           "implementationEvidence": {
-            "file": "Sources/Draftly/NativeActionHost.swift",
-            "symbol": "prompt(_:) / PromptDatePolicy"
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Prompt.addTextField"
           },
           "limitations": [
-            "Focus, placeholder, and autocorrection still need native acceptance. Mobile keyboard and capitalization options have no Mac keyboard equivalent."
-          ]
+            "Native option, keyboard-default, and presentation acceptance remains pending. These bridge tests do not close the full member contract."
+          ],
+          "evidenceLevel": "Member-specific transport and field assertions. Native options and presentation remain pending."
         },
         {
           "member": "addTextView",
@@ -6974,17 +8140,21 @@
           ],
           "contract": "Add a text input field to the prompt",
           "implementation": "native-prompt-controls",
-          "automatedTest": null,
+          "automatedTest": {
+            "suite": "PromptResponseContractTests",
+            "test": "addTextViewKeepsRequiredArgumentsAndUnknownOptionsAndReturnsVoid"
+          },
           "liveCheck": null,
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-19",
           "implementationEvidence": {
-            "file": "Sources/Draftly/NativeActionHost.swift",
-            "symbol": "prompt(_:) / PromptDatePolicy"
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Prompt.addTextView"
           },
           "limitations": [
-            "Height, focus, and autocorrection still need native acceptance. Mobile keyboard and capitalization options have no Mac keyboard equivalent."
-          ]
+            "Native option, keyboard-default, and presentation acceptance remains pending. These bridge tests do not close the full member contract."
+          ],
+          "evidenceLevel": "Member-specific transport and field assertions. Native options and presentation remain pending."
         },
         {
           "member": "constructor",
@@ -7020,16 +8190,38 @@
           ],
           "contract": "Displays the prompt. Returns true if the user selected one of the buttons in the buttons array, false if the user selected the \"Cancel\" button. After the dialog has been shown, the buttonPressed property will contain the name of the button selected by the user.",
           "implementation": "native-prompt-controls",
-          "automatedTest": null,
+          "automatedTest": {
+            "suite": "PromptResponseContractTests",
+            "test": "showAcceptsZeroIndexAndPreservesTypedAndUnknownResultValues"
+          },
           "liveCheck": null,
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-19",
           "implementationEvidence": {
-            "file": "Sources/Draftly/NativeActionHost.swift",
-            "symbol": "prompt(_:) / PromptDatePolicy"
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Prompt.show"
           },
           "limitations": [
-            "The full native field set, cancellation, and repeated-show state still need acceptance."
+            "Native option, keyboard-default, and presentation acceptance remains pending. These bridge tests do not close the full member contract."
+          ],
+          "evidenceLevel": "Member-specific transport and field assertions. Native options and presentation remain pending.",
+          "additionalAutomatedTests": [
+            {
+              "suite": "PromptResponseContractTests",
+              "test": "showRejectsMalformedResponsesWithoutChangingPublishedResults"
+            },
+            {
+              "suite": "PromptResponseContractTests",
+              "test": "showCancellationKeepsPreviouslyPublishedValuesAndButton"
+            },
+            {
+              "suite": "PromptResponseContractTests",
+              "test": "showAcceptsTheImplicitContinueButtonWhenNoButtonsWereAdded"
+            },
+            {
+              "suite": "PromptResponseContractTests",
+              "test": "anUncaughtMalformedResponseStopsLaterStatementsAndSteps"
+            }
           ]
         },
         {
@@ -15241,6 +16433,12 @@
             "sha256": "73b558d3fb9616255d0fc54427cebbd8dfd8dbfd7036de98777b976f0e7e1433",
             "url": "https://docs.getdrafts.com/docs/actions/steps/advanced",
             "capturedAt": "2026-10-19T16:59:47.603659+00:00"
+          },
+          "markdownPreferenceEvidence": {
+            "test": "ActionTests.htmlPreviewStepUsesConfiguredMarkdownAndPreservesExplicitHTML",
+            "scope": "Markdown input follows stored processor and strikethrough options. Explicit HTML is unchanged. Editor content is unchanged.",
+            "native": "pending",
+            "log": "/tmp/draftly-htmlpreview-step-tests.log"
           }
         },
         {

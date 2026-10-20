@@ -38,6 +38,7 @@ class Draft {
         if (v.uuid && __draftCache[v.uuid]) return __draftCache[v.uuid];
         let {selectionStart,selectionLength,...fields}=v;
         Object.assign(this, {content:'',tags:[],isArchived:false,isTrashed:false,flagType:0,createdLatitude:0,createdLongitude:0,modifiedLatitude:0,modifiedLongitude:0}, fields);
+        Object.defineProperty(this,'uuid',{value:v.uuid,writable:false,enumerable:true,configurable:false});
         this._selectionStart=selectionStart||0;this._selectionLength=selectionLength||0;
         this._createdAt = __date(v.createdAt); this._modifiedAt = __date(v.modifiedAt); this._explicitModifiedAt=false;
         this._syntax = typeof v.syntax === 'string' ? new Syntax(v.syntax) : Object.assign(new Syntax(), v.syntax || {});
@@ -56,7 +57,7 @@ class Draft {
     static recentTags() { return Tag.recentTags(); }
     get createdAt(){return this._createdAt;}set createdAt(value){this._createdAt=__date(value);}
     get modifiedAt(){return this._modifiedAt;}set modifiedAt(value){this._modifiedAt=__date(value);this._explicitModifiedAt=true;}
-    get title() { return this.content.split('\n')[0]; }
+    get title() { return this.content.split(/\r\n|[\n\r\u2028\u2029]/)[0]; }
     get displayTitle() { return this.title.replace(/^#+\s*/, '') || 'Untitled'; }
     get lines() { return this.content.split('\n'); }
     get syntax() { return this._syntax; }
@@ -164,10 +165,10 @@ class Prompt {
     constructor() { this.title=''; this.message=''; this.buttons=[]; this.fields=[]; this.fieldValues={}; this.isCancellable=true; }
     static create() { return new Prompt(); }
     addButton(title,value,isDefault,isDestructive,tintColor) { this.buttons.push({title,value:value===undefined?title:value,isDefault:!!isDefault,isDestructive:!!isDestructive,tintColor}); }
-    _field(key,label,value,kind,options={}) { this.fields.push({key,label,value,kind,...options}); }
+    _field(key,label,value,kind,options={}) { this.fields.push({...options,key,label,value,kind}); }
     addTextField(key,label,value='',options={}) { this._field(key,label,value,'text',options); }
     addTextView(key,label,value='',options={}) { this._field(key,label,value,'textView',options); }
-    addNumberField(key,label,value,allowDecimals,options={}) { this._field(key,label,value,'number',{allowDecimals,...options}); }
+    addNumberField(key,label,value,allowDecimals,options={}) { this._field(key,label,value,'number',{...options,allowDecimals}); }
     addPasswordField(key,label,value='') { this._field(key,label,value,'password'); }
     addSwitch(key,label,value) { this._field(key,label,!!value,'switch'); }
     addSelect(key,label,options,selected=[],multiple=false) { this._field(key,label,selected,'select',{options,multiple}); }
@@ -177,9 +178,11 @@ class Prompt {
     addLabel(key,label,options={}) { this._field(key,label,null,'label',options); }
     addDivider() { this._field('', '',null,'divider'); }
     show() {
-        let r=__call('prompt',this); if(!r)return false;
-        this.fieldValues=r.fields;
-        for(let f of this.fields) if(f.kind==='date')this.fieldValues[f.key]=__date(this.fieldValues[f.key]);
+        const r=__call('prompt',this); if(r==null||r===false)return false;
+        if(typeof r!=='object'||Array.isArray(r)||!Number.isInteger(r.index)||r.index<0||r.index>=Math.max(1,this.buttons.length)||r.fields==null||typeof r.fields!=='object'||Array.isArray(r.fields))throw new Error('The prompt returned an invalid response.');
+        const fields={...r.fields};
+        for(let f of this.fields)if(f.kind==='date')fields[f.key]=__date(fields[f.key]);
+        this.fieldValues=fields;
         this.buttonPressed=this.buttons[r.index] ? this.buttons[r.index].value : 'Continue'; return true;
     }
 }
@@ -204,7 +207,7 @@ var editor = {
     getTextInRange:(location,length)=>{__validateTextRange(editor.getText(),location,length);return __call('textInRange',{location,length});},setTextInRange:(location,length,text)=>{__validateTextRange(editor.getText(),location,length);__call('replaceRange',{location,length,text});__syncEditorDraft();},
     getLineRange:(location,length=0)=>__range(editor.getText(),location,length),
     getSelectedLineRange:()=>__range(editor.getText(),...editor.getSelectedRange()),
-    load:d=>{__rememberSelection();__call('loadDraft',d);__syncEditorDraft();},activate:()=>__call('activate'),deactivate:()=>__call('ui',{operation:'deactivate'}),
+    load:d=>{__rememberSelection();__call('loadDraft',d);__syncEditorDraft();},activate:()=>{__call('activate');},deactivate:()=>{__call('ui',{operation:'deactivate'});},
     save:()=>{__call('saveEditor');},new:()=>{__rememberSelection();__call('newEditor');},
     navigationMarkers:()=>__markers(editor.getText(),editor.draft.syntax.name),navigationMarkerAfter:location=>__markers(editor.getText(),editor.draft.syntax.name).find(m=>m.location>location),
     navigationMarkerBefore:location=>__markers(editor.getText(),editor.draft.syntax.name).filter(m=>m.location<location).pop(),
@@ -220,7 +223,7 @@ __define(editor,'incompleteTasks',()=>editor.tasks.filter(t=>!t.isCompleted));
 __define(editor,'urls',()=>__call('detectURLs',{text:editor.getText()}));
 __define(editor,'linkedItems',()=>editor.draft.linkedItems);
 __define(editor,'preferredTabString',()=>__call('ui',{operation:'get',key:'preferredTabString'}));
-for(let name of ['undo','redo','showFind','arrange','showArrange','dictate','showDictate','scanDocument','transcribe','nextDraft','previousDraft']) editor[name]=(...args)=>{let result=__call('ui',{operation:name,args});if(name==='undo'||name==='redo')__syncEditorDraft();return result;};
+for(let name of ['undo','redo','showFind','arrange','showArrange','dictate','showDictate','scanDocument','transcribe','nextDraft','previousDraft']) editor[name]=(...args)=>{let result=__call('ui',{operation:name,args});if(name==='undo'||name==='redo')__syncEditorDraft();if(name==='nextDraft'||name==='previousDraft')return;return result;};
 for(let name of ['isActive','linkModeEnabled','pinningEnabled','focusModeEnabled','typewriterScrollingEnabled']) __define(editor,name,()=>__call('ui',{operation:'get',key:name}),value=>__call('ui',{operation:'set',key:name,value}));
 __define(editor,'recentDrafts',()=>__call('recentDrafts').map(v=>new Draft(v)));
 __define(editor,'navigationMarkers',()=>__markers(editor.getText(),editor.draft.syntax.name));

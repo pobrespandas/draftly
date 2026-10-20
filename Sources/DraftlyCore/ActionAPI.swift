@@ -12,34 +12,7 @@ public enum APIValues {
         let formatter = ISO8601DateFormatter(); formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return formatter.date(from: text) ?? ISO8601DateFormatter().date(from: text)
     }
-}
-
-@MainActor extension ActionRunner {
-    func actionValue(_ action: DraftAction) -> [String: Any] {
-        ["uuid": action.id.uuidString, "name": action.name, "configuredValues": action.configuredValues,
-         "isSeparator": action.scriptMetadata?["isSeparator"] == "true"]
-    }
-    func workspaceValue(_ workspace: Workspace) -> [String: Any] {
-        var result: [String: Any] = [:]
-        if let text = workspace.scriptMetadata?["api"], let data = text.data(using: .utf8) {
-            result = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
-        }
-        result["uuid"] = workspace.id.uuidString; result["name"] = workspace.name; result["queryString"] = workspace.query
-        result["tagFilter"] = (workspace.tags + (workspace.excludedTags ?? []).map { "!" + $0 }).joined(separator: ",")
-        result["tagFilterRequireAll"] = !(workspace.matchAnyTag ?? false)
-        result["loadFolder"] = workspace.folder.rawValue
-        let options = workspace.listOptions ?? DraftListOptions()
-        result["showDate"] = options.showDate; result["showPreview"] = options.showPreview
-        result["showTags"] = options.showTags; result["showLastAction"] = options.showLastAction
-        result["showSearchPreview"] = options.previewSearchMatches
-        var sorts = result["_sorts"] as? [String: [String: Any]] ?? [:]
-        var sort = sorts[workspace.folder.rawValue] ?? [:]
-        sort["sort"] = workspace.sort == .title ? "name" : workspace.sort.rawValue
-        sort["descending"] = !workspace.ascending
-        sorts[workspace.folder.rawValue] = sort; result["_sorts"] = sorts
-        return result
-    }
-    func decodeWorkspace(_ values: [String: Any]) throws -> Workspace {
+    public static func workspace(_ values: [String: Any]) throws -> Workspace {
         let sorts = values["_sorts"] as? [String: [String: Any]] ?? [:]
         for value in sorts.values {
             if let name = value["sort"] as? String, !["name", "modified", "created", "accessed"].contains(name) { throw DraftlyError.message("The workspace sort is invalid.") }
@@ -73,6 +46,37 @@ public enum APIValues {
         workspace.listOptions = options
         if let (sort, ascending, _) = workspace.scriptSort(for: workspace.folder) { workspace.sort = sort; workspace.ascending = ascending }
         return workspace
+    }
+
+}
+
+@MainActor extension ActionRunner {
+    func actionValue(_ action: DraftAction) -> [String: Any] {
+        ["uuid": action.id.uuidString, "name": action.name, "configuredValues": action.configuredValues,
+         "isSeparator": action.scriptMetadata?["isSeparator"] == "true"]
+    }
+    func workspaceValue(_ workspace: Workspace) -> [String: Any] {
+        var result: [String: Any] = [:]
+        if let text = workspace.scriptMetadata?["api"], let data = text.data(using: .utf8) {
+            result = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
+        }
+        result["uuid"] = workspace.id.uuidString; result["name"] = workspace.name; result["queryString"] = workspace.query
+        result["tagFilter"] = (workspace.tags + (workspace.excludedTags ?? []).map { "!" + $0 }).joined(separator: ",")
+        result["tagFilterRequireAll"] = !(workspace.matchAnyTag ?? false)
+        result["loadFolder"] = workspace.folder.rawValue
+        let options = workspace.listOptions ?? DraftListOptions()
+        result["showDate"] = options.showDate; result["showPreview"] = options.showPreview
+        result["showTags"] = options.showTags; result["showLastAction"] = options.showLastAction
+        result["showSearchPreview"] = options.previewSearchMatches
+        var sorts = result["_sorts"] as? [String: [String: Any]] ?? [:]
+        var sort = sorts[workspace.folder.rawValue] ?? [:]
+        sort["sort"] = workspace.sort == .title ? "name" : workspace.sort.rawValue
+        sort["descending"] = !workspace.ascending
+        sorts[workspace.folder.rawValue] = sort; result["_sorts"] = sorts
+        return result
+    }
+    func decodeWorkspace(_ values: [String: Any]) throws -> Workspace {
+        try APIValues.workspace(values)
     }
     func queryWorkspace(_ values: [String: Any]) throws -> [Note] {
         let details = values["workspace"] as? [String: Any] ?? [:]
