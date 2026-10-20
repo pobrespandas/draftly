@@ -459,3 +459,9 @@ CPU task cancellation and cross-step promise/timer regression cases passed.
 Native overlap with two independent windows and URLs also passed: the second
 request returned busy without edits, while the owner completed successfully.
 Intent overlap and the other required native variants remain pending.
+
+The strict evidence check now rejects complete records backed by directly
+disabled or known-issue tests and missing method references. Explicit test files
+support suites in shared source files. Python37 and matrix structure passed;
+strict engine acceptance remains open with 36 diagnostics. The user-authorized
+two disposable Shortcuts were deleted and their absence was verified.

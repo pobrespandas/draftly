@@ -16944,7 +16944,8 @@
         },
         {
           "suite": "EngineBridgeReceiverIdentityTests",
-          "test": "rejectedRequestCannotAffectTheActiveAction"
+          "test": "rejectedRequestCannotAffectTheActiveAction",
+          "file": "Tests/DraftlyCoreTests/EngineBridgeIdentityTests.swift"
         }
       ],
       "nativeVerification": {

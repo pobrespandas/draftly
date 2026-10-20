@@ -1917,3 +1917,24 @@ returned no results. Cleared the search and quit Shortcuts. Earlier acceptance
 records remain historical; the fixtures are no longer installed. The existing
 CLI timeout limitation is not resolved by this cleanup.
 
+## Strict evidence checks — 20 October 2026
+
+Implemented: complete contracts cannot cite a directly disabled test/suite or a
+test body containing withKnownIssue. The check reads the exact referenced
+methods, including contract cases and supporting tests. Unrelated known issues
+in the same file do not reject a complete record. Partial records can retain
+known failures as evidence. Comments and string literals do not create methods
+or failure markers. Missing cited methods also reject complete evidence.
+
+An optional file field resolves suites whose names differ from their source
+file. It must name an existing Swift file inside Tests. Absolute, escaping,
+missing, and external symlink paths are rejected. The receiver-identity evidence
+now names its actual source file. This remains lexical source validation; it
+does not prove execution or inspect transitive helper calls.
+
+Automatically tested: 37 Python tooling tests passed. Fixtures cover disabled
+tests/suites, known issues, unrelated methods, case/supporting evidence, missing
+methods, fake method text, alternate files, and path restrictions. Structural
+matrix check has zero errors. Strict engine acceptance still has 36 diagnostics.
+Application code did not change; its prior build/test acceptance is unchanged.
+

@@ -9,6 +9,88 @@ spec.loader.exec_module(audit)
 
 
 class ReferenceTests(unittest.TestCase):
+    def test_strict_complete_evidence_rejects_only_referenced_known_or_disabled_tests(self):
+        import tempfile
+        from unittest.mock import patch
+        source = '\n'.join([
+            'import Testing', '@Suite struct Fixture {',
+            '@Test func accepted() { let text = "withKnownIssue { ignored }"; /* withKnownIssue {} */ }',
+            '@Test func known() { withKnownIssue("pending") { #expect(false) } }',
+            '@Test(.disabled("pending")) func disabled() { #expect(true) }',
+            '@Test func next() { #expect(true) }', '}', '@Suite(.disabled("pending")) struct Disabled {', '@Test func suiteDisabled() {}', '}'])
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "Tests").mkdir()
+            (root / "Tests" / "Fixture.swift").write_text(source)
+            with patch.object(audit, "ROOT", root):
+                def errors(test, status="complete"):
+                    return audit.parity_errors({"compatibilityStatus": status,
+                        "automatedTest": {"suite": "Fixture", "test": test}}, "engine:fixture", set())
+                self.assertFalse(any("Unaccepted" in error for error in errors("accepted")))
+                self.assertFalse(any("Unaccepted" in error for error in errors("next")))
+                self.assertIn("Unaccepted contract test: engine:fixture: Fixture.known contains withKnownIssue", errors("known"))
+                self.assertIn("Unaccepted contract test: engine:fixture: Fixture.disabled is disabled", errors("disabled"))
+                self.assertFalse(any("Unaccepted" in error for error in errors("known", "partial")))
+                self.assertIn("Unaccepted contract test: engine:fixture: Fixture.suiteDisabled belongs to a disabled suite", errors("suiteDisabled"))
+
+    def test_strict_guard_checks_specific_case_and_supporting_evidence(self):
+        import tempfile
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "Tests").mkdir()
+            (root / "Tests" / "Fixture.swift").write_text('@Test func normal() {}\n@Test func pending() { withKnownIssue { #expect(false) } }')
+            with patch.object(audit, "ROOT", root):
+                entry = {"compatibilityStatus": "complete", "automatedTest": {"suite": "Fixture", "test": "normal"},
+                    "contractCases": {"errors": {"test": {"suite": "Fixture", "test": "pending"}}}}
+                self.assertTrue(any("Fixture.pending contains withKnownIssue" in error for error in audit.parity_errors(entry, "fixture", set())))
+                entry["contractCases"] = {}
+                entry["supportingTests"] = [{"suite": "Fixture", "test": "pending"}]
+                self.assertTrue(any("Fixture.pending contains withKnownIssue" in error for error in audit.parity_errors(entry, "fixture", set())))
+                entry["supportingTests"] = [{"suite": "Fixture", "test": "missing"}]
+                self.assertTrue(any("Invalid contract test reference" in error for error in audit.parity_errors(entry, "fixture", set())))
+
+    def test_explicit_test_file_resolves_different_suite_and_keeps_issue_guard(self):
+        import tempfile
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "Tests").mkdir()
+            (root / "Tests" / "Shared.swift").write_text('@Suite struct OtherSuite { @Test func pending() { withKnownIssue { #expect(false) } } }')
+            with patch.object(audit, "ROOT", root):
+                reference = {"suite": "OtherSuite", "test": "pending", "file": "Tests/Shared.swift"}
+                self.assertTrue(audit.valid_test_reference(reference))
+                self.assertEqual(audit.test_reference_issue(reference), "OtherSuite.pending contains withKnownIssue")
+                self.assertFalse(audit.valid_test_reference({"suite": "OtherSuite", "test": "pending"}))
+
+    def test_explicit_test_file_rejects_escape_absolute_and_symlink_paths(self):
+        import tempfile
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "Tests").mkdir()
+            outside = root / "Outside.swift"
+            outside.write_text('@Test func target() {}')
+            (root / "Tests" / "Link.swift").symlink_to(outside)
+            with patch.object(audit, "ROOT", root):
+                for filename in ["Tests/../Outside.swift", "Outside.swift", str(outside), "Tests/Link.swift", "Tests/missing.swift"]:
+                    with self.subTest(filename=filename):
+                        self.assertFalse(audit.valid_test_reference({"suite": "Fixture", "test": "target", "file": filename}))
+
+    def test_test_reference_does_not_accept_function_text_in_comments_or_strings(self):
+        import tempfile
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "Tests").mkdir()
+            (root / "Tests" / "Fixture.swift").write_text('\n'.join([
+                '// @Test func commented() {}', '/* func blocked() {} */',
+                'let fake = "func quoted() {}"', '@Test func real() {}']))
+            with patch.object(audit, "ROOT", root):
+                for name in ["commented", "blocked", "quoted"]:
+                    self.assertFalse(audit.valid_test_reference({"suite": "Fixture", "test": name}))
+                self.assertTrue(audit.valid_test_reference({"suite": "Fixture", "test": "real"}))
+
     def test_exact_names_signatures_and_static_members(self):
         body = '''<h3 id="recenttags"><code>Static</code><span>recentTags</span></h3>
         <ul class="tsd-signatures"><div class="tsd-signature"><span class="tsd-kind-call-signature">recentTags</span>(): string[]</div></ul>
