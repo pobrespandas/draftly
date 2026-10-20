@@ -10247,7 +10247,7 @@
           "result": "XMLRPCResponse with success, HTTP status, decoded parameters, or explicit failure/fault fields.",
           "errors": "Transport envelope failures throw to the script. HTTP failures remain response values. Runner cancellation and timeout interrupt later script work.",
           "limitations": [
-            "Real server and native automation acceptance remain pending. JavaScript date/binary mapping, CDATA, full malformed-response grammar, and remaining invalid-input contracts are not closed."
+            "Real server and native automation acceptance remain pending. JavaScript date/binary mapping, full malformed-response grammar, and remaining invalid-input contracts are not closed. CDATA text passed current-Mac parser and injected async JavaScript tests. This does not accept transport character-set handling."
           ],
           "supportingTests": [
             {
@@ -10257,6 +10257,14 @@
             {
               "suite": "XMLRPCAsyncTests",
               "test": "actionInterruptionCancelsTransportAndStopsLaterSteps"
+            },
+            {
+              "suite": "XMLRPCTests",
+              "test": "mixedCDATAAndTextKeepUnicodeInStringsValuesAndMemberNames"
+            },
+            {
+              "suite": "XMLRPCTests",
+              "test": "cdataUsesTheParserEncodingAndPreservesFaultMessages"
             }
           ]
         }
@@ -10299,10 +10307,24 @@
             "error?: string"
           ],
           "contract": "If an error occurred, a description of the type of error.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "shared-XML-response-parser",
+          "automatedTest": {
+            "suite": "XMLRPCTests",
+            "test": "cdataUsesTheParserEncodingAndPreservesFaultMessages"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-20",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/XMLRPC.swift",
+            "symbol": "response"
+          },
+          "defaults": "Returned responses contain params. The error field is optional and describes a failure.",
+          "errors": "Malformed XML and XML-RPC faults return failure values. Complete invalid-response grammar is not accepted.",
+          "result": "Failure description, including decoded fault text.",
+          "limitations": [
+            "Real server and native acceptance remain pending. Complete XML grammar, transport character sets, and JavaScript date/binary mapping are not accepted."
+          ]
         },
         {
           "member": "faultCode",
@@ -10329,10 +10351,24 @@
             "params: any[]"
           ],
           "contract": "The array of return parameters provided by with the XML-RPC response. Contents of this array will vary with the XML-RPC API being used.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "shared-XML-response-parser",
+          "automatedTest": {
+            "suite": "XMLRPCTests",
+            "test": "mixedCDATAAndTextKeepUnicodeInStringsValuesAndMemberNames"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-20",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/XMLRPC.swift",
+            "symbol": "response"
+          },
+          "defaults": "Returned responses contain params. The error field is optional and describes a failure.",
+          "errors": "Malformed XML and XML-RPC faults return failure values. Complete invalid-response grammar is not accepted.",
+          "result": "Decoded parameter array.",
+          "limitations": [
+            "Real server and native acceptance remain pending. Complete XML grammar, transport character sets, and JavaScript date/binary mapping are not accepted."
+          ]
         },
         {
           "member": "statusCode",

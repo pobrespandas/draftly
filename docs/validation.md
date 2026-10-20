@@ -3440,3 +3440,20 @@ both. The unsigned Debug build passed and included the PDF resource. Refreshed
 Engine QA and launched it. Dock, Finder, app switching, and the actual menu bar
 mark still need direct visual acceptance. Do not treat resource previews as
 that acceptance. No generated preview or screenshot is stored in the repo.
+
+
+### XML-RPC CDATA correction — 20 October 2026
+
+The earlier source review inferred CDATA loss from the missing foundCDATA
+delegate method. Runtime tests did not reproduce that loss on this Mac. The
+unchanged production parser preserved mixed text, entities, CDATA Unicode,
+implicit string values, struct member names, and fault text. A parser-only case
+also preserved Latin-1 bytes with an XML encoding declaration. This does not
+verify the HTTP transport character-set path. Do not record a production fix.
+
+Seven focused XMLRPCTests and XMLRPCAsyncTests methods passed. The async reply
+fixture now contains CDATA and passes through the actual JavaScript API with
+injected transport. Params and error have specific partial evidence. Real
+server, native use, complete grammar, and date/binary mapping remain pending.
+This change adds tests and audit records only. It does not claim a new full
+regression or a full XML-RPC acceptance.

@@ -751,3 +751,9 @@ toolbar tests and the unsigned build passed. Computer Use confirmed both states
 in refreshed Engine QA. App and menu icons now share generated notes-and-pencil
 geometry. Resource previews passed inspection; Dock/Finder/menu-bar acceptance
 remains open. See the latest validation sections.
+
+
+XML-RPC CDATA coverage passed seven focused tests against the unchanged parser.
+The earlier loss claim was an inference that runtime checks did not confirm.
+Params and error now have specific partial evidence. Real transport character
+sets, server/native acceptance, grammar, and date/binary mapping remain open.

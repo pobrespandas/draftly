@@ -33,7 +33,7 @@ struct XMLRPCAsyncTests {
             let body = request["data"] as? String ?? ""
             #expect(body.contains("<methodName>echo&lt;&amp;</methodName>"))
             #expect(body.contains("<string>café 🐼</string>") && body.contains("<boolean>1</boolean>"))
-            return #"{"value":{"success":true,"statusCode":200,"responseText":"<methodResponse><params><param><value><string>café 🐼</string></value></param></params></methodResponse>"}}"#
+            return #"{"value":{"success":true,"statusCode":200,"responseText":"<methodResponse><params><param><value><string><![CDATA[café 🐼]]></string></value></param></params></methodResponse>"}}"#
         }
         let response = await ScriptXMLRPC.requestSerialized(#"{"url":"https://fixture.invalid/rpc","methodName":"echo<&","params":["café 🐼",true,7]}"#, transport: transport)
         let result = try value(response)
