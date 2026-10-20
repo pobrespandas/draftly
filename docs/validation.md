@@ -1529,3 +1529,39 @@ native arrangement Undo/navigation/window-close variants, and URL access to edit
 UI operations. A transferred sharing file remains until the service callback.
 If the service never replies, no cleanup time can be guaranteed. No screenshot
 was saved. QA and its helper were quit after checking history.
+
+## Template waits, automation arrangement, and print layout — 20 October 2026
+
+Implemented: asynchronous template evaluation for first-party step text, fields,
+URL encoding, included-action names, and script processTemplate requests. Dynamic
+tags and recursive file loads suspend through the host boundary. Pure builders
+retain validation and render order. Static tags and transforms share code with
+the synchronous renderer. Arrange with explicit input no longer requires a
+window-bound editor adapter. Other window operations retain their requirement.
+Print layout fits actual text to paper, margins, and scale; HTML specifies UTF-8.
+
+Automatically tested: 358 app tests in 53 suites and 344 core tests in 50 suites
+passed. The 32 Python tests and unsigned local Xcode build passed. Matrix structure
+has zero errors. Tests cover recursive native requests, escapes, custom overrides,
+Unicode, missing templates, recursion limits, pure builder call order and errors,
+script and first-party integration, secondary export fields, creation tags, and
+typed template timeout without later insertion or archive. Automation arrangement
+tests use no models, the target model, an unrelated model, and both models. They
+check separate editor state, cancellation, and injected native timeout. These
+checks do not establish an actual system permission or production timeout.
+
+Verified in use: the QA bundle was fully refreshed and development-signed. Source
+Debug library hash starts with 09c6472791e1728c before signing. At 01:59 local
+time, the helper started QA via the explicit neutral draft UUID and Arrange URL.
+After external-action confirmation, the native organizer showed First and Second
+🐼. Done saved First followed by Second 🐼. The target was then selected to read
+its saved content. History records Success. This replaces the earlier explicit
+active-editor failure for this pure-text method only. Cold URL target selection
+was not immediate in the window and needs separate review.
+
+QA Print cancelled now showed Page 1 of 1 for the short neutral text. Cancel kept
+the note First followed by Second 🐼 and did not insert Late print. History records
+Cancelled. No print job was sent. QA and its helper were quit. No screenshot was
+saved. Real template folder permissions, location, physical or PDF print output,
+window-bound automation operations, and wider native acceptance remain pending.
+Strict engine closure remains open; no status was promoted from these totals.

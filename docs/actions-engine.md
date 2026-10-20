@@ -210,3 +210,22 @@ changes use the editor's Undo path. Legacy synchronous adapters remain available
 Native checks and exact automatic results are recorded separately in validation.
 Strict engine acceptance remains open. Location templates and template-directory
 access still need review for native waits during synchronous template rendering.
+
+## Awaited template data — 20 October 2026
+
+The new runner awaits location and template-file requests at the point of use.
+This includes nested templates, included-action names, script processTemplate,
+URLs, and step fields. Escaped tags and custom overrides do not request native
+data. Static tags and final transformations share their rules with the legacy
+renderer. Recursion retains the existing limit of 20.
+
+Pure step builders replay resolved fields by call index. A field renders once;
+identical sources in different fields can return different values. The helper
+rejects a changed render order. Create Draft shares one payload builder across
+both routes. Native template errors stop steps and success effects. Real location
+and persistent folder permission checks remain separate acceptance work.
+
+Arrange accepts text through automation without borrowing a window's editor.
+Window-bound operations still require a window adapter. Print layout now uses
+paper size, margins, scale, and fitted text height. HTML import specifies UTF-8.
+The neutral native preview shows one page. Actual print output remains pending.

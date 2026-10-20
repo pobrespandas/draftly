@@ -16762,6 +16762,18 @@
         {
           "suite": "AsyncFilePreviewStepTests",
           "test": "cancelledNativeOutputStopsStepsAndSuccessEffects"
+        },
+        {
+          "suite": "AsyncTemplateExecutionTests",
+          "test": "firstPartyAndScriptTemplatesAwaitNestedNativeValues"
+        },
+        {
+          "suite": "AsyncTemplateExecutionTests",
+          "test": "fileFieldsAndCreatedDraftTagsUseTheAwaitedRenderer"
+        },
+        {
+          "suite": "AsyncTemplateExecutionTests",
+          "test": "nativeTemplateFailureStopsStepsAndSuccessEffects"
         }
       ],
       "nativeVerification": {
@@ -16778,8 +16790,8 @@
       "nativeWaitReview": {
         "date": "2026-10-20",
         "evidence": "docs/validation.md",
-        "accepted": "Native print Cancel and share picker Escape retain text and record cancellation. UI arrange reorders Unicode lines. Show Arrange Cancel keeps text.",
-        "pending": "Actual service completion, print output, arrangement close/navigation paths, location and template-directory waits. Legacy sync sharing remains unchanged."
+        "accepted": "Native print Cancel and share picker Escape retain text and record cancellation. UI arrange reorders Unicode lines. Show Arrange Cancel keeps text. Updated 01:59 QA: URL arrange accepts text without a window adapter and saves its result; short print preview shows one page; Cancel retains text.",
+        "pending": "Actual service completion, print output, arrangement close/navigation paths, real template folder permissions and location. Legacy sync sharing remains unchanged. Window-bound automation needs an explicit editor context."
       }
     },
     {

@@ -138,3 +138,10 @@ Up, then Done. The draft must contain Second 🐼 followed by First. Run QA Show
 Arrange and Cancel; the draft must stay unchanged. The latter action can succeed
 before the organizer closes. Compare history and content. Native timing, Undo,
 navigation, window close, service completion, and output need separate acceptance.
+
+Repeat QA Arrange result through an explicit draft UUID URL. Confirm the external
+action, then Done. Read the saved target and check Success in history. The method
+accepts text without a window editor. Window-bound UI methods need separate tests.
+The updated QA Print cancelled preview must show one page for the short fixture.
+Cancel and verify that Late print is absent. Do not send a printer job. These
+cases passed in the fully refreshed 01:59 local QA run on 20 October 2026.
