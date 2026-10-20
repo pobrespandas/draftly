@@ -57,7 +57,7 @@ struct EditorLayoutPreferences: View {
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
-        panel.allowedContentTypes = [UTType(filenameExtension: "draftsTheme", conformingTo: .json) ?? .json, .json]
+        panel.allowedContentTypes = ThemeImportFileTypes.allowed
         panel.message = "Choose a Drafts theme definition to review before saving."
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
@@ -118,4 +118,9 @@ enum WorkspaceThemeValues {
               let options = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else { return nil }
         return (options[key] as? [String: Any])?["name"] as? String
     }
+}
+
+
+enum ThemeImportFileTypes {
+    static var allowed: [UTType] { [UTType(filenameExtension: "draftsTheme") ?? .data, .json] }
 }

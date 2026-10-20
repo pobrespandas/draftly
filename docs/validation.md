@@ -2547,3 +2547,32 @@ pending. No dialog was opened by an automatic test.
 Regression result: 412 app methods and 409 core methods passed. The unsigned
 Xcode Debug build passed. The new import button and native file workflow still
 need Computer Use acceptance on a refreshed isolated build.
+
+### Native Drafts theme import and file-type correction — 20 October 2026
+
+Native import exposed a file-panel defect. The .draftsTheme file was disabled,
+although typing its full path allowed Open. The installed Drafts registration
+reports com.agiletortoise.drafts.theme for that file. Requesting the extension
+with a JSON supertype returned a different dynamic type. The panel now uses the
+extension's actual type without adding a JSON conformance requirement. JSON
+files remain supported. Apple UTType documentation was checked through Context7.
+
+Automatically tested: ThemeImportFileTypeTests passed three cases using actual
+filesystem content types for .draftsTheme, .json, and .txt. The supported files
+match the panel filter; .txt does not. These tests create no windows. The unsigned
+Xcode Debug build passed. The earlier 412 app/409 core full regression remains
+separate evidence; no new full run is claimed for this small filter correction.
+
+Verified across the initial and corrected QA builds: the same neutral
+.draftsTheme was enabled after the correction. The corrected pre-sign Debug
+library hash starts with 4c61b327186d3b7a. Open showed the imported name, mapped colors, dark appearance, and rendering
+limit notice. Cancel left only System and QA Neutral Theme 🐼 in the catalog.
+A later import Save installed QA Imported Theme café 🐼. Updated the neutral
+source background from 17324D to 112233, imported again, selected Replace,
+reviewed, and saved. Edit showed 112233. The catalog had one imported entry and
+one prior neutral entry, with no duplicate after replacement. The app was quit.
+The imported fixture remains selected in QA. No personal library was changed.
+
+Limits: Import as New rename, cancellation at the name-conflict alert, native
+UUID inspection, restore, full scope/interface styling, and sync remain pending.
+No screenshot or raw log is tracked.
