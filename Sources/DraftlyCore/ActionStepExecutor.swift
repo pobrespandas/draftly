@@ -90,9 +90,9 @@ struct ActionStepExecutor {
             if let flag = step.values["flagType"].flatMap(Int.init) { guard (0...7).contains(flag) else { throw DraftlyError.message("The new draft flag is invalid.") }; created.flag = flag }
             try library.saveNote(created, preserveRevision: false, preserveDates: true)
             if open { editor.load(created) }
-        case "file":
-            let name = try renderTemplate(step.values["fileNameTemplate"] ?? step.values["name"] ?? "[[safe_title]].md", note: current)
-            _ = try platform("saveFile", ["text": rendered, "name": name, "bookmark": step.values["useBookmark"] == "true" ? step.values["bookmarkName"] ?? "" : "", "folder": try renderTemplate(step.values["folderTemplate"] ?? "", note: current), "mode": step.values["writeType"] ?? "create"])
+        case "file", "export":
+            let file = try ActionFileStep(step, text: rendered) { try renderTemplate($0, note: current) }
+            _ = try platform("saveFile", file.values)
         case "runShortcut":
             let result = try platform("shortcut", ["name": step.values["name"] ?? "", "text": rendered])
             if let result {
@@ -119,19 +119,14 @@ struct ActionStepExecutor {
             guard let tags = try prompt.tags(from: platform("prompt", prompt.values)) else { return false }
             runner.customTags.merge(tags) { _, new in new }
         case "mail", "message":
-            var values: [String: Any] = ["subject": try renderTemplate(step.values["subject"] ?? "", note: current), "body": rendered]
-            for key in ["toRecipients", "ccRecipients", "bccRecipients", "replyToRecipients"] { values[key] = try renderTemplate(step.values[key] ?? "", note: current).split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) } }
-            values["isBodyHTML"] = step.values["isBodyHTML"] == "true"; values["sendInBackground"] = step.values["sendInBackground"] == "true"
-            let response = try platform(step.type == "mail" ? "composeMail" : "composeMessage", values) as? [String: String] ?? [:]
-            if response["status"] == "userCancelled" { return false }
-            guard response["status"] == "sent" else { throw DraftlyError.message("Message composition failed: \(response["status"] ?? "unknownError")") }
+            let message = try ActionMessageStep(step, text: rendered) { try renderTemplate($0, note: current) }
+            if try !message.accepted(platform(message.operation, message.values)) { return false }
         case "listInReminders":
             let listName = try renderTemplate(step.values["list"] ?? step.values["listTemplate"] ?? "Reminders", note: current)
             guard let list = try platform("eventAPI", ["entity": "list", "operation": "findOrCreate", "title": listName]) as? [String: Any] else { throw DraftlyError.message("The Reminders list was not found.") }
             for line in rendered.components(separatedBy: .newlines) where !line.trimmingCharacters(in: .whitespaces).isEmpty {
                 _ = try platform("eventAPI", ["entity": "reminder", "operation": "update", "value": ["title": line, "list": list]])
             }
-        case "export": _ = try platform("saveFile", ["text": rendered, "name": try renderTemplate(step.values["name"] ?? "[[safe_title]].txt", note: current)])
         case "openIn": _ = try platform("shareFile", ["text": rendered, "name": try renderTemplate(step.values["name"] ?? "[[safe_title]].txt", note: current)])
         case "print":
             if try platform("print", step.values.merging(["text": rendered], uniquingKeysWith: { _, new in new })) as? Bool == false { return false }
