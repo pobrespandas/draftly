@@ -2247,3 +2247,63 @@ Final unsigned Debug Xcode build and metadata extraction passed. Only name and
 uuid remain exposed for RunDraftActionIntent. Python37 and matrix structure
 passed. The strict engine result remains separately recorded; native gaps are
 not cleared by this automatic run.
+
+
+## Native Shortcuts delivery and exclusion — 20 October 2026
+
+The isolated QA bundle was refreshed and development-signed from f55ab35. Its
+Debug image hash starts with 870884f2388974b4 before signing. Shortcuts created one
+new fixture, Draftly QA Engine — disposable, using Run Draft Action from the exact
+Draftly Engine QA app search. The two earlier disposable shortcuts remain deleted.
+
+At 03:51 the caught-rejection control returned QA Caught rejection completed in
+Shortcuts and recorded Success. The CPU action then used its production 10-second
+limit. Shortcuts showed the timeout error by the 13.4-second observation. QA kept
+CPU completed write in Inbox without the tail or Archive; History recorded Error
+at 03:52. This completes the remaining native Intent CPU-deadline check.
+
+For exclusion, two QA windows held different drafts. A URL started QA Busy owner
+on the first draft. A Shortcut Intent requested QA Busy rejected request on the
+second. Shortcuts showed the busy error while the owner still waited. The second
+editor retained Queue child completed write — café 🐼 with its old modified date.
+The helper had no owner callback at that point and later received exactly one
+success with owner=finished. History recorded the owner Success at 03:54.
+
+The reverse check started QA Busy owner through Shortcuts with the QA editor left
+Untitled and no selected draft. The owner was independent of that editor. A URL
+requested the rejecting action on the other draft. It received exactly one busy
+error callback. The Untitled editor stayed empty and the target retained its old
+content/date. Shortcuts later returned QA Busy owner completed. The helper count
+remained one. History recorded the owner Success at 04:00 and no new rejected run.
+
+These native checks plus the specific passing contract tests close synchronous
+deadline and process-local cross-window exclusion. They do not close all entry
+points, cancellation adapters, or external callback lifetimes. The gate has no
+cross-process exclusion claim.
+
+## Native Intent queue timeout on another draft — 20 October 2026
+
+A fifth neutral note contained only Queue timeout target neutral. The fixture
+engine-queue-multiple-timeout-actions.json selected that unique marker, retained
+Queue source retained before timeout on the root, queued the existing timeout
+child on the other note, and queued a later sentinel on the root. Shortcuts ran
+this root with the production 120-second async limit.
+
+The child write was visible at the 6.4-second observation. Shortcuts still ran
+at 92.8 seconds and showed the timeout by 129.6 seconds. These observations bracket
+the result; they do not measure an exact duration. Both notes remained in Inbox.
+The child retained Queue timeout completed write — café 🐼. The source retained its
+root text. Neither the child tail nor the later queued action ran. Window menu
+selection confirmed library-AppWindow-1, the original matching root window, now
+displayed the final child target. History recorded the root Error at 03:57.
+
+Shortcuts, QA, and the helper were quit after inspection. The new shortcut stays
+installed for remaining cancellation checks. Its final settings are QA Busy owner
+and the neutral root UUID. Its later permanent removal requires its own approval.
+The new target marker has become the child text, so repeat the preparation before
+running the multi-draft timeout fixture again. No screenshots or raw logs were
+added to the repository. Separate-target failure remains pending.
+
+Matrix structure passed. The strict engine gate now reports 27 diagnostics, down
+from 33 after these two specific records closed. Five records are complete and
+nine remain partial. These counts are not API compatibility percentages.

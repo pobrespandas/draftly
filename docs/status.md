@@ -524,3 +524,10 @@ before pending saves or selection changes in automation and single/batch window
 actions. A real overlapping intent regression failed before the correction and
 now passes across five accesses. The final full run passed 402 app and 391 core
 methods. Native system delivery of these new cases remains pending.
+
+
+Native Shortcuts now verifies success, production CPU timeout, and a 120-second
+queued timeout on a different note. Mixed Intent/URL overlap passed in both
+directions, including two windows and an owner without a matching editor. The
+synchronous-deadline and process-local exclusion records are complete. Remaining
+cancellation, source-close, callback, and capability variants stay open.

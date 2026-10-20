@@ -317,3 +317,20 @@ and the completed prior write in Inbox; no tail or Archive. Run Returned rejecte
 promise. Expect one error callback and unchanged source text. Use separate callback
 case values and inspect History after each result. These URL cases passed on
 20 October 2026. Other entry-point and timeout cases stay separately tracked.
+
+
+## Current Shortcut fixture
+
+Draftly QA Engine — disposable contains Run Draft Action from Draftly Engine QA.
+Reuse this one fixture for remaining acceptance. The two older QA shortcuts were
+deleted with approval. Do not remove this new fixture permanently without its
+own approval. The final action setting is QA Busy owner with the neutral root
+UUID. Native success, CPU timeout, and busy results passed on 20 October 2026.
+
+For separate-target timeout, first import engine-queue-actions.json. Create exactly
+one other Inbox note containing Queue timeout target neutral. Import
+engine-queue-multiple-timeout-actions.json. Run that root on a different neutral
+note through the Shortcut. Wait for the production120-second limit. Expect the
+error, retained root/child text in Inbox, no tail or later queued action, and the
+matching original window left on the child. This native case passed. Prepare a
+new marker note for each repeat; the prior marker becomes the child output.

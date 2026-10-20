@@ -15990,15 +15990,13 @@
     },
     {
       "contract": "synchronous deadline",
-      "compatibilityStatus": "partial",
+      "compatibilityStatus": "complete",
       "automatedTest": {
         "suite": "AsyncActionRunnerTests",
         "test": "busyJavaScriptLeavesMainActorAvailableAndSynchronousDeadlineIsTyped"
       },
-      "liveCheck": null,
-      "limitations": [
-        "Native CPU timeout passed through URL and direct action-list execution. Direct UI filters stayed responsive and earlier text remained in Inbox without the tail or Archive. App Intent CPU timeout acceptance remains pending."
-      ],
+      "liveCheck": "docs/validation.md: Native Shortcuts delivery and exclusion — 20 October 2026",
+      "limitations": [],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
         "test": "synchronousTimeoutStopsLaterStepsAndSuccessEffects"
@@ -16057,9 +16055,10 @@
         }
       ],
       "nativeVerification": {
-        "status": "pending",
-        "reason": "Native CPU timeout passed through URL and direct action-list execution. Direct UI filters stayed responsive and earlier text remained in Inbox without the tail or Archive. App Intent CPU timeout acceptance remains pending.",
-        "evidence": "docs/validation.md"
+        "status": "passed",
+        "date": "2026-10-20",
+        "evidence": "docs/validation.md",
+        "scope": "Native URL and direct-list checks on their recorded builds retained prior text and Inbox without tail/Archive. Shortcuts on image870884f2388974b4 ran the CPU action with the production 10-second setting, displayed the timeout error, and History recorded Error. Automatic cases cover finite work, defaults, invalid limits, and smaller-limit selection."
       },
       "automatedVerification": {
         "status": "passed",
@@ -16078,7 +16077,7 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Discarded, intrinsic, and returned rejection plus the production 120-second queued timeout passed native URL checks on the current build. Remaining native entry-point rejection/timeout variants are pending."
+        "Native Shortcuts success and production CPU/120-second queued timeout passed on image870884f2388974b4, including a separate queued target. Native discarded/intrinsic/returned rejection URL checks remain recorded. Remaining native rejection and cancellation entry variants are pending."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
@@ -16174,15 +16173,13 @@
     },
     {
       "contract": "cross-window exclusion",
-      "compatibilityStatus": "partial",
+      "compatibilityStatus": "complete",
       "automatedTest": {
         "suite": "AsyncActionRunnerTests",
         "test": "libraryExclusionCoversLegacyAndAsyncRunnersWithoutBlockingOtherLibraries"
       },
-      "liveCheck": null,
-      "limitations": [
-        "Native URL overlap across two independent QA windows passed on its recorded image. Actual headless-intent overlap now has five passing background entry cases and canonical gate checks. Native App Intent overlap and verification of the latest pre-save guard remain pending."
-      ],
+      "liveCheck": "docs/validation.md: Native Shortcuts delivery and exclusion — 20 October 2026",
+      "limitations": [],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
         "test": "anotherWindowCannotRunActionsInTheSameLibraryDuringAHostCall"
@@ -16235,9 +16232,10 @@
         }
       ],
       "nativeVerification": {
-        "status": "pending",
-        "reason": "Native URL overlap across two independent QA windows passed: second request returned busy without changing its target, original request finished successfully. App Intent and remaining overlap variants are pending.",
-        "evidence": "docs/validation.md"
+        "status": "passed",
+        "date": "2026-10-20",
+        "evidence": "docs/validation.md",
+        "scope": "On image870884f2388974b4, a URL-owned action in one of two QA windows caused a Shortcut Intent targeting the other to return busy without edits; the owner later succeeded. In the reverse check, an Intent with no matching editor caused a URL request to return one busy error callback while its owner later completed in Shortcuts. Target text and the unrelated Untitled editor stayed unchanged. Automatic cases cover canonical stores, library independence, reentry, pre-save rejection, and host cleanup."
       },
       "automatedVerification": {
         "status": "passed",
@@ -16498,7 +16496,7 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Native URL cancellation, failure, and production timeout passed on one draft. Timeout was repeated on the current image with one error callback and retained child text in Inbox. Separate-source/target cancellation passed earlier; separate-target failure/timeout and remaining entry points are pending."
+        "Separate-target production timeout now passed through Shortcuts with retained source/child text, both in Inbox, no later queued action, and the owner editor on the last target. Separate-target failure and remaining native cancellation/entry variants remain pending."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
@@ -16615,7 +16613,7 @@
       },
       "liveCheck": null,
       "limitations": [
-        "A real worker timeout has coordinator and error/callback mapping tests. Busy-before-save has two owner-context cases. Native URL production timeout passed on the current image. App Intent timeout/busy delivery and remaining current-build URL busy variants remain pending.",
+        "Native current-image URL busy callback and owner success passed in both mixed Intent/URL directions. Production URL timeout evidence is recorded separately. Remaining current-image cancellation/error and late callback variants remain pending.",
         "Recorded native success/error/cancel callbacks used an older QA executable; repeat applicable variants on the current build."
       ],
       "defaults": "No callback URL is produced if the matching x-success, x-cancel, or x-error parameter is absent or lacks a scheme. Success parameters default to an empty map.",
@@ -17209,7 +17207,7 @@
         "result": "Real QA cold-launch Run awaited delayed success and returned its success parameters. URL failure and cancellation returned matching callbacks. Development-signed QA App Intent through Shortcuts returned success, delayed failure, and cancellation messages. Timeout, busy, concurrent-entry, and window-close variants remain pending."
       },
       "limitations": [
-        "Actual RunDraftActionIntent.perform has in-process tests for all final outcomes and valid/invalid targets. Headless-owner overlap now rejects intent, scheduled/immediate window and batch requests before pending saves. System Shortcuts dispatch and remaining current-build URL busy variants need native acceptance.",
+        "Native Shortcuts now verifies success, CPU timeout, production queued timeout on another draft, and busy with a URL owner. Reverse Intent-owner/URL-busy also passed. Native cancellation, source-close, and remaining capability/entry variants still require acceptance.",
         "Current-build native multiwindow concurrency, timeout, busy, and remaining App Intent variants remain pending. Earlier QA passed cold URL and Intent success/error/cancel only."
       ],
       "defaults": "A window model permits one pending or running action request at a time. It reserves execution before starting its Task. A repeated request is ignored rather than queued. The default is limited here to window scheduling; automation uses its separate save and target checks.",

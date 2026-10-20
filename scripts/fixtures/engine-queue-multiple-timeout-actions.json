@@ -1,0 +1,13 @@
+[
+  {
+    "name": "QA Queue multi-draft timeout root",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "var targets=Draft.query('', 'all').filter(function(item){return item.content==='Queue timeout target neutral' && item.uuid!==draft.uuid;});if(targets.length!==1){throw new Error('Create exactly one separate draft containing only Queue timeout target neutral.');}editor.setText('Queue source retained before timeout');draft.update();context.addSuccessParameter('root','must be discarded');app.queueAction(Action.find('QA Queue timeout child'),targets[0]);app.queueAction(Action.find('QA Queue must not run'),draft);"
+        }
+      }
+    ]
+  }
+]
