@@ -45,7 +45,7 @@ struct RunDraftActionIntent: AppIntent {
               let action = library.actions.first(where: { $0.name == name }) else { throw DraftlyError.message("The draft or action was not found.") }
         let output = try await AutomationActionExecution.run(action, noteID: note.id, library: library,
             models: AppController.shared.windows.allObjects, host: AppController.shared.makeActionHost())
-        guard output.report.result.succeeded else { throw DraftlyError.message(output.message.isEmpty ? "The action did not complete." : output.message) }
+        if let error = AutomationActionError.from(output.report, message: output.message) { throw error }
         return .result(value: output.message.isEmpty ? "Complete" : output.message)
     }
 }
