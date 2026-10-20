@@ -584,3 +584,10 @@ synthetic event from another app did not trigger capture; global delivery stays
 unverified with cause unresolved. See validation. Full regression passed 422 app
 and 419 core methods before the two final focused corrections; final focused
 checks and build passed. This does not close global shortcut acceptance.
+
+
+Global hotkey registration now uses fresh identities. Focused tests verify
+rejection of stale events and identity exhaustion; the build passed. Physical
+global delivery remains pending. Drafts After Success navigation was inspected:
+Create New Draft and Open Next Draft are the two choices. Draftly integration
+and behavior acceptance remain open.

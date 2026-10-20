@@ -8,7 +8,7 @@ final class GlobalHotKeys {
     private var registrations: [EventHotKeyRef] = []
     private var handler: EventHandlerRef?
     private var handlerStatus: OSStatus = noErr
-    private var names: [UInt32: String] = [:]
+    private var identities = GlobalHotKeyIdentity()
     var perform: (String) -> Void
     var changed: ([String: String]) -> Void
 
@@ -38,7 +38,7 @@ final class GlobalHotKeys {
             changed(errors)
             return
         }
-        for (offset, name) in GlobalShortcuts.names.enumerated() {
+        for name in GlobalShortcuts.names {
             let binding = CommandShortcuts.binding(name, configuration: configuration)
             guard !binding.key.isEmpty else { continue }
             if let error = GlobalShortcuts.conflict(name: name, binding: binding, configuration: configuration, actions: actions) {
@@ -49,33 +49,36 @@ final class GlobalHotKeys {
                 errors[name] = "Record this shortcut to identify its keyboard key."
                 continue
             }
-            let id = UInt32(offset + 1)
+            guard let id = identities.allocate() else {
+                errors[name] = "Global shortcut identities are exhausted. Restart Draftly."
+                continue
+            }
             var reference: EventHotKeyRef?
             let result = RegisterEventHotKey(keyCode, Self.carbonModifiers(binding.modifiers),
                 EventHotKeyID(signature: Self.signature, id: id), GetApplicationEventTarget(), 0, &reference)
             if result == noErr, let reference {
                 registrations.append(reference)
-                names[id] = name
+                identities.register(id, name: name)
             } else { errors[name] = "Shortcut unavailable (\(result)). Choose another shortcut." }
         }
         changed(errors)
     }
 
     func dispatch(_ id: UInt32) {
-        guard let name = names[id] else { return }
+        guard let name = identities.name(for: id) else { return }
         perform(name)
     }
 
     func suspend() {
         registrations.forEach { UnregisterEventHotKey($0) }
         registrations.removeAll()
-        names.removeAll()
+        identities.invalidate()
     }
 
     func stop() {
         registrations.forEach { UnregisterEventHotKey($0) }
         registrations.removeAll()
-        names.removeAll()
+        identities.invalidate()
         if let handler { RemoveEventHandler(handler) }
         handler = nil
     }

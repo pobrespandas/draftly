@@ -2807,3 +2807,31 @@ Capture Clipboard routing, system conflicts, focus-loss cancellation, and
 non-US keyboard layouts. The final handler-error and malformed-override changes
 were built and automatically tested after the native sequence; QA needs refresh
 before their native checks. Settings and global shortcut acceptance remain open.
+
+### Global shortcut event lifetime — 20 October 2026
+
+Implemented: each registration now receives a fresh process-local identity.
+Reload, recording suspension, and shutdown invalidate the active identity map.
+A Carbon callback queued before a reload cannot route through the replacement
+binding. Identity exhaustion reports an error instead of wrapping to an old ID.
+This fixes a lifetime risk found during review. It does not explain or close the
+separate failed synthetic delivery attempt from another app.
+
+Automatically tested: stale IDs stay inactive after replacement and suspension;
+an allocated but unregistered ID cannot route; the UInt32 limit cannot wrap.
+All three app mapping/lifetime methods and three core global shortcut methods
+passed. The unsigned Debug build passed. No test registers a system hotkey.
+Native physical delivery and late event acceptance remain pending. Refreshed QA
+before this identity change and left it open for a requested physical key check.
+The installed image does not yet contain this last lifetime correction.
+
+### After Success navigation reference — 20 October 2026
+
+Read-only inspection of Drafts General confirmed exactly two choices for When
+Action “After Success” Moves Draft: Create New Draft and Open Next Draft. Create
+New Draft is the current selection; this is not a verified factory default.
+Closed the menu and Settings without changing a value. Draftly has not connected
+this preference yet. Its integration must preserve script-selected drafts, final
+automation results, failed saves, and the agreed batch selection behavior. The
+current single and batch execution paths are separate; do not add navigation
+only to one path and claim full acceptance.
