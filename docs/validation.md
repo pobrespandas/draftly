@@ -3372,3 +3372,35 @@ instead of obsolete generic test strings. The old strings remain in history.
 Real iCloud Drive, persistent folder permissions, invalid-input variants, and
 comparison of factory forms with Drafts remain unaccepted. The Mac unlock
 question is still pending; no QA update or native check occurred this turn.
+
+
+### XML-RPC asynchronous transport — 20 October 2026
+
+Implemented: the async host now routes xmlrpc through awaited serialized HTTP
+transport, like http. It no longer falls through to the MainActor synchronous
+HTTP adapter. Shared request/response helpers keep the legacy XML conversion
+path consistent. Legacy execution retains its synchronous adapter. A private
+runner transport closure defaults to the existing async HTTP implementation and
+allows isolated tests without real network access.
+
+Three specific methods pass, including cancellation and timeout cases. They
+check POST/XML headers and escaped Unicode body, decoded output through both
+the serialized service and real JavaScript entry point, typed XMLRPCResponse,
+fault fields, HTTP failure, and malformed transport envelopes. A runtime thread
+check confirms the serialized service reaches transport off the main thread.
+The action test waits for the injected transport to start, allows a MainActor
+turn, then checks cancellation/timeout, transport cleanup, no later clipboard
+statement, unchanged source text, and release of the library execution gate.
+
+The initial full run expired short test host budgets before XML-RPC reached its
+transport. Reports confirmed typed timeouts. Test budgets now allow startup
+under suite concurrency; production limits are unchanged. Full regression then
+passed 435 app methods and 450 core methods. The unsigned Debug build and matrix
+structure passed. No before-change runtime test is claimed for this new service
+interface; source review established the previous synchronous dispatch gap.
+
+These tests use injected transport, not a server or a new URLSession stopLoading
+probe. Existing HTTP URLProtocol checks remain separate evidence. Real local
+server, native automation, date/binary mapping, CDATA, and complete XML grammar
+acceptance remain pending. XMLRPC.request now has a partial classification and
+specific evidence; its old generic reference remains in history.

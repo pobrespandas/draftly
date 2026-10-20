@@ -211,10 +211,7 @@ public enum APIValues {
             return Templates.render("[[date|\(format)]]", note: Note(), now: date)
         case "adjustDate": return APIValues.date(try ScriptUtilities.adjustDate(values))
         case "xmlrpc":
-            let body = try ScriptXMLRPC.requestBody(method: values["methodName"] as? String ?? "", params: values["params"] as? [Any] ?? [])
-            let response = ScriptHTTP.request(["url": values["url"] ?? "", "method": "POST", "headers": ["Content-Type": "text/xml; charset=utf-8"], "encoding": "raw", "data": body])
-            if response["success"] as? Bool != true { return ["success": false, "statusCode": response["statusCode"] ?? 0, "params": [], "error": response["error"] ?? "The XML-RPC HTTP request failed."] }
-            return ScriptXMLRPC.response(Data((response["responseText"] as? String ?? "").utf8), statusCode: response["statusCode"] as? Int ?? 0)
+            return ScriptXMLRPC.responseValue(ScriptHTTP.request(try ScriptXMLRPC.requestValues(values)))
         case "http": return ScriptHTTP.request(values)
         case "mustache": return try MustacheRenderer.render(values["template"] as? String ?? "", data: values["data"] ?? [:], escape: values["contentType"] as? String != "text", partials: values["partials"] as? [String: String] ?? [:])
         case "renderMarkdown":

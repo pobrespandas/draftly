@@ -134,8 +134,10 @@ import Foundation
                 guard activeSession?.id == request.executionID, bridgeStepID == request.stepID else { throw DraftlyError.message("The action was closed.") }
                 return try json(["value": result])
             }
-            if request.operation == "http" {
-                let response = await ScriptHTTP.requestSerialized(request.payload)
+            if request.operation == "http" || request.operation == "xmlrpc" {
+                let response = request.operation == "http"
+                    ? await httpTransport(request.payload)
+                    : await ScriptXMLRPC.requestSerialized(request.payload, transport: httpTransport)
                 try Task.checkCancellation()
                 try checkCancellation()
                 guard activeSession?.id == request.executionID, bridgeStepID == request.stepID else {

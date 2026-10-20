@@ -5,6 +5,7 @@ import Combine
 @MainActor
 public final class ActionRunner: ObservableObject {
     var markdownDefaults: UserDefaults = .standard
+    var httpTransport: @Sendable (String) async -> String = { await ScriptHTTP.requestSerialized($0) }
     private static var runningLibraries: Set<LibraryStore.ExecutionIdentity> = []
     public internal(set) var successParameters: [String: String] = [:]
     public let library: LibraryStore

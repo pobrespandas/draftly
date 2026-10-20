@@ -737,3 +737,10 @@ Instance factory methods coexist with the original static calls. The extended
 directory contract passes both runners, including defaults, escaping, missing
 files, and traversal rejection. Full app435/core447 and unsigned build passed.
 Three audited members remain partial pending their specific native checks.
+
+
+XML-RPC now uses awaited HTTP on the async route instead of MainActor RunLoop
+polling. Three methods cover wire conversion, actual JS response, fault/error
+values, injected transport cancellation/timeout, and gate cleanup. Full
+app435/core450, unsigned build, and matrix structure passed. Real server and
+native XML-RPC acceptance remain pending; the member is partial.

@@ -315,3 +315,12 @@ Template file reads still use the host. JSON conversion keeps prior value and
 Date behavior. The standalone Swift renderer and legacy host operation remain
 available. Automatic tests cover no-host rendering, timeout, and reuse after
 timeout. Native responsiveness and directory permission acceptance remain open.
+
+
+## XML-RPC asynchronous transport — 20 October 2026
+
+The async host awaits XML-RPC through the serialized HTTP transport. Request and
+response conversion share helpers with the legacy adapter. Cancellation and
+timeout retain their execution result and stop later steps. Injected transport
+tests cover cleanup and library gate release. Real server and native automation
+checks remain pending. The legacy route still uses its synchronous adapter.

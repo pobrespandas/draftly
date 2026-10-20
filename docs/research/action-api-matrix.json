@@ -10228,10 +10228,37 @@
             "request(url: string, methodName: string, params: any[]): XMLRPCResponse"
           ],
           "contract": "Make an XML-RPC request.",
-          "implementation": "implemented-partial",
-          "automatedTest": "XMLRPCTests; ActionAPITests.xmlrpcTransportFailureIsAnExplicitResponse",
+          "implementation": "shared-XML-contract-with-async-transport",
+          "automatedTest": {
+            "suite": "XMLRPCAsyncTests",
+            "test": "requestAndReplyUseTheSharedXMLContract"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "automatedTestHistory": [
+            "XMLRPCTests; ActionAPITests.xmlrpcTransportFailureIsAnExplicitResponse"
+          ],
+          "reviewDate": "2026-10-20",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/XMLRPC.swift",
+            "symbol": "requestSerialized / requestValues / responseValue"
+          },
+          "defaults": "The reference requires URL, method name, and parameters. Undocumented invalid-input defaults are not accepted.",
+          "result": "XMLRPCResponse with success, HTTP status, decoded parameters, or explicit failure/fault fields.",
+          "errors": "Transport envelope failures throw to the script. HTTP failures remain response values. Runner cancellation and timeout interrupt later script work.",
+          "limitations": [
+            "Real server and native automation acceptance remain pending. JavaScript date/binary mapping, CDATA, full malformed-response grammar, and remaining invalid-input contracts are not closed."
+          ],
+          "supportingTests": [
+            {
+              "suite": "XMLRPCAsyncTests",
+              "test": "faultsHTTPFailuresAndInvalidEnvelopesRemainExplicit"
+            },
+            {
+              "suite": "XMLRPCAsyncTests",
+              "test": "actionInterruptionCancelsTransportAndStopsLaterSteps"
+            }
+          ]
         }
       ]
     },
@@ -17283,6 +17310,10 @@
           "suite": "EngineBridgeReceiverIdentityTests",
           "test": "rejectedRequestCannotAffectTheActiveAction",
           "file": "Tests/DraftlyCoreTests/EngineBridgeIdentityTests.swift"
+        },
+        {
+          "suite": "XMLRPCAsyncTests",
+          "test": "actionInterruptionCancelsTransportAndStopsLaterSteps"
         }
       ],
       "nativeVerification": {

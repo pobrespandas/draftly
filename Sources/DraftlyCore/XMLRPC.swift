@@ -2,6 +2,42 @@ import Foundation
 import CoreFoundation
 
 public enum ScriptXMLRPC {
+    static func requestValues(_ values: [String: Any]) throws -> [String: Any] {
+        let body = try requestBody(method: values["methodName"] as? String ?? "", params: values["params"] as? [Any] ?? [])
+        return ["url": values["url"] ?? "", "method": "POST", "headers": ["Content-Type": "text/xml; charset=utf-8"], "encoding": "raw", "data": body]
+    }
+
+    static func responseValue(_ value: [String: Any]) -> [String: Any] {
+        guard value["success"] as? Bool == true else {
+            return ["success": false, "statusCode": value["statusCode"] ?? 0, "params": [], "error": value["error"] ?? "The XML-RPC HTTP request failed."]
+        }
+        return response(Data((value["responseText"] as? String ?? "").utf8), statusCode: value["statusCode"] as? Int ?? 0)
+    }
+
+    static func requestSerialized(_ payload: String,
+        transport: @Sendable (String) async -> String = { await ScriptHTTP.requestSerialized($0) }) async -> String {
+        let envelope: [String: Any]
+        do {
+            try Task.checkCancellation()
+            guard let values = try JSONSerialization.jsonObject(with: Data(payload.utf8)) as? [String: Any] else {
+                throw DraftlyError.message("The XML-RPC request payload must be an object.")
+            }
+            let request = String(decoding: try JSONSerialization.data(withJSONObject: requestValues(values)), as: UTF8.self)
+            let reply = await transport(request)
+            try Task.checkCancellation()
+            guard let response = try JSONSerialization.jsonObject(with: Data(reply.utf8)) as? [String: Any] else {
+                throw DraftlyError.message("The XML-RPC transport response is invalid.")
+            }
+            if let error = response["error"] as? String { throw DraftlyError.message(error) }
+            guard let value = response["value"] as? [String: Any] else {
+                throw DraftlyError.message("The XML-RPC transport response has no value.")
+            }
+            envelope = ["value": responseValue(value)]
+        } catch { envelope = ["error": error.localizedDescription] }
+        return (try? String(decoding: JSONSerialization.data(withJSONObject: envelope), as: UTF8.self))
+            ?? "{\"error\":\"The XML-RPC response could not be serialized.\"}"
+    }
+
     public static func requestBody(method: String, params: [Any]) throws -> String {
         "<?xml version=\"1.0\"?><methodCall><methodName>\(escape(method))</methodName><params>"
             + (try params.map { "<param>\(try encode($0))</param>" }.joined()) + "</params></methodCall>"
