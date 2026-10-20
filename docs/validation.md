@@ -1108,3 +1108,12 @@ errors, whitespace validation, and a local Xcode build with signing disabled.
 All 24 previous core operation names have typed routes. The matrix and original
 action fixtures are unchanged. No app was launched. Native, visual, cloud, and
 strict compatibility acceptance remain separate and pending as recorded.
+
+## Async HTTP transport — 20 October 2026
+
+ScriptHTTP now shares request construction and response conversion between the
+legacy adapter and an async URLSession transport. The new path cancels in-flight
+requests without RunLoop polling. Six isolated URLProtocol tests passed for
+Unicode JSON, status and headers, HTTP errors, network errors, malformed inputs,
+request encoding, authentication, and cancellation. No external network was used.
+Redirects and real socket acceptance remain pending.
