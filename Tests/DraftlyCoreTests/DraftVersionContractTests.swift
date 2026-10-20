@@ -39,9 +39,7 @@ import Testing
     }
 
     func action(_ script: String) -> DraftAction {
-        DraftAction(name: "Draft version contract", steps: [
-            ActionStep("script", ["script": "function check(value,label){if(!value)throw new Error(label);}\n" + script])
-        ])
+        ScriptTestAction.make(script, name: "Draft version contract")
     }
 
     func run(_ script: String) -> Bool { runner.run(action(script)) }

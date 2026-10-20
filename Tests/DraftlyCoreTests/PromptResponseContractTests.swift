@@ -22,18 +22,12 @@ import Testing
 @Suite("Prompt response contracts") @MainActor
 struct PromptResponseContractTests {
     private func setup(_ responses: [Any?]) throws -> (LibraryStore, PromptResponseHost, ActionRunner) {
-        let library = try LibraryStore(inMemory: true, seed: false), editor = EditorSession()
-        editor.load(try library.createNote(content: "Neutral prompt source 🐼"))
-        let host = PromptResponseHost(responses: responses)
-        return (library, host, ActionRunner(library: library, editor: editor, host: host))
+        let fixture = try ScriptTestFixture(content: "Neutral prompt source 🐼", host: PromptResponseHost(responses: responses))
+        return (fixture.library, fixture.host, fixture.runner)
     }
 
     private func action(_ script: String) -> DraftAction {
-        DraftAction(name: "Prompt response contract", steps: [ActionStep("script", ["script": """
-        function check(value,label){if(!value)throw new Error(label);}
-        function options(){return {key:'wrong',label:'Wrong',value:'Wrong value',kind:'switch',futureOption:{version:7}};}
-        \(script)
-        """])])
+        ScriptTestAction.make(script, name: "Prompt response contract", helpers: "function options(){return {key:'wrong',label:'Wrong',value:'Wrong value',kind:'switch',futureOption:{version:7}};}\n")
     }
 
     private func field(_ host: PromptResponseHost, named key: String) throws -> [String: Any] {

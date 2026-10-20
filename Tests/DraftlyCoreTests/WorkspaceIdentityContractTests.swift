@@ -56,28 +56,14 @@ struct WorkspaceIdentityContractTests {
         }
         #expect(library.workspaces == before)
     }
-    private struct Harness {
-        let library: LibraryStore
-        let host: WorkspaceLinkHost
-        let runner: ActionRunner
-    }
+    private typealias Harness = ScriptTestFixture<WorkspaceLinkHost>
 
     private func harness(library: LibraryStore? = nil) throws -> Harness {
-        let library = try library ?? LibraryStore(inMemory: true, seed: false)
-        let editor = EditorSession()
-        editor.load(try library.createNote(content: "Workspace link source"))
-        let host = WorkspaceLinkHost()
-        return Harness(library: library, host: host,
-                       runner: ActionRunner(library: library, editor: editor, host: host))
+        try ScriptTestFixture(content: "Workspace link source", host: WorkspaceLinkHost(), library: library)
     }
 
     private func run(_ script: String, in harness: Harness) {
-        let action = DraftAction(name: "Workspace identity contract", steps: [
-            ActionStep("script", ["script": """
-            function check(value, label) { if (!value) throw new Error(label); }
-            \(script)
-            """])
-        ])
+        let action = ScriptTestAction.make(script, name: "Workspace identity contract")
         #expect(harness.runner.run(action), Comment(rawValue: harness.runner.message ?? ""))
     }
 

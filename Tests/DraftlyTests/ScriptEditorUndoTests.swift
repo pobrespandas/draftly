@@ -10,7 +10,7 @@ struct ScriptEditorUndoTests {
         let previous = try model.library.createNote(content: "Previous draft")
         model.select(previous.id)
         let native = NativeEditor(session: model.editor, fontName: "System", fontSize: 17, lineSpacing: 2, markdown: false, onChange: {})
-        let coordinator = NativeEditor.Coordinator(native), text = UndoTextView(frame: .zero)
+        let coordinator = NativeEditor.Coordinator(native), text = TestUndoTextView(frame: .zero)
         text.string = previous.content; coordinator.textView = text; text.manager.groupsByEvent = false
         model.editor.synchronizeScriptEdit = {
             let changed = coordinator.noteID != model.editor.noteID
@@ -35,7 +35,7 @@ struct ScriptEditorUndoTests {
         let second = try store.createNote(content: "New 🐼 café")
         model.select(first.id)
         let native = NativeEditor(session: model.editor, fontName: "System", fontSize: 17, lineSpacing: 2, markdown: false, onChange: {})
-        let coordinator = NativeEditor.Coordinator(native), text = UndoTextView(frame: .zero)
+        let coordinator = NativeEditor.Coordinator(native), text = TestUndoTextView(frame: .zero)
         text.string = first.content; coordinator.textView = text; text.manager.groupsByEvent = false
         model.editor.synchronizeScriptEdit = {
             let changedNote = coordinator.noteID != model.editor.noteID
@@ -61,7 +61,7 @@ struct ScriptEditorUndoTests {
         let note = try model.library.createNote(content: "Original 🐼"); model.select(note.id)
         model.editor.selection = NSRange(location: 0, length: 8)
         let native = NativeEditor(session: model.editor, fontName: "SFMono-Regular", fontSize: 15, lineSpacing: 2, markdown: false, onChange: {})
-        let coordinator = NativeEditor.Coordinator(native), text = UndoTextView(frame: .zero)
+        let coordinator = NativeEditor.Coordinator(native), text = TestUndoTextView(frame: .zero)
         text.string = model.editor.content; text.setSelectedRange(model.editor.selection); coordinator.textView = text
         text.manager.groupsByEvent = false
         model.editor.synchronizeScriptEdit = { text.manager.beginUndoGrouping(); coordinator.synchronizeScriptEdit(); text.manager.endUndoGrouping() }
@@ -86,7 +86,7 @@ struct ScriptEditorUndoTests {
         let native = NativeEditor(session: model.editor, fontName: "SFMono-Regular", fontSize: 15,
                                   lineSpacing: 2, markdown: false, onChange: {})
         let coordinator = NativeEditor.Coordinator(native)
-        let text = UndoTextView(frame: .zero)
+        let text = TestUndoTextView(frame: .zero)
         text.string = model.editor.content; text.setSelectedRange(model.editor.selection)
         coordinator.textView = text
         model.editor.synchronizeScriptEdit = { text.manager.beginUndoGrouping(); coordinator.synchronizeScriptEdit(); text.manager.endUndoGrouping() }
@@ -105,9 +105,4 @@ struct ScriptEditorUndoTests {
         #expect(text.string == "Changed 🐼")
         #expect(store.notes.first { $0.id == note.id }?.content == "Changed 🐼")
     }
-}
-
-@MainActor private final class UndoTextView: NSTextView {
-    let manager = UndoManager()
-    override var undoManager: UndoManager? { manager }
 }

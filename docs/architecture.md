@@ -117,3 +117,12 @@ No package target, stored schema, backup format, or public scripting API changed
 No worker or runAsync was added. Visible UI, two-client CloudKit, and signed
 installation were not repeated. Those checks retain their previous pending
 status. Historical test totals elsewhere are not the current test inventory.
+
+## Test refactoring
+
+The scripting API tests now have eleven suites by API area. Shared setup, script
+builders, isolated preferences, and native Undo text views have test-only owners.
+Specialized hosts retain their own failure and callback policies. Three duplicate
+version cases were removed. The retained contract cases cover their assertions.
+See [test structure](testing.md) for the replacement map and background policy.
+Production code and package targets are unchanged.

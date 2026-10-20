@@ -28,7 +28,7 @@ import Testing
         runner = ActionRunner(library: library, editor: editor, host: host)
     }
     func action(_ script: String) -> DraftAction {
-        DraftAction(name: "Draft metadata contract", steps: [ActionStep("script", ["script": "function check(value,label){if(!value)throw new Error(label);}\n" + script])])
+        ScriptTestAction.make(script, name: "Draft metadata contract")
     }
     func run(_ script: String) -> Bool { runner.run(action(script)) }
 }

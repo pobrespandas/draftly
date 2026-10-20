@@ -5,9 +5,9 @@ import Testing
 @Suite("Markdown preferences")
 struct MarkdownPreferencesTests {
     @Test func enginesAndOptionsChangeTheRenderedOutputWithoutChangingTheInput() throws {
-        let name = "Draftly-MarkdownPreferences-\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: name))
-        defer { defaults.removePersistentDomain(forName: name) }
+        let preferences = try TestPreferences(prefix: "Draftly-MarkdownPreferences")
+        defer { preferences.close() }
+        let defaults = preferences.defaults
         let text = "\"Café 🐼\""
         let smart = try MarkdownPreferences.render(text, defaults: defaults)
         #expect(smart.contains("&#8220;Café 🐼&#8221;"), Comment(rawValue: smart))
@@ -24,8 +24,9 @@ struct MarkdownPreferencesTests {
     }
 
     @Test func multiMarkdownHeaderLabelsFollowTheSavedOption() throws {
-        let defaults = try isolatedDefaults()
-        defer { defaults.removePersistentDomain(forName: defaultsName(defaults)) }
+        let preferences = try TestPreferences()
+        defer { preferences.close() }
+        let defaults = preferences.defaults
         defaults.set(#"{"noLabels":false}"#, forKey: MarkdownPreferences.multiKey)
         #expect(try MarkdownPreferences.render("# Heading", defaults: defaults).contains("id=\"heading\""))
         defaults.set(#"{"noLabels":true}"#, forKey: MarkdownPreferences.multiKey)
@@ -33,8 +34,9 @@ struct MarkdownPreferencesTests {
     }
 
     @Test func githubHardBreaksAndSourcePositionsFollowSavedOptions() throws {
-        let defaults = try isolatedDefaults()
-        defer { defaults.removePersistentDomain(forName: defaultsName(defaults)) }
+        let preferences = try TestPreferences()
+        defer { preferences.close() }
+        let defaults = preferences.defaults
         defaults.set("github", forKey: MarkdownPreferences.engineKey)
         defaults.set(#"{"hardBreaks":true,"sourcePOS":true}"#, forKey: MarkdownPreferences.githubKey)
         let enabled = try MarkdownPreferences.render("One\nTwo", defaults: defaults)
@@ -46,8 +48,9 @@ struct MarkdownPreferencesTests {
     }
 
     @Test func githubSafeModeOverridesUnsafeAndRawHTMLRemainsExplicit() throws {
-        let defaults = try isolatedDefaults()
-        defer { defaults.removePersistentDomain(forName: defaultsName(defaults)) }
+        let preferences = try TestPreferences()
+        defer { preferences.close() }
+        let defaults = preferences.defaults
         defaults.set("github", forKey: MarkdownPreferences.engineKey)
         let input = "<div>Neutral HTML</div>"
         defaults.set(#"{"safe":true,"unsafe":true}"#, forKey: MarkdownPreferences.githubKey)
@@ -56,20 +59,10 @@ struct MarkdownPreferencesTests {
         #expect(try MarkdownPreferences.render(input, defaults: defaults).contains(input))
     }
 
-    private func isolatedDefaults() throws -> UserDefaults {
-        let name = "Draftly-MarkdownOptions-\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: name))
-        defaults.set(name, forKey: "testSuiteName")
-        return defaults
-    }
-
-    private func defaultsName(_ defaults: UserDefaults) -> String {
-        defaults.string(forKey: "testSuiteName")!
-    }
-
     @Test func configuredTemplatesUsePreferencesForDirectAndIncludedMarkdown() throws {
-        let defaults = try isolatedDefaults()
-        defer { defaults.removePersistentDomain(forName: defaultsName(defaults)) }
+        let preferences = try TestPreferences()
+        defer { preferences.close() }
+        let defaults = preferences.defaults
         defaults.set("github", forKey: MarkdownPreferences.engineKey)
         defaults.set(#"{"strikethrough":true,"sourcePOS":false}"#, forKey: MarkdownPreferences.githubKey)
         let note = Note(content: "~~Café 🐼~~")

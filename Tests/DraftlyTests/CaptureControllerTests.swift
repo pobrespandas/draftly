@@ -153,7 +153,7 @@ struct CaptureControllerTests {
             let model = WindowModel(library: library); model.select(note.id)
             let native = NativeEditor(session: model.editor, fontName: "System", fontSize: 17,
                                       lineSpacing: 2, markdown: false, onChange: { model.contentChanged() })
-            let coordinator = NativeEditor.Coordinator(native), text = CaptureUndoTextView(frame: .zero)
+            let coordinator = NativeEditor.Coordinator(native), text = TestUndoTextView(frame: .zero)
             text.string = model.editor.content; coordinator.textView = text; coordinator.noteID = note.id
             text.manager.groupsByEvent = false
             model.editor.synchronizeScriptEdit = {
@@ -248,9 +248,4 @@ struct CaptureControllerTests {
             }
         }
     }
-}
-
-@MainActor private final class CaptureUndoTextView: NSTextView {
-    let manager = UndoManager()
-    override var undoManager: UndoManager? { manager }
 }

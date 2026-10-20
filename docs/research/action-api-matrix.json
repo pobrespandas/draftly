@@ -26,7 +26,7 @@
           "contract": "Array of versions representing the entire saved version history for this draft.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "DraftActionAPITests",
             "test": "draftConveniencesMetadataAndTemplateContracts"
           },
           "liveCheck": null,
@@ -160,7 +160,7 @@
           "contract": "Deprecateduse syntax property.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "DraftActionAPITests",
             "test": "draftMetadataDatesSyntaxAndQueriesRoundTrip"
           },
           "liveCheck": null,
@@ -192,7 +192,7 @@
           "contract": "Deprecateduse Tag.recentTags() instead.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "DraftActionAPITests",
             "test": "draftConveniencesMetadataAndTemplateContracts"
           },
           "liveCheck": null,
@@ -224,7 +224,7 @@
           "contract": "Convenience method to return the linked items in the content, as located by the syntax definitions' linkDefinitions. In Markdown syntaxes, these map to [[wiki-style]] cross-links.",
           "implementation": "partial-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "DraftActionAPITests",
             "test": "draftConveniencesMetadataAndTemplateContracts"
           },
           "liveCheck": null,
@@ -475,7 +475,7 @@
           "contract": "Array of navigation markers in the content. Navigation markers are defined by the syntax definition assigned to the draft, and are used in the Navigation feature.",
           "implementation": "partial-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "DraftActionAPITests",
             "test": "draftConveniencesMetadataAndTemplateContracts"
           },
           "liveCheck": null,
@@ -522,7 +522,7 @@
           "contract": "The next navigation marker in the content, relative to the character location. This is a convenience method to assist in navigating by marker.",
           "implementation": "partial-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "DraftActionAPITests",
             "test": "draftConveniencesMetadataAndTemplateContracts"
           },
           "liveCheck": null,
@@ -569,7 +569,7 @@
           "contract": "The previous navigation marker in the content, relative to the character location. This is a convenience method to assist in navigating by marker.",
           "implementation": "partial-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "DraftActionAPITests",
             "test": "draftConveniencesMetadataAndTemplateContracts"
           },
           "liveCheck": null,
@@ -1028,7 +1028,7 @@
           "contract": "The lines of content separated into an array on \\n line feeds. This is a convenience method an equivalent to content.split('\\n');",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "DraftActionAPITests",
             "test": "draftLinesUsesLiteralLineFeedIncludingEmptyLines"
           },
           "liveCheck": null,
@@ -1046,14 +1046,14 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "DraftActionAPITests",
                 "test": "draftLinesUsesLiteralLineFeedIncludingEmptyLines"
               },
               "assertion": "The array is equivalent to content.split on a literal line feed, including empty trailing lines and retained carriage returns."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "DraftActionAPITests",
                 "test": "draftLinesUsesLiteralLineFeedIncludingEmptyLines"
               },
               "assertion": "Empty content returns one empty line."
@@ -1132,7 +1132,7 @@
           "contract": "The length of the last text selection.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "SyntaxActionAPITests",
             "test": "editorLinksAndMarkersExposeTheDocumentedFields"
           },
           "liveCheck": null,
@@ -1164,7 +1164,7 @@
           "contract": "The index location in the string of the beginning of the last text selection.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "SyntaxActionAPITests",
             "test": "editorLinksAndMarkersExposeTheDocumentedFields"
           },
           "liveCheck": null,
@@ -1196,7 +1196,7 @@
           "contract": "The syntax definition used when displaying this draft in the editor.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "DraftActionAPITests",
             "test": "draftMetadataDatesSyntaxAndQueriesRoundTrip"
           },
           "liveCheck": null,
@@ -1284,7 +1284,7 @@
           "contract": "Convenience method to scan the draft content for valid URLs, and return all found URLs as an array. This will return valid full URL strings - both for http(s) and custom URLs found in the text.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "SyntaxActionAPITests",
             "test": "editorLinksAndMarkersExposeTheDocumentedFields"
           },
           "liveCheck": null,
@@ -1368,7 +1368,7 @@
           "contract": "Append text to the end of the draft's content. This is a convenience function.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "DraftActionAPITests",
             "test": "draftAppendUsesLineFeedOrExplicitSeparatorAndReturnsVoid"
           },
           "liveCheck": null,
@@ -1386,14 +1386,14 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "DraftActionAPITests",
                 "test": "draftAppendUsesLineFeedOrExplicitSeparatorAndReturnsVoid"
               },
               "assertion": "Append uses a line feed by default, honors explicit and empty separators, and returns undefined."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "DraftActionAPITests",
                 "test": "draftAppendUsesLineFeedOrExplicitSeparatorAndReturnsVoid"
               },
               "assertion": "separator defaults to one line feed."
@@ -1419,7 +1419,7 @@
           "contract": "Return the a trimmed display version of the \"body\" of the draft (content after first line), similar to what is displayed as a preview in the draft list._",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "DraftActionAPITests",
             "test": "draftBodyPreviewExcludesTitleTrimsAndLimitsLength"
           },
           "liveCheck": null,
@@ -1437,14 +1437,14 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "DraftActionAPITests",
                 "test": "draftBodyPreviewExcludesTitleTrimsAndLimitsLength"
               },
               "assertion": "The title is excluded, body lines are flattened and trimmed, and maxLength limits output. Empty bodies return an empty string."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "DraftActionAPITests",
                 "test": "draftBodyPreviewExcludesTitleTrimsAndLimitsLength"
               },
               "assertion": "maxLength is required. Zero returns an empty preview."
@@ -1470,7 +1470,7 @@
           "contract": "Insert text into the draft's content at the line indicated. This is a convenience function.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "DraftActionAPITests",
             "test": "draftInsertUsesZeroBasedLinesAndClampsOutsideIndices"
           },
           "liveCheck": null,
@@ -1490,14 +1490,14 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "DraftActionAPITests",
                 "test": "draftInsertUsesZeroBasedLinesAndClampsOutsideIndices"
               },
               "assertion": "Insertion uses zero-based lines and returns undefined. Draftly clamps out-of-range indices."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "DraftActionAPITests",
                 "test": "draftInsertUsesZeroBasedLinesAndClampsOutsideIndices"
               },
               "assertion": "No optional input arguments."
@@ -1523,7 +1523,7 @@
           "contract": "Convenience method to filter lines of a draft, returning only the lines that begin with a certain string.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "DraftActionAPITests",
             "test": "draftLinesWithPrefixUsesCaseSensitiveLiteralPrefixes"
           },
           "liveCheck": null,
@@ -1541,14 +1541,14 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "DraftActionAPITests",
                 "test": "draftLinesWithPrefixUsesCaseSensitiveLiteralPrefixes"
               },
               "assertion": "Matching is literal, case-sensitive, and anchored at line start; an empty prefix matches all lines."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "DraftActionAPITests",
                 "test": "draftLinesWithPrefixUsesCaseSensitiveLiteralPrefixes"
               },
               "assertion": "No optional input arguments."
@@ -1574,7 +1574,7 @@
           "contract": "Prepend text to the beginning of the draft's content. This is a convenience function.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "DraftActionAPITests",
             "test": "draftPrependUsesLineFeedOrExplicitSeparatorAndReturnsVoid"
           },
           "liveCheck": null,
@@ -1592,14 +1592,14 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "DraftActionAPITests",
                 "test": "draftPrependUsesLineFeedOrExplicitSeparatorAndReturnsVoid"
               },
               "assertion": "Prepend uses a line feed by default, honors explicit and empty separators, and returns undefined."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "DraftActionAPITests",
                 "test": "draftPrependUsesLineFeedOrExplicitSeparatorAndReturnsVoid"
               },
               "assertion": "separator defaults to one line feed."
@@ -1902,7 +1902,7 @@
             "implementation": "Persisted optional access dates; unknown values sort last in both directions. Queries do not record access.",
             "automatedTests": [
               {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "accessedQueriesPersistWorkspaceAndOnlyEditorLoadsRecordAccess"
               },
               {
@@ -2041,7 +2041,7 @@
           "contract": "Array of string tag names assigned.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "DraftActionAPITests",
             "test": "draftTagsPersistNormalizedValuesWithoutImplicitSaving"
           },
           "liveCheck": null,
@@ -2077,7 +2077,7 @@
           "contract": "Assign a tag",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "DraftActionAPITests",
             "test": "draftAddTagNormalizesUnicodeAndAvoidsDuplicates"
           },
           "liveCheck": null,
@@ -2095,7 +2095,7 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "DraftActionAPITests",
                 "test": "draftAddTagNormalizesUnicodeAndAvoidsDuplicates"
               },
               "assertion": "Assigns Unicode and hierarchical tags; returns undefined; normalizes NFC, whitespace and case; does not add duplicates or empty tags."
@@ -2124,7 +2124,7 @@
           "contract": "Check whether a tag is currently assigned to the draft.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "DraftActionAPITests",
             "test": "draftHasTagUsesNormalizedExactNames"
           },
           "liveCheck": null,
@@ -2142,7 +2142,7 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "DraftActionAPITests",
                 "test": "draftHasTagUsesNormalizedExactNames"
               },
               "assertion": "Returns boolean false for empty/absent tags and parent names; returns true for an exact hierarchical tag or a normalized Unicode name."
@@ -2171,7 +2171,7 @@
           "contract": "Remove a tag if it is assigned to the draft.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "DraftActionAPITests",
             "test": "draftRemoveTagRemovesOnlyNormalizedMatchesAndReturnsVoid"
           },
           "liveCheck": null,
@@ -2189,7 +2189,7 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "DraftActionAPITests",
                 "test": "draftRemoveTagRemovesOnlyNormalizedMatchesAndReturnsVoid"
               },
               "assertion": "Returns undefined; removes matching Unicode/case variants; preserves other tags; removing an absent tag is a no-op."
@@ -2218,7 +2218,7 @@
           "contract": "Array of completed task lines found in the content of the draft, based on active syntax definition for the draft. See Task documentation for usage details.",
           "implementation": "partial-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "DraftActionAPITests",
             "test": "draftConveniencesMetadataAndTemplateContracts"
           },
           "liveCheck": null,
@@ -2265,7 +2265,7 @@
           "contract": "Array of incomplete task lines found in the content of the draft, based on active syntax definition for the draft. See Task documentation for usage details.",
           "implementation": "partial-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "DraftActionAPITests",
             "test": "draftConveniencesMetadataAndTemplateContracts"
           },
           "liveCheck": null,
@@ -2312,7 +2312,7 @@
           "contract": "Array of task lines found in the content of the draft, based on active syntax definition for the draft. See Task documentation for usage details. Includes all found tasks, regardless of status.",
           "implementation": "partial-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "DraftActionAPITests",
             "test": "draftConveniencesMetadataAndTemplateContracts"
           },
           "liveCheck": null,
@@ -2359,7 +2359,7 @@
           "contract": "Update the text representing the task to a next valid state as defined by syntax. If this task has only two states, this is effectively a toggle, if more than two states exist, the next state will be set, including cycling around to the initial state. Note that the task object is not updated to reflect changes made.",
           "implementation": "partial-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "DraftActionAPITests",
             "test": "draftConveniencesMetadataAndTemplateContracts"
           },
           "liveCheck": null,
@@ -2406,7 +2406,7 @@
           "contract": "Update the text representing the task to a completed state as defined by syntax. Note that the task object is not updated to reflect changes made.",
           "implementation": "partial-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "DraftActionAPITests",
             "test": "draftConveniencesMetadataAndTemplateContracts"
           },
           "liveCheck": null,
@@ -2453,7 +2453,7 @@
           "contract": "Update the text representing the task to a initial state as defined by syntax. Note that the task object is not updated to reflect changes made.",
           "implementation": "partial-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "DraftActionAPITests",
             "test": "draftConveniencesMetadataAndTemplateContracts"
           },
           "liveCheck": null,
@@ -2500,7 +2500,7 @@
           "contract": "Get the current value of a custom template tag.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "DraftActionAPITests",
             "test": "draftConveniencesMetadataAndTemplateContracts"
           },
           "liveCheck": null,
@@ -2532,7 +2532,7 @@
           "contract": "Runs the template string through the Mustache template engine to evaluate tags. Allows additional values and partials to be provided to the context.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "DraftActionAPITests",
             "test": "draftConveniencesMetadataAndTemplateContracts"
           },
           "liveCheck": null,
@@ -2564,7 +2564,7 @@
           "contract": "Runs the template string through the Drafts Template engine to evaluate tags.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "DraftActionAPITests",
             "test": "draftConveniencesMetadataAndTemplateContracts"
           },
           "liveCheck": null,
@@ -2605,7 +2605,7 @@
           "contract": "Set a custom template tag value for use in templates. For example, calling setTemplateTag(\"mytag\", \"mytext\") will create a tag [[mytag]], which subsequent action steps in the same action can use in their templates. These values are also available in Mustache templates, but as {{mytag}}.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "DraftActionAPITests",
             "test": "draftConveniencesMetadataAndTemplateContracts"
           },
           "liveCheck": null,
@@ -2769,7 +2769,7 @@
           "contract": "Is editor current focused for editing.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorInterfaceMembersDelegateWithoutLosingArguments"
           },
           "liveCheck": null,
@@ -2801,7 +2801,7 @@
           "contract": "Access or set current link mode status.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorInterfaceMembersDelegateWithoutLosingArguments"
           },
           "liveCheck": null,
@@ -2833,7 +2833,7 @@
           "contract": "Access or set current pinning status for editor.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorInterfaceMembersDelegateWithoutLosingArguments"
           },
           "liveCheck": null,
@@ -2865,7 +2865,7 @@
           "contract": "Returns the current tab string is use. This could be 2 spaces, 4 spaces, or \\t depending on the editor preferences for the current syntax. Useful in actions, such as indent/outdent actions, which need to insert or remove indentation and want to match the options of the current syntax.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorInterfaceMembersDelegateWithoutLosingArguments"
           },
           "liveCheck": null,
@@ -2897,7 +2897,7 @@
           "contract": "Array of recent drafts. This is the same list as used in the navigation features of the editor, and is in reverse order, so that the first index in the array is the previous draft loaded in the editor.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "DraftActionAPITests",
             "test": "draftConveniencesMetadataAndTemplateContracts"
           },
           "liveCheck": null,
@@ -2929,7 +2929,7 @@
           "contract": "Access or set current typewriter scrolling status.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorInterfaceMembersDelegateWithoutLosingArguments"
           },
           "liveCheck": null,
@@ -2961,7 +2961,7 @@
           "contract": "Request focus for the editor. This will dismiss other views and show the keyboard on the currently loaded draft. Useful if an action opens user interface elements or otherwise causes the editor to resign focus and you would like to return to editing at the end of the action's execution.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorInterfaceMembersDelegateWithoutLosingArguments"
           },
           "liveCheck": null,
@@ -2993,7 +2993,7 @@
           "contract": "Opens the arrange mode view with the passed text for arranging. Returns the arranged text if the user makes changes and taps \"Done\", the original text if the user cancels.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorInterfaceMembersDelegateWithoutLosingArguments"
           },
           "liveCheck": null,
@@ -3025,7 +3025,7 @@
           "contract": "Resign focus for the editor. If the editor text view is currently focused for editing (e.g. showing keyboard), resign focus.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorInterfaceMembersDelegateWithoutLosingArguments"
           },
           "liveCheck": null,
@@ -3057,7 +3057,7 @@
           "contract": "Open dictation interface, and return the result as a string. The string will be empty if user cancels.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorInterfaceMembersDelegateWithoutLosingArguments"
           },
           "liveCheck": null,
@@ -3123,7 +3123,7 @@
             },
             "errors": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "EditorActionAPITests",
                 "test": "editorLoadRejectsUnsavedDraftWithoutChangingTheCurrentDraft"
               },
               "assertion": "An unsaved draft fails with an explicit message and preserves the current identity and content."
@@ -3135,7 +3135,7 @@
             "evidence": "docs/research/screenshots/three-core-contracts-2026-10-19/action.json; native-result.png; passed.txt. The first live pass exposed stale native undo state. After correction, the repeated action passed loading, edit, undo, and redo."
           },
           "saveFailureTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorLoadSaveFailureKeepsPendingTextAndDoesNotOpenTheTarget",
             "assertion": "A failed pending save preserves current draft identity and unsaved Unicode text and does not change the target."
           }
@@ -3152,7 +3152,7 @@
           "contract": "Creates a new blank draft and loads it into the editor.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorNewReturnsVoidAndPreservesThePreviousDraft"
           },
           "liveCheck": null,
@@ -3170,7 +3170,7 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "EditorActionAPITests",
                 "test": "editorNewReturnsVoidAndPreservesThePreviousDraft"
               },
               "assertion": "Returns undefined, saves previous text/selection, opens a new empty Inbox draft and synchronizes the native undo state."
@@ -3180,7 +3180,7 @@
             },
             "errors": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "EditorActionAPITests",
                 "test": "editorNewSaveFailureKeepsTheCurrentDraftAndPendingText"
               },
               "assertion": "A failed prior save retains current identity and pending text; no new draft is created."
@@ -3218,7 +3218,7 @@
           "contract": "Load next draft in draft list in editor.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorInterfaceMembersDelegateWithoutLosingArguments"
           },
           "liveCheck": null,
@@ -3250,7 +3250,7 @@
           "contract": "Load previous draft in draft list in editor.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorInterfaceMembersDelegateWithoutLosingArguments"
           },
           "liveCheck": null,
@@ -3314,7 +3314,7 @@
           "contract": "Save any current changes to the draft.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorSaveReturnsVoidAndPreservesPendingTextOnFailure"
           },
           "liveCheck": null,
@@ -3332,7 +3332,7 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "EditorActionAPITests",
                 "test": "editorSaveReturnsVoidAndPreservesPendingTextOnFailure"
               },
               "assertion": "Returns undefined after saving pending text and selection; a failure preserves unsaved text and stops later statements."
@@ -3411,7 +3411,7 @@
           "contract": "Open arrange mode in editor. This is a non-blocking method and returns immediately. It is intended only to mimic the tapping of the arrange button. Use editor.arrange(text) to wait for a result.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorInterfaceMembersDelegateWithoutLosingArguments"
           },
           "liveCheck": null,
@@ -3443,7 +3443,7 @@
           "contract": "Open dictation mode in editor. This is a non-blocking method and returns immediately. It is intended only to mimic the tapping of the dictate button. Use editor.dictate() to wait for a result and use it in further scripting.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorInterfaceMembersDelegateWithoutLosingArguments"
           },
           "liveCheck": null,
@@ -3476,7 +3476,7 @@
           "contract": "Open find mode in editor.",
           "implementation": "partial-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorInterfaceMembersDelegateWithoutLosingArguments"
           },
           "liveCheck": null,
@@ -3528,7 +3528,7 @@
           "contract": "Open Opens audio transcription window. If file is selected and transcribed, returns text.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorInterfaceMembersDelegateWithoutLosingArguments"
           },
           "liveCheck": null,
@@ -3598,7 +3598,7 @@
           "contract": "Deprecatedreplaced by pinningEnabled.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorInterfaceMembersDelegateWithoutLosingArguments"
           },
           "liveCheck": null,
@@ -3630,7 +3630,7 @@
           "contract": "The Draft object currently loaded in the editor.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorMutationsKeepCachedDraftAndUnicodeRangesCoherent"
           },
           "liveCheck": null,
@@ -3662,7 +3662,7 @@
           "contract": "Convenience method to return the linked items in the text, as located by the syntax definitions' linkDefinitions. In Markdown syntaxes, these map to [[wiki-style]] cross-links.",
           "implementation": "partial-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "SyntaxActionAPITests",
             "test": "editorLinksAndMarkersExposeTheDocumentedFields"
           },
           "liveCheck": null,
@@ -3709,7 +3709,7 @@
           "contract": "Array of navigation markers in the text. Navigation markers are defined by the syntax definition in use in the editor, and are used in the Navigation feature.",
           "implementation": "partial-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorMutationsKeepCachedDraftAndUnicodeRangesCoherent"
           },
           "liveCheck": null,
@@ -3756,7 +3756,7 @@
           "contract": "Convenience method to scan the text for valid URLs, and return all found URLs as an array. This will return valid full URL strings - both for http(s) and custom URLs found in the text.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "SyntaxActionAPITests",
             "test": "editorLinksAndMarkersExposeTheDocumentedFields"
           },
           "liveCheck": null,
@@ -3788,7 +3788,7 @@
           "contract": "Expand the range provided to the nearest beginning and end of the lines it encompasses.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorGetLineRangeMatchesNativeUTF16Boundaries"
           },
           "liveCheck": null,
@@ -3806,21 +3806,21 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "EditorActionAPITests",
                 "test": "editorGetLineRangeMatchesNativeUTF16Boundaries"
               },
               "assertion": "UTF-16 ranges expand to native line boundaries for empty content, LF, CR, CRLF, Unicode separators, and end positions."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "EditorActionAPITests",
                 "test": "editorGetLineRangeMatchesNativeUTF16Boundaries"
               },
               "assertion": "Draftly also accepts omitted length as zero; the archived signature lists both arguments."
             },
             "errors": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "EditorActionAPITests",
                 "test": "invalidRangesAndQueriesFailWithoutChangingTheEditor"
               },
               "assertion": "Negative, fractional, nonnumeric, nonfinite, and out-of-bounds ranges throw RangeError without changing editor text."
@@ -3844,7 +3844,7 @@
           "contract": "Get the current selected text range extended to the beginning and end of the lines it encompasses.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorGetSelectedLineRangeUsesCurrentSelectionAndPreservesIt"
           },
           "liveCheck": null,
@@ -3862,14 +3862,14 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "EditorActionAPITests",
                 "test": "editorGetSelectedLineRangeUsesCurrentSelectionAndPreservesIt"
               },
               "assertion": "The selected UTF-16 range expands across a CRLF line without changing selection or content."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "EditorActionAPITests",
                 "test": "editorGetSelectedLineRangeUsesCurrentSelectionAndPreservesIt"
               },
               "assertion": "No input arguments. It uses the current selection."
@@ -3896,7 +3896,7 @@
           "contract": "Get text range that was last selected.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorGetSelectedRangeReturnsACopyInUTF16Units"
           },
           "liveCheck": null,
@@ -3914,14 +3914,14 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "EditorActionAPITests",
                 "test": "editorGetSelectedRangeReturnsACopyInUTF16Units"
               },
               "assertion": "The result is an independent two-number UTF-16 range, including empty end selection."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "EditorActionAPITests",
                 "test": "editorGetSelectedRangeReturnsACopyInUTF16Units"
               },
               "assertion": "No input arguments. It uses the current selection."
@@ -3948,7 +3948,7 @@
           "contract": "Get text range that was last selected.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorGetSelectedTextReturnsUnicodeAndEmptySelection"
           },
           "liveCheck": null,
@@ -3966,14 +3966,14 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "EditorActionAPITests",
                 "test": "editorGetSelectedTextReturnsUnicodeAndEmptySelection"
               },
               "assertion": "Emoji and accented selected text are returned unchanged; an empty selection returns an empty string."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "EditorActionAPITests",
                 "test": "editorGetSelectedTextReturnsUnicodeAndEmptySelection"
               },
               "assertion": "No input arguments. It uses the current selection."
@@ -4000,7 +4000,7 @@
           "contract": "Get the full text currently loaded in the editor.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorGetTextReturnsCurrentUnicodeContentIncludingEmptyText"
           },
           "liveCheck": null,
@@ -4018,7 +4018,7 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "EditorActionAPITests",
                 "test": "editorGetTextReturnsCurrentUnicodeContentIncludingEmptyText"
               },
               "assertion": "Returns exact current Unicode and CRLF text, including an empty string."
@@ -4048,7 +4048,7 @@
           "contract": "Get the substring in a range from the text in the editor.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorGetTextInRangeReturnsExactUTF16SubstringsWithoutChangingSelection"
           },
           "liveCheck": null,
@@ -4066,7 +4066,7 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "EditorActionAPITests",
                 "test": "editorGetTextInRangeReturnsExactUTF16SubstringsWithoutChangingSelection"
               },
               "assertion": "Returns the exact UTF-16 substring and preserves selection; an empty end range returns an empty string."
@@ -4076,7 +4076,7 @@
             },
             "errors": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "EditorActionAPITests",
                 "test": "editorGetTextInRangeReturnsExactUTF16SubstringsWithoutChangingSelection"
               },
               "assertion": "Invalid UTF-16 ranges throw RangeError without changing text or selection."
@@ -4100,7 +4100,7 @@
           "contract": "The next navigation marker in the editor, relative to the character location. This is a convenience method to assist in navigating by marker.",
           "implementation": "partial-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "SyntaxActionAPITests",
             "test": "editorLinksAndMarkersExposeTheDocumentedFields"
           },
           "liveCheck": null,
@@ -4147,7 +4147,7 @@
           "contract": "The previous navigation marker in the editor, relative to the character location. This is a convenience method to assist in navigating by marker.",
           "implementation": "partial-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "SyntaxActionAPITests",
             "test": "editorLinksAndMarkersExposeTheDocumentedFields"
           },
           "liveCheck": null,
@@ -4194,7 +4194,7 @@
           "contract": "Update the text selection in the editor by passing the start location and the length of the new selection.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorSetSelectedRangeReturnsVoidAndRejectsInvalidUTF16Ranges"
           },
           "liveCheck": null,
@@ -4212,7 +4212,7 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "EditorActionAPITests",
                 "test": "editorSetSelectedRangeReturnsVoidAndRejectsInvalidUTF16Ranges"
               },
               "assertion": "Returns undefined, sets the UTF-16 selection, and preserves it on invalid input."
@@ -4222,7 +4222,7 @@
             },
             "errors": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "EditorActionAPITests",
                 "test": "editorSetSelectedRangeReturnsVoidAndRejectsInvalidUTF16Ranges"
               },
               "assertion": "Invalid UTF-16 ranges throw RangeError without changing text or selection."
@@ -4246,7 +4246,7 @@
           "contract": "Replace the contents of the last text selection with a string.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorSetSelectedTextReturnsVoidAndUpdatesCachedDraftAndStorage"
           },
           "liveCheck": null,
@@ -4264,7 +4264,7 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "EditorActionAPITests",
                 "test": "editorSetSelectedTextReturnsVoidAndUpdatesCachedDraftAndStorage"
               },
               "assertion": "Returns undefined, replaces the Unicode selection, updates the cache and storage, and moves the cursor."
@@ -4305,7 +4305,7 @@
           "contract": "Replace the contents of the editor with a string.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorSetTextReturnsVoidAndUpdatesAllCurrentReferences"
           },
           "liveCheck": null,
@@ -4323,7 +4323,7 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "EditorActionAPITests",
                 "test": "editorSetTextReturnsVoidAndUpdatesAllCurrentReferences"
               },
               "assertion": "Returns undefined, immediately updates cached/current content and storage, and clamps selection after shorter or empty text."
@@ -4364,7 +4364,7 @@
           "contract": "Replace the text in the passed range with new text.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorSetTextInRangeReturnsVoidAndRejectsInvalidRanges"
           },
           "liveCheck": null,
@@ -4382,7 +4382,7 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "EditorActionAPITests",
                 "test": "editorSetTextInRangeReturnsVoidAndRejectsInvalidRanges"
               },
               "assertion": "Returns undefined, replaces the UTF-16 range, updates current references and places the cursor after inserted text."
@@ -4392,7 +4392,7 @@
             },
             "errors": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "EditorActionAPITests",
                 "test": "editorSetTextInRangeReturnsVoidAndRejectsInvalidRanges"
               },
               "assertion": "Invalid UTF-16 ranges throw RangeError without changing text or selection."
@@ -4430,7 +4430,7 @@
           "contract": "Array of completed task lines found in the content, based on active syntax definition for the draft. See Task documentation for usage details.",
           "implementation": "partial-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorMutationsKeepCachedDraftAndUnicodeRangesCoherent"
           },
           "liveCheck": null,
@@ -4477,7 +4477,7 @@
           "contract": "Array of incomplete task lines found in the content, based on active syntax definition for the draft. See Task documentation for usage details.",
           "implementation": "partial-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorMutationsKeepCachedDraftAndUnicodeRangesCoherent"
           },
           "liveCheck": null,
@@ -4524,7 +4524,7 @@
           "contract": "Array of task lines found in the content, based on active syntax definition for the draft. See Task documentation for usage details. Includes all found tasks, regardless of status.",
           "implementation": "partial-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorMutationsKeepCachedDraftAndUnicodeRangesCoherent"
           },
           "liveCheck": null,
@@ -4571,7 +4571,7 @@
           "contract": "Update the text representing the task to a next valid state as defined by syntax. If this task has only two states, this is effectively a toggle, if more than two states exist, the next state will be set, including cycling around to the initial state. Note that the task object is not updated to reflect changes made.",
           "implementation": "partial-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorMutationsKeepCachedDraftAndUnicodeRangesCoherent"
           },
           "liveCheck": null,
@@ -4618,7 +4618,7 @@
           "contract": "Update the text representing the task to a completed state as defined by syntax. Note that the task object is not updated to reflect changes made.",
           "implementation": "partial-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorMutationsKeepCachedDraftAndUnicodeRangesCoherent"
           },
           "liveCheck": null,
@@ -4665,7 +4665,7 @@
           "contract": "Update the text representing the task to a initial state as defined by syntax. Note that the task object is not updated to reflect changes made.",
           "implementation": "partial-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "editorMutationsKeepCachedDraftAndUnicodeRangesCoherent"
           },
           "liveCheck": null,
@@ -4726,7 +4726,7 @@
           "contract": "Should flagged drafts be included in archive.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "WorkspaceActionAPITests",
             "test": "workspaceArchiveIncludesFlaggedOnlyChangesArchiveResults"
           },
           "liveCheck": null,
@@ -4744,14 +4744,14 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceArchiveIncludesFlaggedOnlyChangesArchiveResults"
               },
               "assertion": "A false value removes flagged drafts only from Archive; the property persists."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceArchiveIncludesFlaggedOnlyChangesArchiveResults"
               },
               "assertion": "The test checks the Draftly default before changing the value."
@@ -4778,7 +4778,7 @@
           "contract": "Should flagged drafts be included in inbox.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "WorkspaceActionAPITests",
             "test": "workspaceInboxIncludesFlaggedOnlyChangesInboxResults"
           },
           "liveCheck": null,
@@ -4796,14 +4796,14 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceInboxIncludesFlaggedOnlyChangesInboxResults"
               },
               "assertion": "A false value removes flagged drafts only from Inbox; the property persists."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceInboxIncludesFlaggedOnlyChangesInboxResults"
               },
               "assertion": "The test checks the Draftly default before changing the value."
@@ -5033,7 +5033,7 @@
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceConstructorIsIndependentAndDoesNotPersist"
               },
               "assertion": "Constructor tests assert each presentation property separately before changes."
@@ -5085,7 +5085,7 @@
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceConstructorIsIndependentAndDoesNotPersist"
               },
               "assertion": "Constructor tests assert each presentation property separately before changes."
@@ -5137,7 +5137,7 @@
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceConstructorIsIndependentAndDoesNotPersist"
               },
               "assertion": "Constructor tests assert each presentation property separately before changes."
@@ -5189,7 +5189,7 @@
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceConstructorIsIndependentAndDoesNotPersist"
               },
               "assertion": "Constructor tests assert each presentation property separately before changes."
@@ -5241,7 +5241,7 @@
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceConstructorIsIndependentAndDoesNotPersist"
               },
               "assertion": "Constructor tests assert each presentation property separately before changes."
@@ -5268,7 +5268,7 @@
           "contract": "A QueryDate specifying a date which all drafts in the workspace must be less than or equal to.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "WorkspaceActionAPITests",
             "test": "workspaceDefaultsAndAllFolderSortsRoundTrip"
           },
           "liveCheck": null,
@@ -5290,7 +5290,7 @@
           "accessDateEvidence": {
             "reviewDate": "2026-10-19",
             "automatedTest": {
-              "suite": "ActionAPITests",
+              "suite": "WorkspaceActionAPITests",
               "test": "accessedQueriesPersistWorkspaceAndOnlyEditorLoadsRecordAccess"
             },
             "scope": "Access date filters and sort. This evidence does not close other member branches."
@@ -5308,7 +5308,7 @@
           "contract": "Filter by flagged status of drafts.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "WorkspaceActionAPITests",
             "test": "workspaceFlaggedStatusFiltersEveryFolderAndRejectsUnknownValues"
           },
           "liveCheck": null,
@@ -5326,21 +5326,21 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceFlaggedStatusFiltersEveryFolderAndRejectsUnknownValues"
               },
               "assertion": "Any, flagged, and unflagged return matching rows and survive storage; invalid values fail."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceFlaggedStatusFiltersEveryFolderAndRejectsUnknownValues"
               },
               "assertion": "The test checks the Draftly default before changing the value."
             },
             "errors": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceFlaggedStatusFiltersEveryFolderAndRejectsUnknownValues"
               },
               "assertion": "An unknown flag status throws rather than returning a misleading result."
@@ -5364,7 +5364,7 @@
           "contract": "Search string to filter results.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "WorkspaceActionAPITests",
             "test": "workspacePersistsFiltersDatesAndFolderSorts"
           },
           "liveCheck": null,
@@ -5396,7 +5396,7 @@
           "contract": "A QueryDate specifying a date which all drafts in the workspace must be greater than or equal to.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "WorkspaceActionAPITests",
             "test": "workspaceDefaultsAndAllFolderSortsRoundTrip"
           },
           "liveCheck": null,
@@ -5418,7 +5418,7 @@
           "accessDateEvidence": {
             "reviewDate": "2026-10-19",
             "automatedTest": {
-              "suite": "ActionAPITests",
+              "suite": "WorkspaceActionAPITests",
               "test": "accessedQueriesPersistWorkspaceAndOnlyEditorLoadsRecordAccess"
             },
             "scope": "Access date filters and sort. This evidence does not close other member branches."
@@ -5436,7 +5436,7 @@
           "contract": "Comma-delimited list tag string like \"blue, !green\" using \"!\" to omit a tag.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "WorkspaceActionAPITests",
             "test": "workspaceTagFilterCombinesInclusionsAndExclusionsAndSurvivesStorage"
           },
           "liveCheck": "2026-10-19: Core acceptance action applied a saved workspace; one visible row, core tag, title ascending, hidden row tags.",
@@ -5454,14 +5454,14 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceTagFilterCombinesInclusionsAndExclusionsAndSurvivesStorage"
               },
               "assertion": "Comma-delimited included and excluded tags filter drafts and retain normalized values in storage."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceTagFilterCombinesInclusionsAndExclusionsAndSurvivesStorage"
               },
               "assertion": "The test checks the Draftly default before changing the value."
@@ -5495,7 +5495,7 @@
           "contract": "If true, all (AND) tags in the tag filter must match, if false match any of the tags (OR)",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "WorkspaceActionAPITests",
             "test": "workspaceTagFilterRequireAllChangesANDToORWithoutWeakeningExclusions"
           },
           "liveCheck": null,
@@ -5513,14 +5513,14 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceTagFilterRequireAllChangesANDToORWithoutWeakeningExclusions"
               },
               "assertion": "True applies AND; false applies OR; exclusions still apply and the value persists."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceTagFilterRequireAllChangesANDToORWithoutWeakeningExclusions"
               },
               "assertion": "The test checks the Draftly default before changing the value."
@@ -5613,7 +5613,7 @@
           "contract": "The name of the workspace.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "WorkspaceActionAPITests",
             "test": "workspaceDefaultsAndAllFolderSortsRoundTrip"
           },
           "liveCheck": null,
@@ -5645,7 +5645,7 @@
           "contract": "Create new instance.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "WorkspaceActionAPITests",
             "test": "workspaceConstructorIsIndependentAndDoesNotPersist"
           },
           "liveCheck": null,
@@ -5663,14 +5663,14 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceConstructorIsIndependentAndDoesNotPersist"
               },
               "assertion": "New workspaces have independent QueryDate objects and remain unsaved until update."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceConstructorIsIndependentAndDoesNotPersist"
               },
               "assertion": "Draftly starts with empty name, query, and tags; require-all is true. Date, preview, tags, and search preview are shown; last action is hidden. The reference does not list all constructor defaults."
@@ -5696,7 +5696,7 @@
           "contract": "Query for a list of drafts contained in the workspace.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "WorkspaceActionAPITests",
             "test": "workspaceQueryCoversAllFoldersAndRejectsInvalidFolder"
           },
           "liveCheck": "2026-10-19: Core acceptance action applied a saved workspace; one visible row, core tag, title ascending, hidden row tags.",
@@ -5714,7 +5714,7 @@
           "accessDateEvidence": {
             "reviewDate": "2026-10-19",
             "automatedTest": {
-              "suite": "ActionAPITests",
+              "suite": "WorkspaceActionAPITests",
               "test": "accessedQueriesPersistWorkspaceAndOnlyEditorLoadsRecordAccess"
             },
             "scope": "Access date filters and sort. This evidence does not close other member branches."
@@ -5722,21 +5722,21 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceQueryCoversAllFoldersAndRejectsInvalidFolder"
               },
               "assertion": "Returns matching cached Draft objects for all five folders and applies the folder sort. Invalid folders fail."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceQueryCoversAllFoldersAndRejectsInvalidFolder"
               },
               "assertion": "The test checks the Draftly default before changing the value."
             },
             "errors": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceQueryCoversAllFoldersAndRejectsInvalidFolder"
               },
               "assertion": "An invalid query folder throws."
@@ -5818,7 +5818,7 @@
           "contract": "Save changes made to the workspace to the database. This must be called to save changes.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "WorkspaceActionAPITests",
             "test": "workspaceUpdateReturnsVoidAndRollsBackStorageFailure"
           },
           "liveCheck": "2026-10-19: Core acceptance action applied a saved workspace; one visible row, core tag, title ascending, hidden row tags.",
@@ -5836,21 +5836,21 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceUpdateReturnsVoidAndRollsBackStorageFailure"
               },
               "assertion": "Saving returns undefined. Storage failure throws, stops later statements, and preserves the original workspace in the library and backup."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceUpdateReturnsVoidAndRollsBackStorageFailure"
               },
               "assertion": "No input arguments; it saves the current object fields."
             },
             "errors": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceUpdateReturnsVoidAndRollsBackStorageFailure"
               },
               "assertion": "An injected commit error propagates, stops later statements, and leaves the workspace unchanged after backup restore."
@@ -5862,7 +5862,7 @@
             "evidence": "docs/research/screenshots/three-core-contracts-2026-10-19/action.json; passed.txt; native-result.png. The action creates, saves, finds, lists, queries, and applies a workspace; the native window shows its one matching draft and title sort."
           },
           "validationTest": {
-            "suite": "ActionAPITests",
+            "suite": "WorkspaceActionAPITests",
             "test": "workspaceUpdateRejectsInvalidConfigurationBeforePersistence",
             "assertion": "Invalid folder, flag status, sort, date field, date type, and absolute date fail without saving a partial workspace."
           }
@@ -5879,7 +5879,7 @@
           "contract": "create a new workspace object. This is an in-memory object only, unless update() is called to save the it. The initial state of the workspace properties is based on the configuration of the user's default workspace.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "WorkspaceActionAPITests",
             "test": "workspaceCreateUsesDefaultConfigurationWithoutSavingIt"
           },
           "liveCheck": null,
@@ -5901,14 +5901,14 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceCreateUsesDefaultConfigurationWithoutSavingIt"
               },
               "assertion": "The factory copies the default configuration into independent new identities without saving."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceCreateUsesDefaultConfigurationWithoutSavingIt"
               },
               "assertion": "Configuration comes from the local default workspace. No saved default uses compatible built-in values."
@@ -5940,7 +5940,7 @@
           "contract": "Search for workspace matching the name passed and return it if found. Returns undefined if not found.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "WorkspaceActionAPITests",
             "test": "workspaceFindMatchesExactNameAndReturnsTypedValues"
           },
           "liveCheck": null,
@@ -5958,14 +5958,14 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceFindMatchesExactNameAndReturnsTypedValues"
               },
               "assertion": "Exact Unicode names return typed Workspace and QueryDate values; missing names return undefined. Unsaved result mutations do not change storage."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceFindMatchesExactNameAndReturnsTypedValues"
               },
               "assertion": "name is required. There is no optional search argument."
@@ -5992,7 +5992,7 @@
           "contract": "Get list of all available workspaces.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "WorkspaceActionAPITests",
             "test": "workspaceGetAllReturnsIndependentStoredWorkspaces"
           },
           "liveCheck": null,
@@ -6010,14 +6010,14 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceGetAllReturnsIndependentStoredWorkspaces"
               },
               "assertion": "An empty library returns an empty array; stored results are independent Workspace objects. Mutating the returned array or values does not save them."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "WorkspaceActionAPITests",
                 "test": "workspaceGetAllReturnsIndependentStoredWorkspaces"
               },
               "assertion": "No input arguments."
@@ -6044,7 +6044,7 @@
           "contract": "Set sort order for \"all\" drafts folder.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "WorkspaceActionAPITests",
             "test": "workspaceDefaultsAndAllFolderSortsRoundTrip"
           },
           "liveCheck": null,
@@ -6066,7 +6066,7 @@
           "accessDateEvidence": {
             "reviewDate": "2026-10-19",
             "automatedTest": {
-              "suite": "ActionAPITests",
+              "suite": "WorkspaceActionAPITests",
               "test": "accessedQueriesPersistWorkspaceAndOnlyEditorLoadsRecordAccess"
             },
             "scope": "Access date filters and sort. This evidence does not close other member branches."
@@ -6084,7 +6084,7 @@
           "contract": "Set sort order for archive.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "WorkspaceActionAPITests",
             "test": "workspaceDefaultsAndAllFolderSortsRoundTrip"
           },
           "liveCheck": null,
@@ -6106,7 +6106,7 @@
           "accessDateEvidence": {
             "reviewDate": "2026-10-19",
             "automatedTest": {
-              "suite": "ActionAPITests",
+              "suite": "WorkspaceActionAPITests",
               "test": "accessedQueriesPersistWorkspaceAndOnlyEditorLoadsRecordAccess"
             },
             "scope": "Access date filters and sort. This evidence does not close other member branches."
@@ -6124,7 +6124,7 @@
           "contract": "Set sort order for flagged.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "WorkspaceActionAPITests",
             "test": "workspaceDefaultsAndAllFolderSortsRoundTrip"
           },
           "liveCheck": null,
@@ -6156,7 +6156,7 @@
           "contract": "Set sort order for inbox.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "WorkspaceActionAPITests",
             "test": "workspaceDefaultsAndAllFolderSortsRoundTrip"
           },
           "liveCheck": "2026-10-19: Core acceptance action applied a saved workspace; one visible row, core tag, title ascending, hidden row tags.",
@@ -6178,7 +6178,7 @@
           "accessDateEvidence": {
             "reviewDate": "2026-10-19",
             "automatedTest": {
-              "suite": "ActionAPITests",
+              "suite": "WorkspaceActionAPITests",
               "test": "accessedQueriesPersistWorkspaceAndOnlyEditorLoadsRecordAccess"
             },
             "scope": "Access date filters and sort. This evidence does not close other member branches."
@@ -6210,7 +6210,7 @@
           "contract": "If this action has \"Configured Value\" action steps and the user has configured values for the action, this object will contain those values. Primarily of use to load configuration values from a different action than is currently running.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "CatalogActionAPITests",
             "test": "actionAndGroupQueriesKeepIdentityOrderAndInstallationData"
           },
           "liveCheck": null,
@@ -6243,7 +6243,7 @@
           "contract": "URL which can be used to install this Action in another installation of Drafts. Useful for sharing and backups.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "CatalogActionAPITests",
             "test": "actionAndGroupQueriesKeepIdentityOrderAndInstallationData"
           },
           "liveCheck": null,
@@ -6275,7 +6275,7 @@
           "contract": "If true, the action is a separator.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "CatalogActionAPITests",
             "test": "actionAndGroupQueriesKeepIdentityOrderAndInstallationData"
           },
           "liveCheck": null,
@@ -6307,7 +6307,7 @@
           "contract": "The display name of the action as displayed in the action list.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "CatalogActionAPITests",
             "test": "actionAndGroupQueriesKeepIdentityOrderAndInstallationData"
           },
           "liveCheck": null,
@@ -6339,7 +6339,7 @@
           "contract": "The unique identifier of the action group.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "CatalogActionAPITests",
             "test": "actionAndGroupQueriesKeepIdentityOrderAndInstallationData"
           },
           "liveCheck": null,
@@ -6371,7 +6371,7 @@
           "contract": "Search for action matching the name passed and return it if found. Useful to lookup and action and queue it to be run using the App.queueAction function of the App object. This method will return only the first found action with the given name, be sure to avoid duplicate names in your action list.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "CatalogActionAPITests",
             "test": "actionAndGroupQueriesKeepIdentityOrderAndInstallationData"
           },
           "liveCheck": null,
@@ -6403,7 +6403,7 @@
           "contract": "Array of recently used actions in reverse chronological order.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "CatalogActionAPITests",
             "test": "actionAndGroupQueriesKeepIdentityOrderAndInstallationData"
           },
           "liveCheck": null,
@@ -6449,7 +6449,7 @@
           "contract": "The actions contained in the action group.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "CatalogActionAPITests",
             "test": "actionAndGroupQueriesKeepIdentityOrderAndInstallationData"
           },
           "liveCheck": null,
@@ -6481,7 +6481,7 @@
           "contract": "URL which can be used to install this Action Group in another installation of Drafts. Useful for sharing and backups.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "CatalogActionAPITests",
             "test": "actionAndGroupQueriesKeepIdentityOrderAndInstallationData"
           },
           "liveCheck": null,
@@ -6513,7 +6513,7 @@
           "contract": "The display name of the action group.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "CatalogActionAPITests",
             "test": "actionAndGroupQueriesKeepIdentityOrderAndInstallationData"
           },
           "liveCheck": null,
@@ -6545,7 +6545,7 @@
           "contract": "The unique identifier of the action group.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "CatalogActionAPITests",
             "test": "actionAndGroupQueriesKeepIdentityOrderAndInstallationData"
           },
           "liveCheck": null,
@@ -6577,7 +6577,7 @@
           "contract": "Search for action group matching the name passed and return it if found. Returns undefined if not found.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "CatalogActionAPITests",
             "test": "actionAndGroupQueriesKeepIdentityOrderAndInstallationData"
           },
           "liveCheck": null,
@@ -6609,7 +6609,7 @@
           "contract": "Get list of all available action groups.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "CatalogActionAPITests",
             "test": "actionAndGroupQueriesKeepIdentityOrderAndInstallationData"
           },
           "liveCheck": null,
@@ -6989,7 +6989,7 @@
           "contract": "DeprecatedUse app.currentWindow.applyWorkspace",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "WorkspaceActionAPITests",
             "test": "workspaceApplicationReturnsTheHostResultAndDefaultsWhenOmitted"
           },
           "liveCheck": null,
@@ -7216,7 +7216,7 @@
           "contract": "Start a Live Activity for the selected Draft. Returns true if Live Activity started successfully. Returns false if Live Activity could not be started, or Live Activities are not supported on the device.",
           "implementation": "reviewed-unavailable",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "invalidRangesAndQueriesFailWithoutChangingTheEditor"
           },
           "liveCheck": null,
@@ -7248,7 +7248,7 @@
           "contract": "Stop a Live Activity for the selected Draft. Returns true if Live Activity stopped successfully.",
           "implementation": "reviewed-unavailable",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "EditorActionAPITests",
             "test": "invalidRangesAndQueriesFailWithoutChangingTheEditor"
           },
           "liveCheck": null,
@@ -7519,7 +7519,7 @@
           "contract": "If AppleScripts run using the AppleScript object return values, they will be converted to JavaScript object and stored in this array. See AppleScript docs for details.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "ExecutionActionAPITests",
             "test": "contextConfigurationDefaultsAndAppleScriptResponsesKeepTheirTypes"
           },
           "liveCheck": null,
@@ -7551,7 +7551,7 @@
           "contract": "If Callback URL or Run Shortcut action steps using the \"Wait for response\" option have been run in steps before the script step in an action, and the target app returned to Drafts using an x-success callback, this object will contain an array of objects with the parsed query parameters included in those responses, in the order they were received.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "ExecutionActionAPITests",
             "test": "shortcutResponsesReachContextInExecutionOrder"
           },
           "liveCheck": null,
@@ -7583,7 +7583,7 @@
           "contract": "If your action contains configurable values defined Configured Value action steps the user's selected values will be available in this object, with keys matching the key property of the Configured Value step.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "ExecutionActionAPITests",
             "test": "contextConfigurationDefaultsAndAppleScriptResponsesKeepTheirTypes"
           },
           "liveCheck": null,
@@ -7615,7 +7615,7 @@
           "contract": "If HTML Preview makes calls to Drafts.send(key, value) those values are stored in this object by key.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "ExecutionActionAPITests",
             "test": "callbackAndPreviewResponsesReachLaterSteps"
           },
           "liveCheck": null,
@@ -7647,7 +7647,7 @@
           "contract": "Used only when calling a Drafts action from another app via x-callback-url with a /runAction URL. Any parameters set via this method will be included as query args when calling the provided x-success parameter. As an example, the below: context.addSuccessParameter(\"a\", \"1\");context.addSuccessParameter(\"b\", \"2\"); Copy Would result in the parameters ?a=1&b=2 being added to the x-success callback.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "ExecutionActionAPITests",
             "test": "contextSuccessParametersAreExportedOnlyForSuccessfulRuns"
           },
           "liveCheck": null,
@@ -7679,7 +7679,7 @@
           "contract": "Tell the context to cancel the action at the end of the script execution. If called, at the end of the script the action will be stopped. No subsequent action steps in the action will run, and the action still stop silently - no notification banners, sounds, etc. If a message is included it will be added to the action log to explain the cancellation.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "ExecutionActionAPITests",
             "test": "contextStopsLaterStepsButFinishesTheCurrentScript"
           },
           "liveCheck": null,
@@ -7711,7 +7711,7 @@
           "contract": "Tell the context to fail the current action. In effect this is the same as cancel() but an error notification will be shown. If a message is included it will be added to the action log to explain the cancellation.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "ExecutionActionAPITests",
             "test": "contextStopsLaterStepsButFinishesTheCurrentScript"
           },
           "liveCheck": null,
@@ -8319,7 +8319,7 @@
           "contract": "An optional explanatory message to display at the top of the prompt",
           "implementation": "native-searchable-list",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "PromptActionAPITests",
             "test": "selectPromptPreservesItemFieldsAndReturnsBooleanResults"
           },
           "liveCheck": null,
@@ -8339,21 +8339,21 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptPreservesItemFieldsAndReturnsBooleanResults"
               },
               "assertion": "The message reaches the host unchanged."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptDefaultsFactoryAndCancelContract"
               },
               "assertion": "The test checks empty factory state and omitted optional fields."
             },
             "errors": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptDefaultsFactoryAndCancelContract"
               },
               "assertion": "Missing parameters log failure; cancellation returns false; an unavailable host fails explicitly."
@@ -8377,7 +8377,7 @@
           "contract": "Add an information text label to the prompt. Returns true if item successfully added. If item cannot be added, check action log of details of the error, typically it is because of issues like a duplicate id value, or missing parameters.",
           "implementation": "native-searchable-list",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "PromptActionAPITests",
             "test": "selectPromptPreservesItemFieldsAndReturnsBooleanResults"
           },
           "liveCheck": null,
@@ -8397,21 +8397,21 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptPreservesItemFieldsAndReturnsBooleanResults"
               },
               "assertion": "Unique string IDs succeed; duplicates and missing parameters return false and log details."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptDefaultsFactoryAndCancelContract"
               },
               "assertion": "The test checks empty factory state and omitted optional fields."
             },
             "errors": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptDefaultsFactoryAndCancelContract"
               },
               "assertion": "Missing parameters log failure; cancellation returns false; an unavailable host fails explicitly."
@@ -8435,7 +8435,7 @@
           "contract": "Create new instance.",
           "implementation": "native-searchable-list",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "PromptActionAPITests",
             "test": "selectPromptPreservesItemFieldsAndReturnsBooleanResults"
           },
           "liveCheck": null,
@@ -8455,21 +8455,21 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptDefaultsFactoryAndCancelContract"
               },
               "assertion": "Construction creates an independent empty selector."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptDefaultsFactoryAndCancelContract"
               },
               "assertion": "The test checks empty factory state and omitted optional fields."
             },
             "errors": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptDefaultsFactoryAndCancelContract"
               },
               "assertion": "Missing parameters log failure; cancellation returns false; an unavailable host fails explicitly."
@@ -8493,7 +8493,7 @@
           "contract": "Displays the prompt. Returns true if the user selected one of the item, false if cancelled without making a selection.",
           "implementation": "native-searchable-list",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "PromptActionAPITests",
             "test": "selectPromptPreservesItemFieldsAndReturnsBooleanResults"
           },
           "liveCheck": null,
@@ -8513,21 +8513,21 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptPreservesItemFieldsAndReturnsBooleanResults"
               },
               "assertion": "Selection returns true; cancellation or an invalid result returns false."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptDefaultsFactoryAndCancelContract"
               },
               "assertion": "The test checks empty factory state and omitted optional fields."
             },
             "errors": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptDefaultsFactoryAndCancelContract"
               },
               "assertion": "Missing parameters log failure; cancellation returns false; an unavailable host fails explicitly."
@@ -8551,7 +8551,7 @@
           "contract": "Create new instance.",
           "implementation": "native-searchable-list",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "PromptActionAPITests",
             "test": "selectPromptPreservesItemFieldsAndReturnsBooleanResults"
           },
           "liveCheck": null,
@@ -8571,21 +8571,21 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptDefaultsFactoryAndCancelContract"
               },
               "assertion": "The factory returns a SelectPrompt instance."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptDefaultsFactoryAndCancelContract"
               },
               "assertion": "The test checks empty factory state and omitted optional fields."
             },
             "errors": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptDefaultsFactoryAndCancelContract"
               },
               "assertion": "Missing parameters log failure; cancellation returns false; an unavailable host fails explicitly."
@@ -8609,7 +8609,7 @@
           "contract": "After the show() method is called, this property will contain the item the user selected in the prompt. If the user cancelled without making a selection, it will be null.",
           "implementation": "native-searchable-list",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "PromptActionAPITests",
             "test": "selectPromptPreservesItemFieldsAndReturnsBooleanResults"
           },
           "liveCheck": null,
@@ -8629,21 +8629,21 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptPreservesItemFieldsAndReturnsBooleanResults"
               },
               "assertion": "A selected item retains all fields; cancellation clears it to null."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptDefaultsFactoryAndCancelContract"
               },
               "assertion": "The test checks empty factory state and omitted optional fields."
             },
             "errors": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptDefaultsFactoryAndCancelContract"
               },
               "assertion": "Missing parameters log failure; cancellation returns false; an unavailable host fails explicitly."
@@ -8681,7 +8681,7 @@
           "contract": "",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "CatalogActionAPITests",
             "test": "tagSyntaxAndVersionMembersUsePersistedValues"
           },
           "liveCheck": null,
@@ -8713,7 +8713,7 @@
           "contract": "Perform a search for tags and return an array of tag names.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "CatalogActionAPITests",
             "test": "tagSyntaxAndVersionMembersUsePersistedValues"
           },
           "liveCheck": null,
@@ -8745,7 +8745,7 @@
           "contract": "Rename all instances of a tag in your draft library.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "CatalogActionAPITests",
             "test": "tagSyntaxAndVersionMembersUsePersistedValues"
           },
           "liveCheck": "Rename Tag dialog in isolated QA library",
@@ -8780,7 +8780,7 @@
           "contract": "Return array of recently used tags. Helpful for building prompts to select tags.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "CatalogActionAPITests",
             "test": "tagSyntaxAndVersionMembersUsePersistedValues"
           },
           "liveCheck": null,
@@ -9056,7 +9056,7 @@
           "contract": "The content of the draft at the time this version was saved",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "VersionActionAPITests",
             "test": "versionContentIsAnImmutableSnapshot"
           },
           "liveCheck": null,
@@ -9074,7 +9074,7 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "VersionActionAPITests",
                 "test": "versionContentIsAnImmutableSnapshot"
               },
               "assertion": "Unicode content remains a read-only snapshot after the current draft changes."
@@ -9103,8 +9103,8 @@
           "contract": "Timestamp for the creation of the version",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "versionCreatedAtIsATypedReadOnlyTimestamp"
+            "suite": "DraftVersionContractTests",
+            "test": "versionPropertiesHaveStableReadOnlyValuesAndTheCurrentDraftRelation"
           },
           "liveCheck": null,
           "compatibilityStatus": "complete",
@@ -9121,8 +9121,8 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
-                "test": "versionCreatedAtIsATypedReadOnlyTimestamp"
+                "suite": "DraftVersionContractTests",
+                "test": "versionPropertiesHaveStableReadOnlyValuesAndTheCurrentDraftRelation"
               },
               "assertion": "The read-only timestamp is a Date and preserves stored milliseconds."
             },
@@ -9150,7 +9150,7 @@
           "contract": "The Draft object related to the version. Typically not needed, as versions are accessed through the versions property of a draft.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "VersionActionAPITests",
             "test": "versionDraftUsesCurrentCachedIdentityAndMissingDraftIsUndefined"
           },
           "liveCheck": null,
@@ -9168,7 +9168,7 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "VersionActionAPITests",
                 "test": "versionDraftUsesCurrentCachedIdentityAndMissingDraftIsUndefined"
               },
               "assertion": "The relation uses the cached draft and pending content; a missing relation returns undefined."
@@ -9197,7 +9197,7 @@
           "contract": "Unique identifier of this version",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "VersionActionAPITests",
             "test": "versionUUIDIsStableUniqueAndReadOnly"
           },
           "liveCheck": null,
@@ -9215,7 +9215,7 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "VersionActionAPITests",
                 "test": "versionUUIDIsStableUniqueAndReadOnly"
               },
               "assertion": "Version UUIDs are unique and stable across queries; assignment is rejected."
@@ -9244,8 +9244,8 @@
           "contract": "Delete the version. This is permanent and should be used with caution",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
-            "test": "versionDeleteReturnsVoidAndRemovesOnlyThatRevision"
+            "suite": "DraftVersionContractTests",
+            "test": "versionDeleteReturnsVoidAndPersistsOnlyTheChosenDeletion"
           },
           "liveCheck": null,
           "compatibilityStatus": "complete",
@@ -9262,8 +9262,8 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
-                "test": "versionDeleteReturnsVoidAndRemovesOnlyThatRevision"
+                "suite": "DraftVersionContractTests",
+                "test": "versionDeleteReturnsVoidAndPersistsOnlyTheChosenDeletion"
               },
               "assertion": "Deletion returns undefined, removes only the selected revision, preserves current content and other revisions, and survives backup restore."
             },
@@ -9272,8 +9272,8 @@
             },
             "errors": {
               "test": {
-                "suite": "ActionAPITests",
-                "test": "versionDeleteStorageFailureThrowsAndRestoresTheRevision"
+                "suite": "DraftVersionContractTests",
+                "test": "versionDeleteFailureThrowsAndPreservesHistoryAfterAnUnrelatedCommit"
               },
               "assertion": "A storage error fails execution, prevents the next statement, and preserves the revision in storage and backup."
             }
@@ -9673,7 +9673,7 @@
           "contract": "Apply the Workspace as if it was selected in draft list. Calling this function with no arguments will clear filters and apply the default workspace.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "WorkspaceActionAPITests",
             "test": "workspaceApplicationReturnsTheHostResultAndDefaultsWhenOmitted"
           },
           "liveCheck": null,
@@ -9719,7 +9719,7 @@
           "contract": "Current battery level as a number between 0.0 and 1.0",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "UtilityActionAPITests",
             "test": "deviceUsesMacValuesAndReportsUnavailableBatteryExplicitly"
           },
           "liveCheck": "2026-10-19: temporary native QA action read 0.19 on this Mac.",
@@ -9751,7 +9751,7 @@
           "contract": "Model of current device.",
           "implementation": "reviewed-complete",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "UtilityActionAPITests",
             "test": "deviceUsesMacValuesAndReportsUnavailableBatteryExplicitly"
           },
           "liveCheck": null,
@@ -9781,7 +9781,7 @@
           "contract": "Name of current OS.",
           "implementation": "reviewed-complete",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "UtilityActionAPITests",
             "test": "deviceUsesMacValuesAndReportsUnavailableBatteryExplicitly"
           },
           "liveCheck": null,
@@ -9811,7 +9811,7 @@
           "contract": "Version of current OS.",
           "implementation": "reviewed-complete",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "UtilityActionAPITests",
             "test": "deviceUsesMacValuesAndReportsUnavailableBatteryExplicitly"
           },
           "liveCheck": null,
@@ -13835,7 +13835,7 @@
           "contract": "",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "ExecutionActionAPITests",
             "test": "finishedStepTimersCannotMutateTheNextStep"
           },
           "liveCheck": null,
@@ -13866,7 +13866,7 @@
           "contract": "Inform Drafts the current script has completed execution. Used in combination with the \"Allow asynchronous execution\" option of the Script step type. If your script step has the asynchronous option enabled, you must call script.complete() to indicate completion or the script will timeout and fail.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "ExecutionActionAPITests",
             "test": "finishedStepTimersCannotMutateTheNextStep"
           },
           "liveCheck": null,
@@ -14193,7 +14193,7 @@
           "contract": "Create a new instance.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "QueryDateActionAPITests",
             "test": "queryDateConstructorCreatesIndependentValues"
           },
           "liveCheck": null,
@@ -14210,14 +14210,14 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "QueryDateActionAPITests",
                 "test": "queryDateConstructorCreatesIndependentValues"
               },
               "assertion": "A new QueryDate has independent state and a Date value."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "QueryDateActionAPITests",
                 "test": "queryDateConstructorCreatesIndependentValues"
               },
               "assertion": "QueryDate starts with none, modified, zero days, and a current independent Date. These defaults are not specified by the reference."
@@ -14243,7 +14243,7 @@
           "contract": "Absolute date to use when evaluating the query dates of \"absolute\" type.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "QueryDateActionAPITests",
             "test": "queryDateDatePreservesAbsoluteDateThroughStorage"
           },
           "liveCheck": null,
@@ -14260,14 +14260,14 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "QueryDateActionAPITests",
                 "test": "queryDateDatePreservesAbsoluteDateThroughStorage"
               },
               "assertion": "Absolute Date values retain milliseconds and restore as Date objects."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "QueryDateActionAPITests",
                 "test": "queryDateConstructorCreatesIndependentValues"
               },
               "assertion": "QueryDate starts with none, modified, zero days, and a current independent Date. These defaults are not specified by the reference."
@@ -14298,7 +14298,7 @@
           "contract": "Integer number of days to when evaluating query dates of \"relative\". This value can be negative. For example, a \"relative\" type with \"-3\" days, will always evaluated to 3 days ago when the query is run.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "QueryDateActionAPITests",
             "test": "queryDateDaysPreservesNegativeZeroAndPositiveIntegers"
           },
           "liveCheck": null,
@@ -14315,14 +14315,14 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "QueryDateActionAPITests",
                 "test": "queryDateDaysPreservesNegativeZeroAndPositiveIntegers"
               },
               "assertion": "Relative day values -3, 0, and 7 survive Workspace storage."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "QueryDateActionAPITests",
                 "test": "queryDateConstructorCreatesIndependentValues"
               },
               "assertion": "QueryDate starts with none, modified, zero days, and a current independent Date. These defaults are not specified by the reference."
@@ -14353,7 +14353,7 @@
           "contract": "The date field to use when querying",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "QueryDateActionAPITests",
             "test": "queryDateFieldPreservesEverySupportedDateField"
           },
           "liveCheck": null,
@@ -14370,14 +14370,14 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "QueryDateActionAPITests",
                 "test": "queryDateFieldPreservesEverySupportedDateField"
               },
               "assertion": "Created, modified, and accessed fields survive Workspace storage."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "QueryDateActionAPITests",
                 "test": "queryDateConstructorCreatesIndependentValues"
               },
               "assertion": "QueryDate starts with none, modified, zero days, and a current independent Date. These defaults are not specified by the reference."
@@ -14408,7 +14408,7 @@
           "contract": "The type of date range. \"relative\" dates use the days property to add days to the current date when evaluating a query. \"absolute\" type query dates use the date property for a specific day.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "QueryDateActionAPITests",
             "test": "queryDateTypePreservesEverySupportedRangeType"
           },
           "liveCheck": null,
@@ -14425,14 +14425,14 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "QueryDateActionAPITests",
                 "test": "queryDateTypePreservesEverySupportedRangeType"
               },
               "assertion": "None, relative, and absolute types survive Workspace storage."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "QueryDateActionAPITests",
                 "test": "queryDateConstructorCreatesIndependentValues"
               },
               "assertion": "QueryDate starts with none, modified, zero days, and a current independent Date. These defaults are not specified by the reference."
@@ -14463,7 +14463,7 @@
           "contract": "Create a new instance.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "QueryDateActionAPITests",
             "test": "queryDateFactoryReturnsFreshQueryDates"
           },
           "liveCheck": null,
@@ -14482,14 +14482,14 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "QueryDateActionAPITests",
                 "test": "queryDateFactoryReturnsFreshQueryDates"
               },
               "assertion": "The factory returns independent QueryDate instances, not Workspace instances."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "QueryDateActionAPITests",
                 "test": "queryDateConstructorCreatesIndependentValues"
               },
               "assertion": "QueryDate starts with none, modified, zero days, and a current independent Date. These defaults are not specified by the reference."
@@ -14977,7 +14977,7 @@
           "contract": "Optional subtitle text to display smaller below the title. Useful if options require greater levels of explanation to assist the selecting the correct option.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "PromptActionAPITests",
             "test": "selectPromptItemSubtitleRemainsOptionalAndSeparate"
           },
           "liveCheck": null,
@@ -14995,14 +14995,14 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptItemSubtitleRemainsOptionalAndSeparate"
               },
               "assertion": "An omitted subtitle is undefined; a supplied Unicode subtitle stays separate from the title."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptItemFactoryPreservesArgumentsAndOptionalValues"
               },
               "assertion": "Fields start undefined; optional factory arguments remain undefined when omitted."
@@ -15029,7 +15029,7 @@
           "contract": "The name of a valid SF Symbol available on the platform. It will be displayed as a small icon next to the item title, if provided. Valid symbol names can be found using Apple's SF Symbols app or other third party tools and online references.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "PromptActionAPITests",
             "test": "selectPromptItemSymbolNameReachesTheNativeHost"
           },
           "liveCheck": null,
@@ -15047,14 +15047,14 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptItemSymbolNameReachesTheNativeHost"
               },
               "assertion": "The optional symbol name reaches the native host and selected item unchanged."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptItemFactoryPreservesArgumentsAndOptionalValues"
               },
               "assertion": "Fields start undefined; optional factory arguments remain undefined when omitted."
@@ -15086,7 +15086,7 @@
           "contract": "The text to explain the item. Should be descriptive, user-facing value.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "PromptActionAPITests",
             "test": "selectPromptItemTitleReachesSelectionWithoutChangingUnicode"
           },
           "liveCheck": null,
@@ -15104,14 +15104,14 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptItemTitleReachesSelectionWithoutChangingUnicode"
               },
               "assertion": "A writable Unicode title reaches the host and selected item unchanged."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptItemConstructorCreatesIndependentEmptyValues"
               },
               "assertion": "Fields start undefined; optional factory arguments remain undefined when omitted."
@@ -15138,7 +15138,7 @@
           "contract": "Create new instance.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "PromptActionAPITests",
             "test": "selectPromptItemConstructorCreatesIndependentEmptyValues"
           },
           "liveCheck": null,
@@ -15156,14 +15156,14 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptItemConstructorCreatesIndependentEmptyValues"
               },
               "assertion": "New items have independent state; all fields start undefined."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptItemConstructorCreatesIndependentEmptyValues"
               },
               "assertion": "Fields start undefined; optional factory arguments remain undefined when omitted."
@@ -15189,7 +15189,7 @@
           "contract": "Unique identifier for the item. No two items in the same SelectPrompt should have the same ID.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "PromptActionAPITests",
             "test": "selectPromptItemIDEnforcesUniquenessWhenAdded"
           },
           "liveCheck": null,
@@ -15207,14 +15207,14 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptItemIDEnforcesUniquenessWhenAdded"
               },
               "assertion": "The ID is writable. Duplicate IDs are rejected without changing the prompt list; duplicate titles are accepted."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptItemConstructorCreatesIndependentEmptyValues"
               },
               "assertion": "Fields start undefined; optional factory arguments remain undefined when omitted."
@@ -15240,7 +15240,7 @@
           "contract": "Create new instance.",
           "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "ActionAPITests",
+            "suite": "PromptActionAPITests",
             "test": "selectPromptItemFactoryPreservesArgumentsAndOptionalValues"
           },
           "liveCheck": null,
@@ -15258,14 +15258,14 @@
           "contractCases": {
             "normal": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptItemFactoryPreservesArgumentsAndOptionalValues"
               },
               "assertion": "The factory returns a new item and preserves required and optional Unicode values."
             },
             "defaults": {
               "test": {
-                "suite": "ActionAPITests",
+                "suite": "PromptActionAPITests",
                 "test": "selectPromptItemFactoryPreservesArgumentsAndOptionalValues"
               },
               "assertion": "Fields start undefined; optional factory arguments remain undefined when omitted."
@@ -15898,7 +15898,7 @@
       "contract": "completion and timer isolation",
       "compatibilityStatus": "partial",
       "automatedTest": {
-        "suite": "ActionAPITests",
+        "suite": "ExecutionActionAPITests",
         "test": "finishedStepTimersCannotMutateTheNextStep"
       },
       "liveCheck": null,
@@ -15910,7 +15910,7 @@
       "contract": "synchronous deadline",
       "compatibilityStatus": "partial",
       "automatedTest": {
-        "suite": "ActionAPITests",
+        "suite": "ExecutionActionAPITests",
         "test": "synchronousTimeoutStopsLaterStepsAndSuccessEffects"
       },
       "liveCheck": null,
@@ -15922,7 +15922,7 @@
       "contract": "promise rejection and asynchronous timeout",
       "compatibilityStatus": "partial",
       "automatedTest": {
-        "suite": "ActionAPITests",
+        "suite": "ExecutionActionAPITests",
         "test": "asyncPromiseRejectionAndTimeoutStopDisposition"
       },
       "liveCheck": null,
@@ -15934,7 +15934,7 @@
       "contract": "cross-window exclusion",
       "compatibilityStatus": "partial",
       "automatedTest": {
-        "suite": "ActionAPITests",
+        "suite": "ExecutionActionAPITests",
         "test": "anotherWindowCannotRunActionsInTheSameLibraryDuringAHostCall"
       },
       "liveCheck": null,
@@ -15946,7 +15946,7 @@
       "contract": "shared included scripts",
       "compatibilityStatus": "partial",
       "automatedTest": {
-        "suite": "ActionAPITests",
+        "suite": "ExecutionActionAPITests",
         "test": "includedActionsShareJavaScriptAndDoNotApplyOwnDisposition"
       },
       "liveCheck": null,
@@ -15958,7 +15958,7 @@
       "contract": "circular inclusion",
       "compatibilityStatus": "partial",
       "automatedTest": {
-        "suite": "ActionAPITests",
+        "suite": "ExecutionActionAPITests",
         "test": "circularIncludesFailBeforeTheFirstSideEffect"
       },
       "liveCheck": null,
@@ -15970,7 +15970,7 @@
       "contract": "queue cancellation",
       "compatibilityStatus": "partial",
       "automatedTest": {
-        "suite": "ActionAPITests",
+        "suite": "ExecutionActionAPITests",
         "test": "cancellingAnActionStopsItsQueue"
       },
       "liveCheck": null,
@@ -15982,7 +15982,7 @@
       "contract": "final callback selection",
       "compatibilityStatus": "partial",
       "automatedTest": {
-        "suite": "ActionAPITests",
+        "suite": "ExecutionActionAPITests",
         "test": "finalResultChoosesAndEncodesOnlyItsOwnCallback"
       },
       "liveCheck": null,
@@ -15994,7 +15994,7 @@
       "contract": "unknown disabled imports",
       "compatibilityStatus": "partial",
       "automatedTest": {
-        "suite": "ActionAPITests",
+        "suite": "ExecutionActionAPITests",
         "test": "disabledUnknownStepsSurviveImportAndDoNotBlockExecution"
       },
       "liveCheck": null,
@@ -16006,7 +16006,7 @@
       "contract": "separator imports",
       "compatibilityStatus": "partial",
       "automatedTest": {
-        "suite": "ActionAPITests",
+        "suite": "CatalogActionAPITests",
         "test": "importedSeparatorsRetainTheirAPIIdentityAndRawPayload"
       },
       "liveCheck": null,

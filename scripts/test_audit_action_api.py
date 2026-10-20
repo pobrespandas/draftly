@@ -93,7 +93,7 @@ class StrictParityTests(unittest.TestCase):
         self.assertNotIn("Missing engine contracts", errors)
 
     def complete_entry(self):
-        test = {"suite": "ActionAPITests", "test": "deviceUsesMacValuesAndReportsUnavailableBatteryExplicitly"}
+        test = {"suite": "UtilityActionAPITests", "test": "deviceUsesMacValuesAndReportsUnavailableBatteryExplicitly"}
         return {"compatibilityStatus": "complete", "defaults": "No input defaults.", "result": "Mac",
                 "errors": "No error for this constant.", "implementationEvidence": {"file": "Bridge.js"},
                 "automatedTest": test, "reviewDate": "2026-10-19",

@@ -82,9 +82,9 @@ struct ActionTests {
         #expect(call.1["text"] as? String == "# Meeting\nBody\n\nwork\n")
     }
     @Test func htmlPreviewStepUsesConfiguredMarkdownAndPreservesExplicitHTML() throws {
-        let name = "Draftly-HTMLPreview-Step-\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: name))
-        defer { defaults.removePersistentDomain(forName: name) }
+        let preferences = try TestPreferences(prefix: "Draftly-HTMLPreview-Step")
+        defer { preferences.close() }
+        let defaults = preferences.defaults
         defaults.set("github", forKey: MarkdownPreferences.engineKey)
         defaults.set(#"{"strikethrough":true,"sourcePOS":false}"#, forKey: MarkdownPreferences.githubKey)
         let library = try LibraryStore(inMemory: true, seed: false)
@@ -111,9 +111,9 @@ struct ActionTests {
     }
 
     @Test func templateMarkdownPreferencesReachActionStepsAndScripting() throws {
-        let name = "Draftly-Template-Step-\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: name))
-        defer { defaults.removePersistentDomain(forName: name) }
+        let preferences = try TestPreferences(prefix: "Draftly-Template-Step")
+        defer { preferences.close() }
+        let defaults = preferences.defaults
         defaults.set("github", forKey: MarkdownPreferences.engineKey)
         defaults.set(#"{"strikethrough":true,"sourcePOS":false}"#, forKey: MarkdownPreferences.githubKey)
         let library = try LibraryStore(inMemory: true, seed: false)

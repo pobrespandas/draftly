@@ -26,13 +26,8 @@ struct WorkspaceFilterContractTests {
     }
 
     private func run(_ script: String, in harness: Harness) {
-        let action = DraftAction(name: "Workspace filter contract", steps: [
-            ActionStep("script", ["script": """
-            function check(value, label) { if (!value) throw new Error(label); }
-            function titles(workspace, folder) { return workspace.query(folder).map(d => d.title).join('|'); }
-            \(script)
-            """])
-        ])
+        let action = ScriptTestAction.make(script, name: "Workspace filter contract",
+            helpers: "function titles(workspace, folder) { return workspace.query(folder).map(d => d.title).join('|'); }\n")
         #expect(harness.runner.run(action), Comment(rawValue: harness.runner.message ?? ""))
     }
 

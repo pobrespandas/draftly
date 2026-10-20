@@ -20,19 +20,13 @@ import Testing
 @Suite("Editor persistence contracts") @MainActor
 struct EditorPersistenceContractTests {
     private func setup() throws -> (LibraryStore, EditorSession, EditorPersistenceHost, ActionRunner) {
-        let library = try LibraryStore(inMemory: true, seed: false)
-        let editor = EditorSession()
-        editor.load(try library.createNote(content: "🐼 café"))
-        editor.selection = NSRange(location: 3, length: 4)
-        let host = EditorPersistenceHost()
-        return (library, editor, host, ActionRunner(library: library, editor: editor, host: host))
+        let fixture = try ScriptTestFixture(content: "🐼 café", host: EditorPersistenceHost())
+        fixture.editor.selection = NSRange(location: 3, length: 4)
+        return (fixture.library, fixture.editor, fixture.host, fixture.runner)
     }
 
     private func action(_ script: String) -> DraftAction {
-        DraftAction(name: "Editor persistence contract", steps: [ActionStep("script", ["script": """
-        function check(value,label){if(!value)throw new Error(label);}
-        \(script)
-        """])])
+        ScriptTestAction.make(script, name: "Editor persistence contract")
     }
 
     @Test func savePersistsPendingTextAndSelectionBeforeTheActionFinishes() throws {

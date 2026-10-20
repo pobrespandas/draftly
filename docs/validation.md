@@ -1078,3 +1078,18 @@ Xcode build with signing disabled, normal matrix validation with zero errors,
 and whitespace validation. The original five action fixtures are unchanged.
 All compatibility classifications match the baseline. Broad Mac parity remains
 open. These totals describe regression checks, not API compatibility coverage.
+
+## Test refactoring — 19 October 2026
+
+The monolithic API suite was split into eleven API suites. Shared fixtures and
+script builders remove repeated setup. Preferences use isolated domains with
+explicit cleanup. Three native text-view fixtures now share one implementation.
+Three duplicate version cases were removed; docs/testing.md records the retained
+contracts. Discovery matches the baseline except for those three cases.
+
+Final checks passed: 170 app tests in 29 suites, 264 core tests in 33 suites,
+24 Python tests, normal matrix validation with zero errors, and whitespace
+validation. All 542 matrix test references resolve. Compatibility classifications
+and the original five action fixtures are unchanged. No production code changed.
+No app was launched for visible UI or cloud acceptance. These totals describe
+regression checks, not compatibility coverage. Strict parity remains open.

@@ -14,7 +14,7 @@ struct EditorRangeUndoContractTests {
         let native = NativeEditor(session: model.editor, fontName: "System", fontSize: 17,
                                   lineSpacing: 2, markdown: false, onChange: {})
         let coordinator = NativeEditor.Coordinator(native)
-        let text = RangeContractTextView(frame: .zero)
+        let text = TestUndoTextView(frame: .zero)
         text.string = original
         coordinator.textView = text
         text.manager.groupsByEvent = false
@@ -46,9 +46,4 @@ struct EditorRangeUndoContractTests {
         #expect(model.editor.selection == text.selectedRange())
         #expect(library.notes.first { $0.id == note.id }?.content == text.string)
     }
-}
-
-@MainActor private final class RangeContractTextView: NSTextView {
-    let manager = UndoManager()
-    override var undoManager: UndoManager? { manager }
 }
