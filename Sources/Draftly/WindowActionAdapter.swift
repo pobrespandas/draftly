@@ -116,8 +116,7 @@ struct WindowActionAdapter {
             NSApp.sendAction(#selector(NSTextView.performFindPanelAction(_:)), to: nil, from: item)
         case "showDictate": try model.showDictation()
         case "arrange": return try model.host.perform("arrangeText", values: ["text": args.first as? String ?? ""])
-        case "showArrange":
-            if let text = try model.host.perform("arrangeText", values: ["text": model.editor.content]) as? String { model.editor.content = text; _ = model.flush() }
+        case "showArrange": try model.showArrangement()
         case "dictate": return try model.host.perform("dictate", values: ["locale": args.first as? String ?? ""])
         case "scanDocument": return try model.host.perform("scanDocument", values: [:])
         case "transcribe": return try model.host.perform("transcribe", values: [:])

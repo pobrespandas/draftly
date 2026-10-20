@@ -79,6 +79,7 @@ final class WindowModel: ObservableObject {
     private var saveTask: Task<Void, Never>?
     @Published var actionPending = false
     var actionTask: Task<Void, Never>?
+    let arrangementSession = WindowArrangementSession()
     private let saveDraft: (Note) throws -> Void
     private let onAccessDraft: (UUID) -> Void
     private var inactiveSince: Date?
@@ -341,10 +342,12 @@ final class WindowModel: ObservableObject {
         return report
     }
     func cancelActions() {
+        arrangementSession.cancel()
         actionTask?.cancel()
         runner.cancel()
     }
     private func cancelActionForUserEdit() {
+        arrangementSession.cancel()
         guard !runner.isApplyingScriptCommand, actionPending || runner.isRunning else { return }
         cancelActions()
     }

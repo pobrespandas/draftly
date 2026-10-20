@@ -7,10 +7,8 @@ import DraftlyCore
 
 @MainActor extension NativeActionHost {
     func arrangeText(_ text: String) -> String {
-        let controller = ArrangeTextController(text: text)
-        let alert = NSAlert(); alert.messageText = "Arrange lines"; alert.accessoryView = controller.view
-        alert.addButton(withTitle: "Done"); alert.addButton(withTitle: "Cancel")
-        return alert.runModal() == .alertFirstButtonReturn ? controller.lines.joined(separator: "\n") : text
+        let content = NativeArrangementRequest.prepare(text)
+        return content.alert.runModal() == .alertFirstButtonReturn ? content.read() : text
     }
     func transcribe(_ values: [String: Any], dictate: Bool) throws -> String {
         let authorization = SpeechResult()
@@ -96,7 +94,7 @@ final class SpeechResult: @unchecked Sendable {
     func update(_ text: String?, final: Bool, error: Error?) { lock.lock(); if let text { value = text }; done = final || error != nil; failure = error; lock.unlock() }
 }
 
-@MainActor private final class ArrangeTextController: NSObject, NSTableViewDataSource, NSTableViewDelegate {
+@MainActor final class ArrangeTextController: NSObject, NSTableViewDataSource, NSTableViewDelegate {
     var lines: [String]
     let table = NSTableView(), view = NSStackView()
     init(text: String) {
