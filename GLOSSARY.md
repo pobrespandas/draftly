@@ -39,13 +39,13 @@ _Avoid_: Draft preview
 An independent copy of a draft in Inbox, with a new identity and dates. It retains the source content, tags, flag, and syntax, but not its history.
 
 **Merged draft**:
-A new Inbox draft that combines the content and tags of selected drafts. The source drafts remain separate and unchanged.
+A new Inbox draft that combines the content and tags of selected drafts. The source drafts retain their identities and content. Their organization state can change during the merge.
 
 **Draft export**:
 A file containing selected drafts as text, CSV, or JSON. It is separate from a full backup.
 
 **Library**:
-The collection of saved drafts, revisions, workspaces, actions, and execution history.
+The collection of saved drafts, revisions, workspaces, actions, action groups, syntax definitions, and execution history.
 
 **Tag**:
 A label attached to a draft for classification and filtering. A draft can have more than one tag.
@@ -87,7 +87,7 @@ _Avoid_: Full draft snapshot
 The current draft kept open when the user returns to the app after the new-draft timeout.
 
 **Capture**:
-The creation of a new draft from incoming text.
+Incoming text held separately from an editor draft until it is saved or discarded. It can become a new draft or be added to an existing draft.
 
 ### Actions
 
@@ -117,6 +117,13 @@ _Avoid_: Success disposition, follow-up action
 **Action run**:
 An attempt to execute an action on a draft, with an outcome and messages. Failure or cancellation can leave changes from completed steps in place.
 
+**Action execution session**:
+The live execution of an action and its queued actions, with one identity, a current step, and one final outcome.
+_Avoid_: Execution history (for a live execution)
+
+**Action execution report**:
+The final outcome of an action execution session, including its termination reason and successful callback values. It is separate from a saved execution-history record.
+
 **Execution history**:
 The saved records of action runs.
 _Avoid_: Action history
@@ -133,7 +140,7 @@ A named placeholder replaced with a value when a template is rendered. It is sep
 ### Backup and import
 
 **Full backup**:
-A saved copy of drafts, revisions, workspaces, and actions. It excludes execution history, credentials, and local file permissions.
+A saved copy of drafts, revisions, workspaces, actions, action groups, and syntax definitions. It currently excludes execution history, credentials, and local file permissions.
 
 **Backup import**:
 A merge of a full backup into the library. When a draft with the same identity has different content or metadata, both copies are kept.

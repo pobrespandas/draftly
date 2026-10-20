@@ -2,6 +2,11 @@
 
 Run `swift test` and `scripts/build-app.sh --local` before a release.
 
+For the current implementation and remaining work, read [project status](status.md).
+The sections below are historical records. Their test counts describe each run.
+The user removed session evidence and all screenshots on 19 October 2026.
+Artifact paths in older records are historical and may no longer exist.
+
 ## Recorded interface check
 
 On 2026-10-18, the local Debug app was checked with Computer Use on macOS 27.0.1.
@@ -761,3 +766,295 @@ undo, redo, and Workspace persistence and application. The query and visible lis
 both contained one neutral draft. Evidence and the reproducible action are in
 `research/screenshots/three-core-contracts-2026-10-19`. This is contract
 acceptance in Draftly, not a new comparison with Pro-gated Drafts scripting.
+
+## Delivery one closure and next core contracts — 19 October 2026
+
+Implemented: Draft UUID is read-only. UUID lookup accepts either letter case.
+Titles use native line separators, including CRLF. Editor activation closes the
+preview and restores native focus. Deactivation preserves other text controls.
+The active property checks the editor view. Activation, deactivation, and draft
+navigation return void.
+
+Automatically tested: the final full run passed 234 core tests in 18 suites and
+92 app tests in 15 suites. The five original action fixtures passed. New tests
+cover metadata, Draft queries, editor properties, and Workspace application and
+identity. The local Xcode build passed. Matrix validation reported zero errors.
+All 15 auditor tests passed. Strict core acceptance remains open: 842 diagnostics.
+These counts do not establish compatibility for unreviewed members.
+
+Verified in use: the three delivery-one checks and isolated replay passed.
+The updated app also passed CRLF title, strict UUID assignment, case-independent
+identity, native activation and deactivation, UTF-16 selection, Undo, and Redo.
+The neutral action and actual success message are saved in
+`research/screenshots/delivery-one-2026-10-19/core-next-acceptance.json` and
+`core-next-passed.txt`. The final editor contains “Core identity PANDA” and
+“Neutral body”. This checks Draftly behavior, not Pro-gated Drafts scripting.
+
+Pending: native Workspace installation URL acceptance, syntax-specific tab preferences,
+Draft query reference dependencies and parent-tag behavior, native Draft.update
+evidence, and the remaining core contracts. Draft.tags retains its legacy setter
+and remains partial. The habitual app was not replaced by this isolated QA build.
+
+## Main window visual pass — 19 October 2026
+
+Implemented: shared row fonts, a lower date baseline, native toolbar spacing,
+Actions width restoration, sidebar text, menu symbols, footer icons, and editor
+margins. The canvas now follows the selected appearance. Stored user preferences
+remain in use. This pass preserves the 81-point two-preview row pitch.
+
+Automatically tested: the final full run passed 234 core and 100 app tests.
+It includes the five original action fixtures. The local Xcode build passed.
+All four capture-validator tests passed.
+Geometry tests cover initial Actions width, first opening, saved widths, and
+completion stability. Redraw tests compare native renders in both appearances.
+A separate regression switches an explicit color scheme without changing text
+or selection.
+
+Verified in use: the Actions panel restored 260 points at the reference layout.
+Four toggles preserved text and final widths. The first light-mode resize exposed
+a black canvas; the corrected build now shows readable text at 1200 × 800,
+1033 × 734, and 850 × 600 points. All three saved captures have valid 2x scale
+and no white padding. The overflow control is visible at 850 points.
+
+Acceptance remains open. The full paired state matrix and intermediate animation
+frames are not verified. Manual appearance selection in Drafts opened its Pro
+upgrade window. Rejected captures and exact remaining checks are recorded in
+`research/visual-parity-2026-10-19.json`. Screenshots alone do not prove full
+visual parity. The habitual app has not been replaced.
+
+### Visual follow-up: overflow, animation, and Unicode count
+
+Implemented: the navigation triangle uses an 11 × 6.5 point native template path.
+The list summary divider moves down 2 points without changing header or row size.
+The footer uses Foundation word tokens and keeps emoji symbols.
+
+Automatically tested: 234 core and 109 app tests passed. The local app build passed.
+Visible test windows sampled native presentation frames every 8 ms. Individual and
+rapid transitions had intermediate frames without backward movement above 1 point.
+They preserved saved widths, note identity, content, and UTF-16 selection. An
+injected animation policy tested Reduce Motion without changing system settings.
+
+Verified in use: at 850 × 600, toolbar overflow opened Quick Search and Command
+Palette. Cancel preserved the selected note and list query. Actions closed and
+reopened. The rebuilt app displayed 149c 26w for neutral fixture 50, matching the
+recorded Drafts result. Other token cases only have Foundation test evidence.
+
+Pending: the Mac locked before final captures. The triangle and divider changes
+need pixel inspection. The full visual matrix remains open. See
+`docs/research/visual-parity-2026-10-19.json` for evidence and limits.
+
+### Visual follow-up: compact footer and long text
+
+Implemented: compact footer spacing is six points. Pin and link symbols use
+12 points. Native horizontal scrolling remains. Each footer caches the last
+content and count. Unchanged content does not repeat tokenization.
+
+A long-text test found overlapping Foundation token fragments. The counter now
+unions overlapping ranges. It keeps adjacent Japanese and Chinese tokens separate.
+Tests cover 100000 and 200000 character sequences and one 100000-character word.
+
+Automatically tested: 234 core and 116 app tests passed. The local build passed.
+The navigation image raster test passed. Its scope is the image, not final window
+placement. All four capture-validator tests passed with the bundled Python runtime.
+Logs: `/tmp/draftly-visual-cached-all.log` and
+`/tmp/draftly-visual-cached-build.log`.
+
+Native acceptance remains pending because the Mac is locked. Inspect the new
+footer, scroll access, navigation placement, and divider after unlock. The cache
+only removes unchanged-content work. Full typing performance remains unverified.
+
+Tokenizer measurements are in
+Session artifact removed at the user's request. Repeat this check when new acceptance is required.
+Run `python3 scripts/benchmark-editor-statistics.py --runs 9` to repeat them
+on an Apple silicon Mac. The report includes hardware, runtime, fixture hashes,
+and samples. It includes Python callback overhead and excludes UI typing.
+
+### macOS capture Services and append regression
+
+Implemented: direct capture saves selected text as a new draft. Capture with
+Options opens the capture window. The old service selector remains an adapter
+for the options flow. The reader supports plain text, RTF, RTFD, URL, and legacy
+pasteboard type names. It preserves Unicode, spaces, and line breaks.
+
+A direct save keeps earlier pending capture text. A failed save retains incoming
+text and reports the error. Append saves pending edits and updates every matching
+editor before another flush. It preserves selection, focus, and native Undo.
+
+Automatically tested: the targeted run passed 42 tests in four suites. The full
+run passed 234 core and 154 app tests. The local Xcode build passed. The built QA
+bundle contains both Services and matches source declarations. Its library UUID
+is unchanged. Tests use in-memory libraries, temporary preferences, and private
+pasteboards. They do not change personal notes or the general pasteboard.
+
+Native acceptance remains pending because the Mac is locked. Invoke both Services
+from another app after unlock. Check no main window, multiple windows, empty input,
+clipboard preservation, and the actual menus. The normal app has not been replaced.
+Session artifact removed at the user's request. Repeat this check when new acceptance is required.
+Session artifact removed at the user's request. Repeat this check when new acceptance is required.
+
+### Version storage, Prompt transport, and resumed visual review
+
+The full run passed 254 core and 154 app tests. Twenty new contract tests cover
+versions and Prompt responses. Revision save failures roll back and do not leak
+into a later commit. SQLite reopen preserves accepted snapshots and rejects
+failed snapshots. Prompt rejects malformed responses before publishing values.
+The matrix check and 15 auditor tests pass. Strict core still reports 820 issues.
+
+Native visual review resumed after unlock. The navigation triangle, pin, and link
+match the measured reference dimensions within one point. Compact icons no longer
+touch. The offset list divider needed a higher draw order; it now appears at the
+reference vertical position. Native scroll indicators expose horizontal actions.
+The 850-point footer can show the complete 149c 26w count. The editor action bar can
+reach its final actions. Captures and AX evidence record these checks.
+
+Six current captures pass size and padding checks at 2x. See
+`screenshots/visual-pass-2026-10-19/verified-capture-index.json` under research.
+The full visual matrix and native Services invocation remain pending.
+
+### Actions toggle color
+
+The Actions toggle now uses primary label color when open and secondary label
+color when closed. The image changes only when visibility changes. A native
+drawing handler keeps the toolbar from replacing the selected symbol color.
+Five toolbar tests pass. They cover model updates, unchanged images on unrelated
+updates, and contrast in light and dark appearances. The local build passes.
+Native light captures confirm a darker open icon. Exact tint comparison with an
+active Drafts window remains pending.
+
+The final app suite passed 156 tests after this change.
+
+### Settings and application menu
+
+Settings now has General, iCloud, Bookmarks, Editor, and Shortcuts categories.
+General includes local appearance, menu bar visibility, capture timeout, and the
+preferred find interface. Native checks verified navigation, Light and System,
+and both Cmd-F interfaces. The application menu has one Settings entry in the
+reference order. Library Summary reads actual counts. Empty Trash uses the
+existing confirmation and is disabled for empty trash.
+
+A neutral bookmark was created and forgotten in the QA app. Its file stayed
+intact. The initial save error preserved the name and did not create a record.
+The exact cause of that first error is not proven. A fresh signed process with
+balanced scoped access saved the bookmark. Two targeted tests verify inventory,
+forgetting, and native file API read/write. The 770 by 438 point capture has valid
+2× pixels. Full Settings parity, restart acceptance, real Action invocation,
+permissions, menu icons, and the final accessibility change remain pending.
+
+### HTML Settings and paste conversion
+
+Added HTML settings for paste conversion, strong/emphasis/list marks, inline or
+reference links, paragraph references, and ignore options. The editor uses the
+local preferences. Explicit scripting conversion keeps its own supplied options.
+Fixed UTF-8 entity decoding and preserved whitespace with a pre-wrap span.
+Five targeted tests verify options, Unicode, paragraphs, reference placement,
+selection replacement, Undo, and the unchanged private test pasteboard.
+The full run passed 168 app tests and 256 core tests. The local build passed.
+Native layout and paste acceptance remain pending because Computer Use closed
+its native pipe. This does not establish full HTML conversion compatibility.
+
+### HTML paste regression checks — 2026-10-19
+
+- Implemented: opening HTML tag patterns require a complete tag name. This prevents body, input, and link from matching b, i, and li.
+- Automatically tested: seven HTML preference tests pass. The new cases cover tag prefixes, Redo, and a plain-text-only clipboard. Three tag assertions failed before the fix.
+- Build: local Xcode build passed. Log: `/tmp/draftly-html-regressions-build.log`.
+- Real use: the new signed QA build opened. Computer Use lost its native pipe when Settings opened. The executable remained live. Settings layout and real paste remain pending.
+
+### Markdown Settings option contracts — 2026-10-19
+
+- Added specific output assertions for MultiMarkdown header labels, GitHub hard breaks, source positions, and safe-over-unsafe precedence.
+- All five MarkdownPreferencesTests passed. Log: `/tmp/draftly-markdown-options-contracts.log`.
+- These tests check the stored options through the renderer. They do not verify checkbox interaction, every Markdown option, or visual parity.
+- Template `%%` delimiters still use MarkdownRenderer. The bundled MultiMarkdown extension flags have no escaped-line-break option. Both items need further work.
+
+### HTML Preview action step and Markdown preferences — 2026-10-19
+
+- The HTML Preview step now converts Markdown with the configured processor and options. Explicit HTML passes through unchanged. Conversion errors use the existing action error path.
+- ActionTests.htmlPreviewStepUsesConfiguredMarkdownAndPreservesExplicitHTML checks saved strikethrough options, Unicode, unchanged source content, and exact HTML preservation.
+- All 14 ActionTests passed, including the five original actions with unchanged scripts. Full Swift regression passed: 170 app tests and 260 core tests. Log: `/tmp/draftly-htmlpreview-all-tests.log`.
+- Native preview acceptance and comparison with Drafts remain pending. Template percent delimiters still use the legacy converter.
+
+### Configured Markdown template delimiters — 2026-10-19
+
+- Added Templates.renderConfigured with throwing Markdown conversion. Actions use it for templates, file names, folders, and scripting processTemplate. Included templates use the same renderer and preferences. The existing nonthrowing Swift render function retains its legacy behavior.
+- Specific tests check configured strikethrough, Unicode, included templates, escaped percent delimiters, source preservation, a clipboard step, and Draft.processTemplate.
+- All 21 focused tests passed. Full regression: 170 app tests and 262 core tests passed. The five original Actions retain their scripts. Local Xcode build passed.
+- Logs: `/tmp/draftly-template-preferences-targeted.log`, `/tmp/draftly-template-preferences-all-tests.log`, `/tmp/draftly-template-preferences-build.log`.
+- Native preference changes through Settings and reference comparison remain pending. This does not close every template contract.
+
+### Library Trash command without a window — 2026-10-19
+
+- Empty Trash in the application menu now depends on library contents, not a command window. It uses a shared library command. Window context menus use the same confirmation and validation.
+- The app command saves registered editors before confirmation. A failed save cancels deletion and preserves the pending text. A changed Trash set cancels deletion after confirmation.
+- Four focused tests passed. They cover no-window confirmation/cancellation, active drafts, empty Trash, changed Trash, and failed editor save. Tests use only in-memory libraries.
+- All 173 app tests passed. Local Xcode build passed. Logs: `/tmp/draftly-trash-command-final-tests.log`, `/tmp/draftly-trash-command-app-tests.log`, `/tmp/draftly-trash-command-build.log`.
+- Native menu state with no window and cancellation remain pending. No user draft was deleted for this acceptance.
+
+### Pause checkpoint: initial execution sessions — 2026-10-19
+
+- Added execution identity, current step, cancellation requests, and a final report with a typed reason. Legacy run and runResult use the report. Added cancellation checks between steps, queued actions, and host calls.
+- Three session tests cover immutable finalization, result parameters, distinct identities, asynchronous timeout, cancellation, preserved completed effects, and skipped success effects.
+- Full regression: 173 app tests and 265 core tests passed. Local Xcode build and whitespace checks passed. Logs: `/tmp/draftly-stop-check-tests.log`, `/tmp/draftly-stop-check-build.log`.
+- This is an initial session implementation. Worker serial execution, the common async entry, removal of RunLoop polling, entry-point migration, and full engine acceptance remain pending.
+- Settings reference-help controls compile. Their native visual and click acceptance remains pending. CUA reconnection still fails while the earlier QA process remains live.
+- Work is paused at the user's request. No claim of complete Mac or engine parity is made.
+
+
+## Repository cleanup 19 October 2026
+
+- Split the app scene file into controller, delegate, commands, and Settings files.
+  Regenerated the Xcode project. No library formats or public scripting APIs changed.
+- Removed three toolbar-array assertions. Native layout, animation, and toggle
+  contrast regressions remain. Removed two redundant test transcripts.
+- Excluded generated C include fragments from separate compilation. The parser
+  still includes their contents. The unused build-rule warnings are gone.
+- Removed four old build logs and 78 generated cache/log directories. Preserved
+  app products, signing data, frozen references, and local iCloud/VM evidence.
+- Full Swift regression: 170 app tests and 265 core tests passed. All 24 Python
+  tests passed. Matrix structure validation reported zero errors. The local
+  Xcode build and whitespace check passed.
+Session artifact removed at the user's request. Repeat this check when new acceptance is required.
+- Added `status.md` for the current implemented/pending inventory. Updated the
+  repository map and glossary. Native visual parity and the Actions worker
+  remain pending; this cleanup does not close them.
+
+
+## Git review and local reset 19 October 2026
+
+The branch matches origin/main after fetch. No staging, commit, or push ran.
+The commit grouping and ignore review are in `status.md`.
+
+The review found that runReport no longer published the legacy busy message.
+Restored the message and added a test for same-runner reentry and another runner
+in the same library. Full Swift regression passed: 170 app tests and 266 core
+tests. All 24 Python tests, matrix structure validation, the local Xcode build,
+and whitespace validation passed.
+
+The user explicitly confirmed permanent local reset without a recovery copy.
+Drafts shared data and its app preferences were deleted. Draftly's local store,
+34 QA libraries, and 14 preference domains were removed. Native inspection then
+showed 0 drafts and empty editors in both apps. Drafts iCloud was verified off.
+Draftly runs the new local build without a CloudKit container. No remote cloud
+reset or VM reset ran.
+
+Removed docs/research/evidence, all 148 local screenshot/capture artifacts,
+three local build evidence folders, and ten more generated logs. Historical
+results remain summaries. No new visual parity acceptance follows from this reset.
+
+
+## Commit preparation — 19 October 2026
+
+The user authorized commits and push after repository cleanup. Changes were
+staged by behavior. Each code snapshot was compiled and tested in a temporary
+directory, without replacing the open local app. The first extraction candidate
+exposed pending identity and redraw corrections. Those corrections now precede
+the extraction in history. No failing candidate was committed.
+
+The commits cover core contracts, visual regressions, source extraction,
+Markdown, capture, Settings, initial execution sessions, and repository cleanup.
+This records implemented work. It does not close Mac parity or the async engine.
+
+Final validation of the complete staged source passed: 170 app tests, 266 core
+tests, 24 Python tests, and the normal matrix check with zero errors. The local
+Xcode build passed with signing disabled. The whitespace check passed. A scan
+for private key, GitHub token, and AWS access-key markers found no matches.
+Signing files, local libraries, logs, evidence, and screenshots remain ignored.

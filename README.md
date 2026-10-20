@@ -28,7 +28,7 @@ To enable iCloud:
 
 The configured paid team now provisions CloudKit and Push Notifications. Apple
 reports its name as Andrés Tobelem, not pobrespandas. The signed build uses the
-private Development container. Server sync acceptance remains open.
+private Development container. The full sync matrix remains open.
 
 `Signing.xcconfig` is ignored by Git. The project supports automatic signing.
 CloudKit sync is eventual. Local saves do not prove a remote save.
@@ -91,8 +91,8 @@ configuration values, and the draft's organization state after success.
 
 The JavaScript bridge supports the five reference actions in
 [compatibility.md](docs/compatibility.md). Scripts share one context across steps.
-Unknown steps are preserved. An action with an unknown step fails before any
-step runs. Unsupported API calls produce an error in Execution History.
+Unknown steps are preserved. An action with an enabled unknown step fails before any
+step runs. Disabled unknown steps remain stored and do not run. Unsupported API calls produce an error in Execution History.
 
 Native steps support the clipboard, sharing, file export, URLs, text insertion,
 new drafts, Markdown preview, Shortcuts, AppleScript, Reminders, and Calendar.
@@ -128,15 +128,54 @@ action snapshots have source URLs and SHA-256 hashes in the fixture manifest.
 
 The local library is in `~/Library/Application Support/Draftly`. The SQLite
 store includes drafts, immutable content revisions, workspaces, actions, and logs.
-Backups omit logs and local file permissions. A backup restores both copies when
+Backups include action groups and syntax definitions. They omit execution
+history, credentials, and local file permissions. A backup restores both copies when
 the same draft ID has different content or metadata. The copied draft keeps its
 own revision history.
 
 The interface was checked against the installed Drafts Mac app. See the
 [interface reference](docs/research/drafts-mac.md) for the controls used.
 
-iPhone, iPad, Apple Watch, MCP, email capture, and full Drafts API compatibility
-are outside this version. Action scripts can use MultiMarkdown and GitHub Markdown,
+iPhone, iPad, Apple Watch, MCP, and email capture are outside this version.
+Full Drafts API parity is still in progress. Action scripts can use MultiMarkdown and GitHub Markdown,
 asynchronous completion, callback responses, and interactive HTML previews.
-The editor preview uses a separate renderer. Native model sessions require an
+Markdown Settings control the default processor in previews and Action templates.
+Native model sessions require an
 available macOS model. See [compatibility.md](docs/compatibility.md) for limits.
+
+## Repository map
+
+| Location | Purpose |
+| --- | --- |
+| `Sources/Draftly` | App lifecycle, windows, controls, and native services |
+| `Sources/DraftlyCore` | Library storage, models, templates, and Actions |
+| `Tests/DraftlyTests` | Native editor, window, and app regressions |
+| `Tests/DraftlyCoreTests` | Storage and scripting contracts; original action fixtures |
+| `Configuration` | App metadata, entitlements, and signing examples |
+| `Resources` | App icon |
+| `Vendor` | Markdown parsers and their licenses |
+| `scripts` | Build, packaging, audit, capture checks, and Python tests |
+| `docs/research` | Frozen references, compatibility matrices, and acceptance evidence |
+
+`DraftlyApp.swift` defines scenes. `AppController.swift` owns app coordination.
+`AppDelegate.swift` owns the menu bar and global shortcut.
+`ApplicationCommands.swift` defines app and window menus. `SettingsView.swift`
+contains Settings and its local preferences.
+
+Start with [project status](docs/status.md) for implemented work and pending
+acceptance. Use [validation](docs/validation.md) for historical test evidence.
+Use the [core audit](docs/research/core-actions-audit.md) and
+[compatibility guide](docs/compatibility.md) for Actions limits. Use the
+[iCloud guide](docs/icloud-distribution.md) and
+[VM checklist](docs/utm-icloud-validation.md) for signed builds and sync checks.
+The local handoff is `docs/claude-handoff.md`. It is not tracked by Git.
+
+Run the Python checks with a Python environment that provides Pillow:
+
+```sh
+python3 -m unittest discover -s scripts -p 'test_*.py'
+```
+
+Keep acceptance summaries and frozen reference snapshots. Screenshots, session
+evidence, raw logs, and generated caches stay local and ignored. They were removed
+after the current cleanup. Generate new artifacts when a new check needs them.
