@@ -108,9 +108,11 @@ struct AsyncInputBridgeTests {
         #expect(f.editor.content == "Keep")
     }
 
-    @Test func arrangementReturnsItsResultWithoutChangingTheEditor() async throws {
+    @Test(arguments: [true, false])
+    func arrangementReturnsItsResultWithoutChangingTheEditor(windowBound: Bool) async throws {
         let f = try ScriptTestFixture(content: "Keep", host: AsyncInputHost())
         f.runner.uiOperation = { _ in Issue.record("The synchronous window adapter ran."); return nil }
+        if !windowBound { f.runner.uiOperation = nil }
         let report = await f.runner.runAsync(ScriptTestAction.make("context.addSuccessParameter('text',editor.arrange('First\\nSecond 🐼'));", name: "Arrange"))
         #expect(report.reason == .success && report.successParameters["text"] == "café 🐼")
         #expect(f.host.calls == ["arrangeText"] && f.editor.content == "Keep")

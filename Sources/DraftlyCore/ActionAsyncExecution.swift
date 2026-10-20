@@ -103,7 +103,7 @@ import Foundation
                let values = try JSONSerialization.jsonObject(with: Data(request.payload.utf8)) as? [String: Any],
                let operation = values["operation"] as? String,
                ["transcribe", "dictate", "arrange"].contains(operation), host?.supportsAsync(operation == "arrange" ? "arrangeText" : operation) == true {
-                guard uiOperation != nil else { throw DraftlyError.message("This action needs an active Draftly editor window.") }
+                guard operation == "arrange" || uiOperation != nil else { throw DraftlyError.message("This action needs an active Draftly editor window.") }
                 let args = values["args"] as? [Any] ?? []
                 let payload: String
                 switch operation {
