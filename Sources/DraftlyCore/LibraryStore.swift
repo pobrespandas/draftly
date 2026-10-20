@@ -226,14 +226,8 @@ public final class LibraryStore: ObservableObject {
     public func log(_ run: ActionRun) { do { try persist(run, id: run.id, kind: "run"); try commit() } catch { self.error = error.localizedDescription } }
     public func deleteAction(_ id: UUID) throws { try delete(id, kind: "action") }
     public func deleteWorkspace(_ id: UUID) throws { try delete(id, kind: "workspace") }
-    public func deleteRevision(_ id: UUID) throws {
-        do { try delete(id, kind: "revision", beforeCommit: beforeBatchCommit) }
-        catch { container.viewContext.rollback(); try? reload(); throw error }
-    }
-    public func deleteRun(_ id: UUID) throws {
-        do { try delete(id, kind: "run", beforeCommit: beforeBatchCommit) }
-        catch { container.viewContext.rollback(); try? reload(); throw error }
-    }
+    public func deleteRevision(_ id: UUID) throws { try delete(id, kind: "revision") }
+    public func deleteRun(_ id: UUID) throws { try delete(id, kind: "run") }
     public func saveRevision(_ revision: Revision) throws {
         do {
             try persist(revision, id: revision.id, kind: "revision")
@@ -241,13 +235,15 @@ public final class LibraryStore: ObservableObject {
             try commit()
         } catch { container.viewContext.rollback(); try? reload(); throw error }
     }
-    private func delete(_ id: UUID, kind: String, beforeCommit: (() throws -> Void)? = nil) throws {
-        let key = "\(kind):\(id.uuidString)"
-        let request = NSFetchRequest<NSManagedObject>(entityName: "Record")
-        request.predicate = NSPredicate(format: "key == %@", key)
-        for record in try container.viewContext.fetch(request) { container.viewContext.delete(record) }
-        try beforeCommit?()
-        try commit()
+    private func delete(_ id: UUID, kind: String) throws {
+        do {
+            let key = "\(kind):\(id.uuidString)"
+            let request = NSFetchRequest<NSManagedObject>(entityName: "Record")
+            request.predicate = NSPredicate(format: "key == %@", key)
+            for record in try container.viewContext.fetch(request) { container.viewContext.delete(record) }
+            try beforeBatchCommit?()
+            try commit()
+        } catch { container.viewContext.rollback(); try? reload(); throw error }
     }
     public func syntaxDefinition(named name: String) throws -> SyntaxDefinition {
         if let definition = syntaxes.first(where: { $0.name == name }) { return try definition.type == "file" ? SyntaxFileAccess.read(definition) : definition }
@@ -276,10 +272,7 @@ public final class LibraryStore: ObservableObject {
             try beforeBatchCommit?(); try commit()
         } catch { container.viewContext.rollback(); try? reload(); throw error }
     }
-    public func deleteTheme(_ id: UUID) throws {
-        do { try delete(id, kind: "theme", beforeCommit: beforeBatchCommit) }
-        catch { container.viewContext.rollback(); try? reload(); throw error }
-    }
+    public func deleteTheme(_ id: UUID) throws { try delete(id, kind: "theme") }
     public func hasThemeMigration(_ migrationID: String) throws -> Bool {
         try persistence.decode("themeMigration", ThemeMigration.self).contains(where: { $0.name == migrationID })
     }

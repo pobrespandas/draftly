@@ -716,3 +716,10 @@ Next/previous editor navigation now retains the prior cached Draft selection.
 The two extended methods pass all four legacy/worker cases after failing before
 the fix. Full app435/core444, unsigned build, and matrix structure passed. Native
 selection/focus acceptance and remaining error variants stay pending.
+
+
+All five library deletion entry points now share rollback and error propagation.
+Disk-backed action/workspace cases cover failure, unrelated save, reopen, and
+retry. Full app435/core445 and unsigned build passed. Native acceptance currently
+requires the user to unlock the Mac; Computer Use also has recorded service
+assertions. These do not establish a Draftly failure.

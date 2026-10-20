@@ -3299,3 +3299,27 @@ and Draft.selectionLength; earlier tests remain as supporting evidence.
 Native focus, visible navigation, and the remaining member-specific error cases
 remain pending. These entries remain partial. The read-only editor audit found
 this defect and ran no compiler or UI. The installed QA image is unchanged.
+
+
+### Shared deletion transaction — 20 October 2026
+
+Implemented: action, workspace, revision, execution, and theme deletion now use
+one guarded helper. It invokes the batch pre-commit boundary, rolls back and
+reloads on failure, and propagates the error. Duplicate rollback wrappers were
+removed. Public method names and return types remain unchanged.
+
+A new disk-backed method has action and workspace cases. Both first failed
+because the injected boundary was not used. They now pass. It checks the context
+has no pending changes after failure, retained records survive an unrelated save
+and reopen, retry persists deletion, and other records remain. Fourteen focused
+methods passed across deletion, version, and action-log contracts. Full regression
+passed 435 app methods and 445 core methods. The unsigned Debug build passed.
+This uses injected pre-commit failure, not an actual filesystem outage. Native
+inspector deletion and real storage-error presentation remain pending.
+
+Computer Use diagnostics: Engine QA is still running. Two local service crash
+reports from 05:56 show an Array.remove assertion in SkyComputerUseService. This
+is evidence of a tool-service failure, not proof of its cause or a Draftly fault.
+A full AX read later returned cgWindowNotFound. Rebinding then reported that the
+Mac is locked and automatic unlock failed. The user was asked to unlock it. No
+system setting changed; no raw report was added to the repository.
