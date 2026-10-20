@@ -1340,3 +1340,20 @@ cancellations, one selector success, and one selector cancellation. QA was quit
 and no QA process remained. The helper remains available. No screenshots were
 saved. The alert exposes no visible close control. Other window-close paths,
 confirmation variants, and remaining native adapters still need acceptance.
+
+## Engine boundary evidence — 20 October 2026
+
+The focused EngineBoundaryContractTests run passed seven test methods with 13
+expanded cases. Static include expansion accepts a 50-action chain and rejects
+51; this is not a claim about every dynamic full-runner depth path. The real
+queue accepts 100 executed actions, rejects 101, and retains the first 100 effects.
+Queued async failure and cancellation stop later steps and queued actions, discard
+success parameters, and keep completed effects. Separate root executions do not
+share JavaScript globals. Pre-cancelled startup has no effects. Separator defaults
+and invalid imported payloads have direct checks.
+
+Engine evidence now names these and earlier specific assertions. The normal
+matrix check passes. The strict engine check reports 44 evidence diagnostics.
+All 14 engine records remain partial, with their native checks and remaining
+limits stated. No object member or step classification changed. The change in
+check output is not a compatibility percentage or a complete engine acceptance.

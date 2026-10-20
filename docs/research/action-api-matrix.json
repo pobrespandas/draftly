@@ -15957,6 +15957,13 @@
       "nativeVerification": {
         "status": "pending",
         "reason": "The temporary app verified delayed completion. Old handles, duplicate completion with failure, and successive-step timer isolation have not been compared through real app entry points."
+      },
+      "automatedVerification": {
+        "status": "passed",
+        "revision": "a308158",
+        "date": "2026-10-20",
+        "evidence": "docs/validation.md",
+        "scope": "The named per-case tests were included in the recorded regression run. Native acceptance remains pending."
       }
     },
     {
@@ -15968,17 +15975,61 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Native entry-point acceptance and all relevant failure branches are not closed."
+        "Invalid synchronous limits and the async-versus-sync minimum deadline need explicit boundary cases.",
+        "CPU timeout through the actual UI, URL, and App Intent accesses remains pending on the current build."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
         "test": "synchronousTimeoutStopsLaterStepsAndSuccessEffects"
       },
       "implementationEvidence": {
-        "file": "Sources/DraftlyCore/ActionAsyncExecution.swift",
-        "symbol": "executeAsync"
+        "file": "Sources/DraftlyCore/ActionScriptWorker.swift",
+        "symbol": "run / checkState"
       },
-      "reviewDate": "2026-10-19"
+      "reviewDate": "2026-10-20",
+      "defaults": "The new runner defaults synchronousScriptTimeout to 10 seconds. Async initial evaluation uses the smaller of its async and synchronous limits.",
+      "result": "Finite CPU work returns success. Exceeding the JavaScriptCore evaluation limit returns a failure report with termination reason timeout.",
+      "errors": "A timed-out evaluation cannot run subsequent steps or apply success disposition. Completed earlier effects are retained.",
+      "contractCases": {
+        "normal": {
+          "test": {
+            "suite": "AsyncActionRunnerTests",
+            "test": "busyJavaScriptLeavesMainActorAvailableAndSynchronousDeadlineIsTyped"
+          },
+          "assertion": "Finite CPU work succeeds while MainActor remains available."
+        },
+        "defaults": {
+          "test": {
+            "suite": "EngineClosureContractTests",
+            "test": "omittedAsyncFlagUsesSynchronousCompletionAndCurrentDeadlineDefaults"
+          },
+          "assertion": "A new runner has synchronousScriptTimeout equal to 10 seconds."
+        },
+        "errors": {
+          "test": {
+            "suite": "AsyncActionRunnerTests",
+            "test": "busyJavaScriptLeavesMainActorAvailableAndSynchronousDeadlineIsTyped"
+          },
+          "assertion": "An endless script stopped by a 0.02-second limit returns reason timeout and retains text."
+        }
+      },
+      "supportingTests": [
+        {
+          "suite": "ExecutionActionAPITests",
+          "test": "synchronousTimeoutStopsLaterStepsAndSuccessEffects"
+        }
+      ],
+      "nativeVerification": {
+        "status": "pending",
+        "reason": "CPU timeout through the actual UI, URL, and App Intent accesses remains pending on the current build."
+      },
+      "automatedVerification": {
+        "status": "passed",
+        "revision": "a308158",
+        "date": "2026-10-20",
+        "evidence": "docs/validation.md",
+        "scope": "The named contract cases were included in the recorded regression run. This is not native acceptance."
+      }
     },
     {
       "contract": "promise rejection and asynchronous timeout",
@@ -15989,17 +16040,61 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Native entry-point acceptance and all relevant failure branches are not closed."
+        "Unreturned rejected promises and invalid async-limit values lack dedicated contract cases.",
+        "Promise rejection and timeout still need actual native entry-point checks on the current build."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
         "test": "asyncPromiseRejectionAndTimeoutStopDisposition"
       },
       "implementationEvidence": {
-        "file": "Sources/DraftlyCore/ActionAsyncExecution.swift",
-        "symbol": "executeAsync"
+        "file": "Sources/DraftlyCore/ActionScriptWorker.swift",
+        "symbol": "run / scheduleTimer / checkState"
       },
-      "reviewDate": "2026-10-19"
+      "reviewDate": "2026-10-20",
+      "defaults": "Async script waiting defaults to 120 seconds. Without an async flag a script completes after synchronous evaluation; a current async script must call script.complete().",
+      "result": "A completed delayed script continues with shared state. A rejected returned promise yields error; missing completion yields timeout.",
+      "errors": "Rejection, context.fail, or timeout prevents following steps and success disposition and records an error. Completion cannot override a failure in the same evaluation.",
+      "contractCases": {
+        "normal": {
+          "test": {
+            "suite": "AsyncActionRunnerTests",
+            "test": "completionSuspendsWithoutBlockingMainActorAndPreservesSharedState"
+          },
+          "assertion": "Delayed completion advances the next script and preserves shared variables and final success parameters."
+        },
+        "defaults": {
+          "test": {
+            "suite": "EngineClosureContractTests",
+            "test": "omittedAsyncFlagUsesSynchronousCompletionAndCurrentDeadlineDefaults"
+          },
+          "assertion": "The async timeout starts at 120 seconds and absent async flags do not require script.complete()."
+        },
+        "errors": {
+          "test": {
+            "suite": "AsyncActionRunnerTests",
+            "test": "timeoutAndRejectedPromisesStopLaterStepsAndSuccessEffects"
+          },
+          "assertion": "A missing complete, a rejected returned promise, and failure after complete stop subsequent clipboard and archive effects."
+        }
+      },
+      "supportingTests": [
+        {
+          "suite": "EngineClosureContractTests",
+          "test": "completionCannotOverrideFailureInTheSameEvaluation"
+        }
+      ],
+      "nativeVerification": {
+        "status": "pending",
+        "reason": "Promise rejection and timeout still need actual native entry-point checks on the current build."
+      },
+      "automatedVerification": {
+        "status": "passed",
+        "revision": "a308158",
+        "date": "2026-10-20",
+        "evidence": "docs/validation.md",
+        "scope": "The named contract cases were included in the recorded regression run. This is not native acceptance."
+      }
     },
     {
       "contract": "cross-window exclusion",
@@ -16061,6 +16156,13 @@
       "nativeVerification": {
         "status": "pending",
         "reason": "Actual concurrent requests from two visible windows, URLs, and App Intents have not all been verified. Tests use real local stores and injected hosts without visible windows."
+      },
+      "automatedVerification": {
+        "status": "passed",
+        "revision": "a308158",
+        "date": "2026-10-20",
+        "evidence": "docs/validation.md",
+        "scope": "The named per-case tests were included in the recorded regression run. Native acceptance remains pending."
       }
     },
     {
@@ -16072,7 +16174,8 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Native entry-point acceptance and all relevant failure branches are not closed."
+        "Included configuration key collisions and shared cancellation/error context need dedicated async cases.",
+        "Real selected-UUID includes after rename and dynamic-name includes remain pending in the native app."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
@@ -16080,9 +16183,56 @@
       },
       "implementationEvidence": {
         "file": "Sources/DraftlyCore/ActionAsyncExecution.swift",
-        "symbol": "executeAsync"
+        "symbol": "executeAsync / performSteps"
       },
-      "reviewDate": "2026-10-19"
+      "reviewDate": "2026-10-20",
+      "defaults": "A nonempty selected uuid takes precedence over name. An empty uuid resolves the rendered name. Included actions reuse the root runtime and do not apply their own final disposition.",
+      "result": "Included scripts share JavaScript variables and configuration with the caller. Dynamic names resolve when the include executes; selected identities survive renaming.",
+      "errors": "Invalid selected UUIDs do not fall back to names. Missing names, template errors, and enabled unsupported steps fail explicitly.",
+      "contractCases": {
+        "normal": {
+          "test": {
+            "suite": "AsyncActionRunnerTests",
+            "test": "dynamicIncludesShareVariablesConfigurationAndRootDisposition"
+          },
+          "assertion": "Both runners preserve caller variables and included configuration and suppress the child trash disposition."
+        },
+        "defaults": {
+          "test": {
+            "suite": "ActionIncludeResolutionTests",
+            "test": "emptyUUIDUsesRenderedNameAndPropagatesTemplateErrors"
+          },
+          "assertion": "An empty selected UUID uses the rendered name, including Unicode."
+        },
+        "errors": {
+          "test": {
+            "suite": "ActionIncludeResolutionTests",
+            "test": "invalidOrMissingUUIDNeverFallsBackToMatchingName"
+          },
+          "assertion": "An invalid or absent selected action UUID fails even if the name matches another action."
+        }
+      },
+      "supportingTests": [
+        {
+          "suite": "ActionIncludeResolutionTests",
+          "test": "selectedUUIDSurvivesRenamingAndTakesPrecedenceOverName"
+        },
+        {
+          "suite": "ExecutionActionAPITests",
+          "test": "includedUnknownStepIsRejectedBeforeAnySideEffect"
+        }
+      ],
+      "nativeVerification": {
+        "status": "pending",
+        "reason": "Real selected-UUID includes after rename and dynamic-name includes remain pending in the native app."
+      },
+      "automatedVerification": {
+        "status": "passed",
+        "revision": "a308158",
+        "date": "2026-10-20",
+        "evidence": "docs/validation.md",
+        "scope": "The named contract cases were included in the recorded regression run. This is not native acceptance."
+      }
     },
     {
       "contract": "circular inclusion",
@@ -16093,17 +16243,81 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Native entry-point acceptance and all relevant failure branches are not closed."
+        "The 50/51-action static expansion boundary is tested. Equivalent dynamic-depth boundaries through full runner execution remain untested.",
+        "Static and dynamic inclusion cycle handling remain pending through real native entry points."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
         "test": "circularIncludesFailBeforeTheFirstSideEffect"
       },
       "implementationEvidence": {
-        "file": "Sources/DraftlyCore/ActionAsyncExecution.swift",
-        "symbol": "executeAsync"
+        "file": "Sources/DraftlyCore/ActionStepExpansion.swift",
+        "symbol": "expand / resolve"
       },
-      "reviewDate": "2026-10-19"
+      "reviewDate": "2026-10-20",
+      "defaults": "The inclusion path starts with the root action identity. The depth guard rejects a path containing 50 identities; independent sibling includes do not share an ancestry path.",
+      "result": "Acyclic static and dynamic includes run in the caller context. Static cycles fail during preflight; a dynamic cycle fails when its name resolves.",
+      "errors": "Static cycles prevent all root effects. Dynamic cycle detection keeps earlier effects but does not repeat the root or apply success disposition.",
+      "contractCases": {
+        "normal": {
+          "test": {
+            "suite": "ActionIncludeResolutionTests",
+            "test": "staticNamesAndUUIDsExpandInOrderWhileDynamicNamesRemainSteps"
+          },
+          "assertion": "Repeated sibling static references expand in order; dynamic references remain for runtime resolution."
+        },
+        "errors": {
+          "test": {
+            "suite": "AsyncActionRunnerTests",
+            "test": "dynamicCyclesStopWithoutRepeatingEffects"
+          },
+          "assertion": "A dynamic self-include fails on both runners after exactly one earlier clipboard effect."
+        },
+        "defaults": {
+          "test": {
+            "suite": "EngineBoundaryContractTests",
+            "test": "actualIncludeChainsRespectTheDepthBoundary"
+          },
+          "assertion": "Preflight expansion traverses an actual selected-UUID chain: 50 actions expand to the leaf and 51 actions fail with the depth-limit error. This case does not run the full action runner."
+        }
+      },
+      "supportingTests": [
+        {
+          "suite": "ActionIncludeResolutionTests",
+          "test": "UUIDCyclesAndDepthLimitRemainRejected"
+        },
+        {
+          "suite": "ExecutionActionAPITests",
+          "test": "circularIncludesFailBeforeTheFirstSideEffect"
+        },
+        {
+          "suite": "EngineBoundaryContractTests",
+          "test": "actualIncludeChainsRespectTheDepthBoundary"
+        }
+      ],
+      "nativeVerification": {
+        "status": "pending",
+        "reason": "Static and dynamic inclusion cycle handling remain pending through real native entry points."
+      },
+      "automatedVerification": {
+        "status": "passed",
+        "revision": "a308158",
+        "date": "2026-10-20",
+        "evidence": "docs/validation.md",
+        "scope": "The earlier contract cases passed in the recorded regression run. New boundary cases passed in the separate targeted run listed below. Neither run is native acceptance.",
+        "additionalRuns": [
+          {
+            "date": "2026-10-20",
+            "suite": "EngineBoundaryContractTests",
+            "tests": [
+              "actualIncludeChainsRespectTheDepthBoundary"
+            ],
+            "command": "swift test --filter EngineBoundaryContractTests",
+            "result": "Passed in the coordinator focused run: seven test methods and thirteen expanded cases, no failures.",
+            "evidence": "The coordinator read the completed focused run before this evidence update."
+          }
+        ]
+      }
     },
     {
       "contract": "queue cancellation",
@@ -16114,17 +16328,85 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Native entry-point acceptance and all relevant failure branches are not closed."
+        "Queued execution and stopping behavior remain pending through native automation entry points."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
         "test": "cancellingAnActionStopsItsQueue"
       },
       "implementationEvidence": {
-        "file": "Sources/DraftlyCore/ActionAsyncExecution.swift",
-        "symbol": "executeAsync"
+        "file": "Sources/DraftlyCore/ActionRunner.swift",
+        "symbol": "runAsync queue loop"
       },
-      "reviewDate": "2026-10-19"
+      "reviewDate": "2026-10-20",
+      "defaults": "Each new async root run starts with an empty queue. Queued actions run in insertion order against their captured draft. A root run permits at most 100 queued actions.",
+      "result": "A successful queued action loads and saves its target draft and contributes final success parameters to the root report. Cancellation clears remaining queued work.",
+      "errors": "Cancellation or failure stops subsequent queued actions and clears final success parameters; effects completed before termination remain.",
+      "contractCases": {
+        "normal": {
+          "test": {
+            "suite": "AsyncActionRunnerTests",
+            "test": "successfulQueueLoadsTheQueuedDraftAndSharesTheFinalReport"
+          },
+          "assertion": "The queued target loads and saves Unicode content and contributes success parameters while the report retains the root action identity."
+        },
+        "errors": {
+          "test": {
+            "suite": "EngineBoundaryContractTests",
+            "test": "asynchronousQueuedTerminationStopsLaterWorkAndClearsSuccessParameters"
+          },
+          "assertion": "A queued async action cancels or fails from its timer after one completed effect. Its following step and next queued action do not run; final success parameters are empty and archive is not applied."
+        },
+        "defaults": {
+          "test": {
+            "suite": "EngineBoundaryContractTests",
+            "test": "queueLimitCountsExecutedActionsAndRetainsCompletedEffects"
+          },
+          "assertion": "The full async runner accepts exactly 100 queued actions; 101 requests produce an error after exactly 100 completed clipboard effects, with the remaining queue cleared."
+        }
+      },
+      "supportingTests": [
+        {
+          "suite": "ExecutionActionAPITests",
+          "test": "cancellingAQueuedActionStopsLaterActions"
+        },
+        {
+          "suite": "AsyncActionRunnerTests",
+          "test": "includedStepsShareContextAndQueueStopsAfterCancellation"
+        },
+        {
+          "suite": "EngineBoundaryContractTests",
+          "test": "queueLimitCountsExecutedActionsAndRetainsCompletedEffects"
+        },
+        {
+          "suite": "EngineBoundaryContractTests",
+          "test": "asynchronousQueuedTerminationStopsLaterWorkAndClearsSuccessParameters"
+        }
+      ],
+      "nativeVerification": {
+        "status": "pending",
+        "reason": "Queued execution and stopping behavior remain pending through native automation entry points."
+      },
+      "automatedVerification": {
+        "status": "passed",
+        "revision": "a308158",
+        "date": "2026-10-20",
+        "evidence": "docs/validation.md",
+        "scope": "The earlier contract cases passed in the recorded regression run. New boundary cases passed in the separate targeted run listed below. Neither run is native acceptance.",
+        "additionalRuns": [
+          {
+            "date": "2026-10-20",
+            "suite": "EngineBoundaryContractTests",
+            "tests": [
+              "queueLimitCountsExecutedActionsAndRetainsCompletedEffects",
+              "asynchronousQueuedTerminationStopsLaterWorkAndClearsSuccessParameters"
+            ],
+            "command": "swift test --filter EngineBoundaryContractTests",
+            "result": "Passed in the coordinator focused run: seven test methods and thirteen expanded cases, no failures.",
+            "evidence": "The coordinator read the completed focused run before this evidence update."
+          }
+        ]
+      }
     },
     {
       "contract": "final callback selection",
@@ -16135,8 +16417,57 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Native entry-point acceptance and all relevant failure branches are not closed."
-      ]
+        "Dedicated URL/App Intent timeout and busy-result callback tests are missing.",
+        "Recorded native success/error/cancel callbacks used an older QA executable; repeat applicable variants on the current build."
+      ],
+      "defaults": "No callback URL is produced if the matching x-success, x-cancel, or x-error parameter is absent or lacks a scheme. Success parameters default to an empty map.",
+      "result": "Success selects x-success and merges its final parameters once. Cancellation selects x-cancel without success parameters. Failure selects x-error and adds errorMessage. Existing unrelated query items remain.",
+      "errors": "Invalid or relative callback targets return nil. Failure and cancellation cannot leak success parameters.",
+      "implementationEvidence": {
+        "file": "Sources/DraftlyCore/ActionExecutionResult.swift",
+        "symbol": "callbackURL"
+      },
+      "reviewDate": "2026-10-20",
+      "contractCases": {
+        "normal": {
+          "test": {
+            "suite": "ExecutionActionAPITests",
+            "test": "finalResultChoosesAndEncodesOnlyItsOwnCallback"
+          },
+          "assertion": "The selected result preserves unrelated query items and encodes Unicode values without duplicate replacement keys."
+        },
+        "defaults": {
+          "test": {
+            "suite": "ExecutionActionAPITests",
+            "test": "finalResultChoosesAndEncodesOnlyItsOwnCallback"
+          },
+          "assertion": "Absent callback parameters and a relative success target produce nil."
+        },
+        "errors": {
+          "test": {
+            "suite": "ExecutionActionAPITests",
+            "test": "finalResultChoosesAndEncodesOnlyItsOwnCallback"
+          },
+          "assertion": "Cancel selects only x-cancel; failure selects x-error with its message and no success fields."
+        }
+      },
+      "supportingTests": [
+        {
+          "suite": "ExecutionActionAPITests",
+          "test": "contextSuccessParametersAreExportedOnlyForSuccessfulRuns"
+        }
+      ],
+      "nativeVerification": {
+        "status": "pending",
+        "reason": "Recorded native success/error/cancel callbacks used an older QA executable; repeat applicable variants on the current build."
+      },
+      "automatedVerification": {
+        "status": "passed",
+        "revision": "a308158",
+        "date": "2026-10-20",
+        "evidence": "docs/validation.md",
+        "scope": "The named contract cases were included in the recorded regression run. This is not native acceptance."
+      }
     },
     {
       "contract": "unknown disabled imports",
@@ -16147,8 +16478,52 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Native entry-point acceptance and all relevant failure branches are not closed."
-      ]
+        "Unknown-step raw payload persistence through export, backup, and restore needs a dedicated round-trip case.",
+        "Importing and running enabled/disabled unknown steps remain pending in the native action inspector."
+      ],
+      "defaults": "A missing isEnabled value enables a step. An explicitly false isEnabled value preserves the step but skips execution. The importer retains the original action payload.",
+      "result": "Imported disabled unknown steps remain represented while following supported steps can execute. Enabled unknown steps prevent execution during preflight.",
+      "errors": "An enabled unsupported step yields an error before earlier root steps produce side effects; no fake success is returned.",
+      "implementationEvidence": {
+        "file": "Sources/DraftlyCore/ActionStepExpansion.swift",
+        "symbol": "expand"
+      },
+      "reviewDate": "2026-10-20",
+      "contractCases": {
+        "normal": {
+          "test": {
+            "suite": "ExecutionActionAPITests",
+            "test": "disabledUnknownStepsSurviveImportAndDoNotBlockExecution"
+          },
+          "assertion": "An imported disabled future step remains in the two-step action and the supported clipboard step runs."
+        },
+        "defaults": {
+          "test": {
+            "suite": "AsyncActionRunnerTests",
+            "test": "unknownEnabledStepsFailBeforeEffectsAndDisabledStepsRemainIntact"
+          },
+          "assertion": "An unknown step with omitted isEnabled fails; setting false skips it while keeping its payload."
+        },
+        "errors": {
+          "test": {
+            "suite": "AsyncActionRunnerTests",
+            "test": "unknownEnabledStepsFailBeforeEffectsAndDisabledStepsRemainIntact"
+          },
+          "assertion": "Enabled unknown steps reject the async action before its first clipboard effect."
+        }
+      },
+      "supportingTests": [],
+      "nativeVerification": {
+        "status": "pending",
+        "reason": "Importing and running enabled/disabled unknown steps remain pending in the native action inspector."
+      },
+      "automatedVerification": {
+        "status": "passed",
+        "revision": "a308158",
+        "date": "2026-10-20",
+        "evidence": "docs/validation.md",
+        "scope": "The named contract cases were included in the recorded regression run. This is not native acceptance."
+      }
     },
     {
       "contract": "separator imports",
@@ -16159,36 +16534,161 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Native entry-point acceptance and all relevant failure branches are not closed."
-      ]
+        "Separator display, ordering, and backup restoration remain pending in the native inspector."
+      ],
+      "defaults": "Absent or false backingIsSeparator produces a normal action with isSeparator false. True marks an imported separator. The original payload remains available, including unknown fields.",
+      "result": "A saved imported separator is found by Action.find with isSeparator true. A separator can retain an empty steps list without losing its API identity.",
+      "errors": "The separator flag does not bypass required name, steps-array, or step-type validation. Invalid separator payloads throw instead of producing a usable action.",
+      "implementationEvidence": {
+        "file": "Sources/DraftlyCore/ActionImporter.swift",
+        "symbol": "decode"
+      },
+      "reviewDate": "2026-10-20",
+      "contractCases": {
+        "normal": {
+          "test": {
+            "suite": "CatalogActionAPITests",
+            "test": "importedSeparatorsRetainTheirAPIIdentityAndRawPayload"
+          },
+          "assertion": "The imported separator retains unknown raw fields and isSeparator after saving and retrieving it by scripting."
+        },
+        "defaults": {
+          "test": {
+            "suite": "EngineBoundaryContractTests",
+            "test": "absentAndFalseSeparatorFlagsRemainNormalActions"
+          },
+          "assertion": "Imported actions with absent and false separator flags are saved and retrieved by Action.find with isSeparator exactly false."
+        },
+        "errors": {
+          "test": {
+            "suite": "EngineBoundaryContractTests",
+            "test": "separatorFlagDoesNotBypassImportValidation"
+          },
+          "assertion": "Four separator payloads fail: missing name, missing steps, non-array steps, and a step without a type."
+        }
+      },
+      "supportingTests": [
+        {
+          "suite": "EngineBoundaryContractTests",
+          "test": "absentAndFalseSeparatorFlagsRemainNormalActions"
+        },
+        {
+          "suite": "EngineBoundaryContractTests",
+          "test": "separatorFlagDoesNotBypassImportValidation"
+        }
+      ],
+      "nativeVerification": {
+        "status": "pending",
+        "reason": "Separator display, ordering, and backup restoration remain pending in the native inspector."
+      },
+      "automatedVerification": {
+        "status": "passed",
+        "revision": "a308158",
+        "date": "2026-10-20",
+        "evidence": "docs/validation.md",
+        "scope": "The earlier contract cases passed in the recorded regression run. New boundary cases passed in the separate targeted run listed below. Neither run is native acceptance.",
+        "additionalRuns": [
+          {
+            "date": "2026-10-20",
+            "suite": "EngineBoundaryContractTests",
+            "tests": [
+              "absentAndFalseSeparatorFlagsRemainNormalActions",
+              "separatorFlagDoesNotBypassImportValidation"
+            ],
+            "command": "swift test --filter EngineBoundaryContractTests",
+            "result": "Passed in the coordinator focused run: seven test methods and thirteen expanded cases, no failures.",
+            "evidence": "The coordinator read the completed focused run before this evidence update."
+          }
+        ]
+      }
     },
     {
       "contract": "worker isolation and responsiveness",
       "compatibilityStatus": "partial",
       "implementationEvidence": {
         "file": "Sources/DraftlyCore/ActionScriptWorker.swift",
-        "symbol": "runAsync / ActionScriptWorker"
+        "symbol": "start / run / close"
       },
       "automatedTest": {
         "suite": "AsyncActionRunnerTests",
         "test": "busyJavaScriptLeavesMainActorAvailableAndSynchronousDeadlineIsTyped"
       },
-      "reviewDate": "2026-10-19",
+      "reviewDate": "2026-10-20",
       "liveCheck": {
         "date": "2026-10-20",
         "evidence": "docs/actions-engine.md",
         "result": "Temporary local QA app: panel use during delayed action, exact native Undo, window-close cancellation recorded in Execution History, and typing cancels while preserving user text. Other entry points remain pending."
       },
       "limitations": [
-        "JavaScript values stay on the serial worker. Native capability acceptance remains incomplete."
-      ]
+        "Fresh runtime identity across queued actions and strict executor-ownership assertions need dedicated cases.",
+        "Recorded panel responsiveness used an older QA build; current native permission/dialog and CPU-bound cancellation variants remain pending."
+      ],
+      "defaults": "The async runner creates a serial worker and a fresh runtime for a root execution. Its bridge carries JSON strings with execution and step identity. The legacy synchronous runner stays on MainActor.",
+      "result": "JavaScriptCore evaluation remains on the worker while library/editor/UI operations run on MainActor. Awaiting script completion does not spin a RunLoop.",
+      "errors": "CPU limits stop endless evaluation with reason timeout. Cancellation closes the worker and prevents later script commands; prior completed effects remain.",
+      "contractCases": {
+        "normal": {
+          "test": {
+            "suite": "AsyncActionRunnerTests",
+            "test": "busyJavaScriptLeavesMainActorAvailableAndSynchronousDeadlineIsTyped"
+          },
+          "assertion": "MainActor observes the active execution while finite busy JavaScript runs on its worker."
+        },
+        "errors": {
+          "test": {
+            "suite": "AsyncActionRunnerTests",
+            "test": "cancellationReleasesAnIdleScriptAndPreservesCompletedEffects"
+          },
+          "assertion": "Cancelling an idle worker leaves a completed clipboard effect but rejects its delayed editor write and final archive."
+        },
+        "defaults": {
+          "test": {
+            "suite": "EngineBoundaryContractTests",
+            "test": "separateRootExecutionsDoNotShareJavaScriptGlobals"
+          },
+          "assertion": "Two successful root runs have distinct execution IDs. JavaScript globals and success parameters from the first root are absent from the second, which can edit successfully."
+        }
+      },
+      "supportingTests": [
+        {
+          "suite": "AsyncActionRunnerTests",
+          "test": "stepTimersAndOldScriptHandlesCannotCompleteLaterStepsOrRuns"
+        },
+        {
+          "suite": "EngineBoundaryContractTests",
+          "test": "separateRootExecutionsDoNotShareJavaScriptGlobals"
+        }
+      ],
+      "nativeVerification": {
+        "status": "pending",
+        "reason": "Recorded panel responsiveness used an older QA build; current native permission/dialog and CPU-bound cancellation variants remain pending."
+      },
+      "automatedVerification": {
+        "status": "passed",
+        "revision": "a308158",
+        "date": "2026-10-20",
+        "evidence": "docs/validation.md",
+        "scope": "The earlier contract cases passed in the recorded regression run. New boundary cases passed in the separate targeted run listed below. Neither run is native acceptance.",
+        "additionalRuns": [
+          {
+            "date": "2026-10-20",
+            "suite": "EngineBoundaryContractTests",
+            "tests": [
+              "separateRootExecutionsDoNotShareJavaScriptGlobals"
+            ],
+            "command": "swift test --filter EngineBoundaryContractTests",
+            "result": "Passed in the coordinator focused run: seven test methods and thirteen expanded cases, no failures.",
+            "evidence": "The coordinator read the completed focused run before this evidence update."
+          }
+        ]
+      }
     },
     {
       "contract": "host request lifetime",
       "compatibilityStatus": "partial",
       "implementationEvidence": {
         "file": "Sources/DraftlyCore/ActionScriptWorker.swift",
-        "symbol": "runAsync / ActionScriptWorker"
+        "symbol": "request / WorkerCancellation / close"
       },
       "automatedTest": {
         "suite": "ActionScriptWorkerTests",
@@ -16201,50 +16701,204 @@
         "result": "Separate QA app and local helper: real macOS success, cancel, error, and late callback delivery. User typing cancelled an eight-second wait; late reply retained text and did not create another window. Native 120-second timeout and other entry points remain pending."
       },
       "limitations": [
-        "Execution and step IDs isolate replies. AsyncHostDrainTests covers cleanup before library release. NativeProcessExecutorTests covers local process termination. Native callback timeout, actual Shortcut execution, App Intent delivery, and remaining capability variants are pending."
-      ]
+        "Unknown request tokens and wrong-step dispatch rejection need explicit direct boundary tests.",
+        "Real native callback timeout, successful Shortcut execution, and remaining permission/capability lifetime variants remain pending on the current build."
+      ],
+      "defaults": "Host request waiting defaults to 120 seconds and is capped by the current async script deadline. Each request has a new token and carries its execution ID, step ID, and absolute deadline.",
+      "result": "Only the first reply reaches a live request. Worker close invalidates pending replies, releases its runtime, and drains cooperative host cleanup before releasing the library.",
+      "errors": "Expired requests yield timeout. Cancelled and late replies cannot resume a closed script. A host that ignores cancellation keeps the library busy until it returns.",
+      "contractCases": {
+        "normal": {
+          "test": {
+            "suite": "AsyncNativeHostTests",
+            "test": "scriptedHostOperationUsesTheAsyncBridge"
+          },
+          "assertion": "A scripted callback reaches the async host and its Unicode response reaches the editor without the synchronous host running."
+        },
+        "defaults": {
+          "test": {
+            "suite": "EngineClosureContractTests",
+            "test": "omittedAsyncFlagUsesSynchronousCompletionAndCurrentDeadlineDefaults"
+          },
+          "assertion": "A new runner starts with hostOperationTimeout equal to 120 seconds."
+        },
+        "errors": {
+          "test": {
+            "suite": "ActionScriptWorkerTests",
+            "test": "timedOutHostReplyCannotChangeTheNextScript"
+          },
+          "assertion": "A timed-out host request retains its original execution/step identities and its late reply cannot change a later script."
+        }
+      },
+      "supportingTests": [
+        {
+          "suite": "ActionScriptWorkerTests",
+          "test": "cancellingAHostWaitReleasesTheWorkerAndCancelsItsRequestTask"
+        },
+        {
+          "suite": "AsyncHostDrainTests",
+          "test": "scriptRequestKeepsLibraryBusyUntilCancelledHostCleanupReturns"
+        },
+        {
+          "suite": "ActionCallbackRouterTests",
+          "test": "concurrentCallbacksStayWithTheirOwnRequest"
+        }
+      ],
+      "nativeVerification": {
+        "status": "pending",
+        "reason": "Real native callback timeout, successful Shortcut execution, and remaining permission/capability lifetime variants remain pending on the current build."
+      },
+      "automatedVerification": {
+        "status": "passed",
+        "revision": "a308158",
+        "date": "2026-10-20",
+        "evidence": "docs/validation.md",
+        "scope": "The named contract cases were included in the recorded regression run. This is not native acceptance."
+      }
     },
     {
       "contract": "task cancellation",
       "compatibilityStatus": "partial",
       "implementationEvidence": {
         "file": "Sources/DraftlyCore/ActionRunner.swift",
-        "symbol": "runAsync / ActionScriptWorker"
+        "symbol": "cancel / runAsync"
       },
       "automatedTest": {
         "suite": "AsyncActionRunnerTests",
         "test": "cancellationReleasesAnIdleScriptAndPreservesCompletedEffects"
       },
-      "reviewDate": "2026-10-19",
+      "reviewDate": "2026-10-20",
       "liveCheck": {
         "date": "2026-10-20",
         "evidence": "docs/actions-engine.md",
         "result": "Temporary local QA app: panel use during delayed action, exact native Undo, window-close cancellation recorded in Execution History, and typing cancels while preserving user text. Other entry points remain pending."
       },
       "limitations": [
-        "Task cancellation and explicit cancellation stop worker waits. Native capability permission and cancellation paths remain incomplete."
-      ]
+        "CPU-bound cancellation latency still needs a dedicated case.",
+        "Current native prompt keyboard, transcription, EventKit, and Apple model cancellation acceptance remain pending."
+      ],
+      "defaults": "A new session starts with cancellationRequested false. Runner.cancel and cancellation of the task running runAsync both request termination. CPU-bound cancellation is bounded by the JavaScript evaluation limit.",
+      "result": "Cancelled idle scripts stop before subsequent steps, return reason cancelled with no success parameters, and retain effects already completed. Host cleanup completes before the final report releases the library.",
+      "errors": "A late native or script response cannot overwrite text after cancellation. Cancellation after a finalized session cannot replace its final report.",
+      "contractCases": {
+        "normal": {
+          "test": {
+            "suite": "AsyncActionRunnerTests",
+            "test": "cancellationReleasesAnIdleScriptAndPreservesCompletedEffects"
+          },
+          "assertion": "Cancelling the parent task returns cancelled and retains only the earlier completed clipboard effect."
+        },
+        "errors": {
+          "test": {
+            "suite": "AsyncHostDrainTests",
+            "test": "scriptRequestKeepsLibraryBusyUntilCancelledHostCleanupReturns"
+          },
+          "assertion": "Host cleanup holds the active session and prevents a second run until cancellation has drained."
+        }
+      },
+      "supportingTests": [
+        {
+          "suite": "ActionExecutionSessionTests",
+          "test": "completionIsFinalAndFailedRunsDropSuccessParameters"
+        },
+        {
+          "suite": "ActionEditorInterruptionTests",
+          "test": "userTypingCancelsDelayedEditorWriteAndSavesTheirText"
+        },
+        {
+          "suite": "EngineBoundaryContractTests",
+          "test": "cancellationBeforeStartupPreventsAllActionEffects"
+        }
+      ],
+      "nativeVerification": {
+        "status": "pending",
+        "reason": "Current native prompt keyboard, transcription, EventKit, and Apple model cancellation acceptance remain pending."
+      },
+      "automatedVerification": {
+        "status": "passed",
+        "revision": "a308158",
+        "date": "2026-10-20",
+        "evidence": "docs/validation.md",
+        "scope": "The earlier contract cases passed in the recorded regression run. New boundary cases passed in the separate targeted run listed below. Neither run is native acceptance.",
+        "additionalRuns": [
+          {
+            "date": "2026-10-20",
+            "suite": "EngineBoundaryContractTests",
+            "tests": [
+              "cancellationBeforeStartupPreventsAllActionEffects"
+            ],
+            "command": "swift test --filter EngineBoundaryContractTests",
+            "result": "Passed in the coordinator focused run: seven test methods and thirteen expanded cases, no failures.",
+            "evidence": "The coordinator read the completed focused run before this evidence update."
+          }
+        ]
+      }
     },
     {
       "contract": "common asynchronous entry points",
       "compatibilityStatus": "partial",
       "implementationEvidence": {
-        "file": "Sources/Draftly/WindowModel.swift",
-        "symbol": "runAsync / ActionScriptWorker"
+        "file": "Sources/Draftly/AutomationActionExecution.swift",
+        "symbol": "run"
       },
       "automatedTest": {
         "suite": "DraftCommandTests",
         "test": "queuedWindowActionRejectsDuplicateRequests"
       },
-      "reviewDate": "2026-10-19",
+      "reviewDate": "2026-10-20",
       "liveCheck": {
         "date": "2026-10-20",
         "evidence": "docs/validation.md",
         "result": "Real QA cold-launch Run awaited delayed success and returned its success parameters. URL failure and cancellation returned matching callbacks. Development-signed QA App Intent through Shortcuts returned success, delayed failure, and cancellation messages. Timeout, busy, concurrent-entry, and window-close variants remain pending."
       },
       "limitations": [
-        "Actual URL/App Intent timeout, busy, concurrent requests, and all window-close variants remain pending. Native Shortcut execution timed out; direct CLI also waited, while the neutral workflow ran in the Shortcuts editor."
-      ]
+        "Dedicated timeout and busy report propagation from every URL and App Intent access are still missing.",
+        "Current-build native multiwindow concurrency, timeout, busy, and remaining App Intent variants remain pending. Earlier QA passed cold URL and Intent success/error/cancel only."
+      ],
+      "defaults": "Window action requests reserve scheduling before task creation. Batch execution uses its captured draft order. URLs and App Intents use AutomationActionExecution and await the runner report.",
+      "result": "Successful batches process every captured draft and leave the last open. Automation saves pending visible edits before loading its target; final reports supply the result used by callbacks and Intents.",
+      "errors": "Failed visible saves prevent automation. Batch failure/cancellation stops later targets. Repeated window requests are rejected before a duplicate action runs.",
+      "contractCases": {
+        "normal": {
+          "test": {
+            "suite": "DraftCommandTests",
+            "test": "successfulBatchProcessesEveryDraftAndLeavesTheLastOpen"
+          },
+          "assertion": "Both drafts change in captured order, the last remains open, and exactly two execution logs exist."
+        },
+        "errors": {
+          "test": {
+            "suite": "DraftCommandTests",
+            "test": "actionBatchStopsOnCancellationAndFailure"
+          },
+          "assertion": "A cancellation or failure stops at the current target without running the next target."
+        }
+      },
+      "supportingTests": [
+        {
+          "suite": "DraftCommandTests",
+          "test": "queuedWindowActionRejectsDuplicateRequests"
+        },
+        {
+          "suite": "AutomationActionExecutionTests",
+          "test": "pendingVisibleEditsAreSavedBeforeAutomationLoadsTheDraft"
+        },
+        {
+          "suite": "AutomationActionExecutionTests",
+          "test": "failedVisibleSavePreventsAutomation"
+        }
+      ],
+      "nativeVerification": {
+        "status": "pending",
+        "reason": "Current-build native multiwindow concurrency, timeout, busy, and remaining App Intent variants remain pending. Earlier QA passed cold URL and Intent success/error/cancel only."
+      },
+      "automatedVerification": {
+        "status": "passed",
+        "revision": "a308158",
+        "date": "2026-10-20",
+        "evidence": "docs/validation.md",
+        "scope": "The named contract cases were included in the recorded regression run. This is not native acceptance."
+      }
     }
   ],
   "schemaVersion": 2,
