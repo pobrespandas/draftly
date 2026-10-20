@@ -86,3 +86,16 @@ handles existing URL endpoints. StatusMenuController owns the status menu and
 its update policy. Capture and search controllers receive library and navigation
 providers. The normal matrix check and all 436 background Swift tests passed.
 Prompt implementation paths were updated without changing compatibility status.
+
+## Stage 6: view components
+
+The library root keeps selection, tag-search visibility, and the window model.
+Filters and editor presentation receive explicit values and bindings. Native
+list helpers stay with the draft list. Action list, editor bar, command palette,
+and each dialog have separate components. Shared measures remain unchanged.
+
+The app scene injects its controller into library views, Settings, and commands.
+WindowModel no longer imports SwiftUI; focus bridging has its own component.
+Two unused library-view helpers were removed. All 169 app and 267 core tests
+passed after extraction. Visible use was not repeated under the background test
+policy. The change does not claim new visual or CloudKit acceptance.

@@ -9,7 +9,7 @@ struct DraftlyApp: App {
     var body: some Scene {
         WindowGroup(id: "library") {
             Group {
-                if let library = controller.library { LibraryView(library: library) }
+                if let library = controller.library { LibraryView(library: library, controller: controller) }
                 else {
                     VStack(spacing: 18) {
                         Image(systemName: "externaldrive.badge.exclamationmark").font(.largeTitle)
@@ -21,8 +21,8 @@ struct DraftlyApp: App {
             }.onOpenURL { controller.handle($0) }
         }
         .defaultSize(width: 1033, height: 734)
-        .commands { DraftlyCommands() }
-        Settings { SettingsView() }
+        .commands { DraftlyCommands(controller: controller) }
+        Settings { SettingsView(controller: controller) }
             .commands {
                 if let library = controller.library {
                     LibraryApplicationCommands(library: library, models: { controller.windows.allObjects })

@@ -1,4 +1,4 @@
-import SwiftUI
+import Combine
 import AppKit
 import DraftlyCore
 
@@ -147,24 +147,24 @@ final class WindowModel: ObservableObject {
     }
 
     func showDictation() throws {
-            guard !dictationActive else { throw DraftlyError.message("Dictation is already active in this window.") }
-            guard editor.focusForDictation != nil else { throw DraftlyError.message("The editor dictation interface is unavailable.") }
-            editor.focusToken = UUID(); showPreview = false; dictationActive = true
-            RunLoop.main.perform(inModes: [.default]) { [weak self] in
-                MainActor.assumeIsolated {
-                    guard let self else { return }
-                    defer { self.dictationActive = false }
-                    guard self.editor.focusForDictation?() == true else { self.library.error = "The editor dictation interface is unavailable."; return }
-                    let id = self.editor.noteID, content = self.editor.content, selection = self.editor.safeSelection
-                    do {
-                        guard let text = try self.host.perform("dictate", values: [:]) as? String, !text.isEmpty else { return }
-                        if self.editor.noteID == id && self.editor.content == content {
-                            try self.editor.replace(selection, with: text)
-                            self.editor.synchronizeScriptEdit?(); self.contentChanged(); _ = self.flush()
-                        } else { self.recoverDictation(text) }
-                    } catch { self.library.error = error.localizedDescription }
-                }
+        guard !dictationActive else { throw DraftlyError.message("Dictation is already active in this window.") }
+        guard editor.focusForDictation != nil else { throw DraftlyError.message("The editor dictation interface is unavailable.") }
+        editor.focusToken = UUID(); showPreview = false; dictationActive = true
+        RunLoop.main.perform(inModes: [.default]) { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                defer { self.dictationActive = false }
+                guard self.editor.focusForDictation?() == true else { self.library.error = "The editor dictation interface is unavailable."; return }
+                let id = self.editor.noteID, content = self.editor.content, selection = self.editor.safeSelection
+                do {
+                    guard let text = try self.host.perform("dictate", values: [:]) as? String, !text.isEmpty else { return }
+                    if self.editor.noteID == id && self.editor.content == content {
+                        try self.editor.replace(selection, with: text)
+                        self.editor.synchronizeScriptEdit?(); self.contentChanged(); _ = self.flush()
+                    } else { self.recoverDictation(text) }
+                } catch { self.library.error = error.localizedDescription }
             }
+        }
     }
     var currentNote: Note? { library.notes.first { $0.id == editor.noteID } ?? scratchNote }
     @Published var workspaceScriptMetadata: [String: String]?
@@ -409,10 +409,6 @@ final class WindowModel: ObservableObject {
     }
 }
 
-struct WindowModelKey: FocusedValueKey { typealias Value = WindowModel }
-extension FocusedValues {
-    var windowModel: WindowModel? { get { self[WindowModelKey.self] } set { self[WindowModelKey.self] = newValue } }
-}
 
 
 extension WindowModel {

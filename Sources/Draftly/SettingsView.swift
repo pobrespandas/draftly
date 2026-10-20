@@ -3,6 +3,7 @@ import AppKit
 import DraftlyCore
 
 struct SettingsView: View {
+    @ObservedObject var controller: AppController
     @AppStorage("settings.selectedTab") private var selectedTab = "general"
     @AppStorage(ApplicationAppearance.preferenceKey) private var appearance = "System"
     @AppStorage(GeneralPreferences.showInMenuBarKey) private var showInMenuBar = true
@@ -94,7 +95,7 @@ struct SettingsView: View {
                 Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 16) {
                     GridRow {
                         Text("Quick capture shortcut:").gridColumnAlignment(.trailing)
-                        Text(AppController.shared.captureShortcutStatus)
+                        Text(controller.captureShortcutStatus)
                             .frame(width: 148, height: 24)
                             .background(.quaternary, in: RoundedRectangle(cornerRadius: 4))
                     }
@@ -125,7 +126,7 @@ struct SettingsView: View {
     private var dataSettings: some View {
         Form {
             Section("Data") {
-                if let library = AppController.shared.library { LibrarySyncStatusView(library: library) }
+                if let library = controller.library { LibrarySyncStatusView(library: library) }
                 else { Text("Library unavailable").font(.caption) }
                 Button("Show Library Folder") {
                     let folder = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Draftly")

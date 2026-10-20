@@ -4,17 +4,17 @@ import DraftlyCore
 
 struct DraftlyCommands: Commands {
     @FocusedValue(\.windowModel) private var focusedModel
-    @ObservedObject private var controller = AppController.shared
+    @ObservedObject var controller: AppController
     @Environment(\.openWindow) private var openWindow
     private var model: WindowModel? {
         focusedModel ?? controller.commandWindow
     }
     var body: some Commands {
-        if let model { WindowCommands(model: model) }
+        if let model { WindowCommands(controller: controller, model: model) }
         else {
             CommandGroup(replacing: .newItem) {
-                Button("New Draft") { AppController.shared.newDraft() }.commandShortcut("New Draft")
-                Button("Quick Capture") { AppController.shared.capture() }.keyboardShortcut("n", modifiers: [.command, .control, .option])
+                Button("New Draft") { controller.newDraft() }.commandShortcut("New Draft")
+                Button("Quick Capture") { controller.capture() }.keyboardShortcut("n", modifiers: [.command, .control, .option])
                 Button("New Window") { openWindow(id: "library") }.commandShortcut("New Window")
             }
         }
@@ -79,12 +79,13 @@ struct LibrarySummary {
 }
 
 private struct WindowCommands: Commands {
+    @ObservedObject var controller: AppController
     @ObservedObject var model: WindowModel
     @Environment(\.openWindow) private var openWindow
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
             Button("New Draft") { model.create() }.commandShortcut("New Draft")
-            Button("Quick Capture") { AppController.shared.capture() }.keyboardShortcut("n", modifiers: [.command, .control, .option])
+            Button("Quick Capture") { controller.capture() }.keyboardShortcut("n", modifiers: [.command, .control, .option])
             Button("New Window") { openWindow(id: "library") }.commandShortcut("New Window")
             Divider()
             Button("Import…") { model.importFile() }.commandShortcut("Import")
@@ -100,8 +101,8 @@ private struct WindowCommands: Commands {
             Button(model.showFilters ? "Hide Filters" : "Show Filters") { model.toggleFilters() }.commandShortcut("Filters")
             Button(model.showDraftList ? "Hide Draft List" : "Show Draft List") { model.toggleDraftList() }.commandShortcut("Draft List")
             Button("Toggle Actions") { model.showActions.toggle() }.commandShortcut("Actions")
-            Button("Command Palette…") { AppController.shared.showCommandPalette() }.commandShortcut("Command Palette")
-            Button("Quick Search…") { AppController.shared.showQuickSearch() }.commandShortcut("Quick Search")
+            Button("Command Palette…") { controller.showCommandPalette() }.commandShortcut("Command Palette")
+            Button("Quick Search…") { controller.showQuickSearch() }.commandShortcut("Quick Search")
             Button("Markdown Preview") { model.preview() }.commandShortcut("Markdown Preview")
             Button("Revision History…") { model.showHistory = true }
         }
