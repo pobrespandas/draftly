@@ -47,6 +47,35 @@ struct QueueAcceptanceTests {
         #expect(values.queryItems?.contains { $0.name == "private" || $0.name == "root" } == false)
     }
 
+    @Test(arguments: [false, true], [false, true])
+    func queuedInterruptionOnAnotherDraftKeepsEffectsAndStopsTheQueue(asynchronous: Bool, cancelled: Bool) async throws {
+        let f = try ScriptTestFixture(content: "Source café 🐼", host: APIContractHost())
+        let sourceID = try #require(f.editor.noteID)
+        let target = try f.library.createNote(content: "Target")
+        let stop = cancelled ? "context.cancel('Stopped café 🐼');" : "throw new Error('Stopped café 🐼');"
+        var child = ScriptTestAction.make("editor.setText('Retained target 🐼');app.setClipboard('Retained effect');context.addSuccessParameter('child','discard');" + stop,
+            name: "Interrupted target")
+        child.afterSuccess = "archive"
+        child.steps.append(ActionStep("insertText", ["template": "Must not run"]))
+        let later = ScriptTestAction.make("editor.setText('Must not run');app.setClipboard('Must not run');", name: "Later target")
+        try f.library.saveAction(child); try f.library.saveAction(later)
+        let root = ScriptTestAction.make("context.addSuccessParameter('root','discard');app.queueAction(Action.find('Interrupted target'),Draft.find('\(target.id.uuidString)'));app.queueAction(Action.find('Later target'),draft);", name: "Interrupted queue root")
+        let report = asynchronous ? await f.runner.runAsync(root) : f.runner.runReport(root)
+        #expect(report.actionID == root.id)
+        #expect(report.reason == (cancelled ? .cancelled : .error))
+        #expect(report.successParameters.isEmpty && f.runner.queued.isEmpty)
+        #expect(f.editor.noteID == target.id && f.editor.content == "Retained target 🐼")
+        #expect(f.library.notes.first { $0.id == target.id }?.content == "Retained target 🐼")
+        #expect(f.library.notes.first { $0.id == target.id }?.isArchived == false)
+        #expect(f.library.notes.first { $0.id == sourceID }?.content == "Source café 🐼")
+        #expect(f.host.clipboard == "Retained effect")
+        let url = try #require(report.result.callbackURL(parameters: callbacks, successParameters: report.successParameters))
+        #expect(url.host == (cancelled ? "cancel" : "error"))
+        let items = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems)
+        #expect(!items.contains { $0.name == "root" || $0.name == "child" })
+        #expect(f.library.runs.count == 1 && f.library.runs.first?.actionID == root.id)
+    }
+
     @Test func queuedDraftLoadsTheCurrentStoredVersionInsteadOfItsCapturedText() async throws {
         let f = try ScriptTestFixture(content: "Root", host: APIContractHost())
         let rootID = try #require(f.editor.noteID)

@@ -17394,6 +17394,10 @@
         {
           "suite": "EngineInclusionAcceptanceTests",
           "test": "childTerminationStopsRootAndQueueWithoutRevertingCompletedEffects"
+        },
+        {
+          "suite": "QueueAcceptanceTests",
+          "test": "queuedInterruptionOnAnotherDraftKeepsEffectsAndStopsTheQueue"
         }
       ],
       "nativeVerification": {
@@ -17425,6 +17429,11 @@
             "command": "swift test",
             "result": "Passed: 388 app tests and 361 core tests. Specific supporting cases listed in this record ran.",
             "evidence": "docs/validation.md"
+          },
+          {
+            "date": "2026-10-20",
+            "command": "swift test --filter QueueAcceptanceTests",
+            "result": "Five methods passed, including four legacy/async error/cancel cases on another draft. The cases retain completed text and clipboard effects, keep originals, suppress archive and later queue work, select the correct callback, clear success parameters, and keep one root history entry."
           }
         ]
       }

@@ -4125,3 +4125,22 @@ The next native check can wrap engine-native-action-fields.json in actions and
 add a foreign data-shaped script entry. Import into the isolated QA library,
 then edit, restart, and export both entries. Compare identities and payloads.
 No screenshots or raw logs are stored in the repo.
+
+
+### Queued error and cancellation on another draft — 20 October 2026
+
+Automatic: queuedInterruptionOnAnotherDraftKeepsEffectsAndStopsTheQueue adds
+four cases for legacy/async runners and error/cancel outcomes. Each case queues
+an action on a separate target, then queues another action on the source.
+The target keeps its completed Unicode edit and clipboard effect. The source
+stays unchanged. The later step and queued action do not run. Archive does not
+apply. The final report keeps the root identity, clears success parameters,
+and selects only the matching error or cancel callback. One root history entry
+remains. All five QueueAcceptanceTests methods pass. Full regression passed
+app444/core468. Production code did not change, so no new app build was needed.
+Matrix structure passes. No visible windows or permissions were used.
+
+Native acceptance on separate targets and all required entry routes remains
+pending. This test does not settle queued confirmation policy or replace native
+checks. The queue contract stays partial. The last unsigned build remains the
+successful grouped/mixed import build at 565413c.

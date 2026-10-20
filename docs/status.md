@@ -923,3 +923,9 @@ Grouped and mixed action imports now preserve each native entry instead of
 remapping it as a Drafts export. Four specific cases pass; three reproduced the
 loss before the fix. Full regression passed app444/core467 and the unsigned
 build passed. Installed container acceptance remains pending.
+
+
+Queued error/cancel effects on another draft now have four specific legacy/async
+cases. They preserve completed effects, suppress success effects, stop the queue,
+and select the matching callback. Full regression passed app444/core468. Native
+entry coverage remains pending; no production change was needed.
