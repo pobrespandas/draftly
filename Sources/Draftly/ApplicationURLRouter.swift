@@ -10,8 +10,8 @@ struct ApplicationURLRouter {
     private func capture(content: String) { controller.capture(content: content) }
 
     func handle(_ url: URL) {
-        guard url.scheme == "draftly" else { return }
         if ActionCallbackRouter.receive(url) { return }
+        guard url.scheme == "draftly" else { return }
         let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
         func parameter(_ name: String) -> String? { items.first { $0.name == name }?.value }
         let endpoint = url.host == "x-callback-url" ? String(url.path.dropFirst()) : url.host

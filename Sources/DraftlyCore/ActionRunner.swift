@@ -53,8 +53,9 @@ public final class ActionRunner: ObservableObject {
         runReport(action).result
     }
 
-    public func cancel() { activeSession?.cancel(); cancelWorker?() }
+    public func cancel() { activeSession?.cancel(); cancelWorker?(); cancelNativeOperation?() }
     var cancelWorker: (() -> Void)?
+    var cancelNativeOperation: (() -> Void)?
     var bridgeStepID: UUID?
     var asyncExecutionID: UUID?
     var scriptNoteContents: [UUID: String] = [:]
@@ -106,7 +107,7 @@ public final class ActionRunner: ObservableObject {
         let sourceNoteID = editor.noteID
         defer {
             Self.runningLibraries.remove(libraryID)
-            isRunning = false; activeSession = nil; bridgeStepID = nil; cancelWorker = nil
+            isRunning = false; activeSession = nil; bridgeStepID = nil; cancelWorker = nil; cancelNativeOperation = nil
             asyncExecutionID = nil; scriptNoteContents = [:]
             host?.finishAction()
         }

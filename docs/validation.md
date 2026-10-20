@@ -1162,3 +1162,25 @@ test references resolve. API member classifications and original fixtures stay.
 The engine strict check remains open with 132 evidence diagnostics. These are
 not a count of missing members or a compatibility percentage. The records remain
 partial because native entry points and all contract branches are not accepted.
+
+## Native asynchronous host waits — 20 October 2026
+
+Implemented async callback URLs, shell scripts, and Shortcut process waits. Native
+callback and Shortcut steps use the same JSON host boundary as scripts. Callback
+tokens expire on completion, cancellation, or timeout. Process cancellation waits
+for group termination and child cleanup. Worker shutdown drains host requests
+before the library is released.
+
+The integrated background run passed 192 app tests in 33 suites and 306 core tests
+in 40 suites. New cases cover callback status and token isolation, process output,
+literal arguments, timeout, cancellation, child descendants, native-step reports,
+and library exclusion during host cleanup. The first full run exposed test timing
+that let a deadline expire before the fake host started. The cleanup regression
+now allows startup under parallel load; the repeated integrated run passed.
+The unsigned local Xcode build and normal matrix check passed. These results do
+not change member classifications.
+
+The process tests execute neutral local processes. Shortcut tests use an injected
+executable. Callback tests inject URL opening. Actual macOS callback delivery,
+actual Shortcut execution, App Intent invocation, and other native capability
+variants remain pending. No visible windows were opened by these tests.

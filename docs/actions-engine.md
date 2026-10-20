@@ -94,7 +94,30 @@ that scope alone. Missing entries cannot make the strict parity check pass.
 
 ## Recorded automatic result
 
-The final Swift run passed 178 app tests in 31 suites and 301 core tests in
-38 suites. Python tooling passed 28 tests. The unsigned local Xcode build and
+The earlier async migration run passed 178 app tests in 31 suites and 301 core
+tests in 38 suites. The native-wait follow-up passed 192 app tests in 33 suites
+and 306 core tests in 40 suites. Python tooling passed 28 tests. The unsigned local Xcode build and
 normal matrix validation passed. Strict parity remains open. Test totals describe
 regressions, not a compatibility percentage.
+
+## Native asynchronous waits
+
+The async host boundary accepts and returns JSON strings. The native host opts in
+for callback URLs, shell scripts, and Shortcuts. First-party callback and Shortcut
+steps use that boundary too. Legacy entry points keep their synchronous adapters.
+
+Callback requests register their token before opening the destination. Completion,
+cancellation, and timeout remove the token. Unknown and late callbacks cannot
+complete another request. A private bundle setting can select an isolated QA
+callback scheme; the normal app still uses `draftly`.
+
+Process waits use termination handlers. Output uses temporary files, so a full pipe
+cannot block the child. Cancellation sends SIGTERM to the isolated process group,
+then SIGKILL after a short grace period. It waits for the direct child to exit.
+Descendants that deliberately leave that process group are not contained.
+
+The runner keeps the library reserved until supported host operations finish their
+cleanup. Hosts must suspend and cooperate with cancellation. A host that ignores
+cancellation keeps the library reserved; its late reply cannot resume a closed
+script. Other native adapters still need an audit of their synchronous waits.
+Real callback delivery through macOS and actual Shortcut execution remain pending.

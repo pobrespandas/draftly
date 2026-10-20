@@ -16109,10 +16109,10 @@
         "suite": "ActionScriptWorkerTests",
         "test": "timedOutHostReplyCannotChangeTheNextScript"
       },
-      "reviewDate": "2026-10-19",
+      "reviewDate": "2026-10-20",
       "liveCheck": null,
       "limitations": [
-        "Execution and step IDs, unique reply tokens, cancellation, and deadlines isolate host replies. Real native callbacks remain pending."
+        "Execution and step IDs isolate replies. ActionCallbackRouterTests covers token expiry and synchronous delivery. AsyncHostDrainTests.scriptRequestKeepsLibraryBusyUntilCancelledHostCleanupReturns covers request cleanup before library release. NativeProcessExecutorTests covers local process termination. Actual callback delivery and Shortcut execution remain pending."
       ]
     },
     {

@@ -74,34 +74,6 @@ import DraftlyCore
     private func htmlToMarkdown(_ text: String, options: [String: Any]) throws -> String { try NativeHTMLConversion().htmlToMarkdown(text, options: options) }
 }
 
-@MainActor final class ActionCallbackRouter {
-    private static var responses: [String: [String: Any]] = [:]
-    static func receive(_ url: URL) -> Bool {
-        guard url.host == "callback", let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems,
-              let token = query.first(where: { $0.name == "token" })?.value else { return false }
-        var parameters: [String: String] = [:]
-        for item in query where item.name != "token" && item.name != "status" { parameters[item.name] = item.value ?? "" }
-        responses[token] = ["status": query.first(where: { $0.name == "status" })?.value ?? "error", "parameters": parameters]; return true
-    }
-    static func open(_ values: [String: Any]) throws -> [String: Any] {
-        guard var components = URLComponents(string: values["url"] as? String ?? ""), let scheme = components.scheme, !["javascript", "data", "file"].contains(scheme) else { return ["status": "invalid"] }
-        let token = UUID().uuidString, wait = values["waitForResponse"] as? Bool ?? true
-        defer { responses.removeValue(forKey: token) }
-        if wait {
-            var query = (components.queryItems ?? []).filter { !["x-success", "x-cancel", "x-error"].contains($0.name) }
-            for (key, status) in [("x-success", "success"), ("x-cancel", "cancelled"), ("x-error", "error")] {
-                query.append(URLQueryItem(name: key, value: "draftly://callback?token=\(token)&status=\(status)"))
-            }
-            components.queryItems = query
-        }
-        guard let url = components.url, NSWorkspace.shared.open(url) else { return ["status": "invalid"] }
-        if !wait { return ["status": "success", "parameters": [:]] }
-        let deadline = Date().addingTimeInterval(120)
-        while responses[token] == nil && Date() < deadline { RunLoop.current.run(until: Date().addingTimeInterval(0.01)) }
-        return responses[token] ?? ["status": "timeout", "parameters": [:]]
-    }
-}
-
 @MainActor private final class ScriptLocation: NSObject, @preconcurrency CLLocationManagerDelegate {
     let manager = CLLocationManager(); var location: CLLocation?; var failure: Error?
     static func current() throws -> [String: Double] {

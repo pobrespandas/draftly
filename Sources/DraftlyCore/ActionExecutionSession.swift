@@ -54,13 +54,13 @@ public final class ActionExecutionSession: ObservableObject {
     }
 }
 
-enum ActionExecutionInterruption: LocalizedError {
+public enum ActionExecutionInterruption: LocalizedError {
     case cancelled
     case timeout
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .cancelled: return "The action was cancelled."
-        case .timeout: return "The asynchronous script timed out before script.complete()."
+        case .timeout: return "The action operation timed out before it completed."
         }
     }
 }

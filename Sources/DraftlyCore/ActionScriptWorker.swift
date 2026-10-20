@@ -40,6 +40,7 @@ private final class WorkerCancellation: @unchecked Sendable {
     private var cancelled = false
     private var replies: [UUID: BridgeReply] = [:]
     private var tasks: [UUID: Task<Void, Never>] = [:]
+    private var completedBeforeAttach: Set<UUID> = []
 
     func register(_ reply: BridgeReply, token: UUID) -> Bool {
         lock.lock(); defer { lock.unlock() }
@@ -51,7 +52,7 @@ private final class WorkerCancellation: @unchecked Sendable {
     func attach(_ task: Task<Void, Never>, token: UUID) {
         lock.lock()
         let active = !cancelled && replies[token] != nil
-        if active { tasks[token] = task }
+        if completedBeforeAttach.remove(token) == nil { tasks[token] = task }
         lock.unlock()
         if !active { task.cancel() }
     }
@@ -59,9 +60,26 @@ private final class WorkerCancellation: @unchecked Sendable {
     func remove(_ token: UUID) {
         lock.lock()
         replies.removeValue(forKey: token)
-        let task = tasks.removeValue(forKey: token)
+        let task = tasks[token]
         lock.unlock()
         task?.cancel()
+    }
+
+    func complete(_ token: UUID) {
+        lock.lock()
+        if tasks.removeValue(forKey: token) == nil { completedBeforeAttach.insert(token) }
+        lock.unlock()
+    }
+
+    private func pendingTasks() -> [Task<Void, Never>] {
+        lock.lock(); defer { lock.unlock() }
+        return Array(tasks.values)
+    }
+
+    func drain() async {
+        // A host must finish its cleanup before the library can run another action.
+        // A host that ignores cancellation keeps the library busy until it returns.
+        for task in pendingTasks() { await task.value }
     }
 
     var isCancelled: Bool {
@@ -75,7 +93,6 @@ private final class WorkerCancellation: @unchecked Sendable {
         let pending = Array(replies.values)
         replies.removeAll()
         let running = Array(tasks.values)
-        tasks.removeAll()
         lock.unlock()
         for task in running { task.cancel() }
         for reply in pending { reply.finish("{\"error\":\"The action was cancelled.\"}") }
@@ -197,6 +214,7 @@ final class ActionScriptWorker: @unchecked Sendable {
                 continuation.resume()
             }
         }
+        await cancellation.drain()
     }
 
     private func onQueue(_ body: @escaping @Sendable () throws -> Void) async throws {
@@ -216,7 +234,10 @@ final class ActionScriptWorker: @unchecked Sendable {
         let reply = BridgeReply()
         guard cancellation.register(reply, token: request.token) else { return "{\"error\":\"The action was cancelled.\"}" }
         defer { cancellation.remove(request.token) }
-        let task = Task { [dispatch] in reply.finish(await dispatch(request)) }
+        let task = Task { [dispatch, cancellation] in
+            reply.finish(await dispatch(request))
+            cancellation.complete(request.token)
+        }
         cancellation.attach(task, token: request.token)
         return reply.wait(until: request.deadline)
     }

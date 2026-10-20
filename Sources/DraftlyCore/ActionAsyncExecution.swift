@@ -38,10 +38,15 @@ import Foundation
                         let current = library.notes.first(where: { $0.id == note.id }) ?? note
                         let rendered = try renderTemplate(text, note: current)
                         var updates: [String] = []
-                        guard try ActionStepExecutor(runner: self).performNative(step, text: text, rendered: rendered, current: current,
-                            evaluate: { updates.append($0) }, executeIncluded: { _, _ in
-                                throw DraftlyError.message("The included action was not expanded.")
-                            }) else { throw ActionExecutionInterruption.cancelled }
+                        let suspended = try await performSuspendingStep(step, text: text, rendered: rendered, current: current, evaluate: { updates.append($0) })
+                        if let suspended {
+                            guard suspended else { throw ActionExecutionInterruption.cancelled }
+                        } else {
+                            guard try ActionStepExecutor(runner: self).performNative(step, text: text, rendered: rendered, current: current,
+                                evaluate: { updates.append($0) }, executeIncluded: { _, _ in
+                                    throw DraftlyError.message("The included action was not expanded.")
+                                }) else { throw ActionExecutionInterruption.cancelled }
+                        }
                         if !updates.isEmpty { try await worker.evaluateSource(updates.joined(separator: "\n")) }
                     }
                     try await worker.evaluateSource("__tags=\(try json(customTags));")
@@ -94,6 +99,13 @@ import Foundation
                 let response = await ScriptHTTP.requestSerialized(request.payload)
                 try Task.checkCancellation()
                 try checkCancellation()
+                guard activeSession?.id == request.executionID, bridgeStepID == request.stepID else {
+                    throw DraftlyError.message("The action was closed.")
+                }
+                return response
+            }
+            if host?.supportsAsync(request.operation) == true {
+                let response = try await platformAsync(request.operation, payload: request.payload)
                 guard activeSession?.id == request.executionID, bridgeStepID == request.stepID else {
                     throw DraftlyError.message("The action was closed.")
                 }
