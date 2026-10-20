@@ -51,6 +51,7 @@ public enum ActionImporter {
             action.afterSuccess = success.lowercased()
             var presentation = ActionPresentation()
             presentation.description = entry["actionDescription"] as? String ?? ""
+            presentation.tintColor = entry["tintColor"] as? String
             presentation.barLabel = entry["shortName"] as? String
             presentation.barUsesIcon = entry["keyUseIcon"] as? Bool
             presentation.confirmBeforeRun = entry["shouldConfirm"] as? Bool ?? false

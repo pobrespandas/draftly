@@ -25,6 +25,14 @@ struct ActionEditor: View {
                         TextField("Group", text: $action.group)
                         TextField("Description", text: $action.presentation.description, axis: .vertical).lineLimit(2...4)
                         TextField("SF Symbol", text: $action.symbol)
+                        Picker("Color", selection: Binding(get: { action.presentation.tintColor ?? "" },
+                            set: { action.presentation.tintColor = $0.isEmpty ? nil : $0 })) {
+                            Text("Default").tag("")
+                            ForEach(ActionTint.names, id: \.self) { Text($0.capitalized).tag($0) }
+                            if let name = action.presentation.tintColor, !ActionTint.names.contains(name) {
+                                Text(name).tag(name)
+                            }
+                        }
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 6)) {
                             ForEach(["bolt", "doc.on.doc", "square.and.arrow.up", "folder", "checklist", "calendar", "envelope", "message", "terminal", "globe", "wand.and.stars", "pencil"], id: \.self) { symbol in
                                 Button { action.symbol = symbol } label: { Image(systemName: symbol).frame(width: 24, height: 24).foregroundStyle(action.symbol == symbol ? Color.accentColor : .secondary) }.buttonStyle(.plain).help(symbol)

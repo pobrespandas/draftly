@@ -4461,3 +4461,23 @@ This closes the native edit/save/cancel check for these two controls. It does
 not close all imported presentation options or inspector visual parity.
 No production code changed. No screenshot is tracked. The latest full test
 result remains app446/core471; no tests were rerun for this manual check.
+
+
+### Imported action tint implementation — 20 October 2026
+
+Implemented: optional tintColor in action presentation. Foreign imports retain
+its string value. Native encoding and backups preserve unknown color names.
+The list and editing bar share a named-color mapping. An unknown or absent
+name uses the prior surface default. The unsupported-step warning keeps its
+orange priority. The inspector exposes the color and retains unknown choices.
+Native palette comparison and inspector acceptance remain pending.
+
+Automatic: eight catalog and eight import/preservation tests passed. The
+original five fixtures check their explicit color names. Backup and export
+checks retain a future color name. Full core passed471. Full app ran447 tests
+with two failures at the five-second start-marker wait in automation safety.
+All five AutomationActionExecutionTests passed in a separate recheck. The
+cause under the full run remains unresolved; the full app run is not accepted.
+Matrix structure passes. No screenshots or raw logs are tracked.
+
+The unsigned app build also passed for the tint change.

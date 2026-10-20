@@ -1001,3 +1001,10 @@ evidence, but does not close native inspector acceptance or API parity.
 Native inspector acceptance now passes for editing bar Label and Show Icon:
 cancel discards both changes, save retains both, and the fixture was restored.
 Other imported options and full inspector parity remain pending.
+
+
+Imported action tint strings now affect list and editing bar colors and have
+an inspector selector. Unknown names survive export and backup. Focused tests
+and core471 passed. The full app run had two automation start-marker failures;
+the isolated five-test recheck passed. Full-run cause and native palette
+acceptance remain pending.

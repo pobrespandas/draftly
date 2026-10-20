@@ -77,7 +77,7 @@ struct EditorActionBar: View {
                 } else {
                     Text(label.text).font(.system(size: 13)).lineLimit(1).fixedSize()
                 }
-            }.foregroundStyle(barColor(action.name))
+            }.foregroundStyle(ActionTint.color(action.presentation.tintColor) ?? barColor(action.name))
         }.buttonStyle(.plain).help(action.name).accessibilityLabel(label.accessibilityLabel)
     }
     private func barButton(_ name: String, _ symbol: String, action: @escaping () -> Void) -> some View {
@@ -147,4 +147,23 @@ struct EditorActionBar: View {
         model.darkTheme = !(model.darkTheme ?? isDark)
     }
     private func findItem(replace: Bool = false) -> NSMenuItem { let item = NSMenuItem(); item.tag = (replace ? NSTextFinder.Action.showReplaceInterface : .showFindInterface).rawValue; return item }
+}
+
+// Keep unknown imported names in storage. Use the existing surface default.
+enum ActionTint {
+    static let names = ["none", "gray", "red", "orange", "yellow", "green", "blue", "purple", "pink"]
+    static func color(_ name: String?) -> Color? {
+        switch name {
+        case "none": return .primary
+        case "gray": return .gray
+        case "red": return .red
+        case "orange": return .orange
+        case "yellow": return .yellow
+        case "green": return .green
+        case "blue": return .blue
+        case "purple": return .purple
+        case "pink": return .pink
+        default: return nil
+        }
+    }
 }

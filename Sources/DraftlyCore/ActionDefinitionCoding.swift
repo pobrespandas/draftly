@@ -94,13 +94,14 @@ extension ActionStep {
 
 extension ActionPresentation {
     private enum KnownKey: String, CodingKey, CaseIterable {
-        case description, barLabel, barUsesIcon, showInList, showInBar, showInSearch, confirmBeforeRun
+        case description, tintColor, barLabel, barUsesIcon, showInList, showInBar, showInSearch, confirmBeforeRun
         case notifyOnSuccess, notifyOnError, addTags, removeTags, flagAfterSuccess, section, order
     }
 
     public init(from decoder: Decoder) throws {
         let known = try decoder.container(keyedBy: KnownKey.self)
         description = try known.decode(String.self, forKey: .description)
+        tintColor = try known.decodeIfPresent(String.self, forKey: .tintColor)
         barLabel = try known.decodeIfPresent(String.self, forKey: .barLabel)
         barUsesIcon = try known.decodeIfPresent(Bool.self, forKey: .barUsesIcon)
         showInList = try known.decode(Bool.self, forKey: .showInList)
@@ -120,6 +121,7 @@ extension ActionPresentation {
     public func encode(to encoder: Encoder) throws {
         var known = encoder.container(keyedBy: KnownKey.self)
         try known.encode(description, forKey: .description)
+        try known.encodeIfPresent(tintColor, forKey: .tintColor)
         try known.encodeIfPresent(barLabel, forKey: .barLabel)
         try known.encodeIfPresent(barUsesIcon, forKey: .barUsesIcon)
         try known.encode(showInList, forKey: .showInList)

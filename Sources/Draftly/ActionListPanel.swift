@@ -99,6 +99,7 @@ struct ActionListPanel: View {
     }
     private func actionColor(_ action: DraftAction) -> Color {
         if !action.unsupportedSteps.isEmpty { return .orange }
+        if let tint = ActionTint.color(action.presentation.tintColor) { return tint }
         if action.steps.first?.type == "file" { return .orange }
         if action.steps.first?.type == "reminder" { return .secondary }
         return .blue

@@ -5,6 +5,15 @@ import DraftlyCore
 
 @Suite("Action catalog presentation")
 struct ActionCatalogPresentationTests {
+    @Test func importedTintNamesUseSharedColorsAndUnknownNamesKeepSurfaceDefaults() {
+        #expect(ActionTint.color("green") == .green)
+        #expect(ActionTint.color("orange") == .orange)
+        #expect(ActionTint.color("blue") == .blue)
+        #expect(ActionTint.color("none") == .primary)
+        #expect(ActionTint.color(nil) == nil)
+        #expect(ActionTint.color("future-color") == nil)
+    }
+
     @Test func barLabelsRespectTextChoiceAndKeepFullNameForAccessibility() {
         var action = DraftAction(name: "Full action café 🐼", steps: [])
         #expect(ActionBarLabel(action).text == action.name && ActionBarLabel(action).usesIcon)
