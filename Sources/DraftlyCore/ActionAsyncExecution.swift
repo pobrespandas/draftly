@@ -23,7 +23,9 @@ import Foundation
                     bridgeStepID = step.id
                     if step.type == "includeAction" {
                         let current = library.notes.first(where: { $0.id == note.id }) ?? note
-                        let included = try ActionStepExpansion.resolve(step, actions: library.actions) { try renderTemplate($0, note: current) }
+                        let included = try await ActionTemplateBuilder.build(render: { try await self.renderTemplateAsync($0, note: current) }) { render in
+                            try ActionStepExpansion.resolve(step, actions: self.library.actions, render: render)
+                        }
                         let includedSteps = try ActionStepExpansion.expand(included, actions: library.actions, path: path)
                         try await worker.evaluateSource(additionalConfigurationSource(action, steps: includedSteps))
                         try await performSteps(included.steps, owner: included.id, path: path.union([included.id]))
@@ -36,7 +38,7 @@ import Foundation
                     } else {
                         let text = step.values["template"] ?? step.values["text"] ?? "[[draft]]"
                         let current = library.notes.first(where: { $0.id == note.id }) ?? note
-                        let rendered = try renderTemplate(text, note: current)
+                        let rendered = try await renderTemplateAsync(text, note: current)
                         var updates: [String] = []
                         let suspended = try await performSuspendingStep(step, text: text, rendered: rendered, current: current, evaluate: { updates.append($0) })
                         if let suspended {
@@ -117,6 +119,14 @@ import Foundation
                     throw DraftlyError.message("The action was closed.")
                 }
                 return response
+            }
+            if request.operation == "template",
+               let values = try JSONSerialization.jsonObject(with: Data(request.payload.utf8)) as? [String: Any],
+               case .template(let text, let input, let tags) = try ScriptCommand(operation: "template", values: values) {
+                let result = try await renderTemplateAsync(text, note: input.resolve(in: library), tags: tags)
+                try checkCancellation()
+                guard activeSession?.id == request.executionID, bridgeStepID == request.stepID else { throw DraftlyError.message("The action was closed.") }
+                return try json(["value": result])
             }
             if request.operation == "http" {
                 let response = await ScriptHTTP.requestSerialized(request.payload)

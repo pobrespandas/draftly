@@ -81,15 +81,9 @@ struct ActionStepExecutor {
             } else { _ = try platform("openURL", ["url": url]) }
         case "insertText": try editor.replace(editor.safeSelection, with: rendered); try flushEditor()
         case "createDraft":
-            let location = step.values["folder"] ?? step.values["location"] ?? "inbox"
-            guard ["inbox", "archive"].contains(location) else { throw DraftlyError.message("The new draft location is invalid.") }
-            let syntax = ["syntax", "assignSyntax", "syntaxName", "grammarName", "grammarType"].compactMap { step.values[$0] }.first { !$0.isEmpty } ?? "Markdown"
-            _ = try library.syntaxDefinition(named: syntax)
-            let open = step.values["openInEditor"] != "false"
-            var created = Note(content: rendered, tags: TagRules.normalize((try renderTemplate(step.values["tags"] ?? step.values["assignTags"] ?? "", note: current)).split(separator: ",").map(String.init)), flag: ["true", "1"].contains(step.values["flagged"] ?? "false") ? 1 : 0, isArchived: location == "archive", syntax: syntax, accessedAt: open ? Date() : nil)
-            if let flag = step.values["flagType"].flatMap(Int.init) { guard (0...7).contains(flag) else { throw DraftlyError.message("The new draft flag is invalid.") }; created.flag = flag }
-            try library.saveNote(created, preserveRevision: false, preserveDates: true)
-            if open { editor.load(created) }
+            let creation = try ActionCreateDraftStep(step, text: rendered, validateSyntax: { _ = try library.syntaxDefinition(named: $0) }) { try renderTemplate($0, note: current) }
+            try library.saveNote(creation.note, preserveRevision: false, preserveDates: true)
+            if creation.opensInEditor { editor.load(creation.note) }
         case "file", "export":
             let file = try ActionFileStep(step, text: rendered) { try renderTemplate($0, note: current) }
             _ = try platform("saveFile", file.values)

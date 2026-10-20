@@ -15,7 +15,6 @@ public enum Templates {
         input = input.replacingOccurrences(of: "\\{{", with: escaped + "{{").replacingOccurrences(of: "\\%%", with: escaped + "%%")
         let regex = try! NSRegularExpression(pattern: "\\[\\[([^\\]]+)\\]\\]")
         var output = input
-        let lines = note.content.components(separatedBy: "\n"), body = lines.dropFirst().joined(separator: "\n")
         for match in regex.matches(in: input, range: NSRange(input.startIndex..., in: input)).reversed() {
             if (input as NSString).substring(to: match.range.location).hasSuffix(escaped) { continue }
             guard let full = Range(match.range, in: output), let keyRange = Range(match.range(at: 1), in: input) else { continue }
@@ -24,49 +23,19 @@ public enum Templates {
             if let customValue = custom[key] { replacement = customValue }
             else {
                 switch key {
-                case "draft": replacement = note.content
-                case "title": replacement = lines.first ?? ""
-                case "display_title": replacement = note.title.trimmingCharacters(in: .whitespaces)
-                case "safe_title": replacement = note.title.replacingOccurrences(of: "[/\\\\:]", with: "-", options: .regularExpression).replacingOccurrences(of: "[\\x00-\\x1F*?<>|#]", with: "", options: .regularExpression)
-                case "body": replacement = body
-                case "trimmed_body": replacement = body.trimmingCharacters(in: .whitespacesAndNewlines)
-                case "body_preview": replacement = String(body.replacingOccurrences(of: "\n", with: " ").trimmingCharacters(in: .whitespaces).prefix(140))
-                case "selection": replacement = selection.isEmpty ? note.content : selection
-                case "selection_only": replacement = selection
-                case "selection_start": replacement = String(selectionRange?.location ?? 0)
-                case "selection_length": replacement = String(selectionRange?.length ?? (selection as NSString).length)
-                case "line":
-                    if parts.count > 1 {
-                        let indexes = parts[1].components(separatedBy: "..")
-                        func index(_ text: String, fallback: Int) -> Int { guard let number = Int(text) else { return fallback }; return number < 0 ? lines.count + number : number - 1 }
-                        let start = max(0, min(lines.count, index(indexes[0], fallback: 0)))
-                        let end = max(start, min(lines.count - 1, indexes.count > 1 ? index(indexes[1], fallback: lines.count - 1) : start))
-                        replacement = start < lines.count ? lines[start...end].joined(separator: "\n") : ""
-                    } else {
-                        let text = note.content as NSString, range = selectionRange ?? NSRange(location: 0, length: 0)
-                        let start = min(max(0, range.location), text.length), length = min(max(0, range.length), text.length - start)
-                        replacement = text.substring(with: text.lineRange(for: NSRange(location: start, length: length))).trimmingCharacters(in: .newlines)
-                    }
-                case "uuid": replacement = note.id.uuidString
-                case "tags": replacement = note.tags.joined(separator: ", ")
-                case "hashtags": replacement = note.tags.map { "#" + $0 }.joined(separator: " ")
-                case "permalink", "draft_open_url": replacement = "draftly://open?uuid=\(note.id.uuidString)"
-                case "created_latitude", "created_longitude", "modified_latitude", "modified_longitude":
-                    let metadataKey = key.components(separatedBy: "_").enumerated().map { $0.offset == 0 ? $0.element : $0.element.capitalized }.joined()
-                    replacement = note.scriptMetadata?[metadataKey] ?? "0"
-                case "date", "time", "created", "modified":
-                    var date = key == "created" ? note.createdAt : key == "modified" ? note.modifiedAt : now
-                    var format = parts.count > 1 ? parts[1] : key == "time" ? "%Y-%m-%d-%H-%M-%S" : "%Y-%m-%d"
-                    if parts.count > 2 { date = (try? ScriptUtilities.adjustDate(["date": APIValues.date(date), "adjustment": parts[1]])) ?? date; format = parts[2] }
-                    replacement = formatDate(date, format: format)
                 case "template":
                     if parts.count > 1, let source = loadTemplate?(parts[1]) { replacement = try render(source, note: note, selection: selection, custom: custom, now: now, selectionRange: selectionRange, loadTemplate: loadTemplate, depth: depth + 1, markdown: markdown) }
                     else { replacement = nil }
-                default: replacement = nil
+                default: replacement = builtinValue(parts, note: note, selection: selection, now: now, selectionRange: selectionRange)
                 }
             }
             if let replacement { output.replaceSubrange(full, with: replacement) }
         }
+        return try finishTransforms(output, escaped: escaped, markdown: markdown)
+    }
+
+    static func finishTransforms(_ input: String, escaped: String, markdown: (String) throws -> String) rethrows -> String {
+        var output = input
         for (pattern, isMarkdown) in [("\\{\\{([\\s\\S]*?)\\}\\}", false), ("%%([\\s\\S]*?)%%", true)] {
             let pattern = try! NSRegularExpression(pattern: pattern)
             let source = output
@@ -79,6 +48,48 @@ public enum Templates {
             }
         }
         return output.replacingOccurrences(of: escaped, with: "")
+    }
+    static func builtinValue(_ parts: [String], note: Note, selection: String, now: Date, selectionRange: NSRange?) -> String? {
+        let key = parts[0]
+        let lines = note.content.components(separatedBy: "\n"), body = lines.dropFirst().joined(separator: "\n")
+        switch key {
+        case "draft": return note.content
+        case "title": return lines.first ?? ""
+        case "display_title": return note.title.trimmingCharacters(in: .whitespaces)
+        case "safe_title": return note.title.replacingOccurrences(of: "[/\\\\:]", with: "-", options: .regularExpression).replacingOccurrences(of: "[\\x00-\\x1F*?<>|#]", with: "", options: .regularExpression)
+        case "body": return body
+        case "trimmed_body": return body.trimmingCharacters(in: .whitespacesAndNewlines)
+        case "body_preview": return String(body.replacingOccurrences(of: "\n", with: " ").trimmingCharacters(in: .whitespaces).prefix(140))
+        case "selection": return selection.isEmpty ? note.content : selection
+        case "selection_only": return selection
+        case "selection_start": return String(selectionRange?.location ?? 0)
+        case "selection_length": return String(selectionRange?.length ?? (selection as NSString).length)
+        case "line":
+            if parts.count > 1 {
+                let indexes = parts[1].components(separatedBy: "..")
+                func index(_ text: String, fallback: Int) -> Int { guard let number = Int(text) else { return fallback }; return number < 0 ? lines.count + number : number - 1 }
+                let start = max(0, min(lines.count, index(indexes[0], fallback: 0)))
+                let end = max(start, min(lines.count - 1, indexes.count > 1 ? index(indexes[1], fallback: lines.count - 1) : start))
+                return start < lines.count ? lines[start...end].joined(separator: "\n") : ""
+            } else {
+                let text = note.content as NSString, range = selectionRange ?? NSRange(location: 0, length: 0)
+                let start = min(max(0, range.location), text.length), length = min(max(0, range.length), text.length - start)
+                return text.substring(with: text.lineRange(for: NSRange(location: start, length: length))).trimmingCharacters(in: .newlines)
+            }
+        case "uuid": return note.id.uuidString
+        case "tags": return note.tags.joined(separator: ", ")
+        case "hashtags": return note.tags.map { "#" + $0 }.joined(separator: " ")
+        case "permalink", "draft_open_url": return "draftly://open?uuid=\(note.id.uuidString)"
+        case "created_latitude", "created_longitude", "modified_latitude", "modified_longitude":
+            let metadataKey = key.components(separatedBy: "_").enumerated().map { $0.offset == 0 ? $0.element : $0.element.capitalized }.joined()
+            return note.scriptMetadata?[metadataKey] ?? "0"
+        case "date", "time", "created", "modified":
+            var date = key == "created" ? note.createdAt : key == "modified" ? note.modifiedAt : now
+            var format = parts.count > 1 ? parts[1] : key == "time" ? "%Y-%m-%d-%H-%M-%S" : "%Y-%m-%d"
+            if parts.count > 2 { date = (try? ScriptUtilities.adjustDate(["date": APIValues.date(date), "adjustment": parts[1]])) ?? date; format = parts[2] }
+            return formatDate(date, format: format)
+        default: return nil
+        }
     }
     public static func formatDate(_ date: Date, format: String) -> String {
         if format.hasPrefix("~") || format.hasPrefix("=") {
