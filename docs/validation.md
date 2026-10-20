@@ -3058,3 +3058,19 @@ not accept every metadata conflict, repeated conflict import, forced native
 storage failure, or connected synchronization. The previous restart acceptance
 and automatic conflict contracts remain separate. No source code or test suite
 changed in this verification turn.
+
+### Typewriter selection scrolling contract — 20 October 2026
+
+Review questioned whether TextKit could resolve an empty caret range. The new
+checks passed against the existing implementation, so no production calculation
+changed. Two background methods cover the end of a long Unicode document with
+and without a trailing newline, disabled viewport preservation, and repeated
+enabling/disabling without text or selection changes. All three cases passed.
+They use text and scroll views without a visible window, key registration, or
+user data.
+
+The tests assert movement to the late caret and stable disabled viewport state.
+They use a fixed document frame. They do not prove exact centering with automatic
+text-view height, short documents, resizing, live Settings persistence, or Drafts
+visual parity. Those native checks remain pending. No full regression or new
+app build was needed for this test-only change; prior results remain separate.
