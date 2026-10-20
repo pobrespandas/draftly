@@ -310,7 +310,7 @@ class URL {
     toString(){return this.href;}
 }
 class CallbackURL {
-    constructor(){this.baseURL='';this.parameters={};this.waitForResponse=true;this.callbackResponse={};this.status='created';}
+    constructor(){this.baseURL='';this.parameters=Object.create(null);this.waitForResponse=true;this.callbackResponse={};this.status='created';}
     static create(){return new CallbackURL();}addParameter(key,value){this.parameters[key]=value;}
     get url(){return __call('buildURL',{url:this.baseURL,parameters:this.parameters});}
     open(){let r=__call('callbackURL',{url:this.url,waitForResponse:this.waitForResponse});this.status=r.status;this.callbackResponse=this.waitForResponse?(r.parameters||{}):{};if(this.waitForResponse&&this.status==='success'){context.callbackResponses.push(this.callbackResponse);for(let k in this.callbackResponse){__tags['callback_'+k]=this.callbackResponse[k];__call('setTemplateTag',{key:'callback_'+k,value:String(this.callbackResponse[k])});}}return this.status==='success';}

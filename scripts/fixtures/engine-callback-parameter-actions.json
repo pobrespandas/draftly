@@ -1,0 +1,13 @@
+[
+  {
+    "name": "QA Callback parameter keys",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "var cb=CallbackURL.create();cb.baseURL='draftly-engine-echo://reply?existing=kept';\nfor(var key of ['__proto__','constructor','toString','café 🐼']) {\n if(cb.addParameter(key,'old')!==undefined)throw new Error('Wrong addParameter return');\n cb.addParameter(key,'Returned + café 🐼');\n}\nvar query=cb.url.split('?')[1].split('&');\nvar expected=['__proto__','constructor','toString','café 🐼'];\nif(query.length!==5)throw new Error('Wrong query count');\nfor(var name of expected){var hits=query.filter(function(item){return decodeURIComponent(item.split('=')[0])===name;});if(hits.length!==1||decodeURIComponent(hits[0].split('=')[1])!=='Returned + café 🐼')throw new Error('Wrong parameter '+name);}\nif(query.indexOf('existing=kept')<0)throw new Error('Existing query lost');\neditor.setText('Callback parameter keys preserved café 🐼');"
+        }
+      }
+    ]
+  }
+]

@@ -31,4 +31,28 @@ struct CallbackResponseContractTests {
         if worker { #expect((await runner.runAsync(action)).result.succeeded, Comment(rawValue: runner.message ?? "")) }
         else { #expect(runner.run(action), Comment(rawValue: runner.message ?? "")) }
     }
+    @Test(arguments: [false, true])
+    func parameterNamesRemainDataAndRepeatedKeysReplaceTheirValue(worker: Bool) async throws {
+        let (_, editor, host, runner) = try makeAPIContext()
+        defer { withExtendedLifetime(host) {} }
+        let action = makeAPIAction("""
+        var callback=CallbackURL.create();callback.baseURL='fixture://reply?existing=kept';
+        for(var key of ['__proto__','constructor','toString','café 🐼']) {
+            if(callback.addParameter(key,'old')!==undefined)throw new Error('void return');
+            callback.addParameter(key,'Returned + café 🐼');
+        }
+        editor.setText(callback.url);
+        """)
+        if worker { #expect((await runner.runAsync(action)).result.succeeded, Comment(rawValue: runner.message ?? "")) }
+        else { #expect(runner.run(action), Comment(rawValue: runner.message ?? "")) }
+        let components = try #require(URLComponents(string: editor.content))
+        let items = components.queryItems ?? []
+        #expect(items.count == 5)
+        #expect(items.first(where: { $0.name == "existing" })?.value == "kept")
+        for key in ["__proto__", "constructor", "toString", "café 🐼"] {
+            #expect(items.filter { $0.name == key }.count == 1, Comment(rawValue: key))
+            #expect(items.first(where: { $0.name == key })?.value == "Returned + café 🐼", Comment(rawValue: key))
+        }
+    }
+
 }

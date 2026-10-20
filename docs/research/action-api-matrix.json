@@ -14551,10 +14551,35 @@
             "url: string"
           ],
           "contract": "The current URL. This is provided as a debugging property, and will output the URL including the baseURL property with any configured parameters added. This property will differ from the actual URL opened when calling open() in that it will not contain the x-success, x-error and x-cancel parameters which are added dynamically at the time open() is called.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-targeted-tests",
+          "automatedTest": {
+            "suite": "CallbackResponseContractTests",
+            "test": "parameterNamesRemainDataAndRepeatedKeysReplaceTheirValue"
+          },
+          "liveCheck": "docs/validation.md: Callback parameter names — 20 October 2026",
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-20",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "CallbackURL.url"
+          },
+          "defaults": "A new instance has no configured query parameters. Existing base URL query items remain present.",
+          "result": "addParameter returns undefined. The URL contains string parameters, including prototype-named keys and Unicode. A repeated configured key replaces its prior value.",
+          "errors": "Invalid URLs and non-string value conversion still need specific acceptance. The frozen addParameter reference leaves general value support unclear.",
+          "limitations": [
+            "This check covers string parameters and existing query data. General value conversion, malformed URLs, and generated callback parameters remain separate contracts."
+          ],
+          "nativeVerification": {
+            "status": "pending",
+            "additionalChecks": [
+              {
+                "date": "2026-10-20",
+                "executableSHA256": "89c842d3998026d19faf3a1927312136e3a6969f2427ee0cb92f6650f6ed6844",
+                "fixture": "scripts/fixtures/engine-callback-parameter-actions.json",
+                "result": "Native action verified undefined return, one exact value for each prototype-named/Unicode key, preserved existing base query, and completed with expected editor text."
+              }
+            ]
+          }
         },
         {
           "member": "waitForResponse",
@@ -14581,10 +14606,35 @@
             "addParameter(key: string, value: any): void"
           ],
           "contract": "Add a query parameter for the outgoing URL. FIXME: can the value be anything?",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-targeted-tests",
+          "automatedTest": {
+            "suite": "CallbackResponseContractTests",
+            "test": "parameterNamesRemainDataAndRepeatedKeysReplaceTheirValue"
+          },
+          "liveCheck": "docs/validation.md: Callback parameter names — 20 October 2026",
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-20",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "CallbackURL.addParameter"
+          },
+          "defaults": "A new instance has no configured query parameters. Existing base URL query items remain present.",
+          "result": "addParameter returns undefined. The URL contains string parameters, including prototype-named keys and Unicode. A repeated configured key replaces its prior value.",
+          "errors": "Invalid URLs and non-string value conversion still need specific acceptance. The frozen addParameter reference leaves general value support unclear.",
+          "limitations": [
+            "This check covers string parameters and existing query data. General value conversion, malformed URLs, and generated callback parameters remain separate contracts."
+          ],
+          "nativeVerification": {
+            "status": "pending",
+            "additionalChecks": [
+              {
+                "date": "2026-10-20",
+                "executableSHA256": "89c842d3998026d19faf3a1927312136e3a6969f2427ee0cb92f6650f6ed6844",
+                "fixture": "scripts/fixtures/engine-callback-parameter-actions.json",
+                "result": "Native action verified undefined return, one exact value for each prototype-named/Unicode key, preserved existing base query, and completed with expected editor text."
+              }
+            ]
+          }
         },
         {
           "member": "open",

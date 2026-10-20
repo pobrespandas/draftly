@@ -3873,3 +3873,26 @@ Closed Get Info. Live Dock and menu-template inspection remain pending:
 Computer Use timed out when it selected com.apple.dock and
 com.apple.systemuiserver. QA window and Finder controls still worked. This does
 not prove those two icon surfaces. No screenshot is stored in the repository.
+
+
+### Callback parameter names — 20 October 2026
+
+Implemented: CallbackURL stores configured parameters in a dictionary without
+a prototype. The __proto__ key is data instead of an inherited setter. URL
+construction, repeated-key replacement, and return values stay unchanged.
+
+Automatic: parameterNamesRemainDataAndRepeatedKeysReplaceTheirValue checks both
+runners. The URL retains __proto__, constructor, toString, and a Unicode key.
+Each repeated key has one exact Unicode value. The base query remains present.
+addParameter returns undefined. After correcting a test-only EditorSession
+property name, both cases failed with the missing __proto__ key before the fix.
+All six cases in the callback suite passed after it. Full regression passed
+app437/core460. The unsigned Debug build passed.
+
+Verified in use: refreshed stopped Engine QA. Executable SHA-256:
+89c842d3998026d19faf3a1927312136e3a6969f2427ee0cb92f6650f6ed6844.
+Imported engine-callback-parameter-actions.json. The action checked the encoded
+URL without opening a destination. All assertions passed. The editor showed
+Callback parameter keys preserved café 🐼 and the completion message appeared.
+General value conversion and invalid URL behavior remain pending. CallbackURL
+is not complete. No screenshot or raw log is stored in the repository.

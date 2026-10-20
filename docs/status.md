@@ -866,3 +866,9 @@ contracts remain pending.
 Finder Get Info now confirms the new mark in the installed QA bundle. Live Dock
 and menu-template inspection remain pending because their Computer Use targets
 timed out. Other QA and Finder controls worked.
+
+
+CallbackURL preserves prototype-named outgoing string parameters. Both runners
+and a native action pass specific key, Unicode, return, and replacement checks.
+Full regression passed app437/core460; the unsigned build passed. CallbackURL
+remains partial for other value and error contracts.
