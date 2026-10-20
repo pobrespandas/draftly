@@ -110,7 +110,7 @@ extension WindowModel {
         editDraftTags(ids, tags: field.stringValue.components(separatedBy: ","), remove: remove)
     }
     func promptAction(_ ids: [UUID]) {
-        guard !runner.isRunning, !library.actions.isEmpty else { return }
+        guard !actionPending, !runner.isRunning, !library.actions.isEmpty else { return }
         do { _ = try checkedDrafts(ids) } catch { library.error = error.localizedDescription; return }
         let actions = library.orderedActions()
         let alert = NSAlert(); alert.messageText = "Run Action"
@@ -121,18 +121,33 @@ extension WindowModel {
         runAction(actions[picker.indexOfSelectedItem], on: ids)
     }
     func runAction(_ action: DraftAction, on ids: [UUID]) {
-        guard !runner.isRunning else { return }
+        guard !actionPending, !runner.isRunning else { return }
+        actionPending = true
+        actionTask = Task { [weak self] in
+            guard let self else { return }
+            defer { self.actionPending = false; self.actionTask = nil }
+            await self.executeActionBatch(action, on: ids)
+        }
+    }
+    func runActionAsync(_ action: DraftAction, on ids: [UUID]) async {
+        guard !actionPending, !runner.isRunning else { return }
+        actionPending = true
+        defer { actionPending = false }
+        await executeActionBatch(action, on: ids)
+    }
+    private func executeActionBatch(_ action: DraftAction, on ids: [UUID]) async {
+        guard !Task.isCancelled else { return }
         do {
             _ = try checkedDrafts(ids)
             for id in ids {
-                guard flush(), library.notes.contains(where: { $0.id == id }) else { break }
-                select(id)
+                guard !Task.isCancelled, flush(), library.notes.contains(where: { $0.id == id }) else { break }
+                select(id, fromAction: true)
                 guard editor.noteID == id else { break }
-                let completed = runner.run(action)
-                if library.notes.contains(where: { $0.id == id }), editor.noteID != id { select(id) }
+                let report = await runner.runAsync(action)
+                if library.notes.contains(where: { $0.id == id }), editor.noteID != id { select(id, fromAction: true) }
                 status = runner.message ?? ""
                 tagsText = currentNote?.tags.joined(separator: ", ") ?? ""
-                if !completed { break }
+                if !report.result.succeeded { break }
             }
         } catch { library.error = error.localizedDescription }
     }

@@ -77,6 +77,8 @@ final class WindowModel: ObservableObject {
     var openQuickSearch: () -> Void
     let dependencies: WindowDependencies
     private var saveTask: Task<Void, Never>?
+    @Published var actionPending = false
+    var actionTask: Task<Void, Never>?
     private let saveDraft: (Note) throws -> Void
     private let onAccessDraft: (UUID) -> Void
     private var inactiveSince: Date?
@@ -200,6 +202,7 @@ final class WindowModel: ObservableObject {
         do { try work() } catch { library.error = error.localizedDescription; status = "Changes could not be saved" }
     }
     @discardableResult func create() -> Bool {
+        cancelActionForUserEdit()
         guard flush() else { return false }
         if let id = editor.noteID, library.notes.contains(where: { $0.id == id }) { lastNoteID = id }
         let note = Note()
@@ -208,8 +211,10 @@ final class WindowModel: ObservableObject {
         folder = .inbox; clearFilters()
         return true
     }
-    func select(_ id: UUID?, focusEditor: Bool = true) {
-        guard id != editor.noteID, flush() else { return }
+    func select(_ id: UUID?, focusEditor: Bool = true, fromAction: Bool = false) {
+        guard id != editor.noteID else { return }
+        if !fromAction { cancelActionForUserEdit() }
+        guard flush() else { return }
         if let id, library.notes.contains(where: { $0.id == id }) {
             do { try library.recordAccess(id) }
             catch { library.error = error.localizedDescription; return }
@@ -222,7 +227,15 @@ final class WindowModel: ObservableObject {
         }
         else { editor.noteID = nil; editor.content = ""; tagsText = "" }
     }
+    func synchronizeStoredEditor(_ notes: [Note]) {
+        guard !hasUnsavedChanges, let id = editor.noteID,
+              let note = notes.first(where: { $0.id == id }), note.content != editor.content else { return }
+        cancelActionForUserEdit()
+        editor.content = note.content
+        editor.acknowledgeSaved(note)
+    }
     func contentChanged() {
+        cancelActionForUserEdit()
         guard let currentNote, currentNote.content != editor.content else { return }
         hasUnsavedChanges = true
         saveTask?.cancel()
@@ -243,6 +256,7 @@ final class WindowModel: ObservableObject {
             } else if var note = currentNote, note.content != editor.content {
                 note.content = editor.content; try saveDraft(note)
             }
+            if let note = currentNote { editor.acknowledgeSaved(note) }
             hasUnsavedChanges = false; return true
         }
         catch { library.error = error.localizedDescription; hasUnsavedChanges = true; return false }
@@ -279,7 +293,10 @@ final class WindowModel: ObservableObject {
         applyResolvedWorkspace(resolved)
     }
 
-    func apply(_ workspace: Workspace) { perform { try applyScriptWorkspace(workspace) } }
+    func apply(_ workspace: Workspace) {
+        cancelActionForUserEdit()
+        perform { try applyScriptWorkspace(workspace) }
+    }
     private func applyResolvedWorkspace(_ workspace: Workspace) {
         workspaceScriptMetadata = workspace.scriptMetadata
         listOptions = workspace.listOptions ?? dependencies.preferences.listOptions
@@ -297,13 +314,39 @@ final class WindowModel: ObservableObject {
 
     }
     func run(_ action: DraftAction) {
-        guard flush() else { return }
+        guard !actionPending, !runner.isRunning else { return }
+        actionPending = true
+        actionTask = Task { [weak self] in
+            guard let self else { return }
+            defer { self.actionPending = false; self.actionTask = nil }
+            _ = await self.executeAction(action)
+        }
+    }
+    @discardableResult
+    func runAsync(_ action: DraftAction) async -> ActionExecutionReport? {
+        guard !actionPending, !runner.isRunning else { return nil }
+        actionPending = true
+        defer { actionPending = false }
+        return await executeAction(action)
+    }
+    private func executeAction(_ action: DraftAction) async -> ActionExecutionReport? {
+        guard !Task.isCancelled, flush() else { return nil }
         if var note = scratchNote {
             note.content = editor.content
-            do { try library.saveNote(note); scratchNote = nil } catch { library.error = error.localizedDescription; return }
+            do { try library.saveNote(note); scratchNote = nil } catch { library.error = error.localizedDescription; return nil }
         }
-        _ = runner.runResult(action); status = runner.message ?? ""
+        let report = await runner.runAsync(action)
+        status = runner.message ?? ""
         tagsText = currentNote?.tags.joined(separator: ", ") ?? ""
+        return report
+    }
+    func cancelActions() {
+        actionTask?.cancel()
+        runner.cancel()
+    }
+    private func cancelActionForUserEdit() {
+        guard !runner.isApplyingScriptCommand, actionPending || runner.isRunning else { return }
+        cancelActions()
     }
     func preview() {
         if let actionPreview { actionPreview.finish(false); return }

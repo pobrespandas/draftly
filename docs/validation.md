@@ -1131,3 +1131,22 @@ New cases cover reply expiry, duplicate completion, stale timers, CPU deadlines,
 queues, includes, concurrent content changes, deleted notes, and stale initial
 editor content. Remaining synchronous native capability waits and real external
 entry-point acceptance are not closed by these tests.
+
+## Async application entry points — 20 October 2026
+
+Window actions, batches, run URLs, and App Intents await the common report.
+Scheduling reserves the window before a Task starts. User navigation, creation,
+typing, or an external text update cancels pending work. Scripted navigation and
+Undo retain their behavior. A source window close cancels its action.
+
+The final integrated run passed 178 app tests in 31 suites, 301 core tests in
+38 suites, and the unsigned local Xcode build. Original fixtures are unchanged.
+Computer Use used a temporary local library. Panel controls worked during a
+delayed script; completion changed the text, and native Undo restored the source.
+Closing a window produced a Cancelled history entry. Typing during a wait in the
+final build cancelled the action and retained the new text. The QA app was quit;
+the habitual app was not replaced. No screenshots were stored.
+
+Real URL callback delivery, actual App Intent invocation, native permission and
+cancellation variants, metadata concurrency, and remaining capability waits are
+still pending. This delivery does not close strict engine or Mac parity.

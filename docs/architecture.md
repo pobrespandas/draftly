@@ -145,3 +145,17 @@ This is the first typed boundary. Other API operations still use dispatchAPI,
 and native capabilities still use ActionHost dictionaries. Unknown core names
 delegate to those existing routes. No async worker, new public API, storage
 format, or compatibility claim was added.
+
+## Async Actions delivery
+
+ActionRunner.runAsync owns the public async lifecycle. ActionScriptWorker owns
+JavaScriptCore and its scheduled timers on one serial queue. The bridge moves
+JSON strings and execution and step identities. MainActor retains library and UI
+ownership. Shared configuration and success effects keep the legacy adapters
+compatible. ScriptHTTP supplies an async transport; native adapters retain their
+remaining acceptance work.
+
+Window actions reserve scheduling, cancel on user edits or navigation, and retain
+scripted Undo and navigation. Stored-editor synchronization uses the same rule.
+Headless writes reject concurrent stored-content changes and deleted drafts.
+See [Actions execution](actions-engine.md) for implementation and native limits.

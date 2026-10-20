@@ -73,3 +73,16 @@ replace the existing scripting contracts or native Undo tests.
 After this change, 170 app tests, 271 core tests, and 24 Python tests passed.
 The local Xcode build passed with signing disabled. The normal matrix check
 reported zero errors. No visible app or cloud acceptance ran.
+
+## Async engine regressions
+
+The five original action cases now run against both legacy and async entry
+points with the same scripts and assertions. Worker tests cover cancellation and
+late host replies. Async runner tests cover CPU responsiveness, typed timeouts,
+queues, shared dynamic includes, unknown steps, and concurrent text preservation.
+App tests cover scheduling, batch results, URL validation, and user or external
+edits during a wait. They do not open visible windows.
+
+HTTP uses an isolated URLProtocol fixture. Those tests do not establish socket or
+redirect acceptance. The auditor requires fourteen engine contracts and rejects
+missing, duplicate, or unnamed records during strict parity checks.

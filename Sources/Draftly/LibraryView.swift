@@ -76,7 +76,7 @@ struct LibraryView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { event in
             if let window = event.object as? NSWindow, window === model.window {
-                model.actionPreview?.finish(false); model.flush()
+                model.cancelActions(); model.actionPreview?.finish(false); model.flush()
                 if hub.commandWindow === model { hub.commandWindow = nil }
             }
         }
@@ -85,11 +85,7 @@ struct LibraryView: View {
             model.folder = .inbox; model.clearFilters(); model.select(id)
             hub.pendingNoteID = nil
         }
-        .onReceive(library.$notes) { notes in
-            guard !model.hasUnsavedChanges, let id = model.editor.noteID,
-                  let note = notes.first(where: { $0.id == id }), note.content != model.editor.content else { return }
-            model.editor.content = note.content
-        }
+        .onReceive(library.$notes) { notes in model.synchronizeStoredEditor(notes) }
         .onAppear {
             model.editor.typewriterScrollingEnabled = typewriter
             hub.windows.add(model)

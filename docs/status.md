@@ -1,10 +1,10 @@
 # Draftly implementation and remaining work
 
-Updated: 19 October 2026.
+Updated: 20 October 2026.
 
 Draftly works as a local Mac app. Mac parity is not complete. The current work is
-a behavior-preserving architecture refactoring. See [architecture](architecture.md)
-for the baseline, boundaries, and validation. Feature parity work remains paused.
+the Actions engine delivery. See [architecture](architecture.md) for the baseline
+and [Actions execution](actions-engine.md) for the new async route and its limits.
 Keep the identity Draftly, `Note`, existing identities and libraries, original
 action scripts, Nerd Fonts, and the integrated Markdown preview.
 
@@ -24,10 +24,10 @@ retain historical results. Later results supersede earlier counts.
 
 | Check | Latest result |
 | --- | --- |
-| App tests | 170 passed after test refactoring |
-| Core tests | 271 passed; includes seven command-boundary cases |
-| Python tools | 24 passed |
-| Local Xcode build after command refactoring | Passed; signing disabled |
+| App tests | 178 passed after async migration and interruption guards |
+| Core tests | 301 passed; original actions run on both routes |
+| Python tools | 28 passed |
+| Local Xcode build after async migration | Passed; signing disabled |
 | Matrix structure check | 0 errors |
 | Whitespace check | Passed |
 | Strict core and global parity | Still open |
@@ -126,7 +126,7 @@ Pending:
 
 ## 5 Actions engine
 
-Implemented: legacy run/runResult adapters, an initial execution session,
+Implemented: legacy adapters and runAsync, a serial JavaScript worker,
 execution identity, current step, cancellation requests, and a final report.
 The report distinguishes asynchronous-script timeout. A library gate prevents
 concurrent runs. Step epochs isolate script completion and timers. Included
@@ -140,15 +140,15 @@ preserving completed host effects.
 
 Pending:
 
-- Move JavaScriptCore to a serial worker. Keep library/editor/window access on
-  MainActor and exchange serialized values only.
-- Add the real common asynchronous entry and typed final report to UI, URLs,
-  and App Intents. Do not add a MainActor wrapper that still blocks.
-- Replace RunLoop polling on that route with cancelable waits/continuations.
+- Finish native acceptance of the migrated UI, URL, and App Intent entry points.
+- Remove remaining synchronous waits in native capability adapters. The new
+  worker script wait uses continuations and scheduled timer events.
 - Complete run/step callback tokens, late callbacks, reentry, simultaneous
   windows, and cancellation/timeout from every entry.
-- Complete inclusion by identity/template and remaining context/queue cases.
-- Add mandatory engine contract names to the strict auditor.
+- Complete native include and remaining context/queue acceptance. UUID and
+  templated-name resolution now have automatic tests on both execution routes.
+- Close the fourteen required engine evidence records. The strict auditor
+  rejects missing records.
 
 ## 6 Integrations and automation
 

@@ -45,22 +45,46 @@ struct ApplicationURLRouter {
         case "capture": capture(content: parameter("text") ?? "")
         case "open": if let id = parameter("uuid").flatMap(UUID.init(uuidString:)) { show(id) }
         case "run", "runAction":
-            guard let library, let name = parameter("action"), let action = library.actions.first(where: { $0.name == name }),
-                  let id = parameter("uuid").flatMap(UUID.init(uuidString:)), let note = library.notes.first(where: { $0.id == id }) else { return }
+            let callbackParameters = Dictionary(items.map { ($0.name, $0.value ?? "") }, uniquingKeysWith: { first, _ in first })
+            let target: (action: DraftAction, note: Note)
+            do { target = try Self.runTarget(parameters: callbackParameters, library: library) }
+            catch {
+                self.library?.error = error.localizedDescription
+                if let callback = ActionExecutionResult.failure(error.localizedDescription).callbackURL(parameters: callbackParameters) { NSWorkspace.shared.open(callback) }
+                return
+            }
+            guard let library else { return }
+            let (action, note) = target
+            let name = action.name
             let alert = NSAlert(); alert.messageText = "Run \(name)?"; alert.informativeText = "An external link requested this action on \(note.title)."
             alert.addButton(withTitle: "Run Action"); alert.addButton(withTitle: "Cancel")
-            let callbackParameters = Dictionary(items.map { ($0.name, $0.value ?? "") }, uniquingKeysWith: { first, _ in first })
             guard alert.runModal() == .alertFirstButtonReturn else {
                 if let callback = ActionExecutionResult.cancelled.callbackURL(parameters: callbackParameters) { NSWorkspace.shared.open(callback) }
                 return
             }
             let host = controller.makeActionHost(); let editor = EditorSession(); editor.load(note)
             let runner = ActionRunner(library: library, editor: editor, host: host)
-            let result = runner.runResult(action)
-            if case .failure(let message) = result { library.error = message }
-            show(editor.noteID)
-            if let callback = result.callbackURL(parameters: callbackParameters, successParameters: runner.successParameters) { NSWorkspace.shared.open(callback) }
+            Task { @MainActor in
+                let report = await runner.runAsync(action)
+                if case .failure(let message) = report.result { library.error = message }
+                show(editor.noteID)
+                if let callback = report.result.callbackURL(parameters: callbackParameters, successParameters: report.successParameters) { NSWorkspace.shared.open(callback) }
+                _ = host
+            }
         default: break
         }
     }
+    static func runTarget(parameters: [String: String], library: LibraryStore?) throws -> (action: DraftAction, note: Note) {
+        guard let library else { throw DraftlyError.message("The library is unavailable.") }
+        guard let name = parameters["action"], !name.isEmpty,
+              let action = library.actions.first(where: { $0.name == name }) else {
+            throw DraftlyError.message("The action in the link was not found.")
+        }
+        guard let id = parameters["uuid"].flatMap(UUID.init(uuidString:)),
+              let note = library.notes.first(where: { $0.id == id }) else {
+            throw DraftlyError.message("The draft in the link was not found.")
+        }
+        return (action, note)
+    }
+
 }

@@ -68,27 +68,56 @@ struct DraftCommandTests {
         #expect(model.editor.noteID == a.id && model.editor.content == "A")
         #expect(store.notes.first { $0.id == b.id }?.content == "Restored")
     }
-    @Test func actionBatchStopsOnCancellationAndFailure() throws {
+    @Test func actionBatchStopsOnCancellationAndFailure() async throws {
         let store = try LibraryStore(inMemory: true, seed: false)
         let a = try store.createNote(content: "A"), b = try store.createNote(content: "B")
         let model = WindowModel(library: store)
         let cancel = DraftAction(name: "Cancel", steps: [ActionStep("script", ["script": "draft.content = 'Changed'; draft.update(); context.cancel();"])])
-        model.runAction(cancel, on: [a.id, b.id])
+        await model.runActionAsync(cancel, on: [a.id, b.id])
         #expect(store.notes.first { $0.id == a.id }?.content == "Changed")
         #expect(store.notes.first { $0.id == b.id }?.content == "B")
         #expect(model.editor.noteID == a.id && store.runs.count == 1)
         let failure = DraftAction(name: "Fail", steps: [ActionStep("script", ["script": "throw new Error('stop');"])])
-        model.runAction(failure, on: [b.id, a.id]); #expect(model.editor.noteID == b.id && store.runs.count == 2)
+        await model.runActionAsync(failure, on: [b.id, a.id]); #expect(model.editor.noteID == b.id && store.runs.count == 2)
     }
-    @Test func successfulBatchProcessesEveryDraftAndLeavesTheLastOpen() throws {
+    @Test func successfulBatchProcessesEveryDraftAndLeavesTheLastOpen() async throws {
         let store = try LibraryStore(inMemory: true, seed: false)
         let a = try store.createNote(content: "A"), b = try store.createNote(content: "B")
         let model = WindowModel(library: store)
         let action = DraftAction(name: "Append", steps: [ActionStep("script", ["script": "draft.content += ' done'; draft.update();"])])
-        model.runAction(action, on: [a.id, b.id])
+        await model.runActionAsync(action, on: [a.id, b.id])
         #expect(store.notes.first { $0.id == a.id }?.content == "A done")
         #expect(store.notes.first { $0.id == b.id }?.content == "B done")
         #expect(model.editor.noteID == b.id && store.runs.count == 2)
+    }
+
+    @Test func queuedWindowActionRejectsDuplicateRequests() async throws {
+        let store = try LibraryStore(inMemory: true, seed: false)
+        let note = try store.createNote(content: "Source")
+        let model = WindowModel(library: store); model.select(note.id)
+        let action = DraftAction(name: "Append once", steps: [ActionStep("script", ["script": "draft.content += ' done'; draft.update();"])])
+        model.run(action)
+        model.run(action)
+        #expect(model.actionPending)
+        let deadline = ContinuousClock.now + .seconds(5)
+        while model.actionPending && ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(5)) }
+        #expect(!model.actionPending)
+        #expect(store.notes.first { $0.id == note.id }?.content == "Source done")
+        #expect(store.runs.count == 1)
+    }
+
+    @Test func cancellingQueuedWindowActionDoesNotStartIt() async throws {
+        let store = try LibraryStore(inMemory: true, seed: false)
+        let note = try store.createNote(content: "Source")
+        let model = WindowModel(library: store); model.select(note.id)
+        let action = DraftAction(name: "Do not start", steps: [ActionStep("script", ["script": "draft.content = 'Unexpected'; draft.update();"])])
+        model.run(action)
+        model.cancelActions()
+        let deadline = ContinuousClock.now + .seconds(5)
+        while model.actionPending && ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(5)) }
+        #expect(!model.actionPending)
+        #expect(store.notes.first { $0.id == note.id }?.content == "Source")
+        #expect(store.runs.isEmpty)
     }
 
     @Test func fullMenuHasGatedSingleDraftCommandsAndCopyUsesCapturedOrder() throws {
