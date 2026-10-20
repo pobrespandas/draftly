@@ -763,3 +763,9 @@ XML-RPC now rejects duplicate payload blocks, extra param values, and multiple
 types in a value. Five malformed cases reproduced silent acceptance before the
 fix. Full app436/core453, unsigned build, and matrix structure passed. This is
 a bounded grammar correction; XML-RPC and the full Mac plan remain partial.
+
+
+XML-RPC now has real loopback HTTP coverage for request bytes, Unicode/CDATA,
+faults, and invalid responses. Full app436/core454 and matrix checks passed.
+Native automation, date/binary mapping, transport character sets, and remaining
+grammar stay open. The test does not close the full integration.

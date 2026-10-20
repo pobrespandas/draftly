@@ -10247,7 +10247,7 @@
           "result": "XMLRPCResponse with success, HTTP status, decoded parameters, or explicit failure/fault fields.",
           "errors": "Transport envelope failures throw to the script. HTTP failures remain response values. Runner cancellation and timeout interrupt later script work.",
           "limitations": [
-            "Real server and native automation acceptance remain pending. JavaScript date/binary mapping, full malformed-response grammar, and remaining invalid-input contracts are not closed. CDATA text passed current-Mac parser and injected async JavaScript tests. This does not accept transport character-set handling."
+            "A real loopback HTTP server passes Unicode/CDATA reply, fault, malformed payload, and request wire checks. Native app automation, JavaScript date/binary mapping, complete XML grammar, transport character sets, and remaining invalid inputs are not accepted."
           ],
           "supportingTests": [
             {
@@ -10269,6 +10269,10 @@
             {
               "suite": "XMLRPCTests",
               "test": "ambiguousResponseStructuresDoNotReportSuccess"
+            },
+            {
+              "suite": "XMLRPCLocalServerTests",
+              "test": "realHTTPPreservesXMLBodyUnicodeFaultsAndInvalidResponseErrors"
             }
           ]
         }
@@ -10327,12 +10331,16 @@
           "errors": "Malformed XML and XML-RPC faults return failure values. Complete invalid-response grammar is not accepted.",
           "result": "Failure description, including decoded fault text.",
           "limitations": [
-            "Real server and native acceptance remain pending. Complete XML grammar, transport character sets, and JavaScript date/binary mapping are not accepted."
+            "A real loopback HTTP server passes Unicode/CDATA reply, fault, malformed payload, and request wire checks. Native app automation, JavaScript date/binary mapping, complete XML grammar, transport character sets, and remaining invalid inputs are not accepted."
           ],
           "supportingTests": [
             {
               "suite": "XMLRPCTests",
               "test": "ambiguousResponseStructuresDoNotReportSuccess"
+            },
+            {
+              "suite": "XMLRPCLocalServerTests",
+              "test": "realHTTPPreservesXMLBodyUnicodeFaultsAndInvalidResponseErrors"
             }
           ]
         },
@@ -10377,12 +10385,16 @@
           "errors": "Malformed XML and XML-RPC faults return failure values. Complete invalid-response grammar is not accepted.",
           "result": "Decoded parameter array.",
           "limitations": [
-            "Real server and native acceptance remain pending. Complete XML grammar, transport character sets, and JavaScript date/binary mapping are not accepted."
+            "A real loopback HTTP server passes Unicode/CDATA reply, fault, malformed payload, and request wire checks. Native app automation, JavaScript date/binary mapping, complete XML grammar, transport character sets, and remaining invalid inputs are not accepted."
           ],
           "supportingTests": [
             {
               "suite": "XMLRPCTests",
               "test": "ambiguousResponseStructuresDoNotReportSuccess"
+            },
+            {
+              "suite": "XMLRPCLocalServerTests",
+              "test": "realHTTPPreservesXMLBodyUnicodeFaultsAndInvalidResponseErrors"
             }
           ]
         },

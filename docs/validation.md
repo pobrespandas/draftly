@@ -3477,3 +3477,21 @@ methods. The unsigned Debug build and matrix structure check passed. Native
 server acceptance, date/binary mapping, and remaining grammar are still open.
 Engine QA remains open with the prior visual build; do not claim this parser
 change is installed there. No new screenshot or raw log is stored in the repo.
+
+
+### XML-RPC loopback HTTP acceptance — 20 October 2026
+
+Automatic integration: a Python standard-library server binds an ephemeral
+127.0.0.1 port and serves three neutral replies. The test uses the production
+serialized XML-RPC service and URLSession transport. It checks actual POST
+headers and escaped Unicode parameters, a CDATA success reply, a fault with
+code and Unicode text, and an ambiguous XML response. The process stops after
+three requests and has bounded server waits. No windows or permissions open.
+
+The focused case passed. Full regression passed 436 app methods and 454 core
+methods. Matrix structure passed. This tests real loopback HTTP, not native
+app automation or external servers. Date/binary representation, transport
+character sets, network cancellation, and full grammar remain separate. The
+archived Drafts API does not specify enough detail to accept JavaScript binary
+representations or date timezone rules without further comparison. No new
+production code or app build is part of this tests-only change.
