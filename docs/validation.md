@@ -2985,3 +2985,43 @@ opens a panel or accesses a user library. Native import failure injection and
 full export/import/restart acceptance remain pending.
 
 All five final focused import methods passed, including the commit-count checks.
+
+### Native backup recovery and restart — 20 October 2026
+
+Refreshed Engine QA from the Debug build. The debug library hash before signing
+starts with 3351ca8f3b8d6ce4. Used File → Export Full Backup and saved a temporary
+JSON file outside the repository. The file contained 13 notes, 60 revisions,
+75 execution records, 58 actions, two themes, and one workspace. All 75 execution
+records retained their draft IDs. Syntax and explicit action-group arrays were
+empty, so this fixture does not accept their native recovery.
+
+Created a separately signed Recovery QA app and a new local test-library ID,
+98F6AD04-1040-47D9-8F4D-DB28F9D5B600. Its initial window showed zero drafts. The
+first Go To selection used a stale path and imported a neutral theme fixture as
+plain text. This was an automation mistake. It does not count as backup evidence.
+It left one extra note and revision in the destination. No user data was used.
+
+Repeated Import with the Go To field set explicitly to the exported JSON path.
+Confirmed the selected filename before Open. The import completed. Actions →
+Execution History showed the restored success, error, and cancellation entries.
+Quit Recovery QA, confirmed the process ended, restarted it, and exported a new
+full backup through the native menu. Compared decoded JSON records by identity
+with decimal number parsing. Every source record matched field for field:
+13 notes, 60 revisions, 75 runs, 58 actions, two themes, and one workspace. There
+were no missing or changed source records. The destination had only the one
+extra neutral note and revision from the earlier selection mistake. This is a
+merge-recovery check into a separate test library, not whole-file equality.
+
+The comparison includes execution dates, messages, statuses, note/action links,
+and complete source theme data. It proves persistence through the tested native
+import/restart/export sequence. It does not prove all possible unknown fields,
+conflicting identities, denied permissions, or a forced native storage failure.
+Those retain separate automatic evidence or pending checks. No new automatic
+test run is claimed.
+
+Recovery QA quit was confirmed. Its temporary bundle, library, and two temporary
+backup files remain outside the repository for repeat checks. Engine QA and the
+callback helper remain open for the physical global-key check. No screenshot or
+raw backup is tracked. Connected Mac+VM synchronization, nonempty syntax/group
+recovery, native conflict recovery, signed updates, and the rest of the approved
+Mac plan remain open.

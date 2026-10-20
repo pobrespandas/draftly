@@ -262,7 +262,8 @@ See [iCloud evidence](research/icloud-acceptance-2026-10-19.json).
 Pending:
 
 - Shared themes and execution history are included in compatible backups with
-  rollback tests. Verify the complete recovery contract through the native UI.
+  rollback tests. Native merge recovery and restart passed for the recorded
+  fixture. Complete the remaining conflict, syntax, group, and failure cases.
 - Repeat restore/migration and unknown-field checks for all new fields.
 - Repeat the broad main-container matrix with both clients connected: metadata,
   revisions, actions/groups/order, workspaces, syntax, themes, Trash/Restore,
@@ -625,3 +626,10 @@ It also preserves distinct texts that share an incoming note ID. Five specific
 methods, the full regression (432 app and 430 core), and the unsigned build
 passed. Native recovery and failure injection remain pending. Multi-file
 selection has a per-file boundary; earlier successful files are retained.
+
+
+Native backup recovery passed export, import into a separate local library,
+restart, and export again. All source records matched by identity and full data,
+including 75 execution records. One unrelated neutral note/revision from a
+selection mistake remained as an explicit destination extra. Syntax/group arrays
+were empty. This does not close conflict, failure, or connected-sync acceptance.
