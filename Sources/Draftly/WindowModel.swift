@@ -361,6 +361,7 @@ final class WindowModel: ObservableObject {
         status = "An action is already running in this library."
         return .notStarted(actionID: action.id, reason: .busy, message: status)
     }
+    var canCancelActions: Bool { actionPending || runner.isRunning }
     func cancelActions() {
         dictationSession.cancel()
         arrangementSession.cancel()

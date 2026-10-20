@@ -124,6 +124,8 @@ private struct WindowCommands: Commands {
             }
         }
         CommandMenu("Actions") {
+            Button("Cancel Running Action") { model.cancelActions() }.disabled(!model.canCancelActions)
+            Divider()
             Button("New Action…") { model.editingAction = DraftAction(name: "New Action", steps: [ActionStep("script", ["script": ""])]) }
             Button("Import from Directory…") { model.showActionImporter = true }
             Button("Execution History…") { model.showRunLog = true }

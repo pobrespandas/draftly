@@ -17574,11 +17574,24 @@
         {
           "suite": "EngineCPUCancellationTests",
           "test": "taskCancellationDuringBusyJavaScriptWinsOverDeadlineAndReleasesLibrary"
+        },
+        {
+          "suite": "ActionEditorInterruptionTests",
+          "test": "explicitCancellationKeepsCompletedEffectsAndAllowsAnotherRun"
         }
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Current native prompt keyboard, transcription, EventKit, and Apple model cancellation acceptance remain pending."
+        "reason": "Current native prompt keyboard, transcription, EventKit, and Apple model cancellation acceptance remain pending.",
+        "additionalChecks": [
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "e5a1cf74cfe4bf4437f0b2783c5de309c8f9b8611cae50e21466052e0f5afb7f",
+            "entryPoint": "Actions > Cancel Running Action",
+            "result": "Command disabled at rest, enabled while waiting, then disabled after cancellation. History showed Cancelled, completed text stayed in Inbox, later insertion and archive did not run, and a later action succeeded.",
+            "evidence": "docs/validation.md: Native cancel command — 20 October 2026"
+          }
+        ]
       },
       "automatedVerification": {
         "status": "passed",

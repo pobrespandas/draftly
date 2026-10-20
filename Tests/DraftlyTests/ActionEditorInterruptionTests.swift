@@ -17,6 +17,31 @@ struct ActionEditorInterruptionTests {
         #expect(library.notes.first(where: { $0.id == id })?.tags.contains("waiting") == true)
     }
 
+    @Test func explicitCancellationKeepsCompletedEffectsAndAllowsAnotherRun() async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Neutral source")
+        let model = WindowModel(library: library); model.select(note.id)
+        #expect(!model.canCancelActions)
+        var action = delayedEdit()
+        action.afterSuccess = "archive"
+        action.steps.append(ActionStep("insertText", ["template": "ERROR: cancellation tail ran"]))
+        let task = Task { await model.runAsync(action) }
+        try await waitUntilWaiting(library, id: note.id)
+        #expect(model.canCancelActions)
+        model.cancelActions()
+        let report = await task.value
+        #expect(report?.reason == .cancelled)
+        #expect(!model.canCancelActions)
+        #expect(model.editor.content == "Neutral source")
+        let stored = try #require(library.notes.first { $0.id == note.id })
+        #expect(stored.tags == ["waiting"] && !stored.isArchived)
+        #expect(stored.content == "Neutral source")
+        let next = DraftAction(name: "After cancellation", steps: [ActionStep("insertText", ["template": "Next run"])])
+        #expect((await model.runAsync(next))?.reason == .success)
+        #expect(model.editor.content.contains("Next run"))
+        #expect(!model.canCancelActions)
+    }
+
     @Test func userNavigationCancelsDelayedEditorWrite() async throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let a = try library.createNote(content: "A"), b = try library.createNote(content: "B")

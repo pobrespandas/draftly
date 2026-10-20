@@ -3575,3 +3575,31 @@ CPU-bound worker acceptance. The gate stays partial for remaining entry points
 and cancellation checks. JSON fixture validation and matrix structure pass.
 No production code changed and no new Swift regression is claimed. The previous
 full run remains app436/core456. QA remains open on the neutral caught result.
+
+
+### Native cancel command — 20 October 2026
+
+Implemented: Actions > Cancel Running Action calls the existing window
+cancellation operation. A shared window state property controls availability.
+The command has no new keyboard shortcut. It cancels the current window run;
+it does not claim to cancel unrelated headless automation or other windows.
+
+Automatic: a new case in ActionEditorInterruptionTests checks availability,
+completed tag retention, no stale delayed write, no following insertion or
+archive, typed cancellation, and a successful later run. All five focused
+methods passed. Full regression passed app437/core456. The unsigned Debug
+build passed. No visible windows opened in these automatic tests.
+
+Native: quit QA before refresh. Installed signed executable SHA-256:
+`e5a1cf74cfe4bf4437f0b2783c5de309c8f9b8611cae50e21466052e0f5afb7f`.
+Computer Use confirmed the menu command disabled at rest and enabled during
+QA Native async timeout. Cancelled that run from the menu. Its prior write
+remained in Inbox with no tail insertion or archive. Command disabled again.
+QA Caught rejection then succeeded. Execution History showed Cancelled for
+the interrupted action and Success for the next run. Closed history. QA now
+has two neutral drafts and remains open. No screenshot is stored in the repo.
+
+Remaining cancellation entry points and host capabilities retain their pending
+status. During this check, other runnable menu actions remained enabled while
+busy; their availability needs a separate correction. Do not treat this new
+command as full menu or engine acceptance.

@@ -793,3 +793,9 @@ the production 120-second async wait timeout. History confirmed both errors.
 Panels responded during the wait; completed writes and Inbox state survived.
 A subsequent action succeeded. Other entry points and CPU-bound responsiveness
 remain unaccepted.
+
+
+Actions now exposes Cancel Running Action for the current window. Automatic
+checks and native menu/history checks passed, including a later successful run.
+Full app437/core456 and unsigned build passed. Other menu action availability
+while busy and remaining native cancellation variants are still open.
