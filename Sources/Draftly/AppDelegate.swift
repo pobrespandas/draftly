@@ -1,8 +1,6 @@
-import SwiftUI
 import AppKit
-import DraftlyCore
-
 import Carbon
+import DraftlyCore
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -13,6 +11,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private weak var clipboardDraftItem: NSMenuItem?
     private weak var recentDraftsMenu: NSMenu?
     private weak var statusMenu: NSMenu?
+    lazy var captureService = CaptureService(save: { text in
+        try AppController.shared.captureController.captureDirectly(text)
+    }, showOptions: { text in
+        let app = AppController.shared
+        guard app.library != nil else {
+            app.captureController.buffer.receive(text)
+            app.captureController.buffer.error = "The library is unavailable."
+            throw DraftlyError.message("The library is unavailable.")
+        }
+        app.capture(content: text)
+    })
     func applicationDidFinishLaunching(_ notification: Notification) {
         Self.current = self
         NSApp.setActivationPolicy(.regular)
@@ -77,11 +86,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func showDraftly() { AppController.shared.show() }
     @objc func quickSearch() { AppController.shared.showQuickSearch() }
     @objc func findInDraftList() { AppController.shared.findInDraftList() }
+    @objc func captureSelectionDirectly(_ pasteboard: NSPasteboard, userData: String?, error: AutoreleasingUnsafeMutablePointer<NSString?>) {
+        receiveServiceSelection(pasteboard, mode: .direct, error: error)
+    }
+    @objc func captureSelectionWithOptions(_ pasteboard: NSPasteboard, userData: String?, error: AutoreleasingUnsafeMutablePointer<NSString?>) {
+        receiveServiceSelection(pasteboard, mode: .options, error: error)
+    }
     @objc func captureSelection(_ pasteboard: NSPasteboard, userData: String?, error: AutoreleasingUnsafeMutablePointer<NSString?>) {
-        guard let text = pasteboard.string(forType: .string), !text.isEmpty else {
-            error.pointee = "No text was provided."; return
-        }
-        AppController.shared.capture(content: text)
+        captureSelectionWithOptions(pasteboard, userData: userData, error: error)
+    }
+    private func receiveServiceSelection(_ pasteboard: NSPasteboard, mode: CaptureService.Mode,
+                                         error: AutoreleasingUnsafeMutablePointer<NSString?>) {
+        do { try captureService.handle(pasteboard, mode: mode) }
+        catch let serviceError { error.pointee = serviceError.localizedDescription as NSString }
     }
     @objc func commandPalette() { AppController.shared.showCommandPalette() }
     @objc private func openRecentDraft(_ sender: NSMenuItem) {

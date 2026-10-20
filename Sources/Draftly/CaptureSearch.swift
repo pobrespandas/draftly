@@ -27,8 +27,27 @@ final class CaptureBuffer: ObservableObject {
 @MainActor
 final class CaptureController {
     let buffer: CaptureBuffer
+    private let libraryProvider: () -> LibraryStore?
+    private let windowProvider: () -> [WindowModel]
     private var panel: NSPanel?
-    init(buffer: CaptureBuffer = CaptureBuffer()) { self.buffer = buffer }
+    init(buffer: CaptureBuffer = CaptureBuffer(),
+         libraryProvider: @escaping () -> LibraryStore? = { AppController.shared.library },
+         windowProvider: @escaping () -> [WindowModel] = { AppController.shared.windows.allObjects }) {
+        self.buffer = buffer
+        self.libraryProvider = libraryProvider
+        self.windowProvider = windowProvider
+    }
+    func captureDirectly(_ text: String) throws {
+        do {
+            guard !text.isEmpty else { throw DraftlyError.message("No text was provided.") }
+            guard let library = libraryProvider() else { throw DraftlyError.message("The library is unavailable.") }
+            _ = try library.createNote(content: text)
+        } catch {
+            buffer.receive(text)
+            buffer.error = error.localizedDescription
+            throw error
+        }
+    }
     func show(content: String = "") {
         buffer.receive(content)
         if panel == nil {
@@ -44,10 +63,12 @@ final class CaptureController {
         focusPanelInput(panel)
     }
     @discardableResult func save(to target: UUID?) -> Bool {
-        guard let library = AppController.shared.library else { buffer.error = "The library is unavailable."; return false }
+        guard let library = libraryProvider() else { buffer.error = "The library is unavailable."; return false }
         let saved = buffer.save { text in
             if let target {
-                for model in AppController.shared.windows.allObjects where model.editor.noteID == target {
+                let windows = windowProvider().filter { $0.library === library && $0.editor.noteID == target }
+                let selections = windows.map { ($0, $0.editor.selection) }
+                for model in windows {
                     guard model.flush() else { throw DraftlyError.message("Save the destination draft before adding text.") }
                 }
                 guard var note = library.notes.first(where: { $0.id == target && $0.trashedAt == nil }) else {
@@ -55,6 +76,11 @@ final class CaptureController {
                 }
                 note.content += note.content.isEmpty ? text : "\n\n" + text
                 try library.saveNote(note)
+                for (model, selection) in selections where model.editor.noteID == target {
+                    model.editor.content = note.content
+                    model.editor.selection = selection
+                    model.editor.synchronizeScriptEdit?()
+                }
             } else { _ = try library.createNote(content: text) }
         }
         if saved { panel?.orderOut(nil) }

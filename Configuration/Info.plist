@@ -20,11 +20,33 @@
     <key>NSSpeechRecognitionUsageDescription</key><string>Transcribe audio in actions that you run.</string>
     <key>NSLocationUsageDescription</key><string>Use location in actions that you run.</string>
     <key>NSLocationWhenInUseUsageDescription</key><string>Use location in actions that you run.</string>
-    <key>NSServices</key><array><dict>
-        <key>NSMenuItem</key><dict><key>default</key><string>Capture in Draftly</string></dict>
-        <key>NSMessage</key><string>captureSelection</string>
-        <key>NSPortName</key><string>Draftly</string>
-        <key>NSSendTypes</key><array><string>public.utf8-plain-text</string><string>NSStringPboardType</string></array>
-    </dict></array>
+    <key>NSServices</key><array>
+        <dict>
+            <key>NSMenuItem</key><dict><key>default</key><string>Capture to Draftly</string></dict>
+            <key>NSMessage</key><string>captureSelectionDirectly</string>
+            <key>NSPortName</key><string>Draftly</string>
+            <key>NSTimeout</key><string>120000</string>
+            <key>NSRequiredContext</key><dict/>
+            <key>NSSendTypes</key><array>
+                <string>public.utf8-plain-text</string><string>NSStringPboardType</string>
+                <string>public.rtf</string><string>NSRTFPboardType</string>
+                <string>com.apple.flat-rtfd</string><string>NSRTFDPboardType</string>
+                <string>public.url</string><string>NSURLPboardType</string>
+            </array>
+        </dict>
+        <dict>
+            <key>NSMenuItem</key><dict><key>default</key><string>Capture to Draftly with Options</string></dict>
+            <key>NSMessage</key><string>captureSelectionWithOptions</string>
+            <key>NSPortName</key><string>Draftly</string>
+            <key>NSTimeout</key><string>120000</string>
+            <key>NSRequiredContext</key><dict/>
+            <key>NSSendTypes</key><array>
+                <string>public.utf8-plain-text</string><string>NSStringPboardType</string>
+                <string>public.rtf</string><string>NSRTFPboardType</string>
+                <string>com.apple.flat-rtfd</string><string>NSRTFDPboardType</string>
+                <string>public.url</string><string>NSURLPboardType</string>
+            </array>
+        </dict>
+    </array>
     <key>CFBundleURLTypes</key><array><dict><key>CFBundleURLName</key><string>Draftly Links</string><key>CFBundleURLSchemes</key><array><string>draftly</string></array></dict></array>
 </dict></plist>
