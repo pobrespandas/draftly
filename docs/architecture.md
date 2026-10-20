@@ -126,3 +126,22 @@ Specialized hosts retain their own failure and callback policies. Three duplicat
 version cases were removed. The retained contract cases cover their assertions.
 See [test structure](testing.md) for the replacement map and background policy.
 Production code and package targets are unchanged.
+
+## Typed core scripting commands
+
+ScriptCommand decodes the 24 core wire operations into typed cases. It owns
+text defaults, identifiers, query options, and ranges. ActionScriptCommands
+executes those cases. ActionRunner keeps the run lifecycle and delegates core
+command execution. The public JavaScript and host interfaces stay unchanged.
+
+ScriptNoteInput retains note payloads until execution. Loading first saves the
+editor, then resolves the note against the current library. ScriptWorkspaceInput
+also delays resolution so a missing window keeps its existing error priority.
+ScriptTextRange checks UTF-16 bounds for reads and replacements. Selection still
+uses the editor's clamping policy. Successful mutations save before they notify
+the native editor.
+
+This is the first typed boundary. Other API operations still use dispatchAPI,
+and native capabilities still use ActionHost dictionaries. Unknown core names
+delegate to those existing routes. No async worker, new public API, storage
+format, or compatibility claim was added.

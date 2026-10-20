@@ -235,75 +235,12 @@ public final class ActionRunner: ObservableObject {
         try ActionScriptValues.decodedNote(values, notes: library.notes)
     }
 
+    func appendScriptLog(_ message: String) { logs.append(message) }
+
     private func dispatch(_ operation: String, values: [String: Any]) throws -> Any? {
-        switch operation {
-        case "newDraft": return noteValue(Note())
-        case "findDraft":
-            guard let id = (values["uuid"] as? String).flatMap(UUID.init(uuidString:)) else { return nil }
-            return library.notes.first(where: { $0.id == id }).map(noteValue)
-        case "queryDrafts":
-            var workspace = Workspace(name: "Script")
-            workspace.query = values["query"] as? String ?? ""
-            if let error = DraftQuery(workspace.query).error { throw DraftlyError.message(error) }
-            guard let folder = NoteFolder(rawValue: values["folder"] as? String ?? "all") else { throw DraftlyError.message("The draft query folder is invalid.") }
-            workspace.folder = folder
-            workspace.tags = values["tags"] as? [String] ?? []
-            workspace.excludedTags = values["omitTags"] as? [String] ?? []
-            let sortName = values["sort"] as? String ?? "modified"
-            guard ["name", "title", "modified", "created", "accessed"].contains(sortName) else { throw DraftlyError.message("The draft query sort is invalid.") }
-            workspace.sort = sortName == "name" ? .title : NoteSort(rawValue: sortName) ?? .modified
-            workspace.ascending = !(values["descending"] as? Bool ?? true)
-            var notes = workspace.filter(library.notes).filter { !(values["omitFlagged"] as? Bool ?? false) || $0.flag == 0 }
-            if values["flaggedToTop"] as? Bool == true { notes = notes.filter { $0.flag > 0 } + notes.filter { $0.flag == 0 } }
-            return notes.map(noteValue)
-        case "updateDraft":
-            let note = try decodedNote(values); try library.saveNote(note, preserveDates: values["_preserveDates"] as? Bool ?? false)
-            if editor.noteID == note.id { editor.content = note.content; editor.selection = editor.safeSelection; editor.synchronizeScriptEdit?() }
-            return library.notes.first(where: { $0.id == note.id }).map(noteValue)
-        case "loadDraft":
-            try flushEditor(); let requested = try decodedNote(values)
-            guard let note = library.notes.first(where: { $0.id == requested.id }) else { throw DraftlyError.message("Save the draft before loading it into the editor.") }
-            try library.recordAccess(note.id)
-            editor.load(note); editor.synchronizeScriptEdit?(); return true
-        case "editorText": return editor.content
-        case "setEditorText": editor.content = values["text"] as? String ?? ""; editor.selection = editor.safeSelection; try flushEditor(); editor.synchronizeScriptEdit?(); return true
-        case "selection": return editor.selectedText
-        case "selectionRange": return [editor.safeSelection.location, editor.safeSelection.length]
-        case "lineRange":
-            let text = (values["text"] as? String ?? editor.content) as NSString
-            let range = NSRange(location: values["location"] as? Int ?? 0, length: values["length"] as? Int ?? 0)
-            guard range.location >= 0, range.length >= 0, range.location <= text.length, range.length <= text.length - range.location else { throw DraftlyError.message("The text range is outside the draft.") }
-            let expanded = text.lineRange(for: range)
-            return [expanded.location, expanded.length]
-        case "setSelection":
-            editor.selection = NSRange(location: values["location"] as? Int ?? 0, length: values["length"] as? Int ?? 0)
-            editor.selection = editor.safeSelection; editor.synchronizeScriptEdit?(); return true
-        case "replaceSelection": try editor.replace(editor.safeSelection, with: values["text"] as? String ?? ""); try flushEditor(); editor.synchronizeScriptEdit?(); return true
-        case "textInRange", "replaceRange":
-            let range = NSRange(location: values["location"] as? Int ?? 0, length: values["length"] as? Int ?? 0)
-            guard range.location >= 0, range.length >= 0, range.location <= (editor.content as NSString).length, range.length <= (editor.content as NSString).length - range.location else { throw DraftlyError.message("The text range is outside the draft.") }
-            if operation == "textInRange" { return (editor.content as NSString).substring(with: range) }
-            try editor.replace(range, with: values["text"] as? String ?? ""); try flushEditor(); editor.synchronizeScriptEdit?(); return true
-        case "template": return try renderTemplate(values["text"] as? String ?? "", note: decodedNote(values["note"] as? [String: Any] ?? [:]), tags: values["tags"] as? [String: String] ?? [:])
-        case "setTemplateTag": customTags[values["key"] as? String ?? ""] = values["value"] as? String ?? ""; return true
-        case "activate":
-            editor.focusToken = UUID()
-            if let uiOperation { _ = try uiOperation(["operation": "activate"]) }
-            return nil
-        case "message": logs.append(values["message"] as? String ?? ""); return true
-        case "findAction":
-            return library.actions.first(where: { $0.name == values["name"] as? String }).map(actionValue)
-        case "queueAction":
-            let details = values["action"] as? [String: Any] ?? [:]
-            guard let action = library.actions.first(where: { $0.id.uuidString == details["uuid"] as? String }) else { throw DraftlyError.message("The queued action was not found.") }
-            queued.append((action, try decodedNote(values["draft"] as? [String: Any] ?? [:]))); return true
-        case "findWorkspace":
-            return library.workspaces.first(where: { $0.name == values["name"] as? String }).map(workspaceValue)
-        case "applyWorkspace":
-            guard let applyWorkspace else { throw DraftlyError.message("Workspace application requires an open window.") }; try applyWorkspace(try decodeWorkspace(values)); return true
-        case "base64Encode": return Data((values["text"] as? String ?? "").utf8).base64EncodedString()
-        case "base64Decode": return Data(base64Encoded: values["text"] as? String ?? "").flatMap { String(data: $0, encoding: .utf8) }
-        default: return try dispatchAPI(operation, values: values)
+        if let command = try ScriptCommand(operation: operation, values: values) {
+            return try perform(command)
         }
+        return try dispatchAPI(operation, values: values)
     }
 }

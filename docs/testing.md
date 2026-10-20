@@ -61,3 +61,15 @@ unchanged.
 Automatic checks passed: 170 app tests in 29 suites, 264 core tests in 33 suites,
 24 Python tests, the normal matrix check, and the whitespace check.
 No visible UI or cloud acceptance ran. Strict parity remains pending.
+
+## Core command boundary acceptance
+
+ScriptCommandTests adds seven boundary cases. They cover missing and wrong-type
+values, query defaults and invalid options, UTF-16 limits and integer overflow,
+selection clamping, save-before-load ordering and save failure, error priority,
+and unchanged forwarding to native capability adapters. These tests do not
+replace the existing scripting contracts or native Undo tests.
+
+After this change, 170 app tests, 271 core tests, and 24 Python tests passed.
+The local Xcode build passed with signing disabled. The normal matrix check
+reported zero errors. No visible app or cloud acceptance ran.

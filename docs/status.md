@@ -25,9 +25,9 @@ retain historical results. Later results supersede earlier counts.
 | Check | Latest result |
 | --- | --- |
 | App tests | 170 passed after test refactoring |
-| Core tests | 264 passed; three duplicate cases removed |
+| Core tests | 271 passed; includes seven command-boundary cases |
 | Python tools | 24 passed |
-| Local Xcode build after architecture refactoring | Passed; signing disabled |
+| Local Xcode build after command refactoring | Passed; signing disabled |
 | Matrix structure check | 0 errors |
 | Whitespace check | Passed |
 | Strict core and global parity | Still open |

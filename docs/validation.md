@@ -1093,3 +1093,18 @@ validation. All 542 matrix test references resolve. Compatibility classification
 and the original five action fixtures are unchanged. No production code changed.
 No app was launched for visible UI or cloud acceptance. These totals describe
 regression checks, not compatibility coverage. Strict parity remains open.
+
+## Typed scripting command boundary — 19 October 2026
+
+The 24 core operations now decode into ScriptCommand. Query options and UTF-16
+range validation have shared types. Execution is separate from wire decoding.
+Note and workspace inputs resolve at the same point as before, to preserve save
+ordering and error priority. Other API and native capability adapters retain
+their existing interfaces.
+
+Seven new boundary cases passed. Full checks passed: 170 app tests in 29 suites,
+271 core tests in 34 suites, 24 Python tests, the normal matrix check with zero
+errors, whitespace validation, and a local Xcode build with signing disabled.
+All 24 previous core operation names have typed routes. The matrix and original
+action fixtures are unchanged. No app was launched. Native, visual, cloud, and
+strict compatibility acceptance remain separate and pending as recorded.
