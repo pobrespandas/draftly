@@ -417,3 +417,10 @@ Inclusion and queue tests also found and fixed retained pending queue state in
 the legacy failure/cancellation route. Final checks passed 388 app tests, 361
 core tests, Python32, and the unsigned build. Matrix structure is valid; strict
 engine parity still reports 39 diagnostics. See the latest validation entries.
+
+Native follow-up checked separator order after restart, the editing bar divider,
+and absence of an executable separator in the Actions menu. URL queue cancellation
+kept the completed child edit in Inbox, stopped later work, and delivered one
+observed cancel callback without success parameters. Native error/timeout,
+separate targets, picker, and backup recovery checks remain open. The matrix
+records partial acceptance and specific executed regression tests.

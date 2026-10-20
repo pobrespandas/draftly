@@ -1,0 +1,42 @@
+[
+  {
+    "name": "QA Queue cancellation root",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "context.addSuccessParameter('root','must be discarded');app.queueAction(Action.find('QA Queue cancelling child'),draft);app.queueAction(Action.find('QA Queue must not run'),draft);"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Queue cancelling child",
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Queue child completed write — café 🐼');draft.update();context.cancel('Neutral queued cancellation');"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "ERROR: child step ran after cancellation"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Queue must not run",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('ERROR: later queued action ran');draft.update();"
+        }
+      }
+    ]
+  }
+]

@@ -16258,7 +16258,7 @@
       },
       "liveCheck": null,
       "limitations": [
-        "The 50/51-action static expansion boundary is tested. Equivalent dynamic-depth boundaries through full runner execution remain untested.",
+        "The 50/51-action static and full-run dynamic boundaries are tested as Draftly safety limits. Equality with a Drafts depth limit is not established.",
         "Static and dynamic inclusion cycle handling remain pending through real native entry points."
       ],
       "legacyAutomatedTest": {
@@ -16308,6 +16308,18 @@
         {
           "suite": "EngineBoundaryContractTests",
           "test": "actualIncludeChainsRespectTheDepthBoundary"
+        },
+        {
+          "suite": "EngineInclusionAcceptanceTests",
+          "test": "dynamicIncludeChainEnforcesDepthDuringExecution"
+        },
+        {
+          "suite": "EngineInclusionAcceptanceTests",
+          "test": "repeatedSiblingIncludesReuseGlobalsWithoutSharingAncestry"
+        },
+        {
+          "suite": "EngineInclusionAcceptanceTests",
+          "test": "dynamicSubtreeCycleIsRejectedBeforeItsEffectsButRetainsRootEffects"
         }
       ],
       "nativeVerification": {
@@ -16330,6 +16342,13 @@
             "command": "swift test --filter EngineBoundaryContractTests",
             "result": "Passed in the coordinator focused run: seven test methods and thirteen expanded cases, no failures.",
             "evidence": "The coordinator read the completed focused run before this evidence update."
+          },
+          {
+            "date": "2026-10-20",
+            "revision": "0ba1b25",
+            "command": "swift test",
+            "result": "Passed: 388 app tests and 361 core tests. Specific supporting cases listed in this record ran.",
+            "evidence": "docs/validation.md"
           }
         ]
       }
@@ -16343,7 +16362,7 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Queued execution and stopping behavior remain pending through native automation entry points."
+        "Native URL cancellation retained the completed child edit in Inbox and delivered cancel without success parameters. Error, timeout, separate targets, and remaining native entry points are pending."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
@@ -16354,7 +16373,7 @@
         "symbol": "runAsync queue loop"
       },
       "reviewDate": "2026-10-20",
-      "defaults": "Each new async root run starts with an empty queue. Queued actions run in insertion order against their captured draft. A root run permits at most 100 queued actions.",
+      "defaults": "Each root run starts with an empty queue. Queued actions run in insertion order and load the current stored version of their captured draft identity when it exists. A root run permits at most 100 queued actions.",
       "result": "A successful queued action loads and saves its target draft and contributes final success parameters to the root report. Cancellation clears remaining queued work.",
       "errors": "Cancellation or failure stops subsequent queued actions and clears final success parameters; effects completed before termination remain.",
       "contractCases": {
@@ -16396,11 +16415,32 @@
         {
           "suite": "EngineBoundaryContractTests",
           "test": "asynchronousQueuedTerminationStopsLaterWorkAndClearsSuccessParameters"
+        },
+        {
+          "suite": "QueueAcceptanceTests",
+          "test": "queuedTimeoutRetainsCompletedEffectsAndSelectsOnlyTheErrorCallback"
+        },
+        {
+          "suite": "QueueAcceptanceTests",
+          "test": "queuedDraftLoadsTheCurrentStoredVersionInsteadOfItsCapturedText"
+        },
+        {
+          "suite": "QueueAcceptanceTests",
+          "test": "finalQueuedParametersReplaceRootAndExistingCallbackValuesOnce"
+        },
+        {
+          "suite": "QueueAcceptanceTests",
+          "test": "queuedActionsHaveFreshGlobalsAndAggregateFinalSuccessParameters"
+        },
+        {
+          "suite": "EngineInclusionAcceptanceTests",
+          "test": "childTerminationStopsRootAndQueueWithoutRevertingCompletedEffects"
         }
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Queued execution and stopping behavior remain pending through native automation entry points."
+        "reason": "Native URL cancellation retained the completed child edit in Inbox and delivered cancel without success parameters. Error, timeout, separate targets, and remaining native entry points are pending.",
+        "evidence": "docs/validation.md"
       },
       "automatedVerification": {
         "status": "passed",
@@ -16419,6 +16459,13 @@
             "command": "swift test --filter EngineBoundaryContractTests",
             "result": "Passed in the coordinator focused run: seven test methods and thirteen expanded cases, no failures.",
             "evidence": "The coordinator read the completed focused run before this evidence update."
+          },
+          {
+            "date": "2026-10-20",
+            "revision": "0ba1b25",
+            "command": "swift test",
+            "result": "Passed: 388 app tests and 361 core tests. Specific supporting cases listed in this record ran.",
+            "evidence": "docs/validation.md"
           }
         ]
       }
@@ -16553,7 +16600,7 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Separator display, ordering, and backup restoration remain pending in the native inspector."
+        "Native list, editing bar, Actions menu, saved order, restart, and search exclusion passed. Executable picker and native backup restoration remain pending; comparison with Drafts appearance is not complete."
       ],
       "defaults": "Absent or false backingIsSeparator produces a normal action with isSeparator false. True marks an imported separator. The original payload remains available, including unknown fields.",
       "result": "A saved imported separator is found by Action.find with isSeparator true. A separator can retain an empty steps list without losing its API identity.",
@@ -16594,11 +16641,24 @@
         {
           "suite": "EngineBoundaryContractTests",
           "test": "separatorFlagDoesNotBypassImportValidation"
+        },
+        {
+          "suite": "ImportedActionPreservationTests",
+          "test": "separatorIdentityOrderAndUnknownFieldsSurviveBackupRestoration"
+        },
+        {
+          "suite": "ActionCatalogPresentationTests",
+          "test": "explicitSeparatorsKeepIdentityAndOrderWithoutRunnableRows"
+        },
+        {
+          "suite": "ActionCatalogPresentationTests",
+          "test": "searchAndExecutablePickersNeverReturnSeparators"
         }
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Separator display, ordering, and backup restoration remain pending in the native inspector."
+        "reason": "Native list, editing bar, Actions menu, saved order, restart, and search exclusion passed. Executable picker and native backup restoration remain pending; comparison with Drafts appearance is not complete.",
+        "evidence": "docs/validation.md"
       },
       "automatedVerification": {
         "status": "passed",
@@ -16617,6 +16677,13 @@
             "command": "swift test --filter EngineBoundaryContractTests",
             "result": "Passed in the coordinator focused run: seven test methods and thirteen expanded cases, no failures.",
             "evidence": "The coordinator read the completed focused run before this evidence update."
+          },
+          {
+            "date": "2026-10-20",
+            "revision": "0ba1b25",
+            "command": "swift test",
+            "result": "Passed: 388 app tests and 361 core tests. Specific supporting cases listed in this record ran.",
+            "evidence": "docs/validation.md"
           }
         ]
       }

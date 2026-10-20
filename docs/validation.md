@@ -1704,3 +1704,33 @@ accepted as an imported order contract. Direct engine execution of a separator
 still has no accepted reference behavior. The separator engine record remains
 partial. No screenshot or temporary export is stored in the repository.
 
+## Native queue cancellation and separator restart — 20 October 2026
+
+Verified in use on the same isolated QA build: separator Order 1 survived quit
+and restart. The editing bar showed two action buttons and a divider, with no
+separator button. The Actions menu exposed A and C and no executable B entry.
+Native picker and full backup restoration remain pending.
+
+Imported engine-queue-actions.json. Only the cancelling child has Archive as an
+after-success effect. Root and later actions keep the draft. This isolates the
+child result; completed effects of earlier actions are not rolled back.
+Native URL confirmation and queue execution retained the child's exact neutral
+Unicode text in Inbox. Neither ERROR sentinel appeared. History recorded
+Cancelled for the root. The helper received case=queue and result=cancel without
+the root success parameter. The counter-enabled helper showed one received
+callback and remained at one after inspecting the saved draft. This is bounded
+observation, not proof that no callback can ever arrive later. The first checks
+used a helper without a counter; only the repeated check establishes the count.
+
+The helper now counts received callbacks in memory and resets on Open. A request
+identity prevents an old delivery completion from replacing a newer result.
+Callback forwarding is unchanged. The helper compiled, its metadata self-check
+passed, and no visible window opened during that automatic check. QA and helper
+were quit after manual checks. Captures and raw logs remain outside the repo.
+
+The matrix now links specific executed inclusion and queue regression cases.
+It removes the stale claim that full-run dynamic depth is untested. The 50/51
+boundary is a Draftly safety limit; the Drafts limit has not been established.
+All three records remain partial. Error, timeout, multiple targets and remaining
+native entry points still require acceptance. Matrix structure has zero errors.
+

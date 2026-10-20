@@ -186,3 +186,20 @@ full backup and restore it into another temporary library. Check identity, order
 separator state, and unknown payload fields. Automatic recovery tests do not
 replace this native recovery check. Direct engine execution of a separator has
 no accepted reference behavior yet.
+
+## Queue cancellation
+
+Import scripts/fixtures/engine-queue-actions.json. Run QA Queue cancellation root
+on a neutral draft with success, cancel, and error callbacks to the local helper.
+Use draftly-engine-echo://received?case=queue&result=cancel as x-cancel, with
+success and error as the other result values. The helper resets its in-memory
+received count when Open is pressed. A late callback from another run can still
+arrive; use distinct case values to identify it.
+
+After confirming Run Action, check the saved text: Queue child completed write
+followed by the fixture Unicode suffix. No ERROR sentinel may appear. The draft
+must remain in Inbox because the cancelled child must not apply Archive. The
+helper must show cancel and no root success parameter. Check history and observe
+the received count again after inspecting the draft. The count describes only
+that observation interval. Repeat error, timeout, and separate-draft variants
+before accepting the full native queue contract.
