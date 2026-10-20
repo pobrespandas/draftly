@@ -93,6 +93,8 @@ struct NativeEditor: NSViewRepresentable {
         var style = ""
         var theme: EditorTheme?
         var defaultSelectionAttributes: [NSAttributedString.Key: Any]?
+        var defaultLinkAttributes: [NSAttributedString.Key: Any]?
+        var capturedLinkAttributes = false
         var focusToken: UUID?
         init(_ parent: NativeEditor) { self.parent = parent; noteID = parent.session.noteID }
         func textDidChange(_ notification: Notification) {
@@ -140,6 +142,9 @@ struct NativeEditor: NSViewRepresentable {
         func highlight() {
             guard let view = textView, let storage = view.textStorage else { return }
             let range = NSRange(location: 0, length: storage.length)
+            if !capturedLinkAttributes { defaultLinkAttributes = view.linkTextAttributes; capturedLinkAttributes = true }
+            let activeScope = ["text.linkModeLink", "text.activeLink", "text.link"].first { parent.theme?.scopeStyle(named: $0) != nil }
+            var activeRanges: [NSRange] = []
             var font = parent.fontName == "System" ? NSFont.systemFont(ofSize: parent.fontSize) : NSFont(name: parent.fontName, size: parent.fontSize) ?? NSFont.monospacedSystemFont(ofSize: parent.fontSize, weight: .regular)
             let baseFont = font
             let foreground = parent.theme.flatMap { EditorTheme.color($0.foreground) } ?? NSColor.textColor
@@ -196,7 +201,10 @@ struct NativeEditor: NSViewRepresentable {
             }
             if parent.linksEnabled, let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) {
                 for match in detector.matches(in: view.string, range: range) {
-                    if let url = match.url { storage.addAttributes([.link: url, .foregroundColor: NSColor.linkColor], range: match.range) }
+                    if let url = match.url {
+                        activeRanges.append(match.range)
+                        storage.addAttributes([.link: url, .foregroundColor: NSColor.linkColor], range: match.range)
+                    }
                 }
             }
             if let theme = parent.theme {
@@ -234,6 +242,16 @@ struct NativeEditor: NSViewRepresentable {
                         for scope in scopes.split(separator: ",").map({ $0.trimmingCharacters(in: .whitespaces) }) { apply(scope, range: range) }
                     }
                 }
+                if let activeScope { for range in activeRanges { apply(activeScope, range: range) } }
+            }
+            view.linkTextAttributes = defaultLinkAttributes
+            if parent.linksEnabled, let activeScope, let style = parent.theme?.scopeStyle(named: activeScope) {
+                let attributes = ThemeTextAttributes.make(style, currentFont: font, baseFont: baseFont)
+                var presentation = defaultLinkAttributes ?? [:]
+                for key in [NSAttributedString.Key.foregroundColor, .backgroundColor, .underlineStyle, .strikethroughStyle] {
+                    if let value = attributes[key] { presentation[key] = value }
+                }
+                view.linkTextAttributes = presentation
             }
             storage.endEditing()
             view.typingAttributes = baseAttributes

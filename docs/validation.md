@@ -2642,3 +2642,28 @@ native coverage. Other built-in syntax mappings, active links, current-line and
 remaining interface colors, restoration, and sync remain open. The local QA
 selection is the imported theme; its heading is #FF00FF. The library has six
 neutral drafts. No screenshot file or raw log is tracked.
+
+### Active link theme rendering — 20 October 2026
+
+Implemented: Link Mode applies an imported link scope to detected URL ranges and
+AppKit link presentation attributes. Scope lookup uses text.linkModeLink first,
+then text.activeLink, then text.link. This is the current mapping policy; it still
+needs comparison with Drafts. Exact scope fields retain their existing behavior.
+The editor records its original optional link attributes once. Removing a theme
+or disabling Link Mode restores that original value, including nil defaults.
+Text attributes are rebuilt, so disabling Link Mode also removes link targets.
+No test opens a URL or sends network traffic.
+
+Automatically tested: the new hosted-editor regression first failed four color
+assertions on the previous renderer. It now passes through theme on/off and Link
+Mode on/off transitions. It checks URL targets, storage colors, actual AppKit
+link colors, native attribute restoration, Unicode selection, and unchanged text.
+The focused run passed five methods in the rendering and redraw suites. Hosted
+checks use an offscreen window only. The earlier full regression is separate
+evidence; this entry does not claim a new full run.
+
+Native acceptance and exact Drafts scope precedence remain pending. Other syntax
+and interface theme coverage, current-line highlighting, backups and sync stay
+open. No source theme or public scripting contract changed.
+The unsigned Xcode Debug build passed after the link rendering correction.
+QA still has the earlier renderer and needs refresh before native acceptance.

@@ -16,6 +16,7 @@ struct ThemeRenderingTests {
                 "text.italic": ["settings": ["fontStyle": "italic"]],
                 "text.strikethrough": ["settings": ["fontStyle": "strikethrough"]],
                 "code.inline": ["settings": ["foreground": codeColor, "background": "#112233", "fontStyle": "monospace"]],
+                "text.linkModeLink": ["settings": ["foreground": "#0099EE", "fontStyle": "underline"]],
                 "custom.neutral": ["settings": ["foreground": "#FF00FF"]]]]
         return try DraftsThemeImport.decode(data: JSONSerialization.data(withJSONObject: source))
     }
@@ -54,6 +55,45 @@ struct ThemeRenderingTests {
         #expect(attributes("Gone")[.strikethroughStyle] as? Int == NSUnderlineStyle.single.rawValue)
         #expect(try hex(storage.attribute(.foregroundColor, at: unicode.location, effectiveRange: nil)) == "FF00FF")
         #expect(view.string == session.content && view.selectedRange() == unicode)
+    }
+
+    @Test func linkThemeChangesAndLinkModeRestoreNativeAttributesWithoutChangingText() async throws {
+        _ = NSApplication.shared
+        let session = EditorSession()
+        session.load(Note(content: "café 🐼 https://example.invalid/test"), focusEditor: false)
+        let selected = (session.content as NSString).range(of: "café 🐼")
+        session.selection = selected
+        let value = try theme()
+        func editor(_ theme: EditorTheme?, links: Bool) -> NativeEditor {
+            NativeEditor(session: session, fontName: "System", fontSize: 17, lineSpacing: 2,
+                markdown: false, theme: theme, linksEnabled: links, onChange: {})
+        }
+        let host = NSHostingView(rootView: editor(nil, links: true))
+        let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 500, height: 400), styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = host
+        defer { window.contentView = nil }
+        func findText(_ view: NSView) -> NSTextView? {
+            if let text = view as? NSTextView { return text }
+            return view.subviews.lazy.compactMap { findText($0) }.first
+        }
+        host.layoutSubtreeIfNeeded(); await TestMainQueue.drain()
+        let initial = try #require(findText(host))
+        let originalAttributes = (initial.linkTextAttributes ?? [:]) as NSDictionary
+        let originalWasNil = initial.linkTextAttributes == nil
+        let linkStart = (session.content as NSString).range(of: "https://").location
+        for (theme, links) in [(Optional(value), true), (nil, true), (Optional(value), false), (Optional(value), true)] {
+            host.rootView = editor(theme, links: links); host.layoutSubtreeIfNeeded(); await TestMainQueue.drain()
+            let text = try #require(findText(host))
+            #expect((text.textStorage?.attribute(.link, at: linkStart, effectiveRange: nil) != nil) == links)
+            if theme != nil && links {
+                #expect(try hex(text.linkTextAttributes?[.foregroundColor]) == "0099EE")
+                #expect(try hex(text.textStorage?.attribute(.foregroundColor, at: linkStart, effectiveRange: nil)) == "0099EE")
+            } else {
+                #expect(((text.linkTextAttributes ?? [:]) as NSDictionary).isEqual(originalAttributes))
+                #expect((text.linkTextAttributes == nil) == originalWasNil)
+            }
+            #expect(text.string == session.content && text.selectedRange() == selected)
+        }
     }
 
     @Test func sourceOnlyStyleChangesInvalidateCachedHighlighting() async throws {
