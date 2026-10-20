@@ -16243,10 +16243,10 @@
         "suite": "AsyncActionRunnerTests",
         "test": "dynamicIncludesShareVariablesConfigurationAndRootDisposition"
       },
-      "liveCheck": null,
+      "liveCheck": "docs/validation.md: Native selected identity and template inclusion — 20 October 2026",
       "limitations": [
-        "Included configuration key collisions and shared cancellation/error context need dedicated async cases.",
-        "Real selected-UUID includes after rename and dynamic-name includes remain pending in the native app."
+        "Configuration key collision/type precedence still needs comparison. The archived reference does not specify the winner, and child saved values versus inline defaults remain unresolved.",
+        "Requires configuration before first use is documented but no confirmed-configuration state or first-use prompt exists. Native selected-UUID after rename and template-name inclusion passed independently of these configuration gaps."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
@@ -16291,11 +16291,24 @@
         {
           "suite": "ExecutionActionAPITests",
           "test": "includedUnknownStepIsRejectedBeforeAnySideEffect"
+        },
+        {
+          "suite": "EngineInclusionAcceptanceTests",
+          "test": "selectedUUIDSharesRootContextAndIgnoresStaleName"
+        },
+        {
+          "suite": "EngineInclusionAcceptanceTests",
+          "test": "childTerminationStopsRootAndQueueWithoutRevertingCompletedEffects"
+        },
+        {
+          "suite": "EngineInclusionAcceptanceTests",
+          "test": "repeatedSiblingIncludesReuseGlobalsWithoutSharingAncestry"
         }
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Real selected-UUID includes after rename and dynamic-name includes remain pending in the native app."
+        "reason": "Selected UUID after an actual inspector rename, template-name resolution, repeated child execution and shared globals passed through a native URL. Configuration collision and first-use requirements remain pending.",
+        "evidence": "docs/validation.md"
       },
       "automatedVerification": {
         "status": "passed",

@@ -1,0 +1,44 @@
+[
+  {
+    "name": "QA Original child",
+    "uuid": "70F92D63-EC90-4AE9-A0C6-88D6FD068D11",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "shared.visits++;"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA UUID and template inclusion root",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "var shared={visits:0};draft.setTemplateTag('childname','QA Included renamed child');"
+        }
+      },
+      {
+        "type": "includeAction",
+        "data": {
+          "uuid": "70F92D63-EC90-4AE9-A0C6-88D6FD068D11",
+          "name": "QA Original child"
+        }
+      },
+      {
+        "type": "includeAction",
+        "data": {
+          "name": "[[childname]]"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "if(shared.visits!==2){throw new Error('Expected two shared child visits');}editor.setText('Included visits: '+shared.visits+' — café 🐼');draft.update();context.addSuccessParameter('visits',String(shared.visits));context.addSuccessParameter('shared','retained');"
+        }
+      }
+    ]
+  }
+]

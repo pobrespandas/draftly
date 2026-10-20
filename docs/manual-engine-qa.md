@@ -269,3 +269,14 @@ The first must finish successfully and keep Busy owner retained. Check both
 window identities and history. The helper resets its count on each Open; after
 the second Open it can receive both the busy result and the first run's success.
 Identify results by case, not by the last callback alone.
+
+## Selected identity and template inclusion
+
+Import scripts/fixtures/engine-inclusion-actions.json. Rename QA Original child
+to QA Included renamed child in the inspector and save. Do not duplicate it.
+The fixed child UUID must stay unchanged. Run the root on a neutral draft. Its
+first include retains the old name but selects the UUID. The second resolves
+the new name from a template tag. Both must increment the same shared variable.
+Check Included visits: 2 — café 🐼, Success history, and callback parameters
+visits=2 and shared=retained. A fresh import restores the original child name
+for another run; repeat the inspector rename before execution.

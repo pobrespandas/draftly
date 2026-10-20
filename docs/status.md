@@ -465,3 +465,8 @@ disabled or known-issue tests and missing method references. Explicit test files
 support suites in shared source files. Python37 and matrix structure passed;
 strict engine acceptance remains open with 36 diagnostics. The user-authorized
 two disposable Shortcuts were deleted and their absence was verified.
+
+Native inclusion by UUID survived a real inspector rename. Template-name
+inclusion resolved the renamed action and both calls shared one global. The
+shared-inclusion record stays partial: configuration precedence and the required
+first-use configuration prompt/state remain unresolved.

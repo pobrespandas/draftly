@@ -1938,3 +1938,23 @@ methods, fake method text, alternate files, and path restrictions. Structural
 matrix check has zero errors. Strict engine acceptance still has 36 diagnostics.
 Application code did not change; its prior build/test acceptance is unchanged.
 
+## Native selected identity and template inclusion — 20 October 2026
+
+Verified in use on QA image655d52883b226fcc: imported the neutral inclusion
+fixture with child UUID70F92D63-EC90-4AE9-A0C6-88D6FD068D11. Renamed that child
+from QA Original child to QA Included renamed child in the inspector and saved.
+The root's selected-UUID step retained its obsolete name. The next include used
+the child's new name through a template tag. Both shared the same visits global.
+Native URL execution saved Included visits: 2 — café 🐼, recorded Success at
+03:10, and delivered one observed matching success callback with visits=2 and
+shared=retained. Cleared action search and quit both QA apps.
+
+This accepts those native identity and shared-global cases. It does not settle
+configured-value precedence. The frozen reference distinguishes current action
+configuration from explicit Action.configuredValues access to another action;
+it does not specify a winner for included duplicate keys. Requires configuration
+before first use is explicit in the reference, but Draftly lacks both the prompt
+and state that distinguishes defaults from confirmed configuration. Those remain
+implementation work. No guessed precedence or first-party import key was added.
+The shared-inclusion record remains partial.
+
