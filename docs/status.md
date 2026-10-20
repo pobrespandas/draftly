@@ -510,3 +510,10 @@ rolls back replacements and new actions. Four focused installation cases, both
 URL target regressions, and the unsigned Debug build passed. Native failure
 injection was not performed. Existing import compatibility evidence remains
 scoped to its recorded checks.
+
+
+The actual RunDraftActionIntent.perform now has isolated background tests for
+success, errors, busy reservation, CPU/async deadlines, and cancellation. The full
+run passed 401 app and 391 core methods. Xcode metadata extraction passed without
+new visible parameters. Native Shortcut dispatch remains pending. Review found a
+separate headless-owner overlap gap before pending saves; it is not accepted yet.

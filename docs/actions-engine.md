@@ -59,6 +59,13 @@ cancels its action. URLs and App Intents await the same final report. Invalid ru
 links return an error and select the error callback when provided. Success
 callbacks use the parameters from the final report.
 
+RunDraftActionIntent accepts an internal per-instance execution environment.
+Production calls capture the current app context when perform starts. Tests inject
+a temporary library and host, then call the actual perform method and runner.
+They do not replace the final report or use a global test override. Public intent
+parameters remain Action Name and Draft UUID. System Shortcut dispatch remains
+a separate native acceptance requirement.
+
 User navigation and text changes cancel a pending window action before a delayed
 script can change the new draft or overwrite user input. Synchronous script
 commands expose a read-only mutation marker to the app adapter, so script-driven

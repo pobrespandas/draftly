@@ -10,9 +10,12 @@ struct AutomationTimeoutBoundaryTests {
         let note = try library.createNote(content: "Neutral source")
         let model = WindowModel(library: library)
         model.select(note.id)
+        model.editor.selection = NSRange(location: 0, length: note.content.utf16.count)
         model.runner.scriptTimeout = 0.02
         var action = DraftAction(name: "Neutral automation timeout", steps: [
-            ActionStep("script", ["allowAsync": "true", "script": "editor.setText('Completed automation write');draft.update();context.addSuccessParameter('discard','value');"]),
+            ActionStep("insertText", ["template": "Completed automation write"]),
+            ActionStep("script", ["script": "context.addSuccessParameter('discard','value');"]),
+            ActionStep("script", ["allowAsync": "true", "script": "void 0;"]),
             ActionStep("insertText", ["template": "ERROR: later step ran"])
         ])
         action.afterSuccess = "archive"

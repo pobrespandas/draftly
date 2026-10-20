@@ -40,11 +40,19 @@ struct RunDraftActionIntent: AppIntent {
     static let openAppWhenRun = true
     @Parameter(title: "Action Name") var name: String
     @Parameter(title: "Draft UUID") var uuid: String
+    var executionEnvironment: RunActionIntentEnvironment? = nil
     @MainActor func perform() async throws -> some IntentResult & ReturnsValue<String> {
-        guard let library = AppController.shared.library, let id = UUID(uuidString: uuid), let note = library.notes.first(where: { $0.id == id }),
+        let environment: RunActionIntentEnvironment
+        if let executionEnvironment { environment = executionEnvironment }
+        else {
+            let controller = AppController.shared
+            environment = RunActionIntentEnvironment(library: controller.library,
+                models: controller.windows.allObjects, host: controller.makeActionHost())
+        }
+        guard let library = environment.library, let id = UUID(uuidString: uuid), let note = library.notes.first(where: { $0.id == id }),
               let action = library.actions.first(where: { $0.name == name }) else { throw DraftlyError.message("The draft or action was not found.") }
         let output = try await AutomationActionExecution.run(action, noteID: note.id, library: library,
-            models: AppController.shared.windows.allObjects, host: AppController.shared.makeActionHost())
+            models: environment.models, host: environment.host, resolveModel: environment.resolveModel)
         if let error = AutomationActionError.from(output.report, message: output.message) { throw error }
         return .result(value: output.message.isEmpty ? "Complete" : output.message)
     }

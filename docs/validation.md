@@ -2176,3 +2176,39 @@ resolver, pending draft save, script effects, and history creation. Pending user
 text remains dirty and stored text stays unchanged. AutomationActionError maps
 the returned report to cancelled. The focused automation/context/boundary run
 also passed. This background case does not prove native Shortcut delivery.
+
+
+## Actual action intent method — 20 October 2026
+
+Implemented: RunDraftActionIntent has an internal optional execution environment,
+isolated on MainActor. When absent, perform obtains the current AppController
+context. Tests supply a temporary library, window models, host, and model resolver
+per intent instance. No global test override or fake execution result is used.
+The name and uuid parameters and default initializer remain. Apple's AppIntent
+reference uses @Parameter for visible inputs:
+https://developer.apple.com/documentation/appintents/appintent .
+
+Automatic: seven RunDraftActionIntentTests methods call the actual perform. They
+cover a saved success and exact message, real CPU and async deadlines, busy window
+reservation before pending-save, invalid/missing UUID, missing action/library,
+script failure, and cancellation before startup and during a worker wait. The
+marker host returns a neutral clipboard marker without touching the real clipboard.
+These are in-process intent-method checks, not system Shortcuts invocation.
+
+The first full run exposed setup timing in the old automation timeout test and
+the new intent timeout case: a 20 ms deadline could expire before setup writes.
+The corrected tests commit preparation in an earlier step. Only the waiting or
+CPU step uses the short deadline. The limit was not increased to hide the race.
+The corrected full run passed 401 app methods and 391 core methods.
+
+Build: unsigned Debug Xcode compilation and App Intents metadata extraction passed.
+Comparison with the prior RunDraftActionIntent metadata found only a different
+ordering of resolvableInputTypes. Those lists have the same members. All other
+metadata matched, including parameter names, titles, required flags, value types,
+output, and identity. executionEnvironment is not an exposed parameter. The
+temporary metadata copy was removed. Native Shortcut dispatch remains pending.
+
+Review found another open boundary: a headless owner is absent from supplied
+WindowModels. A second automation request can flush pending window edits before
+the runner rejects its library as busy. A specific overlap regression and a
+preflight check against the shared library gate are the next correction.

@@ -16860,7 +16860,7 @@
         "result": "Temporary local QA app: panel use during delayed action, exact native Undo, window-close cancellation recorded in Execution History, and typing cancels while preserving user text. Other entry points remain pending."
       },
       "limitations": [
-        "Fresh runtime identity across queued actions and strict executor-ownership assertions need dedicated cases.",
+        "Dedicated queued-action tests already prove fresh JavaScript global environments and retained final parameters. Explicit executor-ownership assertions still need dedicated evidence; responsiveness alone does not prove queue ownership.",
         "Recorded panel responsiveness used an older QA build; current native permission/dialog and CPU-bound cancellation variants remain pending."
       ],
       "defaults": "The async runner creates a serial worker and a fresh runtime for a root execution. Its bridge carries JSON strings with execution and step identity. The legacy synchronous runner stays on MainActor.",
@@ -16897,6 +16897,10 @@
         {
           "suite": "EngineBoundaryContractTests",
           "test": "separateRootExecutionsDoNotShareJavaScriptGlobals"
+        },
+        {
+          "suite": "QueueAcceptanceTests",
+          "test": "queuedActionsHaveFreshGlobalsAndAggregateFinalSuccessParameters"
         }
       ],
       "nativeVerification": {
@@ -17192,7 +17196,7 @@
         "result": "Real QA cold-launch Run awaited delayed success and returned its success parameters. URL failure and cancellation returned matching callbacks. Development-signed QA App Intent through Shortcuts returned success, delayed failure, and cancellation messages. Timeout, busy, concurrent-entry, and window-close variants remain pending."
       },
       "limitations": [
-        "A real worker timeout has coordinator and error/callback mapping tests. Busy-before-save has two owner-context cases. Native URL production timeout passed on the current image. App Intent timeout/busy delivery and remaining current-build URL busy variants remain pending.",
+        "RunDraftActionIntent.perform now has direct in-process tests for success, CPU/async timeout, busy window reservation, invalid targets, explicit script failure, and pre-start/running cancellation. Native Shortcuts dispatch, headless-owner overlap before pending saves, and remaining current-build URL busy variants remain open.",
         "Current-build native multiwindow concurrency, timeout, busy, and remaining App Intent variants remain pending. Earlier QA passed cold URL and Intent success/error/cancel only."
       ],
       "defaults": "A window model permits one pending or running action request at a time. It reserves execution before starting its Task. A repeated request is ignored rather than queued. The default is limited here to window scheduling; automation uses its separate save and target checks.",
@@ -17259,6 +17263,41 @@
           "suite": "AutomationPrestartCancellationTests",
           "test": "cancellationReturnsAReportBeforeResolutionOrPendingSave",
           "file": "Tests/DraftlyTests/AutomationPrestartCancellationTests.swift"
+        },
+        {
+          "suite": "RunDraftActionIntentTests",
+          "test": "actualPerformReturnsAValueAfterSavingTheScriptResult",
+          "file": "Tests/DraftlyTests/RunDraftActionIntentTests.swift"
+        },
+        {
+          "suite": "RunDraftActionIntentTests",
+          "test": "actualPerformThrowsTheFinalWorkerTimeout",
+          "file": "Tests/DraftlyTests/RunDraftActionIntentTests.swift"
+        },
+        {
+          "suite": "RunDraftActionIntentTests",
+          "test": "busyIntentDoesNotFlushPendingEditsOrRunSteps",
+          "file": "Tests/DraftlyTests/RunDraftActionIntentTests.swift"
+        },
+        {
+          "suite": "RunDraftActionIntentTests",
+          "test": "invalidTargetsFailWithoutExecution",
+          "file": "Tests/DraftlyTests/RunDraftActionIntentTests.swift"
+        },
+        {
+          "suite": "RunDraftActionIntentTests",
+          "test": "cancellationWhileWorkerWaitsThrowsTheFinalCancellation",
+          "file": "Tests/DraftlyTests/RunDraftActionIntentTests.swift"
+        },
+        {
+          "suite": "RunDraftActionIntentTests",
+          "test": "explicitScriptFailureRetainsCompletedEffectsAndStopsSuccessDisposition",
+          "file": "Tests/DraftlyTests/RunDraftActionIntentTests.swift"
+        },
+        {
+          "suite": "RunDraftActionIntentTests",
+          "test": "preCancelledIntentReturnsTypedCancellationWithoutEffects",
+          "file": "Tests/DraftlyTests/RunDraftActionIntentTests.swift"
         }
       ],
       "nativeVerification": {
@@ -17276,6 +17315,12 @@
             "date": "2026-10-20",
             "command": "swift test --filter AutomationTimeoutBoundaryTests|AutomationEditorContextTests",
             "result": "Passed nine methods. The new case uses an actual worker timeout and checks automation report and result mappings, not system App Intent delivery.",
+            "evidence": "docs/validation.md"
+          },
+          {
+            "date": "2026-10-20",
+            "command": "swift test",
+            "result": "Passed 401 app methods and 391 core methods after separating timeout setup from the waiting step. Includes actual RunDraftActionIntent.perform, not native Shortcuts dispatch.",
             "evidence": "docs/validation.md"
           }
         ]
