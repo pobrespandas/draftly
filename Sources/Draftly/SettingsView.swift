@@ -123,13 +123,9 @@ struct SettingsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.leading, 205)
                 Divider()
+                GlobalShortcutPreferences(app: controller)
+                Divider()
                 Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 16) {
-                    GridRow {
-                        Text("Quick capture shortcut:").gridColumnAlignment(.trailing)
-                        Text(controller.captureShortcutStatus)
-                            .frame(width: 148, height: 24)
-                            .background(.quaternary, in: RoundedRectangle(cornerRadius: 4))
-                    }
                     GridRow {
                         Text("New draft after:")
                         Picker("New draft after", selection: $newDraftAfter) {

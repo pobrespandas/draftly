@@ -2763,3 +2763,47 @@ close all startup, Settings, or engine acceptance.
 
 After the final opener cleanup and Dock handler, all ten focused preference and
 pending-routing methods passed. The final unsigned Xcode Debug build passed.
+
+### Configurable global shortcuts — 20 October 2026
+
+Implemented: General has recorders for Main Window, Quick Capture, and Capture
+Clipboard. The existing capture default stays Control-Option-Command-N. The
+other two remain unset for compatibility. Clear disables a binding. Escape
+cancels recording. Delete clears it. Recording stores the physical key code
+and display key. Earlier command preferences remain readable. The global
+assignments use the same normalized conflict validator as actions and commands.
+New assignments also require Command, Control, or Option. Existing imported
+actions retain their shortcuts.
+
+The app registers each enabled key with Carbon. It reports individual register
+errors. It routes an event only when its signature and registered identity match.
+Reload and termination release registrations. Recording suspends registrations
+and restores them on completion, cancellation, or window focus loss. Only one
+recorder is active at a time. Menu Quick Capture uses the configured binding.
+Handler installation failure has an explicit error path. These statements
+describe implementation, not full native acceptance.
+
+Automatically tested: three core methods cover old data, defaults, physical key
+persistence, clearing, normalized global/command/action conflicts, invalid
+assignments, and malformed override fallback. One app method checks legacy
+key-code and Carbon modifier conversion without registration. Existing command
+contracts remain green. Full regression passed 422 app and 419 core methods
+before the final malformed-key fallback and handler-error changes. After those
+changes, all six focused methods passed and the unsigned Debug build passed.
+No automatic test registers a global shortcut or opens a window.
+
+Verified in use on isolated QA: Command-Q was rejected with a Quit conflict
+without quitting. Recorded Control-Option-Command-J/K/L for the three entries.
+Escape retained the existing capture assignment. Restart preserved all three.
+The configured capture shortcut opened the independent capture window when
+sent inside QA. Clear removed the main and clipboard assignments. Restored the
+original capture shortcut. Seven drafts and the neutral capture buffer remain.
+The system clipboard was not read or changed for this sequence.
+
+An attempted synthetic shortcut from the helper app did not open capture. Its
+cause is unresolved: no assertion is made that registration or global event
+delivery passed. Verify physical delivery from another app, Main Window and
+Capture Clipboard routing, system conflicts, focus-loss cancellation, and
+non-US keyboard layouts. The final handler-error and malformed-override changes
+were built and automatically tested after the native sequence; QA needs refresh
+before their native checks. Settings and global shortcut acceptance remain open.

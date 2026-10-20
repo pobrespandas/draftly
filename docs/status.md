@@ -575,3 +575,12 @@ scene opener. Native QA passed disabled/enabled startup, warm and cold URL
 selection, and capture without the main window. Full regression passed 421 app
 and 416 core methods. Dock reopen and other installation/restoration variants
 remain pending. Configurable global shortcuts are still next.
+
+
+General now exposes three global shortcut recorders with local persistence,
+shared conflicts, clearing, and Carbon registration. Native recording, conflict
+rejection, restart persistence, and capture inside QA passed. The attempted
+synthetic event from another app did not trigger capture; global delivery stays
+unverified with cause unresolved. See validation. Full regression passed 422 app
+and 419 core methods before the two final focused corrections; final focused
+checks and build passed. This does not close global shortcut acceptance.

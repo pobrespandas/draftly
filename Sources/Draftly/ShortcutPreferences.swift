@@ -6,7 +6,9 @@ private struct CommandKeyModifier: ViewModifier {
     @AppStorage("commands.bindings") private var configuration = "{}"
     func body(content: Content) -> some View {
         let binding = CommandShortcuts.binding(name, configuration: configuration)
-        content.keyboardShortcut(KeyEquivalent(binding.key.first!), modifiers: shortcutModifiers(binding.modifiers))
+        if let key = binding.key.first {
+            content.keyboardShortcut(KeyEquivalent(key), modifiers: shortcutModifiers(binding.modifiers))
+        } else { content }
     }
 }
 
@@ -35,7 +37,7 @@ struct ShortcutPreferences: View {
     }
     var body: some View {
         Section("Keyboard Shortcuts") {
-            Picker("Command", selection: $selected) { ForEach(CommandShortcuts.editable, id: \.self) { Text($0).tag($0) } }
+            Picker("Command", selection: $selected) { ForEach(CommandShortcuts.editable.filter { !GlobalShortcuts.names.contains($0) }, id: \.self) { Text($0).tag($0) } }
                 .onChange(of: selected) { _, _ in load() }
             TextField("Key", text: $key)
             HStack {
@@ -57,7 +59,7 @@ struct ShortcutPreferences: View {
                     load()
                 }
             }
-            Text("The global Capture shortcut and standard macOS editing shortcuts remain fixed.").font(.caption).foregroundStyle(.secondary)
+            Text("Configure global shortcuts in General. Standard macOS editing shortcuts remain fixed.").font(.caption).foregroundStyle(.secondary)
         }.onAppear { load() }
     }
     private func load() {

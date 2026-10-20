@@ -5,7 +5,7 @@ import DraftlyCore
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     static weak var current: AppDelegate?
-    private var hotKey: EventHotKeyRef?
+    private var globalHotKeys: GlobalHotKeys?
     private var statusController: StatusMenuController?
     lazy var captureService = CaptureService(save: { text in
         try AppController.shared.captureController.captureDirectly(text)
@@ -26,13 +26,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.regular)
         NSApp.servicesProvider = self
         statusController = StatusMenuController(controller: AppController.shared)
-        let id = EventHotKeyID(signature: 0x44524654, id: 1)
-        let registered = RegisterEventHotKey(UInt32(kVK_ANSI_N), UInt32(controlKey | optionKey | cmdKey), id, GetApplicationEventTarget(), 0, &hotKey)
-        if registered != noErr { AppController.shared.captureShortcutStatus = "Shortcut unavailable (\(registered)). Use the menu bar." }
-        var type = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
-        InstallEventHandler(GetApplicationEventTarget(), { _, _, _ in
-            Task { @MainActor in AppController.shared.capture() }; return noErr
-        }, 1, &type, nil, nil)
+        globalHotKeys = GlobalHotKeys(perform: { name in
+            let controller = AppController.shared
+            switch name {
+            case "Main Window": controller.show()
+            case "Quick Capture": controller.capture()
+            case "Capture Clipboard":
+                guard let text = NSPasteboard.general.string(forType: .string), !text.isEmpty else { return }
+                controller.capture(content: text)
+            default: break
+            }
+        }, changed: { AppController.shared.globalShortcutErrors = $0 })
+        reloadGlobalShortcuts()
         if AppController.shared.library?.cloudIdentifier != nil { NSApp.registerForRemoteNotifications() }
     }
     func application(_ application: NSApplication, open urls: [URL]) {
@@ -45,6 +50,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         for url in urls where !receiveCallback(url) { handle(url) }
     }
 
+    func reloadGlobalShortcuts() {
+        globalHotKeys?.reload(configuration: UserDefaults.standard.string(forKey: CommandShortcuts.storageKey) ?? "{}",
+                             actions: AppController.shared.library?.actions ?? [])
+    }
+    func suspendGlobalShortcuts() { globalHotKeys?.suspend() }
+    func dispatchGlobalShortcut(_ id: UInt32) { globalHotKeys?.dispatch(id) }
+    func applicationWillTerminate(_ notification: Notification) { globalHotKeys?.stop() }
     func setStatusItemVisible(_ visible: Bool) { statusController?.setStatusItemVisible(visible) }
     func openStatusMenuForTesting() { statusController?.openStatusMenuForTesting() }
     @objc func captureSelectionDirectly(_ pasteboard: NSPasteboard, userData: String?, error: AutoreleasingUnsafeMutablePointer<NSString?>) {

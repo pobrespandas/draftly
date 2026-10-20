@@ -59,7 +59,7 @@ final class AppController: ObservableObject {
     static let shared = AppController()
     @Published var library: LibraryStore?
     @Published var startupError: String?
-    @Published var captureShortcutStatus = "⌃⌥⌘N"
+    @Published var globalShortcutErrors: [String: String] = [:]
     @Published var commandWindow: WindowModel?
     let recentDrafts: RecentDraftStore
     var pendingNoteID: UUID? { didSet { pendingTargetWindow = nil; pendingTargetModel = nil; pendingExcludedModels = nil } }

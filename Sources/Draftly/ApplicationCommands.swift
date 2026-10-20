@@ -14,7 +14,7 @@ struct DraftlyCommands: Commands {
         else {
             CommandGroup(replacing: .newItem) {
                 Button("New Draft") { controller.newDraft() }.commandShortcut("New Draft")
-                Button("Quick Capture") { controller.capture() }.keyboardShortcut("n", modifiers: [.command, .control, .option])
+                Button("Quick Capture") { controller.capture() }.commandShortcut("Quick Capture")
                 Button("New Window") { openWindow(id: "library") }.commandShortcut("New Window")
             }
         }
@@ -85,7 +85,7 @@ private struct WindowCommands: Commands {
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
             Button("New Draft") { model.create() }.commandShortcut("New Draft")
-            Button("Quick Capture") { controller.capture() }.keyboardShortcut("n", modifiers: [.command, .control, .option])
+            Button("Quick Capture") { controller.capture() }.commandShortcut("Quick Capture")
             Button("New Window") { openWindow(id: "library") }.commandShortcut("New Window")
             Divider()
             Button("Import…") { model.importFile() }.commandShortcut("Import")
