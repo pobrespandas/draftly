@@ -9,6 +9,7 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
     private var subscriptions: Set<AnyCancellable> = []
     private var refreshPending = false
     private var actionsVisible: Bool?
+    private var floating: Bool?
     private var items: [NSToolbarItem.Identifier: NSToolbarItem] = [:]
     // Keep Share with draft commands. Let trailing space absorb window width.
     static let defaultItemIdentifiers: [NSToolbarItem.Identifier] = (
@@ -64,7 +65,7 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
                 item.image = Self.panelToggleImage(filters: identifier.rawValue == "filters")
             }
             if identifier.rawValue == "float" {
-                item.image = item.image?.withSymbolConfiguration(.init(pointSize: 11, weight: .regular))
+                item.image = Self.floatToggleImage(isFloating: model?.isFloating ?? false)
                 item.image?.size = NSSize(width: 12, height: 12)
             }
             if identifier.rawValue == "actions" {
@@ -76,6 +77,13 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
         item.autovalidates = false
         items[identifier] = item
         return item
+    }
+    static func floatToggleImage(isFloating: Bool) -> NSImage? {
+        let image = NSImage(systemSymbolName: isFloating ? "square.fill.on.square.fill" : "square.on.square",
+                            accessibilityDescription: "Float on Top")?
+            .withSymbolConfiguration(.init(pointSize: 11, weight: .regular))
+        image?.size = NSSize(width: 12, height: 12)
+        return image
     }
     static func actionsToggleImage(isVisible: Bool) -> NSImage? {
         guard let symbol = NSImage(systemSymbolName: "sidebar.right", accessibilityDescription: nil) else { return nil }
@@ -129,6 +137,10 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
         if actionsVisible != model.showActions, let item = items[NSToolbarItem.Identifier("actions")] {
             item.image = Self.actionsToggleImage(isVisible: model.showActions)
             actionsVisible = model.showActions
+        }
+        if floating != model.isFloating, let item = items[NSToolbarItem.Identifier("float")] {
+            item.image = Self.floatToggleImage(isFloating: model.isFloating)
+            floating = model.isFloating
         }
         let title = model.currentNote?.title ?? "Draftly"
         if model.window?.title != title { model.window?.title = title }

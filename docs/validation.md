@@ -3404,3 +3404,20 @@ probe. Existing HTTP URLProtocol checks remain separate evidence. Real local
 server, native automation, date/binary mapping, CDATA, and complete XML grammar
 acceptance remain pending. XMLRPC.request now has a partial classification and
 specific evidence; its old generic reference remains in history.
+
+
+### Float toolbar state — 20 October 2026
+
+Implemented: Float on Top uses an outlined symbol when off and a filled symbol
+when on. Model updates refresh the image only when this state changes. The size
+stays at 12 points.
+
+Automatic: all three ReferenceToolbarLayoutTests methods passed. The new case
+checks both transitions, equal image size, and image retention during unrelated
+selection changes. The unsigned Debug build passed. Tests use offscreen windows.
+
+Native: refreshed the stopped Engine QA bundle and opened it through Computer
+Use. Clicked Float on Top twice. Screenshots confirmed the filled and outlined
+states. Moved the pointer into the empty editor to inspect the outlined state.
+No content changed. Drafts was also toggled twice and restored. This check does
+not close the full toolbar alignment or appearance matrix.

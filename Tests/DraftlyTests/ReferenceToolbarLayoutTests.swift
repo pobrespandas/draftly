@@ -32,6 +32,32 @@ struct ReferenceToolbarLayoutTests {
         #expect(item.isEnabled)
     }
 
+    @Test func floatingToggleReflectsWindowStateAndKeepsItsImageDuringOtherEdits() async throws {
+        _ = NSApplication.shared
+        let model = WindowModel(library: try LibraryStore(inMemory: true, seed: false))
+        let controller = LibrarySplitController(model: model, panels: (0..<4).map { _ in AnyView(Color.clear) })
+        let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 1200, height: 800),
+            styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+        window.contentViewController = controller
+        defer { window.contentViewController = nil }
+        let toolbar = ReferenceToolbar(model: model, window: window, splitView: controller.splitView)
+        defer { withExtendedLifetime(toolbar) {} }
+        let item = try #require(window.toolbar?.items.first { $0.itemIdentifier.rawValue == "float" })
+        let off = try #require(item.image)
+        model.toggleFloat()
+        await TestMainQueue.drain()
+        let on = try #require(item.image)
+        #expect(on !== off)
+        #expect(on.tiffRepresentation != off.tiffRepresentation)
+        #expect(on.size == off.size)
+        model.editor.selection = NSRange(location: 0, length: 0)
+        await TestMainQueue.drain()
+        #expect(item.image === on)
+        model.toggleFloat()
+        await TestMainQueue.drain()
+        #expect(item.image?.tiffRepresentation == off.tiffRepresentation)
+    }
+
     @Test(arguments: [NSAppearance.Name.aqua, .darkAqua])
     func actionsToggleHasMoreContrastWhenItsPanelIsVisible(_ appearance: NSAppearance.Name) throws {
         let appearance = try #require(NSAppearance(named: appearance))
