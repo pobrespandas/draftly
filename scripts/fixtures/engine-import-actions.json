@@ -1,0 +1,53 @@
+[
+  {
+    "name": "QA Disabled future step",
+    "group": "Engine import QA",
+    "unknown": {
+      "unicode": "café 🐼",
+      "values": [
+        1,
+        true,
+        null
+      ]
+    },
+    "steps": [
+      {
+        "type": "futureStep",
+        "isEnabled": false,
+        "data": {
+          "nested": {
+            "keep": [
+              "x",
+              null
+            ]
+          },
+          "futureOption": true
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "context.addSuccessParameter('retained','yes');"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Enabled future step",
+    "group": "Engine import QA",
+    "steps": [
+      {
+        "type": "insertText",
+        "data": {
+          "template": "Must not run"
+        }
+      },
+      {
+        "type": "futureStep",
+        "data": {
+          "futureOption": true
+        }
+      }
+    ]
+  }
+]
