@@ -6802,17 +6802,24 @@
           ],
           "contract": "The Action object related to the log. This value may be undefined if the action no longer exists.",
           "implementation": "persisted-action-log-bridge",
-          "automatedTest": null,
+          "automatedTest": {
+            "suite": "DraftActionLogContractTests",
+            "test": "actionRelationUsesIdentityAcrossRenameAndDoesNotRetargetADeletedAction"
+          },
           "liveCheck": null,
           "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/ActionAPI.swift",
             "symbol": "actionLogs / actionForLog / deleteLog"
           },
           "limitations": [
-            "Rename identity has a test. Deleted and legacy name-only action references need dedicated cases."
-          ]
+            "Native comparison and legacy records without actionID remain pending."
+          ],
+          "defaults": "Undefined if the related action identity is no longer present.",
+          "result": "The current Action for the stored action identity, including its current name.",
+          "errors": "Host library errors propagate through the bridge.",
+          "evidenceLevel": "Specific rename, deletion, and same-name replacement assertions. Stored history remains unchanged."
         },
         {
           "member": "draft",
@@ -6880,17 +6887,24 @@
           ],
           "contract": "Delete the action log. This is permanent and should be used with caution",
           "implementation": "persisted-action-log-bridge",
-          "automatedTest": null,
+          "automatedTest": {
+            "suite": "DraftActionLogContractTests",
+            "test": "deleteReturnsVoidAndRollsBackAStorageFailure"
+          },
           "liveCheck": null,
           "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/ActionAPI.swift",
             "symbol": "actionLogs / actionForLog / deleteLog"
           },
           "limitations": [
-            "Storage failure and repeated deletion need dedicated contract cases."
-          ]
+            "Native deletion acceptance remains pending. The automatic test injects a pre-commit failure and does not simulate every filesystem failure."
+          ],
+          "defaults": "No arguments. Deleting an already absent record is a no-op.",
+          "result": "JavaScript undefined. Only the identified execution record is removed; the draft remains.",
+          "errors": "Storage failures throw to the script and roll back the local deletion.",
+          "evidenceLevel": "Specific legacy and worker tests cover failure, retry, void return, repeated deletion, unrelated history, and disk reopen."
         }
       ]
     },

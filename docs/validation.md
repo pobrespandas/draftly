@@ -3165,3 +3165,26 @@ Native comparison, missing draft ownership, related-action lookup variants,
 log deletion/error paths, device and coordinate values, and host read failures
 remain separate acceptance work. No new native check ran because Computer Use
 remains disconnected. The installed QA image has not been refreshed.
+
+
+### Action log deletion and action identity — 20 October 2026
+
+Implemented: deleteRun now uses the batch pre-commit hook and rolls back and
+reloads on failure, like revision deletion. Errors reach the calling script.
+The script-facing delete still returns undefined, including an absent target.
+
+Tested automatically: deletion first failed the storage-error assertion on both
+the legacy and worker routes. Both cases now pass. The disk-backed test checks
+failed deletion retains the target, retry deletes it, repeated deletion returns
+undefined, unrelated history stays present, the draft stays present, and reopen
+retains the final state. A separate method checks action identity after rename,
+a deleted related action, and a new action that reuses its old name. This method
+passed the existing implementation; no action lookup change was needed.
+
+All four log-contract methods pass, including the two deletion cases. Full
+regression passed 435 app methods and 437 core methods. The unsigned Debug build
+and matrix structure check passed. ActionLog.action and ActionLog.delete now
+carry specific evidence; their classification remains partial. Legacy records
+without actionID, native deletion, missing draft ownership, device/coordinate
+values, and other required native variants remain pending. No personal data or
+visible window was used. The installed QA image remains unchanged.

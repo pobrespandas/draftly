@@ -230,7 +230,10 @@ public final class LibraryStore: ObservableObject {
         do { try delete(id, kind: "revision", beforeCommit: beforeBatchCommit) }
         catch { container.viewContext.rollback(); try? reload(); throw error }
     }
-    public func deleteRun(_ id: UUID) throws { try delete(id, kind: "run") }
+    public func deleteRun(_ id: UUID) throws {
+        do { try delete(id, kind: "run", beforeCommit: beforeBatchCommit) }
+        catch { container.viewContext.rollback(); try? reload(); throw error }
+    }
     public func saveRevision(_ revision: Revision) throws {
         do {
             try persist(revision, id: revision.id, kind: "revision")

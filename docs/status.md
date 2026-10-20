@@ -676,3 +676,10 @@ pass after them. Full regression passed 435 app and 435 core methods; unsigned
 build and matrix structure passed. Draft.actionLogs has specific evidence for
 filtering, order, types, dates, empty history, and independent arrays. Native
 acceptance and the remaining ActionLog paths stay partial.
+
+
+Action log deletion now rolls back and propagates storage failures. Legacy and
+worker tests cover failure, retry, void return, unrelated history, and disk reopen.
+Action relation tests cover rename, deletion, and same-name replacement. Full
+regression passed 435 app and 437 core methods; build and matrix structure passed.
+Required native and remaining member variants keep these contracts partial.

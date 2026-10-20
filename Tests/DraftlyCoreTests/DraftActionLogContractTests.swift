@@ -4,6 +4,63 @@ import Testing
 
 @Suite("Draft action log member contracts") @MainActor
 struct DraftActionLogContractTests {
+    @Test(arguments: [false, true])
+    func deleteReturnsVoidAndRollsBackAStorageFailure(worker: Bool) async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let library = try LibraryStore(directory: directory, seed: false)
+        let fixture = try ScriptTestFixture(content: "Deletion source", host: APIContractHost(), library: library)
+        let editor = fixture.editor, host = fixture.host, runner = fixture.runner
+        let noteID = try #require(editor.noteID)
+        let unrelated = ActionRun(actionName: "Keep history", status: "Success", message: "Unrelated")
+        library.log(unrelated)
+        var entry = ActionRun(actionName: "Delete target", status: "Success", message: "Café 🐼")
+        entry.noteID = noteID; library.log(entry)
+        host.onPerform = { [weak host] operation in
+            if operation == "clipboard" {
+                if host?.clipboard == "arm" { library.beforeBatchCommit = nil }
+                else { library.beforeBatchCommit = { throw DraftlyError.message("Injected log deletion failure") } }
+            }
+        }
+        let action = makeAPIAction(#"""
+        const entry=draft.actionLogs.find(v=>v.actionName==='Delete target'),id=entry.uuid;
+        app.setClipboard('arm');
+        let failed=false;try{entry.delete()}catch(e){failed=String(e).includes('Injected log deletion failure')}
+        app.setClipboard('disarm');
+        check(failed,'storage failure reaches script');
+        check(draft.actionLogs.some(v=>v.uuid===id),'failed deletion retains log');
+        check(entry.delete()===undefined,'delete void return');
+        check(!draft.actionLogs.some(v=>v.uuid===id),'successful deletion removes only target');
+        check(entry.delete()===undefined,'repeated deletion remains void');
+        """#)
+        let succeeded: Bool
+        if worker { succeeded = await runner.runAsync(action).result.succeeded }
+        else { succeeded = runner.run(action) }
+        library.beforeBatchCommit = nil
+        #expect(succeeded, Comment(rawValue: runner.message ?? ""))
+        #expect(!library.runs.contains { $0.id == entry.id })
+        #expect(library.notes.contains { $0.id == noteID })
+        let reopened = try LibraryStore(directory: directory, seed: false)
+        #expect(!reopened.runs.contains { $0.id == entry.id })
+        #expect(reopened.runs.contains(unrelated))
+        #expect(reopened.notes.contains { $0.id == noteID })
+    }
+
+    @Test func actionRelationUsesIdentityAcrossRenameAndDoesNotRetargetADeletedAction() throws {
+        let (library, editor, _, runner) = try makeAPIContext()
+        let noteID = try #require(editor.noteID)
+        var action = DraftAction(name: "Original action", steps: [])
+        try library.saveAction(action)
+        var entry = ActionRun(actionName: action.name, status: "Success", message: "Neutral")
+        entry.noteID = noteID; entry.actionID = action.id; library.log(entry)
+        action.name = "Renamed action"; try library.saveAction(action)
+        #expect(runner.run(makeAPIAction("check(draft.actionLogs.find(v=>v.actionName==='Original action').action.name==='Renamed action','identity survives rename');")))
+        try library.deleteAction(action.id)
+        try library.saveAction(DraftAction(name: "Original action", steps: []))
+        #expect(runner.run(makeAPIAction("check(draft.actionLogs.find(v=>v.actionName==='Original action').action===undefined,'deleted identity does not fall back to name');")))
+        #expect(library.runs.contains(entry))
+    }
+
     @Test func importedStatusSpellingUsesTheDocumentedScriptValuesWithoutRewritingRecords() throws {
         let (library, editor, _, runner) = try makeAPIContext()
         let noteID = try #require(editor.noteID)
