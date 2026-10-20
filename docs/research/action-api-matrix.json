@@ -16056,8 +16056,7 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Unreturned rejected promises have a specific executed regression: they currently time out instead of reporting rejection. The error classification and message assertions remain known issues, not accepted parity.",
-        "Returned rejection and timeout still need the remaining actual native entry-point checks. Production 120-second queued URL timeout has separate recorded acceptance."
+        "Discarded and intrinsic async rejection now pass automatic and native URL checks. Returned rejection and timeout still need the remaining native entry-point checks on the current build; earlier production queued timeout evidence used the previous executable."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
@@ -16106,11 +16105,28 @@
         {
           "suite": "EnginePromiseAcceptanceTests",
           "test": "unreturnedRejectedPromiseFailsInsteadOfWaitingForTimeout"
+        },
+        {
+          "suite": "UnhandledPromiseRuntimeTests",
+          "test": "discardedRejectionsReachTheRuntime"
+        },
+        {
+          "suite": "UnhandledPromiseRuntimeTests",
+          "test": "caughtRejectionsDoNotFailTheRuntime"
+        },
+        {
+          "suite": "UnhandledPromiseRuntimeTests",
+          "test": "endedStepIgnoresRejectionsAndNewStepAcceptsThem"
+        },
+        {
+          "suite": "UnhandledPromiseRuntimeTests",
+          "test": "closedRuntimeIgnoresRejections"
         }
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Promise rejection and timeout still need actual native entry-point checks on the current build."
+        "reason": "Discarded and intrinsic async rejection now pass automatic and native URL checks. Returned rejection and timeout still need the remaining native entry-point checks on the current build; earlier production queued timeout evidence used the previous executable.",
+        "evidence": "docs/validation.md"
       },
       "automatedVerification": {
         "status": "passed",
@@ -16123,6 +16139,12 @@
             "date": "2026-10-20",
             "command": "swift test --filter EnginePromiseAcceptanceTests",
             "result": "Four invalid-limit cases passed. Unreturned rejection executed with two known issues for error classification and message; stop/content/parameter checks passed. This run does not accept unreturned rejection parity.",
+            "evidence": "docs/validation.md"
+          },
+          {
+            "date": "2026-10-20",
+            "command": "swift test",
+            "result": "388 app tests and 373 core tests passed, with no known issues. The previously known unreturned rejection assertions are now mandatory and pass.",
             "evidence": "docs/validation.md"
           }
         ]
@@ -16810,7 +16832,6 @@
         "result": "Separate QA app and local helper: real macOS success, cancel, error, and late callback delivery. User typing cancelled an eight-second wait; late reply retained text and did not create another window. Native 120-second timeout and other entry points remain pending."
       },
       "limitations": [
-        "Unknown request tokens and wrong-step dispatch rejection need explicit direct boundary tests.",
         "Real native callback timeout, successful Shortcut execution, and remaining permission/capability lifetime variants remain pending on the current build."
       ],
       "defaults": "Host request waiting defaults to 120 seconds and is capped by the current async script deadline. Each request has a new token and carries its execution ID, step ID, and absolute deadline.",
@@ -16883,6 +16904,30 @@
         {
           "suite": "AsyncTemplateExecutionTests",
           "test": "nativeTemplateFailureStopsStepsAndSuccessEffects"
+        },
+        {
+          "suite": "EngineBridgeIdentityTests",
+          "test": "registeredRequestCanBeConsumedOnlyOnce"
+        },
+        {
+          "suite": "EngineBridgeIdentityTests",
+          "test": "changedRequestCannotConsumeTheValidRequest"
+        },
+        {
+          "suite": "EngineBridgeIdentityTests",
+          "test": "revocationAffectsOnlyItsTokenAndInvalidationIsPermanent"
+        },
+        {
+          "suite": "EngineBridgeIdentityTests",
+          "test": "expiredRequestCannotBeRegistered"
+        },
+        {
+          "suite": "EngineBridgeIdentityTests",
+          "test": "concurrentConsumersAuthorizeExactlyOneEffect"
+        },
+        {
+          "suite": "EngineBridgeReceiverIdentityTests",
+          "test": "rejectedRequestCannotAffectTheActiveAction"
         }
       ],
       "nativeVerification": {
@@ -16894,7 +16939,15 @@
         "revision": "a308158",
         "date": "2026-10-20",
         "evidence": "docs/validation.md",
-        "scope": "The named contract cases were included in the recorded regression run. This is not native acceptance."
+        "scope": "The named contract cases were included in the recorded regression run. This is not native acceptance.",
+        "additionalRuns": [
+          {
+            "date": "2026-10-20",
+            "command": "swift test",
+            "result": "Specific authority and real receiver boundary cases passed in the 373-core-test run. This does not replace native capability lifetime acceptance.",
+            "evidence": "docs/validation.md"
+          }
+        ]
       },
       "nativeWaitReview": {
         "date": "2026-10-20",

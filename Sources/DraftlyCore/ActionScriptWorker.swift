@@ -190,6 +190,7 @@ final class ActionScriptWorker: @unchecked Sendable {
                     self.pending = continuation
                     runtime.scriptError = nil
                     runtime.context.evaluateScript("__beginStep();")
+                    try runtime.beginStep()
                     let deadline = ScriptExecutionDeadline()
                     try ActionRunner.limitExecution(runtime.context, seconds: asynchronous ? min(timeout, synchronousTimeout) : synchronousTimeout, deadline: deadline)
                     self.evaluationDeadline = deadline
@@ -310,6 +311,7 @@ final class ActionScriptWorker: @unchecked Sendable {
         self.pending = nil
         stepDeadline = nil
         generation = UUID()
+        runtime?.endStep()
         runtime?.context.evaluateScript("__endStep();")
         pending.resume(with: result)
     }

@@ -247,3 +247,13 @@ seconds. Toggle filters while the worker runs, then restore their state. After
 timeout, check CPU completed write in Inbox, no tail sentinel, no discard
 parameter, one observed error callback, and Error history with the timeout
 message. Direct UI and App Intent execution need separate checks.
+
+## Promise rejection
+
+Import scripts/fixtures/engine-promise-actions.json. Run the discarded and
+intrinsic async rejection actions with unique local success/error cases. Both
+must report their rejection message without waiting for timeout. Earlier saved
+text must remain in Inbox; no tail or Archive may run. The discard success
+parameter must be absent. Run the caught rejection control. Its catch must save
+Caught rejection completed and finish successfully. Check all three history
+rows and callback results. Repeat broader entry-point variants separately.

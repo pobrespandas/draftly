@@ -266,3 +266,17 @@ export, and execution checks, plus the dedicated backup/restore test. It is one
 complete engine contract. The other thirteen remain partial. Independent window
 metadata confirmed no visible reopen after source close; direct CUA observation
 caused the earlier extra window in a no-action control. See validation for scope.
+
+## Unhandled promise rejections
+
+ActionScriptRuntime installs JavaScriptCore's engine rejection callback. It
+observes discarded promises and promises created by async functions without
+replacing Promise. Normal catch handlers remain valid. The callback runs on the
+runtime's owning queue. Step completion and runtime close invalidate its epoch.
+
+This uses JSGlobalContextSetUnhandledRejectionCallback from WebKit's
+[private JSC header](https://github.com/WebKit/WebKit/blob/main/Source/JavaScriptCore/API/JSContextRefPrivate.h).
+The runtime resolves the symbol and reports an explicit error if the system
+cannot supply or install it. This is a system SPI dependency, like the existing
+execution-time-limit support. Personal development distribution remains the
+current scope; public distribution needs its own review.

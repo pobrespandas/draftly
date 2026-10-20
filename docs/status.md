@@ -447,3 +447,10 @@ Native URL CPU deadline acceptance passed with responsive filters and retained
 text. Direct UI and Intent variants remain pending. New async-limit cases pass,
 but an unreturned rejected promise still becomes timeout. Its two error-report
 assertions are recorded known issues; this is not accepted promise parity.
+
+The subsequent correction resolves those rejection issues. The runtime observes
+engine-level unhandled rejections, including intrinsic async promises; caught
+rejections still succeed. Native URL checks passed for all three cases. A new
+per-worker authority also rejects unknown, altered, and repeated host requests
+before effects. Full checks passed 388 app and 373 core tests without known
+issues, plus the unsigned build. Remaining native contracts stay partial.

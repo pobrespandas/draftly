@@ -1850,3 +1850,32 @@ receiver while a real runner waits at a fake host: wrong execution/step and
 unknown/replayed tokens produce no unauthorized effects. The valid action then
 continues and saves. These are internal boundary tests, not external UI attacks.
 
+## Discarded rejection correction — 20 October 2026
+
+Implemented: the runtime installs the JavaScriptCore unhandled-rejection SPI.
+This observes intrinsic async-function promises as well as Promise.reject;
+Promise is not replaced. Runtime ownership stays on the worker. Step and close
+epochs reject callbacks after completion. Missing SPI support reports an error.
+The earlier known classification/message issues are removed from the test.
+
+Automatically tested: 388 app tests in 58 suites and 373 core tests in 58 suites
+passed with no known issues. Cases include discarded rejections, async throws,
+then-handler throws, normal catch/await handling, ended steps, and closed
+runtimes. The unsigned Xcode build passed. Initial direct-runtime tests exposed
+an invalid device fixture; it now supplies an object and requires a clean
+bootstrap before checking rejection behavior.
+
+Verified in use on a full isolated build refresh with Debug image hash prefix
+655d52883b226fcc before signing: discarded rejection returned Error: Neutral
+discarded rejection and retained Promise completed write in Inbox. Its tail,
+Archive, and discard success parameter were absent. Intrinsic async rejection
+returned Error: Neutral intrinsic rejection without changing that text. The
+caught control saved Caught rejection completed and returned success. History
+showed Error, Error, and Success at 02:57. The helper observed one correctly
+identified callback per sequential case. Both QA apps were quit.
+
+The earlier unreturned-rejection gap is resolved for these cases. The promise
+and host-lifetime records remain partial for their other native requirements.
+No total test count is used as API parity evidence. The system SPI dependency
+is documented in actions-engine.md; public distribution remains out of scope.
+

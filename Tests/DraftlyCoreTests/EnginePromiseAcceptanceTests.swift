@@ -31,10 +31,8 @@ struct EnginePromiseAcceptanceTests {
         action.steps.append(ActionStep("clipboard", ["template": "Must not run"]))
         action.afterSuccess = "archive"
         let report = await f.runner.runAsync(action)
-        withKnownIssue("Unreturned promise rejection reaches timeout. See docs/validation.md.") {
-            #expect(report.reason == .error, Comment(rawValue: f.runner.message ?? ""))
-            #expect(f.runner.message?.contains("Unreturned rejection") == true)
-        }
+        #expect(report.reason == .error, Comment(rawValue: f.runner.message ?? ""))
+        #expect(f.runner.message?.contains("Unreturned rejection") == true)
         #expect(report.successParameters.isEmpty && f.host.clipboard.isEmpty)
         #expect(f.editor.content == "Keep" && f.library.notes.first?.isArchived == false)
     }
