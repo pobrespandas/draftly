@@ -57,6 +57,19 @@ import Foundation
             guard let tags = try prompt.tags(from: await nativeValue("prompt", prompt.values)) else { return false }
             customTags.merge(tags) { _, new in new }
             return true
+        case "file", "export":
+            let file = try ActionFileStep(step, text: rendered) { try renderTemplate($0, note: current) }
+            _ = try await nativeValue("saveFile", file.values)
+            return true
+        case "mail", "message":
+            let message = try ActionMessageStep(step, text: rendered) { try renderTemplate($0, note: current) }
+            return try message.accepted(await nativeValue(message.operation, message.values))
+        case "htmlpreview":
+            let html = rendered.range(of: "<[^>]+>", options: .regularExpression) == nil ? MarkdownRenderer.page(try MarkdownPreferences.render(rendered, defaults: markdownDefaults)) : rendered
+            let result = try await nativeValue("htmlPreview", ["html": html, "hideInterface": step.values["hideInterface"] == "true"])
+            if result as? Bool == false || (result as? [String: Any])?["success"] as? Bool == false { return false }
+            if let fields = (result as? [String: Any])?["values"] as? [String: Any] { evaluate("context.previewValues = \(try json(fields));") }
+            return true
         case "runAppleScript":
             let result = try await nativeValue("appleScript", ["source": step.values["script"] ?? step.values["source"] ?? "", "subroutine": "execute", "arguments": [noteValue(current)]])
             evaluate("context.appleScriptResponses.push(\(try json(result ?? NSNull())));")

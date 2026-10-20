@@ -1437,3 +1437,53 @@ The common entry default now states only the window request behavior proved by
 DraftCommandTests. It does not use that test as URL or App Intent evidence.
 The normal matrix check passes. Strict engine acceptance remains open with 42
 diagnostics. All 14 records remain partial with native checks pending.
+
+## HTML, file selection, and composition delivery — 20 October 2026
+
+Implemented:
+
+- Interactive HTML uses continuations. It preserves returned JSON values and
+  hideInterface. Cancel, close, navigation failure, process failure, task
+  cancellation, and timeout finish once and remove WebKit callbacks.
+- Export and bookmark selection use asynchronous native panels. The adapter checks
+  cancellation before bookmark persistence and writes. Shared path resolution
+  fixes /var versus /private/var bookmark aliases and rejects symlink escapes.
+  Invalid write modes fail before any panel or bookmark change.
+- Mail and Messages use retained service delegates. Injected tests cover service
+  availability, canPerform, recipients, subject, Unicode, cancellation, errors,
+  timeout, and duplicate replies. Unsupported options are explicit errors. An
+  external composer cannot be recalled or closed through NSSharingService; the
+  adapter only cancels its wait. No real recipient or content was authorized, and
+  no real message or composer was used.
+
+The final full run passed 315 app tests in 48 suites and 330 core tests in 47
+suites. The unsigned Xcode build passed. All 32 Python tooling tests passed using
+the bundled Python runtime with Pillow. The initial system Python could not load
+Pillow; its incomplete run does not count. The first Swift run found a canonical
+path regression, which was fixed before the passing full run. No test total is
+used as evidence of complete member parity. Normal matrix validation passes;
+the strict engine gate remains open with 42 diagnostics.
+
+Computer Use used the isolated QA app after the new refresh script copied all
+runtime and resource files, checked their hashes, and verified development
+signing. The source Debug library hash prefix was a8487281945f6f60 before signing.
+The normal app and its library stayed unchanged. The script also has a real
+process-guard test with a temporary executable path that contains spaces and a
+/var alias; this caught and fixed a path-spelling mismatch in the first guard.
+
+The neutral fixtures are scripts/fixtures/engine-html-file-actions.json. Real
+WebKit displayed HTML inside Draftly with native controls hidden. Its button sent
+an object with Unicode and null, then continued. The next script verified null
+and stored `café 🐼`. A second preview showed native Cancel/Continue. Cancel kept
+that source text and did not run the next insertion step. Escape in the native
+Save panel returned Cancelled and kept the source. A separate export saved
+`Draftly neutral QA.txt` in a new temporary folder. Reading the actual file matched
+`Export café 🐼\nSecond line` exactly. The source note stayed unchanged.
+Execution History showed HTML Success, HTML Cancelled, File Cancelled, and File
+Success at 01:34–01:35 local time. The neutral export and its temporary folder were
+removed. QA and the helper were quit; no process remained. No screenshots were
+saved.
+
+Standalone HTML, real bookmark access after restart, timeout and permission
+variants, external composer behavior, and further API options remain pending.
+The engine and complete Mac plan remain open.

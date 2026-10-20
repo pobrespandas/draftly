@@ -1,0 +1,67 @@
+[
+  {
+    "name": "QA HTML success",
+    "steps": [
+      {
+        "type": "htmlpreview",
+        "data": {
+          "template": "<!doctype html><html><body><h1>Neutral HTML QA</h1><button onclick=\"Drafts.send('answer',{text:'café 🐼',empty:null});Drafts.continue()\">Send neutral result</button></body></html>",
+          "hideInterface": "true"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "if(context.previewValues.answer.empty!==null)throw new Error('Null lost');editor.setText(context.previewValues.answer.text);"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA HTML cancelled",
+    "steps": [
+      {
+        "type": "htmlpreview",
+        "data": {
+          "template": "<h1>Neutral cancellation QA</h1><p>Cancel to keep the source text.</p>"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "Late HTML"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA File export",
+    "steps": [
+      {
+        "type": "export",
+        "data": {
+          "template": "Export café 🐼\nSecond line",
+          "name": "Draftly neutral QA.txt"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA File cancelled",
+    "steps": [
+      {
+        "type": "export",
+        "data": {
+          "template": "Must not write",
+          "name": "Draftly cancelled QA.txt"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "Late file"
+        }
+      }
+    ]
+  }
+]

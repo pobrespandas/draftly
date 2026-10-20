@@ -387,3 +387,18 @@ matrix check passed. The strict engine gate has 44 evidence diagnostics. All 14
 engine records remain partial, with specific pending native checks and limits.
 No API member classification changed. Real dictation and the remaining native
 capability checks are pending. The full Mac plan remains open.
+
+## Current native wait delivery — 20 October 2026
+
+Interactive HTML, file panels, bookmarks, and composition use async host adapters.
+Native interruptions and expired replies stop later effects. Shared file/message
+payloads preserve the legacy route. Real QA passed embedded HTML data and
+cancellation, Save cancellation, and exact Unicode export. Real Mail/Messages,
+bookmark persistence, standalone HTML, and other native variants remain pending.
+Composition options that the adapter cannot implement fail explicitly; they stay
+compatibility limits. Printing, arrangement, and sharing outcomes still need work.
+
+The final run passed 315 app tests, 330 core tests, and 32 Python tooling tests.
+The unsigned build and normal matrix check passed. Strict engine acceptance is
+open with 42 diagnostics; all 14 engine records remain partial. API member
+classifications are unchanged. See docs/validation.md for exact evidence.

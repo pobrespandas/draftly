@@ -160,3 +160,28 @@ actions. The external URL confirmation also suspends instead of running a modal
 session. See docs/validation.md for exact accepted cases and the corrected Debug
 bundle preparation. Mail, Messages, HTML, file panels, printing, and arrangement
 still contain waits that need review. Strict engine acceptance remains open.
+
+## HTML, file panels, and composition — 20 October 2026
+
+The async host now supports interactive HTML, export panels, bookmark selection,
+and native Mail/Message composition. First-party steps use the same awaited
+boundary. File and message payload rules are shared with the legacy executor.
+Local file I/O still runs synchronously; this delivery removes panel waits, not
+all disk work from MainActor.
+
+HTML requests finish once. Completion detaches WebKit handlers and navigation
+callbacks. Cancel restores the editor, and late messages cannot change results.
+File selection checks cancellation and its deadline before storing a bookmark or
+writing. Export checks canonical paths, including symlinks and /var aliases.
+
+Composition uses service callbacks rather than RunLoop polling. Unsupported HTML,
+background sending, Reply-To, CC, and BCC options fail explicitly in the new path.
+They are implementation limits, not accepted full Mail parity. Native sent means
+that the service reported sharing; it does not prove network delivery. Cancel or
+timeout stops waiting and detaches callbacks. macOS exposes no service API to
+close or recall an external composer already transferred to another app.
+
+Caught native interruptions cannot start more host calls. Absolute deadlines also
+reject replies that arrive before a delayed timer task can run. Exact tests and
+real HTML/export acceptance are in docs/validation.md. Printing, arrangement,
+sharing outcomes, and remaining native capability acceptance still need work.

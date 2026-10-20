@@ -112,3 +112,16 @@ replacement text before eight seconds pass. The editor must remain available;
 the runner must cancel and keep the typed text. Check that no helper child remains
 and that the next action can run. Check Execution History. Use no external app
 commands; these fixture scripts return neutral records only.
+
+## HTML and export checks
+
+Import scripts/fixtures/engine-html-file-actions.json into the isolated library.
+Run QA HTML success. Native Continue/Cancel controls must be hidden. Press Send
+neutral result. The editor must show `café 🐼`; the fixture also checks JSON null.
+Run QA HTML cancelled and press its native Cancel. The source must stay unchanged.
+Run QA File cancelled and press Escape in Save. The next insertion must not run.
+Run QA File export and choose a new temporary folder. Check the actual saved bytes
+against `Export café 🐼\nSecond line`. Check all four results in Execution History.
+Remove only that neutral export and temporary folder after the check. These cases
+passed in the fully refreshed 20 October 2026 QA build. No message fixture is
+included; real sending needs an authorized recipient and content.
