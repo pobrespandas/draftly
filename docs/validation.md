@@ -3631,3 +3631,32 @@ kept its prior write in Inbox. Closed the menu. No personal text changed.
 The action bar and list share the tested predicate, but this turn did not
 inspect their native disabled appearance. Cross-window busy presentation also
 remains pending. These limits do not claim full UI or engine acceptance.
+
+
+### Library execution availability across windows — 20 October 2026
+
+Implemented: ActionRunner publishes busy state from the existing library
+execution gate. Each WindowModel subscribes using the same execution identity.
+The current value reaches windows created during a run. Run availability now
+includes that state. Cancel remains limited to the owning window. No polling,
+storage format change, or action routing change is added.
+
+Automatic: extended the existing cancellation case with another window, a
+window created while busy, and an independent library. Shared-library windows
+block runs; the independent library stays available. All recover after owner
+cancellation. The first run exposed an incomplete fixture: the independent
+window had no current draft. Added a neutral draft to test its intended state.
+Full regression then passed app437/core456. The unsigned Debug build passed.
+
+Native: updated stopped QA to signed executable SHA-256:
+`fa4f515c36a19fe557292b8ee73c1ed02e8a06e94456c55b7f4b20f69876ff4c`.
+Started the neutral wait on an existing draft in window 1. Created window 2 and
+loaded a different neutral draft. All run menu items were disabled there; Cancel
+was also disabled because it did not own the run. Switched to window 1 through
+the Window menu and cancelled. Window 2 then showed enabled run entries and
+successfully executed QA Caught rejection. Both windows remain open; no new
+personal note or screenshot was created.
+
+This accepts the tested menu and ownership path. Native independent-library,
+headless automation busy presentation, and every list/bar appearance remain
+separate checks. Other engine contracts and the full Mac goal remain open.

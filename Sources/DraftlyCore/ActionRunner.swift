@@ -6,7 +6,10 @@ import Combine
 public final class ActionRunner: ObservableObject {
     var markdownDefaults: UserDefaults = .standard
     var httpTransport: @Sendable (String) async -> String = { await ScriptHTTP.requestSerialized($0) }
-    private static var runningLibraries: Set<LibraryStore.ExecutionIdentity> = []
+    private static let executionStates = CurrentValueSubject<Set<LibraryStore.ExecutionIdentity>, Never>([])
+    private static var runningLibraries: Set<LibraryStore.ExecutionIdentity> = [] {
+        didSet { executionStates.send(runningLibraries) }
+    }
     public internal(set) var successParameters: [String: String] = [:]
     public let library: LibraryStore
     public let editor: EditorSession
@@ -37,6 +40,11 @@ public final class ActionRunner: ObservableObject {
 
     public static func isExecuting(in library: LibraryStore) -> Bool {
         runningLibraries.contains(library.executionIdentity)
+    }
+
+    public static func executionBusyPublisher(in library: LibraryStore) -> AnyPublisher<Bool, Never> {
+        let identity = library.executionIdentity
+        return executionStates.map { $0.contains(identity) }.removeDuplicates().eraseToAnyPublisher()
     }
 
     public func flushEditor() throws {

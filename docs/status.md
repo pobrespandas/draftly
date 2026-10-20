@@ -805,3 +805,9 @@ Action entry controls now share the current-window availability rule, including
 the pending phase. Menu and palette behavior passed native busy/cancel checks.
 Five focused tests and the unsigned build passed. Cross-window busy presentation
 and native list/bar disabled appearance remain pending.
+
+
+Library busy state now reaches every window from the execution gate, including
+new windows. Native two-window menu/ownership/recovery checks passed. Automatic
+checks also cover an independent library. Full app437/core456 and unsigned build
+passed. Remaining native entry-point and presentation checks stay open.

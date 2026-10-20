@@ -17758,7 +17758,15 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Current-build native multiwindow concurrency, timeout, busy, and remaining App Intent variants remain pending. Earlier QA passed cold URL and Intent success/error/cancel only."
+        "reason": "Current-build native multiwindow concurrency, timeout, busy, and remaining App Intent variants remain pending. Earlier QA passed cold URL and Intent success/error/cancel only.",
+        "additionalChecks": [
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "fa4f515c36a19fe557292b8ee73c1ed02e8a06e94456c55b7f4b20f69876ff4c",
+            "result": "A second window created during a neutral async wait loaded another draft and disabled all run menu entries without offering cancellation of the owner. Owner cancellation re-enabled those entries; the second window then ran an action successfully.",
+            "evidence": "docs/validation.md: Library execution availability across windows — 20 October 2026"
+          }
+        ]
       },
       "automatedVerification": {
         "status": "passed",

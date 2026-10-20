@@ -80,6 +80,8 @@ final class WindowModel: ObservableObject {
     let dependencies: WindowDependencies
     private var saveTask: Task<Void, Never>?
     @Published var actionPending = false
+    @Published private(set) var libraryActionBusy = false
+    private var actionExecutionSubscription: AnyCancellable?
     var actionTask: Task<Void, Never>?
     let arrangementSession = WindowArrangementSession()
     private let saveDraft: (Note) throws -> Void
@@ -98,6 +100,9 @@ final class WindowModel: ObservableObject {
         self.saveDraft = saveDraft ?? { try library.saveNote($0) }
         self.onAccessDraft = onAccessDraft
         runner = ActionRunner(library: library, editor: editor, host: host)
+        actionExecutionSubscription = ActionRunner.executionBusyPublisher(in: library).sink { [weak self] in
+            self?.libraryActionBusy = $0
+        }
         runner.applyWorkspace = { [weak self] workspace in try self?.applyScriptWorkspace(workspace) }
         runner.defaultWorkspace = { [weak library] in
             guard let library else { return Workspace(name: "") }
@@ -362,7 +367,7 @@ final class WindowModel: ObservableObject {
         return .notStarted(actionID: action.id, reason: .busy, message: status)
     }
     var canCancelActions: Bool { actionPending || runner.isRunning }
-    var canRunActions: Bool { currentNote != nil && !canCancelActions }
+    var canRunActions: Bool { currentNote != nil && !canCancelActions && !libraryActionBusy }
     func cancelActions() {
         dictationSession.cancel()
         arrangementSession.cancel()
