@@ -1254,3 +1254,35 @@ The full background run passed 229 app tests in 38 suites and 309 core tests in
 41 suites. The unsigned local Xcode build passed. Two engine records now have
 specific defaults, results, errors, and per-case tests. Both remain partial;
 actual overlapping entry points and the listed native cases remain pending.
+
+## Cold-launch URLs and actual App Intents — 20 October 2026
+
+Computer Use ran a separate QA app and a neutral control helper. The helper opened
+normal draftly URLs with an explicit QA application target. The normal scheme
+registration and personal library stayed unchanged. Create, Open, and Capture
+passed from a confirmed stopped QA process. Capture restored its pending text
+and appended the new neutral Unicode text.
+
+A cold-launch Run requested confirmation, awaited a delayed script, changed the
+stored draft, and returned success plus its Unicode success parameter to the
+helper. Warm error and cancellation runs returned the corresponding callbacks.
+The error case retained the text and did not run its following insertion step.
+
+Shortcuts discovered Run Draft Action for the exact QA app. The ad hoc copy failed
+communication; the system log reported a missing Team ID. Signing the same QA
+bundle with the existing development identity for NM92LU2KKV fixed that setup
+failure. Actual App Intent success returned the completion message. A delayed
+failure returned Neutral failure, and context cancellation returned its cancellation
+message. These checks do not accept timeout, busy, or concurrent-entry variants.
+
+The reverse native Shortcut step reached its 60-second timeout and retained the
+source text. The neutral Text shortcut existed and ran from the Shortcuts editor.
+A direct command-line invocation also waited without output and was cancelled.
+Therefore native Shortcut success remains unresolved; no compatibility exclusion
+or successful acceptance was recorded. Two disposable shortcuts remain pending
+user confirmation for deletion from iCloud. No screenshots were saved.
+
+The manual automation QA executable used the 7a45c7a baseline, before this session's
+speech/location adapters and canonical exclusion change. Those later changes have
+automatic-test and build evidence only. Repeat their applicable native cases on
+a fresh signed QA build before closing those contracts.

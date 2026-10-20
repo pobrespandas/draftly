@@ -1,0 +1,66 @@
+[
+  {
+    "name": "QA URL success",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "allowAsync": "true",
+          "script": "setTimeout(()=>{editor.setText('URL async café 🐼');context.addSuccessParameter('value','café 🐼');script.complete();},800);"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA URL failure",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "allowAsync": "true",
+          "script": "setTimeout(()=>{context.fail('Neutral failure');script.complete();},800);"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "Must not run"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA URL cancelled",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "context.cancel('Neutral cancellation');"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "Must not run"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Native Shortcut",
+    "steps": [
+      {
+        "type": "runShortcut",
+        "data": {
+          "name": "Draftly QA Text — disposable"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText(context.callbackResponses[0].result);"
+        }
+      }
+    ]
+  }
+]

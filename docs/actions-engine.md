@@ -81,7 +81,7 @@ stored. These observations do not prove external callbacks or App Intent deliver
 
 ## Remaining work
 
-- Verify cold-launch URLs, callback timeout, App Intents, multiple windows, and native dialogs.
+- Complete URL/App Intent timeout, busy, concurrency, window-close variants, and native callback timeout.
 - Complete cancellation and deadlines in remaining native capability adapters.
 - Verify HTTP redirects and socket behavior with a local server.
 - Complete contract cases and native acceptance in the engine matrix.
@@ -122,7 +122,14 @@ cancellation keeps the library reserved; its late reply cannot resume a closed
 script. Other native adapters still need an audit of their synchronous waits.
 Computer Use verified real callback success, cancellation, error, and a late reply
 after user cancellation. Scene routing now keeps the original window. Native
-callback timeout, actual Shortcut execution, and App Intents remain pending.
+callback timeout and native Shortcut success remain pending. Real App Intents
+passed success, delayed failure, and cancellation; other variants remain pending.
 Calendar and Reminders authorization and query waits also use the async boundary;
 their real permission and persistence checks remain pending. Event editing still
 uses its modal dialog. See docs/validation.md for the accepted cases.
+
+Speech and location now have cancellable async adapters with injected tests. Their
+real system acceptance remains pending. The current regression run passed 229 app
+and 309 core tests, plus the unsigned local build. Canonical persistent-store URLs
+now identify process-local library exclusion, including symlink paths. This does
+not provide cross-process locking or full cache coherence between store instances.

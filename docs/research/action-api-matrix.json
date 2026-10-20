@@ -16237,9 +16237,13 @@
         "test": "queuedWindowActionRejectsDuplicateRequests"
       },
       "reviewDate": "2026-10-19",
-      "liveCheck": null,
+      "liveCheck": {
+        "date": "2026-10-20",
+        "evidence": "docs/validation.md",
+        "result": "Real QA cold-launch Run awaited delayed success and returned its success parameters. URL failure and cancellation returned matching callbacks. Development-signed QA App Intent through Shortcuts returned success, delayed failure, and cancellation messages. Timeout, busy, concurrent-entry, and window-close variants remain pending."
+      },
       "limitations": [
-        "UI, URL, and Intent code awaits the common report. Actual URL callback delivery and App Intent invocation remain pending."
+        "Actual URL/App Intent timeout, busy, concurrent requests, and all window-close variants remain pending. Native Shortcut execution timed out; direct CLI also waited, while the neutral workflow ran in the Shortcuts editor."
       ]
     }
   ],
