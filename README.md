@@ -71,7 +71,9 @@ installation, updates, and the current server test result.
   search all groups. Press **⇧⌘P** to open the command palette.
 - Open Revision History to review or restore saved content.
 - Use File → Export Full Backup to save the complete library. File → Import
-  merges backups, Drafts JSON exports, text files, and action files.
+  merges backups, Drafts JSON exports, text files, and action files. Each file
+  imports as one operation. If a later file fails, earlier successful files stay
+  imported.
 - Open Actions → Import from Directory to load an action. Review it in the action
   editor before running it.
 - Use Settings to change the editor font, size, line spacing, margins, maximum

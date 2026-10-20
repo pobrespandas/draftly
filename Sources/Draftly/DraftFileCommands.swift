@@ -11,17 +11,10 @@ struct DraftFileCommands {
         guard panel.runModal() == .OK else { return }
         model.perform {
             for url in panel.urls {
+                let scoped = url.startAccessingSecurityScopedResource()
+                defer { if scoped { url.stopAccessingSecurityScopedResource() } }
                 let data = try Data(contentsOf: url)
-                if let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any], object["version"] != nil, object["revisions"] != nil { try model.library.restore(data) }
-                else if let actions = try? ActionImporter.decode(data) { for action in actions { try model.library.saveAction(action) } }
-                else if let notes = try? ActionImporter.importNotes(data) {
-                    for var note in notes {
-                        if let existing = model.library.notes.first(where: { $0.id == note.id }), existing.content != note.content { note.id = UUID() }
-                        try model.library.saveNote(note, preserveDates: true)
-                    }
-                } else if url.pathExtension.lowercased() != "json", let content = String(data: data, encoding: .utf8) {
-                    _ = try model.library.createNote(content: content)
-                } else { throw DraftlyError.message("This file is not a Draftly backup, Drafts export, or action file.") }
+                try LibraryFileImport.apply(data, fileExtension: url.pathExtension, to: model.library)
             }
             model.status = "Import complete"
         }

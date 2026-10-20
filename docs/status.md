@@ -618,3 +618,10 @@ Drafts comparison, and the physical global-key check remain pending.
 Execution history now joins themes in compatible version 1 backups. Six specific
 methods and the full regression (432 app and 425 core) passed. The unsigned build
 passed. Native recovery and connected synchronization remain pending.
+
+
+Native Import now routes action and note files through one transaction per file.
+It also preserves distinct texts that share an incoming note ID. Five specific
+methods, the full regression (432 app and 430 core), and the unsigned build
+passed. Native recovery and failure injection remain pending. Multi-file
+selection has a per-file boundary; earlier successful files are retained.

@@ -2958,3 +2958,30 @@ Native export/import/restart and connected Mac+VM synchronization remain pending
 This entry does not accept the full backup or synchronization matrix.
 
 The unsigned Xcode Debug build passed after the history backup changes.
+
+### Atomic file import — 20 October 2026
+
+Review found that the native Import command saved actions and notes one at a
+time. A later storage error could retain part of the same file. Implemented a
+shared LibraryFileImport service and connected the command to it. Each action
+file uses saveActions once. Each note file uses saveNotes once and retains the
+existing content-conflict copy rule and imported dates. Different contents with
+the same identity within one file now receive separate identities, so the later
+entry cannot overwrite the earlier text. Backup files use restore, including
+execution history. A recognized invalid backup fails instead of becoming text.
+The native file reader scopes access to each selected URL.
+
+The atomic boundary is one file. A multi-file selection retains earlier files
+when a later file fails. This is explicit behavior, not a claim that the whole
+selection is one transaction. Text and malformed JSON retain distinct routes.
+
+Automatically tested: five methods cover action replacement/new-record rollback,
+note/revision rollback, successful retry, imported metadata, duplicate identities
+with distinct content, backup history routing, invalid backup rejection, and
+plain text versus invalid JSON. Full regression passed 432 app and 430 core
+methods. The unsigned Debug build passed. Final focused checks add one-commit
+assertions for action and note files; their result is recorded below. No test
+opens a panel or accesses a user library. Native import failure injection and
+full export/import/restart acceptance remain pending.
+
+All five final focused import methods passed, including the commit-count checks.
