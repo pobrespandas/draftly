@@ -54,13 +54,28 @@ struct NativeSystemAdapter {
         }
     }
 
-    func performAsync(_ operation: String, values: [String: Any]) async throws -> Any? {
-        guard operation == "reminder" else {
+    func performAsync(_ operation: String, values: [String: Any],
+                      presentEvent: NativeEventDialog.Presenter = NativeEventDialog.presentCreation) async throws -> Any? {
+        guard operation == "reminder" || operation == "event" else {
             throw DraftlyError.message("The asynchronous system operation is unavailable.")
         }
-        try await requestAccessAsync(reminders: true)
+        try await requestAccessAsync(reminders: operation == "reminder")
         try Task.checkCancellation()
-        return try createReminder(values["text"] as? String ?? "")
+        let text = values["text"] as? String ?? ""
+        if operation == "reminder" { return try createReminder(text) }
+        guard let calendar = events.defaultCalendarForNewEvents else {
+            throw DraftlyError.message("No Calendar is available.")
+        }
+        let start = Date()
+        let initial = EventDialogValues(title: text.components(separatedBy: .newlines).first ?? text,
+                                        notes: text, start: start, end: start.addingTimeInterval(3600))
+        guard try await EventDialogCommit.run(initial, present: presentEvent, save: { edited in
+            let event = EKEvent(eventStore: events)
+            event.title = edited.title; event.notes = edited.notes; event.calendar = calendar
+            event.startDate = edited.start; event.endDate = edited.end
+            try events.save(event, span: .thisEvent)
+        }) != nil else { throw ActionExecutionInterruption.cancelled }
+        return true
     }
 
     private func createReminder(_ text: String) throws -> Bool {

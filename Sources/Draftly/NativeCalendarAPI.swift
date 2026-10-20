@@ -10,12 +10,31 @@ import DraftlyCore
         return try authorizedEventAPI(values)
     }
 
-    func eventAPIAsync(_ values: [String: Any], timeout: TimeInterval = 30) async throws -> Any? {
+    func eventAPIAsync(_ values: [String: Any], timeout: TimeInterval = 30,
+                       presentEvent: NativeEventDialog.Presenter = NativeEventDialog.present) async throws -> Any? {
         let entity = values["entity"] as? String ?? "event"
         let operation = values["operation"] as? String ?? ""
         let reminders = entity == "list" || entity == "reminder"
         try await NativeSystemAdapter(events: events, reportError: onError).requestAccessAsync(reminders: reminders)
         try Task.checkCancellation()
+        if entity == "event", operation == "edit" {
+            var input = values["value"] as? [String: Any] ?? [:]
+            let selected = input["calendar"] as? [String: Any] ?? [:]
+            let calendar = (selected["identifier"] as? String).flatMap(events.calendar(withIdentifier:)) ?? events.defaultCalendarForNewEvents
+            guard calendar != nil else { throw DraftlyError.message("No writable calendar is available.") }
+            let start = APIValues.parseDate(input["startDate"]) ?? Date()
+            let initial = EventDialogValues(title: input["title"] as? String ?? "", notes: input["notes"] as? String ?? "",
+                                            start: start, end: APIValues.parseDate(input["endDate"]) ?? start.addingTimeInterval(3600))
+            var saved: Any?
+            let edited = try await EventDialogCommit.run(initial, present: presentEvent) { edited in
+                input["title"] = edited.title; input["notes"] = edited.notes
+                input["startDate"] = APIValues.date(edited.start); input["endDate"] = APIValues.date(edited.end)
+                var update = values
+                update["operation"] = "update"; update["value"] = input
+                saved = try authorizedEventAPI(update)
+            }
+            return edited == nil ? nil : saved
+        }
         if (entity == "calendar" || entity == "list"), operation == "tasks" {
             let input = values["value"] as? [String: Any] ?? [:]
             let identifier = values["identifier"] as? String ?? input["identifier"] as? String ?? ""
