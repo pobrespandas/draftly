@@ -551,3 +551,12 @@ two actual worker cases verify host suspension, timer success, cancellation, and
 explicit close/release off MainActor. Full regression: 402 app and 392 core methods;
 unsigned Debug build passed. Native acceptance of the assertion build remains
 pending. The worker record is still partial.
+
+
+Native theme link acceptance now covers the configured green underline and
+disabling Link Mode with Unicode selection intact. Exact Drafts precedence and
+other theme interface mappings remain open. General Settings was inspected in
+Drafts: launch-at-login and main-window-at-launch controls exist. Their Draftly
+implementation and lifecycle acceptance remain pending. See validation for the
+observed controls and limits. Workspaces, Settings, and personalization are not
+closed.

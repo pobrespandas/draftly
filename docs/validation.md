@@ -2667,3 +2667,35 @@ and interface theme coverage, current-line highlighting, backups and sync stay
 open. No source theme or public scripting contract changed.
 The unsigned Xcode Debug build passed after the link rendering correction.
 QA still has the earlier renderer and needs refresh before native acceptance.
+
+### Native active link theme check — 20 October 2026
+
+Verified in use: refreshed isolated Engine QA from the Debug build. The debug
+library hash before signing starts with aedb832f1923da7b. Imported the neutral
+theme with text.linkModeLink foreground #00FF88 and underline. Created Link QA
+café 🐼 with https://example.invalid/neutral. Link Mode showed the green,
+underlined URL. Selected café 🐼 and disabled Link Mode. The URL returned to
+normal text; the Unicode selection and full content remained unchanged. No URL
+was opened. QA quit was confirmed from the app inventory. Seven neutral drafts
+remain. No screenshot or raw log is tracked.
+
+This closes native acceptance for that color and mode transition only. Native
+theme removal while Link Mode is enabled and measured Drafts scope precedence
+remain pending. Automatic transition checks retain their separate evidence.
+
+### General Settings reference inspection — 20 October 2026
+
+Read-only inspection of installed Drafts 54.1.1 confirmed these General controls:
+Launch at login; Show main window at launch; Show in menu bar; Index drafts in
+Spotlight; Show custom TouchBar in editor when available; main window, quick
+capture, and capture clipboard shortcuts; New draft after; action After Success
+move behavior; and advanced find preference. Marked integration, Developer Mode,
+and Disable Drafts Pro also appear. Their presence does not add them to the
+agreed scope or prove implementation in Draftly. No option was changed.
+
+Observed values were login off, main window on, menu bar on, Spotlight on,
+TouchBar on, new draft after 30 minutes, and Create New Draft after a successful
+move. These are current reference values, not verified factory defaults. Startup
+choices, configurable global shortcuts, and the other included missing controls
+need implementation and acceptance. Do not infer Restore Last Draft from this
+inspection. Startup must preserve explicit URL/menu routing and pending edits.
