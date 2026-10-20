@@ -50,6 +50,7 @@ struct ThemeRenderingTests {
         #expect(try hex(attributes("code")[.backgroundColor]) == "112233")
         #expect((attributes("code")[.font] as? NSFont)?.isFixedPitch == true)
         #expect(NSFontManager.shared.traits(of: try #require(attributes("Italic")[.font] as? NSFont)).contains(.italicFontMask))
+        #expect(!NSFontManager.shared.traits(of: try #require(attributes("Italic")[.font] as? NSFont)).contains(.boldFontMask))
         #expect(attributes("Gone")[.strikethroughStyle] as? Int == NSUnderlineStyle.single.rawValue)
         #expect(try hex(storage.attribute(.foregroundColor, at: unicode.location, effectiveRange: nil)) == "FF00FF")
         #expect(view.string == session.content && view.selectedRange() == unicode)

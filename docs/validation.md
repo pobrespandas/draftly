@@ -2616,3 +2616,29 @@ alias styles and checks that the legacy italic trait does not leak into the
 chosen heading style. The full run was before this last alias correction.
 The unsigned Xcode Debug build passed after the alias correction. QA has not yet
 been refreshed for this renderer; native acceptance remains pending.
+
+### Native imported scope rendering and editor preservation — 20 October 2026
+
+Verified in isolated QA Debug image 6db19889a60171b9 before signing: replaced the
+neutral imported theme with explicit heading size, bold/underline, italic,
+inline-code foreground/background/monospace, strike, selection, and caret styles.
+Created Theme scope QA 🐼 with neutral Markdown and Unicode. The visible editor
+showed the larger colored heading, bold underline, italic text, highlighted
+monospace code, strike, and orange caret. Selected café 🐼, switched to System,
+and returned to the editor with that selection and the text intact. Undo removed
+the pasted fixture text. Redo restored it. The saved fixture remains in QA.
+
+Selected the imported theme again and edited its heading color to #FF00FF in
+Settings. Save succeeded. The existing heading became magenta without changing
+the draft. This checks that edits to known source fields reach the renderer.
+A possible visual weight difference prompted an added attribute assertion: the
+italic run has italic but not bold traits. Both focused editor methods passed.
+No source fix was required for that observation. QA quit was confirmed.
+
+Limits: this is native Draftly acceptance for the tested Markdown scopes and
+transition. It is not a measured Drafts font/size comparison. Custom syntax and
+all weight/size combinations retain their automatic evidence but still need
+native coverage. Other built-in syntax mappings, active links, current-line and
+remaining interface colors, restoration, and sync remain open. The local QA
+selection is the imported theme; its heading is #FF00FF. The library has six
+neutral drafts. No screenshot file or raw log is tracked.
