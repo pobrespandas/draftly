@@ -16246,7 +16246,7 @@
       "liveCheck": "docs/validation.md: Native selected identity and template inclusion — 20 October 2026",
       "limitations": [
         "Configuration key collision/type precedence still needs comparison. The archived reference does not specify the winner, and child saved values versus inline defaults remain unresolved.",
-        "Required first-use configuration has typed prompts, separate confirmation state, atomic persistence, and tests on both runners. Native Escape, Unicode acceptance, restart reuse, and static/dynamic include cancellation passed. Native new-required-field and Boolean/number controls remain pending; duplicate-key precedence is unresolved."
+        "Required first-use configuration has separate confirmation state, atomic persistence, and tests on both runners. Native text, Boolean/number controls, invalid-number retry, restart reuse, additional required fields, and static/dynamic inclusion cancellation passed. This does not settle duplicate-key or child-value precedence."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
@@ -16327,11 +16327,15 @@
         {
           "suite": "InitialConfigurationDefinitionTests",
           "test": "confirmationUnionKeepsRootAndIncludedFieldsConfirmed"
+        },
+        {
+          "suite": "InitialConfigurationPersistenceTests",
+          "test": "restoredConfirmationRetainsFalseAndZeroAndPromptsOnlyNewRequiredKey"
         }
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Selected UUID after inspector rename and template-name resolution passed. Native first-use text configuration, Escape, restart reuse, and static/dynamic included cancellation also passed. Configuration collisions, additional required fields, and other field types remain pending.",
+        "reason": "Selected UUID after inspector rename, template-name resolution, first-use controls, invalid-number retry, new required fields, restart reuse, and included cancellation passed. Configuration collision and child-value precedence remain pending.",
         "evidence": "docs/validation.md"
       },
       "automatedVerification": {
@@ -16345,6 +16349,12 @@
             "date": "2026-10-20",
             "command": "swift test",
             "result": "Passed: 388 app tests and 390 core tests. The first-use configuration cases ran on both legacy and async entry routes.",
+            "evidence": "docs/validation.md"
+          },
+          {
+            "date": "2026-10-20",
+            "command": "swift test --filter InitialConfigurationPersistenceTests",
+            "result": "Passed one method with two transport cases. Export/import and backup restore retain confirmation, false, zero, step identities, and raw payload. A new required key prompts alone.",
             "evidence": "docs/validation.md"
           }
         ]

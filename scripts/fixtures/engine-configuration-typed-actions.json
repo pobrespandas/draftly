@@ -1,0 +1,36 @@
+[
+  {
+    "name": "QA Typed required configuration",
+    "uuid": "353CC6BF-404B-483C-9B4B-E69A50F8533E",
+    "steps": [
+      {
+        "type": "configurationKey",
+        "uuid": "3F8A22E9-0266-4DB4-9E79-52EB2E87CE06",
+        "data": {
+          "key": "enabled",
+          "name": "Neutral enabled",
+          "dataType": "boolean",
+          "defaultBoolValue": "true",
+          "requiresInitialConfiguration": "true"
+        }
+      },
+      {
+        "type": "configurationKey",
+        "uuid": "178A7501-BFFB-494E-968A-C6468E44A0D7",
+        "data": {
+          "key": "amount",
+          "name": "Neutral amount",
+          "dataType": "number",
+          "defaultNumberValue": "2.5",
+          "requiresInitialConfiguration": "true"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "if(typeof context.configuredValues.enabled!=='boolean'||typeof context.configuredValues.amount!=='number')throw new Error('Wrong configuration types');editor.setText(JSON.stringify(context.configuredValues));draft.update();"
+        }
+      }
+    ]
+  }
+]

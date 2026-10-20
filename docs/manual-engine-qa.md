@@ -293,3 +293,16 @@ that only the new field appears. Check static and template-based included action
 separately. Text acceptance, Escape, restart reuse, and static/dynamic included cancellation
 passed on 20 October 2026. New required fields and other control types remain
 pending. See validation.md for the exact observed scope.
+
+
+## Typed configuration and new required fields
+
+Import `engine-configuration-typed-actions.json` in a fresh QA library. Disable
+Neutral enabled. Enter not-a-number and choose Configure. The error must return
+to the same values. Set the number to zero and accept. Check the editor JSON and
+History Success. Export from the action editor. Use its stored action and step
+identities, confirmed values, and confirmation metadata in a revised native-format
+payload. Add a required string configuration step. Import the revision and run it.
+Only the added field must appear. Confirm it and check that false and zero remain.
+These native cases passed on 20 October 2026. The export is temporary. Do not
+commit machine-specific exports or raw captures.

@@ -481,3 +481,10 @@ acceptance reached the editor, and confirmation survived a restart. Included
 static cancellation kept the original text; dynamic cancellation kept the prior
 root effect. History confirmed the final results. Other field types, new required
 fields, and configuration precedence remain pending. The record stays partial.
+
+
+Native Boolean/number configuration and new-required-field checks passed. Invalid
+numeric input was rejected without losing the checkbox or text. Acceptance kept
+false and zero as typed JavaScript values. An imported revision retained prior
+confirmation and prompted only for its added field. Configuration precedence
+remains unresolved.

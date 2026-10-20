@@ -2019,3 +2019,39 @@ Pending: native addition of a required field, Boolean and number controls, and
 duplicate-key/child-value reference precedence. Static and dynamic inclusion
 fixtures are now stored with the text fixture. No screenshots or raw logs were
 added. This evidence does not close the shared-inclusion contract.
+
+
+## Native typed configuration and schema change — 20 October 2026
+
+Computer Use ran `engine-configuration-typed-actions.json` in the isolated QA app,
+using the same Debug build as the previous check. The Boolean control initially
+showed true. The number field showed 2.5. Switching the Boolean off and entering
+`not-a-number` produced Enter a valid number. After OK, the form retained the
+unchecked control and invalid input. Changing the number to zero and choosing
+Configure succeeded. The script checked JavaScript types before writing
+`{"enabled":false,"amount":0}` to the editor. History recorded Success at 03:23.
+
+The action editor showed stored values false and zero. Its native export contained
+those strings and the namespaced confirmation signatures. A revised native-format
+installation payload retained the action and required-step identities, confirmed
+values, and observed confirmation signatures, then added a required string field.
+This was a constructed revision, not an unchanged export round trip. The next run
+prompted only for New required neutral field. Accepting Added café 🐼 produced
+`{"added":"Added café 🐼","enabled":false,"amount":0}`. History recorded Success
+at 03:25. This proves that this imported revision did not prompt for the prior
+confirmed fields. It does not prove all imported option or unknown-field behavior.
+
+The temporary exported file was removed. QA and the helper were quit. Native
+configuration collision and child-value precedence remain pending. No full
+shared-inclusion acceptance is claimed.
+
+
+Automatic persistence check: `swift test --filter
+InitialConfigurationPersistenceTests` passed one method with two cases. Native
+JSON export/import and backup restore used fresh in-memory stores. Full stored
+action equality includes confirmation metadata, step identities, and unknown raw
+payload. Each restored action ran without prompting and kept typed false and zero.
+An added required key prompted alone; the next run reused its confirmation.
+This is specific persistence evidence. It does not prove CloudKit convergence.
+The previous full regression and build remain the latest full checks; this change
+adds tests and fixtures only.
