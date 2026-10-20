@@ -17572,11 +17572,15 @@
         {
           "suite": "ImportedActionPreservationTests",
           "test": "futureFieldsCannotReplaceIdentityOrExecutionSettings"
+        },
+        {
+          "suite": "ImportedActionPreservationTests",
+          "test": "containersPreserveNativeEntriesAndForeignStepData"
         }
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Single native action import, inspector edits, execution, restart, and export passed in the isolated installed app. Thirteen export assertions preserved identities, disabled state, future fields, sourceURL, and rawPayload. Wrapped and mixed native imports still require review. Earlier foreign-payload evidence remains in history.",
+        "reason": "Single native action import, inspector edits, execution, restart, and export passed in the isolated installed app. Thirteen export assertions preserved identities, disabled state, future fields, sourceURL, and rawPayload. Wrapped and mixed native imports still require review. Earlier foreign-payload evidence remains in history. Container dispatch now passes four automatic cases; installed grouped and mixed import acceptance remains pending.",
         "additionalChecks": [
           {
             "date": "2026-10-20",
@@ -17685,11 +17689,15 @@
         {
           "suite": "ActionCatalogPresentationTests",
           "test": "searchAndExecutablePickersNeverReturnSeparators"
+        },
+        {
+          "suite": "ImportedActionPreservationTests",
+          "test": "containersPreserveNativeEntriesAndForeignStepData"
         }
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Native list, editing bar, Actions menu, saved order, restart, and search exclusion passed. Executable picker and native backup restoration remain pending; comparison with Drafts appearance is not complete.",
+        "reason": "Native list, editing bar, Actions menu, saved order, restart, and search exclusion passed. Executable picker and native backup restoration remain pending; comparison with Drafts appearance is not complete. Container dispatch now passes four automatic cases; installed grouped and mixed import acceptance remains pending.",
         "evidence": "docs/validation.md"
       },
       "automatedVerification": {

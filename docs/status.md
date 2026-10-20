@@ -917,3 +917,9 @@ return and response suppression. Waited execution reached timeout; two direct
 CLI controls also stalled, although the Shortcut editor completed the fixture.
 The cause is not established. Waited output is not accepted. See validation.md
 for the isolated library, build identity, and exact check scope.
+
+
+Grouped and mixed action imports now preserve each native entry instead of
+remapping it as a Drafts export. Four specific cases pass; three reproduced the
+loss before the fix. Full regression passed app444/core467 and the unsigned
+build passed. Installed container acceptance remains pending.

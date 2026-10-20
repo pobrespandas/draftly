@@ -4100,3 +4100,28 @@ The generic Shortcuts x-callback control stayed pending and was cancelled from
 Actions > Cancel Running Action. The app showed the cancellation, restored
 enabled actions, and kept the editor text. No output callback was accepted.
 This control does not establish that the URL route fixes the CLI stall.
+
+
+### Grouped and mixed native action imports — 20 October 2026
+
+Implemented: ActionImporter now detects each entry in arrays and actions
+wrappers before it applies the Drafts format mapping. Native decoding keeps its
+required shape. Foreign steps still read their data payload. JSONValue keeps
+decimal precision before native decoding. No library schema changed.
+
+Automatic: containersPreserveNativeEntriesAndForeignStepData covers four cases:
+plain/wrapped with native-only/mixed entries. Before the fix, three cases lost
+native fields. After the fix, all four preserve the complete native action,
+including UUIDs, shortcut modifiers, options, disabled unknown steps, sourceURL,
+rawPayload, future fields, and a precise decimal. Mixed imports keep order and
+the foreign script payload. Existing export, backup, restore, and collision
+cases pass. Full regression passed app444/core467. The unsigned Debug build
+passed. Matrix structure passes.
+
+Native: grouped and mixed installed import checks remain pending. The earlier
+single native import acceptance does not prove these containers. The import
+contract stays partial. Do not replace the running QA bundle until it quits.
+The next native check can wrap engine-native-action-fields.json in actions and
+add a foreign data-shaped script entry. Import into the isolated QA library,
+then edit, restart, and export both entries. Compare identities and payloads.
+No screenshots or raw logs are stored in the repo.

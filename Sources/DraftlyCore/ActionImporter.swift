@@ -4,13 +4,19 @@ public enum ActionImporter {
     public static func decode(_ data: Data, source: String? = nil) throws -> [DraftAction] {
         if let native = try? JSONDecoder().decode([DraftAction].self, from: data) { return native }
         if let native = try? JSONDecoder().decode(DraftAction.self, from: data) { return [native] }
-        let object = try JSONSerialization.jsonObject(with: data)
-        let entries: [[String: Any]]
-        if let array = object as? [[String: Any]] { entries = array }
-        else if let dictionary = object as? [String: Any] {
-            entries = dictionary["actions"] as? [[String: Any]] ?? [dictionary]
+        let object = try JSONDecoder().decode(JSONValue.self, from: data)
+        let entries: [JSONValue]
+        if case .array(let array) = object { entries = array }
+        else if case .object(let dictionary) = object {
+            if case .array(let array) = dictionary["actions"] { entries = array }
+            else { entries = [object] }
         } else { throw DraftlyError.message("This file does not contain an action.") }
-        return try entries.map { entry in
+        return try entries.map { value in
+            let entryData = try JSONEncoder().encode(value)
+            if let native = try? JSONDecoder().decode(DraftAction.self, from: entryData) { return native }
+            guard let entry = try JSONSerialization.jsonObject(with: entryData) as? [String: Any] else {
+                throw DraftlyError.message("The action must contain a name and steps.")
+            }
             guard let name = entry["name"] as? String, let rawSteps = entry["steps"] as? [[String: Any]] else {
                 throw DraftlyError.message("The action must contain a name and steps.")
             }
