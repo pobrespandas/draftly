@@ -4,10 +4,15 @@ import JavaScriptCore
 struct ActionBridgeRequest: Sendable {
     let executionID: UUID
     let stepID: UUID
-    let token = UUID()
+    let token: UUID
     let deadline: Date
     let operation: String
     let payload: String
+
+    init(executionID: UUID, stepID: UUID, token: UUID = UUID(), deadline: Date, operation: String, payload: String) {
+        self.executionID = executionID; self.stepID = stepID; self.token = token
+        self.deadline = deadline; self.operation = operation; self.payload = payload
+    }
 }
 
 private final class BridgeReply: @unchecked Sendable {
@@ -114,6 +119,7 @@ final class ActionScriptWorker: @unchecked Sendable {
     private let executionID: UUID
     private let dispatch: @Sendable (ActionBridgeRequest) async -> String
     private let hostTimeout: TimeInterval
+    private let requestAuthority: ActionBridgeRequestAuthority
     private var stepID: UUID
     private var runtime: ActionScriptRuntime?
     private var pending: CheckedContinuation<Bool, Error>?
@@ -123,14 +129,17 @@ final class ActionScriptWorker: @unchecked Sendable {
     private var evaluationDeadline: ScriptExecutionDeadline?
 
     init(executionID: UUID, stepID: UUID, hostTimeout: TimeInterval,
+         requestAuthority: ActionBridgeRequestAuthority = ActionBridgeRequestAuthority(),
          dispatch: @escaping @Sendable (ActionBridgeRequest) async -> String) {
         self.executionID = executionID
         self.stepID = stepID
         self.hostTimeout = hostTimeout
+        self.requestAuthority = requestAuthority
         self.dispatch = dispatch
     }
 
     func cancel() {
+        requestAuthority.invalidate()
         cancellation.cancel()
         queue.async { self.finish(.failure(ActionExecutionInterruption.cancelled)) }
     }
@@ -212,6 +221,7 @@ final class ActionScriptWorker: @unchecked Sendable {
     }
 
     func close() async {
+        requestAuthority.invalidate()
         cancellation.cancel()
         await withCheckedContinuation { continuation in
             queue.async {
@@ -239,6 +249,8 @@ final class ActionScriptWorker: @unchecked Sendable {
 
     private func request(_ operation: String, _ payload: String) -> String {
         let request = ActionBridgeRequest(executionID: executionID, stepID: stepID, deadline: min(Date().addingTimeInterval(hostTimeout), stepDeadline ?? .distantFuture), operation: operation, payload: payload)
+        guard requestAuthority.register(request) else { return "{\"error\":\"The action was closed.\"}" }
+        defer { requestAuthority.revoke(request.token) }
         let reply = BridgeReply(deadline: request.deadline)
         guard cancellation.register(reply, token: request.token) else { return "{\"error\":\"The action was cancelled.\"}" }
         defer { cancellation.remove(request.token) }

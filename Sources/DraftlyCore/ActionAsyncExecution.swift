@@ -8,9 +8,10 @@ import Foundation
         let steps = try ActionStepExpansion.expand(action, actions: library.actions)
         let initialStepID = UUID()
         bridgeStepID = initialStepID
+        let authority = ActionBridgeRequestAuthority()
         let worker = ActionScriptWorker(executionID: session.id, stepID: initialStepID,
-            hostTimeout: hostOperationTimeout) { [weak self] request in
-                await self?.receive(request) ?? "{\"error\":\"The action was closed.\"}"
+            hostTimeout: hostOperationTimeout, requestAuthority: authority) { [weak self] request in
+                await self?.receive(request, authority: authority) ?? "{\"error\":\"The action was closed.\"}"
             }
         cancelWorker = { worker.cancel() }
         do {
@@ -95,11 +96,12 @@ import Foundation
         throw DraftlyError.message("The draft changed outside this action. The pending action was cancelled.")
     }
 
-    private func receive(_ request: ActionBridgeRequest) async -> String {
+    func receive(_ request: ActionBridgeRequest, authority: ActionBridgeRequestAuthority) async -> String {
         do {
             guard activeSession?.id == request.executionID, bridgeStepID == request.stepID,
                   activeSession?.report == nil else { throw DraftlyError.message("The action was closed.") }
             guard Date() < request.deadline else { throw ActionExecutionInterruption.timeout }
+            guard authority.consume(request) else { throw DraftlyError.message("The host request is unknown or already consumed.") }
             try checkCancellation()
             if request.operation == "ui",
                let values = try JSONSerialization.jsonObject(with: Data(request.payload.utf8)) as? [String: Any],

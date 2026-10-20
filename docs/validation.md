@@ -1836,3 +1836,17 @@ The frozen reference does not define collision precedence for included configure
 values. Current root/child type conversion and child overrides need comparison
 before choosing a policy. They remain a specific shared-inclusion limitation.
 
+## Worker request authorization — 20 October 2026
+
+Implemented: a per-worker authority registers serialized host requests before
+dispatch. The receiver consumes the exact token, execution, step, deadline,
+operation, and payload once. Altered requests do not consume the valid grant.
+Consumed or revoked tokens cannot register again in that authority lifetime.
+Cancel and close invalidate it. Existing session, step, and deadline guards stay.
+
+Specific automatic cases cover six altered fields, revocation, expiration,
+permanent invalidation, and concurrent consumers. Tests also call the real
+receiver while a real runner waits at a fake host: wrong execution/step and
+unknown/replayed tokens produce no unauthorized effects. The valid action then
+continues and saves. These are internal boundary tests, not external UI attacks.
+
