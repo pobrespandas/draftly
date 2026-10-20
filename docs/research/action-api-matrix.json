@@ -16794,6 +16794,13 @@
             "test": "scriptRequestKeepsLibraryBusyUntilCancelledHostCleanupReturns"
           },
           "assertion": "Host cleanup holds the active session and prevents a second run until cancellation has drained."
+        },
+        "defaults": {
+          "test": {
+            "suite": "EngineDefaultsContractTests",
+            "test": "aNewRunStartsUncancelledAtItsFirstStepAfterAnExplicitlyCancelledRun"
+          },
+          "assertion": "On both legacy and async routes, explicit cancellation of a prior run does not carry into the next session. At the first host request the new session is uncancelled, has no final report, and records the first script as index zero with the new owner and step identity. It finishes successfully with a distinct execution ID."
         }
       },
       "supportingTests": [
@@ -16808,6 +16815,10 @@
         {
           "suite": "EngineBoundaryContractTests",
           "test": "cancellationBeforeStartupPreventsAllActionEffects"
+        },
+        {
+          "suite": "EngineDefaultsContractTests",
+          "test": "aNewRunStartsUncancelledAtItsFirstStepAfterAnExplicitlyCancelledRun"
         }
       ],
       "nativeVerification": {
@@ -16830,6 +16841,16 @@
             "command": "swift test --filter EngineBoundaryContractTests",
             "result": "Passed in the coordinator focused run: seven test methods and thirteen expanded cases, no failures.",
             "evidence": "The coordinator read the completed focused run before this evidence update."
+          },
+          {
+            "date": "2026-10-20",
+            "suite": "EngineDefaultsContractTests",
+            "tests": [
+              "aNewRunStartsUncancelledAtItsFirstStepAfterAnExplicitlyCancelledRun"
+            ],
+            "revisionState": "20 October 2026 native wait delivery; this case is not in the earlier recorded baseline.",
+            "result": "Both parameter variants passed in the completed core regression run.",
+            "evidence": "docs/validation.md: Engine session defaults continuation — 20 October 2026."
           }
         ]
       }
@@ -16855,7 +16876,7 @@
         "Dedicated timeout and busy report propagation from every URL and App Intent access are still missing.",
         "Current-build native multiwindow concurrency, timeout, busy, and remaining App Intent variants remain pending. Earlier QA passed cold URL and Intent success/error/cancel only."
       ],
-      "defaults": "Window action requests reserve scheduling before task creation. Batch execution uses its captured draft order. URLs and App Intents use AutomationActionExecution and await the runner report.",
+      "defaults": "A window model permits one pending or running action request at a time. It reserves execution before starting its Task. A repeated request is ignored rather than queued. The default is limited here to window scheduling; automation uses its separate save and target checks.",
       "result": "Successful batches process every captured draft and leave the last open. Automation saves pending visible edits before loading its target; final reports supply the result used by callbacks and Intents.",
       "errors": "Failed visible saves prevent automation. Batch failure/cancellation stops later targets. Repeated window requests are rejected before a duplicate action runs.",
       "contractCases": {
@@ -16872,6 +16893,13 @@
             "test": "actionBatchStopsOnCancellationAndFailure"
           },
           "assertion": "A cancellation or failure stops at the current target without running the next target."
+        },
+        "defaults": {
+          "test": {
+            "suite": "DraftCommandTests",
+            "test": "queuedWindowActionRejectsDuplicateRequests"
+          },
+          "assertion": "Two requests issued before the scheduled task starts leave actionPending true, append text once, and produce one execution log. This case does not prove URL or App Intent defaults."
         }
       },
       "supportingTests": [

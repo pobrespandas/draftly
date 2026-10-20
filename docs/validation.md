@@ -1425,3 +1425,15 @@ runner returns timeout and keeps the source and archive state. The test uses a
 30-second worker allowance to avoid timing out during unrelated parallel test
 startup; its injected clock advances instantly. No visible window is involved.
 These exact cases passed in the full 315-app/330-core run.
+
+## Engine session defaults continuation — 20 October 2026
+
+EngineDefaultsContractTests checks a new run after explicit cancellation in both
+legacy and async routes. At its actual first host callback, the session is not
+cancelled, has no report, and identifies step zero, the root action, and its step
+UUID. The next run succeeds with a new execution ID. Its finished report belongs
+to that same observed session. Both parameter cases passed in the final core run.
+The common entry default now states only the window request behavior proved by
+DraftCommandTests. It does not use that test as URL or App Intent evidence.
+The normal matrix check passes. Strict engine acceptance remains open with 42
+diagnostics. All 14 records remain partial with native checks pending.
