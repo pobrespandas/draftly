@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import DraftlyCore
+import UniformTypeIdentifiers
 
 enum EditorTextLayout {
     static let horizontalMargin = 5.0
@@ -34,6 +35,7 @@ struct EditorLayoutPreferences: View {
             }
             HStack {
                 Button("New Theme") { editing = EditorTheme() }
+                Button("Import Theme…") { importTheme() }
                 if let current = themes.first(where: { $0.name == themeName }) {
                     Button("Edit") { editing = current }
                     Button("Delete") {
@@ -51,6 +53,35 @@ struct EditorLayoutPreferences: View {
             }
         }
     }
+    private func importTheme() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.allowedContentTypes = [UTType(filenameExtension: "draftsTheme", conformingTo: .json) ?? .json, .json]
+        panel.message = "Choose a Drafts theme definition to review before saving."
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            let active = url.startAccessingSecurityScopedResource()
+            defer { if active { url.stopAccessingSecurityScopedResource() } }
+            var theme = try DraftsThemeImport.decode(data: Data(contentsOf: url))
+            if let existing = themes.first(where: { $0.name == theme.name }) {
+                let alert = NSAlert()
+                alert.messageText = "A theme named “\(theme.name)” already exists."
+                alert.informativeText = "Replace keeps its identity. Import as New lets you choose another name."
+                alert.addButton(withTitle: "Replace")
+                alert.addButton(withTitle: "Import as New")
+                alert.addButton(withTitle: "Cancel")
+                switch alert.runModal() {
+                case .alertFirstButtonReturn: theme.id = existing.id
+                case .alertSecondButtonReturn: break
+                default: return
+                }
+            }
+            error = nil
+            editing = theme
+        } catch { self.error = error.localizedDescription }
+    }
+
 }
 
 private struct ThemeSettingsView: View {
@@ -65,6 +96,10 @@ private struct ThemeSettingsView: View {
     }
     var body: some View {
         Form {
+            if theme.unknownFields["draftsSource"] != nil {
+                Text(DraftsThemeImport.limitations)
+                    .font(.callout).foregroundStyle(.secondary)
+            }
             TextField("Name", text: $theme.name)
             TextField("Text · RRGGBB", text: $theme.foreground)
             TextField("Background · RRGGBB", text: $theme.background)

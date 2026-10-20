@@ -2516,3 +2516,34 @@ This accepts the tested create/save/edit-cancel/restart/render/selection/Undo
 path. It does not accept backup restore in the native app, every theme reference,
 Drafts theme import, migration from actual legacy preferences, or Mac+VM sync.
 Those checks stay pending. No source code changed in this verification.
+
+### Drafts theme file import — 20 October 2026
+
+Implemented: Editor Settings offers Import Theme for .draftsTheme and JSON files.
+The native file panel reads a selected file with scoped access. Import validates
+the file before opening a review copy. A name conflict offers Replace, Import as
+New, or Cancel. Replace retains the existing identity; New requires a unique
+name in review. Cancel does not save. Save uses the atomic library operation.
+
+The parser validates UTF-8 JSON, required containers, strings, supplied Boolean,
+hexadecimal colors, and named color references. It maps normal foreground,
+editor background, heading color, and dark appearance. It supports text.heading
+from the official sample and text.header from the guide. The complete original
+source stays under draftsSource, including unknown fields and unapplied scopes.
+The review explicitly states the current rendering limits. This is partial
+visual theme support, not full Drafts theme parity.
+
+Reference: the official theme-format page and official light sample were archived
+on 20 October 2026 with URLs and SHA-256 hashes under theme-format-reference.
+This new theme reference does not change the frozen Actions reference.
+
+Automatic tests: nine parser methods cover named/literal colors, fallbacks,
+identity, unknown data, malformed fields, unsupported values, and backup recovery.
+A separate offline contract test checks the archived official sample hash,
+expected mapped colors, and complete retained source. Full regression and build
+results follow. Native import, replacement, cancellation, and full styling remain
+pending. No dialog was opened by an automatic test.
+
+Regression result: 412 app methods and 409 core methods passed. The unsigned
+Xcode Debug build passed. The new import button and native file workflow still
+need Computer Use acceptance on a refreshed isolated build.

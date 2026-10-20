@@ -218,7 +218,9 @@ Pending:
   optional backup data. Local definitions migrate once per device and library.
   Native create/save/edit-cancel/restart/render and selection/Undo passed in QA.
   Native backup recovery, legacy migration, and Mac+VM sync remain pending.
-- Complete Drafts theme import and verify MultiMarkdown/TaskPaper in all accesses.
+- Drafts theme file import now validates and preserves complete source, with
+  review and explicit rendering limits. Verify its native flows and complete
+  scope/interface rendering. Verify MultiMarkdown/TaskPaper in all accesses.
 - Verify restart, backup, selection, content, and Undo after configuration changes.
 - Keep local device preferences separate from shared library definitions.
 

@@ -1,0 +1,12 @@
+{
+  "url": "https://docs.getdrafts.com/docs/extending/development/theme-format",
+  "consultedAt": "2026-10-20",
+  "sha256": "a34ff003f2ff73ec788c706a9c323dd694a10c16c1236099afbe5fc0854f72eb",
+  "file": "theme-format.a34ff003f2ff73ec788c706a9c323dd694a10c16c1236099afbe5fc0854f72eb.html.gz",
+  "scope": "Theme file format only. This does not replace the archived Actions API reference of 19 October 2026.",
+  "sample": {
+    "url": "https://config.agiletortoise.com/examples/style-light.json",
+    "sha256": "f86599803780231d1f50116969261b598806148efce861841beb79778f4cde49",
+    "file": "style-light.f86599803780231d1f50116969261b598806148efce861841beb79778f4cde49.json"
+  }
+}
