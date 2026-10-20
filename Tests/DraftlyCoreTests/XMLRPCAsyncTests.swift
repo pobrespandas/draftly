@@ -55,6 +55,12 @@ struct XMLRPCAsyncTests {
         let failed = await ScriptXMLRPC.requestSerialized(request) { _ in #"{"value":{"success":false,"statusCode":503}}"# }
         #expect(try value(failed)["success"] as? Bool == false)
         #expect(try value(failed)["statusCode"] as? Int == 503)
+        let (_, _, _, runner) = try makeAPIContext()
+        runner.httpTransport = { _ in
+            #"{"value":{"success":true,"statusCode":200,"responseText":"<methodResponse><fault><value><struct><member><name>faultCode</name><value><int>-42</int></value></member><member><name>faultString</name><value><string>Denied café 🐼</string></value></member></struct></value></fault></methodResponse>"}}"#
+        }
+        let action = makeAPIAction("const r=XMLRPC.request('https://fixture.invalid/rpc','fault',[]);check(r instanceof XMLRPCResponse&&!r.success&&r.statusCode===200&&r.faultCode===-42&&r.error==='Denied café 🐼'&&r.params.length===0,'typed fault fields');")
+        #expect((await runner.runAsync(action)).result.succeeded)
         for reply in ["not JSON", "{}", #"{"error":"Transport failed"}"#] {
             let result = await ScriptXMLRPC.requestSerialized(request) { _ in reply }
             let decoded = try JSONSerialization.jsonObject(with: Data(result.utf8)) as? [String: Any]

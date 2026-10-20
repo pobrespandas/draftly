@@ -59,7 +59,11 @@ public enum ScriptXMLRPC {
             }
             if let fault = root.children.first(where: { $0.name == "fault" })?.children.first,
                let values = try decode(fault) as? [String: Any] {
-                return ["success": false, "statusCode": statusCode, "params": [], "faultCode": values["faultCode"] ?? 0, "error": values["faultString"] ?? "XML-RPC fault"]
+                guard let code = values["faultCode"] as? Int64,
+                      let message = values["faultString"] as? String else {
+                    throw DraftlyError.message("The XML-RPC fault fields are invalid.")
+                }
+                return ["success": false, "statusCode": statusCode, "params": [], "faultCode": code, "error": message]
             }
             guard let params = root.children.first(where: { $0.name == "params" }) else { throw DraftlyError.message("The XML-RPC response has no parameters.") }
             let values = try params.children.map { node -> Any in

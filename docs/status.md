@@ -769,3 +769,9 @@ XML-RPC now has real loopback HTTP coverage for request bytes, Unicode/CDATA,
 faults, and invalid responses. Full app436/core454 and matrix checks passed.
 Native automation, date/binary mapping, transport character sets, and remaining
 grammar stay open. The test does not close the full integration.
+
+
+XML-RPC fault fields now reject missing or incorrect types without inventing a
+fault code. Four red cases and a typed JavaScript fault check cover the change.
+Full app436/core455, unsigned build, and matrix structure passed. Three response
+fields now have specific partial evidence; full integration acceptance is open.

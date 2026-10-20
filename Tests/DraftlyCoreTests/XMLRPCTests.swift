@@ -61,6 +61,20 @@ struct XMLRPCTests {
         #expect((result["params"] as? [Any])?.isEmpty == true)
     }
 
+    @Test(arguments: [
+        "<member><name>faultString</name><value><string>Missing code</string></value></member>",
+        "<member><name>faultCode</name><value><string>42</string></value></member><member><name>faultString</name><value><string>Wrong code type</string></value></member>",
+        "<member><name>faultCode</name><value><int>42</int></value></member>",
+        "<member><name>faultCode</name><value><int>42</int></value></member><member><name>faultString</name><value><int>7</int></value></member>"
+    ])
+    func invalidFaultFieldsAreNotPublishedAsValidFaultCodes(_ members: String) {
+        let xml = "<methodResponse><fault><value><struct>" + members + "</struct></value></fault></methodResponse>"
+        let result = ScriptXMLRPC.response(Data(xml.utf8), statusCode: 200)
+        #expect(result["success"] as? Bool == false)
+        #expect(result["faultCode"] == nil)
+        #expect(!(result["error"] as? String ?? "").isEmpty)
+    }
+
     @Test func faultsAndMalformedResponsesNeverReportSuccess() {
         let fault = "<methodResponse><fault><value><struct><member><name>faultCode</name><value><int>42</int></value></member><member><name>faultString</name><value><string>Denied</string></value></member></struct></value></fault></methodResponse>"
         let result = ScriptXMLRPC.response(Data(fault.utf8), statusCode: 200)

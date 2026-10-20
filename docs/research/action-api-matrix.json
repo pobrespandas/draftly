@@ -10354,10 +10354,34 @@
             "faultCode?: number"
           ],
           "contract": "If the XML-RPC interface returned an error, the error code will be here.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "validated-XML-response-fields",
+          "automatedTest": {
+            "suite": "XMLRPCAsyncTests",
+            "test": "faultsHTTPFailuresAndInvalidEnvelopesRemainExplicit"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-20",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/XMLRPC.swift",
+            "symbol": "response / responseValue"
+          },
+          "defaults": "Response fields come from the HTTP result. faultCode is optional and is emitted only for a valid fault.",
+          "result": "A numeric XML-RPC fault code, including negative codes.",
+          "errors": "Missing or incorrectly typed fault fields produce an explicit failure description without a fabricated fault code.",
+          "limitations": [
+            "Native app acceptance, full XML grammar, and other untested server variants remain pending."
+          ],
+          "supportingTests": [
+            {
+              "suite": "XMLRPCTests",
+              "test": "invalidFaultFieldsAreNotPublishedAsValidFaultCodes"
+            },
+            {
+              "suite": "XMLRPCLocalServerTests",
+              "test": "realHTTPPreservesXMLBodyUnicodeFaultsAndInvalidResponseErrors"
+            }
+          ]
         },
         {
           "member": "params",
@@ -10408,10 +10432,34 @@
             "statusCode: number"
           ],
           "contract": "The HTTP status code (like 200, 301, etc.) returned. This will be 200 if communication with the XML-RPC endpoint was successful, even if a fault occurred processing the request. Be sure to use the success property and faultCode to check for errors.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "validated-XML-response-fields",
+          "automatedTest": {
+            "suite": "XMLRPCAsyncTests",
+            "test": "faultsHTTPFailuresAndInvalidEnvelopesRemainExplicit"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-20",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/XMLRPC.swift",
+            "symbol": "response / responseValue"
+          },
+          "defaults": "Response fields come from the HTTP result. faultCode is optional and is emitted only for a valid fault.",
+          "result": "The HTTP status, including 200 for a valid fault and 503 for the tested HTTP failure.",
+          "errors": "Missing or incorrectly typed fault fields produce an explicit failure description without a fabricated fault code.",
+          "limitations": [
+            "Native app acceptance, full XML grammar, and other untested server variants remain pending."
+          ],
+          "supportingTests": [
+            {
+              "suite": "XMLRPCTests",
+              "test": "invalidFaultFieldsAreNotPublishedAsValidFaultCodes"
+            },
+            {
+              "suite": "XMLRPCLocalServerTests",
+              "test": "realHTTPPreservesXMLBodyUnicodeFaultsAndInvalidResponseErrors"
+            }
+          ]
         },
         {
           "member": "success",
@@ -10423,10 +10471,34 @@
             "success: boolean"
           ],
           "contract": "whether the request was completed successfully. This value will be true if both the HTTP status code is 200 and no fault code was returned from the API.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "validated-XML-response-fields",
+          "automatedTest": {
+            "suite": "XMLRPCAsyncTests",
+            "test": "faultsHTTPFailuresAndInvalidEnvelopesRemainExplicit"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-20",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/XMLRPC.swift",
+            "symbol": "response / responseValue"
+          },
+          "defaults": "Response fields come from the HTTP result. faultCode is optional and is emitted only for a valid fault.",
+          "result": "False for HTTP failures, faults, and tested malformed responses; true for the tested 200 response.",
+          "errors": "Missing or incorrectly typed fault fields produce an explicit failure description without a fabricated fault code.",
+          "limitations": [
+            "Native app acceptance, full XML grammar, and other untested server variants remain pending."
+          ],
+          "supportingTests": [
+            {
+              "suite": "XMLRPCTests",
+              "test": "invalidFaultFieldsAreNotPublishedAsValidFaultCodes"
+            },
+            {
+              "suite": "XMLRPCLocalServerTests",
+              "test": "realHTTPPreservesXMLBodyUnicodeFaultsAndInvalidResponseErrors"
+            }
+          ]
         }
       ]
     },

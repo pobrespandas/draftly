@@ -3495,3 +3495,20 @@ character sets, network cancellation, and full grammar remain separate. The
 archived Drafts API does not specify enough detail to accept JavaScript binary
 representations or date timezone rules without further comparison. No new
 production code or app build is part of this tests-only change.
+
+
+### XML-RPC fault field contracts — 20 October 2026
+
+Implemented: the parser requires a numeric faultCode and string faultString.
+Missing fields and wrong types return an invalid-response error. They no longer
+produce a fabricated zero code or a string code. No faultCode is published for
+these invalid responses.
+
+Automatic: four malformed fault cases failed before the change with five
+issues. Full regression then passed 436 app methods and 455 core methods. The
+existing async failure case now runs a real JavaScript XMLRPC.request call and
+checks negative numeric code, Unicode error, false success, HTTP 200, and empty
+params. The unsigned Debug build and matrix structure passed. faultCode,
+statusCode, and success now have specific partial evidence. Native app checks,
+remaining XML grammar, and untested server variants are still pending. QA has
+not been refreshed for these parser changes. The full plan remains active.
