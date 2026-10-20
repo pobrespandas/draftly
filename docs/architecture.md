@@ -29,3 +29,10 @@ mutation. Existing return values and errors remain unchanged.
 Validation: all 436 existing Swift tests passed after extraction. Two additional
 tests check independent windows and injected scripting routes. Native acceptance
 has not been repeated. No visual parity status changed.
+
+## Stage 2: preferences and Settings
+
+Settings pages are separate view components. General, HTML, bookmark, theme,
+and window preference access has no dependency on SettingsView. Existing keys,
+formats, defaults, and AppStorage bindings remain. Local preferences do not
+move into the library. The related preference and workspace tests passed.
