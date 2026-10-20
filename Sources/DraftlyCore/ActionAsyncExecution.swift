@@ -136,7 +136,9 @@ import Foundation
             try checkCancellation()
             return try json(["value": result ?? NSNull()])
         } catch {
-            if (error as? ActionExecutionInterruption) == .timeout { return (try? json(["error": error.localizedDescription, "termination": "timeout"])) ?? "{}" }
+            if let interruption = error as? ActionExecutionInterruption {
+                return (try? json(["error": error.localizedDescription, "termination": interruption == .timeout ? "timeout" : "cancelled"])) ?? "{}"
+            }
             return (try? json(["error": error.localizedDescription])) ?? "{\"error\":\"The action failed.\"}"
         }
     }

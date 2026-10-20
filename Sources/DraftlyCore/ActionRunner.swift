@@ -15,6 +15,7 @@ public final class ActionRunner: ObservableObject {
     @Published public var message: String?
     public var scriptTimeout: TimeInterval = 120
     public var hostOperationTimeout: TimeInterval = 120
+    var hostOperationNow: () -> Date = Date.init
     public var synchronousScriptTimeout: TimeInterval = 10
     public var defaultWorkspace: (() -> Workspace)?
     public var currentWorkspace: (() -> Workspace)?

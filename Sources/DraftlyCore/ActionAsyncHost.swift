@@ -6,7 +6,7 @@ import Foundation
         guard host != nil else { throw DraftlyError.message("The operation \(operation) is unavailable.") }
         let timeout = hostOperationTimeout
         guard timeout.isFinite, timeout > 0 else { throw DraftlyError.message("The host operation timeout must be positive and finite.") }
-        let wait = NativeOperationWait()
+        let wait = NativeOperationWait(timeout: timeout, now: hostOperationNow)
         cancelNativeOperation = { wait.finish(.failure(ActionExecutionInterruption.cancelled)) }
         defer { cancelNativeOperation = nil }
         do {
@@ -17,12 +17,13 @@ import Foundation
                     wait.operation = Task { @MainActor [weak self] in
                         do {
                             guard let host = self?.host else { throw DraftlyError.message("The operation \(operation) is unavailable.") }
+                            guard wait.now() < wait.deadline else { throw ActionExecutionInterruption.timeout }
                             let value = try await host.performAsync(operation, payload: payload)
                             wait.finish(.success(value))
                         } catch { wait.finish(.failure(error)) }
                     }
                     wait.timeout = Task { @MainActor in
-                        do { try await Task.sleep(for: .seconds(timeout)) } catch { return }
+                        do { try await Task.sleep(for: .seconds(max(0, wait.deadline.timeIntervalSince(wait.now())))) } catch { return }
                         wait.finish(.failure(ActionExecutionInterruption.timeout))
                     }
                 }
@@ -105,6 +106,12 @@ import Foundation
     var continuation: CheckedContinuation<String, Error>?
     var operation: Task<Void, Never>?
     var timeout: Task<Void, Never>?
+    let deadline: Date
+    let now: () -> Date
+    init(timeout: TimeInterval, now: @escaping () -> Date) {
+        self.now = now
+        deadline = now().addingTimeInterval(timeout)
+    }
 
     // Keep the library reserved until the host finishes cancellation cleanup.
     func cleanup() async {
@@ -118,6 +125,6 @@ import Foundation
         self.continuation = nil
         operation?.cancel()
         timeout?.cancel(); timeout = nil
-        continuation.resume(with: result)
+        continuation.resume(with: now() >= deadline ? .failure(ActionExecutionInterruption.timeout) : result)
     }
 }

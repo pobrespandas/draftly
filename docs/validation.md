@@ -1410,3 +1410,18 @@ busy, concurrent entry, and source-close variants still need current-build check
 QA and the helper were quit; no QA or helper process remained. No screenshots were
 saved. Native speech, transcription, EventKit persistence, models, and further
 AppleScript result types remain pending where their contracts require them.
+
+## Native interruption and deadline regression — 20 October 2026
+
+A caught native cancellation or timeout cannot issue later host calls from the
+same script. The worker retains the typed interruption. Both script and native
+steps stop before later effects or success disposition. New tests catch the
+error in JavaScript and then attempt editor and clipboard changes; neither runs.
+
+Native waits and worker replies check their absolute deadline when a result
+arrives. A late reply cannot win because a timer task has not run. An injected
+clock test advances past the deadline before returning a native response. The
+runner returns timeout and keeps the source and archive state. The test uses a
+30-second worker allowance to avoid timing out during unrelated parallel test
+startup; its injected clock advances instantly. No visible window is involved.
+These exact cases passed in the full 315-app/330-core run.

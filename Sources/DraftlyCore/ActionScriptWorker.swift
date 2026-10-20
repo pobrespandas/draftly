@@ -13,21 +13,24 @@ struct ActionBridgeRequest: Sendable {
 private final class BridgeReply: @unchecked Sendable {
     private let condition = NSCondition()
     private var result: String?
+    private let deadline: Date
+    private static let timedOut = "{\"error\":\"The host operation timed out.\",\"termination\":\"timeout\"}"
+    init(deadline: Date) { self.deadline = deadline }
 
     func finish(_ result: String) {
         condition.lock()
         defer { condition.unlock() }
         guard self.result == nil else { return }
-        self.result = result
+        self.result = Date() >= deadline ? Self.timedOut : result
         condition.broadcast()
     }
 
-    func wait(until deadline: Date) -> String {
+    func wait() -> String {
         condition.lock()
         defer { condition.unlock() }
         while result == nil {
             if !condition.wait(until: deadline), result == nil {
-                result = "{\"error\":\"The host operation timed out.\",\"termination\":\"timeout\"}"
+                result = Self.timedOut
             }
         }
         return result!
@@ -116,7 +119,7 @@ final class ActionScriptWorker: @unchecked Sendable {
     private var pending: CheckedContinuation<Bool, Error>?
     private var generation = UUID()
     private var stepDeadline: Date?
-    private var hostTimedOut = false
+    private var hostInterruption: ActionExecutionInterruption?
     private var evaluationDeadline: ScriptExecutionDeadline?
 
     init(executionID: UUID, stepID: UUID, hostTimeout: TimeInterval,
@@ -136,16 +139,18 @@ final class ActionScriptWorker: @unchecked Sendable {
         try await onQueue {
             self.runtime = try ActionScriptRuntime(dispatch: { [weak self] operation, values in
                 guard let self else { throw ScriptWorkerFailure(message: "The action was closed.") }
+                if let interruption = self.hostInterruption { throw interruption }
                 let payload = String(decoding: try JSONSerialization.data(withJSONObject: values), as: UTF8.self)
                 let response = try JSONSerialization.jsonObject(with: Data(self.request(operation, payload).utf8)) as? [String: Any] ?? [:]
-                if response["termination"] as? String == "timeout" { self.hostTimedOut = true; throw ActionExecutionInterruption.timeout }
+                try self.readHostInterruption(response)
                 if let error = response["error"] as? String { throw ScriptWorkerFailure(message: error) }
                 return response["value"] is NSNull ? nil : response["value"]
             }, requireSource: { [weak self] path in
                 guard let self else { throw ScriptWorkerFailure(message: "The action was closed.") }
+                if let interruption = self.hostInterruption { throw interruption }
                 let payload = String(decoding: try JSONSerialization.data(withJSONObject: ["path": path]), as: UTF8.self)
                 let response = try JSONSerialization.jsonObject(with: Data(self.request("requireScript", payload).utf8)) as? [String: Any] ?? [:]
-                if response["termination"] as? String == "timeout" { self.hostTimedOut = true; throw ActionExecutionInterruption.timeout }
+                try self.readHostInterruption(response)
                 if let error = response["error"] as? String { throw ScriptWorkerFailure(message: error) }
                 return response["value"] as? String ?? ""
             })
@@ -166,7 +171,7 @@ final class ActionScriptWorker: @unchecked Sendable {
                     if asynchronous, !timeout.isFinite || timeout <= 0 {
                         throw ScriptWorkerFailure(message: "The asynchronous script timeout must be positive and finite.")
                     }
-                    self.hostTimedOut = false
+                    self.hostInterruption = nil
                     self.stepDeadline = asynchronous ? Date().addingTimeInterval(timeout) : nil
                     self.stepID = stepID
                     self.generation = UUID()
@@ -231,7 +236,7 @@ final class ActionScriptWorker: @unchecked Sendable {
 
     private func request(_ operation: String, _ payload: String) -> String {
         let request = ActionBridgeRequest(executionID: executionID, stepID: stepID, deadline: min(Date().addingTimeInterval(hostTimeout), stepDeadline ?? .distantFuture), operation: operation, payload: payload)
-        let reply = BridgeReply()
+        let reply = BridgeReply(deadline: request.deadline)
         guard cancellation.register(reply, token: request.token) else { return "{\"error\":\"The action was cancelled.\"}" }
         defer { cancellation.remove(request.token) }
         let task = Task { [dispatch, cancellation] in
@@ -239,7 +244,7 @@ final class ActionScriptWorker: @unchecked Sendable {
             cancellation.complete(request.token)
         }
         cancellation.attach(task, token: request.token)
-        return reply.wait(until: request.deadline)
+        return reply.wait()
     }
 
     private func evaluate(_ source: String) throws {
@@ -248,10 +253,20 @@ final class ActionScriptWorker: @unchecked Sendable {
         try checkState()
     }
 
+    private func readHostInterruption(_ response: [String: Any]) throws {
+        switch response["termination"] as? String {
+        case "cancelled": hostInterruption = .cancelled
+        case "timeout": hostInterruption = .timeout
+        default: return
+        }
+        throw hostInterruption!
+    }
+
     private func checkState() throws {
         guard !cancellation.isCancelled else { throw ActionExecutionInterruption.cancelled }
         guard let runtime else { throw ScriptWorkerFailure(message: "The action was closed.") }
-        if hostTimedOut || evaluationDeadline?.timedOut == true { throw ActionExecutionInterruption.timeout }
+        if let interruption = hostInterruption { throw interruption }
+        if evaluationDeadline?.timedOut == true { throw ActionExecutionInterruption.timeout }
         if runtime.context.objectForKeyedSubscript("__cancelled")?.toBool() == true { throw ActionExecutionInterruption.cancelled }
         if let error = runtime.scriptError { throw ScriptWorkerFailure(message: error) }
         if let failure = runtime.context.objectForKeyedSubscript("__failure"), !failure.isNull, !failure.isUndefined {
