@@ -20,14 +20,14 @@ struct ReferenceToolbarLayoutTests {
         let item = try #require(window.toolbar?.items.first { $0.itemIdentifier.rawValue == "actions" })
         let closed = try #require(item.image)
         model.showActions = true
-        for _ in 0..<3 { await withCheckedContinuation { continuation in DispatchQueue.main.async { continuation.resume() } } }
+        await TestMainQueue.drain()
         let opened = try #require(item.image)
         #expect(opened !== closed)
         model.editor.selection = NSRange(location: 0, length: 0)
-        for _ in 0..<3 { await withCheckedContinuation { continuation in DispatchQueue.main.async { continuation.resume() } } }
+        await TestMainQueue.drain()
         #expect(item.image === opened)
         model.showActions = false
-        for _ in 0..<3 { await withCheckedContinuation { continuation in DispatchQueue.main.async { continuation.resume() } } }
+        await TestMainQueue.drain()
         #expect(item.image !== opened)
         #expect(item.isEnabled)
     }

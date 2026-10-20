@@ -28,7 +28,7 @@ struct EditorRedrawTests {
         for (scheme, expected) in [(ColorScheme.light, CGFloat(1)), (.dark, CGFloat(0)), (.light, CGFloat(1))] {
             host.rootView = editor(scheme)
             host.layoutSubtreeIfNeeded()
-            await settle()
+            await TestMainQueue.drain()
             let text = try #require(findText(host))
             let color = try #require(text.backgroundColor.usingColorSpace(.sRGB))
             #expect(abs(color.redComponent - expected) < 0.01)
@@ -50,7 +50,7 @@ struct EditorRedrawTests {
         window.appearance = try #require(NSAppearance(named: appearanceName))
         window.contentView = host
         host.layoutSubtreeIfNeeded()
-        await settle()
+        await TestMainQueue.drain()
         func findText(_ view: NSView) -> NSTextView? {
             if let text = view as? NSTextView { return text }
             return view.subviews.lazy.compactMap { findText($0) }.first
@@ -60,7 +60,7 @@ struct EditorRedrawTests {
         var short = Note(content: "Short 🐼")
         short.scriptMetadata = ["selectionStart": "6", "selectionLength": "2"]
         session.load(short, focusEditor: false)
-        await settle()
+        await TestMainQueue.drain()
         host.layoutSubtreeIfNeeded()
         #expect(text.string == short.content)
         #expect(text.selectedRange() == NSRange(location: 6, length: 2))
@@ -76,7 +76,7 @@ struct EditorRedrawTests {
         cleanWindow.appearance = window.appearance
         cleanWindow.contentView = cleanHost
         cleanHost.layoutSubtreeIfNeeded()
-        await settle()
+        await TestMainQueue.drain()
         let cleanText = try #require(findText(cleanHost))
         let cleanScroll = try #require(cleanText.enclosingScrollView)
         let cleanBitmap = try #require(cleanScroll.bitmapImageRepForCachingDisplay(in: cleanScroll.bounds))
@@ -94,9 +94,5 @@ struct EditorRedrawTests {
         cleanWindow.contentView = nil
         window.contentView = nil
     }
-    private func settle() async {
-        for _ in 0..<3 {
-            await withCheckedContinuation { continuation in DispatchQueue.main.async { continuation.resume() } }
-        }
-    }
+
 }

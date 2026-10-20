@@ -16,9 +16,7 @@ struct NavigationControlTests {
         window.contentView = host
         defer { window.contentView = nil }
         host.layoutSubtreeIfNeeded()
-        for _ in 0..<3 {
-            await withCheckedContinuation { continuation in DispatchQueue.main.async { continuation.resume() } }
-        }
+        await TestMainQueue.drain()
         func findButton(_ view: NSView) -> NSButton? {
             if let button = view as? NSButton { return button }
             return view.subviews.lazy.compactMap { findButton($0) }.first

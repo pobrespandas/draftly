@@ -168,7 +168,7 @@ struct EditorPropertyContractTests {
         #expect(model.runner.run(action("check(editor.activate()===undefined,'activate returns void');")), Comment(rawValue: model.runner.message ?? ""))
         #expect(model.editor.focusToken != previousToken)
         #expect(!model.showPreview)
-        await settle()
+        await TestMainQueue.drain()
         #expect(fixture.window.firstResponder === fixture.editor)
         checkEditorPreserved(model)
     }
@@ -214,20 +214,12 @@ struct EditorPropertyContractTests {
         container.addSubview(host); container.addSubview(otherText)
         window.contentView = container; model.window = window
         host.layoutSubtreeIfNeeded()
-        await settle()
+        await TestMainQueue.drain()
         func findEditor(_ view: NSView) -> NSTextView? {
             if let editor = view as? DraftTextView { return editor }
             return view.subviews.lazy.compactMap { findEditor($0) }.first
         }
         let editor = try #require(findEditor(host))
         return FocusFixture(window: window, editor: editor, otherText: otherText)
-    }
-
-    private func settle() async {
-        for _ in 0..<3 {
-            await withCheckedContinuation { continuation in
-                DispatchQueue.main.async { continuation.resume() }
-            }
-        }
     }
 }
