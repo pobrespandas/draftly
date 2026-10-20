@@ -15898,85 +15898,148 @@
       "contract": "completion and timer isolation",
       "compatibilityStatus": "partial",
       "automatedTest": {
-        "suite": "ExecutionActionAPITests",
-        "test": "finishedStepTimersCannotMutateTheNextStep"
+        "suite": "AsyncActionRunnerTests",
+        "test": "stepTimersAndOldScriptHandlesCannotCompleteLaterStepsOrRuns"
       },
       "liveCheck": null,
       "limitations": [
         "Native entry-point acceptance and all relevant failure branches are not closed."
-      ]
+      ],
+      "legacyAutomatedTest": {
+        "suite": "ExecutionActionAPITests",
+        "test": "finishedStepTimersCannotMutateTheNextStep"
+      },
+      "implementationEvidence": {
+        "file": "Sources/DraftlyCore/ActionAsyncExecution.swift",
+        "symbol": "executeAsync"
+      },
+      "reviewDate": "2026-10-19"
     },
     {
       "contract": "synchronous deadline",
       "compatibilityStatus": "partial",
       "automatedTest": {
-        "suite": "ExecutionActionAPITests",
-        "test": "synchronousTimeoutStopsLaterStepsAndSuccessEffects"
+        "suite": "AsyncActionRunnerTests",
+        "test": "busyJavaScriptLeavesMainActorAvailableAndSynchronousDeadlineIsTyped"
       },
       "liveCheck": null,
       "limitations": [
         "Native entry-point acceptance and all relevant failure branches are not closed."
-      ]
+      ],
+      "legacyAutomatedTest": {
+        "suite": "ExecutionActionAPITests",
+        "test": "synchronousTimeoutStopsLaterStepsAndSuccessEffects"
+      },
+      "implementationEvidence": {
+        "file": "Sources/DraftlyCore/ActionAsyncExecution.swift",
+        "symbol": "executeAsync"
+      },
+      "reviewDate": "2026-10-19"
     },
     {
       "contract": "promise rejection and asynchronous timeout",
       "compatibilityStatus": "partial",
       "automatedTest": {
-        "suite": "ExecutionActionAPITests",
-        "test": "asyncPromiseRejectionAndTimeoutStopDisposition"
+        "suite": "AsyncActionRunnerTests",
+        "test": "timeoutAndRejectedPromisesStopLaterStepsAndSuccessEffects"
       },
       "liveCheck": null,
       "limitations": [
         "Native entry-point acceptance and all relevant failure branches are not closed."
-      ]
+      ],
+      "legacyAutomatedTest": {
+        "suite": "ExecutionActionAPITests",
+        "test": "asyncPromiseRejectionAndTimeoutStopDisposition"
+      },
+      "implementationEvidence": {
+        "file": "Sources/DraftlyCore/ActionAsyncExecution.swift",
+        "symbol": "executeAsync"
+      },
+      "reviewDate": "2026-10-19"
     },
     {
       "contract": "cross-window exclusion",
       "compatibilityStatus": "partial",
       "automatedTest": {
-        "suite": "ExecutionActionAPITests",
-        "test": "anotherWindowCannotRunActionsInTheSameLibraryDuringAHostCall"
+        "suite": "AsyncActionRunnerTests",
+        "test": "libraryExclusionCoversLegacyAndAsyncRunnersWithoutBlockingOtherLibraries"
       },
       "liveCheck": null,
       "limitations": [
         "Native entry-point acceptance and all relevant failure branches are not closed."
-      ]
+      ],
+      "legacyAutomatedTest": {
+        "suite": "ExecutionActionAPITests",
+        "test": "anotherWindowCannotRunActionsInTheSameLibraryDuringAHostCall"
+      },
+      "implementationEvidence": {
+        "file": "Sources/DraftlyCore/ActionAsyncExecution.swift",
+        "symbol": "executeAsync"
+      },
+      "reviewDate": "2026-10-19"
     },
     {
       "contract": "shared included scripts",
       "compatibilityStatus": "partial",
       "automatedTest": {
-        "suite": "ExecutionActionAPITests",
-        "test": "includedActionsShareJavaScriptAndDoNotApplyOwnDisposition"
+        "suite": "AsyncActionRunnerTests",
+        "test": "dynamicIncludesShareVariablesConfigurationAndRootDisposition"
       },
       "liveCheck": null,
       "limitations": [
         "Native entry-point acceptance and all relevant failure branches are not closed."
-      ]
+      ],
+      "legacyAutomatedTest": {
+        "suite": "ExecutionActionAPITests",
+        "test": "includedActionsShareJavaScriptAndDoNotApplyOwnDisposition"
+      },
+      "implementationEvidence": {
+        "file": "Sources/DraftlyCore/ActionAsyncExecution.swift",
+        "symbol": "executeAsync"
+      },
+      "reviewDate": "2026-10-19"
     },
     {
       "contract": "circular inclusion",
       "compatibilityStatus": "partial",
       "automatedTest": {
-        "suite": "ExecutionActionAPITests",
-        "test": "circularIncludesFailBeforeTheFirstSideEffect"
+        "suite": "AsyncActionRunnerTests",
+        "test": "dynamicCyclesStopWithoutRepeatingEffects"
       },
       "liveCheck": null,
       "limitations": [
         "Native entry-point acceptance and all relevant failure branches are not closed."
-      ]
+      ],
+      "legacyAutomatedTest": {
+        "suite": "ExecutionActionAPITests",
+        "test": "circularIncludesFailBeforeTheFirstSideEffect"
+      },
+      "implementationEvidence": {
+        "file": "Sources/DraftlyCore/ActionAsyncExecution.swift",
+        "symbol": "executeAsync"
+      },
+      "reviewDate": "2026-10-19"
     },
     {
       "contract": "queue cancellation",
       "compatibilityStatus": "partial",
       "automatedTest": {
-        "suite": "ExecutionActionAPITests",
-        "test": "cancellingAnActionStopsItsQueue"
+        "suite": "AsyncActionRunnerTests",
+        "test": "includedStepsShareContextAndQueueStopsAfterCancellation"
       },
       "liveCheck": null,
       "limitations": [
         "Native entry-point acceptance and all relevant failure branches are not closed."
-      ]
+      ],
+      "legacyAutomatedTest": {
+        "suite": "ExecutionActionAPITests",
+        "test": "cancellingAnActionStopsItsQueue"
+      },
+      "implementationEvidence": {
+        "file": "Sources/DraftlyCore/ActionAsyncExecution.swift",
+        "symbol": "executeAsync"
+      },
+      "reviewDate": "2026-10-19"
     },
     {
       "contract": "final callback selection",
@@ -16012,6 +16075,82 @@
       "liveCheck": null,
       "limitations": [
         "Native entry-point acceptance and all relevant failure branches are not closed."
+      ]
+    },
+    {
+      "contract": "worker isolation and responsiveness",
+      "compatibilityStatus": "partial",
+      "implementationEvidence": {
+        "file": "Sources/DraftlyCore/ActionScriptWorker.swift",
+        "symbol": "runAsync / ActionScriptWorker"
+      },
+      "automatedTest": {
+        "suite": "AsyncActionRunnerTests",
+        "test": "busyJavaScriptLeavesMainActorAvailableAndSynchronousDeadlineIsTyped"
+      },
+      "reviewDate": "2026-10-19",
+      "liveCheck": {
+        "date": "2026-10-20",
+        "evidence": "docs/actions-engine.md",
+        "result": "Temporary local QA app: panel use during delayed action, exact native Undo, window-close cancellation recorded in Execution History, and typing cancels while preserving user text. Other entry points remain pending."
+      },
+      "limitations": [
+        "JavaScript values stay on the serial worker. Native capability acceptance remains incomplete."
+      ]
+    },
+    {
+      "contract": "host request lifetime",
+      "compatibilityStatus": "partial",
+      "implementationEvidence": {
+        "file": "Sources/DraftlyCore/ActionScriptWorker.swift",
+        "symbol": "runAsync / ActionScriptWorker"
+      },
+      "automatedTest": {
+        "suite": "ActionScriptWorkerTests",
+        "test": "timedOutHostReplyCannotChangeTheNextScript"
+      },
+      "reviewDate": "2026-10-19",
+      "liveCheck": null,
+      "limitations": [
+        "Execution and step IDs, unique reply tokens, cancellation, and deadlines isolate host replies. Real native callbacks remain pending."
+      ]
+    },
+    {
+      "contract": "task cancellation",
+      "compatibilityStatus": "partial",
+      "implementationEvidence": {
+        "file": "Sources/DraftlyCore/ActionRunner.swift",
+        "symbol": "runAsync / ActionScriptWorker"
+      },
+      "automatedTest": {
+        "suite": "AsyncActionRunnerTests",
+        "test": "cancellationReleasesAnIdleScriptAndPreservesCompletedEffects"
+      },
+      "reviewDate": "2026-10-19",
+      "liveCheck": {
+        "date": "2026-10-20",
+        "evidence": "docs/actions-engine.md",
+        "result": "Temporary local QA app: panel use during delayed action, exact native Undo, window-close cancellation recorded in Execution History, and typing cancels while preserving user text. Other entry points remain pending."
+      },
+      "limitations": [
+        "Task cancellation and explicit cancellation stop worker waits. Native capability permission and cancellation paths remain incomplete."
+      ]
+    },
+    {
+      "contract": "common asynchronous entry points",
+      "compatibilityStatus": "partial",
+      "implementationEvidence": {
+        "file": "Sources/Draftly/WindowModel.swift",
+        "symbol": "runAsync / ActionScriptWorker"
+      },
+      "automatedTest": {
+        "suite": "DraftCommandTests",
+        "test": "queuedWindowActionRejectsDuplicateRequests"
+      },
+      "reviewDate": "2026-10-19",
+      "liveCheck": null,
+      "limitations": [
+        "UI, URL, and Intent code awaits the common report. Actual URL callback delivery and App Intent invocation remain pending."
       ]
     }
   ],
@@ -16466,13 +16605,16 @@
           "name": "Include Action",
           "compatibilityStatus": "partial",
           "implementationEvidence": {
-            "file": "Sources/DraftlyCore/ActionRunner.swift",
-            "symbol": "execute / expandedSteps"
+            "file": "Sources/DraftlyCore/ActionStepExpansion.swift",
+            "symbol": "resolve / expand"
           },
-          "automatedTest": null,
+          "automatedTest": {
+            "suite": "ActionIncludeResolutionTests",
+            "test": "selectedUUIDSurvivesRenamingAndTakesPrecedenceOverName"
+          },
           "liveCheck": null,
           "limitations": [
-            "Only static names are resolved; UUID and template references are not implemented."
+            "UUID and templated names now resolve. Full native acceptance of imported include variants remains pending."
           ],
           "referenceArchive": {
             "path": "docs/research/action-api-reference/2026-10-19/steps-advanced.73b558d3fb9616255d0fc54427cebbd8dfd8dbfd7036de98777b976f0e7e1433.html.gz",

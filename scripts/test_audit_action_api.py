@@ -102,6 +102,51 @@ class StrictParityTests(unittest.TestCase):
                                   "errors": {"notApplicable": "The property is a platform constant."}},
                 "nativeVerification": {"status": "not-required", "reason": "This is a fixed platform constant."}}
 
+    def engine_matrix(self):
+        return {"engineContracts": [dict(self.complete_entry(), contract=name)
+                                     for name in sorted(audit.REQUIRED_ENGINE_CONTRACTS)]}
+
+    def test_engine_scope_passes_only_with_all_required_contracts(self):
+        matrix = self.engine_matrix()
+        self.assertEqual(audit.validate_matrix(matrix, require_parity=True, scope="engine"), [])
+        for entry in list(matrix["engineContracts"]):
+            with self.subTest(contract=entry["contract"]):
+                reduced = {"engineContracts": [item for item in matrix["engineContracts"] if item is not entry]}
+                self.assertIn("Missing engine contract: " + entry["contract"],
+                              audit.validate_matrix(reduced, require_parity=True, scope="engine"))
+
+    def test_global_scope_requires_engine_inventory_but_core_does_not(self):
+        matrix = self.engine_matrix()
+        removed = matrix["engineContracts"].pop()
+        expected = "Missing engine contract: " + removed["contract"]
+        self.assertIn(expected, audit.validate_matrix(matrix, require_parity=True))
+        self.assertNotIn(expected, audit.validate_matrix(matrix, require_parity=True, scope="core"))
+
+    def test_engine_duplicates_cannot_replace_missing_contracts(self):
+        matrix = self.engine_matrix()
+        removed = matrix["engineContracts"].pop()
+        duplicate = dict(matrix["engineContracts"][0])
+        matrix["engineContracts"].append(duplicate)
+        errors = audit.validate_matrix(matrix, require_parity=True, scope="engine")
+        self.assertIn("Duplicate engine contract: " + duplicate["contract"], errors)
+        self.assertIn("Missing engine contract: " + removed["contract"], errors)
+        self.assertEqual(audit.validate_matrix(matrix), [])
+
+    def test_engine_scope_requires_names_and_specific_contract_evidence(self):
+        matrix = self.engine_matrix()
+        entry = matrix["engineContracts"][0]
+        name = entry.pop("contract")
+        entry["name"] = name
+        errors = audit.validate_matrix(matrix, require_parity=True, scope="engine")
+        self.assertIn("Missing engine contract name", errors)
+        self.assertIn("Missing engine contract: " + name, errors)
+        entry["contract"] = name
+        entry["contractCases"].pop("errors")
+        entry["nativeVerification"] = {"status": "pending"}
+        errors = audit.validate_matrix(matrix, require_parity=True, scope="engine")
+        self.assertIn("Missing contract case errors: engine:" + name, errors)
+        self.assertIn("Missing native verification: engine:" + name, errors)
+
     def test_partial_contract_cannot_pass_with_a_written_limitation(self):
         entry = self.complete_entry()
         entry.update(compatibilityStatus="partial", limitations=["A branch is missing."])

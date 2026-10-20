@@ -18,6 +18,23 @@ CORE_OBJECTS = set("Draft Editor Workspace QueryDate Task navigationMarker linke
 CORE_STEPS = {"createDraft", "configureWindow", "prompt"}
 STEP_TYPES = set("share clipboard mail message reminder listInReminders event export openIn print speak createDraft insertText defineTemplateTag configureWindow script runShortcut runAppleScript htmlpreview configurationKey includeAction prompt url callbackUrl runDrafts4Action".split())
 APPROVED_EXCLUSIONS = {"Window.showChatConsole", "Window.hideChatConsole", "step:runDrafts4Action"}
+REQUIRED_ENGINE_CONTRACTS = frozenset({
+    "completion and timer isolation",
+    "synchronous deadline",
+    "promise rejection and asynchronous timeout",
+    "cross-window exclusion",
+    "shared included scripts",
+    "circular inclusion",
+    "queue cancellation",
+    "final callback selection",
+    "unknown disabled imports",
+    "separator imports",
+    "worker isolation and responsiveness",
+    "host request lifetime",
+    "task cancellation",
+    "common asynchronous entry points",
+})
+
 
 
 def archive_reference(raw, name, url, captured_at, root=ROOT):
@@ -183,7 +200,9 @@ def validate_archive(archive, root=ROOT):
 
 
 def validate_matrix(matrix, require_closure=False, require_parity=False, scope="all"):
-    if scope == "core":
+    if scope == "engine":
+        matrix = dict(matrix, objects=[], stepReferences=[])
+    elif scope == "core":
         matrix = dict(matrix, objects=[obj for obj in matrix.get("objects", []) if obj["object"] in CORE_OBJECTS],
                       stepReferences=[dict(ref, steps=[step for step in ref.get("steps", []) if step["type"] in CORE_STEPS]) for ref in matrix.get("stepReferences", [])], engineContracts=[])
     errors = []
@@ -238,14 +257,27 @@ def validate_matrix(matrix, require_closure=False, require_parity=False, scope="
                 if not validate_archive(step.get("referenceArchive")):
                     errors.append("Missing or invalid step reference archive: " + name)
     if require_parity:
-        for name in sorted((CORE_OBJECTS if scope == "core" else set(OBJECTS)) - seen_objects):
+        required_objects = set() if scope == "engine" else CORE_OBJECTS if scope == "core" else set(OBJECTS)
+        required_steps = set() if scope == "engine" else CORE_STEPS if scope == "core" else STEP_TYPES
+        for name in sorted(required_objects - seen_objects):
             errors.append("Missing scope object: " + name)
-        for name in sorted((CORE_STEPS if scope == "core" else STEP_TYPES) - seen_steps):
+        for name in sorted(required_steps - seen_steps):
             errors.append("Missing scope step: " + name)
         if scope != "core" and not matrix.get("engineContracts"):
             errors.append("Missing engine contracts")
+        seen_contracts = set()
         for entry in matrix.get("engineContracts", []):
-            errors.extend(parity_errors(entry, "engine:" + entry.get("contract", entry.get("name", "unnamed")), APPROVED_EXCLUSIONS))
+            name = entry.get("contract")
+            if not isinstance(name, str) or not name.strip():
+                errors.append("Missing engine contract name")
+                name = "unnamed"
+            if name in seen_contracts:
+                errors.append("Duplicate engine contract: " + name)
+            seen_contracts.add(name)
+            errors.extend(parity_errors(entry, "engine:" + name, APPROVED_EXCLUSIONS))
+        if scope != "core":
+            for name in sorted(REQUIRED_ENGINE_CONTRACTS - seen_contracts):
+                errors.append("Missing engine contract: " + name)
     return errors
 
 
@@ -254,7 +286,7 @@ if __name__ == "__main__":
     parser.add_argument("--check", action="store_true", help="Validate the saved matrix without fetching pages.")
     parser.add_argument("--require-closure", action="store_true", help="Require a classification for every member.")
     parser.add_argument("--require-parity", action="store_true", help="Require complete contracts, archived references, and native evidence.")
-    parser.add_argument("--scope", choices=["all", "core"], default="all", help="Select the contract acceptance scope.")
+    parser.add_argument("--scope", choices=["all", "core", "engine"], default="all", help="Select the contract acceptance scope.")
     args = parser.parse_args()
     if (args.require_closure or args.require_parity) and not args.check:
         parser.error("Closure and parity checks require --check.")

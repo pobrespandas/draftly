@@ -1150,3 +1150,15 @@ the habitual app was not replaced. No screenshots were stored.
 Real URL callback delivery, actual App Intent invocation, native permission and
 cancellation variants, metadata concurrency, and remaining capability waits are
 still pending. This delivery does not close strict engine or Mac parity.
+
+## Engine evidence gate — 20 October 2026
+
+The auditor now requires fourteen named engine contracts. An engine-only scope
+checks that inventory without API object noise. Strict validation rejects removed,
+duplicate, or unnamed entries. Four new tests passed; the full Python suite has
+28 passing tests. The normal matrix check reports zero errors. All 554 stored
+test references resolve. API member classifications and original fixtures stay.
+
+The engine strict check remains open with 132 evidence diagnostics. These are
+not a count of missing members or a compatibility percentage. The records remain
+partial because native entry points and all contract branches are not accepted.
