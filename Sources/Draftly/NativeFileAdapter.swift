@@ -31,6 +31,7 @@ struct NativeFileAdapter {
         let bookmarkName = values["bookmark"] as? String ?? ""
         let target: URL
         var scope: URL?
+        defer { scope?.stopAccessingSecurityScopedResource() }
         if !bookmarkName.isEmpty {
             let key = "bookmark.\(bookmarkName)"
             var stale = false
@@ -47,19 +48,18 @@ struct NativeFileAdapter {
             }
             guard let root else { throw DraftlyError.message("The destination folder is unavailable.") }
             _ = root.startAccessingSecurityScopedResource(); scope = root
-            let folder = root.appendingPathComponent(values["folder"] as? String ?? "").standardizedFileURL
-            guard folder == root || folder.path.hasPrefix(root.path + "/") else { throw DraftlyError.message("The destination must stay inside the selected folder.") }
-            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            target = folder.appendingPathComponent(name)
+            target = try exportDestination(root: root, folder: values["folder"] as? String ?? "", name: name)
         } else {
             let panel = NSSavePanel(); panel.nameFieldStringValue = name
             guard panel.runModal() == .OK, let url = panel.url else { throw DraftlyError.message("File export cancelled.") }
             target = url
         }
-        defer { scope?.stopAccessingSecurityScopedResource() }
-        let mode = values["mode"] as? String ?? "create"
-        guard ["create", "replace", "append", "prepend"].contains(mode) else { throw DraftlyError.message("Unsupported file write type: \(mode)") }
-        if mode == "create", FileManager.default.fileExists(atPath: target.path), !bookmarkName.isEmpty {
+        return try writeExport(text: text, target: target, mode: values["mode"] as? String ?? "create", usesBookmark: !bookmarkName.isEmpty)
+    }
+
+    private func writeExport(text: String, target: URL, mode: String, usesBookmark: Bool) throws -> Bool {
+        try validateExportMode(mode)
+        if mode == "create", FileManager.default.fileExists(atPath: target.path), usesBookmark {
             throw DraftlyError.message("A file with this name already exists. Choose another draft title.")
         }
         var result = text
@@ -69,6 +69,88 @@ struct NativeFileAdapter {
         }
         try result.write(to: target, atomically: true, encoding: .utf8)
         return true
+    }
+
+    private func validateExportMode(_ mode: String) throws {
+        guard ["create", "replace", "append", "prepend"].contains(mode) else {
+            throw DraftlyError.message("Unsupported file write type: \(mode)")
+        }
+    }
+
+    func performAsync(_ operation: String, values: [String: Any],
+                      select: NativeFileSelector = { try await NativeFileSelectionRequest.select($0) }) async throws -> Any? {
+        switch operation {
+        case "saveFile": return try await saveFileAsync(values, select: select)
+        case "bookmark": return try await bookmarkRootAsync(values["name"] as? String ?? "", select: select).path
+        case "fileAPI": return try await fileAPIAsync(values, select: select)
+        default: throw DraftlyError.message("The asynchronous file operation is unavailable.")
+        }
+    }
+
+    func saveFileAsync(_ values: [String: Any],
+                       select: NativeFileSelector = { try await NativeFileSelectionRequest.select($0) }) async throws -> Bool {
+        try Task.checkCancellation()
+        let mode = values["mode"] as? String ?? "create"
+        try validateExportMode(mode)
+        let name = (values["name"] as? String ?? "Draft.md").replacingOccurrences(of: "/", with: "-")
+        let bookmark = values["bookmark"] as? String ?? ""
+        let target: URL
+        var scope: URL?
+        defer { scope?.stopAccessingSecurityScopedResource() }
+        if !bookmark.isEmpty {
+            let root = try await bookmarkRootAsync(bookmark, select: select)
+            try Task.checkCancellation()
+            _ = root.startAccessingSecurityScopedResource(); scope = root
+            target = try exportDestination(root: root, folder: values["folder"] as? String ?? "", name: name)
+        } else {
+            guard let selected = try await select(.save(name: name)) else { throw ActionExecutionInterruption.cancelled }
+            try Task.checkCancellation()
+            target = selected
+        }
+        try Task.checkCancellation()
+        return try writeExport(text: values["text"] as? String ?? "", target: target,
+                               mode: mode, usesBookmark: !bookmark.isEmpty)
+    }
+
+    func bookmarkRootAsync(_ name: String,
+                           select: NativeFileSelector = { try await NativeFileSelectionRequest.select($0) }) async throws -> URL {
+        try Task.checkCancellation()
+        guard !name.isEmpty else { throw DraftlyError.message("The bookmark name is empty.") }
+        let key = "bookmark.\(name)"
+        var stale = false
+        if let data = defaults.data(forKey: key),
+           let root = try? URL(resolvingBookmarkData: data, options: .withSecurityScope, bookmarkDataIsStale: &stale), !stale {
+            return root
+        }
+        guard let root = try await select(.folder(name: name)) else { throw ActionExecutionInterruption.cancelled }
+        try Task.checkCancellation()
+        let data = try BookmarkPreferences.data(for: root)
+        try Task.checkCancellation()
+        defaults.set(data, forKey: key)
+        return root
+    }
+
+    func fileAPIAsync(_ values: [String: Any],
+                      select: NativeFileSelector = { try await NativeFileSelectionRequest.select($0) }) async throws -> Any {
+        try Task.checkCancellation()
+        if values["storage"] as? String == "bookmark" {
+            let root = try await bookmarkRootAsync(values["bookmark"] as? String ?? "", select: select)
+            try Task.checkCancellation()
+            return try fileAPI(values, root: root)
+        }
+        return try fileAPI(values)
+    }
+
+    private func exportDestination(root: URL, folder path: String, name: String) throws -> URL {
+        let canonical = root.resolvingSymlinksInPath().standardizedFileURL
+        let candidate = canonical.appendingPathComponent(path).standardizedFileURL
+        guard candidate.path == canonical.path || candidate.path.hasPrefix(canonical.path + "/") else {
+            throw DraftlyError.message("The destination must stay inside the selected folder.")
+        }
+        let folder = try containedTarget(candidate, root: canonical, message: "The destination must stay inside the selected folder.")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        return try containedTarget(folder.appendingPathComponent(name), root: canonical,
+                                   message: "The destination must stay inside the selected folder.")
     }
 
     func libraryFolder() throws -> URL {
@@ -95,19 +177,17 @@ struct NativeFileAdapter {
             root = cloud.appendingPathComponent("Documents")
         default: root = try libraryFolder()
         }
+        return try fileAPI(values, root: root)
+    }
+
+    private func fileAPI(_ values: [String: Any], root: URL) throws -> Any {
+        let manager = FileManager.default
         let scoped = root.startAccessingSecurityScopedResource(); defer { if scoped { root.stopAccessingSecurityScopedResource() } }
         let canonical = root.resolvingSymlinksInPath().standardizedFileURL
         func resolve(_ path: String) throws -> URL {
             let relative = path.hasPrefix("/") ? String(path.dropFirst()) : path
-            var ancestor = canonical.appendingPathComponent(relative).standardizedFileURL
-            var suffix: [String] = []
-            while !manager.fileExists(atPath: ancestor.path) && ancestor.path != "/" {
-                suffix.insert(ancestor.lastPathComponent, at: 0)
-                ancestor.deleteLastPathComponent()
-            }
-            let url = suffix.reduce(ancestor.resolvingSymlinksInPath()) { $0.appendingPathComponent($1) }.standardizedFileURL
-            guard url == canonical || url.path.hasPrefix(canonical.path + "/") else { throw DraftlyError.message("The path must stay inside the selected file root.") }
-            return url
+            return try containedTarget(canonical.appendingPathComponent(relative), root: canonical,
+                                       message: "The path must stay inside the selected file root.")
         }
         let target = try resolve(values["path"] as? String ?? "")
         switch values["operation"] as? String ?? "" {
@@ -134,6 +214,20 @@ struct NativeFileAdapter {
         case "setTags": var url = target; var resource = URLResourceValues(); resource.tagNames = values["tags"] as? [String] ?? []; try url.setResourceValues(resource); return true
         default: throw DraftlyError.message("The file operation is invalid.")
         }
+    }
+
+    private func containedTarget(_ candidate: URL, root: URL, message: String) throws -> URL {
+        let manager = FileManager.default
+        let canonical = root.resolvingSymlinksInPath().standardizedFileURL
+        var ancestor = candidate.standardizedFileURL
+        var suffix: [String] = []
+        while !manager.fileExists(atPath: ancestor.path) && ancestor.path != "/" {
+            suffix.insert(ancestor.lastPathComponent, at: 0)
+            ancestor.deleteLastPathComponent()
+        }
+        let target = suffix.reduce(ancestor.resolvingSymlinksInPath()) { $0.appendingPathComponent($1) }.standardizedFileURL
+        guard target == canonical || target.path.hasPrefix(canonical.path + "/") else { throw DraftlyError.message(message) }
+        return target
     }
 
 }
