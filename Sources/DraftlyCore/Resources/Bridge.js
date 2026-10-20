@@ -116,7 +116,11 @@ class Version {
     delete() { __call('deleteVersion',{uuid:this.uuid}); }
 }
 class ActionLog {
-    constructor(v) { Object.assign(this,v); this.executedAt = __date(v.executedAt); }
+    constructor(v) {
+        for (const [key,value] of Object.entries({...v,executedAt:__date(v.executedAt)})) {
+            Object.defineProperty(this,key,{value,writable:false,enumerable:true,configurable:false});
+        }
+    }
     get draft() { return this.draftUUID ? Draft.find(this.draftUUID) : undefined; }
     get action() { let value=__call('actionForLog',{uuid:this.uuid});return value?new Action(value):undefined; }
     delete() { __call('deleteLog',{uuid:this.uuid}); }

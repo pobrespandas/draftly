@@ -3141,3 +3141,27 @@ Native verification remains pending because Computer Use cannot connect. This
 change does not accept connected synchronization, collision races across devices,
 or every backup metadata variant. The earlier open repeated-import finding is
 resolved for the tested automatic contracts, not for the entire backup roadmap.
+
+
+### Draft action log contracts — 20 October 2026
+
+Implemented: ActionLog bridge fields now use nonwritable, nonconfigurable
+properties, as required by the archived reference. The host maps success/error
+status spellings without case sensitivity to completed/failed. Stored execution
+payloads are not rewritten. Other status strings retain the previous lowercase
+behavior; unknown future values are not accepted as documented status parity.
+
+Tested automatically: the readonly test first failed at uuid. A separate status
+test failed for imported ERROR. Both pass after their changes. Two methods check
+draft filtering, newest-first order, Date millisecond precision, typed values,
+owner identity, absent action, Unicode log text, readonly fields, independent
+arrays, unsaved empty history, status spellings, and unchanged stored records.
+Full regression passed 435 app methods and 435 core methods. The unsigned Debug
+build passed. Matrix structure has zero errors. Specific evidence replaces the
+previous generic association for Draft.actionLogs and the tested ActionLog
+members. These records remain partial.
+
+Native comparison, missing draft ownership, related-action lookup variants,
+log deletion/error paths, device and coordinate values, and host read failures
+remain separate acceptance work. No new native check ran because Computer Use
+remains disconnected. The installed QA image has not been refreshed.

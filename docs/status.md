@@ -668,3 +668,11 @@ unrelated notes by content. Two new contracts and all nine history-backup
 methods pass. Full regression passed 435 app and 433 core methods; the unsigned
 build passed. Native and connected-sync checks remain pending. Old random
 recovery identities are retained without content-only migration.
+
+
+ActionLog now enforces readonly bridge fields and maps known status spellings
+without case sensitivity. Two specific contracts failed before the fixes and
+pass after them. Full regression passed 435 app and 435 core methods; unsigned
+build and matrix structure passed. Draft.actionLogs has specific evidence for
+filtering, order, types, dates, empty history, and independent arrays. Native
+acceptance and the remaining ActionLog paths stay partial.

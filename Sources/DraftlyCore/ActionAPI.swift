@@ -135,7 +135,7 @@ public enum APIValues {
             return library.runs.filter { $0.noteID?.uuidString == values["uuid"] as? String }.map {
                 ["uuid": $0.id.uuidString, "draftUUID": $0.noteID?.uuidString ?? "", "actionName": $0.actionName,
                  "executedAt": APIValues.date($0.date), "executedDevice": "Mac", "executedLatitude": 0, "executedLongitude": 0,
-                 "log": $0.message, "status": $0.status == "Success" ? "completed" : $0.status == "Error" ? "failed" : $0.status.lowercased()] as [String: Any]
+                 "log": $0.message, "status": ["success": "completed", "error": "failed"][$0.status.lowercased()] ?? $0.status.lowercased()] as [String: Any]
             }
         case "actionForLog":
             guard let run = library.runs.first(where: { $0.id.uuidString == values["uuid"] as? String }) else { return nil }

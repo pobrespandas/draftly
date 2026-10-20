@@ -26,20 +26,18 @@
           "contract": "Array of versions representing the entire saved version history for this draft.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "DraftActionAPITests",
-            "test": "draftConveniencesMetadataAndTemplateContracts"
+            "suite": "DraftActionLogContractTests",
+            "test": "logsAreFilteredOrderedTypedAndReadOnlyWithoutChangingStorage"
           },
           "liveCheck": null,
-          "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "actionLogs: ActionLog[]"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
+          "reviewDate": "2026-10-20",
+          "defaults": "An unsaved draft or a draft without execution records returns an empty array.",
+          "result": "A fresh array of typed ActionLog values for the draft, ordered by execution date descending.",
+          "errors": "Library decode or storage errors propagate through the host bridge. Reading does not save the draft.",
           "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
+            "Native per-draft history comparison remains pending. Dedicated host read-error injection is not covered by this test."
           ],
-          "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
+          "evidenceLevel": "Specific filtering, ordering, timestamps, owner identity, empty history, independent array, and readonly property checks.",
           "compatibilityStatus": "partial",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
@@ -6654,17 +6652,21 @@
           ],
           "contract": "Timestamp for the creation of the log entry",
           "implementation": "persisted-action-log-bridge",
-          "automatedTest": null,
+          "automatedTest": {
+            "suite": "DraftActionLogContractTests",
+            "test": "logsAreFilteredOrderedTypedAndReadOnlyWithoutChangingStorage"
+          },
           "liveCheck": null,
           "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/ActionAPI.swift",
             "symbol": "actionLogs / actionForLog / deleteLog"
           },
           "limitations": [
-            "Date restoration has a targeted test. Log-specific backup and date cases remain open."
-          ]
+            "Native per-member acceptance remains pending. This test does not establish every ActionLog contract."
+          ],
+          "evidenceLevel": "Specific readonly and value assertions; status spellings also preserve the stored payload."
         },
         {
           "member": "executedDevice",
@@ -6746,17 +6748,21 @@
           ],
           "contract": "The content of the log",
           "implementation": "persisted-action-log-bridge",
-          "automatedTest": null,
+          "automatedTest": {
+            "suite": "DraftActionLogContractTests",
+            "test": "logsAreFilteredOrderedTypedAndReadOnlyWithoutChangingStorage"
+          },
           "liveCheck": null,
           "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/ActionAPI.swift",
             "symbol": "actionLogs / actionForLog / deleteLog"
           },
           "limitations": [
-            "Multiline and Unicode messages across backup and restore need a dedicated log assertion."
-          ]
+            "Native per-member acceptance remains pending. This test does not establish every ActionLog contract."
+          ],
+          "evidenceLevel": "Specific readonly and value assertions; status spellings also preserve the stored payload."
         },
         {
           "member": "status",
@@ -6769,17 +6775,21 @@
           ],
           "contract": "Status of the log. \"failed\" indicates the action ended in an error, \"completed\" indicates successful completion of the action.",
           "implementation": "persisted-action-log-bridge",
-          "automatedTest": null,
+          "automatedTest": {
+            "suite": "DraftActionLogContractTests",
+            "test": "importedStatusSpellingUsesTheDocumentedScriptValuesWithoutRewritingRecords"
+          },
           "liveCheck": null,
           "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/ActionAPI.swift",
             "symbol": "actionLogs / actionForLog / deleteLog"
           },
           "limitations": [
-            "Completed, failed, and cancelled mappings have tests. All stored status variants need a dedicated contract case."
-          ]
+            "Native per-member acceptance remains pending. This test does not establish every ActionLog contract."
+          ],
+          "evidenceLevel": "Specific readonly and value assertions; status spellings also preserve the stored payload."
         },
         {
           "member": "action",
@@ -6815,17 +6825,22 @@
           ],
           "contract": "The Draft object related to the log. This value may be undefined if the action was performed without a draft in context, or if the related draft no longer exists.",
           "implementation": "persisted-action-log-bridge",
-          "automatedTest": null,
+          "automatedTest": {
+            "suite": "DraftActionLogContractTests",
+            "test": "logsAreFilteredOrderedTypedAndReadOnlyWithoutChangingStorage"
+          },
           "liveCheck": null,
           "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/ActionAPI.swift",
             "symbol": "actionLogs / actionForLog / deleteLog"
           },
           "limitations": [
-            "Missing and deleted source drafts need dedicated contract cases."
-          ]
+            "Native per-member acceptance remains pending. This test does not establish every ActionLog contract.",
+            "Missing owning-draft behavior is not checked by this case."
+          ],
+          "evidenceLevel": "Specific readonly and value assertions; status spellings also preserve the stored payload."
         },
         {
           "member": "uuid",
@@ -6838,17 +6853,21 @@
           ],
           "contract": "Unique identifier",
           "implementation": "persisted-action-log-bridge",
-          "automatedTest": null,
+          "automatedTest": {
+            "suite": "DraftActionLogContractTests",
+            "test": "logsAreFilteredOrderedTypedAndReadOnlyWithoutChangingStorage"
+          },
           "liveCheck": null,
           "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/ActionAPI.swift",
             "symbol": "actionLogs / actionForLog / deleteLog"
           },
           "limitations": [
-            "Stable UUID values across backup and restore need a dedicated log assertion."
-          ]
+            "Native per-member acceptance remains pending. This test does not establish every ActionLog contract."
+          ],
+          "evidenceLevel": "Specific readonly and value assertions; status spellings also preserve the stored payload."
         },
         {
           "member": "delete",
