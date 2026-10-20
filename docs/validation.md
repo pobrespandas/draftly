@@ -1780,3 +1780,32 @@ owner stays on the last processed target. Code inspection confirms that the
 automation output returns the final editor identity, not the root identity.
 No implementation change was needed. The queue record remains partial.
 
+## Native inclusion cycle safety — 20 October 2026
+
+Verified in use on the isolated QA build: imported the neutral cycle fixture.
+Static A included B and B included A. URL execution returned An included action
+refers to itself before the first script ran. Source stayed Queue source retained.
+The helper observed one staticcycle-20261020-a error callback.
+
+The dynamic root saved Cycle completed root write, selected its child through
+the selected template tag, and reached a child with a static self-cycle. The
+same error stopped the child script and root tail. The completed root text
+remained in Inbox, Archive was not applied, and the helper received no discard
+success parameter. It observed one dynamiccycle-20261020-a error callback and
+remained at one after inspection. History recorded one Error per root. Both QA
+apps were quit. Counts describe the observation interval; captures stay temporary.
+
+Automatically tested: the focused inclusion, boundary, and execution API run
+passed 35 methods in three suites. Specific cases cover full-run dynamic depth,
+static expansion, repeated siblings, cycle errors, and retained prior effects.
+The last complete application suites/build remain the code baseline; this turn
+changed fixtures and acceptance records only.
+
+The circular inclusion engine safety contract is complete on this evidence.
+The archived reference does not define cycle-error wording or a numeric maximum.
+The tested 50/51 limit is a Draftly safety policy, not verified equality with a
+Drafts limit. Native equivalence across all entry points remains the separate
+common asynchronous entry points contract. Two engine records are complete and
+twelve remain partial. Strict engine parity still fails with 36 diagnostics;
+the full Mac plan and the API member inventory remain open.
+

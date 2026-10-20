@@ -435,3 +435,10 @@ Separate-source/target cancellation passed through a URL using the matching
 visible editor. Both drafts kept their own completed text in Inbox. The editor
 finished on the target and one cancel callback was observed. Separate-target
 error/timeout and remaining native entry points are still pending.
+
+Native static and dynamic inclusion cycle checks passed. Static cycles preserve
+the original text; dynamic cycles retain earlier effects and stop the cyclic
+subtree, tail, and success disposition. The engine cycle safety contract is now
+complete, with its 50/51 depth boundary documented as a Draftly policy. Two
+engine records are complete and twelve remain partial. Strict parity reports
+36 diagnostics; entry-point equivalence and full Mac acceptance remain open.

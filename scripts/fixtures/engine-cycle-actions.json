@@ -1,0 +1,71 @@
+[
+  {
+    "name": "QA Static cycle A",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('ERROR: static cycle root ran');"
+        }
+      },
+      {
+        "type": "includeAction",
+        "data": {
+          "name": "QA Static cycle B"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Static cycle B",
+    "steps": [
+      {
+        "type": "includeAction",
+        "data": {
+          "name": "QA Static cycle A"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Dynamic cycle root",
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Cycle completed root write');draft.update();draft.setTemplateTag('selected','QA Dynamic self-cycle child');context.addSuccessParameter('discard','value');"
+        }
+      },
+      {
+        "type": "includeAction",
+        "data": {
+          "name": "[[selected]]"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('ERROR: dynamic root tail ran');"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Dynamic self-cycle child",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('ERROR: cyclic child ran');"
+        }
+      },
+      {
+        "type": "includeAction",
+        "data": {
+          "name": "QA Dynamic self-cycle child"
+        }
+      }
+    ]
+  }
+]

@@ -16251,16 +16251,13 @@
     },
     {
       "contract": "circular inclusion",
-      "compatibilityStatus": "partial",
+      "compatibilityStatus": "complete",
       "automatedTest": {
         "suite": "AsyncActionRunnerTests",
         "test": "dynamicCyclesStopWithoutRepeatingEffects"
       },
-      "liveCheck": null,
-      "limitations": [
-        "The 50/51-action static and full-run dynamic boundaries are tested as Draftly safety limits. Equality with a Drafts depth limit is not established.",
-        "Static and dynamic inclusion cycle handling remain pending through real native entry points."
-      ],
+      "liveCheck": "docs/validation.md: Native inclusion cycle safety — 20 October 2026",
+      "limitations": [],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
         "test": "circularIncludesFailBeforeTheFirstSideEffect"
@@ -16270,16 +16267,16 @@
         "symbol": "expand / resolve"
       },
       "reviewDate": "2026-10-20",
-      "defaults": "The inclusion path starts with the root action identity. The depth guard rejects a path containing 50 identities; independent sibling includes do not share an ancestry path.",
+      "defaults": "The inclusion path starts with the root identity. Independent sibling calls do not share ancestry. Draftly imposes a safety bound: a chain of 50 actions can reach its leaf; 51 fails. The archived reference does not specify a numeric depth or circular-error policy, so this is an explicit Draftly safety policy rather than a claim about a Drafts numeric limit.",
       "result": "Acyclic static and dynamic includes run in the caller context. Static cycles fail during preflight; a dynamic cycle fails when its name resolves.",
       "errors": "Static cycles prevent all root effects. Dynamic cycle detection keeps earlier effects but does not repeat the root or apply success disposition.",
       "contractCases": {
         "normal": {
           "test": {
-            "suite": "ActionIncludeResolutionTests",
-            "test": "staticNamesAndUUIDsExpandInOrderWhileDynamicNamesRemainSteps"
+            "suite": "EngineInclusionAcceptanceTests",
+            "test": "repeatedSiblingIncludesReuseGlobalsWithoutSharingAncestry"
           },
-          "assertion": "Repeated sibling static references expand in order; dynamic references remain for runtime resolution."
+          "assertion": "Both entry routes execute the same selected sibling twice in order, share included globals, and do not confuse repeated siblings with a cycle."
         },
         "errors": {
           "test": {
@@ -16290,10 +16287,10 @@
         },
         "defaults": {
           "test": {
-            "suite": "EngineBoundaryContractTests",
-            "test": "actualIncludeChainsRespectTheDepthBoundary"
+            "suite": "EngineInclusionAcceptanceTests",
+            "test": "dynamicIncludeChainEnforcesDepthDuringExecution"
           },
-          "assertion": "Preflight expansion traverses an actual selected-UUID chain: 50 actions expand to the leaf and 51 actions fail with the depth-limit error. This case does not run the full action runner."
+          "assertion": "Full async runtime resolves a template-based chain of 50 actions to its leaf; 51 fails before the leaf and success disposition, keeping the earlier root effect. Static expansion boundaries have separate supporting coverage."
         }
       },
       "supportingTests": [
@@ -16323,8 +16320,10 @@
         }
       ],
       "nativeVerification": {
-        "status": "pending",
-        "reason": "Static and dynamic inclusion cycle handling remain pending through real native entry points."
+        "status": "passed",
+        "date": "2026-10-20",
+        "evidence": "docs/validation.md",
+        "scope": "Native URL static A/B cycle failed before its first sentinel effect and retained the source. Dynamic template-selected cyclic subtree retained the earlier root write, rejected child/tail effects and Archive, cleared success parameters, and recorded Error. Helper observed one matching error callback per case."
       },
       "automatedVerification": {
         "status": "passed",
@@ -16348,6 +16347,13 @@
             "revision": "0ba1b25",
             "command": "swift test",
             "result": "Passed: 388 app tests and 361 core tests. Specific supporting cases listed in this record ran.",
+            "evidence": "docs/validation.md"
+          },
+          {
+            "date": "2026-10-20",
+            "revision": "607bfd7",
+            "command": "swift test --filter 'EngineInclusionAcceptanceTests|EngineBoundaryContractTests|ExecutionActionAPITests'",
+            "result": "35 test methods in three suites passed. Includes explicit cycle, dynamic depth, siblings, and legacy/async cases.",
             "evidence": "docs/validation.md"
           }
         ]

@@ -224,3 +224,16 @@ Inspect the source again to verify its stored content. Recreate the neutral
 target content before repeating this fixture. With no matching visible editor,
 the cancelled headless route saves the target but does not reveal it. These are
 different entry conditions; record which one was tested.
+
+## Inclusion cycle safety
+
+Import scripts/fixtures/engine-cycle-actions.json. Record the source text, then
+run QA Static cycle A. The A/B cycle must fail before the first script changes
+text. Run QA Dynamic cycle root. Its earlier write must remain, but the selected
+cyclic child's script and the root tail must not run. The draft must stay Inbox;
+Archive is a success effect. Use unique local x-error callback case values and
+check the error message, count, empty success parameters, and root history rows.
+
+The reference documents inline inclusion and template names, but not a cycle
+policy or numeric depth. Draftly rejects cycles as a safety policy. Its tested
+50/51-action boundary is not a claim about the Drafts depth limit.
