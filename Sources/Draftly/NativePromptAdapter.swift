@@ -6,7 +6,6 @@ struct NativePromptAdapter {
     static let operations: Set<String> = ["confirmAction", "alert", "prompt", "selectPrompt"]
 
     func perform(_ operation: String, values: [String: Any]) throws -> Any? {
-        let text = values["text"] as? String ?? ""
         switch operation {
         case "confirmAction":
             let alert = NSAlert(); alert.messageText = "Run " + (values["name"] as? String ?? "Action") + "?"
