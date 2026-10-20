@@ -3896,3 +3896,33 @@ URL without opening a destination. All assertions passed. The editor showed
 Callback parameter keys preserved café 🐼 and the completion message appeared.
 General value conversion and invalid URL behavior remain pending. CallbackURL
 is not complete. No screenshot or raw log is stored in the repository.
+
+
+### Returned callback parameter keys — 20 October 2026
+
+Implemented: both callbackUrl step routes parse serialized response data with
+JSON.parse. They no longer interpret returned parameters as object-literal
+source. This preserves an own __proto__ key without changing response ordering
+or callback tags. Script CallbackURL.open already preserved this data.
+
+Automatic: returnedParameterNamesRemainOwnProperties covers script/step and
+legacy/worker routes. Before the fix, both step cases failed because __proto__
+was lost; both script cases passed. After the fix, all four cases pass, including
+constructor, quotes, a newline, Unicode, own-key count, and a callback template
+tag. All ten callback cases passed. Full regression passed app437/core461.
+The unsigned Debug build passed. The QA helper compiles for macOS 26 and passes
+its existing window-inventory self-test without opening a window. Matrix
+structure passes. The engine strict gate still has 27 diagnostics; no engine
+closure is claimed.
+
+Native pending: prepared engine-callback-response-key-actions.json and added
+parameterKeys=true to the local QA helper. This option returns fixed neutral
+keys. The Mac locked before helper update or fixture execution. Do not count
+this fixture as native acceptance. The installed QA executable remains
+89c842d3998026d19faf3a1927312136e3a6969f2427ee0cb92f6650f6ed6844,
+which predates this incoming-response fix. The new app is in
+.build/refactor-check/Build/Products/Debug/Draftly.app. The new helper executable
+is /tmp/draftly-callback-response-helper. Quit both QA apps before replacing
+their installed bundles or executable. Then sign, open QA, import the fixture,
+and verify the expected text and Success history. No screenshot or raw log is
+stored in the repository.

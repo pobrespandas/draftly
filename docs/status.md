@@ -872,3 +872,10 @@ CallbackURL preserves prototype-named outgoing string parameters. Both runners
 and a native action pass specific key, Unicode, return, and replacement checks.
 Full regression passed app437/core460; the unsigned build passed. CallbackURL
 remains partial for other value and error contracts.
+
+
+Returned callback step data now preserves prototype-named keys. Four specific
+cases pass across script/step and both runners. Full regression passed
+app437/core461 and the unsigned build passed. Native response-key acceptance
+is pending: the Mac locked before the helper update and fixture execution.
+The engine strict gate still reports 27 diagnostics.

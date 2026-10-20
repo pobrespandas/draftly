@@ -334,3 +334,12 @@ note through the Shortcut. Wait for the production120-second limit. Expect the
 error, retained root/child text in Inbox, no tail or later queued action, and the
 matching original window left on the child. This native case passed. Prepare a
 new marker note for each repeat; the prior marker becomes the child output.
+
+
+## Returned parameter keys
+
+Use `scripts/fixtures/engine-callback-response-key-actions.json` with the current
+QA helper. The `parameterKeys=true` option adds fixed neutral response keys,
+including `__proto__`, `constructor`, and a quoted multiline value. Run the
+action in the isolated QA app. Check the expected editor text and Success in
+history. Preparing or importing the fixture does not prove acceptance.

@@ -7722,7 +7722,8 @@
           ],
           "errors": "Host errors stop the relevant step.",
           "limitations": [
-            "Not all native response variants and configuration defaults are covered."
+            "Not all native response variants and configuration defaults are covered.",
+            "Returned prototype-named keys, quotes, and newlines pass both runner routes for script and step callbacks. The dedicated native response-key fixture is pending because the Mac locked before helper update."
           ],
           "evidenceLevel": "Member-specific assertions. Native verification is separate.",
           "automatedTestHistory": [
@@ -7735,6 +7736,10 @@
             {
               "suite": "ExecutionActionAPITests",
               "test": "shortcutResponsesReachContextInExecutionOrder"
+            },
+            {
+              "suite": "CallbackResponseContractTests",
+              "test": "returnedParameterNamesRemainOwnProperties"
             }
           ],
           "nativeVerification": {

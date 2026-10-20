@@ -7,6 +7,7 @@ import Testing
     var clipboard = ""
     var previewSuccess = true
     var callbackStatus = "success"
+    var callbackParameters = ["result": "Returned + café"]
     var confirmation = true
     var templateFiles: [String: String] = [:]
     var selectedIndex: Int? = 0
@@ -30,7 +31,7 @@ import Testing
             for field in values["fields"] as? [[String: Any]] ?? [] { if let key = field["key"] as? String { fields[key] = field["value"] } }
             return ["index": 0, "fields": fields]
         case "htmlPreview": return ["success": previewSuccess, "values": ["answer": ["value": 42]]]
-        case "callbackURL": return ["status": callbackStatus, "parameters": ["result": "Returned + café"]]
+        case "callbackURL": return ["status": callbackStatus, "parameters": callbackParameters]
         case "requireScript": return "function loadedHelper(value) { return value.toUpperCase(); }"
         case "shortcut": return "Shortcut output"
         case "appleScript": return ["value": 42]

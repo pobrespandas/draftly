@@ -158,7 +158,13 @@ struct QAWindowInventory {
             guard let key, let target = value(key),
                   var callback = URLComponents(string: target),
                   callback.scheme == "draftly-engine-qa", callback.host == "callback" else { continue }
-            callback.queryItems = (callback.queryItems ?? []) + [URLQueryItem(name: "value", value: "Native café 🐼")]
+            var response = [URLQueryItem(name: "value", value: "Native café 🐼")]
+            if value("parameterKeys") == "true" {
+                response += [URLQueryItem(name: "__proto__", value: "café 🐼"),
+                    URLQueryItem(name: "constructor", value: "kept"),
+                    URLQueryItem(name: "quoted", value: "Line \"one\"\nLine two")]
+            }
+            callback.queryItems = (callback.queryItems ?? []) + response
             guard let destination = callback.url else { continue }
             let delay = min(10, max(0, Double(value("delay") ?? "0") ?? 0))
             Task { @MainActor in

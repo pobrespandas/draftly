@@ -78,7 +78,8 @@ struct ActionStepExecutor {
                 if step.values["waitForResponse"] != "false" {
                     let parameters = response["parameters"] as? [String: String] ?? [:]
                     for (key, value) in parameters { runner.customTags["callback_" + key] = value }
-                    evaluate("context.callbackResponses.push(\(try json(parameters)));")
+                    let parametersJSON = try json(parameters)
+                    evaluate("context.callbackResponses.push(JSON.parse(\(try json(parametersJSON))));")
                 }
             } else { _ = try platform("openURL", ["url": url]) }
         case "insertText": try editor.replace(editor.safeSelection, with: rendered); try flushEditor()

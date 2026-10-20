@@ -120,7 +120,8 @@ import Foundation
             if step.values["waitForResponse"] != "false" {
                 let parameters = response["parameters"] as? [String: String] ?? [:]
                 for (key, value) in parameters { customTags["callback_" + key] = value }
-                evaluate("context.callbackResponses.push(\(try json(parameters)));")
+                let parametersJSON = try json(parameters)
+                evaluate("context.callbackResponses.push(JSON.parse(\(try json(parametersJSON))));")
             }
             return true
         case "runShortcut":

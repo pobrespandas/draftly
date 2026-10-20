@@ -55,4 +55,26 @@ struct CallbackResponseContractTests {
         }
     }
 
+    @Test(arguments: [false, true], [false, true])
+    func returnedParameterNamesRemainOwnProperties(worker: Bool, step: Bool) async throws {
+        let (_, _, host, runner) = try makeAPIContext()
+        defer { withExtendedLifetime(host) {} }
+        host.callbackParameters = ["__proto__": "café 🐼", "constructor": "kept", "quoted": "Line \"one\"\nLine two"]
+        let callback = step
+            ? ActionStep("callbackUrl", ["url": "fixture://reply"])
+            : ActionStep("script", ["script": "var cb=CallbackURL.create();cb.baseURL='fixture://reply';if(!cb.open())throw new Error('callback failed');"])
+        let check = ActionStep("script", ["script": """
+        if(context.callbackResponses.length!==1)throw new Error('response count');
+        var response=context.callbackResponses[0];
+        if(!Object.prototype.hasOwnProperty.call(response,'__proto__')||response.__proto__!=='café 🐼')throw new Error('prototype key lost');
+        if(response.constructor!=='kept')throw new Error('constructor key lost');
+        if(response.quoted!==('Line \"one\"'+String.fromCharCode(10)+'Line two'))throw new Error('quoted value changed');
+        if(Object.keys(response).length!==3)throw new Error('response keys');
+        if(draft.processTemplate('[[callback___proto__]]')!=='café 🐼')throw new Error('callback tag lost');
+        """])
+        let action = DraftAction(name: "Callback response keys", steps: [callback, check])
+        if worker { #expect((await runner.runAsync(action)).result.succeeded, Comment(rawValue: runner.message ?? "")) }
+        else { #expect(runner.run(action), Comment(rawValue: runner.message ?? "")) }
+    }
+
 }

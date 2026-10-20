@@ -1,0 +1,19 @@
+[
+  {
+    "name": "QA Returned callback keys",
+    "steps": [
+      {
+        "type": "callbackUrl",
+        "data": {
+          "url": "draftly-engine-echo://reply?parameterKeys=true"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "if(context.callbackResponses.length!==1)throw new Error('Wrong response count');var r=context.callbackResponses[0];if(!Object.prototype.hasOwnProperty.call(r,'__proto__')||r.__proto__!=='café 🐼'||r.constructor!=='kept')throw new Error('Response key lost');if(r.quoted!==('Line \"one\"'+String.fromCharCode(10)+'Line two'))throw new Error('Quoted value changed');if(r.value!=='Native café 🐼')throw new Error('Normal value lost');if(draft.processTemplate('[[callback___proto__]]')!=='café 🐼')throw new Error('Tag lost');editor.setText('Returned callback keys preserved café 🐼');"
+        }
+      }
+    ]
+  }
+]
