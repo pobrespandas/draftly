@@ -1658,3 +1658,21 @@ and the remaining API contracts keep their own acceptance. The strict engine
 gate now has 39 diagnostics across thirteen partial records. One engine record
 is complete. The 562-member API inventory is unchanged. QA and the helper were
 quit; the helper monitor was turned off. No screenshot or raw log was saved in Git.
+## Inclusion and queue regression checks — 20 October 2026
+
+Implemented: the legacy runner now clears pending queue entries after failure or
+cancellation. The async runner already cleared them. Completed effects remain.
+The next run previously cleared these entries at startup; they did not execute
+after the failed run, but they remained retained until then.
+
+Specific tests cover selected UUID resolution, shared globals in included
+scripts, disabled cycles, dynamic subtree cycle rejection, depth 50/51, repeated
+sibling includes, and child failure/cancellation in both entry routes. Queue
+tests cover timeout, current stored draft content, final callback parameters,
+and fresh JavaScript globals with final parameter aggregation. They do not
+require an undocumented shared JavaScript parameter object between queue items.
+
+These checks are automatic evidence. Native callback receipt, configuration
+precedence, and remaining entry-point acceptance stay open. No engine matrix
+record is promoted by these tests alone.
+

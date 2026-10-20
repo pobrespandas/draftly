@@ -77,7 +77,7 @@ public final class ActionRunner: ObservableObject {
         terminationReason = .error
         successParameters = [:]
         _ = executeRun(action)
-        if !runOutcome.succeeded { successParameters = [:] }
+        if !runOutcome.succeeded { successParameters = [:]; queued = [] }
         let reason: ActionTerminationReason = runOutcome.succeeded ? .success : runOutcome == .cancelled ? .cancelled : terminationReason
         let report = session.finish(runOutcome, reason: reason, successParameters: successParameters)
         lastReport = report
