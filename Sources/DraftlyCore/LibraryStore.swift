@@ -15,120 +15,26 @@ public final class LibraryStore: ObservableObject {
     @Published public var error: String?
     @Published public private(set) var syncStatus: String
     public let container: NSPersistentContainer
-    private var observers: [NSObjectProtocol] = []
-    private var cloudState = CloudSyncState()
-    private var accountCheck = 0
+    private let persistence: LibraryRecordPersistence
+    private var syncCoordinator: LibrarySyncCoordinator?
     public let cloudIdentifier: String?
-    private var records: [String: NSManagedObject] = [:]
 
     public init(inMemory: Bool = false, cloudIdentifier: String? = nil, directory: URL? = nil, seed: Bool = true) throws {
         self.cloudIdentifier = inMemory ? nil : cloudIdentifier
-        let model = Self.model()
-        if let cloudIdentifier, !inMemory {
-            let cloud = NSPersistentCloudKitContainer(name: "Draftly", managedObjectModel: model)
-            container = cloud
-            syncStatus = "Connecting to iCloud…"
-            let description = NSPersistentStoreDescription(url: try Self.storeURL(directory: directory))
-            let options = NSPersistentCloudKitContainerOptions(containerIdentifier: cloudIdentifier)
-            options.databaseScope = .private
-            description.cloudKitContainerOptions = options
-            description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
-            description.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
-            description.shouldAddStoreAsynchronously = false
-            container.persistentStoreDescriptions = [description]
-        } else {
-            container = NSPersistentContainer(name: "Draftly", managedObjectModel: model)
-            syncStatus = inMemory ? "Test storage" : "Local storage · iCloud is not configured"
-            let description = NSPersistentStoreDescription()
-            description.type = inMemory ? NSInMemoryStoreType : NSSQLiteStoreType
-            if !inMemory {
-                description.url = try Self.storeURL(directory: directory)
-                description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
-                description.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
-            }
-            description.shouldAddStoreAsynchronously = false
-            container.persistentStoreDescriptions = [description]
-        }
-        var loadError: Error?
-        container.loadPersistentStores { _, e in loadError = e }
-        if let loadError { throw loadError }
-        container.viewContext.automaticallyMergesChangesFromParent = true
-        container.viewContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        persistence = try LibraryRecordPersistence(inMemory: inMemory, cloudIdentifier: cloudIdentifier, directory: directory)
+        container = persistence.container
+        syncStatus = cloudIdentifier != nil && !inMemory ? "Connecting to iCloud…" : inMemory ? "Test storage" : "Local storage · iCloud is not configured"
         try reload()
         if seed && actions.isEmpty {
             for action in Self.defaultActions { try saveAction(action) }
         }
-        observers.append(NotificationCenter.default.addObserver(forName: .NSPersistentStoreRemoteChange, object: container.persistentStoreCoordinator, queue: .main) { [weak self] _ in
-            Task { @MainActor in
+        syncCoordinator = LibrarySyncCoordinator(container: container, cloudIdentifier: self.cloudIdentifier,
+            onRemoteChange: { [weak self] in
                 do { try self?.reload() } catch { self?.error = error.localizedDescription }
-            }
-        })
-        if let cloud = container as? NSPersistentCloudKitContainer {
-            observers.append(NotificationCenter.default.addObserver(forName: NSPersistentCloudKitContainer.eventChangedNotification, object: cloud, queue: .main) { [weak self] notification in
-                guard let event = notification.userInfo?[NSPersistentCloudKitContainer.eventNotificationUserInfoKey] as? NSPersistentCloudKitContainer.Event else { return }
-                let phase: CloudSyncState.Phase
-                switch event.type {
-                case .setup: phase = .setup
-                case .import: phase = .download
-                case .export: phase = .upload
-                @unknown default: return
-                }
-                let id = event.identifier, storeID = event.storeIdentifier
-                let ended = event.endDate != nil, succeeded = event.succeeded
-                let message = event.error.map(CloudSyncError.message)
-                Task { @MainActor in
-                    guard let self, self.container.persistentStoreCoordinator.persistentStores.contains(where: { $0.identifier == storeID }) else { return }
-                    self.cloudState.receive(id: id, phase: phase, ended: ended, succeeded: succeeded, error: message)
-                    self.syncStatus = self.cloudState.message
-                }
-            })
-            observers.append(NotificationCenter.default.addObserver(forName: .CKAccountChanged, object: nil, queue: .main) { [weak self] _ in
-                Task { @MainActor in await self?.refreshCloudAccount() }
-            })
-            Task { @MainActor [weak self] in await self?.refreshCloudAccount() }
-        }
+            }, onStatusChange: { [weak self] in self?.syncStatus = $0 })
     }
 
-    public func refreshCloudAccount() async {
-        guard let cloudIdentifier else { return }
-        accountCheck += 1
-        let check = accountCheck
-        let account: CloudSyncState.Account
-        do {
-            switch try await CKContainer(identifier: cloudIdentifier).accountStatus() {
-            case .available: account = .available
-            case .noAccount: account = .signedOut
-            case .restricted: account = .restricted
-            case .temporarilyUnavailable: account = .temporarilyUnavailable
-            case .couldNotDetermine: account = .failed("The account status could not be determined.")
-            @unknown default: account = .failed("The account status is not supported.")
-            }
-        } catch { account = .failed(CloudSyncError.message(error)) }
-        guard accountCheck == check else { return }
-        cloudState.account = account
-        syncStatus = cloudState.message
-    }
-
-    private static func storeURL(directory: URL?) throws -> URL {
-        let folder = directory ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Draftly", isDirectory: true)
-        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        return folder.appendingPathComponent("Library.sqlite")
-    }
-
-    private static func model() -> NSManagedObjectModel {
-        let model = NSManagedObjectModel()
-        let entity = NSEntityDescription()
-        entity.name = "Record"
-        entity.managedObjectClassName = "NSManagedObject"
-        func attribute(_ name: String, _ type: NSAttributeType, _ value: Any) -> NSAttributeDescription {
-            let a = NSAttributeDescription(); a.name = name; a.attributeType = type
-            a.isOptional = true; a.defaultValue = value; return a
-        }
-        entity.properties = [attribute("key", .stringAttributeType, ""), attribute("kind", .stringAttributeType, ""),
-                             attribute("payload", .stringAttributeType, "{}"), attribute("modified", .dateAttributeType, Date(timeIntervalSince1970: 0))]
-        model.entities = [entity]
-        return model
-    }
+    public func refreshCloudAccount() async { await syncCoordinator?.refreshCloudAccount() }
 
     private struct NoteAccess: Codable {
         var id: UUID
@@ -136,22 +42,9 @@ public final class LibraryStore: ObservableObject {
     }
 
     public func reload() throws {
-        let objects = try container.viewContext.fetch(NSFetchRequest<NSManagedObject>(entityName: "Record"))
-        var unique: [String: NSManagedObject] = [:]
-        for object in objects {
-            guard let key = object.value(forKey: "key") as? String else { continue }
-            let previous = unique[key]?.value(forKey: "modified") as? Date ?? .distantPast
-            let date = object.value(forKey: "modified") as? Date ?? .distantPast
-            if unique[key] == nil || date > previous { unique[key] = object }
-        }
-        records = unique
+        try persistence.reloadRecords()
         func decode<T: Decodable>(_ kind: String, _ type: T.Type) throws -> [T] {
-            try unique.values.filter { $0.value(forKey: "kind") as? String == kind }.map { object in
-                guard let string = object.value(forKey: "payload") as? String, let data = string.data(using: .utf8) else {
-                    throw DraftlyError.message("Cannot read a stored \(kind) record. Restore a backup before changing the library.")
-                }
-                return try JSONDecoder().decode(T.self, from: data)
-            }
+            try persistence.decode(kind, type)
         }
         syntaxes = try decode("syntax", SyntaxDefinition.self).sorted { $0.name < $1.name }
         let accessDates = Dictionary(try decode("noteAccess", NoteAccess.self).map { ($0.id, $0.date) }, uniquingKeysWith: max)
@@ -168,18 +61,9 @@ public final class LibraryStore: ObservableObject {
     }
 
     private func persist<T: Encodable>(_ item: T, id: UUID, kind: String) throws {
-        let key = "\(kind):\(id.uuidString)"
-        let payload = String(data: try JSONEncoder().encode(item), encoding: .utf8)!
-        let record = records[key] ?? NSEntityDescription.insertNewObject(forEntityName: "Record", into: container.viewContext)
-        record.setValue(key, forKey: "key"); record.setValue(kind, forKey: "kind")
-        record.setValue(payload, forKey: "payload"); record.setValue(Date(), forKey: "modified")
-        records[key] = record
+        try persistence.persist(item, id: id, kind: kind)
     }
-
-    private func commit() throws {
-        do { try container.viewContext.save(); try reload() }
-        catch { container.viewContext.rollback(); try? reload(); throw error }
-    }
+    private func commit() throws { try persistence.commit { try reload() } }
 
     var beforeBatchCommit: (() throws -> Void)?
 
@@ -319,7 +203,7 @@ public final class LibraryStore: ObservableObject {
         guard name != destination, !destination.isEmpty else { throw DraftlyError.message("Choose another destination group.") }
         do {
             for var action in actions where action.group == name { action.group = destination; try persist(action, id: action.id, kind: "action") }
-            if let group = actionGroups.first(where: { $0.name == name }), let record = records["actionGroup:" + group.id.uuidString] { container.viewContext.delete(record) }
+            if let group = actionGroups.first(where: { $0.name == name }), let record = persistence.record(for: "actionGroup:" + group.id.uuidString) { container.viewContext.delete(record) }
             try commit()
         } catch { container.viewContext.rollback(); try? reload(); throw error }
     }

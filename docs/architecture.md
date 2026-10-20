@@ -49,3 +49,15 @@ It stops accepting host and module calls after close. JavaScriptCore stays on
 MainActor. Existing synchronous APIs and RunLoop waits remain. No runAsync or
 worker was added. All 266 core tests and four script-editor Undo tests passed.
 A new runtime lifetime test passed. The normal matrix check has zero errors.
+
+## Stage 4: storage and synchronization
+
+LibraryRecordPersistence owns container setup, the record cache, payload mapping,
+and commit/rollback mechanics. LibrarySyncCoordinator receives remote changes,
+CloudKit events, and account checks. It reports through callbacks. LibraryStore
+keeps its public container, published collections, and domain operations.
+
+The Record schema, store URL, history settings, merge policy, backup contract,
+and operation boundaries remain unchanged. All 267 core tests passed, including
+reopen, rollback, backup, and cloud-state cases. This is not new two-client
+CloudKit acceptance. That acceptance remains separate.
