@@ -36,3 +36,16 @@ Settings pages are separate view components. General, HTML, bookmark, theme,
 and window preference access has no dependency on SettingsView. Existing keys,
 formats, defaults, and AppStorage bindings remain. Local preferences do not
 move into the library. The related preference and workspace tests passed.
+
+## Stage 3: action execution
+
+ActionRunner coordinates sessions, queues, and final effects. ActionStepExpansion
+resolves included steps. ActionStepExecutor performs one step. ActionScriptValues
+maps draft values against explicit library snapshots. EditorSession and execution
+results have separate definitions with their existing public names.
+
+ActionScriptRuntime owns the context, bridge closures, and host-call lifetime.
+It stops accepting host and module calls after close. JavaScriptCore stays on
+MainActor. Existing synchronous APIs and RunLoop waits remain. No runAsync or
+worker was added. All 266 core tests and four script-editor Undo tests passed.
+A new runtime lifetime test passed. The normal matrix check has zero errors.
