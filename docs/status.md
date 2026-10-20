@@ -843,3 +843,10 @@ runners pass exact Unicode reason, undefined return, current-script completion,
 quiet cancellation, and stop/disposition tests. Native history defaults passed.
 Full app437/core458 plus final focused checks and unsigned build passed. Other
 native notification and script-continuation variants stay pending.
+
+
+Context.cancel has complete member evidence for the frozen valid-input contract.
+Native current-script continuation, undefined return, stop/disposition, reason,
+and imported notification settings passed. Both runner routes and quiet
+notification behavior have specific automatic checks. Other Context, callback,
+Workspace, engine, and global acceptance remain pending.

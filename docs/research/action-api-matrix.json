@@ -7832,13 +7832,13 @@
             "cancel(message: string): void"
           ],
           "contract": "Tell the context to cancel the action at the end of the script execution. If called, at the end of the script the action will be stopped. No subsequent action steps in the action will run, and the action still stop silently - no notification banners, sounds, etc. If a message is included it will be added to the action log to explain the cancellation.",
-          "implementation": "reviewed-partial",
+          "implementation": "validated-script-cancellation-contract",
           "automatedTest": {
-            "suite": "ExecutionActionAPITests",
-            "test": "contextStopsLaterStepsButFinishesTheCurrentScript"
+            "suite": "DraftActionLogContractTests",
+            "test": "cancellationLogUsesOnlyTheSuppliedReason"
           },
-          "liveCheck": null,
-          "compatibilityStatus": "partial",
+          "liveCheck": "docs/validation.md: Native Context.cancel current-script acceptance — 20 October 2026",
+          "compatibilityStatus": "complete",
           "reviewDate": "2026-10-20",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
@@ -7846,10 +7846,8 @@
           },
           "defaults": "Omitting a cancellation message adds no log text. A supplied message is retained exactly, including Unicode.",
           "result": "Returns undefined. The current script continues; later action steps and success disposition do not run. Final status is Cancelled.",
-          "errors": "No cancellation-specific thrown error is documented. This check does not accept every underlying host or storage failure.",
-          "limitations": [
-            "Native omitted-message and Unicode-reason history checks passed. Native finish-current-script and enabled notification-option checks remain pending. Other cancellation and host failure contracts remain separate."
-          ],
+          "errors": "The frozen contract defines no cancellation-specific throwing error for valid string input. Cancellation completes the current script and stops later action steps.",
+          "limitations": [],
           "evidenceLevel": "Member-specific assertions. Native verification is separate.",
           "supportingTests": [
             {
@@ -7858,17 +7856,54 @@
             }
           ],
           "nativeVerification": {
-            "status": "pending",
-            "additionalChecks": [
-              {
-                "date": "2026-10-20",
-                "executableSHA256": "0b424aa7419475235601614dd059607f570866e7bed1c42f21135fc37f56c14b",
-                "fixture": "scripts/fixtures/engine-log-actions.json",
-                "result": "Cancelled history contained no log text when the message was omitted and exactly the supplied Unicode reason otherwise. Draft text remained unchanged.",
-                "evidence": "docs/validation.md: Cancellation reason defaults — 20 October 2026"
-              }
-            ]
-          }
+            "status": "passed",
+            "date": "2026-10-20",
+            "evidence": "docs/validation.md: Native Context.cancel current-script acceptance — 20 October 2026",
+            "executableSHA256": "0b424aa7419475235601614dd059607f570866e7bed1c42f21135fc37f56c14b",
+            "result": "Omitted and Unicode reasons verified previously. Current script used undefined return, wrote and saved after cancel, while the next step and archive did not run. Inspector confirmed both notification flags on. No permission dialog appeared; automatic host-call checks verify no notification request."
+          },
+          "limitationsHistory": [
+            "Native omitted-message and Unicode-reason history checks passed. Native finish-current-script and enabled notification-option checks remain pending. Other cancellation and host failure contracts remain separate."
+          ],
+          "automatedTestHistory": [
+            {
+              "suite": "ExecutionActionAPITests",
+              "test": "contextStopsLaterStepsButFinishesTheCurrentScript"
+            }
+          ],
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "DraftActionLogContractTests",
+                "test": "cancellationLogUsesOnlyTheSuppliedReason"
+              },
+              "assertion": "Both runners return undefined, complete the current script host effect, retain an exact Unicode reason, stop later steps and archive, and make no notification request even with both notification flags enabled."
+            },
+            "defaults": {
+              "test": {
+                "suite": "DraftActionLogContractTests",
+                "test": "cancellationLogUsesOnlyTheSuppliedReason"
+              },
+              "assertion": "Omitted cancellation text adds no log text on both runners."
+            },
+            "errors": {
+              "notApplicable": "The frozen contract defines no cancellation-specific throwing error for valid string input. Errors from later script host operations have separate contracts."
+            }
+          },
+          "nativeVerificationHistory": [
+            {
+              "status": "pending",
+              "additionalChecks": [
+                {
+                  "date": "2026-10-20",
+                  "executableSHA256": "0b424aa7419475235601614dd059607f570866e7bed1c42f21135fc37f56c14b",
+                  "fixture": "scripts/fixtures/engine-log-actions.json",
+                  "result": "Cancelled history contained no log text when the message was omitted and exactly the supplied Unicode reason otherwise. Draft text remained unchanged.",
+                  "evidence": "docs/validation.md: Cancellation reason defaults — 20 October 2026"
+                }
+              ]
+            }
+          ]
         },
         {
           "member": "fail",

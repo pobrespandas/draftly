@@ -3787,3 +3787,38 @@ for the explicit case. Draft content stayed unchanged. Closed history.
 Native current-script continuation and enabled-notification variants remain
 pending. Context.cancel stays partial with these precise limits. No screenshot
 or raw log is retained in the repo.
+
+
+### Native Context.cancel current-script acceptance — 20 October 2026
+
+Verified in use on QA executable 0b424aa741947523. Imported the native-format
+engine-cancel-continuation-actions.json fixture. Its script stores the return
+from context.cancel, then writes and saves a neutral draft. The observed text
+was Current script finished café 🐼. That path requires an undefined return.
+The following insertText marker and Archive disposition did not run; the draft
+stayed in Inbox. History recorded Cancelled with the exact supplied Unicode
+reason.
+
+Opened the action inspector without changing it. Notify on Success and Notify
+on Error were both on, and Archive was selected. Cancelled the inspector edit.
+No notification permission dialog appeared. The automatic host-call assertion
+checks that cancellation makes no notification request; no actual notification
+was sent as a test. Closed history and left the neutral result open.
+
+Context.cancel is now complete for the frozen valid-input contract. Evidence
+covers both runner routes, void return, current-script completion, subsequent
+step/disposition stop, omitted and explicit reason, and notification suppression.
+No cancellation-specific throwing error is defined for valid string input.
+Host operations after cancellation have their own contracts. Prior partial
+limits and native evidence remain in matrix history. This one member does not
+close Context, the engine, or the full plan. No production code changed this
+turn. The previous full run is app437/core458 plus its final focused assertions.
+
+Read-only parallel audit next work: reproduce no-wait callbackResponses entries
+and prototype-named CallbackURL parameters before changing source. Audit paths:
+Bridge.js CallbackURL, ActionAsyncHost.swift callback case, and
+ActionStepExecutor.swift callback case. Workspace native retained-state restart
+acceptance also remains open; the adapter tests are not drawn-row evidence.
+
+The strict parity validator returned zero diagnostics for Context.cancel after
+this evidence update. This is a member check, not a core or global gate pass.

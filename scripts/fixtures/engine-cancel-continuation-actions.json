@@ -1,0 +1,40 @@
+[
+  {
+    "id": "a2b4830d-5220-488e-8c80-d2927169d402",
+    "name": "QA Cancel current script",
+    "symbol": "bolt",
+    "group": "Imported",
+    "shortcut": "",
+    "afterSuccess": "archive",
+    "configuredValues": {},
+    "options": {
+      "description": "Neutral cancellation contract fixture",
+      "showInList": true,
+      "showInBar": true,
+      "showInSearch": true,
+      "confirmBeforeRun": false,
+      "notifyOnSuccess": true,
+      "notifyOnError": true,
+      "addTags": [],
+      "removeTags": [],
+      "section": "",
+      "order": 0
+    },
+    "steps": [
+      {
+        "id": "443308fa-ed10-47bc-b57a-729e481214b7",
+        "type": "script",
+        "values": {
+          "script": "var result=context.cancel('Native continuation café 🐼');editor.setText(typeof result==='undefined'?'Current script finished café 🐼':'ERROR: cancel return');draft.update();"
+        }
+      },
+      {
+        "id": "19cf03a7-1d84-4dfe-ab8d-06b8595463b6",
+        "type": "insertText",
+        "values": {
+          "template": "ERROR: cancellation next step"
+        }
+      }
+    ]
+  }
+]
