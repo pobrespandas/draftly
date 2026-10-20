@@ -1058,3 +1058,23 @@ tests, 24 Python tests, and the normal matrix check with zero errors. The local
 Xcode build passed with signing disabled. The whitespace check passed. A scan
 for private key, GitHub token, and AWS access-key markers found no matches.
 Signing files, local libraries, logs, evidence, and screenshots remain ignored.
+
+
+## Architecture refactoring and background tests — 19 October 2026
+
+The baseline tag is pre-refactor-2026-10-19 at commit 2fba5bd. The window,
+preferences, execution, storage, native adapters, and view components were
+refactored in separate commits. Public scripting contracts and data formats stay.
+
+The user requested removal of tests that show or move visible windows. Three
+visible-animation tests and their fixture were removed. The remaining AppKit
+fixtures use OffscreenTestWindow, which rejects ordering and activation. Queue
+synchronization has one helper. The visual matrix records the retired tests.
+Visible animation acceptance requires a manual session; hidden tests do not
+replace it. No Computer Use or real cloud acceptance ran for this refactoring.
+
+Final verification passed: 170 app tests, 267 core tests, 24 Python tests, local
+Xcode build with signing disabled, normal matrix validation with zero errors,
+and whitespace validation. The original five action fixtures are unchanged.
+All compatibility classifications match the baseline. Broad Mac parity remains
+open. These totals describe regression checks, not API compatibility coverage.

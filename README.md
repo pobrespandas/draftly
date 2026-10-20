@@ -160,10 +160,11 @@ available macOS model. See [compatibility.md](docs/compatibility.md) for limits.
 `DraftlyApp.swift` defines scenes. `AppController.swift` owns app coordination.
 `AppDelegate.swift` owns the menu bar and global shortcut.
 `ApplicationCommands.swift` defines app and window menus. `SettingsView.swift`
-contains Settings and its local preferences.
+contains Settings pages. Preference access is separate from those views.
 
 Start with [project status](docs/status.md) for implemented work and pending
-acceptance. Use [validation](docs/validation.md) for historical test evidence.
+acceptance. Use [architecture](docs/architecture.md) for component boundaries
+and refactoring checks. Use [validation](docs/validation.md) for historical test evidence.
 Use the [core audit](docs/research/core-actions-audit.md) and
 [compatibility guide](docs/compatibility.md) for Actions limits. Use the
 [iCloud guide](docs/icloud-distribution.md) and

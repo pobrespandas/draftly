@@ -99,3 +99,21 @@ WindowModel no longer imports SwiftUI; focus bridging has its own component.
 Two unused library-view helpers were removed. All 169 app and 267 core tests
 passed after extraction. Visible use was not repeated under the background test
 policy. The change does not claim new visual or CloudKit acceptance.
+
+## Final acceptance
+
+File dialogs now live in DraftFileCommands. Tag operations receive the peer-window
+provider. Toolbar search and shortcut Settings use explicit routes or owners.
+AppController.shared remains at app lifecycle and App Intent entry points.
+ActionHost has its own boundary definition. TestMainQueue centralizes fixture
+synchronization. Offscreen fixtures retain responder and layout coverage.
+
+Final checks passed on 19 October 2026: 170 app tests, 267 core tests, 24 Python
+tests, local Xcode build with signing disabled, whitespace validation, and the
+normal matrix check with zero errors. The five original action fixture files
+are unchanged. Every API compatibility classification matches the baseline tag.
+
+No package target, stored schema, backup format, or public scripting API changed.
+No worker or runAsync was added. Visible UI, two-client CloudKit, and signed
+installation were not repeated. Those checks retain their previous pending
+status. Historical test totals elsewhere are not the current test inventory.

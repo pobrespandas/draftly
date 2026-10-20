@@ -24,10 +24,10 @@ retain historical results. Later results supersede earlier counts.
 
 | Check | Latest result |
 | --- | --- |
-| App tests | 170 passed |
-| Core tests | 266 passed |
+| App tests | 170 passed after background-test cleanup |
+| Core tests | 267 passed |
 | Python tools | 24 passed |
-| Local Xcode build after source reorganization | Passed |
+| Local Xcode build after architecture refactoring | Passed; signing disabled |
 | Matrix structure check | 0 errors |
 | Whitespace check | Passed |
 | Strict core and global parity | Still open |
@@ -36,6 +36,21 @@ The matrix contains 562 API members: 106 complete, 139 partial, 312 unclassified
 3 unavailable, and 2 excluded. It also tracks 25 step types. These are inventory
 counts, not a compatibility percentage. The reference remains Drafts 54.1.1 and
 the archived official documentation from 19 October 2026.
+
+## Architecture refactoring completed 19 October 2026
+
+The baseline tag `pre-refactor-2026-10-19` is published on origin. The six code
+stages are implemented. See [architecture](architecture.md) for component
+responsibilities, dependency direction, and acceptance. Current work preserves
+behavior. Native visible acceptance was deferred under the background test policy.
+
+Three tests that displayed and moved windows were removed. Hidden window tests
+now reject ordering and activation. Shared fixture synchronization replaces
+repeated queue-draining helpers. A new test covers tag changes across injected
+peer windows. The final suite passed 170 app and 267 core tests.
+
+API classifications and the original action scripts are unchanged. Mac parity,
+async execution, and the broader native acceptance roadmap remain incomplete.
 
 ## 1 Draft contracts
 
