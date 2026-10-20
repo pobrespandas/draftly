@@ -14,6 +14,11 @@ JavaScript values stay on that worker. The worker releases the runtime on its
 queue before the action returns. MainActor owns library, editor, and window work.
 The synchronous legacy route still runs on MainActor.
 
+Worker runtime operations check their serial queue with dispatch preconditions.
+An internal optional probe reports scalar lifecycle events and queue/thread
+observations. It does not expose JavaScript values. Close releases the runtime
+on that queue before returning. This does not control JavaScriptCore GC timing.
+
 The bridge exchanges JSON strings and execution and step IDs. Each request has
 a unique reply token and a deadline. Cancellation releases pending worker waits
 and cancels their host tasks. Duplicate replies cannot replace the first reply.

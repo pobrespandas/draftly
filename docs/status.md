@@ -531,3 +531,10 @@ queued timeout on a different note. Mixed Intent/URL overlap passed in both
 directions, including two windows and an owner without a matching editor. The
 synchronous-deadline and process-local exclusion records are complete. Remaining
 cancellation, source-close, callback, and capability variants stay open.
+
+
+Worker runtime operations now enforce serial queue ownership. A scalar probe and
+two actual worker cases verify host suspension, timer success, cancellation, and
+explicit close/release off MainActor. Full regression: 402 app and 392 core methods;
+unsigned Debug build passed. Native acceptance of the assertion build remains
+pending. The worker record is still partial.

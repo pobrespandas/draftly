@@ -16871,8 +16871,8 @@
         "result": "Temporary local QA app: panel use during delayed action, exact native Undo, window-close cancellation recorded in Execution History, and typing cancels while preserving user text. Other entry points remain pending."
       },
       "limitations": [
-        "Dedicated queued-action tests already prove fresh JavaScript global environments and retained final parameters. Explicit executor-ownership assertions still need dedicated evidence; responsiveness alone does not prove queue ownership.",
-        "Recorded panel responsiveness used an older QA build; current native permission/dialog and CPU-bound cancellation variants remain pending."
+        "Worker queue affinity now has dispatch preconditions and a scalar lifecycle probe. Actual suspended-host/timer and cancellation cases verify the owner queue and non-main thread through explicit runtime close/release. This does not assert JavaScriptCore GC destructor timing.",
+        "Native permission/dialog and CPU-bound task cancellation acceptance remains pending on the ownership-assertion build. Recent Shortcuts deadline and overlap checks used the prior image870884f2388974b4."
       ],
       "defaults": "The async runner creates a serial worker and a fresh runtime for a root execution. Its bridge carries JSON strings with execution and step identity. The legacy synchronous runner stays on MainActor.",
       "result": "JavaScriptCore evaluation remains on the worker while library/editor/UI operations run on MainActor. Awaiting script completion does not spin a RunLoop.",
@@ -16912,11 +16912,15 @@
         {
           "suite": "QueueAcceptanceTests",
           "test": "queuedActionsHaveFreshGlobalsAndAggregateFinalSuccessParameters"
+        },
+        {
+          "suite": "WorkerExecutorOwnershipTests",
+          "test": "runtimeLifecycleStaysOnItsWorkerAcrossHostSuspensionAndCancellation"
         }
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Recorded panel responsiveness used an older QA build; current native permission/dialog and CPU-bound cancellation variants remain pending."
+        "reason": "Native permission/dialog and CPU-bound task cancellation acceptance remains pending on the ownership-assertion build. Recent Shortcuts deadline and overlap checks used the prior image870884f2388974b4."
       },
       "automatedVerification": {
         "status": "passed",
@@ -16934,6 +16938,12 @@
             "command": "swift test --filter EngineBoundaryContractTests",
             "result": "Passed in the coordinator focused run: seven test methods and thirteen expanded cases, no failures.",
             "evidence": "The coordinator read the completed focused run before this evidence update."
+          },
+          {
+            "date": "2026-10-20",
+            "command": "swift test",
+            "result": "Passed 402 app methods and 392 core methods. New ownership method has success/timer and cancellation cases with actual per-worker queue keys and MainThread observations; original five actions passed both runner routes.",
+            "evidence": "docs/validation.md"
           }
         ]
       }

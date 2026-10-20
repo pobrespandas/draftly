@@ -2307,3 +2307,34 @@ added to the repository. Separate-target failure remains pending.
 Matrix structure passed. The strict engine gate now reports 27 diagnostics, down
 from 33 after these two specific records closed. Five records are complete and
 nine remain partial. These counts are not API compatibility percentages.
+
+
+## Worker executor ownership — 20 October 2026
+
+Implemented: ActionScriptWorker now checks its dispatch queue at queue entry,
+evaluation, host requests and responses, state checks, timer/deadline callbacks,
+finish, and explicit close/release. Construction runs inside the checked onQueue
+body. The creation event marks completed initialization; bootstrap host requests
+can occur before that event. ActionScriptRuntime and the legacy MainActor route
+were not changed.
+
+The optional internal probe emits only phase, per-instance queue-key match, and
+main-thread state. It uses DispatchQueue.getSpecific with an actual private key;
+it does not report a constant ownership result. No JSContext or JSValue crosses
+through the probe.
+
+Automatic: WorkerExecutorOwnershipTests ran the actual worker with a controlled
+MainActor host suspension. One case completed through its timer; one cancelled
+while suspended. Every captured event belonged to the worker queue and was off
+the main thread. Explicit close was the last event and occurred once before close
+returned. The focused ownership/promise/queue/async runner run passed 20 methods
+in four suites. The full regression passed 402 app methods and 392 core methods.
+The Original Drafts actions suite passed all five unchanged scripts through both
+legacy and async routes. The unsigned Debug Xcode build passed.
+
+Scope: close is observed after runtime.close and runtime=nil on the owner queue.
+It does not prove the destructor thread or timing of arbitrary objects inside
+JavaScriptCore's garbage collector. Native permission/dialog and CPU-bound task
+cancellation cases still need acceptance on this assertion build. The prior
+Shortcuts evidence identifies its earlier image explicitly. The worker record
+remains partial. No screenshots or raw logs were added.

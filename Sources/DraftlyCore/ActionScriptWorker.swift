@@ -114,6 +114,14 @@ struct ScriptWorkerFailure: LocalizedError, Sendable {
 
 // The unchecked conformance covers queue-owned state, never shared JS values.
 final class ActionScriptWorker: @unchecked Sendable {
+    enum Phase: Sendable { case created, evaluation, request, timer, closed }
+    struct LifecycleEvent: Sendable {
+        let phase: Phase
+        let isOnOwnerQueue: Bool
+        let isMainThread: Bool
+    }
+    private let queueKey = DispatchSpecificKey<UInt8>()
+    private let lifecycleProbe: (@Sendable (LifecycleEvent) -> Void)?
     private let queue = DispatchQueue(label: "Draftly.ActionScriptWorker")
     private let cancellation = WorkerCancellation()
     private let executionID: UUID
@@ -130,12 +138,15 @@ final class ActionScriptWorker: @unchecked Sendable {
 
     init(executionID: UUID, stepID: UUID, hostTimeout: TimeInterval,
          requestAuthority: ActionBridgeRequestAuthority = ActionBridgeRequestAuthority(),
+         lifecycleProbe: (@Sendable (LifecycleEvent) -> Void)? = nil,
          dispatch: @escaping @Sendable (ActionBridgeRequest) async -> String) {
+        self.lifecycleProbe = lifecycleProbe
         self.executionID = executionID
         self.stepID = stepID
         self.hostTimeout = hostTimeout
         self.requestAuthority = requestAuthority
         self.dispatch = dispatch
+        queue.setSpecific(key: queueKey, value: 1)
     }
 
     func cancel() {
@@ -163,6 +174,7 @@ final class ActionScriptWorker: @unchecked Sendable {
                 if let error = response["error"] as? String { throw ScriptWorkerFailure(message: error) }
                 return response["value"] as? String ?? ""
             })
+            self.record(.created)
             try self.evaluate(source)
         }
     }
@@ -174,6 +186,7 @@ final class ActionScriptWorker: @unchecked Sendable {
     func run(source: String, stepID: UUID, asynchronous: Bool, timeout: TimeInterval, synchronousTimeout: TimeInterval) async throws -> Bool {
         try await withCheckedThrowingContinuation { continuation in
             queue.async {
+                self.assertOwnerQueue()
                 do {
                     guard !self.cancellation.isCancelled else { throw ActionExecutionInterruption.cancelled }
                     guard let runtime = self.runtime else { throw ScriptWorkerFailure(message: "The action was closed.") }
@@ -194,6 +207,7 @@ final class ActionScriptWorker: @unchecked Sendable {
                     let deadline = ScriptExecutionDeadline()
                     try ActionRunner.limitExecution(runtime.context, seconds: asynchronous ? min(timeout, synchronousTimeout) : synchronousTimeout, deadline: deadline)
                     self.evaluationDeadline = deadline
+                    self.record(.evaluation)
                     let evaluation = runtime.context.evaluateScript(source)
                     if asynchronous, let evaluation, evaluation.isObject, evaluation.objectForKeyedSubscript("then")?.isObject == true {
                         runtime.context.setObject(evaluation, forKeyedSubscript: "__pendingResult" as NSString)
@@ -205,7 +219,9 @@ final class ActionScriptWorker: @unchecked Sendable {
                     } else {
                         let generation = self.generation
                         self.queue.asyncAfter(deadline: .now() + max(0, self.stepDeadline?.timeIntervalSinceNow ?? timeout)) { [weak self] in
-                            guard let self, self.generation == generation, self.pending != nil else { return }
+                            guard let self else { return }
+                            self.assertOwnerQueue()
+                            guard self.generation == generation, self.pending != nil else { return }
                             self.finish(.failure(ActionExecutionInterruption.timeout))
                         }
                         self.scheduleTimer(generation)
@@ -226,9 +242,11 @@ final class ActionScriptWorker: @unchecked Sendable {
         cancellation.cancel()
         await withCheckedContinuation { continuation in
             queue.async {
+                self.assertOwnerQueue()
                 self.finish(.failure(ActionExecutionInterruption.cancelled))
                 self.runtime?.close()
                 self.runtime = nil
+                self.record(.closed)
                 self.evaluationDeadline = nil
                 continuation.resume()
             }
@@ -236,9 +254,21 @@ final class ActionScriptWorker: @unchecked Sendable {
         await cancellation.drain()
     }
 
+    private func assertOwnerQueue() {
+        dispatchPrecondition(condition: .onQueue(queue))
+    }
+
+    private func record(_ phase: Phase) {
+        assertOwnerQueue()
+        lifecycleProbe?(LifecycleEvent(phase: phase,
+            isOnOwnerQueue: DispatchQueue.getSpecific(key: queueKey) == 1,
+            isMainThread: Thread.isMainThread))
+    }
+
     private func onQueue(_ body: @escaping @Sendable () throws -> Void) async throws {
         try await withCheckedThrowingContinuation { continuation in
             queue.async {
+                self.assertOwnerQueue()
                 do {
                     guard !self.cancellation.isCancelled else { throw ActionExecutionInterruption.cancelled }
                     try body()
@@ -249,6 +279,8 @@ final class ActionScriptWorker: @unchecked Sendable {
     }
 
     private func request(_ operation: String, _ payload: String) -> String {
+        assertOwnerQueue()
+        record(.request)
         let request = ActionBridgeRequest(executionID: executionID, stepID: stepID, deadline: min(Date().addingTimeInterval(hostTimeout), stepDeadline ?? .distantFuture), operation: operation, payload: payload)
         guard requestAuthority.register(request) else { return "{\"error\":\"The action was closed.\"}" }
         defer { requestAuthority.revoke(request.token) }
@@ -264,12 +296,15 @@ final class ActionScriptWorker: @unchecked Sendable {
     }
 
     private func evaluate(_ source: String) throws {
+        assertOwnerQueue()
         guard let runtime else { throw ScriptWorkerFailure(message: "The action was closed.") }
+        record(.evaluation)
         runtime.context.evaluateScript(source)
         try checkState()
     }
 
     private func readHostInterruption(_ response: [String: Any]) throws {
+        assertOwnerQueue()
         switch response["termination"] as? String {
         case "cancelled": hostInterruption = .cancelled
         case "timeout": hostInterruption = .timeout
@@ -279,6 +314,7 @@ final class ActionScriptWorker: @unchecked Sendable {
     }
 
     private func checkState() throws {
+        assertOwnerQueue()
         guard !cancellation.isCancelled else { throw ActionExecutionInterruption.cancelled }
         guard let runtime else { throw ScriptWorkerFailure(message: "The action was closed.") }
         if let interruption = hostInterruption { throw interruption }
@@ -291,13 +327,17 @@ final class ActionScriptWorker: @unchecked Sendable {
     }
 
     private func scheduleTimer(_ generation: UUID) {
+        assertOwnerQueue()
         guard pending != nil, let context = runtime?.context else { return }
         let next = context.evaluateScript("__timers.length?__timers.reduce((a,t)=>Math.min(a,t.time),Infinity):null")
         guard let next, !next.isNull, !next.isUndefined else { return }
         guard next.toDouble().isFinite else { return }
         let delay = max(0, (next.toDouble() - Date().timeIntervalSince1970 * 1000) / 1000)
         queue.asyncAfter(deadline: .now() + delay) { [weak self] in
-            guard let self, self.generation == generation, self.pending != nil else { return }
+            guard let self else { return }
+            self.assertOwnerQueue()
+            guard self.generation == generation, self.pending != nil else { return }
+            self.record(.timer)
             do {
                 try self.evaluate("__drainTimers();")
                 if self.runtime?.context.objectForKeyedSubscript("__completed")?.toBool() == true { self.finish(.success(true)) }
@@ -307,6 +347,7 @@ final class ActionScriptWorker: @unchecked Sendable {
     }
 
     private func finish(_ result: Result<Bool, Error>) {
+        assertOwnerQueue()
         guard let pending else { return }
         self.pending = nil
         stepDeadline = nil
