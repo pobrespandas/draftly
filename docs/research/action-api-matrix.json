@@ -16711,6 +16711,16 @@
         {
           "suite": "ImportedActionPreservationTests",
           "test": "disabledUnknownPayloadSurvivesExportBackupAndRestore"
+        },
+        {
+          "suite": "URLActionInstallationTests",
+          "test": "successfulBatchPreservesDisabledUnknownPayload",
+          "file": "Tests/DraftlyTests/URLActionInstallationTests.swift"
+        },
+        {
+          "suite": "URLActionInstallationTests",
+          "test": "failedBatchRestoresReplacedAndNewActions",
+          "file": "Tests/DraftlyTests/URLActionInstallationTests.swift"
         }
       ],
       "nativeVerification": {
@@ -16724,7 +16734,15 @@
         "revision": "a847584",
         "date": "2026-10-20",
         "evidence": "docs/validation.md",
-        "scope": "The named normal/default/error tests and the dedicated export, backup, restore, and execution case passed in the 350 core test run. Native acceptance is separate."
+        "scope": "The named normal/default/error tests and the dedicated export, backup, restore, and execution case passed in the 350 core test run. Native acceptance is separate.",
+        "additionalRuns": [
+          {
+            "date": "2026-10-20",
+            "command": "swift test --filter URLActionInstallationTests|AutomationTimeoutBoundaryTests|AutomationEditorContextTests",
+            "result": "Passed thirteen methods. Four URL installation cases verify atomic rollback, complete decode before save, unavailable library, and disabled unknown payload.",
+            "evidence": "docs/validation.md"
+          }
+        ]
       }
     },
     {

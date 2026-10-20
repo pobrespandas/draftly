@@ -23,7 +23,7 @@ struct ApplicationURLRouter {
                 show()
             } catch { library?.error = error.localizedDescription }
         case "action":
-            do { for action in try ActionImporter.installationActions(url) { try library?.saveAction(action) }; show() }
+            do { try Self.installActions(url, library: library); show() }
             catch { library?.error = error.localizedDescription }
         case "syntax":
             do {
@@ -83,6 +83,12 @@ struct ApplicationURLRouter {
         default: break
         }
     }
+    static func installActions(_ url: URL, library: LibraryStore?) throws {
+        guard let library else { throw DraftlyError.message("The library is unavailable.") }
+        let actions = try ActionImporter.installationActions(url)
+        try library.saveActions(actions)
+    }
+
     static func runTarget(parameters: [String: String], library: LibraryStore?) throws -> (action: DraftAction, note: Note) {
         guard let library else { throw DraftlyError.message("The library is unavailable.") }
         guard let name = parameters["action"], !name.isEmpty,

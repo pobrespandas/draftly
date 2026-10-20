@@ -2140,3 +2140,25 @@ older queued-timeout evidence on the current image. It does not cover separate
 queued target timeout or App Intent timeout. Matrix structure passed; strict
 engine remains at 33 diagnostics. Python37 passed. No production execution code
 changed for these timeout checks.
+
+
+## Atomic action installation by URL — 20 October 2026
+
+Implemented: the action installation URL now decodes the full set, then calls
+LibraryStore.saveActions once. The old per-action save loop could retain earlier
+writes after a later storage error. The router shows the library only after the
+batch succeeds. A missing library returns an explicit error. The run-action path
+is unchanged.
+
+Automatic: URLActionInstallationTests passed four methods. They cover a malformed
+later entry, injected batch failure while replacing an existing action and adding
+a new action, successful preservation of disabled unknown steps/raw Unicode
+payload, and an unavailable library. Reload after a failed batch retains the
+original action set. The combined automation/context/install run passed thirteen
+methods. ApplicationURLActionTests passed both target-resolution regressions.
+The unsigned Debug Xcode build passed.
+
+Native: no new failure-injection UI check was run. Earlier native import evidence
+uses the prior QA executable; this new transaction behavior is backed by specific
+store/route tests. The isolated QA bundle still contains image3d28cc07b2ff04f6.
+Refresh it before accepting later source-level changes through Computer Use.

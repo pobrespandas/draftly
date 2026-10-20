@@ -503,3 +503,10 @@ in Inbox and stopped later steps/Archive. The queued timeout delivered exactly
 one error callback without success parameters. The new actual-worker automation
 boundary case and existing context cases passed (nine methods). App Intent and
 separate-target variants remain pending; no broader closure is claimed.
+
+
+Action installation by URL now saves the decoded set atomically. Storage failure
+rolls back replacements and new actions. Four focused installation cases, both
+URL target regressions, and the unsigned Debug build passed. Native failure
+injection was not performed. Existing import compatibility evidence remains
+scoped to its recorded checks.
