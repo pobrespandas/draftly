@@ -7740,6 +7740,10 @@
             {
               "suite": "CallbackResponseContractTests",
               "test": "returnedParameterNamesRemainOwnProperties"
+            },
+            {
+              "suite": "ShortcutResponseContractTests",
+              "test": "waitOptionReachesTheHostAndControlsResponses"
             }
           ],
           "nativeVerification": {
@@ -12378,10 +12382,45 @@
             "response: { [x: string]: any }"
           ],
           "contract": "An object contain and URL query parameters returned by the Shortcuts app. For example, if the the shortcut ends returning a value, it will be in the result key of this dictionary. If it returned a Dictionary, this would have each of the keys of the dictionary as a string value.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "implemented-with-targeted-tests",
+          "automatedTest": {
+            "suite": "ShortcutResponseContractTests",
+            "test": "waitOptionReachesTheHostAndControlsResponses"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-20",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Shortcut.response"
+          },
+          "defaults": "waitForResponse starts true. Omitted step and script options wait for output. No-wait execution returns no response or result.",
+          "result": "Waiting calls expose the returned string and append one response. No-wait calls continue after process launch, keep response empty and result undefined, append no response, and leave an earlier shortcut_result tag unchanged.",
+          "errors": "Process launch failures propagate to the step or the existing script failure status. Detached processes retain the existing 60-second native deadline. Later detached output or failure cannot change the completed action.",
+          "limitations": [
+            "Actual Shortcuts no-wait acceptance is pending while the Mac is locked. Dictionary/typed response conversion and all status/error variants remain separate acceptance. App termination during detached execution is not verified."
+          ],
+          "supportingTests": [
+            {
+              "suite": "ShortcutLaunchTests",
+              "test": "noWaitReturnsNoOutputAndKeepsInputUntilExit",
+              "file": "Tests/DraftlyTests/NativeProcessExecutorTests.swift"
+            },
+            {
+              "suite": "ShortcutLaunchTests",
+              "test": "defaultWaitStillReturnsTheRealOutputAfterExit",
+              "file": "Tests/DraftlyTests/NativeProcessExecutorTests.swift"
+            },
+            {
+              "suite": "ShortcutLaunchTests",
+              "test": "launchedShortcutSurvivesCancellationOfItsCallingAction",
+              "file": "Tests/DraftlyTests/NativeProcessExecutorTests.swift"
+            }
+          ],
+          "nativeVerification": {
+            "status": "pending",
+            "reason": "The Mac is locked. Background process fixtures verify launch and file ownership, not actual Shortcuts execution."
+          }
         },
         {
           "member": "result",
@@ -12393,10 +12432,45 @@
             "result?: any"
           ],
           "contract": "Convenience method to retrieve the result key from the reponse object. This is equivalent to shortcut.response[\"result\"]. The type of value in this key depends on the value returned from the shortcut.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "implemented-with-targeted-tests",
+          "automatedTest": {
+            "suite": "ShortcutResponseContractTests",
+            "test": "waitOptionReachesTheHostAndControlsResponses"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-20",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Shortcut.result"
+          },
+          "defaults": "waitForResponse starts true. Omitted step and script options wait for output. No-wait execution returns no response or result.",
+          "result": "Waiting calls expose the returned string and append one response. No-wait calls continue after process launch, keep response empty and result undefined, append no response, and leave an earlier shortcut_result tag unchanged.",
+          "errors": "Process launch failures propagate to the step or the existing script failure status. Detached processes retain the existing 60-second native deadline. Later detached output or failure cannot change the completed action.",
+          "limitations": [
+            "Actual Shortcuts no-wait acceptance is pending while the Mac is locked. Dictionary/typed response conversion and all status/error variants remain separate acceptance. App termination during detached execution is not verified."
+          ],
+          "supportingTests": [
+            {
+              "suite": "ShortcutLaunchTests",
+              "test": "noWaitReturnsNoOutputAndKeepsInputUntilExit",
+              "file": "Tests/DraftlyTests/NativeProcessExecutorTests.swift"
+            },
+            {
+              "suite": "ShortcutLaunchTests",
+              "test": "defaultWaitStillReturnsTheRealOutputAfterExit",
+              "file": "Tests/DraftlyTests/NativeProcessExecutorTests.swift"
+            },
+            {
+              "suite": "ShortcutLaunchTests",
+              "test": "launchedShortcutSurvivesCancellationOfItsCallingAction",
+              "file": "Tests/DraftlyTests/NativeProcessExecutorTests.swift"
+            }
+          ],
+          "nativeVerification": {
+            "status": "pending",
+            "reason": "The Mac is locked. Background process fixtures verify launch and file ownership, not actual Shortcuts execution."
+          }
         },
         {
           "member": "status",
@@ -12438,10 +12512,45 @@
             "waitForResponse: boolean"
           ],
           "contract": "If true, the script will pause and wait for the shortcut to complete and return a result. If false, execution of the script/action will continue immediately and no response/results will be available.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "implemented-with-targeted-tests",
+          "automatedTest": {
+            "suite": "ShortcutResponseContractTests",
+            "test": "waitOptionReachesTheHostAndControlsResponses"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-20",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Shortcut.waitForResponse"
+          },
+          "defaults": "waitForResponse starts true. Omitted step and script options wait for output. No-wait execution returns no response or result.",
+          "result": "Waiting calls expose the returned string and append one response. No-wait calls continue after process launch, keep response empty and result undefined, append no response, and leave an earlier shortcut_result tag unchanged.",
+          "errors": "Process launch failures propagate to the step or the existing script failure status. Detached processes retain the existing 60-second native deadline. Later detached output or failure cannot change the completed action.",
+          "limitations": [
+            "Actual Shortcuts no-wait acceptance is pending while the Mac is locked. Dictionary/typed response conversion and all status/error variants remain separate acceptance. App termination during detached execution is not verified."
+          ],
+          "supportingTests": [
+            {
+              "suite": "ShortcutLaunchTests",
+              "test": "noWaitReturnsNoOutputAndKeepsInputUntilExit",
+              "file": "Tests/DraftlyTests/NativeProcessExecutorTests.swift"
+            },
+            {
+              "suite": "ShortcutLaunchTests",
+              "test": "defaultWaitStillReturnsTheRealOutputAfterExit",
+              "file": "Tests/DraftlyTests/NativeProcessExecutorTests.swift"
+            },
+            {
+              "suite": "ShortcutLaunchTests",
+              "test": "launchedShortcutSurvivesCancellationOfItsCallingAction",
+              "file": "Tests/DraftlyTests/NativeProcessExecutorTests.swift"
+            }
+          ],
+          "nativeVerification": {
+            "status": "pending",
+            "reason": "The Mac is locked. Background process fixtures verify launch and file ownership, not actual Shortcuts execution."
+          }
         },
         {
           "member": "run",
@@ -12453,10 +12562,45 @@
             "run(): boolean"
           ],
           "contract": "Run the shortcut, and waits for a response (if waitForResponse = true). Returns true if an success response was received from the Shortcuts, otherwise false. If false, use the \"status\" property to determine the type of failure.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "implemented-with-targeted-tests",
+          "automatedTest": {
+            "suite": "ShortcutResponseContractTests",
+            "test": "waitOptionReachesTheHostAndControlsResponses"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-20",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Shortcut.run"
+          },
+          "defaults": "waitForResponse starts true. Omitted step and script options wait for output. No-wait execution returns no response or result.",
+          "result": "Waiting calls expose the returned string and append one response. No-wait calls continue after process launch, keep response empty and result undefined, append no response, and leave an earlier shortcut_result tag unchanged.",
+          "errors": "Process launch failures propagate to the step or the existing script failure status. Detached processes retain the existing 60-second native deadline. Later detached output or failure cannot change the completed action.",
+          "limitations": [
+            "Actual Shortcuts no-wait acceptance is pending while the Mac is locked. Dictionary/typed response conversion and all status/error variants remain separate acceptance. App termination during detached execution is not verified."
+          ],
+          "supportingTests": [
+            {
+              "suite": "ShortcutLaunchTests",
+              "test": "noWaitReturnsNoOutputAndKeepsInputUntilExit",
+              "file": "Tests/DraftlyTests/NativeProcessExecutorTests.swift"
+            },
+            {
+              "suite": "ShortcutLaunchTests",
+              "test": "defaultWaitStillReturnsTheRealOutputAfterExit",
+              "file": "Tests/DraftlyTests/NativeProcessExecutorTests.swift"
+            },
+            {
+              "suite": "ShortcutLaunchTests",
+              "test": "launchedShortcutSurvivesCancellationOfItsCallingAction",
+              "file": "Tests/DraftlyTests/NativeProcessExecutorTests.swift"
+            }
+          ],
+          "nativeVerification": {
+            "status": "pending",
+            "reason": "The Mac is locked. Background process fixtures verify launch and file ownership, not actual Shortcuts execution."
+          }
         },
         {
           "member": "create",
@@ -18373,20 +18517,31 @@
           "name": "Run Shortcut",
           "compatibilityStatus": "partial",
           "implementationEvidence": {
-            "file": "Sources/DraftlyCore/ActionRunner.swift",
-            "symbol": "execute / expandedSteps"
+            "file": "Sources/DraftlyCore/ActionAsyncHost.swift",
+            "symbol": "performSuspendingStep / runShortcut",
+            "additionalFiles": [
+              "Sources/DraftlyCore/ActionStepExecutor.swift",
+              "Sources/Draftly/NativeAutomationAdapter.swift",
+              "Sources/Draftly/NativeProcessExecutor.swift"
+            ]
           },
-          "automatedTest": null,
+          "automatedTest": {
+            "suite": "ShortcutResponseContractTests",
+            "test": "waitOptionReachesTheHostAndControlsResponses"
+          },
           "liveCheck": null,
           "limitations": [
-            "No-wait, return-to-app, cancellation, and timeout variants are not fully supported."
+            "No-wait has specific script/step and native-process fixture checks. Actual Shortcuts no-wait, return-to-app, cancellation, and timeout acceptance remain pending."
           ],
           "referenceArchive": {
             "path": "docs/research/action-api-reference/2026-10-19/steps-advanced.73b558d3fb9616255d0fc54427cebbd8dfd8dbfd7036de98777b976f0e7e1433.html.gz",
             "sha256": "73b558d3fb9616255d0fc54427cebbd8dfd8dbfd7036de98777b976f0e7e1433",
             "url": "https://docs.getdrafts.com/docs/actions/steps/advanced",
             "capturedAt": "2026-10-19T16:59:47.603659+00:00"
-          }
+          },
+          "limitationsHistory": [
+            "No-wait, return-to-app, cancellation, and timeout variants are not fully supported."
+          ]
         },
         {
           "type": "runAppleScript",

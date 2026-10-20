@@ -13,6 +13,7 @@ final class NativeProcessExecutor {
     private var parentExited = false
     private var cleanupPending = false
     private var isolatedProcessGroup: pid_t?
+    private var onExit: (() -> Void)?
 
     init(process: Process) { self.process = process }
 
@@ -21,30 +22,42 @@ final class NativeProcessExecutor {
         return try await executor.run(timeout: timeout)
     }
 
-    private func run(timeout: TimeInterval) async throws -> Int32 {
+    static func launchDetached(_ process: Process, timeout: TimeInterval, onExit: @escaping () -> Void) throws {
+        let executor = NativeProcessExecutor(process: process)
+        executor.onExit = onExit
+        do { try executor.launch(timeout: timeout) }
+        catch { executor.finish(error: error); throw error }
+    }
+
+    private func launch(timeout: TimeInterval) throws {
         guard timeout.isFinite, timeout > 0 else {
             throw DraftlyError.message("The process timeout must be positive and finite.")
         }
         try Task.checkCancellation()
+        process.terminationHandler = { [self] _ in
+            Task { @MainActor in self.parentExited = true; self.finish() }
+        }
+        try process.run()
+        let pid = process.processIdentifier
+        if getpgid(pid) == pid, pid != getpgrp() { isolatedProcessGroup = pid }
+        else if process.isRunning {
+            let error = DraftlyError.message("The process group could not be isolated.")
+            interrupt(error)
+            throw error
+        }
+        // Detached work must not inherit cancellation from the launching action.
+        timeoutTask = Task.detached { [self] in
+            do { try await Task.sleep(for: .seconds(timeout)) } catch { return }
+            await interrupt(ActionExecutionInterruption.timeout)
+        }
+    }
+
+    private func run(timeout: TimeInterval) async throws -> Int32 {
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
                 self.continuation = continuation
-                process.terminationHandler = { [self] _ in
-                    Task { @MainActor in self.parentExited = true; self.finish() }
-                }
-                do {
-                    try process.run()
-                    let pid = process.processIdentifier
-                    if getpgid(pid) == pid, pid != getpgrp() { isolatedProcessGroup = pid }
-                    else if process.isRunning {
-                        interrupt(DraftlyError.message("The process group could not be isolated."))
-                        return
-                    }
-                    timeoutTask = Task { [self] in
-                        do { try await Task.sleep(for: .seconds(timeout)) } catch { return }
-                        interrupt(ActionExecutionInterruption.timeout)
-                    }
-                } catch { finish(error: error) }
+                do { try launch(timeout: timeout) }
+                catch { finish(error: error) }
             }
         } onCancel: {
             Task { @MainActor [self] in interrupt(CancellationError()) }
@@ -85,6 +98,8 @@ final class NativeProcessExecutor {
         process.terminationHandler = nil
         let continuation = continuation
         self.continuation = nil
+        let cleanup = onExit; onExit = nil
+        cleanup?()
         if let error = interruption ?? error { continuation?.resume(throwing: error) }
         else { continuation?.resume(returning: process.terminationStatus) }
     }

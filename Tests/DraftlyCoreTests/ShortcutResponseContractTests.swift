@@ -1,0 +1,46 @@
+import Foundation
+import Testing
+@testable import DraftlyCore
+
+@Suite("Shortcut response contracts") @MainActor
+struct ShortcutResponseContractTests {
+    @Test(arguments: [false, true], [(false, "omitted"), (false, "true"), (false, "false"), (true, "omitted"), (true, "true"), (true, "false")])
+    func waitOptionReachesTheHostAndControlsResponses(worker: Bool, options: (Bool, String)) async throws {
+        let (step, mode) = options
+        let (_, _, host, runner) = try makeAPIContext()
+        defer { withExtendedLifetime(host) {} }
+        let waits = mode != "false"
+        var steps = [ActionStep("defineTemplateTag", ["name": "shortcut_result", "template": "Initial"])]
+        if step {
+            var values = ["name": "Neutral fixture", "template": "Input café 🐼"]
+            if mode != "omitted" { values["waitForResponse"] = mode }
+            steps.append(ActionStep("runShortcut", values))
+        } else {
+            let option = mode == "omitted" ? "" : "shortcut.waitForResponse=\(mode);"
+            steps.append(ActionStep("script", ["script": """
+            var shortcut=Shortcut.create('Neutral fixture','Input café 🐼');
+            if(shortcut.waitForResponse!==true)throw new Error('default wait');
+            \(option)
+            if(shortcut.run()!==true||shortcut.status!=='success')throw new Error('launch result');
+            if(\(waits ? "true" : "false")) {
+                if(shortcut.result!=='Shortcut output')throw new Error('waiting result');
+            } else {
+                if(shortcut.result!==undefined||Object.keys(shortcut.response).length!==0)throw new Error('synthetic no-wait result');
+            }
+            """]))
+        }
+        let count = waits ? 1 : 0
+        let expectedTag = waits ? "Shortcut output" : "Initial"
+        steps.append(ActionStep("script", ["script": """
+        if(context.callbackResponses.length!==\(count))throw new Error('response collection');
+        if(draft.processTemplate('[[shortcut_result]]')!=='\(expectedTag)')throw new Error('shortcut result tag');
+        """]))
+        let action = DraftAction(name: "Shortcut wait option", steps: steps)
+        if worker { #expect((await runner.runAsync(action)).result.succeeded, Comment(rawValue: runner.message ?? "")) }
+        else { #expect(runner.run(action), Comment(rawValue: runner.message ?? "")) }
+        let call = try #require(host.calls.first(where: { $0.0 == "shortcut" }))
+        #expect(call.1["waitForResponse"] as? Bool == waits)
+        #expect(call.1["name"] as? String == "Neutral fixture")
+        #expect(call.1["text"] as? String == "Input café 🐼")
+    }
+}

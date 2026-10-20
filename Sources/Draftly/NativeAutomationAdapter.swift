@@ -9,30 +9,41 @@ struct NativeAutomationAdapter {
     func perform(_ operation: String, values: [String: Any], host: NativeActionHost) throws -> Any? {
         let text = values["text"] as? String ?? ""
         switch operation {
-        case "shortcut": return try runShortcut(name: values["name"] as? String ?? "", input: text)
+        case "shortcut": return try runShortcut(name: values["name"] as? String ?? "", input: text, waitForResponse: values["waitForResponse"] as? Bool ?? true)
         case "appleScript": return try host.executeAppleScript(values)
         default: throw DraftlyError.message("The native operation is unavailable.")
         }
     }
 
-    func runShortcut(name: String, input: String) throws -> String {
+    func runShortcut(name: String, input: String, waitForResponse: Bool = true,
+                     executable: URL = URL(fileURLWithPath: "/usr/bin/shortcuts"), timeout: TimeInterval = 60) throws -> String? {
+        guard timeout.isFinite, timeout > 0 else { throw DraftlyError.message("The process timeout must be positive and finite.") }
         guard !name.isEmpty else { throw DraftlyError.message("Enter a Shortcut name in the action step.") }
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: root) }
+        var detached = false
+        defer { if !detached { try? FileManager.default.removeItem(at: root) } }
         let source = root.appendingPathComponent("input.txt"); let output = root.appendingPathComponent("output.txt")
         let errors = root.appendingPathComponent("errors.txt")
         try input.write(to: source, atomically: true, encoding: .utf8)
         FileManager.default.createFile(atPath: errors.path, contents: nil)
         let errorHandle = try FileHandle(forWritingTo: errors)
-        defer { try? errorHandle.close() }
-        let process = Process(); process.executableURL = URL(fileURLWithPath: "/usr/bin/shortcuts")
+        defer { if !detached { try? errorHandle.close() } }
+        let process = Process(); process.executableURL = executable
         process.arguments = ["run", name, "--input-path", source.path, "--output-path", output.path]
         process.standardOutput = FileHandle.nullDevice; process.standardError = errorHandle
+        if !waitForResponse {
+            detached = true
+            try NativeProcessExecutor.launchDetached(process, timeout: timeout) {
+                try? errorHandle.close()
+                try? FileManager.default.removeItem(at: root)
+            }
+            return nil
+        }
         try process.run()
-        let deadline = Date().addingTimeInterval(60)
+        let deadline = Date().addingTimeInterval(timeout)
         while process.isRunning && Date() < deadline { RunLoop.current.run(until: Date().addingTimeInterval(0.03)) }
-        if process.isRunning { process.terminate(); throw DraftlyError.message("The Shortcut exceeded 60 seconds.") }
+        if process.isRunning { process.terminate(); throw DraftlyError.message(timeout == 60 ? "The Shortcut exceeded 60 seconds." : "The Shortcut exceeded its timeout.") }
         guard process.terminationStatus == 0 else { throw DraftlyError.message((try? String(contentsOf: errors, encoding: .utf8)) ?? "The Shortcut failed.") }
         return (try? String(contentsOf: output, encoding: .utf8)) ?? ""
     }
@@ -76,23 +87,32 @@ struct NativeAutomationAdapter {
                 "stderr": (try? String(contentsOf: err, encoding: .utf8)) ?? ""]
     }
 
-    func runShortcutAsync(name: String, input: String,
+    func runShortcutAsync(name: String, input: String, waitForResponse: Bool = true,
                           executable: URL = URL(fileURLWithPath: "/usr/bin/shortcuts"),
-                          timeout: TimeInterval = 60) async throws -> String {
+                          timeout: TimeInterval = 60) async throws -> String? {
         guard !name.isEmpty else { throw DraftlyError.message("Enter a Shortcut name in the action step.") }
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: root) }
+        var detached = false
+        defer { if !detached { try? FileManager.default.removeItem(at: root) } }
         let source = root.appendingPathComponent("input.txt"), output = root.appendingPathComponent("output.txt")
         let errors = root.appendingPathComponent("errors.txt")
         try input.write(to: source, atomically: true, encoding: .utf8)
         FileManager.default.createFile(atPath: errors.path, contents: nil)
         let errorHandle = try FileHandle(forWritingTo: errors)
-        defer { try? errorHandle.close() }
+        defer { if !detached { try? errorHandle.close() } }
         let process = Process()
         process.executableURL = executable
         process.arguments = ["run", name, "--input-path", source.path, "--output-path", output.path]
         process.standardOutput = FileHandle.nullDevice; process.standardError = errorHandle
+        if !waitForResponse {
+            detached = true
+            try NativeProcessExecutor.launchDetached(process, timeout: timeout) {
+                try? errorHandle.close()
+                try? FileManager.default.removeItem(at: root)
+            }
+            return nil
+        }
         let status = try await NativeProcessExecutor.run(process, timeout: timeout)
         guard status == 0 else {
             throw DraftlyError.message((try? String(contentsOf: errors, encoding: .utf8)) ?? "The Shortcut failed.")

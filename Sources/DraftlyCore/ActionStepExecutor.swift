@@ -91,12 +91,10 @@ struct ActionStepExecutor {
             let file = try ActionFileStep(step, text: rendered) { try renderTemplate($0, note: current) }
             _ = try platform("saveFile", file.values)
         case "runShortcut":
-            let result = try platform("shortcut", ["name": step.values["name"] ?? "", "text": rendered])
-            if let result {
+            let result = try platform("shortcut", ["name": step.values["name"] ?? "", "text": rendered, "waitForResponse": step.values["waitForResponse"] != "false"])
+            if step.values["waitForResponse"] != "false", let result {
                 runner.customTags["shortcut_result"] = String(describing: result)
-                if step.values["waitForResponse"] != "false" {
-                    evaluate("context.callbackResponses.push(\(try json(["result": result])));")
-                }
+                evaluate("context.callbackResponses.push(\(try json(["result": result])));")
             }
         case "runAppleScript":
             let result = try platform("appleScript", ["source": step.values["script"] ?? step.values["source"] ?? "", "subroutine": "execute", "arguments": [noteValue(current)]])

@@ -125,12 +125,10 @@ import Foundation
             }
             return true
         case "runShortcut":
-            let result = try await nativeValue("shortcut", ["name": step.values["name"] ?? "", "text": rendered])
-            if let result {
+            let result = try await nativeValue("shortcut", ["name": step.values["name"] ?? "", "text": rendered, "waitForResponse": step.values["waitForResponse"] != "false"])
+            if step.values["waitForResponse"] != "false", let result {
                 customTags["shortcut_result"] = String(describing: result)
-                if step.values["waitForResponse"] != "false" {
-                    evaluate("context.callbackResponses.push(\(try json(["result": result])));")
-                }
+                evaluate("context.callbackResponses.push(\(try json(["result": result])));")
             }
             return true
         default: return nil

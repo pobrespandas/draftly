@@ -45,7 +45,7 @@ final class NativeActionHost: ActionHost {
         case "composeMail", "composeMessage": result = try await NativeMessageAdapter().composeAsync(operation, values)
         case "callbackURL": result = try await ActionCallbackRouter.openAsync(values)
         case "shellScript": result = try await NativeAutomationAdapter().executeShellAsync(values)
-        case "shortcut": result = try await NativeAutomationAdapter().runShortcutAsync(name: values["name"] as? String ?? "", input: values["text"] as? String ?? "")
+        case "shortcut": result = try await NativeAutomationAdapter().runShortcutAsync(name: values["name"] as? String ?? "", input: values["text"] as? String ?? "", waitForResponse: values["waitForResponse"] as? Bool ?? true)
         case "eventAPI": result = try await eventAPIAsync(values)
         case "reminder", "event": result = try await NativeSystemAdapter(events: events, reportError: onError).performAsync(operation, values: values)
         case "location": result = try await NativeLocationRequest.current()

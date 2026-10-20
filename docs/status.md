@@ -879,3 +879,10 @@ cases pass across script/step and both runners. Full regression passed
 app437/core461 and the unsigned build passed. Native response-key acceptance
 is pending: the Mac locked before the helper update and fixture execution.
 The engine strict gate still reports 27 diagnostics.
+
+
+Shortcut no-wait now reaches the native process launch. Both runner routes pass
+twelve response/option cases. Six background process tests cover input lifetime,
+cleanup, default wait, cancellation after launch, timeout, and launch errors.
+Full regression passed app443/core462; the unsigned build passed. Actual
+Shortcuts no-wait acceptance stays pending while the Mac is locked.

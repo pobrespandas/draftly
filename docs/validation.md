@@ -3926,3 +3926,45 @@ is /tmp/draftly-callback-response-helper. Quit both QA apps before replacing
 their installed bundles or executable. Then sign, open QA, import the fixture,
 and verify the expected text and Success history. No screenshot or raw log is
 stored in the repository.
+
+
+### Shortcut no-wait execution — 20 October 2026
+
+Implemented: script and Run Shortcut step requests now pass waitForResponse
+through both runner routes and the native host. The default remains true.
+False returns after a successful process launch. It does not wait for output,
+append a callback response, expose a script result, or replace shortcut_result.
+Launch failure remains explicit. Waiting mode still returns the real output.
+
+NativeProcessExecutor shares launch, process-group isolation, timeout, and
+termination cleanup for awaited and detached processes. A detached process owns
+its input folder and error handle until exit. Completing or cancelling the
+launching action does not cancel an external effect already launched. The
+existing native 60-second limit still applies. Later detached errors or output
+cannot change the completed action. App termination recovery is not verified.
+
+Automatic: waitOptionReachesTheHostAndControlsResponses has twelve cases across
+both runners, script/step, and omitted/true/false options. A test-only tag
+priority setup was corrected before the valid red run. That run failed eight
+cases with ten issues: missing step option forwarding or fabricated no-wait
+responses/tags. All twelve pass after the fix. The host fixture returns output
+even for no-wait, so the test verifies that the core ignores that output.
+
+ShortcutLaunchTests has six background process tests. File markers and an
+explicit release gate verify return-before-exit, delayed input access, cleanup,
+default awaited output, legacy no-wait, caller cancellation after launch,
+detached timeout, and launch failure. These use neutral local executables.
+They do not run Shortcuts, open windows, request permissions, or play audio.
+The final cancellation fixture has a bounded marker wait instead of an
+unbounded stream wait. The full run includes that final version.
+
+Full regression passed app443/core462. The unsigned Debug build passed. Matrix
+structure passes. The strict engine control still has unresolved contracts;
+these tests do not close the motor or Shortcut API.
+
+Native pending: the Mac remains locked. Actual Shortcuts execution, permission
+and callback variants remain pending. The existing shortcut named Draftly QA
+Engine — disposable calls Run Draft Action; do not reuse it as an output-only
+fixture or assume it tests no-wait. No installed QA bundle was replaced this
+turn. The incoming callback-key native check from the previous turn also stays
+pending. No screenshot or raw log is stored in the repository.

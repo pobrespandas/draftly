@@ -320,7 +320,7 @@ class Shortcut {
     constructor(){this.name='';this.text='';this.waitForResponse=true;this.response={};this.status='created';}
     static create(name,text=''){let s=new Shortcut();s.name=name;s.text=text;return s;}
     get result(){return this.response.result;}
-    run(text){if(text!==undefined)this.text=text;try{let result=__call('shortcut',{name:this.name,text:this.text,waitForResponse:this.waitForResponse});this.response={result};this.status='success';if(this.waitForResponse)context.callbackResponses.push(this.response);__tags.shortcut_result=String(result);__call('setTemplateTag',{key:'shortcut_result',value:String(result)});return true;}catch(e){this.status='error';this.response={error:e.message};return false;}}
+    run(text){if(text!==undefined)this.text=text;try{let result=__call('shortcut',{name:this.name,text:this.text,waitForResponse:this.waitForResponse});this.response=this.waitForResponse?{result}:{};this.status='success';if(this.waitForResponse){context.callbackResponses.push(this.response);__tags.shortcut_result=String(result);__call('setTemplateTag',{key:'shortcut_result',value:String(result)});}return true;}catch(e){this.status='error';this.response={error:e.message};return false;}}
 }
 class AppleScript {
     constructor(source){this.source=source;}static create(source){return new AppleScript(source);}
