@@ -197,17 +197,22 @@ Pending:
 Implemented: fonts/Nerd Fonts, size, spacing, margins, maximum width, typewriter
 scrolling, shortcuts, themes, and workspace management. Settings has General,
 iCloud, Bookmarks, Markdown, HTML, Editor, and Shortcuts categories.
-General includes appearance, menu bar visibility, capture timeout, and preferred
-find. Current workspace snapshots preserve advanced filters, tag presence,
+General includes appearance, menu bar visibility, capture timeout, preferred
+find, launch-at-login registration, initial-window policy, three global shortcut
+recorders, and After Success move navigation. Current workspace snapshots preserve advanced filters, tag presence,
 unknown fields, and per-folder order on save and application. Missing references
-are rejected before Save Current persists. Native sheet checks remain pending.
+are rejected before Save Current persists. Native missing-reference and failed
+save checks remain pending.
 The app menu has Editor Settings, Library Summary, and library-wide Empty
 Trash with confirmation, including when no command window exists.
 
 Pending:
 
-- Complete General launch behavior and shortcut recording; finish the remaining
-  included Settings categories and native appearance/geometry comparisons.
+- Verify launch-at-login on a service-capable installation, physical global-key
+  delivery, and the remaining startup/restoration variants. Initial-window policy,
+  recording, persistence, and the recorded action navigation paths passed their
+  specific checks. Finish the other included Settings categories and native
+  appearance/geometry comparisons.
 - Complete individual Markdown options, escaped line breaks, live changes, and
   visual/click checks for reference-help controls.
 - Verify workspace date/flag/per-folder sort controls in native use. They are
@@ -217,7 +222,8 @@ Pending:
 - Shared themes now use generic library records with stable identities and
   optional backup data. Local definitions migrate once per device and library.
   Native create/save/edit-cancel/restart/render and selection/Undo passed in QA.
-  Native backup recovery, legacy migration, and Mac+VM sync remain pending.
+  Native backup record recovery passed. Restored-theme rendering, legacy
+  migration, and Mac+VM sync remain pending.
 - Drafts theme file import now validates and preserves complete source, with
   review and explicit rendering limits. Native file import/save/replace/cancel
   passed. Exact scope rendering now has background tests for Markdown/custom
@@ -247,9 +253,9 @@ Pending:
   multiple windows, after restart, and after save failures.
 - Update the habitual app only after the required regressions pass.
 
-Computer Use can read Drafts. Observing the QA Settings window still returns a
-native-pipe error. The QA process was last confirmed live; an observation failure
-is not proof of termination.
+Computer Use can read Drafts and QA Settings. The earlier native-pipe failure
+recovered; later Settings interactions passed their recorded checks. A future
+observation failure must still be checked against the actual process state.
 
 ## 10 Data sync and personal distribution
 
