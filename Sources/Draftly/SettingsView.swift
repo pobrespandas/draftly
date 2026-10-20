@@ -13,6 +13,7 @@ struct SettingsView: View {
     @AppStorage("editor.fontName") private var fontName = "System"
     @AppStorage("editor.fontSize") private var fontSize = 17.0
     @AppStorage("editor.lineSpacing") private var lineSpacing = 2.0
+    @AppStorage(ActionMoveNavigation.preferenceKey) private var actionMoveNavigation = ActionMoveNavigation.createNew.rawValue
     @AppStorage("capture.newDraftAfter") private var newDraftAfter = 300.0
     private var nerdFontOptions: [(family: String, postScriptName: String)] {
         NSFontManager.shared.availableFontFamilies
@@ -139,6 +140,14 @@ struct SettingsView: View {
                         }
                         .labelsHidden().frame(width: 150)
                     }
+                }
+                HStack {
+                    Text("When Action “After Success” Moves Draft:")
+                    Picker("After Success navigation", selection: $actionMoveNavigation) {
+                        ForEach(ActionMoveNavigation.allCases, id: \.rawValue) { value in
+                            Text(value.rawValue).tag(value.rawValue)
+                        }
+                    }.labelsHidden().frame(width: 170)
                 }
                 Toggle("Use advanced find panel in editor", isOn: $preferAdvancedFind)
                     .toggleStyle(.checkbox)

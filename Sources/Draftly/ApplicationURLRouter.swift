@@ -69,7 +69,7 @@ struct ApplicationURLRouter {
                     let output = try await AutomationActionExecution.run(action, noteID: note.id, library: library,
                         models: controller.windows.allObjects, host: host)
                     if case .failure(let message) = output.report.result { library.error = message }
-                    if output.report.result.succeeded,
+                    if output.report.result.succeeded, !output.presentationHandled,
                        !controller.windows.allObjects.contains(where: { $0.library === library && $0.editor.noteID == output.noteID && $0.window?.isVisible == true }) {
                         show(output.noteID)
                     }

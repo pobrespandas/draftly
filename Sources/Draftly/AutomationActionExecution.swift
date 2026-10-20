@@ -8,6 +8,7 @@ import DraftlyCore
         let report: ActionExecutionReport
         let noteID: UUID?
         let message: String
+        var presentationHandled = false
     }
 
     typealias ModelResolver = @MainActor ([WindowModel], UUID) -> WindowModel?
@@ -15,9 +16,9 @@ import DraftlyCore
 
     private final class OwnerLifetime {
         var closed = false
-        var task: Task<ActionExecutionReport?, Never>?
+        var task: Task<WindowModel.ActionOutcome?, Never>?
         func close() { closed = true; task?.cancel() }
-        func attach(_ task: Task<ActionExecutionReport?, Never>) {
+        func attach(_ task: Task<WindowModel.ActionOutcome?, Never>) {
             self.task = task
             if closed { task.cancel() }
         }
@@ -118,14 +119,15 @@ import DraftlyCore
         }
         defer { subscriptions.forEach { $0.cancel() } }
         let report: ActionExecutionReport
+        var resultDraftID: UUID?
         if let model {
             let operation = Task { @MainActor in
-                guard !lifetime.closed, !Task.isCancelled else { return Optional<ActionExecutionReport>.none }
-                return await model.runAsync(action)
+                guard !lifetime.closed, !Task.isCancelled else { return Optional<WindowModel.ActionOutcome>.none }
+                return await model.runActionOutcome(action)
             }
             lifetime.attach(operation)
             let completed = await withTaskCancellationHandler { await operation.value } onCancel: { operation.cancel() }
-            if let completed { report = completed }
+            if let completed { report = completed.report; resultDraftID = completed.draftID }
             else if lifetime.closed || Task.isCancelled || operation.isCancelled {
                 return notStarted(action, noteID: editor.noteID, reason: .cancelled, message: "The action was cancelled before it started.")
             } else if model.actionPending || runner.isRunning {
@@ -134,9 +136,10 @@ import DraftlyCore
                 return notStarted(action, noteID: editor.noteID, reason: .error,
                                   message: library.error ?? "Pending edits could not be saved. The action was not started.")
             }
-        } else { report = await runner.runAsync(action) }
+        } else { report = await runner.runAsync(action); resultDraftID = editor.noteID }
         _ = host
-        return Output(report: report, noteID: editor.noteID, message: runner.message ?? "")
+        return Output(report: report, noteID: resultDraftID, message: runner.message ?? "",
+                      presentationHandled: model?.window?.isVisible == true)
     }
 
     private static func notStarted(_ action: DraftAction, noteID: UUID?, reason: ActionTerminationReason,

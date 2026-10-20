@@ -33,3 +33,11 @@ enum ApplicationAppearance: String, CaseIterable {
         }
     }
 }
+
+
+enum ActionMoveNavigation: String, CaseIterable {
+    case createNew = "Create New Draft"
+    case openNext = "Open Next Draft"
+    static let preferenceKey = "application.actionMoveNavigation"
+    static func resolved(_ value: String?) -> Self { Self(rawValue: value ?? "") ?? .createNew }
+}

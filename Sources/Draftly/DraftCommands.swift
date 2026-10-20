@@ -145,8 +145,10 @@ extension WindowModel {
                       flush(), library.notes.contains(where: { $0.id == id }) else { break }
                 select(id, fromAction: true)
                 guard editor.noteID == id else { break }
+                let navigation = actionNavigationSnapshot()
                 let report = await runner.runAsync(action)
-                if library.notes.contains(where: { $0.id == id }), editor.noteID != id { select(id, fromAction: true) }
+                if ids.count > 1, library.notes.contains(where: { $0.id == id }), editor.noteID != id { select(id, fromAction: true) }
+                if ids.count == 1 { finishActionNavigation(action, report: report, snapshot: navigation) }
                 status = runner.message ?? ""
                 tagsText = currentNote?.tags.joined(separator: ", ") ?? ""
                 if !report.result.succeeded { break }

@@ -2835,3 +2835,40 @@ this preference yet. Its integration must preserve script-selected drafts, final
 automation results, failed saves, and the agreed batch selection behavior. The
 current single and batch execution paths are separate; do not add navigation
 only to one path and claim full acceptance.
+
+### After Success move navigation — 20 October 2026
+
+Implemented: General exposes Create New Draft and Open Next Draft. The local
+preference defaults to Create New Draft and treats unknown stored values the
+same way. A successful action with an explicit Archive or Trash disposition
+uses the preference only when that disposition moved the original draft and
+the editor still shows it. Script-selected drafts remain selected. Error,
+cancellation, timeout, and failed pending saves do not trigger navigation.
+
+Create New Draft opens an unsaved scratch draft. It does not insert an empty
+library record. Open Next Draft uses the captured visible order, skips drafts
+that are no longer visible, then checks preceding drafts in reverse order. If
+none remain, it opens a scratch. The preceding-draft fallback is Draftly policy
+until comparison with Drafts can verify it. A disposition that leaves an already
+archived draft unchanged does not trigger navigation.
+
+Single context commands share the navigation helper. Multiple-target commands
+keep the agreed last-processed-draft behavior. That deliberate batch rule is not
+claimed as measured Drafts parity. Headless execution retains its result flow;
+it has no existing window to navigate.
+
+Window execution now keeps the processed draft identity separate from the
+post-action editor selection. The legacy report-returning adapter remains.
+Automation uses the outcome identity. URL routing does not reopen an older
+result over an already handled visible owner. Success parameters and the runner
+report are unchanged. Navigation from an action does not cancel its own task.
+
+Automatically tested: eight methods cover successful Archive/Trash, scratch
+creation, visible order and fallback, failure, cancellation, timeout, failed
+pending saves, script-selected editors, unchanged destinations, automation
+identity, single and multiple context commands, and defaults. Full regression
+passed 432 app and 419 core methods. The unsigned Debug build passed. No test
+shows a window. Native Settings persistence, action-panel execution, URL display
+behavior, selection/focus/Undo, and exact Drafts behavior remain pending. QA is
+still on the earlier image for the requested physical global-shortcut check.
+This entry does not close Settings or full action acceptance.

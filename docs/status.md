@@ -591,3 +591,11 @@ rejection of stale events and identity exhaustion; the build passed. Physical
 global delivery remains pending. Drafts After Success navigation was inspected:
 Create New Draft and Open Next Draft are the two choices. Draftly integration
 and behavior acceptance remain open.
+
+
+After Success move navigation is connected to General, single-window execution,
+and single context commands. Automation retains the processed draft identity
+separately from editor navigation. Multiple-target execution retains its agreed
+last processed draft. Eight contract methods, the full regression (432 app and
+419 core), and the unsigned build passed. Native interaction and exact Drafts
+comparison remain open; see validation for the fallback and batch policies.

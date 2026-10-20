@@ -197,8 +197,8 @@ final class WindowModel: ObservableObject {
     func perform(_ work: () throws -> Void) {
         do { try work() } catch { library.error = error.localizedDescription; status = "Changes could not be saved" }
     }
-    @discardableResult func create() -> Bool {
-        cancelActionForUserEdit()
+    @discardableResult func create(fromAction: Bool = false) -> Bool {
+        if !fromAction { cancelActionForUserEdit() }
         guard flush() else { return false }
         if let id = editor.noteID, library.notes.contains(where: { $0.id == id }) { lastNoteID = id }
         let note = Note()
@@ -326,25 +326,35 @@ final class WindowModel: ObservableObject {
             _ = await self.executeAction(action)
         }
     }
+    struct ActionOutcome {
+        let report: ActionExecutionReport
+        let draftID: UUID?
+    }
     @discardableResult
     func runAsync(_ action: DraftAction) async -> ActionExecutionReport? {
+        await runActionOutcome(action)?.report
+    }
+    func runActionOutcome(_ action: DraftAction) async -> ActionOutcome? {
         guard !actionPending, !runner.isRunning else { return nil }
         actionPending = true
         defer { actionPending = false }
         return await executeAction(action)
     }
-    private func executeAction(_ action: DraftAction) async -> ActionExecutionReport? {
+    private func executeAction(_ action: DraftAction) async -> ActionOutcome? {
         guard !Task.isCancelled else { return nil }
-        if let busy = libraryBusyReport(for: action) { return busy }
+        if let busy = libraryBusyReport(for: action) { return ActionOutcome(report: busy, draftID: editor.noteID) }
         guard flush() else { return nil }
         if var note = scratchNote {
             note.content = editor.content
             do { try library.saveNote(note); scratchNote = nil } catch { library.error = error.localizedDescription; return nil }
         }
+        let navigation = actionNavigationSnapshot()
         let report = await runner.runAsync(action)
+        let outcome = ActionOutcome(report: report, draftID: editor.noteID)
+        finishActionNavigation(action, report: report, snapshot: navigation)
         status = runner.message ?? ""
         tagsText = currentNote?.tags.joined(separator: ", ") ?? ""
-        return report
+        return outcome
     }
     func libraryBusyReport(for action: DraftAction) -> ActionExecutionReport? {
         guard ActionRunner.isExecuting(in: library) else { return nil }
