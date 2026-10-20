@@ -3861,3 +3861,15 @@ expected step and script result text. History showed Success for both actions.
 Closed history and quit QA before its next resource update. No external message
 was sent. Context.callbackResponses remains partial for other response variants.
 No screenshot or raw log is stored in the repo.
+
+
+### Installed icon inspection — 20 October 2026
+
+Refreshed the stopped Engine QA bundle from the successful Debug build. Started
+QA and opened Finder Get Info for that installed application. The small icon
+and large preview show the new stacked-sheet path and folded corner. Finder
+showed a gray treatment in this session; no system appearance setting changed.
+Closed Get Info. Live Dock and menu-template inspection remain pending:
+Computer Use timed out when it selected com.apple.dock and
+com.apple.systemuiserver. QA window and Finder controls still worked. This does
+not prove those two icon surfaces. No screenshot is stored in the repository.

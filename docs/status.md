@@ -861,3 +861,8 @@ No-wait callbacks now leave response collections and template tags unchanged.
 Both runner routes pass four specific cases. Native script and step checks pass.
 Full regression passed app437/core459; the unsigned build passed. Other callback
 contracts remain pending.
+
+
+Finder Get Info now confirms the new mark in the installed QA bundle. Live Dock
+and menu-template inspection remain pending because their Computer Use targets
+timed out. Other QA and Finder controls worked.
