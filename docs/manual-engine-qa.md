@@ -237,3 +237,13 @@ check the error message, count, empty success parameters, and root history rows.
 The reference documents inline inclusion and template names, but not a cycle
 policy or numeric depth. Draftly rejects cycles as a safety policy. Its tested
 50/51-action boundary is not a claim about the Drafts depth limit.
+
+## CPU deadline
+
+Import scripts/fixtures/engine-deadline-actions.json into the isolated library.
+Run QA CPU deadline with a unique local x-error case. The script writes neutral
+text before its infinite loop. The production synchronous deadline is ten
+seconds. Toggle filters while the worker runs, then restore their state. After
+timeout, check CPU completed write in Inbox, no tail sentinel, no discard
+parameter, one observed error callback, and Error history with the timeout
+message. Direct UI and App Intent execution need separate checks.

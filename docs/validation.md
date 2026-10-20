@@ -1809,3 +1809,30 @@ common asynchronous entry points contract. Two engine records are complete and
 twelve remain partial. Strict engine parity still fails with 36 diagnostics;
 the full Mac plan and the API member inventory remain open.
 
+## CPU deadline and unreturned promise gap — 20 October 2026
+
+Verified in use on the current isolated build: QA CPU deadline wrote CPU
+completed write, then entered an infinite loop. The production synchronous
+deadline remained ten seconds. Filters closed while the worker was running and
+were restored afterward. URL execution delivered one cpu-20261020-a error
+callback with the timeout message, no discard parameter. Text remained in Inbox;
+the following insertion and Archive did not run. History showed Error at 02:50.
+The count stayed at one after inspection. Both QA apps were quit. Direct UI and
+App Intent CPU deadline checks remain pending.
+
+Automatically tested: four invalid async limits (zero, negative, infinity, NaN)
+failed explicitly before script effects. A new unreturned Promise.reject case
+exposed a gap: the worker observes only the returned evaluation promise. A
+discarded rejection waits for timeout instead of reporting its rejection reason.
+The first focused run failed on classification and message. The retained test
+marks only those two assertions as known issues. Other assertions still require
+no later effects, no success parameters, preserved text, and no Archive. The
+repeat ran two methods with four parameterized limit cases and two known issues.
+This is recorded failure evidence, not accepted promise compatibility. The
+matrix remains partial. No Promise replacement was added that would miss native
+async-function promises or change valid catch behavior.
+
+The frozen reference does not define collision precedence for included configured
+values. Current root/child type conversion and child overrides need comparison
+before choosing a policy. They remain a specific shared-inclusion limitation.
+

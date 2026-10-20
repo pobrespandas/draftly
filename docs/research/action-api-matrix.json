@@ -15975,7 +15975,7 @@
       },
       "liveCheck": null,
       "limitations": [
-        "CPU timeout through actual UI, URL, and App Intent accesses remains pending on the current build."
+        "Native URL CPU timeout passed on the current build with the production 10-second synchronous deadline, responsive filters, retained prior text, and one observed error callback. Direct UI and App Intent CPU timeout accesses remain pending."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
@@ -16036,7 +16036,8 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "CPU timeout through the actual UI, URL, and App Intent accesses remains pending on the current build."
+        "reason": "Native URL CPU timeout passed on the current build with the production 10-second synchronous deadline, responsive filters, retained prior text, and one observed error callback. Direct UI and App Intent CPU timeout accesses remain pending.",
+        "evidence": "docs/validation.md"
       },
       "automatedVerification": {
         "status": "passed",
@@ -16055,8 +16056,8 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Unreturned rejected promises and invalid async-limit values lack dedicated contract cases.",
-        "Promise rejection and timeout still need actual native entry-point checks on the current build."
+        "Unreturned rejected promises have a specific executed regression: they currently time out instead of reporting rejection. The error classification and message assertions remain known issues, not accepted parity.",
+        "Returned rejection and timeout still need the remaining actual native entry-point checks. Production 120-second queued URL timeout has separate recorded acceptance."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
@@ -16097,6 +16098,14 @@
         {
           "suite": "EngineClosureContractTests",
           "test": "completionCannotOverrideFailureInTheSameEvaluation"
+        },
+        {
+          "suite": "EnginePromiseAcceptanceTests",
+          "test": "invalidAsynchronousLimitsFailBeforeScriptEffects"
+        },
+        {
+          "suite": "EnginePromiseAcceptanceTests",
+          "test": "unreturnedRejectedPromiseFailsInsteadOfWaitingForTimeout"
         }
       ],
       "nativeVerification": {
@@ -16108,7 +16117,15 @@
         "revision": "a308158",
         "date": "2026-10-20",
         "evidence": "docs/validation.md",
-        "scope": "The named contract cases were included in the recorded regression run. This is not native acceptance."
+        "scope": "The named contract cases were included in the recorded regression run. This is not native acceptance.",
+        "additionalRuns": [
+          {
+            "date": "2026-10-20",
+            "command": "swift test --filter EnginePromiseAcceptanceTests",
+            "result": "Four invalid-limit cases passed. Unreturned rejection executed with two known issues for error classification and message; stop/content/parameter checks passed. This run does not accept unreturned rejection parity.",
+            "evidence": "docs/validation.md"
+          }
+        ]
       }
     },
     {

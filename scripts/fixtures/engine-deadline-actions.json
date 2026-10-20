@@ -1,0 +1,18 @@
+[
+  {
+    "name": "QA CPU deadline",
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('CPU completed write');draft.update();context.addSuccessParameter('discard','value');while(true){}"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {"template": "ERROR: CPU tail ran"}
+      }
+    ]
+  }
+]

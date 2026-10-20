@@ -442,3 +442,8 @@ subtree, tail, and success disposition. The engine cycle safety contract is now
 complete, with its 50/51 depth boundary documented as a Draftly policy. Two
 engine records are complete and twelve remain partial. Strict parity reports
 36 diagnostics; entry-point equivalence and full Mac acceptance remain open.
+
+Native URL CPU deadline acceptance passed with responsive filters and retained
+text. Direct UI and Intent variants remain pending. New async-limit cases pass,
+but an unreturned rejected promise still becomes timeout. Its two error-report
+assertions are recorded known issues; this is not accepted promise parity.
