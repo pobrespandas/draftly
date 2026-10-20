@@ -430,3 +430,8 @@ Both kept the completed child text in Inbox, stopped later steps/actions and
 Archive, recorded Error, and delivered one observed matching error callback
 without success parameters. Separate targets and remaining native entry points
 still need acceptance. The queue record remains partial.
+
+Separate-source/target cancellation passed through a URL using the matching
+visible editor. Both drafts kept their own completed text in Inbox. The editor
+finished on the target and one cancel callback was observed. Separate-target
+error/timeout and remaining native entry points are still pending.

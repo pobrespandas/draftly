@@ -97,5 +97,16 @@
         }
       }
     ]
+  },
+  {
+    "name": "QA Queue multi-draft cancellation root",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "var targets=Draft.query('', 'all').filter(function(item){return item.content==='Queue target neutral' && item.uuid!==draft.uuid;});if(targets.length!==1){throw new Error('Create exactly one separate draft containing only Queue target neutral.');}editor.setText('Queue source retained');draft.update();app.queueAction(Action.find('QA Queue cancelling child'),targets[0]);app.queueAction(Action.find('QA Queue must not run'),draft);"
+        }
+      }
+    ]
   }
 ]

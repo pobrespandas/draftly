@@ -1761,3 +1761,22 @@ and acceptance records, not application code. The earlier full suites and build
 remain the application-code baseline. Separate targets, App Intents, and other
 native entry paths remain pending. The queue contract stays partial.
 
+## Native queue with separate source and target — 20 October 2026
+
+Verified in use: created a separate neutral destination and opened the existing
+source in the isolated QA window. The multi-draft fixture validated a unique
+target, saved Queue source retained in the source, and queued the cancelling
+child on the destination. Native URL confirmation used the matching editor.
+After cancellation, the editor showed Queue child completed write — café 🐼
+in the destination. Both drafts remained in Inbox. Inspecting the source again
+showed its exact retained content. No later sentinel text appeared. The helper
+showed one qmulti-20261020-a cancel callback and remained at one after inspection.
+Both QA apps were quit. The fixture now has eight unique actions.
+
+This accepts separate-target cancellation through a matching visible URL owner.
+It does not accept separate-target failure/timeout or App Intents. The headless
+cancel route intentionally does not reveal a draft, while the matching visible
+owner stays on the last processed target. Code inspection confirms that the
+automation output returns the final editor identity, not the root identity.
+No implementation change was needed. The queue record remains partial.
+

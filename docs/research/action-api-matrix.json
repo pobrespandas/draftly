@@ -16362,7 +16362,7 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Native URL cancellation, failure, and production 120-second timeout retained the completed child edit in Inbox and selected the matching final callback without success parameters. Separate targets and remaining native entry points are pending."
+        "Native URL cancellation, failure, and production 120-second timeout passed on one draft. Separate-source/target cancellation also passed with a matching visible editor left on the processed target. Separate-target failure/timeout and remaining native entry points are pending."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
@@ -16439,7 +16439,7 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Native URL cancellation, failure, and production 120-second timeout retained the completed child edit in Inbox and selected the matching final callback without success parameters. Separate targets and remaining native entry points are pending.",
+        "reason": "Native URL cancellation, failure, and production 120-second timeout passed on one draft. Separate-source/target cancellation also passed with a matching visible editor left on the processed target. Separate-target failure/timeout and remaining native entry points are pending.",
         "evidence": "docs/validation.md"
       },
       "automatedVerification": {

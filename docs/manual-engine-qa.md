@@ -214,3 +214,13 @@ Both variants must use x-error, keep the child text in Inbox, omit success
 parameters, and skip both sentinels. Check the history status and error message.
 During timeout, toggle a panel to check that MainActor stays responsive. Restore
 its prior state. Do not change production deadlines to shorten native acceptance.
+
+For the multi-draft cancellation root, create exactly one separate draft whose
+content is Queue target neutral. Open the source draft before URL execution to
+test the matching visible editor. The fixture validates the target before it
+changes text. Source must keep Queue source retained; target must keep the
+child's completed write in Inbox. The visible editor must finish on the target.
+Inspect the source again to verify its stored content. Recreate the neutral
+target content before repeating this fixture. With no matching visible editor,
+the cancelled headless route saves the target but does not reveal it. These are
+different entry conditions; record which one was tested.
