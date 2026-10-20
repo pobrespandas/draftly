@@ -99,11 +99,14 @@ import Foundation
                   activeSession?.report == nil else { throw DraftlyError.message("The action was closed.") }
             guard Date() < request.deadline else { throw ActionExecutionInterruption.timeout }
             try checkCancellation()
-            if request.operation == "ui", host?.supportsAsync("transcribe") == true,
+            if request.operation == "ui",
                let values = try JSONSerialization.jsonObject(with: Data(request.payload.utf8)) as? [String: Any],
-               values["operation"] as? String == "transcribe" {
+               let operation = values["operation"] as? String,
+               ["transcribe", "dictate"].contains(operation), host?.supportsAsync(operation) == true {
                 guard uiOperation != nil else { throw DraftlyError.message("This action needs an active Draftly editor window.") }
-                let response = try await platformAsync("transcribe", payload: "{}")
+                let args = values["args"] as? [Any] ?? []
+                let payload = operation == "dictate" ? try json(["locale": args.first as? String ?? ""]) : "{}"
+                let response = try await platformAsync(operation, payload: payload)
                 try checkCancellation()
                 guard activeSession?.id == request.executionID, bridgeStepID == request.stepID else {
                     throw DraftlyError.message("The action was closed.")

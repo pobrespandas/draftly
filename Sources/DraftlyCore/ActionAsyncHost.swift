@@ -56,6 +56,10 @@ import Foundation
             guard let tags = try prompt.tags(from: await nativeValue("prompt", prompt.values)) else { return false }
             customTags.merge(tags) { _, new in new }
             return true
+        case "runAppleScript":
+            let result = try await nativeValue("appleScript", ["source": step.values["script"] ?? step.values["source"] ?? "", "subroutine": "execute", "arguments": [noteValue(current)]])
+            evaluate("context.appleScriptResponses.push(\(try json(result ?? NSNull())));")
+            return true
         case "speak":
             let value = try await nativeValue("speak", ["text": rendered, "settings": ["autoStart": step.values["autoStart"] != "false", "autoClose": step.values["autoClose"] != "false"]])
             return value as? Bool != false

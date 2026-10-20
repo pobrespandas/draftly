@@ -21,7 +21,7 @@ final class NativeActionHost: ActionHost {
 
     func supportsAsync(_ operation: String) -> Bool {
         if NativePromptAdapter.operations.contains(operation) { return true }
-        return ["callbackURL", "shellScript", "shortcut", "eventAPI", "reminder", "event", "location", "speak", "transcribe", "modelModes", "modelRespond"].contains(operation)
+        return ["callbackURL", "shellScript", "shortcut", "eventAPI", "reminder", "event", "location", "speak", "transcribe", "modelModes", "modelRespond", "appleScript", "dictate"].contains(operation)
     }
 
     func performAsync(_ operation: String, payload: String) async throws -> String {
@@ -45,6 +45,10 @@ final class NativeActionHost: ActionHost {
         case "location": result = try await NativeLocationRequest.current()
         case "speak": result = try await NativeSpeechRequest.run(values)
         case "transcribe": result = try await NativeTranscriptionRequest.run(values)
+        case "appleScript": result = try await NativeAppleScriptProcess.run(values)
+        case "dictate":
+            if let dictationHandler { result = try dictationHandler(values) }
+            else { result = try await NativeDictationRequest.run(values) }
         default: result = try perform(operation, values: values)
         }
         return String(decoding: try JSONSerialization.data(withJSONObject: ["value": result ?? NSNull()]), as: UTF8.self)

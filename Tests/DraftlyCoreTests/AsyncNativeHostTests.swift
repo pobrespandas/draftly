@@ -99,6 +99,28 @@ struct AsyncInputBridgeTests {
         #expect(f.editor.content == "Keep")
     }
 
+    @Test func dictationForwardsLocaleAndDoesNotInsertText() async throws {
+        let f = try ScriptTestFixture(content: "Keep", host: AsyncInputHost())
+        f.runner.uiOperation = { _ in Issue.record("The synchronous window adapter ran."); return nil }
+        let report = await f.runner.runAsync(ScriptTestAction.make("context.addSuccessParameter('text',editor.dictate('es-AR'));", name: "Dictate"))
+        #expect(report.reason == .success && report.successParameters["text"] == "café 🐼")
+        #expect(f.host.calls == ["dictate"] && f.host.lastPayload == #"{"locale":"es-AR"}"#)
+        #expect(f.editor.content == "Keep")
+    }
+
+    @Test func appleScriptStepUsesTheAsyncHostAndKeepsStructuredResults() async throws {
+        let f = try ScriptTestFixture(content: "Keep", host: AsyncInputHost())
+        let report = await f.runner.runAsync(DraftAction(name: "AppleScript", steps: [
+            ActionStep("runAppleScript", ["script": "on execute(draft)\nreturn \"café 🐼\"\nend execute"]),
+            ActionStep("script", ["script": "context.addSuccessParameter('text',context.appleScriptResponses[0]);"])
+        ]))
+        #expect(report.reason == .success && report.successParameters["text"] == "café 🐼")
+        #expect(f.host.calls == ["appleScript"] && f.editor.content == "Keep")
+        let payload = try JSONSerialization.jsonObject(with: Data(f.host.lastPayload.utf8)) as? [String: Any]
+        #expect(payload?["subroutine"] as? String == "execute")
+        #expect((payload?["arguments"] as? [[String: Any]])?.first?["uuid"] as? String == f.editor.noteID?.uuidString)
+    }
+
     @Test func modelToolsRejectCallsOutsideAnAction() throws {
         let f = try ScriptTestFixture(content: "Keep", host: AsyncInputHost())
         #expect(throws: DraftlyError.self) {
@@ -119,13 +141,15 @@ struct AsyncInputBridgeTests {
 
 @MainActor private final class AsyncInputHost: ActionHost {
     var calls: [String] = []
-    func supportsAsync(_ operation: String) -> Bool { ["transcribe", "confirmAction"].contains(operation) }
+    var lastPayload = ""
+    func supportsAsync(_ operation: String) -> Bool { ["transcribe", "dictate", "appleScript", "confirmAction"].contains(operation) }
     func perform(_ operation: String, values: [String: Any]) throws -> Any? {
         Issue.record("The synchronous host ran."); return nil
     }
     func performAsync(_ operation: String, payload: String) async throws -> String {
         calls.append(operation)
+        lastPayload = payload
         await Task.yield()
-        return operation == "transcribe" ? #"{"value":"café 🐼"}"# : #"{"value":false}"#
+        return operation != "confirmAction" ? #"{"value":"café 🐼"}"# : #"{"value":false}"#
     }
 }
