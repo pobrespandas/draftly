@@ -2900,3 +2900,33 @@ navigation, fallback at the end of the list, or exact Drafts action behavior.
 Their automatic or earlier evidence remains separate. No new source behavior
 changed in this verification turn, so the prior build and test results apply
 only at their recorded scope.
+
+### Native panel and URL navigation — 20 October 2026
+
+Verified in use on the same isolated QA image, 5abde529d2c39aa1 before signing.
+Created Navigation Panel café 🐼 with neutral text. Opened the action panel,
+searched for QA Navigation Archive, and ran its button. The action completed
+and the editor became an empty Untitled scratch. This accepts the tested panel
+path with Create New Draft.
+
+Created Navigation URL café 🐼. Draft Info showed identity
+638B9094-2E65-45F4-B038-4C5EBF784204. Sent draftly://run through the helper, using
+QA Navigation Archive and a neutral success callback with case=navigation.
+Confirmed Run Action. The visible owner became an empty Untitled scratch. The
+original was not reopened over it. The helper showed one success callback and
+still showed one on a later observation. This accepts that visible-owner URL
+presentation path; headless and other termination paths retain separate evidence.
+
+In the new scratch, pasted Navigation scratch Undo café 🐼. Undo restored empty
+text. Redo restored the full Unicode string. Last Draft then reopened Navigation
+URL café 🐼 with both original lines unchanged and Archive disabled. This accepts
+Undo/Redo within the new scratch and retention of the archived original. It does
+not prove preservation of an older draft's Undo stack across navigation.
+
+Two more neutral originals and the scratch were added. The two originals remain
+in Archive. Inbox shows nine drafts. The action panel remains open with its QA
+search. General remains Create New Draft; capture keeps its original global key.
+QA and the helper remain open for the physical-key check. No source change,
+screenshot, or raw log was added in this verification turn. Exact Drafts action
+behavior, list-end fallback, multiple-window native navigation, and remaining
+Settings acceptance stay open. No new automatic test run is claimed.

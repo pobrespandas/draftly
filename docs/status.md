@@ -606,3 +606,10 @@ Trash to the next visible draft, original archived text retention, and preferenc
 persistence after restart. The preference was restored to Create New Draft.
 Action-panel, URL presentation, Undo, and exact Drafts acceptance remain open.
 The neutral action fixture is saved under scripts/fixtures for repeat runs.
+
+
+Native action navigation also passed from the action panel and a confirmed URL
+on a visible owner. The URL left the scratch selected and delivered one success
+callback. Undo/Redo in that scratch and the original archived text passed their
+checks. Older Undo stack retention, headless variants, list-end behavior, exact
+Drafts comparison, and the physical global-key check remain pending.
