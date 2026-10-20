@@ -3097,3 +3097,21 @@ Hard breaks toggle, preview refresh, and comparison with Drafts remain pending.
 No native result is accepted from this attempt. The physical global shortcut
 check also remains pending; the user will report its result. No screenshot or
 raw log was added to the repository.
+
+
+### Conflict restore failure and retry — 20 October 2026
+
+Added one disk-backed contract for an existing note and execution that conflict
+with a backup. A forced commit failure leaves the full exported destination
+unchanged. Reopening the disk library preserves that same graph. Retrying then
+creates exactly one recovered note, remaps its execution and revisions, and
+retains the existing text and execution. All seven history-backup methods pass.
+No production code changed. No visible window or personal library was used.
+
+This covers retry after a failed transaction. It does not cover idempotence
+after a successful conflict import. Code review shows each successful conflict
+restore currently assigns a fresh note identity and fresh related identities.
+Repeated successful import can therefore add another recovered variant. That
+case remains open; a safe solution must identify a prior recovery without
+merging distinct intentional notes with equal content. Native checks remain
+blocked by the Computer Use connection failure, including after runtime reset.

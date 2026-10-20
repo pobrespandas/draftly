@@ -85,6 +85,42 @@ import Testing
         #expect(destination.notes.isEmpty && destination.themes.isEmpty)
     }
 
+    @Test func failedConflictRestoreKeepsTheExistingGraphOnDiskAndRetryCommitsOnce() throws {
+        let source = try LibraryStore(inMemory: true, seed: false)
+        let incoming = try source.createNote(content: "Backup café 🐼")
+        let incomingRun = run(noteID: incoming.id)
+        source.log(incomingRun)
+        let data = try source.backupData()
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        var destination: LibraryStore? = try LibraryStore(directory: directory, seed: false)
+        var current = incoming; current.content = "Current café 🐼"
+        try destination?.saveNote(current)
+        var currentRun = incomingRun; currentRun.message = "Current history"
+        destination?.log(currentRun)
+        let beforeData = try destination?.backupData()
+        let before = try #require(beforeData)
+        destination?.beforeBatchCommit = { throw DraftlyError.message("Injected conflict commit failure") }
+        #expect(throws: (any Error).self) { try destination?.restore(data) }
+        #expect(try destination?.backupData() == before)
+        destination = nil
+
+        let reopened = try LibraryStore(directory: directory, seed: false)
+        #expect(try reopened.backupData() == before)
+        try reopened.restore(data)
+        #expect(reopened.notes.count == 2)
+        #expect(reopened.runs.count == 2)
+        #expect(reopened.runs.contains(currentRun))
+        let copy = try #require(reopened.notes.first { $0.content == incoming.content })
+        let copiedRun = try #require(reopened.runs.first { $0.id != currentRun.id })
+        #expect(copiedRun.noteID == copy.id)
+        #expect(copiedRun.message == incomingRun.message)
+        let copiedRevisions = reopened.revisions.filter { $0.noteID == copy.id }
+        #expect(copiedRevisions.count == source.revisions.count)
+        #expect(Set(reopened.revisions.map(\.id)).count == reopened.revisions.count)
+        #expect(reopened.notes.contains { $0.id == current.id && $0.content == current.content })
+    }
+
     @Test func duplicateExecutionIdentitiesAreRejectedBeforeAnyWrite() throws {
         let value = run(noteID: nil)
         let note = Note(content: "Must not be saved")

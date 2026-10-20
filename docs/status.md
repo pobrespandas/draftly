@@ -654,3 +654,9 @@ passes after it. Full regression passed 435 app methods and 430 core methods;
 the unsigned build passed. Live Settings refresh and Drafts comparison remain
 pending after a Computer Use connection failure. Global physical-key delivery
 also awaits the user's result. The full Mac plan remains open.
+
+
+A disk-backed conflict-restore failure/retry contract passed with the other six
+history-backup methods. Failure preserves the complete graph across reopening;
+retry commits one recovered graph. Repeated successful conflict import remains
+open: current restore assigns a fresh recovery identity on each conflict.
