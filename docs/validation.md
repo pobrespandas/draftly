@@ -3760,3 +3760,30 @@ Unicode lines and multiline output for Error and Cancelled. Error also showed
 its final failure reason. Closed history. No screenshot or raw log is retained
 in the repository. Matrix structure passes; ActionLog remains partial for its
 remaining acceptance. QA now has one open window after application refresh.
+
+
+### Cancellation reason defaults — 20 October 2026
+
+Implemented: async cancellation no longer adds a generic summary to the stored
+script log. Omitted context.cancel text adds no log text, as the frozen Context
+reference states. Explicit reasons and earlier console output remain intact.
+Final status and the runner/UI cancellation message stay available separately.
+Existing history is unchanged.
+
+Automatic: four expanded cases cover both runners with omitted and Unicode
+reasons. The async omitted-message case failed before the fix. Full regression
+passed app437/core458 after the fix. Then added direct checks for undefined
+return, completion of the current script, and no actionNotification even when
+both notification options are enabled. The final six focused methods passed
+with those assertions. The unsigned Debug build passed. No visible windows or
+permissions opened during these automatic checks.
+
+Native: refreshed stopped QA. Signed executable SHA-256:
+`0b424aa7419475235601614dd059607f570866e7bed1c42f21135fc37f56c14b`.
+Imported only the two new engine-log-actions cancellation records through a
+temporary subset. Ran both on Selected: two. Screenshot and history showed
+Cancelled with no message for the omitted reason, and one exact Unicode reason
+for the explicit case. Draft content stayed unchanged. Closed history.
+Native current-script continuation and enabled-notification variants remain
+pending. Context.cancel stays partial with these precise limits. No screenshot
+or raw log is retained in the repo.

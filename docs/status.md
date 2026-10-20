@@ -836,3 +836,10 @@ Both runners, context.fail/throw/cancel, repeated Unicode lines, multiline text,
 and custom cancellation reasons passed tests. Native history output passed.
 Full app437/core457 and final unsigned build passed. Old lost output cannot
 be recovered; no history format or existing record is changed.
+
+
+Context.cancel now preserves omitted-message semantics on the async path. Both
+runners pass exact Unicode reason, undefined return, current-script completion,
+quiet cancellation, and stop/disposition tests. Native history defaults passed.
+Full app437/core458 plus final focused checks and unsigned build passed. Other
+native notification and script-continuation variants stay pending.

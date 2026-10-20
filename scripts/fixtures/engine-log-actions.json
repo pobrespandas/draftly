@@ -20,5 +20,27 @@
         }
       }
     ]
+  },
+  {
+    "name": "QA Cancel no reason",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "context.cancel();"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Cancel reason",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "context.cancel('Reason café 🐼');"
+        }
+      }
+    ]
   }
 ]

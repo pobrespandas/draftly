@@ -4,6 +4,27 @@ import Testing
 
 @Suite("Draft action log member contracts") @MainActor
 struct DraftActionLogContractTests {
+    @Test(arguments: [false, true], ["", "Reason café 🐼"])
+    func cancellationLogUsesOnlyTheSuppliedReason(worker: Bool, message: String) async throws {
+        let (library, editor, host, runner) = try makeAPIContext("Neutral source")
+        let literal = String(decoding: try JSONSerialization.data(withJSONObject: message, options: [.fragmentsAllowed]), as: UTF8.self)
+        let cancel = message.isEmpty ? "context.cancel();" : "context.cancel(" + literal + ");"
+        var action = ScriptTestAction.make("var cancelledResult=" + cancel + "app.setClipboard(typeof cancelledResult);", name: "Cancellation reason")
+        action.afterSuccess = "archive"
+        action.presentation.notifyOnSuccess = true; action.presentation.notifyOnError = true
+        action.steps.append(ActionStep("insertText", ["template": "ERROR: cancelled tail"]))
+        let report: ActionExecutionReport
+        if worker { report = await runner.runAsync(action) }
+        else { report = runner.runReport(action) }
+        #expect(report.reason == .cancelled)
+        let run = try #require(library.runs.first)
+        #expect(run.status == "Cancelled")
+        #expect(run.message == message)
+        #expect(host.clipboard == "undefined")
+        #expect(!host.calls.contains { $0.0 == "actionNotification" })
+        #expect(editor.content == "Neutral source" && library.notes.first?.isArchived == false)
+    }
+
     @Test(arguments: [false, true], ["throw new Error('Neutral failure');", "context.fail('Neutral failure');", "context.cancel();"])
     func failedAndCancelledRunsRetainEarlierScriptLogs(worker: Bool, ending: String) async throws {
         let (library, _, _, runner) = try makeAPIContext("Neutral source")

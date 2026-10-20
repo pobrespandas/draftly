@@ -7839,20 +7839,36 @@
           },
           "liveCheck": null,
           "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Context.cancel"
           },
-          "defaults": "Fresh run: no cancellation, failure, or success parameters. Omitted cancel text adds no log text; omitted fail text uses Action failed.",
-          "result": [
-            "cancel(message: string): void"
-          ],
-          "errors": "addSuccessParameter requires strings. fail and cancel stop later steps after the current script.",
+          "defaults": "Omitting a cancellation message adds no log text. A supplied message is retained exactly, including Unicode.",
+          "result": "Returns undefined. The current script continues; later action steps and success disposition do not run. Final status is Cancelled.",
+          "errors": "No cancellation-specific thrown error is documented. This check does not accept every underlying host or storage failure.",
           "limitations": [
-            "Message defaults require a separate contract assertion."
+            "Native omitted-message and Unicode-reason history checks passed. Native finish-current-script and enabled notification-option checks remain pending. Other cancellation and host failure contracts remain separate."
           ],
-          "evidenceLevel": "Member-specific assertions. Native verification is separate."
+          "evidenceLevel": "Member-specific assertions. Native verification is separate.",
+          "supportingTests": [
+            {
+              "suite": "DraftActionLogContractTests",
+              "test": "cancellationLogUsesOnlyTheSuppliedReason"
+            }
+          ],
+          "nativeVerification": {
+            "status": "pending",
+            "additionalChecks": [
+              {
+                "date": "2026-10-20",
+                "executableSHA256": "0b424aa7419475235601614dd059607f570866e7bed1c42f21135fc37f56c14b",
+                "fixture": "scripts/fixtures/engine-log-actions.json",
+                "result": "Cancelled history contained no log text when the message was omitted and exactly the supplied Unicode reason otherwise. Draft text remained unchanged.",
+                "evidence": "docs/validation.md: Cancellation reason defaults — 20 October 2026"
+              }
+            ]
+          }
         },
         {
           "member": "fail",

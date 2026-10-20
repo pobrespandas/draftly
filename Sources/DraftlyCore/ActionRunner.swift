@@ -170,7 +170,7 @@ public final class ActionRunner: ObservableObject {
             }
             if !result.succeeded { successParameters = [:]; queued = [] }
             var run = ActionRun(actionName: action.name, status: result.succeeded ? "Success" : result == .cancelled ? "Cancelled" : "Error",
-                                message: executionLog(finalMessage: result.succeeded || (result == .cancelled && !logs.isEmpty) ? nil : message))
+                                message: executionLog(finalMessage: result.succeeded || result == .cancelled ? nil : message))
             run.noteID = sourceNoteID; run.actionID = action.id; library.log(run)
             if result.succeeded && action.presentation.notifyOnSuccess || reason == .error && action.presentation.notifyOnError || reason == .timeout && action.presentation.notifyOnError {
                 _ = try? host?.perform("actionNotification", values: ["title": action.name, "message": message ?? ""])
