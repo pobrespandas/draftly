@@ -2353,3 +2353,26 @@ reopen identity, retained user edits, and an existing custom catalog.
 Native verification: this check did not execute sharing, file panels, Calendar,
 or Reminders. Their permissions and dialog variants retain their separate
 acceptance status. Catalog loading does not prove native execution parity.
+
+### Workspace snapshots — 20 October 2026
+
+Implemented: Save Workspace, visible rows, and scripting currentWorkspace now
+use one snapshot. It includes tag presence, advanced API options, unknown
+metadata, list options, and all current basic filters. Save validates group and
+theme references before persistence. An invalid reference keeps the sheet open
+and leaves storage and the current view unchanged.
+
+Applying a workspace now sets its API metadata after the basic controls. Their
+sort observers previously overwrote imported per-folder order during application.
+The new reopen regression detected this change before the correction.
+
+Automatic cases cover disk save/reopen, equivalent restored rows, date and flag
+filters, per-folder metadata, unknown fields, missing group rejection, scripting
+tag presence, and unchanged editor text and selection. Native sheet acceptance
+is pending. The settings UI still needs dates, flag options, accessed and
+per-folder order, groups, and themes. This change does not close that delivery.
+
+Validation result: the focused Workspace run passed 10 methods in two suites.
+The full background run passed 405 app methods and 394 core methods. It compiled
+the changed app and tests. No visible windows or native permission requests ran.
+These totals are regression evidence, not a compatibility percentage.

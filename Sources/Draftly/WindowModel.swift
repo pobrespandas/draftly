@@ -107,11 +107,7 @@ final class WindowModel: ObservableObject {
         }
         runner.currentWorkspace = { [weak self] in
             guard let self else { return Workspace(name: "Current") }
-            var result = Workspace(name: "Current"); result.scriptMetadata = self.workspaceScriptMetadata; result.listOptions = self.listOptions; result.folder = self.folder; result.query = self.query
-            result.tags = self.activeTagFilters; result.excludedTags = self.excludedTagFilters
-            result.listOptions = self.listOptions
-            result.matchAnyTag = self.matchAnyTag; result.sort = self.sort; result.ascending = self.ascending
-            return result
+            return self.workspaceSnapshot(name: "Current")
         }
         runner.uiOperation = { [weak self] values in try self?.actionUIOperation(values) }
         host.models.onTool = { [weak runner] operation, json in
@@ -168,8 +164,8 @@ final class WindowModel: ObservableObject {
     }
     var currentNote: Note? { library.notes.first { $0.id == editor.noteID } ?? scratchNote }
     @Published var workspaceScriptMetadata: [String: String]?
-    var visibleNotes: [Note] {
-        var workspace = Workspace(name: "Current")
+    func workspaceSnapshot(name: String) -> Workspace {
+        var workspace = Workspace(name: name)
         workspace.scriptMetadata = workspaceScriptMetadata
         workspace.listOptions = listOptions
         workspace.folder = folder; workspace.query = query; workspace.tags = activeTagFilters
@@ -177,8 +173,10 @@ final class WindowModel: ObservableObject {
         workspace.matchAnyTag = matchAnyTag
         workspace.tagged = tagPresence
         workspace.sort = sort; workspace.ascending = ascending
-        return workspace.filter(library.notes)
+        return workspace
     }
+    var visibleNotes: [Note] { workspaceSnapshot(name: "Current").filter(library.notes) }
+
     var allTags: [String] { Array(Set(library.notes.flatMap(\.tags).map(TagRules.normalize))).sorted() }
     @Published var showOnlyCurrentTags = false
     var matchingTags: [String] {
@@ -291,14 +289,22 @@ final class WindowModel: ObservableObject {
         applyResolvedWorkspace(resolved)
     }
 
+    func saveAndApplyWorkspace(_ workspace: Workspace) throws {
+        let resolved = try WorkspacePresentationResolver.resolve(workspace, groupNames: library.groupNames,
+            groups: library.actionGroups, themes: dependencies.preferences.themes)
+        try library.saveWorkspace(resolved)
+        cancelActionForUserEdit()
+        applyResolvedWorkspace(resolved)
+    }
+
     func apply(_ workspace: Workspace) {
         cancelActionForUserEdit()
         perform { try applyScriptWorkspace(workspace) }
     }
     private func applyResolvedWorkspace(_ workspace: Workspace) {
-        workspaceScriptMetadata = workspace.scriptMetadata
         listOptions = workspace.listOptions ?? dependencies.preferences.listOptions
         folder = workspace.folder; query = workspace.query; sort = workspace.sort; ascending = workspace.ascending
+        workspaceScriptMetadata = workspace.scriptMetadata
         selectedWorkspace = library.workspaces.contains(where: { $0.id == workspace.id }) ? workspace.id : nil
         selectedTags = Set(workspace.tags.map(TagRules.normalize))
         excludedTags = Set((workspace.excludedTags ?? []).map(TagRules.normalize))

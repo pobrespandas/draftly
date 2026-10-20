@@ -19,12 +19,14 @@ struct WorkspaceEditor: View {
             TextField("Excluded tags, separated by commas", text: $excludedTags).textFieldStyle(.roundedBorder)
             Toggle("Match any included tag", isOn: $matchAnyTag)
             HStack { Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction); Spacer(); Button("Save") {
-                var w = Workspace(name: name); w.folder = model.folder; w.query = model.query; w.sort = model.sort; w.ascending = model.ascending
-                w.tagged = model.tagPresence; w.listOptions = model.listOptions
+                var w = model.workspaceSnapshot(name: name)
                 w.tags = TagRules.normalize(tags.split(separator: ",").map(String.init))
                 w.excludedTags = TagRules.normalize(excludedTags.split(separator: ",").map(String.init))
                 w.matchAnyTag = matchAnyTag
-                model.perform { try library.saveWorkspace(w); model.apply(w); dismiss() }
+                model.perform {
+                    try model.saveAndApplyWorkspace(w)
+                    dismiss()
+                }
             }.keyboardShortcut(.defaultAction).disabled(name.trimmingCharacters(in: .whitespaces).isEmpty) }
         }.padding(24).frame(width: 450).onAppear {
             tags = model.activeTagFilters.joined(separator: ", ")

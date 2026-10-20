@@ -198,7 +198,10 @@ Implemented: fonts/Nerd Fonts, size, spacing, margins, maximum width, typewriter
 scrolling, shortcuts, themes, and workspace management. Settings has General,
 iCloud, Bookmarks, Markdown, HTML, Editor, and Shortcuts categories.
 General includes appearance, menu bar visibility, capture timeout, and preferred
-find. The app menu has Editor Settings, Library Summary, and library-wide Empty
+find. Current workspace snapshots preserve advanced filters, tag presence,
+unknown fields, and per-folder order on save and application. Missing references
+are rejected before Save Current persists. Native sheet checks remain pending.
+The app menu has Editor Settings, Library Summary, and library-wide Empty
 Trash with confirmation, including when no command window exists.
 
 Pending:
