@@ -11946,7 +11946,19 @@
           "implementation": "not-audited",
           "automatedTest": null,
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": null,
+          "supportingTests": [
+            {
+              "suite": "MustacheWorkerTests",
+              "test": "renderingUsesTheWorkerContextWithoutAHostRequest"
+            },
+            {
+              "suite": "MustacheWorkerTests",
+              "test": "renderingUsesTheScriptDeadlineAndDoesNotPoisonTheNextStep"
+            }
+          ],
+          "reviewDate": "2026-10-20",
+          "evidenceLevel": "Actual worker tests reject host requests during rendering, verify HTML/text/partials/date output, enforce a render deadline, and reuse the context afterward. Native parity remains separate."
         },
         {
           "member": "renderTemplate",
@@ -17053,6 +17065,14 @@
         {
           "suite": "WorkerExecutorOwnershipTests",
           "test": "runtimeLifecycleStaysOnItsWorkerAcrossHostSuspensionAndCancellation"
+        },
+        {
+          "suite": "MustacheWorkerTests",
+          "test": "renderingUsesTheWorkerContextWithoutAHostRequest"
+        },
+        {
+          "suite": "MustacheWorkerTests",
+          "test": "renderingUsesTheScriptDeadlineAndDoesNotPoisonTheNextStep"
         }
       ],
       "nativeVerification": {

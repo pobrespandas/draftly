@@ -723,3 +723,10 @@ Disk-backed action/workspace cases cover failure, unrelated save, reopen, and
 retry. Full app435/core445 and unsigned build passed. Native acceptance currently
 requires the user to unlock the Mac; Computer Use also has recorded service
 assertions. These do not establish a Draftly failure.
+
+
+Mustache rendering now stays in the action context instead of creating a host
+context on MainActor. The async route therefore uses its worker and script
+deadline. Two worker contracts and existing template/tag cases pass. Full
+app435/core447, unsigned build, and matrix structure passed. Native and remaining
+engine/Mustache acceptance stay partial.

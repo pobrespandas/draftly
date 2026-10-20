@@ -305,3 +305,13 @@ The runtime resolves the symbol and reports an explicit error if the system
 cannot supply or install it. This is a system SPI dependency, like the existing
 execution-time-limit support. Personal development distribution remains the
 current scope; public distribution needs its own review.
+
+
+## Mustache execution context — 20 October 2026
+
+Action Mustache rendering now uses the action's existing JavaScript context.
+On the async route it stays on the serial worker and uses the script deadline.
+Template file reads still use the host. JSON conversion keeps prior value and
+Date behavior. The standalone Swift renderer and legacy host operation remain
+available. Automatic tests cover no-host rendering, timeout, and reuse after
+timeout. Native responsiveness and directory permission acceptance remain open.

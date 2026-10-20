@@ -342,6 +342,10 @@ class MultiMarkdown {
 class GitHubMarkdown {constructor(){this.autoLinks=true;this.tables=true;this.taskLists=true;this.strikethrough=true;this.tagFilters=false;this.footnotes=true;this.hardBreaks=false;this.safe=true;this.smartQuotes=true;this.sourcePOS=false;this.unsafe=false;this.validateUTF8=false;}static create(){return new GitHubMarkdown();}render(text){return __call('renderMarkdown',{text,engine:'github',options:this});}}
 var Markdown=MultiMarkdown;
 class HTMLToMarkdown {constructor(){this.emphasisMark='_';this.strongMark='**';this.ulItemMark='*';}static create(){return new HTMLToMarkdown();}process(text){return __call('htmlToMarkdown',{text,options:this});}}
+function __renderMustache(template,data,partials,contentType) {
+    const values=JSON.parse(JSON.stringify({data,partials}));
+    return Mustache.render(template,values.data,values.partials,{escape:contentType==='text'?String:Mustache.escape});
+}
 class MustacheTemplate {
     constructor(template=''){this.template=template;this.contentType='html';}
     static createWithTemplate(template){return new MustacheTemplate(template);}
@@ -352,10 +356,10 @@ class MustacheTemplate {
         let fm=FileManager.createCloud(),root='/Library/Templates/'+this.path.replace(/^\/+|\/+$/g,'');
         let partials={};for(let file of fm.listContents(root)){if(file.endsWith('.mustache')){let key=file.split('/').pop().slice(0,-9);partials[key]=fm.readString(file);}}
         if(!Object.prototype.hasOwnProperty.call(partials,name))throw new Error('The Mustache template was not found: '+name);
-        return __call('mustache',{template:partials[name],data,partials,contentType:this.contentType});
+        return __renderMustache(partials[name],data,partials,this.contentType);
     }
     static renderTemplate(template,data,partials={}){let t=new MustacheTemplate(template);t.partials=partials;return t.render(data);}
-    render(data){return __call('mustache',{template:this.template,data,partials:this.partials||{},contentType:this.contentType});}
+    render(data){return __renderMustache(this.template,data,this.partials||{},this.contentType);}
 }
 var alert=message=>__call('alert',{message:String(message)});
 var console={log:(...args)=>__call('message',{message:args.map(String).join(' ')}),error:(...args)=>__call('message',{message:args.map(String).join(' ')}),warn:(...args)=>__call('message',{message:args.map(String).join(' ')})};

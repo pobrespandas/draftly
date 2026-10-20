@@ -3323,3 +3323,27 @@ is evidence of a tool-service failure, not proof of its cause or a Draftly fault
 A full AX read later returned cgWindowNotFound. Rebinding then reported that the
 Mac is locked and automatic unlock failed. The user was asked to unlock it. No
 system setting changed; no raw report was added to the repository.
+
+
+### Mustache rendering stays in the action context — 20 October 2026
+
+Implemented: MustacheTemplate render and directory render now call the bundled
+engine in the action's existing JavaScript context. The async route no longer
+sends rendering to MainActor or creates a second context there. File access
+continues through the host. JSON value conversion is retained before rendering,
+including the prior Date-to-ISO behavior. The standalone Swift renderer and the
+legacy host operation remain available. Legacy action execution retains its
+existing executor; this change does not claim to move that route to a worker.
+
+Two worker tests first failed because rendering requested the host. They now
+pass with a host that rejects every non-device request. The output case covers
+HTML/text escaping, nested sections, partials, and Date conversion. A bounded
+nested render reaches the actual engine, hits the typed script timeout, and
+then renders correctly in the next step. All nine focused methods passed across
+worker rendering, Draft tag contracts, and template APIs. Full regression passed
+435 app methods and 447 core methods. The unsigned Debug build and normal matrix
+check passed. Worker and Mustache evidence remains partial.
+
+Native responsiveness, cancellation, directory permissions/iCloud Drive, and
+comparison with Drafts remain separate acceptance work. The Mac unlock question
+is pending. No visible window or user content was used by the automatic tests.
