@@ -4382,3 +4382,35 @@ task-cancellation contracts remain partial for other acceptance.
 No screenshot or raw log is tracked. The helper input fixture stays unchanged.
 Last full regression remains app445/core468; only existing router tests were
 rerun for this helper/native acceptance change. The app was not rebuilt.
+
+
+### Expired callback during a new native wait — 20 October 2026
+
+The manual helper accepts an optional replyValue query field. Its default stays
+Native café 🐼. The helper shows the last opened reply value so two requests can
+be distinguished. No production app code changed. Compiled and locally signed
+the helper after normal Quit and confirmed process exit. Its inventory
+self-test passed.
+
+Native: isolated Engine QA image99a067dd93e833bb. Imported the reproducible
+engine-callback-overlap-actions.json. Started QA Expired callback with an
+eight-second expired response, cancelled from Actions, and started QA Fresh
+callback with a ten-second fresh response in one batched UI sequence. The
+helper showed the second request pending. It then showed one successful native
+URL open with value expired, followed by a second successful open with value
+fresh. The fresh action asserted exactly one response with value fresh before
+writing Fresh callback isolated café 🐼. History showed expired Cancelled and
+fresh Success. The expired action's throwing tail did not run.
+
+This verifies the two-request sequence and distinct response data. The native
+open observations do not measure the precise app-handler delivery time. The
+helper does not treat a successful URL open as accepted action completion.
+Other capability and entry variants remain pending.
+
+Automatic: extended cancellationReleasesTheWaitAndRejectsLateDelivery instead
+of duplicating its setup. After cancellation, it starts a new pending request,
+checks that its callback differs, rejects the expired callback, then delivers
+the new token and verifies the fresh Unicode response. All six router methods
+pass. Full regression passed app445/core468. Matrix structure passes. No
+visible automatic test or new production build ran. No screenshots or raw
+logs are tracked.

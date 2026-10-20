@@ -53,7 +53,23 @@ struct ActionCallbackRouterTests {
         while late == nil, ContinuousClock.now < deadline { await Task.yield() }
         task.cancel()
         #expect(await task.value)
+        var nextURL: URL?
+        let next = Task { @MainActor in
+            let result = try await ActionCallbackRouter.openAsync(["url": "neutral-test://next"], timeout: 5, openURL: { url in
+                nextURL = try? callback(url); return true
+            })
+            return (result["status"] as? String, (result["parameters"] as? [String: String])?["value"])
+        }
+        let nextDeadline = ContinuousClock.now + .seconds(5)
+        while nextURL == nil, ContinuousClock.now < nextDeadline { await Task.yield() }
+        let valid = try #require(nextURL)
+        #expect(valid != late)
         #expect(!ActionCallbackRouter.receive(try #require(late)))
+        var response = try #require(URLComponents(url: valid, resolvingAgainstBaseURL: false))
+        response.queryItems = (response.queryItems ?? []) + [URLQueryItem(name: "value", value: "Fresh café 🐼")]
+        #expect(ActionCallbackRouter.receive(try #require(response.url)))
+        let result = try await next.value
+        #expect(result.0 == "success" && result.1 == "Fresh café 🐼")
     }
 
     @Test func concurrentCallbacksStayWithTheirOwnRequest() async throws {

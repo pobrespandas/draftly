@@ -352,3 +352,10 @@ NSWorkspace URL opens. It does not mean Draftly accepted the response or that
 an action succeeded. For QA Native late, cancel and run QA Caught rejection
 before the eight-second reply. After the helper reports a successful open,
 check the editor and history. The cancelled tail must not replace the new result.
+
+
+For overlapping reply lifetimes, import engine-callback-overlap-actions.json.
+Run Expired, cancel it, then run Fresh before the eight-second reply. The helper
+uses optional replyValue to distinguish expired/fresh data; the normal default
+remains unchanged. Expect two successful URL opens and only the fresh response
+in the successful second action. Native open timing is not handler timing.

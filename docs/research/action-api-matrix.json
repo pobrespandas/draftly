@@ -18015,6 +18015,12 @@
             "executableSHA256": "99a067dd93e833bb4cd2a2912ac6596b8150ada162af5c5ee21b3799a102a841",
             "fixture": "scripts/fixtures/engine-native-actions.json",
             "result": "Ran QA Native late, cancelled from Actions, then completed QA Caught rejection before delayed reply. Updated local helper showed Reply pending:8 seconds then Replies opened:1/Last open succeeded:true. After the native URL open, history remained Cancelled for late and Success for next action; editor retained Caught rejection completed, not the old callback tail. This covers a delayed native callback after cancellation and a subsequent completed action, not delivery during a second pending wait or every capability."
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "99a067dd93e833bb4cd2a2912ac6596b8150ada162af5c5ee21b3799a102a841",
+            "fixture": "scripts/fixtures/engine-callback-overlap-actions.json",
+            "result": "Started expired reply(delay8,value expired), cancelled, and started fresh reply(delay10,value fresh) in a batched UI sequence. Helper showed second pending, then first successful native open/value expired, then second successful native open/value fresh. Fresh action asserted one response with value fresh and wrote Fresh callback isolated café 🐼. History showed expired Cancelled and fresh Success. Native open observations do not measure the precise app-handler delivery time."
           }
         ]
       },
@@ -18135,6 +18141,12 @@
             "executableSHA256": "99a067dd93e833bb4cd2a2912ac6596b8150ada162af5c5ee21b3799a102a841",
             "fixture": "scripts/fixtures/engine-native-actions.json",
             "result": "Ran QA Native late, cancelled from Actions, then completed QA Caught rejection before delayed reply. Updated local helper showed Reply pending:8 seconds then Replies opened:1/Last open succeeded:true. After the native URL open, history remained Cancelled for late and Success for next action; editor retained Caught rejection completed, not the old callback tail. This covers a delayed native callback after cancellation and a subsequent completed action, not delivery during a second pending wait or every capability."
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "99a067dd93e833bb4cd2a2912ac6596b8150ada162af5c5ee21b3799a102a841",
+            "fixture": "scripts/fixtures/engine-callback-overlap-actions.json",
+            "result": "Started expired reply(delay8,value expired), cancelled, and started fresh reply(delay10,value fresh) in a batched UI sequence. Helper showed second pending, then first successful native open/value expired, then second successful native open/value fresh. Fresh action asserted one response with value fresh and wrote Fresh callback isolated café 🐼. History showed expired Cancelled and fresh Success. Native open observations do not measure the precise app-handler delivery time."
           }
         ]
       },

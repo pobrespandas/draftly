@@ -162,7 +162,8 @@ struct QAWindowInventory {
             guard let key, let target = value(key),
                   var callback = URLComponents(string: target),
                   callback.scheme == "draftly-engine-qa", callback.host == "callback" else { continue }
-            var response = [URLQueryItem(name: "value", value: "Native café 🐼")]
+            let replyValue = value("replyValue") ?? "Native café 🐼"
+            var response = [URLQueryItem(name: "value", value: replyValue)]
             if value("parameterKeys") == "true" {
                 response += [URLQueryItem(name: "__proto__", value: "café 🐼"),
                     URLQueryItem(name: "constructor", value: "kept"),
@@ -176,7 +177,7 @@ struct QAWindowInventory {
                 try? await Task.sleep(for: .seconds(delay))
                 let opened = NSWorkspace.shared.open(destination)
                 if opened { self.openedReplyCount += 1 }
-                self.replyField.stringValue = "Replies opened: \(self.openedReplyCount). Last open succeeded: \(opened). Delay: \(delay) seconds."
+                self.replyField.stringValue = "Replies opened: \(self.openedReplyCount). Last open succeeded: \(opened). Delay: \(delay) seconds. Value: \(replyValue)"
                 if self.panel == nil { application.terminate(nil) }
             }
         }

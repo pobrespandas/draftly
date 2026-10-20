@@ -1,0 +1,36 @@
+[
+  {
+    "name": "QA Expired callback",
+    "steps": [
+      {
+        "type": "callbackUrl",
+        "data": {
+          "url": "draftly-engine-echo://reply?delay=8&replyValue=expired"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "throw new Error('Expired callback tail ran');"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Fresh callback",
+    "steps": [
+      {
+        "type": "callbackUrl",
+        "data": {
+          "url": "draftly-engine-echo://reply?delay=10&replyValue=fresh"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "if(context.callbackResponses.length!==1||context.callbackResponses[0].value!=='fresh')throw new Error('Wrong callback delivery');editor.setText('Fresh callback isolated café 🐼');"
+        }
+      }
+    ]
+  }
+]

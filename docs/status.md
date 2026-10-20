@@ -976,3 +976,10 @@ A native delayed callback after cancellation no longer has acceptance pending
 for the completed-next-action sequence: the helper confirmed its delayed URL
 open, while history and editor retained Cancelled/Success and the next result.
 Other late-response and native capability variants remain open.
+
+
+Expired/new native callback sequencing now passes with distinct response values:
+the cancelled request keeps Cancelled and the next accepts only fresh data.
+The existing router cancellation test now rejects the old token during a new
+pending request. Full regression passed app445/core468. Other capabilities
+and entry variants remain open.
