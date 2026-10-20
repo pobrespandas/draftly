@@ -4018,3 +4018,38 @@ configuration-key precedence or queue confirmation policy. The shared-inclusion
 contract remains partial for its listed acceptance. Matrix structure passes.
 The prior full regression remains app444/core463; this turn ran the seven
 focused inclusion methods. No screenshot or raw log is stored in the repo.
+
+
+### Native action definition fields — 20 October 2026
+
+Implemented: DraftAction, ActionStep, and ActionPresentation retain unknown
+JSON fields at their original object level. The codecs use the existing
+JSONValue type and one private helper. Known fields keep their current names,
+types, required status, and optional encoding. No unknownFields container is
+added to normal exports. Unknown data cannot override typed identity, step
+type, enabled state, or presentation settings. Existing rawPayload stays
+unchanged. No Core Data schema changed. Fields already discarded by older
+versions cannot be recovered by this change.
+
+Automatic: nativeUnknownFieldsSurviveEditsRepeatedImportAndBackup has native
+single-object and array cases. Before the fix, both lost unknown fields at
+all three levels, with six failed assertions. After the fix, both retain null,
+Boolean, decimal, Unicode, and nested array values after known-field edits,
+two export/reimport cycles, backup restoration, and execution. The disabled
+future step stays disabled; the supported script succeeds. Original identities,
+sourceURL, and rawPayload stay intact. No recursive payload wrapper is added.
+
+futureFieldsCannotReplaceIdentityOrExecutionSettings verifies that typed fields
+win over colliding future keys. An external field named unknownFields also
+round-trips as ordinary flat JSON data. Full regression passed app444/core466,
+including the final export-shape assertion and the original action fixtures.
+The unsigned Debug build passed. Matrix structure passes.
+
+Native pending: the Mac is locked. The installed import/inspector/export path
+for native future fields is not verified. The unknown-disabled-import record
+returns to partial for this newly identified gap in its acceptance. Earlier
+foreign-payload native evidence stays in history. Strict diagnostics can rise
+when an earlier classification lacked required coverage; this is not a claim
+that execution regressed. Wrapped and mixed native imports need their own
+preservation review. No installed app or personal library changed. No screenshot
+or raw log is stored in the repository.

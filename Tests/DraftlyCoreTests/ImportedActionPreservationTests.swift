@@ -46,4 +46,78 @@ struct ImportedActionPreservationTests {
         #expect(reimport.rawPayload == separator.rawPayload)
     }
 
+    @Test(arguments: [false, true])
+    func nativeUnknownFieldsSurviveEditsRepeatedImportAndBackup(array: Bool) async throws {
+        var disabled = ActionStep("futureStep", ["value": "Original"])
+        disabled.isEnabled = false
+        let script = ActionStep("script", ["script": "context.addSuccessParameter('retained','yes');"])
+        var original = DraftAction(name: "Native future", steps: [disabled, script])
+        original.options = ActionPresentation()
+        original.rawPayload = #"{"originalForeign":"retained"}"#
+        original.sourceURL = "fixture://native"
+        let future: JSONValue = .object(["null": .null, "flag": .bool(false),
+            "decimal": .number(123456789.125), "unicode": .string("café 🐼"),
+            "nested": .array([.string("value"), .null, .bool(true)])])
+        func object<T: Encodable>(_ value: T) throws -> [String: JSONValue] {
+            try JSONDecoder().decode([String: JSONValue].self, from: JSONEncoder().encode(value))
+        }
+        var source = try object(original)
+        var step = try object(disabled)
+        var options = try object(original.presentation)
+        step["futureStepMetadata"] = future
+        options["futurePresentation"] = future
+        source["futureAction"] = future
+        source["steps"] = .array([.object(step), .object(try object(script))])
+        source["options"] = .object(options)
+        let input: JSONValue = array ? .array([.object(source)]) : .object(source)
+        var imported = try #require(ActionImporter.decode(JSONEncoder().encode(input)).first)
+        imported.name = "Edited native"
+        imported.steps[0].values["value"] = "Edited literal"
+        imported.presentation.description = "Edited description"
+        for _ in 0..<2 {
+            imported = try #require(ActionImporter.decode(JSONEncoder().encode(imported)).first)
+        }
+        let library = try LibraryStore(inMemory: true, seed: false)
+        try library.saveAction(imported)
+        let restored = try LibraryStore(inMemory: true, seed: false)
+        try restored.restore(library.backupData())
+        let recovered = try #require(restored.actions.first { $0.id == original.id })
+        let output = try object(recovered)
+        step["values"] = .object(["value": .string("Edited literal")])
+        options["description"] = .string("Edited description")
+        #expect(output["futureAction"] == future)
+        #expect(output["unknownFields"] == nil)
+        #expect(output["steps"] == .array([.object(step), .object(try object(script))]))
+        #expect(output["options"] == .object(options))
+        #expect(recovered.name == "Edited native" && recovered.rawPayload == original.rawPayload)
+        #expect(recovered.sourceURL == original.sourceURL && recovered.unsupportedSteps.isEmpty)
+        let editor = EditorSession(); editor.load(try restored.createNote(content: "Keep"))
+        let report = await ActionRunner(library: restored, editor: editor).runAsync(recovered)
+        #expect(report.reason == .success && report.successParameters["retained"] == "yes")
+        #expect(editor.content == "Keep")
+    }
+
+    @Test func futureFieldsCannotReplaceIdentityOrExecutionSettings() throws {
+        var step = ActionStep("futureStep")
+        step.isEnabled = false
+        step.unknownFields = ["id": .string(UUID().uuidString), "type": .string("clipboard"),
+            "isEnabled": .bool(true), "futureStep": .array([.null, .bool(false)])]
+        var options = ActionPresentation()
+        options.unknownFields = ["showInList": .bool(false), "futureOptions": .string("café 🐼")]
+        var action = DraftAction(name: "Typed name", steps: [step])
+        action.options = options
+        action.unknownFields = ["id": .string(UUID().uuidString), "name": .string("Wrong name"),
+            "options": .null, "steps": .array([]), "futureAction": .bool(false),
+            "unknownFields": .object(["external": .string("Retain this key too")])]
+        let encoded = try JSONEncoder().encode(action)
+        let recovered = try JSONDecoder().decode(DraftAction.self, from: encoded)
+        #expect(recovered.id == action.id && recovered.name == action.name)
+        #expect(recovered.steps.first?.id == step.id && recovered.steps.first?.type == "futureStep")
+        #expect(recovered.steps.first?.isEnabled == false && recovered.presentation.showInList)
+        #expect(recovered.unknownFields == ["futureAction": .bool(false),
+            "unknownFields": .object(["external": .string("Retain this key too")])])
+        #expect(recovered.steps.first?.unknownFields == ["futureStep": .array([.null, .bool(false)])])
+        #expect(recovered.presentation.unknownFields == ["futureOptions": .string("café 🐼")])
+    }
+
 }

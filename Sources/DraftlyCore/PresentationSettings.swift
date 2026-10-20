@@ -3,6 +3,7 @@ import Foundation
 public enum ActionSurface { case list, bar, search }
 
 public struct ActionPresentation: Codable, Equatable {
+    public var unknownFields: [String: JSONValue] = [:]
     public var description = ""
     public var showInList = true
     public var showInBar = true

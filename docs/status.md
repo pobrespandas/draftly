@@ -900,3 +900,11 @@ name/UUID/template references, with nested native/script effects. The current
 engine preserves owner, step, index, and execution identity. Seven focused
 inclusion methods pass. No production change was needed. Configuration
 precedence and native acceptance still keep the inclusion contract partial.
+
+
+Native action, step, and presentation codecs now retain unknown flat JSON fields.
+Single/array edit, repeated import, export, backup, restore, disabled execution,
+and typed-collision cases pass. Full regression passed app444/core466; the
+unsigned build passed. Installed-app acceptance is pending while the Mac is
+locked. The import contract returns to partial for that newly exposed coverage
+gap; earlier native foreign-payload evidence stays recorded.

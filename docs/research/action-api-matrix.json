@@ -17459,19 +17459,26 @@
     },
     {
       "contract": "unknown disabled imports",
-      "compatibilityStatus": "complete",
+      "compatibilityStatus": "partial",
       "automatedTest": {
         "suite": "ExecutionActionAPITests",
         "test": "disabledUnknownStepsSurviveImportAndDoNotBlockExecution"
       },
       "liveCheck": "docs/validation.md: Unknown-step import and observer control — 20 October 2026",
-      "limitations": [],
+      "limitations": [
+        "Native-format unknown-field acceptance through the installed app remains pending. Earlier foreign-payload native checks still apply to their recorded scope. Wrapped or mixed-format native imports also need a dedicated preservation review."
+      ],
       "defaults": "A missing isEnabled value enables a step. An explicitly false isEnabled value preserves the step but skips execution. The importer retains the original action payload.",
       "result": "Imported disabled unknown steps remain represented while following supported steps can execute. Enabled unknown steps prevent execution during preflight.",
       "errors": "An enabled unsupported step yields an error before earlier root steps produce side effects; no fake success is returned.",
       "implementationEvidence": {
         "file": "Sources/DraftlyCore/ActionStepExpansion.swift",
-        "symbol": "expand"
+        "symbol": "expand",
+        "additionalFiles": [
+          "Sources/DraftlyCore/ActionDefinitionCoding.swift",
+          "Sources/DraftlyCore/Models.swift",
+          "Sources/DraftlyCore/PresentationSettings.swift"
+        ]
       },
       "reviewDate": "2026-10-20",
       "contractCases": {
@@ -17511,13 +17518,19 @@
           "suite": "URLActionInstallationTests",
           "test": "failedBatchRestoresReplacedAndNewActions",
           "file": "Tests/DraftlyTests/URLActionInstallationTests.swift"
+        },
+        {
+          "suite": "ImportedActionPreservationTests",
+          "test": "nativeUnknownFieldsSurviveEditsRepeatedImportAndBackup"
+        },
+        {
+          "suite": "ImportedActionPreservationTests",
+          "test": "futureFieldsCannotReplaceIdentityOrExecutionSettings"
         }
       ],
       "nativeVerification": {
-        "status": "passed",
-        "date": "2026-10-20",
-        "evidence": "docs/validation.md",
-        "scope": "Native inspector retained futureStep and nested values. Export preserved the exact original payload and disabled state. Disabled execution recorded Success; enabled execution recorded Error before the preceding insertion. The source stayed unchanged."
+        "status": "pending",
+        "reason": "Native-format unknown fields now pass edit, repeated import, export, backup, restore, and execution tests. The installed app import/inspector/export path for this variant is pending while the Mac is locked. Earlier foreign-payload native acceptance remains in history."
       },
       "automatedVerification": {
         "status": "passed",
@@ -17531,9 +17544,30 @@
             "command": "swift test --filter URLActionInstallationTests|AutomationTimeoutBoundaryTests|AutomationEditorContextTests",
             "result": "Passed thirteen methods. Four URL installation cases verify atomic rollback, complete decode before save, unavailable library, and disabled unknown payload.",
             "evidence": "docs/validation.md"
+          },
+          {
+            "date": "2026-10-20",
+            "command": "swift test",
+            "result": "App444/core466 passed. Native single/array action imports retain unknown fields at action, step, and presentation levels after known-field edits, two reimports, backup restore, and disabled-step execution. Typed collisions keep the known identity and execution settings.",
+            "evidence": "docs/validation.md: Native action definition fields — 20 October 2026"
           }
         ]
-      }
+      },
+      "classificationHistory": [
+        {
+          "date": "2026-10-20",
+          "status": "complete",
+          "reason": "Earlier acceptance covered foreign Drafts payload preservation. Native-format unknown action, step, and presentation fields had not been tested."
+        }
+      ],
+      "nativeVerificationHistory": [
+        {
+          "status": "passed",
+          "date": "2026-10-20",
+          "evidence": "docs/validation.md",
+          "scope": "Native inspector retained futureStep and nested values. Export preserved the exact original payload and disabled state. Disabled execution recorded Success; enabled execution recorded Error before the preceding insertion. The source stayed unchanged."
+        }
+      ]
     },
     {
       "contract": "separator imports",

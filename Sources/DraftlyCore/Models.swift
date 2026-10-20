@@ -128,6 +128,7 @@ public struct Workspace: Identifiable, Codable, Equatable {
 }
 
 public struct ActionStep: Identifiable, Codable, Equatable {
+    public var unknownFields: [String: JSONValue] = [:]
     public var id: UUID = UUID()
     public var type: String
     public var values: [String: String]
@@ -136,6 +137,7 @@ public struct ActionStep: Identifiable, Codable, Equatable {
 }
 
 public struct DraftAction: Identifiable, Codable, Equatable {
+    public var unknownFields: [String: JSONValue] = [:]
     public var options: ActionPresentation?
     public var id: UUID = UUID()
     public var name: String

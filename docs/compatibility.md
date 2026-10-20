@@ -74,6 +74,8 @@ connectors and iOS-only APIs are outside this scope.
 The importer accepts Draftly action JSON, Drafts action JSON, groups with an
 `actions` array, directory URLs, and Drafts installation links. It preserves the
 raw payload, disabled steps, and unknown step values. Disabled steps do not run.
+Native action, step, and presentation records also retain unknown JSON fields
+at their original level. Known typed fields take priority over collisions.
 It does not claim
 compatibility with every Drafts export version or extension type.
 
