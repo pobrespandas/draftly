@@ -138,8 +138,7 @@ private struct WorkspaceSettingsView: View {
             TextField("Excluded tags", text: Binding(get: { (workspace.excludedTags ?? []).joined(separator: ", ") }, set: { workspace.excludedTags = TagRules.normalize($0.components(separatedBy: ",")) }))
             Toggle("Match Any Tag", isOn: Binding(get: { workspace.matchAnyTag ?? false }, set: { workspace.matchAnyTag = $0 }))
             Picker("Tags", selection: $workspace.tagged) { Text("Any").tag(Bool?.none); Text("Tagged").tag(Optional(true)); Text("Untagged").tag(Optional(false)) }
-            Picker("Sort", selection: $workspace.sort) { ForEach([NoteSort.modified, .created, .title], id: \.self) { Text($0.rawValue.capitalized).tag($0) } }
-            Toggle("Ascending", isOn: $workspace.ascending)
+            WorkspaceFilterSettings(workspace: $workspace, error: $error)
             Toggle("Show Preview", isOn: list.showPreview)
             Stepper("Preview Lines: \(list.wrappedValue.previewLines)", value: list.previewLines, in: 1...3)
             Toggle("Show Tags", isOn: list.showTags); Toggle("Show Date", isOn: list.showDate)

@@ -2376,3 +2376,34 @@ Validation result: the focused Workspace run passed 10 methods in two suites.
 The full background run passed 405 app methods and 394 core methods. It compiled
 the changed app and tests. No visible windows or native permission requests ran.
 These totals are regression evidence, not a compatibility percentage.
+
+### Workspace filter and order controls — 20 October 2026
+
+Implemented: Workspace Settings exposes flag status, flagged inclusion in Inbox
+and Archive, and order for each folder. Order includes modified, created, title,
+and access date, ascending direction, and flagged-first. These controls update
+the same API options that queries and visible rows evaluate. They replace the
+old global sort control, which could be ignored by an imported folder override.
+
+Start and end filters expose none, relative days, or an absolute date. Each
+filter selects modified, created, or accessed date. The existing evaluator keeps
+unknown access dates outside an active access filter and last in access order.
+Options edits preserve unknown top-level, folder-order, date, and metadata fields.
+The settings sheet still edits a value copy; Cancel does not persist that copy.
+The mutation adapter validates JSON before serialization and leaves state intact
+on error. An invalid Date payload initially caused an Objective-C exception;
+the new validation rejects that case with a Swift error.
+
+Automatically tested: the focused run passed 13 methods in three suites.
+WorkspaceOptionsEditorTests checks effective order, flags, date filters, unknown
+access dates, retained unknown fields, copy isolation, invalid values, and disk
+reopen. Existing application and snapshot cases also passed.
+
+Native verification: pending. No native window or permission dialog opened in
+these tests. Geometry and controls must be checked with the refreshed QA build.
+Group/theme controls, shared theme storage, and the other Settings contracts
+remain open. This entry does not close Workspaces or personalization.
+
+Regression result: 408 app methods and 394 core methods passed. The unsigned
+Xcode Debug app build passed after project regeneration. Native acceptance stays
+pending; these counts do not prove visual or API parity.

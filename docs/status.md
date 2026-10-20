@@ -210,7 +210,8 @@ Pending:
   included Settings categories and native appearance/geometry comparisons.
 - Complete individual Markdown options, escaped line breaks, live changes, and
   visual/click checks for reference-help controls.
-- Finish workspace management and expose all date/flag/sort/group/theme options.
+- Verify workspace date/flag/per-folder sort controls in native use. They are
+  implemented. Group and theme controls remain to be exposed.
 - Store shared themes with stable identities; migrate local themes once.
 - Complete Drafts theme import and verify MultiMarkdown/TaskPaper in all accesses.
 - Verify restart, backup, selection, content, and Undo after configuration changes.

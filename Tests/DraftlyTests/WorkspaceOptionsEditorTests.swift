@@ -1,0 +1,62 @@
+import Foundation
+import Testing
+@testable import DraftlyCore
+@testable import Draftly
+
+@Suite("Workspace option editing") @MainActor
+struct WorkspaceOptionsEditorTests {
+    @Test func folderSortChangesEffectiveOrderAndPreservesOtherFoldersAndUnknownFields() throws {
+        var workspace = Workspace(name: "Order")
+        workspace.scriptMetadata = ["future": "keep", "api": #"{"unknown":{"value":42},"_sorts":{"archive":{"sort":"created","descending":false},"inbox":{"sort":"modified","future":true}}}"#]
+        try WorkspaceOptionsEditor.setSort(.title, ascending: true, flaggedFirst: true, folder: .inbox, in: &workspace)
+        let alpha = Note(content: "Alpha"), zulu = Note(content: "Zulu", flag: 1)
+        #expect(workspace.filter([alpha, zulu]).map(\.id) == [zulu.id, alpha.id])
+        let sorts = try #require(workspace.apiOptions["_sorts"] as? [String: [String: Any]])
+        #expect(sorts["archive"]?["sort"] as? String == "created")
+        #expect(sorts["inbox"]?["future"] as? Bool == true)
+        #expect((workspace.apiOptions["unknown"] as? [String: Any])?["value"] as? Int == 42)
+        #expect(workspace.scriptMetadata?["future"] == "keep")
+        try WorkspaceOptionsEditor.setSort(.accessed, ascending: true, flaggedFirst: false, folder: .inbox, in: &workspace)
+        var accessed = alpha; accessed.accessedAt = Date()
+        #expect(workspace.filter([zulu, accessed]).map(\.id) == [accessed.id, zulu.id])
+    }
+
+    @Test func dateAndFlagControlsUseTheSharedEvaluatorAndRetainUnknownDateFields() throws {
+        var workspace = Workspace(name: "Filters")
+        workspace.scriptMetadata = ["api": #"{"startDate":{"future":"keep"}}"#]
+        try WorkspaceOptionsEditor.set("flagged", for: "flaggedStatus", in: &workspace)
+        try WorkspaceOptionsEditor.setDate("absolute", component: "type", key: "startDate", in: &workspace)
+        try WorkspaceOptionsEditor.setDate("accessed", component: "field", key: "startDate", in: &workspace)
+        try WorkspaceOptionsEditor.setDate("2020-01-01T00:00:00Z", component: "date", key: "startDate", in: &workspace)
+        var included = Note(content: "Included", flag: 1)
+        included.accessedAt = ISO8601DateFormatter().date(from: "2021-01-01T00:00:00Z")
+        let unknown = Note(content: "Unknown access", flag: 1)
+        #expect(workspace.filter([unknown, included]).map(\.id) == [included.id])
+        #expect((workspace.apiOptions["startDate"] as? [String: Any])?["future"] as? String == "keep")
+        try WorkspaceOptionsEditor.set(false, for: "inboxIncludesFlagged", in: &workspace)
+        #expect(workspace.filter([included]).isEmpty)
+        try WorkspaceOptionsEditor.set(true, for: "inboxIncludesFlagged", in: &workspace)
+        try WorkspaceOptionsEditor.setDate("none", component: "type", key: "startDate", in: &workspace)
+        #expect(Set(workspace.filter([unknown, included]).map(\.id)) == [unknown.id, included.id])
+    }
+
+    @Test func editingCopyAndEncodingFailureLeaveOriginalUnchanged() throws {
+        let original = Workspace(name: "Original")
+        var copy = original
+        #expect(throws: (any Error).self) {
+            try WorkspaceOptionsEditor.set(Date(), for: "invalid", in: &copy)
+        }
+        #expect(copy == original)
+        try WorkspaceOptionsEditor.set("flagged", for: "flaggedStatus", in: &copy)
+        #expect(original.scriptMetadata == nil)
+        let decoded = try JSONDecoder().decode(Workspace.self, from: JSONEncoder().encode(copy))
+        #expect(decoded == copy)
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        var library: LibraryStore? = try LibraryStore(directory: folder, seed: false)
+        try library!.saveWorkspace(copy)
+        library = nil
+        let reopened = try LibraryStore(directory: folder, seed: false)
+        #expect(reopened.workspaces == [copy])
+    }
+}
