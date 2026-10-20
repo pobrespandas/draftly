@@ -1326,8 +1326,12 @@ executable. It does not accept this delivery. No screenshots were saved.
 
 ## Real async prompt keyboard acceptance — 20 October 2026
 
-Computer Use used the refreshed a308158 QA executable, development-signed, with
-its existing isolated local library. The habitual app was unchanged. The helper
+The first QA refresh copied only the Debug launcher. It retained an older
+Draftly.debug.dylib. That batch did not verify a308158 and is invalid for the new
+presenter. The checks below were repeated after copying every Mach-O file,
+checking source and destination hashes before signing, and verifying the signed
+bundle. The existing isolated local library was retained. The habitual app was
+unchanged. The helper
 now accepts installation URLs for actions, while it still checks the QA bundle
 identity and test flag. Reproducible inputs are in
 `scripts/fixtures/engine-prompt-actions.json`.
@@ -1357,3 +1361,52 @@ matrix check passes. The strict engine check reports 44 evidence diagnostics.
 All 14 engine records remain partial, with their native checks and remaining
 limits stated. No object member or step classification changed. The change in
 check output is not a compatibility percentage or a complete engine acceptance.
+
+
+## Async dictation and isolated AppleScript — 20 October 2026
+
+Implemented in f334fd1, d4f4425, and 824525f:
+
+- Live dictation suspends for speech and microphone authorization. A nonmodal
+  panel shows partial text. Done returns the latest text; Cancel returns empty
+  text. Task cancellation and deadlines stop audio and recognition and close the
+  panel. The editor scripting call forwards locale and does not insert text.
+- AppleScript runs in a child process with JSON file requests and results. A
+  dedicated launcher mode runs before SwiftUI or the library starts. Process
+  cancellation terminates the child and waits for cleanup. Legacy descriptor
+  conversion shares the implementation.
+- JSON null maps to AppleScript missing value. Records keep user fields and known
+  coded properties text, name, contents, and id. Other coded fields use their
+  four-character key; their application-specific display names cannot be recovered
+  from the descriptor alone. Duplicate decoded keys fail instead of losing data.
+
+The final run passed 288 app tests in 45 suites and 322 core tests in 43 suites.
+The unsigned Xcode build passed. These cases include dictation permission denial,
+phase-specific cancellation and timeout, failed capture startup, delayed results,
+AppleScript null and record values, helper errors, and process cleanup. The five
+original action fixtures remain unchanged. Real dictation acceptance is pending;
+no microphone permission or actual recording was used in this delivery.
+
+A separate real helper invocation returned the exact Unicode, boolean, numeric,
+null, and empty-list payload with exit zero. Computer Use then used the fully
+refreshed, development-signed QA bundle. The source Debug library SHA-256 prefix
+was 146394d6933cb349 before signing. The QA helper mode returned the exact native
+record result before GUI checks began. The earlier launcher-only batch was
+invalid and was not counted.
+
+QA AppleScript success stored `AppleScript café 🐼`. During the eight-second
+AppleScript case, direct neutral typing cancelled the action and immediately
+showed `Neutral typing retained`. No helper child remained. Subsequent prompt and
+selector actions completed; the delayed text did not replace the editor. Execution
+History showed the matching AppleScript success and cancellation, prompt success
+and two cancellations, and selector success and cancellation in the repeated batch
+at 01:18–01:19 local time. The prompt Return, Escape, Cmd-period, filtered selector
+Return, and selector Escape cases all passed with this verified executable.
+
+The external URL confirmation now uses the same suspended presenter. Escape
+returned a fresh `status=verified-cancel` callback to the local helper. The target
+text stayed unchanged. Accepted external execution with the new presenter, timeout,
+busy, concurrent entry, and source-close variants still need current-build checks.
+QA and the helper were quit; no QA or helper process remained. No screenshots were
+saved. Native speech, transcription, EventKit persistence, models, and further
+AppleScript result types remain pending where their contracts require them.

@@ -6,7 +6,11 @@ background. Use a local QA library and neutral text.
 ## Prepare the apps
 
 Copy a fresh local Draftly build to a new QA app bundle under `~/Applications`.
-Keep the installed Draftly app unchanged. Set these Info.plist values on the copy:
+Keep the installed Draftly app unchanged. For Debug updates, copy every file from
+Contents/MacOS, including Draftly.debug.dylib and __preview.dylib. Replacing only
+the launcher leaves old code. Compare each source and destination hash before
+signing. Preserve the isolated Info.plist. Verify the complete signed bundle.
+Set these Info.plist values on the copy:
 
 - `CFBundleIdentifier`: `com.andrestobelem.draftly.engine-qa`
 - `DraftlyUITesting`: true
@@ -87,5 +91,17 @@ both must cancel and keep the source text. Run QA Async selection keyboard.
 Type Second in its search field, then press Return. The note must read
 `Selected: two`. Repeat and press Escape; the note must stay unchanged. Check
 Execution History for the matching success and cancellation results. These checks
-passed on the development-signed a308158 QA build on 20 October 2026. The alert
+passed again on the fully refreshed development-signed QA build on 20 October
+2026. The earlier a308158 attribution was invalid because the Debug library was
+not refreshed. See docs/validation.md for the repeated acceptance. The alert
 has no visible close control; other window-close paths still need acceptance.
+
+
+## AppleScript process checks
+
+Import scripts/fixtures/engine-applescript-actions.json into the isolated library.
+Run success and check `AppleScript café 🐼`. Start cancelled, then type neutral
+replacement text before eight seconds pass. The editor must remain available;
+the runner must cancel and keep the typed text. Check that no helper child remains
+and that the next action can run. Check Execution History. Use no external app
+commands; these fixture scripts return neutral records only.

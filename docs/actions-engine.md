@@ -146,3 +146,17 @@ Injected tests check cancellation and cleanup without visible windows or system
 permissions. The unsigned build passed. Real dialog keyboard behavior, EventKit
 persistence, transcription, and Apple model use remain pending. Live dictation and
 other native synchronous adapters still need review. See docs/validation.md.
+
+
+## Dictation and AppleScript waits — 20 October 2026
+
+Live dictation and AppleScript now use the async host route. Dictation uses a
+permission and capture state machine with a nonmodal panel. Its system acceptance
+remains pending. AppleScript uses a child mode of the app executable before app
+startup. JSON results preserve null and native records; unknown coded property
+names remain four-character keys. Cancellation terminates and reaps the helper.
+Real QA verified neutral AppleScript success, typing cancellation, and subsequent
+actions. The external URL confirmation also suspends instead of running a modal
+session. See docs/validation.md for exact accepted cases and the corrected Debug
+bundle preparation. Mail, Messages, HTML, file panels, printing, and arrangement
+still contain waits that need review. Strict engine acceptance remains open.

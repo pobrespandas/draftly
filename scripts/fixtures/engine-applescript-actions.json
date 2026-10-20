@@ -1,0 +1,36 @@
+[
+  {
+    "name": "QA AppleScript success",
+    "steps": [
+      {
+        "type": "runAppleScript",
+        "data": {
+          "script": "on execute(draft)\n delay 1\nreturn {text:\"AppleScript café 🐼\", values:{true,3.5,missing value,{}}}\nend execute"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText(context.appleScriptResponses[0].text);"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA AppleScript cancelled",
+    "steps": [
+      {
+        "type": "runAppleScript",
+        "data": {
+          "script": "on execute(draft)\n delay 8\nreturn {text:\"Late AppleScript\", values:{true,3.5,missing value,{}}}\nend execute"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText(context.appleScriptResponses[0].text);"
+        }
+      }
+    ]
+  }
+]

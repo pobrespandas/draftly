@@ -372,3 +372,18 @@ Xcode build and normal matrix check passed. The strict engine gate remains open
 with 120 evidence diagnostics. Real acceptance for the new dialogs, transcription,
 EventKit persistence, and model tools is pending. See docs/validation.md for
 specific cases. The full Mac plan remains open.
+
+
+## Current engine delivery — 20 October 2026
+
+Dictation and AppleScript use cancellable native adapters in the async route.
+AppleScript preserves missing values and native record fields. Neutral real QA
+verified AppleScript success and cancellation, prompt keyboard behavior, selector
+filtering, and URL confirmation cancellation. A launcher-only Debug refresh was
+invalid; all accepted new checks were repeated with the complete code image.
+
+The final run passed 288 app tests and 322 core tests. The unsigned build and normal
+matrix check passed. The strict engine gate has 44 evidence diagnostics. All 14
+engine records remain partial, with specific pending native checks and limits.
+No API member classification changed. Real dictation and the remaining native
+capability checks are pending. The full Mac plan remains open.

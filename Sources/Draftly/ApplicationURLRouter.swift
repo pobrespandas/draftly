@@ -58,13 +58,14 @@ struct ApplicationURLRouter {
             let name = action.name
             let alert = NSAlert(); alert.messageText = "Run \(name)?"; alert.informativeText = "An external link requested this action on \(note.title)."
             alert.addButton(withTitle: "Run Action"); alert.addButton(withTitle: "Cancel")
-            guard alert.runModal() == .alertFirstButtonReturn else {
-                if let callback = ActionExecutionResult.cancelled.callbackURL(parameters: callbackParameters) { NSWorkspace.shared.open(callback) }
-                return
-            }
+            alert.buttons.last?.keyEquivalent = "\u{1b}"
             let host = controller.makeActionHost()
             Task { @MainActor in
                 do {
+                    guard try await NativeAlertWait.present(alert) == .alertFirstButtonReturn else {
+                        if let callback = ActionExecutionResult.cancelled.callbackURL(parameters: callbackParameters) { NSWorkspace.shared.open(callback) }
+                        return
+                    }
                     let output = try await AutomationActionExecution.run(action, noteID: note.id, library: library,
                         models: controller.windows.allObjects, host: host)
                     if case .failure(let message) = output.report.result { library.error = message }
