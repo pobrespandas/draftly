@@ -3074,3 +3074,26 @@ They use a fixed document frame. They do not prove exact centering with automati
 text-view height, short documents, resizing, live Settings persistence, or Drafts
 visual parity. Those native checks remain pending. No full regression or new
 app build was needed for this test-only change; prior results remain separate.
+
+
+### Markdown preview line layout — 20 October 2026
+
+Implemented: removed paragraph `white-space: pre-wrap` from the preview page.
+That rule overrode processor output. A soft line break occupied two lines;
+an explicit break occupied three. Code blocks keep their own whitespace rules.
+
+Tested automatically: one offscreen WebKit contract measures actual line height
+for Unicode paragraphs. It expects one line for a GitHub soft break, two for
+Hard breaks, two for an escaped break, and two preserved code lines. Three
+paragraph assertions failed before the change. All four measurements pass after
+the change. The test uses no window, network, or persistent website data. The
+full regression passed 435 app methods and 430 core methods. The unsigned Debug
+build passed. These totals do not establish API or visual parity.
+
+Native verification: Engine QA was refreshed with the changed build. Its Debug
+library hash before signing starts with cd1f2519c81913f7. Settings opened, but
+Computer Use then returned “native pipe closed before response” twice. The live
+Hard breaks toggle, preview refresh, and comparison with Drafts remain pending.
+No native result is accepted from this attempt. The physical global shortcut
+check also remains pending; the user will report its result. No screenshot or
+raw log was added to the repository.

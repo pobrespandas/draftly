@@ -33,7 +33,7 @@ public enum MarkdownRenderer {
         """
         <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
         <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
-        <style>:root{color-scheme:light dark}body{font:17px -apple-system;line-height:1.65;max-width:760px;margin:48px auto;padding:0 28px}pre,code{font-family:ui-monospace,monospace;background:#8882;border-radius:5px}pre{padding:16px;white-space:pre-wrap}blockquote{border-left:3px solid #8885;padding-left:18px;opacity:.8}a{color:#568bea}hr{border:0;border-top:1px solid #8884}p{white-space:pre-wrap}</style></head><body>\(body)</body></html>
+        <style>:root{color-scheme:light dark}body{font:17px -apple-system;line-height:1.65;max-width:760px;margin:48px auto;padding:0 28px}pre,code{font-family:ui-monospace,monospace;background:#8882;border-radius:5px}pre{padding:16px;white-space:pre-wrap}blockquote{border-left:3px solid #8885;padding-left:18px;opacity:.8}a{color:#568bea}hr{border:0;border-top:1px solid #8884}</style></head><body>\(body)</body></html>
         """
     }
     public static func escape(_ text: String) -> String {

@@ -646,3 +646,11 @@ The recovered revision and execution use the copied note identity; the existing
 execution still uses the edited original. Export comparison verified the graph.
 Other conflict variants, native storage failure, syntax/groups, and connected
 sync remain pending.
+
+
+Markdown preview now respects processor line breaks instead of forcing paragraph
+whitespace preservation. An offscreen WebKit contract failed before the fix and
+passes after it. Full regression passed 435 app methods and 430 core methods;
+the unsigned build passed. Live Settings refresh and Drafts comparison remain
+pending after a Computer Use connection failure. Global physical-key delivery
+also awaits the user's result. The full Mac plan remains open.
