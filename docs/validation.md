@@ -3250,3 +3250,31 @@ Extended the existing find contract instead of adding a duplicate test. Both
 legacy and worker cases first failed at __proto__ and now pass. All 36 metadata
 methods pass. Full regression passed 435 app and 440 core methods. The unsigned
 Debug build passed. This does not add native Drafts comparison evidence.
+
+
+### Workspace native state across scripting — 20 October 2026
+
+Implemented: the scripting representation now carries a private native-state
+payload for manual order, tagged filtering, all list options, and non-API script
+metadata. APIValues restores that state before applying exposed script fields.
+Query, update, application, default creation, and installation share the decoder.
+The payload is removed before saving API metadata to prevent recursive growth.
+Old representations without it retain compatible defaults. Invalid payloads
+throw before persistence. No Core Data or library format change was required.
+
+Tested automatically: the new query contract first failed on both runners before
+save, because searchTitlesOnly and case sensitivity were lost. Four methods now
+pass on both routes. They cover native query equivalence, repeated update, applied
+state, installation, backup recovery, manual order, tagged filtering, full list
+options, non-API metadata, default-copy identity, unchanged source defaults,
+current-window snapshots, script-field precedence, and malformed-state rejection.
+Application tests capture the workspace passed to the window adapter; they do
+not assert real visible rows. Full regression passed 435 app and 444 core methods.
+The unsigned Debug build and matrix structure passed.
+
+Workspace.create, query, and update were returned to partial classification.
+Their old native evidence remains in nativeVerificationHistory. It did not cover
+this retained-state regression. Native verification must repeat the affected
+query, application, and default-copy cases before closure. Strict core now reports
+809 diagnostics; engine remains separately recorded at 27. These are diagnostic
+counts, not a compatibility percentage. The full Mac goal remains open.

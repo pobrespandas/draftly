@@ -1,6 +1,18 @@
 import Foundation
 import IOKit.ps
 
+private struct WorkspaceNativeState: Codable {
+    var order: Int?
+    var tagged: Bool?
+    var listOptions: DraftListOptions?
+    var metadata: [String: String]?
+
+    init(_ workspace: Workspace) {
+        order = workspace.order; tagged = workspace.tagged; listOptions = workspace.listOptions
+        metadata = workspace.scriptMetadata?.filter { $0.key != "api" }
+    }
+}
+
 public enum APIValues {
     public static func date(_ value: Date) -> String {
         let formatter = ISO8601DateFormatter(); formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -27,7 +39,13 @@ public enum APIValues {
                 if type == "absolute" && APIValues.parseDate(value["date"]) == nil { throw DraftlyError.message("The absolute query date is invalid.") }
             }
         }
+        let native: WorkspaceNativeState?
+        if let payload = values["_draftlyNative"] {
+            guard let text = payload as? String else { throw DraftlyError.message("The workspace native state is invalid.") }
+            native = try JSONDecoder().decode(WorkspaceNativeState.self, from: Data(text.utf8))
+        } else { native = nil }
         var workspace = Workspace(name: values["name"] as? String ?? "Script")
+        workspace.order = native?.order; workspace.tagged = native?.tagged
         if let id = (values["uuid"] as? String).flatMap(UUID.init(uuidString:)) { workspace.id = id }
         workspace.query = values["queryString"] as? String ?? ""
         if let error = DraftQuery(workspace.query).error { throw DraftlyError.message(error) }
@@ -36,8 +54,11 @@ public enum APIValues {
         workspace.excludedTags = TagRules.normalize(tags.filter { $0.hasPrefix("!") }.map { String($0.dropFirst()) })
         workspace.matchAnyTag = !(values["tagFilterRequireAll"] as? Bool ?? true)
         workspace.folder = NoteFolder(rawValue: values["loadFolder"] as? String ?? "inbox") ?? .inbox
-        workspace.scriptMetadata = ["api": String(decoding: try JSONSerialization.data(withJSONObject: values), as: UTF8.self)]
-        var options = DraftListOptions()
+        var api = values; api.removeValue(forKey: "_draftlyNative")
+        var metadata = native?.metadata ?? [:]
+        metadata["api"] = String(decoding: try JSONSerialization.data(withJSONObject: api), as: UTF8.self)
+        workspace.scriptMetadata = metadata
+        var options = native?.listOptions ?? DraftListOptions()
         options.showDate = values["showDate"] as? Bool ?? true
         options.showPreview = values["showPreview"] as? Bool ?? true
         options.showTags = values["showTags"] as? Bool ?? true
@@ -55,11 +76,12 @@ public enum APIValues {
         ["uuid": action.id.uuidString, "name": action.name, "configuredValues": action.configuredValues,
          "isSeparator": action.isSeparator]
     }
-    func workspaceValue(_ workspace: Workspace) -> [String: Any] {
+    func workspaceValue(_ workspace: Workspace) throws -> [String: Any] {
         var result: [String: Any] = [:]
         if let text = workspace.scriptMetadata?["api"], let data = text.data(using: .utf8) {
             result = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
         }
+        result["_draftlyNative"] = String(decoding: try JSONEncoder().encode(WorkspaceNativeState(workspace)), as: UTF8.self)
         result["uuid"] = workspace.id.uuidString; result["name"] = workspace.name; result["queryString"] = workspace.query
         result["tagFilter"] = (workspace.tags + (workspace.excludedTags ?? []).map { "!" + $0 }).joined(separator: ",")
         result["tagFilterRequireAll"] = !(workspace.matchAnyTag ?? false)
@@ -107,11 +129,11 @@ public enum APIValues {
         case "recentDrafts": return editor.recentNoteIDs.compactMap { id in library.notes.first { $0.id == id && $0.trashedAt == nil } }.map(noteValue)
         case "selectedDrafts": return (selectedDrafts?() ?? library.notes.filter { $0.id == editor.noteID }).map(noteValue)
         case "ui": if let uiOperation { return try uiOperation(values) }; return try platform("ui", values)
-        case "defaultWorkspace": return workspaceValue(defaultWorkspace?() ?? Workspace(name: ""))
-        case "currentWorkspace": return workspaceValue(currentWorkspace?() ?? Workspace(name: "Current"))
+        case "defaultWorkspace": return try workspaceValue(defaultWorkspace?() ?? Workspace(name: ""))
+        case "currentWorkspace": return try workspaceValue(currentWorkspace?() ?? Workspace(name: "Current"))
         case "queryWorkspace": return try queryWorkspace(values).map(noteValue)
-        case "workspaces": return library.workspaces.map(workspaceValue)
-        case "updateWorkspace": let workspace = try decodeWorkspace(values); try library.saveWorkspace(workspace); return workspaceValue(workspace)
+        case "workspaces": return try library.workspaces.map(workspaceValue)
+        case "updateWorkspace": let workspace = try decodeWorkspace(values); try library.saveWorkspace(workspace); return try workspaceValue(workspace)
         case "tags":
             let query = TagRules.normalize(values["query"] as? String ?? "")
             return Array(Set(library.notes.flatMap(\.tags))).sorted().filter { query.isEmpty || $0.localizedStandardContains(query) }
@@ -286,7 +308,7 @@ enum ScriptUtilities {
         case "action.run":
             guard let action = library.actions.first(where: { $0.name == values["name"] as? String }), let note = library.notes.first(where: { $0.id.uuidString == values["uuid"] as? String || $0.id == editor.noteID }) else { throw DraftlyError.message("The model target action or draft was not found.") }
             queued.append((action, note)); result = true
-        case "workspace.find": result = library.workspaces.first { $0.name == values["name"] as? String }.map(workspaceValue) ?? [:]
+        case "workspace.find": result = try library.workspaces.first { $0.name == values["name"] as? String }.map(workspaceValue) ?? [:]
         default: throw DraftlyError.message("The model tool \(operation) is unavailable.")
         }
         return String(decoding: try JSONSerialization.data(withJSONObject: result, options: [.fragmentsAllowed]), as: UTF8.self)

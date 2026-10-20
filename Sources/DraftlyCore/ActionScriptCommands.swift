@@ -77,7 +77,7 @@ import Foundation
             queued.append((action, try input.resolve(in: library)))
             return true
         case .findWorkspace(let name):
-            return library.workspaces.first(where: { $0.name == name }).map(workspaceValue)
+            return try library.workspaces.first(where: { $0.name == name }).map(workspaceValue)
         case .applyWorkspace(let input):
             guard let applyWorkspace else { throw DraftlyError.message("Workspace application requires an open window.") }
             try applyWorkspace(input.resolve())

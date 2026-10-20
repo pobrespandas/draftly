@@ -5580,7 +5580,7 @@
             "test": "installationLinkUsesTheSharedEvaluatorAndPreservesUnknownFields"
           },
           "liveCheck": null,
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
           "result": [
             "installURL: string"
@@ -5621,7 +5621,13 @@
           "nativeVerification": {
             "status": "pending",
             "reason": "The receiving endpoint was added after the native metadata/focus replay. No external URL installation acceptance is claimed."
-          }
+          },
+          "supportingTests": [
+            {
+              "suite": "WorkspaceNativeStateContractTests",
+              "test": "scriptingQueryUpdateApplyAndInstallKeepNativeOptions"
+            }
+          ]
         },
         {
           "member": "name",
@@ -5722,13 +5728,15 @@
             "test": "workspaceQueryCoversAllFoldersAndRejectsInvalidFolder"
           },
           "liveCheck": "2026-10-19: Core acceptance action applied a saved workspace; one visible row, core tag, title ascending, hidden row tags.",
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "defaults": "Draftly accepts omitted filter as all. The archived signature requires filter.",
           "result": "Returns matching cached Draft objects for all five folders and applies the folder sort. Invalid folders fail.",
           "errors": "The archived typed member declares no error result for valid inputs.",
-          "limitations": [],
+          "limitations": [
+            "The native-state bridge regression is fixed and covered on both runners. Prior acceptance did not cover native-only list options, tagged filtering, manual order, and non-API metadata. Native acceptance of those retained values remains pending."
+          ],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "complete",
+          "compatibilityStatus": "partial",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Workspace.query"
@@ -5765,9 +5773,8 @@
             }
           },
           "nativeVerification": {
-            "status": "passed",
-            "date": "2026-10-19",
-            "evidence": "docs/research/screenshots/delivery-one-2026-10-19/core-replay-passed.txt; core-replay-final.txt; last-action.txt; normal-search.txt; match-search.txt; preview-comparison.json. The isolated action passed, and presentation checks preserved the editor."
+            "status": "pending",
+            "reason": "Repeat native query/application and default-copy checks with the retained native-only list options and metadata."
           },
           "relatedContractTests": [
             {
@@ -5826,6 +5833,19 @@
               },
               "assertion": "Invalid configuration fails before replacing saved values."
             }
+          ],
+          "supportingTests": [
+            {
+              "suite": "WorkspaceNativeStateContractTests",
+              "test": "scriptingQueryUpdateApplyAndInstallKeepNativeOptions"
+            }
+          ],
+          "nativeVerificationHistory": [
+            {
+              "status": "passed",
+              "date": "2026-10-19",
+              "evidence": "docs/research/screenshots/delivery-one-2026-10-19/core-replay-passed.txt; core-replay-final.txt; last-action.txt; normal-search.txt; match-search.txt; preview-comparison.json. The isolated action passed, and presentation checks preserved the editor."
+            }
           ]
         },
         {
@@ -5844,13 +5864,15 @@
             "test": "workspaceUpdateReturnsVoidAndRollsBackStorageFailure"
           },
           "liveCheck": "2026-10-19: Core acceptance action applied a saved workspace; one visible row, core tag, title ascending, hidden row tags.",
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "defaults": "No input arguments; it saves the current object fields.",
           "result": "Saving returns undefined. Storage failure throws, stops later statements, and preserves the original workspace in the library and backup.",
           "errors": "Invalid Workspace options and storage failures throw JavaScript errors. Failed storage writes roll back.",
-          "limitations": [],
+          "limitations": [
+            "The native-state bridge regression is fixed and covered on both runners. Prior acceptance did not cover native-only list options, tagged filtering, manual order, and non-API metadata. Native acceptance of those retained values remains pending."
+          ],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "complete",
+          "compatibilityStatus": "partial",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/LibraryStore.swift",
             "symbol": "LibraryStore.saveWorkspace"
@@ -5879,15 +5901,27 @@
             }
           },
           "nativeVerification": {
-            "status": "passed",
-            "date": "2026-10-19",
-            "evidence": "docs/research/screenshots/three-core-contracts-2026-10-19/action.json; passed.txt; native-result.png. The action creates, saves, finds, lists, queries, and applies a workspace; the native window shows its one matching draft and title sort."
+            "status": "pending",
+            "reason": "Repeat native query/application and default-copy checks with the retained native-only list options and metadata."
           },
           "validationTest": {
             "suite": "WorkspaceActionAPITests",
             "test": "workspaceUpdateRejectsInvalidConfigurationBeforePersistence",
             "assertion": "Invalid folder, flag status, sort, date field, date type, and absolute date fail without saving a partial workspace."
-          }
+          },
+          "supportingTests": [
+            {
+              "suite": "WorkspaceNativeStateContractTests",
+              "test": "scriptingQueryUpdateApplyAndInstallKeepNativeOptions"
+            }
+          ],
+          "nativeVerificationHistory": [
+            {
+              "status": "passed",
+              "date": "2026-10-19",
+              "evidence": "docs/research/screenshots/three-core-contracts-2026-10-19/action.json; passed.txt; native-result.png. The action creates, saves, finds, lists, queries, and applies a workspace; the native window shows its one matching draft and title sort."
+            }
+          ]
         },
         {
           "member": "create",
@@ -5905,13 +5939,15 @@
             "test": "workspaceCreateUsesDefaultConfigurationWithoutSavingIt"
           },
           "liveCheck": null,
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "defaults": "Configuration comes from the local default workspace. No saved default uses compatible built-in values.",
           "result": "The factory copies the default configuration into independent new identities without saving.",
           "errors": "The reference specifies no error result for valid typed inputs.",
-          "limitations": [],
+          "limitations": [
+            "The native-state bridge regression is fixed and covered on both runners. Prior acceptance did not cover native-only list options, tagged filtering, manual order, and non-API metadata. Native acceptance of those retained values remains pending."
+          ],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "complete",
+          "compatibilityStatus": "partial",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Workspace.create"
@@ -5940,15 +5976,27 @@
             }
           },
           "nativeVerification": {
-            "status": "passed",
-            "date": "2026-10-19",
-            "evidence": "docs/research/screenshots/three-core-contracts-2026-10-19/action.json; passed.txt; native-result.png. The action creates, saves, finds, lists, queries, and applies a workspace; the native window shows its one matching draft and title sort."
+            "status": "pending",
+            "reason": "Repeat native query/application and default-copy checks with the retained native-only list options and metadata."
           },
           "defaultConfigurationTest": {
             "suite": "SyntaxDefinitionTests",
             "test": "defaultWorkspaceCopiesConfigurationWithANewIdentityAndFallsBackAfterDeletion",
             "assertion": "A local saved default is copied with fresh identity. Removing it restores compatible defaults."
-          }
+          },
+          "supportingTests": [
+            {
+              "suite": "WorkspaceNativeStateContractTests",
+              "test": "createKeepsDefaultNativeSettingsWithANewIdentity"
+            }
+          ],
+          "nativeVerificationHistory": [
+            {
+              "status": "passed",
+              "date": "2026-10-19",
+              "evidence": "docs/research/screenshots/three-core-contracts-2026-10-19/action.json; passed.txt; native-result.png. The action creates, saves, finds, lists, queries, and applies a workspace; the native window shows its one matching draft and title sort."
+            }
+          ]
         },
         {
           "member": "find",

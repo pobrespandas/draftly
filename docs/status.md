@@ -702,3 +702,11 @@ Draft.find now excludes inherited JavaScript cache keys. The extended existing
 contract passes on legacy and worker routes after failing on both before the fix.
 Metadata36, full app435/core440, and unsigned build passed. Native comparison
 remains separate.
+
+
+Workspace scripting now retains manual order, tagged filtering, native list
+options, and non-API metadata. Four methods on both runners cover query, save,
+application adapter, installation, backup, defaults, precedence, and invalid input.
+Full app435/core444 and unsigned build passed. Create/query/update are partial
+again until affected native checks are repeated; previous evidence is preserved.
+Strict core has 809 diagnostics. The full plan remains open.
