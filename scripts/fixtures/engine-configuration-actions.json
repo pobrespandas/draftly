@@ -20,5 +20,73 @@
         }
       }
     ]
+  },
+  {
+    "name": "QA Required included configuration",
+    "uuid": "46CC0837-CCDE-46CF-8F72-2A501EA465F9",
+    "steps": [
+      {
+        "type": "configurationKey",
+        "data": {
+          "key": "childLabel",
+          "name": "Included neutral label",
+          "dataType": "string",
+          "defaultStringValue": "Included default",
+          "requiresInitialConfiguration": "true"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Child: '+context.configuredValues.childLabel);draft.update();"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Static required configuration",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Completed root before include');draft.setTemplateTag('requiredChild','QA Required included configuration');"
+        }
+      },
+      {
+        "type": "includeAction",
+        "data": {
+          "uuid": "46CC0837-CCDE-46CF-8F72-2A501EA465F9"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Completed tail after include');"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Dynamic required configuration",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Completed root before include');draft.setTemplateTag('requiredChild','QA Required included configuration');"
+        }
+      },
+      {
+        "type": "includeAction",
+        "data": {
+          "name": "[[requiredChild]]"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Completed tail after include');"
+        }
+      }
+    ]
   }
 ]

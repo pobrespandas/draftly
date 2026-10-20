@@ -474,3 +474,10 @@ confirmation from imported defaults, and save accepted values atomically.
 Cancellation, storage failure, concurrent edits, and included-action ordering
 have specific background tests. The regression run passed 388 app and 390 core
 tests. Native configuration checks remain pending.
+
+
+Native first-use text configuration passed: Escape retained the source, Unicode
+acceptance reached the editor, and confirmation survived a restart. Included
+static cancellation kept the original text; dynamic cancellation kept the prior
+root effect. History confirmed the final results. Other field types, new required
+fields, and configuration precedence remain pending. The record stays partial.

@@ -290,4 +290,6 @@ configuration must stay unchanged. Run again, enter neutral Unicode text, and
 choose Configure. The editor must show that value. Run again and restart QA;
 neither run should ask for the confirmed field. Add a new required key and check
 that only the new field appears. Check static and template-based included actions
-separately. These steps are prepared, not recorded as passed.
+separately. Text acceptance, Escape, restart reuse, and static/dynamic included cancellation
+passed on 20 October 2026. New required fields and other control types remain
+pending. See validation.md for the exact observed scope.

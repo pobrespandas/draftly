@@ -1988,3 +1988,34 @@ shared-inclusion parity.
 Build: unsigned Xcode Debug build passed. Tooling: all 37 Python tests passed.
 The matrix structure check reports zero errors. The strict engine gate retains
 36 diagnostics; this feature does not promote the shared-inclusion record.
+
+
+## Native first-use configuration — 20 October 2026
+
+The isolated QA app was refreshed from the passing Debug build. Its Debug library
+hash starts with 3d28cc07b2ff04f6 before development signing. Computer Use ran the
+configuration fixture through the QA helper and normal run URLs.
+
+Passed: the imported default appeared but still required confirmation. Changing
+the text and pressing Escape cancelled without changing the source. The next run
+showed the original default again. Configure accepted `Accepted café 🐼
+configuration` and the editor displayed that exact value. After Quit and relaunch,
+the same action ran without a configuration prompt and retained that value.
+
+Static included configuration prompted before the root script changed text.
+Escape kept the prior accepted text. Dynamic inclusion prompted after its root
+script; Escape retained `Completed root before include`. The child and tail
+outputs did not replace it. Execution History showed Cancelled for the first text
+run and both inclusion runs, and Success for acceptance and post-restart reuse,
+at 03:20–03:22 local time. QA and the helper were quit after inspection.
+
+A helper input attempt inserted text into the existing URL instead of replacing
+it. It created one extra neutral note in the isolated library. Setting and reading
+the whole URL corrected delivery before the recorded configuration checks.
+A transient invalid capture size during the restart check was resolved by reading
+the same app again; the action was not restarted because of that observation.
+
+Pending: native addition of a required field, Boolean and number controls, and
+duplicate-key/child-value reference precedence. Static and dynamic inclusion
+fixtures are now stored with the text fixture. No screenshots or raw logs were
+added. This evidence does not close the shared-inclusion contract.

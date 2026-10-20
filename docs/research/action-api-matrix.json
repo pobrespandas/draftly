@@ -16246,7 +16246,7 @@
       "liveCheck": "docs/validation.md: Native selected identity and template inclusion — 20 October 2026",
       "limitations": [
         "Configuration key collision/type precedence still needs comparison. The archived reference does not specify the winner, and child saved values versus inline defaults remain unresolved.",
-        "Required first-use configuration now has separate confirmation state, typed prompts, atomic persistence, and cancellation on both runners. Native keyboard, restart, and included-action configuration checks remain pending. Selected-UUID and template-name native evidence does not cover configuration."
+        "Required first-use configuration has typed prompts, separate confirmation state, atomic persistence, and tests on both runners. Native Escape, Unicode acceptance, restart reuse, and static/dynamic include cancellation passed. Native new-required-field and Boolean/number controls remain pending; duplicate-key precedence is unresolved."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
@@ -16331,7 +16331,7 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Selected UUID after an actual inspector rename, template-name resolution, repeated child execution and shared globals passed through a native URL. Configuration collision and first-use requirements remain pending.",
+        "reason": "Selected UUID after inspector rename and template-name resolution passed. Native first-use text configuration, Escape, restart reuse, and static/dynamic included cancellation also passed. Configuration collisions, additional required fields, and other field types remain pending.",
         "evidence": "docs/validation.md"
       },
       "automatedVerification": {
