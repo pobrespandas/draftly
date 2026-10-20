@@ -306,3 +306,14 @@ payload. Add a required string configuration step. Import the revision and run i
 Only the added field must appear. Confirm it and check that false and zero remain.
 These native cases passed on 20 October 2026. The export is temporary. Do not
 commit machine-specific exports or raw captures.
+
+
+## Completion and step lifetime
+
+Import `engine-completion-actions.json`. Run Completion epoch isolation on a
+neutral note. The final script must succeed only after the current timer and
+without the old timer. Run Duplicate completion failure. Expect one error callback
+and the completed prior write in Inbox; no tail or Archive. Run Returned rejected
+promise. Expect one error callback and unchanged source text. Use separate callback
+case values and inspect History after each result. These URL cases passed on
+20 October 2026. Other entry-point and timeout cases stay separately tracked.

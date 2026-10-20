@@ -15896,15 +15896,13 @@
   "engineContracts": [
     {
       "contract": "completion and timer isolation",
-      "compatibilityStatus": "partial",
+      "compatibilityStatus": "complete",
       "automatedTest": {
         "suite": "AsyncActionRunnerTests",
         "test": "stepTimersAndOldScriptHandlesCannotCompleteLaterStepsOrRuns"
       },
-      "liveCheck": null,
-      "limitations": [
-        "Real app entry-point checks for duplicate completion with failure and successive-step timer isolation remain pending."
-      ],
+      "liveCheck": "docs/validation.md: Native completion and step lifetime — 20 October 2026",
+      "limitations": [],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
         "test": "finishedStepTimersCannotMutateTheNextStep"
@@ -15963,20 +15961,28 @@
         }
       ],
       "nativeVerification": {
-        "status": "pending",
-        "reason": "The temporary app verified delayed completion. Old handles, duplicate completion with failure, and successive-step timer isolation have not been compared through real app entry points."
+        "status": "passed",
+        "date": "2026-10-20",
+        "evidence": "docs/validation.md",
+        "scope": "Native URL execution verified duplicate completion, an old script handle in the next step, removal of old timers, and waiting for the current timer. A failure inside duplicate completion retained prior text, stopped the tail and Archive, and produced one error callback. History matched each outcome. Other entry-point timeout/busy acceptance remains in the separate common-entry contract."
       },
       "automatedVerification": {
         "status": "passed",
         "revision": "a308158",
         "date": "2026-10-20",
         "evidence": "docs/validation.md",
-        "scope": "The named per-case tests were included in the recorded regression run. Native acceptance remains pending.",
+        "scope": "Named completion, defaults, failure-precedence, legacy timer, session finalization, and worker epoch cases passed. Native acceptance is recorded separately.",
         "additionalRuns": [
           {
             "date": "2026-10-20",
             "command": "swift test --filter WorkerPromiseEpochTests",
             "result": "Two methods and three cases passed with the actual worker across consecutive steps.",
+            "evidence": "docs/validation.md"
+          },
+          {
+            "date": "2026-10-20",
+            "command": "swift test --filter AsyncActionRunnerTests|EngineClosureContractTests|WorkerPromiseEpochTests|ActionExecutionSessionTests|ExecutionActionAPITests",
+            "result": "Passed 45 methods in five suites, including the specific cases in this record.",
             "evidence": "docs/validation.md"
           }
         ]
@@ -16072,7 +16078,7 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Discarded and intrinsic async rejection now pass automatic and native URL checks. Returned rejection and timeout still need the remaining native entry-point checks on the current build; earlier production queued timeout evidence used the previous executable."
+        "Discarded, intrinsic async, and returned rejection now pass automatic and native URL checks. Timeout and remaining native entry-point cases remain pending on the current build; earlier production queued timeout used the previous executable."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",

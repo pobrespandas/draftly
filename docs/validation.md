@@ -2055,3 +2055,41 @@ An added required key prompted alone; the next run reused its confirmation.
 This is specific persistence evidence. It does not prove CloudKit convergence.
 The previous full regression and build remain the latest full checks; this change
 adds tests and fixtures only.
+
+
+## Native completion and step lifetime — 20 October 2026
+
+Computer Use used `engine-completion-actions.json` in the isolated QA app. The
+Debug image remained 3d28cc07b2ff04f6 before signing. All three checks used normal
+run URLs with a distinct callback case value for each run.
+
+Completion epoch isolation passed. Step one saved an old Script handle, scheduled
+a 100 ms stale timer, and called complete twice. Step two called that old handle
+and scheduled its own 1000 ms completion. The final step required that the current
+timer had run and the stale timer had not. It wrote Timer lifetime verified —
+café 🐼. One success callback arrived. This also checks that the old completion
+cannot advance step two before its current timer.
+
+Duplicate completion failure passed. A completed write preceded a timer callback
+that called complete twice and then context.fail. The note retained Completed
+before duplicate failure in Inbox. The following sentinel script and Archive did
+not run. The helper received one error callback with Neutral duplicate completion
+failure. Returned rejected promise also passed: one error callback contained
+Neutral returned rejection, the prior text stayed in Inbox, and the tail did not
+run. Execution History at 03:28 recorded Success, Error, and Error respectively.
+Transient observation errors were resolved by reading the same app. No action
+was restarted because of a capture error. Both QA apps were quit after the check.
+
+Automatic: the focused run of AsyncActionRunnerTests, EngineClosureContractTests,
+WorkerPromiseEpochTests, ActionExecutionSessionTests, and ExecutionActionAPITests
+passed 45 methods in five suites. The record cites specific normal, default, and
+error cases; the total does not establish other contracts.
+
+The completion/timer record is complete for this defined contract. URL/App Intent
+timeout, busy, capability cancellation, and shared configuration acceptance remain
+in their own open records. Returned rejection evidence does not close timeout.
+No production code, screenshots, or raw logs were added in this check.
+
+Matrix structure passed with zero errors. The strict engine check now reports
+33 diagnostics, reduced from 36 by this one completed record. Three of fourteen
+engine records are complete. These counts are not API compatibility percentages.

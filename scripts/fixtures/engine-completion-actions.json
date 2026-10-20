@@ -1,0 +1,69 @@
+[
+  {
+    "name": "QA Completion epoch isolation",
+    "afterSuccess": "none",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "allowAsync": "true",
+          "script": "var oldCompletion=script;var staleTimerFired=false;setTimeout(()=>{staleTimerFired=true;editor.setText('ERROR old timer');},100);script.complete();script.complete();"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "allowAsync": "true",
+          "script": "oldCompletion.complete();setTimeout(()=>{var currentTimerFinished=true;globalThis.currentTimerFinished=currentTimerFinished;script.complete();},1000);"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "allowAsync": "false",
+          "script": "if(staleTimerFired||globalThis.currentTimerFinished!==true)throw new Error('Completion epoch leaked');editor.setText('Timer lifetime verified — café 🐼');draft.update();"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Duplicate completion failure",
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "allowAsync": "true",
+          "script": "editor.setText('Completed before duplicate failure');draft.update();setTimeout(()=>{script.complete();script.complete();context.fail('Neutral duplicate completion failure');},0);"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "allowAsync": "true",
+          "script": "editor.setText('ERROR failure tail ran');"
+        }
+      }
+    ]
+  },
+  {
+    "name": "QA Returned rejected promise",
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "allowAsync": "true",
+          "script": "Promise.reject(new Error('Neutral returned rejection'));"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "allowAsync": "true",
+          "script": "editor.setText('ERROR rejection tail ran');"
+        }
+      }
+    ]
+  }
+]

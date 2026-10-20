@@ -488,3 +488,10 @@ numeric input was rejected without losing the checkbox or text. Acceptance kept
 false and zero as typed JavaScript values. An imported revision retained prior
 confirmation and prompted only for its added field. Configuration precedence
 remains unresolved.
+
+
+Completion and timer isolation now has native URL acceptance for old handles,
+removed old timers, current-step waiting, duplicate completion, and failure
+precedence. The specific automatic cases passed in a focused five-suite run.
+That engine record is complete. Returned rejection also passed natively; its
+shared timeout record remains partial. Entry-point acceptance is still open.
