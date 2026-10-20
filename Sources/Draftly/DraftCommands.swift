@@ -110,9 +110,10 @@ extension WindowModel {
         editDraftTags(ids, tags: field.stringValue.components(separatedBy: ","), remove: remove)
     }
     func promptAction(_ ids: [UUID]) {
-        guard !actionPending, !runner.isRunning, !library.actions.isEmpty else { return }
+        guard !actionPending, !runner.isRunning else { return }
+        let actions = ActionCatalogPresentation.actions(library.orderedActions(), on: .search)
+        guard !actions.isEmpty else { return }
         do { _ = try checkedDrafts(ids) } catch { library.error = error.localizedDescription; return }
-        let actions = library.orderedActions()
         let alert = NSAlert(); alert.messageText = "Run Action"
         let picker = NSPopUpButton(frame: NSRect(x: 0, y: 0, width: 320, height: 26))
         picker.addItems(withTitles: actions.map { $0.group + " · " + $0.name })

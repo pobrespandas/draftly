@@ -8,7 +8,7 @@ struct CommandPalette: View {
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
     @FocusState private var focused: Bool
-    private var actions: [DraftAction] { library.orderedActions(on: .search).filter { query.isEmpty || $0.name.localizedStandardContains(query) || $0.presentation.description.localizedStandardContains(query) } }
+    private var actions: [DraftAction] { ActionCatalogPresentation.actions(library.orderedActions(), on: .search, query: query) }
     var body: some View {
         VStack(spacing: 0) {
             HStack {

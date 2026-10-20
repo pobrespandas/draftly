@@ -25,4 +25,25 @@ struct ImportedActionPreservationTests {
         #expect(report.reason == .success && report.successParameters["retained"] == "yes")
         #expect(editor.content == "Keep")
     }
+    @Test func separatorIdentityOrderAndUnknownFieldsSurviveBackupRestoration() throws {
+        let source = Data(#"{"name":"Section 🐼","backingIsSeparator":true,"steps":[],"unknown":{"keep":[false,null,"café"]}}"#.utf8)
+        var separator = try #require(ActionImporter.decode(source).first)
+        separator.group = "Neutral order"; separator.presentation.order = 1
+        var before = DraftAction(name: "Before", steps: [])
+        before.group = separator.group; before.presentation.order = 0
+        var after = DraftAction(name: "After", steps: [])
+        after.group = separator.group; after.presentation.order = 2
+        let library = try LibraryStore(inMemory: true, seed: false)
+        for action in [after, separator, before] { try library.saveAction(action) }
+        let restored = try LibraryStore(inMemory: true, seed: false)
+        try restored.restore(library.backupData())
+        #expect(restored.orderedActions().map(\.id) == [before.id, separator.id, after.id])
+        let recovered = try #require(restored.actions.first { $0.id == separator.id })
+        #expect(recovered.isSeparator && recovered.steps.isEmpty)
+        #expect(recovered.rawPayload == separator.rawPayload)
+        let reimport = try #require(ActionImporter.decode(JSONEncoder().encode(recovered)).first)
+        #expect(reimport.id == separator.id && reimport.isSeparator && reimport.presentation.order == 1)
+        #expect(reimport.rawPayload == separator.rawPayload)
+    }
+
 }

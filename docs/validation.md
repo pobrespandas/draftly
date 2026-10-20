@@ -1676,3 +1676,31 @@ These checks are automatic evidence. Native callback receipt, configuration
 precedence, and remaining entry-point acceptance stay open. No engine matrix
 record is promoted by these tests alone.
 
+## Imported separator presentation — 20 October 2026
+
+Implemented: a shared presentation model retains separator identity and order.
+The action list shows a non-executable heading and horizontal line. The editing
+bar and Actions menu use dividers. Search, the palette, and executable pickers
+exclude separators. Edit, Duplicate, and Delete remain available in the list.
+Storage and raw imported payloads retain their existing format.
+
+Automatically tested: six presentation cases cover visibility, groups, order,
+headings, search, and payload retention. A library backup/restore case checks
+separator identity, explicit order, and unknown null, Boolean, and Unicode fields.
+The full run passed 388 app tests in 58 suites and 361 core tests in 54 suites.
+Python32, the unsigned Xcode build, and the structural matrix check passed.
+Strict engine parity still reports 39 diagnostics. Counts do not prove parity.
+
+Verified in use: the complete isolated QA build had source Debug library hash
+90d02b9dea4e0af1 before signing. Imported the neutral separator fixture. Observed
+A, the B heading with a horizontal line, then C. B had no executable button.
+Its context menu exposed Edit, Duplicate, and Delete. Changing B Order from 0
+to 1 and saving moved it after C. Searching Neutral section returned no actions.
+The neutral notes stayed unchanged. QA was quit after this check.
+
+Pending: native bar/menu/picker checks, restart and native backup restoration,
+and comparison of separator appearance with Drafts. Source-array order is not
+accepted as an imported order contract. Direct engine execution of a separator
+still has no accepted reference behavior. The separator engine record remains
+partial. No screenshot or temporary export is stored in the repository.
+

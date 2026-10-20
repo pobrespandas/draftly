@@ -53,7 +53,7 @@ public enum APIValues {
 @MainActor extension ActionRunner {
     func actionValue(_ action: DraftAction) -> [String: Any] {
         ["uuid": action.id.uuidString, "name": action.name, "configuredValues": action.configuredValues,
-         "isSeparator": action.scriptMetadata?["isSeparator"] == "true"]
+         "isSeparator": action.isSeparator]
     }
     func workspaceValue(_ workspace: Workspace) -> [String: Any] {
         var result: [String: Any] = [:]

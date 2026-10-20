@@ -129,11 +129,16 @@ private struct WindowCommands: Commands {
             Button("Execution History…") { model.showRunLog = true }
             Button("Manage Actions and Workspaces…") { model.showLibraryManagement = true }
             Divider()
-            ForEach(model.library.orderedActions()) { action in
-                if ActionShortcut.conflict(for: action, in: model.library.actions) == nil,
-                   let key = ActionShortcut(action).key.first {
-                    Button(action.name) { model.run(action) }.keyboardShortcut(KeyEquivalent(key), modifiers: modifiers(action))
-                } else { Button(action.name) { model.run(action) } }
+            ForEach(ActionCatalogPresentation.entries(model.library.orderedActions())) { entry in
+                if let heading = entry.sectionHeading { Text(heading) }
+                if entry.kind == .separator {
+                    Divider()
+                } else if let action = entry.runnableAction {
+                    if ActionShortcut.conflict(for: action, in: model.library.actions) == nil,
+                       let key = ActionShortcut(action).key.first {
+                        Button(action.name) { model.run(action) }.keyboardShortcut(KeyEquivalent(key), modifiers: modifiers(action))
+                    } else { Button(action.name) { model.run(action) } }
+                }
             }
         }
     }

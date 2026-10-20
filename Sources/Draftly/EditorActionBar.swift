@@ -41,9 +41,13 @@ struct EditorActionBar: View {
                     barButton("Toggle Theme", "circle.lefthalf.filled") { toggleTheme() }
                     barButton("Preview", "eye") { model.preview() }
                 }
-                ForEach(library.orderedActions(on: .bar).filter { $0.group == model.actionBarGroup }) { action in
-                    barButton(action.name, action.symbol) { model.run(action) }
-                        .disabled(model.runner.isRunning)
+                ForEach(ActionCatalogPresentation.entries(library.orderedActions(), on: .bar, group: model.actionBarGroup)) { entry in
+                    if entry.kind == .separator {
+                        Divider().frame(height: 18).help(entry.source.name)
+                    } else if let action = entry.runnableAction {
+                        barButton(action.name, action.symbol) { model.run(action) }
+                            .disabled(model.runner.isRunning)
+                    }
                 }
             }.padding(.horizontal, 12).frame(height: MainWindowStyle.editingBarHeight)
         }.scrollIndicators(.visible).frame(height: MainWindowStyle.editingBarHeight)

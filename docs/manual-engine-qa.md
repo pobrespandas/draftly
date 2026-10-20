@@ -172,3 +172,17 @@ For source-close checks, use docs/manual-window-inventory.md. The independent
 20 October 2026 control resolved the extra-window report for the tested case:
 direct CUA observation reopened QA after it had zero windows. Observe only the
 helper until an explicit reopen is part of the next test.
+
+## Imported separators
+
+Import scripts/fixtures/engine-separator-actions.json into the isolated library.
+Select Engine separator QA. The list must show A, the B heading and horizontal
+line, then C. B must not be an executable button. Its context menu must retain
+Edit, Duplicate, and Delete. Edit B, increase Order, and save. It must move after C.
+Search for Neutral section. The executable results must exclude B.
+
+Check the editing bar, Actions menu, and executable picker separately. Export a
+full backup and restore it into another temporary library. Check identity, order,
+separator state, and unknown payload fields. Automatic recovery tests do not
+replace this native recovery check. Direct engine execution of a separator has
+no accepted reference behavior yet.

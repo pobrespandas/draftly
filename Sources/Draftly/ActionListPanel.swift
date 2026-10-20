@@ -6,11 +6,10 @@ struct ActionListPanel: View {
     @ObservedObject var model: WindowModel
     @ObservedObject var library: LibraryStore
     private var groups: [String] { library.groupNames }
-    private var actions: [DraftAction] {
-        library.orderedActions(on: model.actionQuery.isEmpty ? .list : .search).filter {
-            (!model.actionQuery.isEmpty || model.actionGroup == "All Actions" || $0.group == model.actionGroup)
-                && (model.actionQuery.isEmpty || $0.name.localizedStandardContains(model.actionQuery) || $0.presentation.description.localizedStandardContains(model.actionQuery))
-        }
+    private var entries: [ActionCatalogPresentation.Entry] {
+        ActionCatalogPresentation.entries(library.orderedActions(), on: model.actionQuery.isEmpty ? .list : .search,
+            group: model.actionQuery.isEmpty && model.actionGroup != "All Actions" ? model.actionGroup : nil,
+            query: model.actionQuery)
     }
 
     var body: some View {
@@ -48,29 +47,38 @@ struct ActionListPanel: View {
                 Spacer()
             }.padding(.horizontal, 13).frame(height: 38)
             Divider()
-            if actions.isEmpty {
+            if entries.isEmpty {
                 PanelEmptyState(message: "No actions found")
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
-                        ForEach(Array(actions.enumerated()), id: \.element.id) { index, action in
-                            if !action.presentation.section.isEmpty && (index == 0 || actions[index - 1].presentation.section != action.presentation.section) {
-                                Text(action.presentation.section).font(.caption.weight(.semibold)).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 20).padding(.vertical, 6)
+                        ForEach(entries) { entry in
+                            let action = entry.source
+                            if let heading = entry.sectionHeading {
+                                Text(heading).font(.caption.weight(.semibold)).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 20).padding(.vertical, 6)
                             }
-                            Button { model.run(action) } label: {
-                                HStack(spacing: 8) {
-                                    Image(systemName: action.unsupportedSteps.isEmpty ? action.symbol : "exclamationmark.triangle")
-                                        .font(.system(size: 18, weight: .regular)).frame(width: 21).foregroundStyle(actionColor(action))
-                                    Text(action.name).font(.system(size: MainWindowStyle.actionTitleSize)).lineLimit(1)
-                                    Spacer(minLength: 0)
-                                }.padding(.horizontal, 20).frame(height: 28).contentShape(Rectangle())
-                            }.buttonStyle(ActionRowButtonStyle()).disabled(model.currentNote == nil || model.runner.isRunning)
-                                .contextMenu {
-                                    Button("Edit…") { model.editingAction = action }
-                                    Button("Duplicate") { var copy = action; copy.id = UUID(); copy.name += " Copy"; model.editingAction = copy }
-                                    Divider()
-                                    Button("Delete", role: .destructive) { model.perform { try library.deleteAction(action.id) } }
+                            Group {
+                                if entry.kind == .separator {
+                                    HStack {
+                                        if !action.name.isEmpty { Text(action.name).font(.caption.weight(.semibold)).foregroundStyle(.secondary) }
+                                        Rectangle().fill(Color(nsColor: .separatorColor)).frame(height: 1)
+                                    }.padding(.horizontal, 20).padding(.vertical, 8).contentShape(Rectangle())
+                                } else {
+                                    Button { model.run(action) } label: {
+                                        HStack(spacing: 8) {
+                                            Image(systemName: action.unsupportedSteps.isEmpty ? action.symbol : "exclamationmark.triangle")
+                                                .font(.system(size: 18, weight: .regular)).frame(width: 21).foregroundStyle(actionColor(action))
+                                            Text(action.name).font(.system(size: MainWindowStyle.actionTitleSize)).lineLimit(1)
+                                            Spacer(minLength: 0)
+                                        }.padding(.horizontal, 20).frame(height: 28).contentShape(Rectangle())
+                                    }.buttonStyle(ActionRowButtonStyle()).disabled(model.currentNote == nil || model.runner.isRunning)
                                 }
+                            }.contextMenu {
+                                Button("Edit…") { model.editingAction = action }
+                                Button("Duplicate") { var copy = action; copy.id = UUID(); copy.name += " Copy"; model.editingAction = copy }
+                                Divider()
+                                Button("Delete", role: .destructive) { model.perform { try library.deleteAction(action.id) } }
+                            }
                         }
                     }.padding(.top, 10)
                 }

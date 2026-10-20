@@ -151,6 +151,7 @@ public struct DraftAction: Identifiable, Codable, Equatable {
     public var scriptMetadata: [String: String]?
     public init(name: String, steps: [ActionStep]) { self.name = name; self.steps = steps }
     public static let supportedSteps: Set<String> = ["script", "clipboard", "url", "insertText", "createDraft", "file", "share", "runShortcut", "runAppleScript", "htmlpreview", "configurationKey", "includeAction", "reminder", "event", "callbackUrl", "prompt", "defineTemplateTag", "configureWindow", "mail", "message", "listInReminders", "export", "openIn", "print", "speak"]
+    public var isSeparator: Bool { scriptMetadata?["isSeparator"] == "true" }
     public var unsupportedSteps: [String] { steps.filter { $0.isEnabled != false }.map(\.type).filter { !Self.supportedSteps.contains($0) } }
 }
 

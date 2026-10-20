@@ -1,0 +1,19 @@
+[
+  {
+    "name": "A Before section",
+    "group": "Engine separator QA",
+    "steps": [{"type": "script", "data": {"script": "context.addSuccessParameter('position','before');"}}]
+  },
+  {
+    "name": "B Neutral section",
+    "group": "Engine separator QA",
+    "backingIsSeparator": true,
+    "unknown": {"keep": [null, false, "café 🐼"]},
+    "steps": []
+  },
+  {
+    "name": "C After section",
+    "group": "Engine separator QA",
+    "steps": [{"type": "script", "data": {"script": "context.addSuccessParameter('position','after');"}}]
+  }
+]

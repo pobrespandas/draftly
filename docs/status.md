@@ -408,3 +408,12 @@ and native checks. Thirteen engine records remain partial; strict engine parity
 reports 39 diagnostics. This is separate from the 562-member API inventory. See
 the latest validation entry for the independent window-close control and payload
 round trip.
+
+The current separator delivery adds shared non-executable presentation and
+retains management controls. Native QA checked the list heading, horizontal
+line, edit/save order, and exclusion from search. Bar/menu/picker and native
+backup recovery checks remain pending. The separator contract stays partial.
+Inclusion and queue tests also found and fixed retained pending queue state in
+the legacy failure/cancellation route. Final checks passed 388 app tests, 361
+core tests, Python32, and the unsigned build. Matrix structure is valid; strict
+engine parity still reports 39 diagnostics. See the latest validation entries.
