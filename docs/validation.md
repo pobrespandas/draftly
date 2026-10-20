@@ -3822,3 +3822,18 @@ acceptance also remains open; the adapter tests are not drawn-row evidence.
 
 The strict parity validator returned zero diagnostics for Context.cancel after
 this evidence update. This is a member check, not a core or global gate pass.
+
+
+### Shared icon refinement — 20 October 2026
+
+Implemented: the application icon and menu template use one stacked-sheet path.
+The mark has two text lines, a folded corner, and wider strokes. The application
+uses white ink on the existing blue-purple tile. The menu uses black template
+ink. macOS sets its display color. Both assets come from render-app-icon.swift.
+
+Checked: regenerated every ICNS size and the vector menu PDF. Inspected the
+256-pixel application render and the 18-point menu render, plus an enlarged menu
+render. The menu path stays within its canvas. The unsigned Debug build passed.
+Both bundled resources match the source assets byte for byte. No automatic UI
+test ran. Dock, Finder, and live menu appearance remain unverified for this
+revision. Temporary renders and build logs stay outside the repository.

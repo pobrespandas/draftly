@@ -850,3 +850,8 @@ Native current-script continuation, undefined return, stop/disposition, reason,
 and imported notification settings passed. Both runner routes and quiet
 notification behavior have specific automatic checks. Other Context, callback,
 Workspace, engine, and global acceptance remain pending.
+
+
+The application icon and menu template now share a simpler stacked-sheet mark.
+Asset generation, small-size render inspection, and the unsigned build passed.
+Live Dock, Finder, and menu appearance still need verification for this revision.
