@@ -1026,3 +1026,8 @@ Corrected required native import evidence fields using the existing verified
 recovery record. All25 auditor tests pass. The engine strict gate reports27
 diagnostics; other engine contracts remain partial. No new native acceptance
 is claimed by this record correction.
+
+
+Native separate-target UI queue failure and cancellation now pass: retained
+writes, Inbox state, last-target editor, and stopped later work. Five queue
+acceptance methods pass. URL/Intent queue variants remain pending.

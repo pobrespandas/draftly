@@ -17321,7 +17321,7 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Separate-target production timeout now passed through Shortcuts with retained source/child text, both in Inbox, no later queued action, and the owner editor on the last target. Separate-target failure and remaining native cancellation/entry variants remain pending."
+        "Separate-target UI failure and cancellation now retain source/child text in Inbox and leave the editor on the child. Separate-target production timeout passed through Shortcuts earlier. Remaining native URL/Intent interruption variants and callback acceptance remain pending."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
@@ -17403,7 +17403,16 @@
       "nativeVerification": {
         "status": "pending",
         "reason": "Native URL cancellation, failure, and production 120-second timeout passed on one draft. Separate-source/target cancellation also passed with a matching visible editor left on the processed target. Separate-target failure/timeout and remaining native entry points are pending.",
-        "evidence": "docs/validation.md"
+        "evidence": "docs/validation.md",
+        "additionalChecks": [
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "1b8988d3183ec0675c0e5d3125665b1c22b3e155a9b82124b3a8039db45e5d20",
+            "fixture": "scripts/fixtures/engine-queue-actions.json",
+            "evidence": "docs/validation.md: Native queued failure and cancellation on another draft — 20 October 2026",
+            "result": "UI roots recorded Error and Cancelled. Child writes and source retained text stayed in Inbox; no later insertion/action text appeared. The editor remained on the child."
+          }
+        ]
       },
       "automatedVerification": {
         "status": "passed",

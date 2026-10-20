@@ -4530,3 +4530,29 @@ not satisfy the required top-level date and evidence fields. All25 auditor
 tests pass. The engine strict gate now reports27 diagnostics. Other engine
 contracts remain partial. This is a record correction, not a compatibility
 percentage or a newly completed engine capability.
+
+
+### Native queued failure and cancellation on another draft — 20 October 2026
+
+Added a multi-draft failure root to engine-queue-actions.json. It uses the
+existing failing child and later-action sentinel. Imported the fixture in
+isolated QA image1b8988d3183ec067. Created exactly one Queue target neutral
+draft and a separate source through the editor.
+
+Ran the failure root from Actions. History recorded Error with Neutral queued
+failure. The target retained Queue failure completed write — café 🐼; the source
+retained Queue source retained. Both appeared in Inbox. The editor stayed on
+the target. Neither the child's later insertion nor the later queued action
+replaced the retained text.
+
+Reset the neutral target text and selected the source. Ran the existing
+multi-draft cancellation root. History recorded Cancelled with Neutral queued
+cancellation. The target retained Queue child completed write — café 🐼 and the
+source stayed Queue source retained. Both stayed in Inbox. The editor stayed
+on the target. No sentinel text appeared.
+
+Automatic: all five QueueAcceptanceTests methods passed, including parameterized
+legacy/async failure and cancellation, timeout, retained effects, and callback
+selection. Matrix structure passes. No production code or new build changed.
+The last full regression remains app447/core471. Native URL/Intent queue
+interruption variants remain pending. No screenshot or raw log is tracked.
