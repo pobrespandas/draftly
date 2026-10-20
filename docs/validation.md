@@ -2437,3 +2437,20 @@ accepted in this check. Library Organization tab labels visibly overlap; repair
 and recheck that layout. Shared themes are still local preferences and require
 the planned library migration. QA was quit; the neutral workspace stays for the
 remaining checks. No screenshot or raw log is tracked.
+
+### Library Organization section layout — 20 October 2026
+
+Implemented: replaced the collapsing tab strip with a native segmented section
+picker. The picker has a bounded width and switches the existing section bodies.
+The previous strip drew all three labels on top of each other in the native QA
+sheet. No library operation or stored format changed.
+
+Build: the unsigned Xcode Debug app build passed. No automatic window tests were
+added for this visual correction.
+
+Verified in native QA: refreshed and signed the isolated app. Opened Library
+Organization and inspected Groups, Actions, and Workspaces. All section labels
+are separate and legible. Each selection showed its corresponding list and
+controls. The saved QA Workspace options 🐼 remained in Workspaces. The app was
+quit after inspection. This check accepts this layout regression only; full
+Drafts inspector comparison remains pending. Captures stayed transient.

@@ -10,10 +10,16 @@ struct LibraryManagementView: View {
     @State private var oldGroupName: String?
     @State private var workspace: Workspace?
     @State private var selectedGroup = ""
+    @State private var section = Section.groups
+    private enum Section: String, CaseIterable { case groups = "Groups", actions = "Actions", workspaces = "Workspaces" }
     var body: some View {
         VStack {
             HStack { Text("Library Organization").font(.title2); Spacer(); Button("Done") { dismiss() }.keyboardShortcut(.cancelAction) }.padding()
-            TabView {
+            Picker("Organization", selection: $section) {
+                ForEach(Section.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+            }.pickerStyle(.segmented).frame(width: 420).padding(.horizontal)
+            switch section {
+            case .groups:
                 VStack {
                     List {
                         ForEach(Array(library.groupNames.enumerated()), id: \.element) { index, name in
@@ -32,7 +38,8 @@ struct LibraryManagementView: View {
                         }
                     }
                     HStack { Button("New Group") { oldGroupName = nil; var value = ActionGroupRecord(name: "New Group"); value.order = library.groupNames.count; group = value }; Spacer() }.padding()
-                }.tabItem { Text("Groups") }
+                }
+            case .actions:
                 VStack {
                     Picker("Group", selection: $selectedGroup) { ForEach(library.groupNames, id: \.self) { Text($0).tag($0) } }.padding(.horizontal)
                     List {
@@ -46,7 +53,8 @@ struct LibraryManagementView: View {
                             }
                         }
                     }
-                }.tabItem { Text("Actions") }
+                }
+            case .workspaces:
                 VStack {
                     Picker("Default Workspace", selection: $defaultWorkspaceID) {
                         Text("Default settings").tag("")
@@ -65,7 +73,7 @@ struct LibraryManagementView: View {
                         }
                     }
                     HStack { Button("New Workspace") { workspace = Workspace(name: "New Workspace") }; Spacer() }.padding()
-                }.tabItem { Text("Workspaces") }
+                }
             }
         }.frame(width: 720, height: 520).onAppear { selectedGroup = library.groupNames.first ?? "General" }
             .sheet(item: $group) { value in GroupSettingsView(group: value, previousName: oldGroupName, library: library) }
