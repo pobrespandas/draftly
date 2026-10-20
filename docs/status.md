@@ -811,3 +811,9 @@ Library busy state now reaches every window from the execution gate, including
 new windows. Native two-window menu/ownership/recovery checks passed. Automatic
 checks also cover an independent library. Full app437/core456 and unsigned build
 passed. Remaining native entry-point and presentation checks stay open.
+
+
+Current QA passed native CPU-loop responsiveness and deadline checks. A panel
+transition completed while Cancel remained enabled and runs were disabled. Both
+runs recorded timeout without tail or archive effects. CPU cancellation remains
+unaccepted: the attempted cancel lost to the deadline.

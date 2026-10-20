@@ -3660,3 +3660,25 @@ personal note or screenshot was created.
 This accepts the tested menu and ownership path. Native independent-library,
 headless automation busy presentation, and every list/bar appearance remain
 separate checks. Other engine contracts and the full Mac goal remain open.
+
+
+### Native CPU worker responsiveness — 20 October 2026
+
+Verified in use on signed QA executable fa4f515c36a19fe5. Imported the existing
+engine-deadline-actions.json fixture through File > Import. Ran QA CPU deadline
+from Actions on the neutral current draft. Its script writes and saves text,
+then enters a continuous loop. Filters closed and reopened. The script reached
+the production synchronous limit. Text remained in Inbox with no later
+error-marker insertion or archive disposition.
+
+Repeated the run to make active state explicit: Filters closed, then the Actions
+menu still showed enabled Cancel and disabled run entries. This verifies that
+the transition happened before termination. An attempted subsequent Cancel lost
+to the deadline. History recorded Error with the operation-timeout message for
+both runs. This does not accept CPU cancellation. Closed history and restored
+Filters. Both QA windows remain open, with the second on neutral CPU result.
+
+No source or tests changed. The previous automatic result remains app437/core456.
+The native check improves CPU responsiveness evidence but does not close native
+permission/dialog, CPU cancellation, or all worker lifetime acceptance. No
+screenshot or raw log is stored in the repository.

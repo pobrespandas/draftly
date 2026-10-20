@@ -17332,6 +17332,13 @@
             "date": "2026-10-20",
             "result": "During a production asynchronous wait, Filters and Actions panels closed and reopened while action buttons stayed disabled. This checks wait responsiveness, not CPU-bound JavaScript responsiveness.",
             "evidence": "docs/validation.md: Native returned rejection and wait timeout — 20 October 2026"
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "fa4f515c36a19fe557292b8ee73c1ed02e8a06e94456c55b7f4b20f69876ff4c",
+            "fixture": "scripts/fixtures/engine-deadline-actions.json",
+            "result": "Filters closed and reopened during CPU loop. In a repeat, Filters closed and the Actions menu still showed enabled Cancel and disabled runs before timeout. History recorded timeout for both runs. Attempted cancellation of the repeat lost to the deadline and is not accepted as CPU cancellation.",
+            "evidence": "docs/validation.md: Native CPU worker responsiveness — 20 October 2026"
           }
         ]
       },
