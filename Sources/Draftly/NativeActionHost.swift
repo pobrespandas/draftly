@@ -20,7 +20,7 @@ final class NativeActionHost: ActionHost {
     func finishAction() { models.clear() }
 
     func supportsAsync(_ operation: String) -> Bool {
-        ["callbackURL", "shellScript", "shortcut"].contains(operation)
+        ["callbackURL", "shellScript", "shortcut", "eventAPI", "reminder"].contains(operation)
     }
 
     func performAsync(_ operation: String, payload: String) async throws -> String {
@@ -32,6 +32,8 @@ final class NativeActionHost: ActionHost {
         case "callbackURL": result = try await ActionCallbackRouter.openAsync(values)
         case "shellScript": result = try await NativeAutomationAdapter().executeShellAsync(values)
         case "shortcut": result = try await NativeAutomationAdapter().runShortcutAsync(name: values["name"] as? String ?? "", input: values["text"] as? String ?? "")
+        case "eventAPI": result = try await eventAPIAsync(values)
+        case "reminder": result = try await NativeSystemAdapter(events: events, reportError: onError).performAsync(operation, values: values)
         default: result = try perform(operation, values: values)
         }
         return String(decoding: try JSONSerialization.data(withJSONObject: ["value": result ?? NSNull()]), as: UTF8.self)

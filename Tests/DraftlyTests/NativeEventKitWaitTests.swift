@@ -1,0 +1,134 @@
+import Foundation
+import EventKit
+import Testing
+import DraftlyCore
+@testable import Draftly
+
+@Suite("Asynchronous EventKit requests")
+@MainActor
+struct NativeEventKitWaitTests {
+    @Test func fullAccessDoesNotRequestAuthorizationAgain() async throws {
+        var requests = 0
+        let request = EventKitAuthorizationRequest(status: { _ in .fullAccess }, request: { _, _ in requests += 1 })
+        try await request.requireFullAccess(reminders: true)
+        #expect(requests == 0)
+    }
+
+    @Test func deniedAndRestrictedAccessFailWithoutAPrompt() async {
+        for status in [EKAuthorizationStatus.denied, .restricted] {
+            var requested = false
+            let request = EventKitAuthorizationRequest(status: { _ in status }, request: { _, _ in requested = true })
+            do { try await request.requireFullAccess(reminders: false); Issue.record("Denied access succeeded.") }
+            catch { #expect(error.localizedDescription == "Access was denied. Enable access in System Settings.") }
+            #expect(!requested)
+        }
+    }
+
+    @Test func writeOnlyAccessRequestsFullAccessForTheCorrectEntity() async throws {
+        var status: EKAuthorizationStatus = .writeOnly
+        var requestedReminders: Bool?
+        let request = EventKitAuthorizationRequest(status: { entity in
+            #expect(entity == .event)
+            return status
+        }, request: { reminders, completion in
+            requestedReminders = reminders
+            status = .fullAccess
+            completion(true, nil)
+        })
+        try await request.requireFullAccess(reminders: false)
+        #expect(requestedReminders == false)
+    }
+
+    @Test func completionCannotClaimFullAccessWithoutFullAuthorization() async {
+        let request = EventKitAuthorizationRequest(status: { _ in .writeOnly }, request: { _, completion in completion(true, nil) })
+        do { try await request.requireFullAccess(reminders: false); Issue.record("Write-only access was accepted as full access.") }
+        catch { #expect(error.localizedDescription == "Access was denied. Enable access in System Settings.") }
+    }
+
+    @Test func authorizationFailurePreservesTheSystemError() async {
+        let failure = NSError(domain: "Draftly.EventKitFixture", code: 42, userInfo: [NSLocalizedDescriptionKey: "Neutral authorization failure"])
+        let request = EventKitAuthorizationRequest(status: { _ in .notDetermined }, request: { reminders, completion in
+            #expect(reminders)
+            completion(false, failure)
+        })
+        do { try await request.requireFullAccess(reminders: true); Issue.record("The authorization failure succeeded.") }
+        catch { #expect(error.localizedDescription == "Neutral authorization failure") }
+    }
+
+    @Test func authorizationTimeoutIgnoresALateGrant() async throws {
+        var callback: (@Sendable (Bool, Error?) -> Void)?
+        let request = EventKitAuthorizationRequest(status: { _ in .notDetermined }, request: { _, completion in callback = completion })
+        do { try await request.requireFullAccess(reminders: true, timeout: 0.02); Issue.record("Authorization did not time out.") }
+        catch { #expect((error as? ActionExecutionInterruption) == .timeout) }
+        callback?(true, nil)
+        await Task.yield()
+    }
+
+    @Test func authorizationCancellationDoesNotWaitForTheSystemDialog() async throws {
+        var callback: (@Sendable (Bool, Error?) -> Void)?
+        let request = EventKitAuthorizationRequest(status: { _ in .notDetermined }, request: { _, completion in callback = completion })
+        let task = Task { try await request.requireFullAccess(reminders: true) }
+        try await Task.sleep(for: .milliseconds(20))
+        #expect(callback != nil)
+        task.cancel()
+        do { try await task.value; Issue.record("The cancelled authorization succeeded.") }
+        catch { #expect(error is CancellationError) }
+        callback?(true, nil)
+        await Task.yield()
+    }
+
+    @Test func reminderFetchSuccessReleasesItsCancellationToken() async throws {
+        var cancelled = false
+        let fetch = EventKitReminderFetchRequest { completion in
+            completion(EventKitReminderResult(reminders: []))
+            return { cancelled = true }
+        }
+        let result = try await fetch.fetch()
+        #expect(result.reminders.isEmpty)
+        #expect(!cancelled)
+    }
+
+    @Test func reminderFetchCancellationCancelsTheUnderlyingRequestAndIgnoresLateResults() async throws {
+        var callback: (@Sendable (EventKitReminderResult) -> Void)?
+        var cancelled = false
+        let fetch = EventKitReminderFetchRequest { completion in
+            callback = completion
+            return { cancelled = true }
+        }
+        let task = Task { try await fetch.fetch() }
+        try await Task.sleep(for: .milliseconds(20))
+        #expect(callback != nil)
+        task.cancel()
+        do { _ = try await task.value; Issue.record("The cancelled fetch succeeded.") }
+        catch { #expect(error is CancellationError) }
+        #expect(cancelled)
+        callback?(EventKitReminderResult(reminders: []))
+        await Task.yield()
+    }
+
+    @Test func reminderFetchTimeoutCancelsTheUnderlyingRequest() async {
+        var cancelled = false
+        let fetch = EventKitReminderFetchRequest { _ in { cancelled = true } }
+        do { _ = try await fetch.fetch(timeout: 0.02); Issue.record("The reminder fetch did not time out.") }
+        catch { #expect((error as? ActionExecutionInterruption) == .timeout) }
+        #expect(cancelled)
+    }
+
+    @Test func repeatedCallbacksCannotFinishTheSameWaitTwice() async throws {
+        let value: String = try await EventKitCallbackWait.wait(timeout: 1) { completion in
+            completion(.success("first"))
+            completion(.success("first"))
+            return nil
+        }
+        #expect(value == "first")
+    }
+
+    @Test func invalidTimeoutDoesNotStartTheNativeRequest() async {
+        var started = false
+        do {
+            let _: String = try await EventKitCallbackWait.wait(timeout: .infinity) { _ in started = true; return nil }
+            Issue.record("The invalid timeout succeeded.")
+        } catch { #expect(error.localizedDescription == "The EventKit timeout must be positive and finite.") }
+        #expect(!started)
+    }
+}

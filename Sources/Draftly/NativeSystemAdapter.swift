@@ -37,10 +37,7 @@ struct NativeSystemAdapter {
             return true
         case "reminder":
             try requestAccess(reminders: true)
-            guard let calendar = events.defaultCalendarForNewReminders() else { throw DraftlyError.message("No Reminders list is available.") }
-            let reminder = EKReminder(eventStore: events); reminder.title = text.components(separatedBy: .newlines).first ?? text
-            reminder.notes = text; reminder.calendar = calendar
-            try events.save(reminder, commit: true); return true
+            return try createReminder(text)
         case "event":
             try requestAccess(reminders: false)
             guard let calendar = events.defaultCalendarForNewEvents else { throw DraftlyError.message("No Calendar is available.") }
@@ -55,6 +52,36 @@ struct NativeSystemAdapter {
             try events.save(event, span: .thisEvent); return true
         default: throw DraftlyError.message("The native operation is unavailable.")
         }
+    }
+
+    func performAsync(_ operation: String, values: [String: Any]) async throws -> Any? {
+        guard operation == "reminder" else {
+            throw DraftlyError.message("The asynchronous system operation is unavailable.")
+        }
+        try await requestAccessAsync(reminders: true)
+        try Task.checkCancellation()
+        return try createReminder(values["text"] as? String ?? "")
+    }
+
+    private func createReminder(_ text: String) throws -> Bool {
+        guard let calendar = events.defaultCalendarForNewReminders() else {
+            throw DraftlyError.message("No Reminders list is available.")
+        }
+        let reminder = EKReminder(eventStore: events)
+        reminder.title = text.components(separatedBy: .newlines).first ?? text
+        reminder.notes = text; reminder.calendar = calendar
+        try events.save(reminder, commit: true)
+        return true
+    }
+
+    func requestAccessAsync(reminders: Bool, timeout: TimeInterval = 60) async throws {
+        let authorization = EventKitAuthorizationRequest(
+            status: { EKEventStore.authorizationStatus(for: $0) },
+            request: { reminders, completion in
+                if reminders { events.requestFullAccessToReminders(completion: completion) }
+                else { events.requestFullAccessToEvents(completion: completion) }
+            })
+        try await authorization.requireFullAccess(reminders: reminders, timeout: timeout)
     }
 
     func requestAccess(reminders: Bool) throws {
@@ -75,4 +102,77 @@ private final class AccessResult: @unchecked Sendable {
     var allowed: Bool { lock.lock(); defer { lock.unlock() }; return result?.0 == true }
     var error: Error? { lock.lock(); defer { lock.unlock() }; return result?.1 }
     func complete(_ allowed: Bool, _ error: Error?) { lock.lock(); result = (allowed, error); lock.unlock() }
+}
+
+
+@MainActor
+struct EventKitAuthorizationRequest {
+    var status: (EKEntityType) -> EKAuthorizationStatus
+    var request: (Bool, @escaping @Sendable (Bool, Error?) -> Void) -> Void
+
+    func requireFullAccess(reminders: Bool, timeout: TimeInterval = 60) async throws {
+        try Task.checkCancellation()
+        let entity: EKEntityType = reminders ? .reminder : .event
+        let current = status(entity)
+        if current == .fullAccess { return }
+        if current == .denied || current == .restricted { throw denied() }
+        let allowed: Bool = try await EventKitCallbackWait.wait(timeout: timeout) { completion in
+            request(reminders) { allowed, error in
+                if let error { completion(.failure(error)) }
+                else { completion(.success(allowed)) }
+            }
+            return nil
+        }
+        try Task.checkCancellation()
+        guard allowed, status(entity) == .fullAccess else { throw denied() }
+    }
+
+    private func denied() -> Error {
+        DraftlyError.message("Access was denied. Enable access in System Settings.")
+    }
+}
+
+@MainActor
+final class EventKitCallbackWait<Value: Sendable> {
+    private var continuation: CheckedContinuation<Value, Error>?
+    private var timeoutTask: Task<Void, Never>?
+    private var cancelRequest: (() -> Void)?
+
+    static func wait(timeout: TimeInterval,
+                     start: (@escaping @Sendable (Result<Value, Error>) -> Void) throws -> (() -> Void)?) async throws -> Value {
+        guard timeout.isFinite, timeout > 0 else {
+            throw DraftlyError.message("The EventKit timeout must be positive and finite.")
+        }
+        let pending = EventKitCallbackWait()
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                pending.continuation = continuation
+                guard !Task.isCancelled else {
+                    pending.finish(.failure(CancellationError()), cancel: true)
+                    return
+                }
+                do {
+                    pending.cancelRequest = try start { result in
+                        Task { @MainActor in pending.finish(result) }
+                    }
+                    pending.timeoutTask = Task { @MainActor in
+                        do { try await Task.sleep(for: .seconds(timeout)) } catch { return }
+                        pending.finish(.failure(ActionExecutionInterruption.timeout), cancel: true)
+                    }
+                } catch { pending.finish(.failure(error), cancel: true) }
+            }
+        } onCancel: {
+            Task { @MainActor in pending.finish(.failure(CancellationError()), cancel: true) }
+        }
+    }
+
+    private func finish(_ result: Result<Value, Error>, cancel: Bool = false) {
+        guard let continuation else { return }
+        self.continuation = nil
+        timeoutTask?.cancel(); timeoutTask = nil
+        let cancelRequest = cancelRequest
+        self.cancelRequest = nil
+        if cancel { cancelRequest?() }
+        continuation.resume(with: result)
+    }
 }

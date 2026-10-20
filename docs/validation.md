@@ -1184,3 +1184,18 @@ The process tests execute neutral local processes. Shortcut tests use an injecte
 executable. Callback tests inject URL opening. Actual macOS callback delivery,
 actual Shortcut execution, App Intent invocation, and other native capability
 variants remain pending. No visible windows were opened by these tests.
+
+## EventKit asynchronous waits — 20 October 2026
+
+Calendar and Reminders API requests now await full-access authorization. Reminders
+queries use the EventKit fetch token and cancel that request on timeout or caller
+cancellation. Reminder and List in Reminders steps use the async host boundary.
+The synchronous adapters remain available for legacy callers.
+
+Twelve injected tests passed. They cover authorization status, denied access,
+write-only upgrade, system errors, cancellation, timeout, repeated callbacks, and
+late results. They do not request real permissions or create calendar items.
+The full integrated run also passed. System permission dialogs cannot be withdrawn
+by EventKit; cancellation ends the action wait and ignores any later grant.
+The calendar event editor still uses a modal dialog. Real permissions and item
+persistence remain pending; these cases are not native acceptance.

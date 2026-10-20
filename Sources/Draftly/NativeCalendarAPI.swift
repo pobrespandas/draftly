@@ -4,9 +4,41 @@ import DraftlyCore
 
 @MainActor extension NativeActionHost {
     func eventAPI(_ values: [String: Any]) throws -> Any? {
-        let entity = values["entity"] as? String ?? "event", operation = values["operation"] as? String ?? ""
+        let entity = values["entity"] as? String ?? "event"
         let reminders = entity == "list" || entity == "reminder"
         try requestAccess(reminders: reminders)
+        return try authorizedEventAPI(values)
+    }
+
+    func eventAPIAsync(_ values: [String: Any], timeout: TimeInterval = 30) async throws -> Any? {
+        let entity = values["entity"] as? String ?? "event"
+        let operation = values["operation"] as? String ?? ""
+        let reminders = entity == "list" || entity == "reminder"
+        try await NativeSystemAdapter(events: events, reportError: onError).requestAccessAsync(reminders: reminders)
+        try Task.checkCancellation()
+        if (entity == "calendar" || entity == "list"), operation == "tasks" {
+            let input = values["value"] as? [String: Any] ?? [:]
+            let identifier = values["identifier"] as? String ?? input["identifier"] as? String ?? ""
+            let type: EKEntityType = reminders ? .reminder : .event
+            guard let calendar = events.calendars(for: type).first(where: { $0.calendarIdentifier == identifier }) else {
+                throw DraftlyError.message("The Reminders list was not found.")
+            }
+            let fetch = EventKitReminderFetchRequest { [self] completion in
+                let token = events.fetchReminders(matching: events.predicateForReminders(in: [calendar])) { reminders in
+                    completion(EventKitReminderResult(reminders: reminders ?? []))
+                }
+                return { self.events.cancelFetchRequest(token) }
+            }
+            let result = try await fetch.fetch(timeout: timeout)
+            try Task.checkCancellation()
+            return result.reminders.map(reminderValue)
+        }
+        return try authorizedEventAPI(values)
+    }
+
+    private func authorizedEventAPI(_ values: [String: Any]) throws -> Any? {
+        let entity = values["entity"] as? String ?? "event", operation = values["operation"] as? String ?? ""
+        let reminders = entity == "list" || entity == "reminder"
         let type: EKEntityType = reminders ? .reminder : .event
         let input = values["value"] as? [String: Any] ?? [:]
         if entity == "calendar" || entity == "list" {
@@ -122,4 +154,20 @@ private final class ReminderFetchResult: @unchecked Sendable {
     private let lock = NSLock(); private var value: [EKReminder]?
     func set(_ value: [EKReminder]) { lock.lock(); self.value = value; lock.unlock() }
     func get() -> [EKReminder]? { lock.lock(); defer { lock.unlock() }; return value }
+}
+
+// The EventKit callback transfers ownership. Only MainActor reads these items.
+struct EventKitReminderResult: @unchecked Sendable {
+    let reminders: [EKReminder]
+}
+
+@MainActor
+struct EventKitReminderFetchRequest {
+    var start: (@escaping @Sendable (EventKitReminderResult) -> Void) -> (() -> Void)
+
+    func fetch(timeout: TimeInterval = 30) async throws -> EventKitReminderResult {
+        try await EventKitCallbackWait.wait(timeout: timeout) { completion in
+            start { result in completion(.success(result)) }
+        }
+    }
 }

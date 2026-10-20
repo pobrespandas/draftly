@@ -51,6 +51,19 @@ import Foundation
     func performSuspendingStep(_ step: ActionStep, text: String, rendered: String, current: Note,
                                evaluate: (String) -> Void) async throws -> Bool? {
         switch step.type {
+        case "reminder":
+            _ = try await nativeValue("reminder", ["text": rendered])
+            return true
+        case "listInReminders":
+            let name = try renderTemplate(step.values["list"] ?? step.values["listTemplate"] ?? "Reminders", note: current)
+            guard let list = try await nativeValue("eventAPI", ["entity": "list", "operation": "findOrCreate", "title": name]) as? [String: Any] else {
+                throw DraftlyError.message("The Reminders list was not found.")
+            }
+            for line in rendered.components(separatedBy: .newlines) where !line.trimmingCharacters(in: .whitespaces).isEmpty {
+                try checkCancellation()
+                _ = try await nativeValue("eventAPI", ["entity": "reminder", "operation": "update", "value": ["title": line, "list": list]])
+            }
+            return true
         case "callbackUrl":
             let url = try renderURL(step.values["url"] ?? text, note: current, encodeTags: step.values["encodeTags"] != "false")
             let response = try await nativeValue("callbackURL", ["url": url, "waitForResponse": step.values["waitForResponse"] != "false"]) as? [String: Any] ?? [:]
