@@ -61,8 +61,11 @@ final class AppController: ObservableObject {
     @Published var startupError: String?
     @Published var captureShortcutStatus = "⌃⌥⌘N"
     @Published var commandWindow: WindowModel?
-    let recentDrafts = RecentDraftStore()
-    var pendingNoteID: UUID?
+    let recentDrafts: RecentDraftStore
+    var pendingNoteID: UUID? { didSet { pendingTargetWindow = nil; pendingTargetModel = nil; pendingExcludedModels = nil } }
+    private var pendingExcludedModels: Set<ObjectIdentifier>?
+    private weak var pendingTargetWindow: NSWindow?
+    private weak var pendingTargetModel: WindowModel?
     lazy var captureController = CaptureController(libraryProvider: { [weak self] in self?.library },
         windowProvider: { [weak self] in self?.windows.allObjects ?? [] })
     lazy var quickSearchController = QuickSearchController(libraryProvider: { [weak self] in self?.library },
@@ -70,7 +73,10 @@ final class AppController: ObservableObject {
     var openLibrary: (() -> Void)?
     let windows = NSHashTable<WindowModel>.weakObjects()
     private var pendingMenuAction: PendingMenuAction?
-    init() { start() }
+    init() { recentDrafts = RecentDraftStore(); start() }
+    init(library: LibraryStore, recentDrafts: RecentDraftStore) {
+        self.library = library; self.recentDrafts = recentDrafts
+    }
     func start() {
         do {
             let testing = ProcessInfo.processInfo.arguments.contains("--ui-testing") || Bundle.main.object(forInfoDictionaryKey: "DraftlyUITesting") as? Bool == true
@@ -100,7 +106,7 @@ final class AppController: ObservableObject {
         dependencies.openQuickSearch = { [weak self] in self?.showQuickSearch() }
         dependencies.openDraftWindow = { [weak self] id, tab, window in
             let before = Set(NSApp.windows.map(ObjectIdentifier.init))
-            self?.pendingNoteID = id
+            self?.queueNewWindowDraftSelection(id)
             self?.openLibrary?()
             if tab, let window {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
@@ -116,13 +122,57 @@ final class AppController: ObservableObject {
         guard library != nil else { return }
         captureController.show(content: content)
     }
+    func registerWindow(_ model: WindowModel, window: NSWindow? = nil) {
+        if let window { model.window = window }
+        windows.add(model)
+        if model.window?.isKeyWindow == true { commandWindow = model }
+        _ = consumePendingDraft(for: model)
+    }
+    func queueDraftSelection(_ id: UUID?) { if let id { pendingNoteID = id } }
+    func queueNewWindowDraftSelection(_ id: UUID?) {
+        pendingNoteID = id
+        if id != nil { pendingExcludedModels = Set(windows.allObjects.map(ObjectIdentifier.init)) }
+    }
+    func unregisterWindow(_ model: WindowModel) {
+        if pendingTargetModel === model || (model.window != nil && pendingTargetWindow === model.window)
+            || (pendingExcludedModels != nil && pendingExcludedModels?.contains(ObjectIdentifier(model)) == false) { pendingNoteID = nil }
+        windows.remove(model)
+        if commandWindow === model { commandWindow = nil }
+    }
+    @discardableResult func consumePendingDraft(for model: WindowModel) -> Bool {
+        guard let id = pendingNoteID, let library, model.library === library,
+              pendingExcludedModels?.contains(ObjectIdentifier(model)) != true,
+              pendingTargetModel == nil || pendingTargetModel === model,
+              pendingTargetWindow == nil || model.window === pendingTargetWindow else { return false }
+        guard library.notes.contains(where: { $0.id == id }) else {
+            library.error = "The requested draft was not found."
+            if pendingNoteID == id { pendingNoteID = nil }
+            return false
+        }
+        pendingTargetModel = model
+        guard model.flush() else { return false }
+        model.folder = .inbox; model.clearFilters(); model.select(id)
+        guard model.editor.noteID == id else { return false }
+        pendingNoteID = nil
+        return true
+    }
+    func draftSelectionDidChange(_ id: UUID?, for model: WindowModel) {
+        guard let id, model.editor.noteID == id, let pending = pendingNoteID, pending != id,
+              pendingExcludedModels?.contains(ObjectIdentifier(model)) != true,
+              pendingTargetModel == nil || pendingTargetModel === model,
+              pendingTargetWindow == nil || model.window === pendingTargetWindow else { return }
+        pendingNoteID = nil
+    }
     func show(_ id: UUID? = nil) {
+        queueDraftSelection(id)
         NSApp.activate(ignoringOtherApps: true)
         let libraryWindows = NSApp.windows.filter { $0.identifier?.rawValue.hasPrefix("library") == true && $0.isVisible }
-        if let window = libraryWindows.first(where: \.isKeyWindow) ?? libraryWindows.first {
+        let pendingWindow = pendingTargetModel?.window.flatMap { $0.isVisible ? $0 : nil }
+        if let window = pendingWindow ?? libraryWindows.first(where: \.isKeyWindow) ?? libraryWindows.first {
+            if pendingNoteID != nil, pendingExcludedModels == nil, pendingTargetModel == nil { pendingTargetWindow = window }
             window.makeKeyAndOrderFront(nil)
-            if let id { NotificationCenter.default.post(name: .draftlyOpenNote, object: id) }
-        } else { pendingNoteID = id; openLibrary?() }
+            if let model = windows.allObjects.first(where: { $0.window === window }) { _ = consumePendingDraft(for: model) }
+        } else { openLibrary?() }
     }
     @discardableResult func openSearchResult(_ id: UUID) -> Bool {
         guard library?.notes.contains(where: { $0.id == id && $0.trashedAt == nil }) == true else { return false }
@@ -140,7 +190,7 @@ final class AppController: ObservableObject {
         guard library?.notes.contains(where: { $0.id == id && $0.trashedAt == nil }) == true else { return }
         recentDrafts.record(id)
     }
-    func newDraft(content: String = "") { openMenuAction(.newDraft(content)) }
+    func newDraft(content: String = "") { pendingNoteID = nil; openMenuAction(.newDraft(content)) }
     func showQuickSearch() {
         if let model = commandWindow, !model.flush() { return }
         quickSearchController.show()

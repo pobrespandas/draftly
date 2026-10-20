@@ -43,8 +43,7 @@ struct LibraryView: View {
         .preferredColorScheme(preferredScheme)
         .frame(minWidth: 850, minHeight: 480)
         .background(WindowAccessor { window in
-            model.window = window
-            if window.isKeyWindow { hub.commandWindow = model }
+            hub.registerWindow(model, window: window)
         })
         .focusedSceneValue(\.windowModel, model)
         .sheet(isPresented: $model.showAdvancedFind) { AdvancedFindView(model: model) }
@@ -65,35 +64,38 @@ struct LibraryView: View {
             if model.selectedWorkspace == nil, let data = try? JSONEncoder().encode(options) { UserDefaults.standard.set(data, forKey: "list.options") }
         }
         .onChange(of: selection) { _, ids in if ids.count == 1 { model.select(ids.first, focusEditor: false) } }
-        .onChange(of: model.editor.noteID) { _, id in selection = id.map { [$0] } ?? [] }
+        .onChange(of: model.editor.noteID) { _, id in
+            selection = id.map { [$0] } ?? []
+            hub.draftSelectionDidChange(id, for: model)
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.willResignActiveNotification)) { _ in model.applicationResigned() }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             if model.window?.isKeyWindow == true { model.applicationActivated(timeout: newDraftAfter) }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in model.flush() }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { event in
-            if let window = event.object as? NSWindow, window === model.window { hub.commandWindow = model }
+            if let window = event.object as? NSWindow, window === model.window { hub.registerWindow(model, window: window) }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { event in
             if let window = event.object as? NSWindow, window === model.window {
                 model.cancelActions(); model.actionPreview?.finish(false); model.flush()
-                if hub.commandWindow === model { hub.commandWindow = nil }
+                hub.unregisterWindow(model)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .draftlyOpenNote)) { event in
             guard model.window?.isKeyWindow == true, let id = event.object as? UUID else { return }
-            model.folder = .inbox; model.clearFilters(); model.select(id)
-            hub.pendingNoteID = nil
+            hub.pendingNoteID = id
+            _ = hub.consumePendingDraft(for: model)
         }
         .onReceive(library.$notes) { notes in model.synchronizeStoredEditor(notes) }
         .onAppear {
             model.editor.typewriterScrollingEnabled = typewriter
-            hub.windows.add(model)
+            hub.registerWindow(model)
             hub.commandWindow = model
             hub.openLibrary = { openWindow(id: "library") }
             hub.consumePendingMenuAction(for: model)
-            if let id = hub.pendingNoteID { model.select(id); hub.pendingNoteID = nil }
-            else if model.editor.noteID == nil { model.create() }
+            _ = hub.consumePendingDraft(for: model)
+            if hub.pendingNoteID == nil && model.editor.noteID == nil { model.create() }
             if let id = model.editor.noteID { selection = [id] }
         }
     }
