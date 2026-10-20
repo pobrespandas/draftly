@@ -660,3 +660,11 @@ A disk-backed conflict-restore failure/retry contract passed with the other six
 history-backup methods. Failure preserves the complete graph across reopening;
 retry commits one recovered graph. Repeated successful conflict import remains
 open: current restore assigns a fresh recovery identity on each conflict.
+
+
+Repeated successful conflict import now reuses a stable recovery graph. It
+preserves a newer access date, keeps edited recoveries, and does not merge
+unrelated notes by content. Two new contracts and all nine history-backup
+methods pass. Full regression passed 435 app and 433 core methods; the unsigned
+build passed. Native and connected-sync checks remain pending. Old random
+recovery identities are retained without content-only migration.

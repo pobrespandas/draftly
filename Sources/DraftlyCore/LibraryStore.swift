@@ -2,6 +2,7 @@ import Foundation
 import CoreData
 import CloudKit
 import Combine
+import CryptoKit
 
 @MainActor
 public final class LibraryStore: ObservableObject {
@@ -312,17 +313,35 @@ public final class LibraryStore: ObservableObject {
         var remapped: [UUID: UUID] = [:]
         for var note in backup.notes {
             if let existing = notes.first(where: { $0.id == note.id }), existing != note {
-                let original = note.id; note.id = UUID(); remapped[original] = note.id
+                let original = note.id
+                note.id = try recoveryIdentity(note, kind: "note", existing: notes, id: { $0.id }) { candidate, source in
+                    var candidate = candidate; candidate.id = source.id
+                    candidate.accessedAt = source.accessedAt
+                    return candidate == source
+                }
+                remapped[original] = note.id
+                if let recovered = notes.first(where: { $0.id == note.id }) { note = recovered }
             }
             try persist(note, id: note.id, kind: "note")
         }
         for var revision in backup.revisions {
-            if let newID = remapped[revision.noteID] { revision.noteID = newID; revision.id = UUID() }
+            if let newID = remapped[revision.noteID] {
+                revision.noteID = newID
+                revision.id = try recoveryIdentity(revision, kind: "revision", existing: revisions, id: { $0.id }) { candidate, source in
+                    var candidate = candidate; candidate.id = source.id
+                    return candidate == source
+                }
+            }
             try persist(revision, id: revision.id, kind: "revision")
         }
         for var run in runsToRestore {
             if let noteID = run.noteID, let newID = remapped[noteID] { run.noteID = newID }
-            if let existing = runs.first(where: { $0.id == run.id }), existing != run { run.id = UUID() }
+            if let existing = runs.first(where: { $0.id == run.id }), existing != run {
+                run.id = try recoveryIdentity(run, kind: "run", existing: runs, id: { $0.id }) { candidate, source in
+                    var candidate = candidate; candidate.id = source.id
+                    return candidate == source
+                }
+            }
             try persist(run, id: run.id, kind: "run")
         }
         for theme in themesToRestore { try persist(theme, id: theme.id, kind: "theme") }
@@ -332,6 +351,24 @@ public final class LibraryStore: ObservableObject {
         for action in backup.actions { try persist(action, id: action.id, kind: "action") }
         try beforeBatchCommit?(); try commit()
         } catch { container.viewContext.rollback(); try? reload(); throw error }
+    }
+
+    private func recoveryIdentity<T: Encodable>(_ source: T, kind: String, existing: [T],
+        id: (T) -> UUID, matches: (T, T) -> Bool) throws -> UUID {
+        let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
+        let payload = try encoder.encode(source)
+        var attempt = 0
+        while true {
+            var input = Data("Draftly backup recovery v1/\(kind)/\(attempt)/".utf8)
+            input.append(payload)
+            var bytes = Array(SHA256.hash(data: input).prefix(16))
+            bytes[6] = (bytes[6] & 0x0f) | 0x80
+            bytes[8] = (bytes[8] & 0x3f) | 0x80
+            let candidateID = bytes.withUnsafeBufferPointer { NSUUID(uuidBytes: $0.baseAddress!) as UUID }
+            guard let candidate = existing.first(where: { id($0) == candidateID }) else { return candidateID }
+            if matches(candidate, source) { return candidateID }
+            attempt += 1
+        }
     }
 
     public static var defaultActions: [DraftAction] {

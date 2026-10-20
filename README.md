@@ -135,7 +135,10 @@ history. They omit credentials and local file permissions. A backup restores bot
 copies when the same draft ID has different content or metadata. The copied
 draft keeps its revisions and restored execution history. Conflicting execution
 records also keep both variants. Older backups without execution history remain
-supported.
+supported. Repeating the same conflict import reuses an unchanged recovery made
+by the current importer. Accessing that recovery does not create another copy.
+Editing it preserves the edit and creates a separate recovery on the next import.
+Random recovery identities from older versions are not matched by content alone.
 
 The interface was checked against the installed Drafts Mac app. See the
 [interface reference](docs/research/drafts-mac.md) for the controls used.

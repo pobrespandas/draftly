@@ -3,6 +3,17 @@ import Testing
 @testable import DraftlyCore
 
 @MainActor struct ExecutionHistoryBackupTests {
+    private func canonicalRecords(_ data: Data) throws -> Data {
+        let decoded = try JSONSerialization.jsonObject(with: data)
+        var object = try #require(decoded as? [String: Any])
+        for (key, value) in object {
+            if let records = value as? [[String: Any]] {
+                object[key] = records.sorted { ($0["id"] as? String ?? "") < ($1["id"] as? String ?? "") }
+            }
+        }
+        return try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])
+    }
+
     private func run(noteID: UUID?, actionID: UUID? = nil, message: String = "Neutral café 🐼\nComplete") -> ActionRun {
         var value = ActionRun(actionName: "Neutral action", status: "success", message: message)
         value.date = Date(timeIntervalSince1970: 1_700_000_000.125)
@@ -69,6 +80,57 @@ import Testing
         #expect(restoredRun.id != currentRun.id)
         #expect(restoredRun.noteID == restoredNote.id)
         #expect(restoredRun.date == sourceRun.date)
+    }
+
+    @Test func repeatedSuccessfulConflictRestoreReusesItsGraphAcrossReopenAndAccess() throws {
+        let source = try LibraryStore(inMemory: true, seed: false)
+        let incoming = try source.createNote(content: "Backup café 🐼")
+        source.log(run(noteID: incoming.id))
+        let data = try source.backupData()
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        var destination: LibraryStore? = try LibraryStore(directory: directory, seed: false)
+        var current = incoming; current.content = "Current text"
+        try destination?.saveNote(current)
+        try destination?.restore(data)
+        let copy = try #require(destination?.notes.first { $0.id != current.id })
+        try destination?.recordAccess(copy.id, at: Date(timeIntervalSince1970: 2_000_000_000))
+        let snapshot = try canonicalRecords(#require(destination).backupData())
+        destination = nil
+        let reopened = try LibraryStore(directory: directory, seed: false)
+        try reopened.restore(data)
+        #expect(try canonicalRecords(reopened.backupData()) == snapshot)
+        var edited = copy; edited.content = "Edited recovery"
+        try reopened.saveNote(edited)
+        try reopened.restore(data)
+        #expect(reopened.notes.count == 3)
+        #expect(reopened.notes.contains { $0.id == copy.id && $0.content == edited.content })
+        #expect(reopened.notes.contains { $0.id == current.id && $0.content == current.content })
+        let afterEdit = try canonicalRecords(reopened.backupData())
+        try reopened.restore(data)
+        #expect(try canonicalRecords(reopened.backupData()) == afterEdit)
+        #expect(reopened.runs.count == 2)
+        for recovered in reopened.notes where recovered.id != current.id {
+            #expect(reopened.runs.contains { $0.noteID == recovered.id })
+            #expect(reopened.revisions.contains { $0.noteID == recovered.id })
+        }
+    }
+
+    @Test func recoveryDoesNotReuseAnUnrelatedIdenticalNote() throws {
+        let source = try LibraryStore(inMemory: true, seed: false)
+        let incoming = try source.createNote(content: "Same text café 🐼")
+        let destination = try LibraryStore(inMemory: true, seed: false)
+        var current = incoming; current.content = "Current text"
+        try destination.saveNote(current)
+        var unrelated = incoming; unrelated.id = UUID()
+        try destination.saveNote(unrelated, preserveRevision: false, preserveDates: true)
+        try destination.restore(source.backupData())
+        #expect(destination.notes.count == 3)
+        #expect(destination.notes.contains(unrelated))
+        #expect(destination.notes.filter { $0.content == incoming.content }.count == 2)
+        let snapshot = try canonicalRecords(destination.backupData())
+        try destination.restore(source.backupData())
+        #expect(try canonicalRecords(destination.backupData()) == snapshot)
     }
 
     @Test func failedRestoreRollsBackHistoryAndAllOtherWrites() throws {

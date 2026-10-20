@@ -3115,3 +3115,29 @@ Repeated successful import can therefore add another recovered variant. That
 case remains open; a safe solution must identify a prior recovery without
 merging distinct intentional notes with equal content. Native checks remain
 blocked by the Computer Use connection failure, including after runtime reset.
+
+
+### Repeated successful conflict import — 20 October 2026
+
+Implemented: conflict recovery derives a stable UUID from the record kind, its
+encoded source identity and payload, and a collision attempt. The hash input has
+a versioned namespace. A matching identity is reused only if its full payload
+matches. A note's newer access date is retained and does not cause another copy.
+An edited recovery advances to a separate identity and keeps the edit. Revision
+and execution identities use the remapped note relation. There is no schema or
+backup format change and no content-only match across unrelated note identities.
+Random recovery identities created by older importers remain untouched; the
+first new import can create an additional stable recovery beside them.
+
+Tested automatically: two new contracts cover disk reopen, access, repeated
+import, editing a recovered variant, related revisions and executions, and an
+unrelated identical note. All nine history-backup methods pass. Full regression
+passed 435 app methods and 433 core methods. The unsigned Debug build passed.
+The existing failed-conflict rollback/retry contract also passes with this change.
+Record comparisons ignore top-level array order because fetch order is not part
+of the backup contract; identities and all record fields are compared.
+
+Native verification remains pending because Computer Use cannot connect. This
+change does not accept connected synchronization, collision races across devices,
+or every backup metadata variant. The earlier open repeated-import finding is
+resolved for the tested automatic contracts, not for the entire backup roadmap.
