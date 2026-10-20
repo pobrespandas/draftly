@@ -696,3 +696,9 @@ Strict audit now validates historical additionalAutomatedTests as well as
 supportingTests and reports malformed collections without a crash. All 38
 Python tooling tests pass; matrix structure has zero errors. Strict core remains
 at 800 diagnostics and engine at 27. Neither gate is accepted.
+
+
+Draft.find now excludes inherited JavaScript cache keys. The extended existing
+contract passes on legacy and worker routes after failing on both before the fix.
+Metadata36, full app435/core440, and unsigned build passed. Native comparison
+remains separate.

@@ -3237,3 +3237,16 @@ The normal matrix check has zero errors. Strict core reports 800 diagnostics;
 strict engine reports 27. These are acceptance diagnostics, not member counts
 or compatibility percentages. Both strict gates remain open. No new Swift
 regression or app build was required for this Python-only change.
+
+
+### Draft identity cache keys — 20 October 2026
+
+Implemented: the execution-local draft cache now has no JavaScript prototype.
+Invalid identifiers such as __proto__, constructor, and toString no longer
+return inherited objects or functions. Valid cached drafts retain their identity
+and pending local values.
+
+Extended the existing find contract instead of adding a duplicate test. Both
+legacy and worker cases first failed at __proto__ and now pass. All 36 metadata
+methods pass. Full regression passed 435 app and 440 core methods. The unsigned
+Debug build passed. This does not add native Drafts comparison evidence.

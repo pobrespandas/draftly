@@ -289,14 +289,23 @@ struct DraftMetadataContractTests {
         #expect(f.editor.content == original)
     }
 
-    @Test func draftFindReturnsMissingValuesAndReusesSavedIdentity() throws {
+    @Test(arguments: [false, true])
+    func draftFindReturnsMissingValuesAndReusesSavedIdentity(worker: Bool) async throws {
         let f = try DraftMetadataFixture()
-        #expect(f.run(#"""
+        let action = f.action(#"""
         check(Draft.find('00000000-0000-0000-0000-000000000000')===undefined,'missing identity');
+        for(const name of ['__proto__','constructor','toString','hasOwnProperty','prototype','']) {
+            check(Draft.find(name)===undefined,'invalid identity '+name);
+        }
+        check(Draft.find(draft.uuid)===draft,'valid identity remains cached');
         const d=Draft.create();d.content='Find identity';d.update();
         check(Draft.find(d.uuid)===d && Draft.find(d.uuid)===Draft.find(d.uuid),'cached saved identity');
         d.content='Pending local edit';check(Draft.find(d.uuid).content==='Pending local edit','pending values survive lookup');
-        """#), Comment(rawValue: f.runner.message ?? ""))
+        """#)
+        let succeeded: Bool
+        if worker { succeeded = await f.runner.runAsync(action).result.succeeded }
+        else { succeeded = f.runner.run(action) }
+        #expect(succeeded, Comment(rawValue: f.runner.message ?? ""))
     }
 
     @Test func draftFindAcceptsBothCasesOfAValidStoredUUID() throws {

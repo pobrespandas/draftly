@@ -1,5 +1,5 @@
 // Keep one JavaScript context for all steps in an action.
-var __cancelled = false, __failure = null, __completed = false, __tags = Object.create(null), __draftCache = {};
+var __cancelled = false, __failure = null, __completed = false, __tags = Object.create(null), __draftCache = Object.create(null);
 function __call(op, value) {
     var result = JSON.parse(__host(op, JSON.stringify(value === undefined ? {} : value)));
     if (result.error) throw new Error(result.error);
