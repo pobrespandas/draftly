@@ -3,7 +3,8 @@
 Updated: 19 October 2026.
 
 Draftly works as a local Mac app. Mac parity is not complete. The current work is
-paused after repository cleanup. Resume implementation only when requested.
+a behavior-preserving architecture refactoring. See [architecture](architecture.md)
+for the baseline, boundaries, and validation. Feature parity work remains paused.
 Keep the identity Draftly, `Note`, existing identities and libraries, original
 action scripts, Nerd Fonts, and the integrated Markdown preview.
 

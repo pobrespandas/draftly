@@ -32,7 +32,7 @@ struct LibraryView: View {
 
     init(library: LibraryStore) {
         self.library = library
-        _model = StateObject(wrappedValue: WindowModel(library: library, onAccessDraft: { AppController.shared.recordRecentDraft($0) }))
+        _model = StateObject(wrappedValue: AppController.shared.makeWindowModel(library: library))
     }
     var body: some View {
         LibrarySplitView(model: model, panels: [

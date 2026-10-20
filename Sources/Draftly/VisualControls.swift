@@ -363,8 +363,7 @@ struct EditorStatusOverlay: View {
 
 @MainActor
 enum DraftListDefaults {
-    static func load() -> DraftListOptions {
-        let defaults = UserDefaults.standard
+    static func load(defaults: UserDefaults = .standard) -> DraftListOptions {
         var options = defaults.data(forKey: "list.options").flatMap { try? JSONDecoder().decode(DraftListOptions.self, from: $0) } ?? DraftListOptions()
         if defaults.object(forKey: "list.showPreview") != nil { options.showPreview = defaults.bool(forKey: "list.showPreview") }
         if defaults.object(forKey: "list.previewLines") != nil { options.previewLines = defaults.integer(forKey: "list.previewLines") }

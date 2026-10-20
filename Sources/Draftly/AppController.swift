@@ -84,6 +84,24 @@ final class AppController: ObservableObject {
             startupError = nil
         } catch { startupError = error.localizedDescription }
     }
+    func makeWindowModel(library: LibraryStore) -> WindowModel {
+        var dependencies = WindowDependencies()
+        dependencies.recoverDictation = { [weak self] in self?.capture(content: $0) }
+        dependencies.openQuickSearch = { [weak self] in self?.showQuickSearch() }
+        dependencies.openDraftWindow = { [weak self] id, tab, window in
+            let before = Set(NSApp.windows.map(ObjectIdentifier.init))
+            self?.pendingNoteID = id
+            self?.openLibrary?()
+            if tab, let window {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    if let created = NSApp.windows.first(where: { !before.contains(ObjectIdentifier($0)) && $0.identifier?.rawValue.hasPrefix("library") == true }) { window.addTabbedWindow(created, ordered: .above) }
+                }
+            }
+        }
+        return WindowModel(library: library, dependencies: dependencies,
+            onAccessDraft: { [weak self] in self?.recordRecentDraft($0) })
+    }
+
     func capture(content: String = "") {
         guard library != nil else { return }
         captureController.show(content: content)

@@ -31,14 +31,12 @@ final class WindowModel: ObservableObject {
     @Published var sort: NoteSort = .modified { didSet { updateWorkspaceSort() } }
     @Published var ascending = false { didSet { updateWorkspaceSort() } }
     private(set) var dictationActive = false
-    var recoverDictation: (String) -> Void = { AppController.shared.capture(content: $0) }
+    var recoverDictation: (String) -> Void
     @Published var showActionBar = true
     @Published var showActions = false
     @Published var darkTheme: Bool?
     @Published var showTags = true
-    var prefersAdvancedFind: () -> Bool = {
-        UserDefaults.standard.bool(forKey: GeneralPreferences.advancedFindKey)
-    }
+    var prefersAdvancedFind: () -> Bool
     @Published var showAdvancedFind = false
     @Published var advancedFindQuery = ""
     @Published var showInfo = false
@@ -68,7 +66,7 @@ final class WindowModel: ObservableObject {
     @Published var showActionImporter = false
     @Published var showWorkspaceEditor = false
     @Published var showLibraryManagement = false
-    @Published var listOptions = DraftListDefaults.load()
+    @Published var listOptions: DraftListOptions
     @Published var showRunLog = false
     @Published var status = ""
     @Published var tagsText = ""
@@ -76,23 +74,29 @@ final class WindowModel: ObservableObject {
     @Published private var scratchNote: Note?
     weak var window: NSWindow?
     var referenceToolbar: ReferenceToolbar?
-    var openQuickSearch: () -> Void = { AppController.shared.showQuickSearch() }
+    var openQuickSearch: () -> Void
+    let dependencies: WindowDependencies
     private var saveTask: Task<Void, Never>?
     private let saveDraft: (Note) throws -> Void
     private let onAccessDraft: (UUID) -> Void
     private var inactiveSince: Date?
     private var idleActivity: NSObjectProtocol?
 
-    init(library: LibraryStore, saveDraft: ((Note) throws -> Void)? = nil, onAccessDraft: @escaping (UUID) -> Void = { _ in }) {
+    init(library: LibraryStore, dependencies: WindowDependencies = WindowDependencies(), saveDraft: ((Note) throws -> Void)? = nil, onAccessDraft: @escaping (UUID) -> Void = { _ in }) {
         self.library = library
+        self.dependencies = dependencies
+        self.listOptions = dependencies.preferences.listOptions
+        self.recoverDictation = dependencies.recoverDictation
+        self.openQuickSearch = dependencies.openQuickSearch
+        self.prefersAdvancedFind = { dependencies.preferences.prefersAdvancedFind }
         self.saveDraft = saveDraft ?? { try library.saveNote($0) }
         self.onAccessDraft = onAccessDraft
         runner = ActionRunner(library: library, editor: editor, host: host)
         runner.applyWorkspace = { [weak self] workspace in try self?.applyScriptWorkspace(workspace) }
         runner.defaultWorkspace = { [weak library] in
             guard let library else { return Workspace(name: "") }
-            var value = WorkspaceDefaults.make(in: library)
-            if UserDefaults.standard.string(forKey: WorkspaceDefaults.key).flatMap(UUID.init(uuidString:)).flatMap({ id in library.workspaces.first { $0.id == id } }) == nil { value.listOptions = DraftListDefaults.load() }
+            var value = WorkspaceDefaults.make(in: library, defaults: dependencies.preferences.defaults)
+            if dependencies.preferences.defaults.string(forKey: WorkspaceDefaults.key).flatMap(UUID.init(uuidString:)).flatMap({ id in library.workspaces.first { $0.id == id } }) == nil { value.listOptions = dependencies.preferences.listOptions }
             return value
         }
         runner.currentWorkspace = { [weak self] in
@@ -132,118 +136,16 @@ final class WindowModel: ObservableObject {
     func toggleDraftList() { setDraftListVisible(!showDraftList) }
 
     func actionUIOperation(_ values: [String: Any]) throws -> Any? {
-        let operation = values["operation"] as? String ?? "", key = values["key"] as? String ?? ""
-        let value = values["value"], args = values["args"] as? [Any] ?? []
-        if operation == "get" {
-            switch key {
-            case "isActionListVisible": return showActions
-            case "isDraftListVisible": return showDraftList
-            case "areFiltersVisible": return showFilters
-            case "floatOnTop": return isFloating
-            case "canCreateTab": return window != nil
-            case "linkModeEnabled": return linksEnabled
-            case "pinningEnabled", "focusModeEnabled": return isDraftPinned
-            case "isActive": return window?.firstResponder is DraftTextView
-            case "preferredTabString": return "\t"
-            case "typewriterScrollingEnabled": return editor.typewriterScrollingEnabled
-            case "isIdleDisabled": return idleActivity != nil
-            case "themeMode": return darkTheme.map { $0 ? "dark" : "light" } ?? "automatic"
-            case "currentThemeMode": return (window?.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua) ? "dark" : "light"
-            case "darkTheme", "lightTheme": return ["name": key == "darkTheme" ? "Dark" : "Light", "type": "builtIn"]
-            case "isChatConsoleVisible": return false
-            default: throw DraftlyError.message("The window property \(key) is unavailable.")
-            }
-        }
-        if operation == "set" {
-            let enabled = value as? Bool ?? false
-            switch key {
-            case "floatOnTop": isFloating = enabled
-            case "linkModeEnabled": linksEnabled = enabled
-            case "pinningEnabled", "focusModeEnabled": isDraftPinned = enabled
-            case "typewriterScrollingEnabled": editor.typewriterScrollingEnabled = enabled
-            case "themeMode": darkTheme = value as? String == "automatic" ? nil : value as? String == "dark"
-            case "isIdleDisabled":
-                if enabled && idleActivity == nil { idleActivity = ProcessInfo.processInfo.beginActivity(options: [.idleDisplaySleepDisabled], reason: "Draftly action") }
-                if !enabled, let idleActivity { ProcessInfo.processInfo.endActivity(idleActivity); self.idleActivity = nil }
-            case "darkTheme", "lightTheme":
-                guard let theme = value as? [String: Any], ["Default", "Dark", "Light"].contains(theme["name"] as? String ?? "") else { throw DraftlyError.message("The theme is unavailable.") }
-            default: throw DraftlyError.message("The window property \(key) cannot be assigned.")
-            }
-            return true
-        }
-        switch operation {
-        case "themes":
-            let data = UserDefaults.standard.string(forKey: "editor.themes") ?? "[]"
-            let saved = (try? JSONDecoder().decode([EditorTheme].self, from: Data(data.utf8))) ?? []
-            return ["Default", "Dark", "Light"].map { ["name": $0, "type": "builtIn"] } + saved.map { ["name": $0.name, "type": "custom", "uuid": $0.id.uuidString] }
-        case "configureWindow":
-            let options = values["values"] as? [String: String] ?? [:]
-            let toggles = ["showDraftList", "showActionList", "showFilters", "showActionBar", "showTagEntry", "pinCurrentDraft", "linkMode"]
-            let metadata = ["data", "parameters", "values", "uuid", "platforms", "isEnabled", "template", "templateType"]
-            let supported = Set(toggles + metadata + ["loadWorkspace", "loadActionGroup", "loadActionBarGroup"])
-            if let unsupported = options.keys.sorted().first(where: { !supported.contains($0) && options[$0] != "" && options[$0] != "unchanged" }) { throw DraftlyError.message("The window option \(unsupported) is not supported.") }
-            var settings: [String: Bool] = [:]
-            for key in toggles {
-                guard let value = options[key], value != "unchanged" else { continue }
-                guard ["true", "false", "1", "0", "show", "hide"].contains(value) else { throw DraftlyError.message("The window option \(key) is invalid.") }
-                settings[key] = ["true", "1", "show"].contains(value)
-            }
-            let workspace: Workspace?
-            if let name = options["loadWorkspace"], !name.isEmpty {
-                guard let found = library.workspaces.first(where: { $0.name == name || $0.id.uuidString == name }) else { throw DraftlyError.message("The workspace was not found.") }
-                workspace = found
-            } else { workspace = nil }
-            for key in ["loadActionGroup", "loadActionBarGroup"] {
-                if let name = options[key], !name.isEmpty, !library.groupNames.contains(name) { throw DraftlyError.message("The action group was not found.") }
-            }
-            if let workspace { try applyScriptWorkspace(workspace) }
-            if let enabled = settings["showDraftList"] { setDraftListVisible(enabled) }
-            if let enabled = settings["showFilters"] { setFiltersVisible(enabled) }
-            if let enabled = settings["showActionList"] { showActions = enabled }
-            if let enabled = settings["showActionBar"] { showActionBar = enabled }
-            if let enabled = settings["showTagEntry"] { showTags = enabled }
-            if let enabled = settings["pinCurrentDraft"] { isDraftPinned = enabled }
-            if let enabled = settings["linkMode"] { linksEnabled = enabled }
-            if let name = options["loadActionGroup"], !name.isEmpty { actionGroup = name }
-            if let name = options["loadActionBarGroup"], !name.isEmpty { actionBarGroup = name }
-        case "showActionList": showActions = true
-        case "hideActionList": showActions = false
-        case "showDraftList": setDraftListVisible(true)
-        case "hideDraftList": setDraftListVisible(false)
-        case "showFilters": setFiltersVisible(true)
-        case "hideFilters": setFiltersVisible(false)
-        case "showDraftInfo":
-            if let details = value as? [String: Any] {
-                guard let id = (details["uuid"] as? String).flatMap(UUID.init(uuidString:)), let note = library.notes.first(where: { $0.id == id }) else { throw DraftlyError.message("The draft was not found.") }
-                infoDraft = note
-            } else { infoDraft = currentNote }
-            showInfo = true
-        case "showQuickSearch": openQuickSearch()
-        case "showCommandPalette": showPalette = true
-        case "loadActionBarGroup", "loadKeyboardActionGroup", "loadActionGroup":
-            let name = (value as? [String: Any])?["name"] as? String ?? value as? String ?? ""
-            guard library.groupNames.contains(name) else { throw DraftlyError.message("The action group was not found.") }
-            if operation == "loadActionGroup" { actionGroup = name; showActions = true } else { actionBarGroup = name }
-        case "nextDraft": navigate(1)
-        case "previousDraft": navigate(-1)
-        case "activate":
-            showPreview = false
-            _ = editor.focusForDictation?()
-        case "deactivate":
-            if window?.firstResponder is DraftTextView { window?.makeFirstResponder(nil) }
-        case "undo", "redo":
-            guard let performUndo = editor.performUndo else { throw DraftlyError.message("The editor undo manager is unavailable.") }; performUndo(operation == "redo")
-        case "showFind":
-            if (args.first as? Bool ?? prefersAdvancedFind()) {
-                advancedFindQuery = args.dropFirst().first as? String ?? ""
-                showAdvancedFind = true
-                return nil
-            }
-            showAdvancedFind = false
-            if let query = args.dropFirst().first as? String { NSPasteboard(name: .find).clearContents(); NSPasteboard(name: .find).setString(query, forType: .string) }
-            let item = NSMenuItem(); item.tag = NSTextFinder.Action.showFindInterface.rawValue
-            NSApp.sendAction(#selector(NSTextView.performFindPanelAction(_:)), to: nil, from: item)
-        case "showDictate":
+        try WindowActionAdapter(model: self).perform(values)
+    }
+
+    var isIdleDisabled: Bool { idleActivity != nil }
+    func setIdleDisabled(_ enabled: Bool) {
+        if enabled && idleActivity == nil { idleActivity = ProcessInfo.processInfo.beginActivity(options: [.idleDisplaySleepDisabled], reason: "Draftly action") }
+        if !enabled, let idleActivity { ProcessInfo.processInfo.endActivity(idleActivity); self.idleActivity = nil }
+    }
+
+    func showDictation() throws {
             guard !dictationActive else { throw DraftlyError.message("Dictation is already active in this window.") }
             guard editor.focusForDictation != nil else { throw DraftlyError.message("The editor dictation interface is unavailable.") }
             editor.focusToken = UUID(); showPreview = false; dictationActive = true
@@ -262,26 +164,6 @@ final class WindowModel: ObservableObject {
                     } catch { self.library.error = error.localizedDescription }
                 }
             }
-        case "arrange": return try host.perform("arrangeText", values: ["text": args.first as? String ?? ""])
-        case "showArrange":
-            if let text = try host.perform("arrangeText", values: ["text": editor.content]) as? String { editor.content = text; _ = flush() }
-        case "dictate": return try host.perform("dictate", values: ["locale": args.first as? String ?? ""])
-        case "scanDocument": return try host.perform("scanDocument", values: [:])
-        case "transcribe": return try host.perform("transcribe", values: [:])
-        case "openInNewWindow", "openInNewTab":
-            let details = values["draft"] as? [String: Any] ?? value as? [String: Any] ?? [:]
-            let before = Set(NSApp.windows.map(ObjectIdentifier.init))
-            AppController.shared.pendingNoteID = (details["uuid"] as? String).flatMap(UUID.init(uuidString:))
-            AppController.shared.openLibrary?()
-            if operation == "openInNewTab", let window {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                    if let created = NSApp.windows.first(where: { !before.contains(ObjectIdentifier($0)) && $0.identifier?.rawValue.hasPrefix("library") == true }) { window.addTabbedWindow(created, ordered: .above) }
-                }
-            }
-        case "hideChatConsole", "showChatConsole": throw DraftlyError.message("Chat Console is outside the Draftly Mac scope.")
-        default: throw DraftlyError.message("The window operation \(operation) is unavailable.")
-        }
-        return true
     }
     var currentNote: Note? { library.notes.first { $0.id == editor.noteID } ?? scratchNote }
     @Published var workspaceScriptMetadata: [String: String]?
@@ -391,40 +273,15 @@ final class WindowModel: ObservableObject {
     }
 
     func applyScriptWorkspace(_ workspace: Workspace) throws {
-        var workspace = workspace
-        var values = workspace.apiOptions
-        for key in ["loadActionListGroup", "loadActionBarGroup"] {
-            guard var group = values[key] as? [String: Any] else { continue }
-            let name: String?
-            if let id = (group["uuid"] as? String).flatMap(UUID.init(uuidString:)) {
-                name = library.groupNames.first { candidate in (library.actionGroups.first { $0.name == candidate }?.id ?? ActionGroupRecord.identifier(for: candidate)) == id }
-            } else { name = (group["name"] as? String).flatMap { library.groupNames.contains($0) ? $0 : nil } }
-            guard let name else { throw DraftlyError.message("The workspace action group was not found.") }
-            group["name"] = name; values[key] = group
-        }
-        let data = UserDefaults.standard.string(forKey: "editor.themes") ?? "[]"
-        let themes = (try? JSONDecoder().decode([EditorTheme].self, from: Data(data.utf8))) ?? []
-        for key in ["preferredDarkTheme", "preferredLightTheme"] {
-            guard var theme = values[key] as? [String: Any] else { continue }
-            if theme["type"] as? String == "custom" {
-                let saved: EditorTheme?
-                if let id = (theme["uuid"] as? String).flatMap(UUID.init(uuidString:)) { saved = themes.first { $0.id == id } }
-                else { saved = themes.first { $0.name == theme["name"] as? String } }
-                guard let saved else { throw DraftlyError.message("The workspace theme was not found.") }
-                theme["name"] = saved.name; theme["uuid"] = saved.id.uuidString
-            } else {
-                guard ["Default", "Dark", "Light"].contains(theme["name"] as? String ?? "") else { throw DraftlyError.message("The workspace theme was not found.") }
-            }
-            values[key] = theme
-        }
-        if workspace.scriptMetadata != nil { workspace.scriptMetadata?["api"] = String(decoding: try JSONSerialization.data(withJSONObject: values), as: UTF8.self) }
-        applyResolvedWorkspace(workspace)
+        let resolved = try WorkspacePresentationResolver.resolve(workspace, groupNames: library.groupNames,
+            groups: library.actionGroups, themes: dependencies.preferences.themes)
+        applyResolvedWorkspace(resolved)
     }
 
     func apply(_ workspace: Workspace) { perform { try applyScriptWorkspace(workspace) } }
     private func applyResolvedWorkspace(_ workspace: Workspace) {
         workspaceScriptMetadata = workspace.scriptMetadata
-        listOptions = workspace.listOptions ?? DraftListDefaults.load()
+        listOptions = workspace.listOptions ?? dependencies.preferences.listOptions
         folder = workspace.folder; query = workspace.query; sort = workspace.sort; ascending = workspace.ascending
         selectedWorkspace = library.workspaces.contains(where: { $0.id == workspace.id }) ? workspace.id : nil
         selectedTags = Set(workspace.tags.map(TagRules.normalize))
@@ -502,7 +359,7 @@ final class WindowModel: ObservableObject {
         if let tagPresence { parts.append(tagPresence ? "tagged" : "untagged") }
         return parts.isEmpty ? "No tag filters active" : parts.joined(separator: ", ")
     }
-    func clearFilters() { workspaceScriptMetadata = nil; listOptions = DraftListDefaults.load(); query = ""; tag = nil; excludedTags = []; matchAnyTag = false; tagQuery = ""; tagPresence = nil; selectedWorkspace = nil }
+    func clearFilters() { workspaceScriptMetadata = nil; listOptions = dependencies.preferences.listOptions; query = ""; tag = nil; excludedTags = []; matchAnyTag = false; tagQuery = ""; tagPresence = nil; selectedWorkspace = nil }
     @discardableResult func capture(_ content: String) -> Bool {
         guard create() else { return false }
         editor.content = content; contentChanged()
