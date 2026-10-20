@@ -216,7 +216,8 @@ Pending:
   coverage and visual parity remain open.
 - Shared themes now use generic library records with stable identities and
   optional backup data. Local definitions migrate once per device and library.
-  Native restart and Mac+VM synchronization acceptance remain pending.
+  Native create/save/edit-cancel/restart/render and selection/Undo passed in QA.
+  Native backup recovery, legacy migration, and Mac+VM sync remain pending.
 - Complete Drafts theme import and verify MultiMarkdown/TaskPaper in all accesses.
 - Verify restart, backup, selection, content, and Undo after configuration changes.
 - Keep local device preferences separate from shared library definitions.

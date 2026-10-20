@@ -2493,3 +2493,26 @@ prove synchronization acceptance. Execution history backup remains separate.
 Final regression result: 412 app methods and 399 core methods passed. The
 unsigned Xcode Debug build passed. These totals show regression coverage only;
 native UI and connected sync acceptance remain pending.
+
+### Shared themes native create, cancel, restart, and Undo — 20 October 2026
+
+Verified in isolated QA on Debug image 57c6cac3f5d8643d before signing: created
+QA Neutral Theme 🐼 with text F0F0F0, background 17324D, heading 007AFF, and dark
+appearance. Save selected the theme. Reopening Edit showed the saved values.
+Changed background to FFFFFF and cancelled. Quit was confirmed by the app
+inventory, then QA was launched again. Settings retained the selected theme.
+Edit showed background 17324D and the other saved values. Cancel did not persist
+its temporary change. Font, size, spacing, and layout controls kept their values.
+
+The editor rendered the neutral Busy owner retained draft with the dark blue
+background and light text. Appended a neutral suffix and selected owner. Changed
+the selected theme to System in Settings. After closing Settings, the editor
+still had the full text and owner selection. Undo removed the suffix. Redo
+restored it. Undo restored the neutral source again before Quit. The QA inventory
+confirmed the app stopped. The new theme remains available; the local selection
+is System. No personal library, screenshot file, or raw log was used or tracked.
+
+This accepts the tested create/save/edit-cancel/restart/render/selection/Undo
+path. It does not accept backup restore in the native app, every theme reference,
+Drafts theme import, migration from actual legacy preferences, or Mac+VM sync.
+Those checks stay pending. No source code changed in this verification.
