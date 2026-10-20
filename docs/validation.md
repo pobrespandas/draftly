@@ -1879,3 +1879,32 @@ and host-lifetime records remain partial for their other native requirements.
 No total test count is used as API parity evidence. The system SPI dependency
 is documented in actions-engine.md; public distribution remains out of scope.
 
+## Busy cancellation and concurrent windows — 20 October 2026
+
+Automatically tested: a CPU-bound action publishes a host marker after an earlier
+effect and then loops. Cancelling its parent task returns cancelled, not timeout,
+preserves that effect, suppresses its tail/Archive/parameters, and releases the
+library for another successful action. With a configured 0.25-second synchronous
+limit, this run measured 0.267919875 seconds from cancellation to result. This is
+one measured run, not a production latency guarantee or acceptance threshold.
+
+Three real-worker cases across consecutive steps passed: an old rejected timer
+and an intrinsic promise waiting on an old timer cannot fail the next waiting
+step; a caught intrinsic rejection leaves no sticky failure. Epoch checks alone
+do not identify promise creation time. Late sources must also use the worker's
+invalidated timer/callback paths. These tests exercise those actual paths.
+
+Verified in use on QA image655d52883b226fcc: two independent windows opened the
+source and destination drafts. QA Busy owner saved Busy owner retained in
+AppWindow-2 and waited thirty seconds. A URL request on the distinct target in
+AppWindow-1 returned An action is already running in this library. The second
+draft kept Queue child completed write — café 🐼. The owner later returned
+success with owner=finished; its history showed Success at 03:02. The helper
+first showed the identified busy error, then count2 with the identified owner
+success after its counter reset for the second Open. Both results were observed;
+the final count alone is not per-request evidence. Both apps were quit.
+
+This accepts the tested two-window URL overlap. Intent overlap and remaining
+variants stay pending. No application source changed in this turn. Focused new
+tests ran in the background; the previous full-suite/build baseline remains.
+

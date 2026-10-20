@@ -1,0 +1,10 @@
+[
+  {
+    "name": "QA Busy owner",
+    "steps": [{"type": "script", "data": {"allowAsync": "true", "script": "editor.setText('Busy owner retained');draft.update();setTimeout(function(){context.addSuccessParameter('owner','finished');script.complete();},30000);"}}]
+  },
+  {
+    "name": "QA Busy rejected request",
+    "steps": [{"type": "script", "data": {"script": "editor.setText('ERROR: busy request ran');draft.update();"}}]
+  }
+]

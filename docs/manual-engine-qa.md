@@ -257,3 +257,15 @@ text must remain in Inbox; no tail or Archive may run. The discard success
 parameter must be absent. Run the caught rejection control. Its catch must save
 Caught rejection completed and finish successfully. Check all three history
 rows and callback results. Repeat broader entry-point variants separately.
+
+## Concurrent URL requests
+
+Import scripts/fixtures/engine-busy-actions.json. Open two distinct neutral
+drafts in independent windows. Run QA Busy owner on the first draft. It saves
+its text and waits thirty seconds. Before it finishes, run QA Busy rejected
+request by URL on the other draft. Confirm both requests. Use distinct callback
+case values. The second must return a busy error without changing its draft.
+The first must finish successfully and keep Busy owner retained. Check both
+window identities and history. The helper resets its count on each Open; after
+the second Open it can receive both the busy result and the first run's success.
+Identify results by case, not by the last callback alone.

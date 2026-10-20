@@ -454,3 +454,8 @@ rejections still succeed. Native URL checks passed for all three cases. A new
 per-worker authority also rejects unknown, altered, and repeated host requests
 before effects. Full checks passed 388 app and 373 core tests without known
 issues, plus the unsigned build. Remaining native contracts stay partial.
+
+CPU task cancellation and cross-step promise/timer regression cases passed.
+Native overlap with two independent windows and URLs also passed: the second
+request returned busy without edits, while the owner completed successfully.
+Intent overlap and the other required native variants remain pending.

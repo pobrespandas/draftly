@@ -15952,6 +15952,14 @@
         {
           "suite": "ActionExecutionSessionTests",
           "test": "completionIsFinalAndFailedRunsDropSuccessParameters"
+        },
+        {
+          "suite": "WorkerPromiseEpochTests",
+          "test": "completedStepCannotRejectDuringTheNextWaitingStep"
+        },
+        {
+          "suite": "WorkerPromiseEpochTests",
+          "test": "caughtIntrinsicRejectionDoesNotLeakIntoTheNextStep"
         }
       ],
       "nativeVerification": {
@@ -15963,7 +15971,15 @@
         "revision": "a308158",
         "date": "2026-10-20",
         "evidence": "docs/validation.md",
-        "scope": "The named per-case tests were included in the recorded regression run. Native acceptance remains pending."
+        "scope": "The named per-case tests were included in the recorded regression run. Native acceptance remains pending.",
+        "additionalRuns": [
+          {
+            "date": "2026-10-20",
+            "command": "swift test --filter WorkerPromiseEpochTests",
+            "result": "Two methods and three cases passed with the actual worker across consecutive steps.",
+            "evidence": "docs/validation.md"
+          }
+        ]
       }
     },
     {
@@ -16159,7 +16175,7 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Real overlapping requests from two app windows and URL/App Intent entry points remain pending."
+        "Native URL overlap across two independent QA windows passed: second request returned busy without changing its target, original request finished successfully. App Intent and remaining overlap variants are pending."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
@@ -16209,7 +16225,8 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Actual concurrent requests from two visible windows, URLs, and App Intents have not all been verified. Tests use real local stores and injected hosts without visible windows."
+        "reason": "Native URL overlap across two independent QA windows passed: second request returned busy without changing its target, original request finished successfully. App Intent and remaining overlap variants are pending.",
+        "evidence": "docs/validation.md"
       },
       "automatedVerification": {
         "status": "passed",
@@ -16974,7 +16991,6 @@
         "result": "Temporary local QA app: panel use during delayed action, exact native Undo, window-close cancellation recorded in Execution History, and typing cancels while preserving user text. Other entry points remain pending."
       },
       "limitations": [
-        "CPU-bound cancellation latency still needs a dedicated case.",
         "Current native prompt keyboard, transcription, EventKit, and Apple model cancellation acceptance remain pending."
       ],
       "defaults": "A new session starts with cancellationRequested false. Runner.cancel and cancellation of the task running runAsync both request termination. CPU-bound cancellation is bounded by the JavaScript evaluation limit.",
@@ -17019,6 +17035,10 @@
         {
           "suite": "EngineDefaultsContractTests",
           "test": "aNewRunStartsUncancelledAtItsFirstStepAfterAnExplicitlyCancelledRun"
+        },
+        {
+          "suite": "EngineCPUCancellationTests",
+          "test": "taskCancellationDuringBusyJavaScriptWinsOverDeadlineAndReleasesLibrary"
         }
       ],
       "nativeVerification": {
@@ -17051,6 +17071,12 @@
             "revisionState": "20 October 2026 native wait delivery; this case is not in the earlier recorded baseline.",
             "result": "Both parameter variants passed in the completed core regression run.",
             "evidence": "docs/validation.md: Engine session defaults continuation — 20 October 2026."
+          },
+          {
+            "date": "2026-10-20",
+            "command": "swift test --filter EngineCPUCancellationTests",
+            "result": "Passed. Measured cancellation latency 0.267919875 seconds with a configured 0.25-second synchronous limit; cancellation classification and release checked without an arbitrary latency threshold.",
+            "evidence": "docs/validation.md"
           }
         ]
       }
