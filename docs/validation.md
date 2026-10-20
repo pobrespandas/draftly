@@ -3421,3 +3421,22 @@ Use. Clicked Float on Top twice. Screenshots confirmed the filled and outlined
 states. Moved the pointer into the empty editor to inspect the outlined state.
 No content changed. Drafts was also toggled twice and restored. This check does
 not close the full toolbar alignment or appearance matrix.
+
+
+### Shared application mark — 20 October 2026
+
+Implemented: the icon renderer uses one notes-and-pencil geometry for the color
+application icon and the monochrome menu image. The menu image is a vector PDF
+with template tinting for the system appearance. Xcode copies both resources.
+The application mark keeps the blue-purple tile and increases rear-page contrast.
+
+To regenerate, run `swift scripts/render-app-icon.swift /tmp/Draftly.iconset`,
+then `iconutil -c icns /tmp/Draftly.iconset -o Resources/Draftly.icns`. Copy
+`/tmp/Draftly.iconset/DraftlyMenuMark.pdf` to `Resources/`. Run the project
+generator if resource build rules change.
+
+Checks: rendered the 256-pixel color icon and a PDF raster preview. Inspected
+both. The unsigned Debug build passed and included the PDF resource. Refreshed
+Engine QA and launched it. Dock, Finder, app switching, and the actual menu bar
+mark still need direct visual acceptance. Do not treat resource previews as
+that acceptance. No generated preview or screenshot is stored in the repo.

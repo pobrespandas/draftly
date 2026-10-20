@@ -205,7 +205,9 @@ AD936FCBED631FA67E05C3EA = { isa = PBXGroup; sourceTree = "<group>"; children = 
 E2AA269EB967A8853A258BFA = { isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (91596F6079D535D734C1642A); runOnlyForDeploymentPostprocessing = 0; };
 B3A2E40A56B9BA292DE851FC = { isa = PBXFileReference; lastKnownFileType = image.icns; path = Resources/Draftly.icns; sourceTree = SOURCE_ROOT; };
 FB4C3DBAFFA7FE9E09360BC9 = { isa = PBXBuildFile; fileRef = B3A2E40A56B9BA292DE851FC; };
-41D311A605520FC7B8B9A980 = { isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (FB4C3DBAFFA7FE9E09360BC9); runOnlyForDeploymentPostprocessing = 0; };
+68DBC405AFEDAEDD9990153E = { isa = PBXFileReference; lastKnownFileType = image.pdf; path = Resources/DraftlyMenuMark.pdf; sourceTree = SOURCE_ROOT; };
+90F95DD2181022C1A7AB196C = { isa = PBXBuildFile; fileRef = 68DBC405AFEDAEDD9990153E; };
+41D311A605520FC7B8B9A980 = { isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (FB4C3DBAFFA7FE9E09360BC9,90F95DD2181022C1A7AB196C); runOnlyForDeploymentPostprocessing = 0; };
 BDEFC259426BD086D1126108 = { isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Configuration/App.xcconfig; sourceTree = SOURCE_ROOT; };
 2B23A31EEC75B029432F2445 = { isa = XCBuildConfiguration; name = Debug; buildSettings = { SDKROOT = macosx; MACOSX_DEPLOYMENT_TARGET = 26.0; SWIFT_VERSION = 6.0; CLANG_ENABLE_MODULES = YES; ONLY_ACTIVE_ARCH = YES; }; };
 AA9B1D3BE1353EBD76471D11 = { isa = XCBuildConfiguration; name = Debug; baseConfigurationReference = BDEFC259426BD086D1126108; buildSettings = { CODE_SIGN_STYLE = Automatic; CODE_SIGN_ENTITLEMENTS = Configuration/Draftly.entitlements; INFOPLIST_FILE = Configuration/Info.plist; GENERATE_INFOPLIST_FILE = NO; PRODUCT_NAME = Draftly; ENABLE_HARDENED_RUNTIME = YES; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks"; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; };

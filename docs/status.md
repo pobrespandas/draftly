@@ -744,3 +744,10 @@ polling. Three methods cover wire conversion, actual JS response, fault/error
 values, injected transport cancellation/timeout, and gate cleanup. Full
 app435/core450, unsigned build, and matrix structure passed. Real server and
 native XML-RPC acceptance remain pending; the member is partial.
+
+
+Float on Top now changes from outline to fill with its window state. Three
+toolbar tests and the unsigned build passed. Computer Use confirmed both states
+in refreshed Engine QA. App and menu icons now share generated notes-and-pencil
+geometry. Resource previews passed inspection; Dock/Finder/menu-bar acceptance
+remains open. See the latest validation sections.

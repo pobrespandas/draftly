@@ -14,7 +14,12 @@ final class StatusMenuController: NSObject {
         self.controller = controller
         super.init()
         let status = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        status.button?.image = NSImage(systemSymbolName: "square.and.pencil", accessibilityDescription: "Draftly")
+        let mark = Bundle.main.url(forResource: "DraftlyMenuMark", withExtension: "pdf").flatMap { NSImage(contentsOf: $0) }
+            ?? NSImage(systemSymbolName: "square.and.pencil", accessibilityDescription: "Draftly")
+        mark?.size = NSSize(width: 18, height: 18)
+        mark?.isTemplate = true
+        mark?.accessibilityDescription = "Draftly"
+        status.button?.image = mark
         let menu = NSMenu()
         menu.autoenablesItems = false
         menu.addItem(makeItem("Capture…", symbol: "arrow.right.square", action: #selector(captureDraft)))

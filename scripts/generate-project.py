@@ -28,7 +28,9 @@ sourcephase = add("sources", 'isa = PBXSourcesBuildPhase; buildActionMask = 2147
 frameworks = add("frameworks", f'isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = ({corebuild}); runOnlyForDeploymentPostprocessing = 0;')
 icon = add("appicon", 'isa = PBXFileReference; lastKnownFileType = image.icns; path = Resources/Draftly.icns; sourceTree = SOURCE_ROOT;')
 iconbuild = add("appiconbuild", f'isa = PBXBuildFile; fileRef = {icon};')
-resources = add("resources", f'isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = ({iconbuild}); runOnlyForDeploymentPostprocessing = 0;')
+menuicon = add("menuicon", 'isa = PBXFileReference; lastKnownFileType = image.pdf; path = Resources/DraftlyMenuMark.pdf; sourceTree = SOURCE_ROOT;')
+menuiconbuild = add("menuiconbuild", f'isa = PBXBuildFile; fileRef = {menuicon};')
+resources = add("resources", f'isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = ({iconbuild},{menuiconbuild}); runOnlyForDeploymentPostprocessing = 0;')
 signing = add("signing", 'isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Configuration/App.xcconfig; sourceTree = SOURCE_ROOT;')
 for config in ["Debug", "Release"]:
     active = 'YES' if config == 'Debug' else 'NO'
