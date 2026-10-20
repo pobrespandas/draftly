@@ -775,3 +775,8 @@ XML-RPC fault fields now reject missing or incorrect types without inventing a
 fault code. Four red cases and a typed JavaScript fault check cover the change.
 Full app436/core455, unsigned build, and matrix structure passed. Three response
 fields now have specific partial evidence; full integration acceptance is open.
+
+
+Real loopback XML-RPC cancellation now has an error-envelope check and server
+confirmation of TCP disconnect. Full app436/core456 and matrix checks passed.
+This is transport evidence, not native UI cancellation acceptance.

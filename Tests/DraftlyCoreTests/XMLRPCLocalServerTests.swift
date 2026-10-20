@@ -4,27 +4,31 @@ import Testing
 
 @Suite("XML-RPC loopback server")
 struct XMLRPCLocalServerTests {
+    @Test func cancellationClosesTheRealPendingHTTPConnection() async throws {
+        let server = try LocalXMLRPCServer(wait: true)
+        defer { server.stop() }
+        let payload = #"{"url":"http://127.0.0.1:\#(server.port)/wait","methodName":"wait","params":[]}"#
+        let request = Task { await ScriptXMLRPC.requestSerialized(payload) }
+        defer { request.cancel() }
+        let received = try #require(try JSONSerialization.jsonObject(with: server.readLine()) as? [String: Any])
+        #expect(received["path"] as? String == "/wait")
+        request.cancel()
+        let reply = await request.value
+        let envelope = try #require(JSONSerialization.jsonObject(with: Data(reply.utf8)) as? [String: Any])
+        #expect(envelope["value"] == nil)
+        #expect(!(envelope["error"] as? String ?? "").isEmpty)
+        let event = try #require(try JSONSerialization.jsonObject(with: server.readLine()) as? [String: Bool])
+        #expect(event["disconnected"] == true)
+        server.process.waitUntilExit()
+        #expect(server.process.terminationStatus == 0)
+    }
+
     @Test func realHTTPPreservesXMLBodyUnicodeFaultsAndInvalidResponseErrors() async throws {
-        let fixture = try #require(Bundle.module.url(forResource: "Fixtures", withExtension: nil))
-            .appendingPathComponent("xmlrpc-server.py")
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
-        process.arguments = ["-u", fixture.path]
-        let output = Pipe()
-        process.standardOutput = output
-        process.standardError = Pipe()
-        try process.run()
-        try output.fileHandleForWriting.close()
-        defer {
-            if process.isRunning { process.terminate() }
-            try? output.fileHandleForReading.close()
-        }
-        var portData = Data()
-        while let byte = try output.fileHandleForReading.read(upToCount: 1), !byte.isEmpty {
-            if byte == Data([10]) { break }
-            portData.append(byte)
-        }
-        let port = try #require(Int(String(decoding: portData, as: UTF8.self)))
+        let server = try LocalXMLRPCServer()
+        defer { server.stop() }
+        let process = server.process
+        let output = server.output
+        let port = server.port
         for path in ["/echo", "/fault", "/invalid"] {
             let request: [String: Any] = ["url": "http://127.0.0.1:\(port)\(path)",
                 "methodName": "example.echo", "params": ["café 🐼 <&", true, 7]]
@@ -58,5 +62,38 @@ struct XMLRPCLocalServerTests {
             #expect(body.contains("<string>café 🐼 &lt;&amp;</string>"))
             #expect(body.contains("<boolean>1</boolean>") && body.contains("<i8>7</i8>"))
         }
+    }
+}
+
+private final class LocalXMLRPCServer {
+    let process = Process()
+    let output = Pipe()
+    private(set) var port = 0
+
+    init(wait: Bool = false) throws {
+        let fixture = try #require(Bundle.module.url(forResource: "Fixtures", withExtension: nil))
+            .appendingPathComponent("xmlrpc-server.py")
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
+        process.arguments = ["-u", fixture.path] + (wait ? ["--wait"] : [])
+        process.standardOutput = output
+        process.standardError = Pipe()
+        try process.run()
+        try output.fileHandleForWriting.close()
+        do { port = try #require(Int(String(decoding: readLine(), as: UTF8.self))) }
+        catch { stop(); throw error }
+    }
+
+    func readLine() throws -> Data {
+        var line = Data()
+        while let byte = try output.fileHandleForReading.read(upToCount: 1), !byte.isEmpty {
+            if byte == Data([10]) { break }
+            line.append(byte)
+        }
+        return line
+    }
+
+    func stop() {
+        if process.isRunning { process.terminate() }
+        try? output.fileHandleForReading.close()
     }
 }

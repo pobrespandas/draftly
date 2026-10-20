@@ -10247,7 +10247,8 @@
           "result": "XMLRPCResponse with success, HTTP status, decoded parameters, or explicit failure/fault fields.",
           "errors": "Transport envelope failures throw to the script. HTTP failures remain response values. Runner cancellation and timeout interrupt later script work.",
           "limitations": [
-            "A real loopback HTTP server passes Unicode/CDATA reply, fault, malformed payload, and request wire checks. Native app automation, JavaScript date/binary mapping, complete XML grammar, transport character sets, and remaining invalid inputs are not accepted."
+            "A real loopback HTTP server passes Unicode/CDATA reply, fault, malformed payload, and request wire checks. Native app automation, JavaScript date/binary mapping, complete XML grammar, transport character sets, and remaining invalid inputs are not accepted.",
+            "Task cancellation closes the tested pending loopback TCP connection and returns an error envelope. This does not accept native UI cancellation or every network condition."
           ],
           "supportingTests": [
             {
@@ -10273,6 +10274,10 @@
             {
               "suite": "XMLRPCLocalServerTests",
               "test": "realHTTPPreservesXMLBodyUnicodeFaultsAndInvalidResponseErrors"
+            },
+            {
+              "suite": "XMLRPCLocalServerTests",
+              "test": "cancellationClosesTheRealPendingHTTPConnection"
             }
           ]
         }

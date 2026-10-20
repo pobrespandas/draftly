@@ -3512,3 +3512,19 @@ params. The unsigned Debug build and matrix structure passed. faultCode,
 statusCode, and success now have specific partial evidence. Native app checks,
 remaining XML grammar, and untested server variants are still pending. QA has
 not been refreshed for these parser changes. The full plan remains active.
+
+
+### XML-RPC real HTTP cancellation — 20 October 2026
+
+Automatic integration: the loopback fixture can now hold a request without
+sending a reply. The test waits for the server to receive that request, cancels
+the production serialized service task, and checks its error envelope. The
+server confirms TCP EOF before it exits. This proves connection cleanup for
+this pending real HTTP request, not only cancellation of an injected closure.
+The fixture startup and cleanup code is shared by the two loopback tests.
+
+Both focused cases passed. Full regression passed 436 app methods and 456 core
+methods. Matrix structure passed. No production change or new app build was
+needed. Native UI cancellation, native timeout, other network conditions, and
+remaining XML-RPC contracts still require their own acceptance. No external
+server, visible window, or personal library was used.
