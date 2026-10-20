@@ -1908,3 +1908,12 @@ This accepts the tested two-window URL overlap. Intent overlap and remaining
 variants stay pending. No application source changed in this turn. Focused new
 tests ran in the background; the previous full-suite/build baseline remains.
 
+## Shortcuts fixture cleanup — 20 October 2026
+
+The user confirmed permanent deletion of only Draftly QA Text — disposable and
+Draftly QA Intent — disposable. Deleted each by its exact named confirmation in
+Shortcuts. The library count changed from 41 to 39. A search for Draftly QA
+returned no results. Cleared the search and quit Shortcuts. Earlier acceptance
+records remain historical; the fixtures are no longer installed. The existing
+CLI timeout limitation is not resolved by this cleanup.
+
