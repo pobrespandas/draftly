@@ -29,6 +29,65 @@ struct NativePrintConfiguration: Equatable {
     }
 }
 
+struct NativePrintPageGeometry {
+    let contentSize: NSSize
+    init(paperSize: NSSize, top: CGFloat, bottom: CGFloat, left: CGFloat, right: CGFloat, scale: CGFloat = 1) throws {
+        guard paperSize.width.isFinite, paperSize.height.isFinite, paperSize.width > 0, paperSize.height > 0,
+              scale.isFinite, scale > 0,
+              [top, bottom, left, right].allSatisfy({ $0.isFinite && $0 >= 0 }) else {
+            throw DraftlyError.message("The print page geometry is invalid.")
+        }
+        let width = paperSize.width - left - right, height = paperSize.height - top - bottom
+        guard width > 0, height > 0 else { throw DraftlyError.message("The print margins leave no printable area.") }
+        let scaledWidth = width / scale, scaledHeight = height / scale
+        guard scaledWidth.isFinite, scaledHeight.isFinite, scaledWidth > 0, scaledHeight > 0 else {
+            throw DraftlyError.message("The print page geometry is invalid.")
+        }
+        contentSize = NSSize(width: scaledWidth, height: scaledHeight)
+    }
+}
+
+@MainActor enum NativePrintLayout {
+    static func makeView(_ configuration: NativePrintConfiguration, paperSize: NSSize, scalingFactor: CGFloat = 1) throws -> NativePrintTextView {
+        let geometry = try NativePrintPageGeometry(paperSize: paperSize, top: configuration.topMargin, bottom: configuration.bottomMargin,
+            left: configuration.leftMargin, right: configuration.rightMargin, scale: scalingFactor)
+        let view = NativePrintTextView(frame: .zero)
+        if configuration.format == .html {
+            view.textStorage?.setAttributedString(try NSAttributedString(data: Data(configuration.text.utf8), options: [.documentType: NSAttributedString.DocumentType.html, .characterEncoding: String.Encoding.utf8.rawValue], documentAttributes: nil))
+        } else { view.string = configuration.text }
+        view.apply(geometry)
+        return view
+    }
+}
+
+@MainActor final class NativePrintTextView: NSTextView {
+    private(set) var layoutError: Error?
+    func apply(_ geometry: NativePrintPageGeometry) {
+        isHorizontallyResizable = false; isVerticallyResizable = false
+        textContainerInset = .zero
+        guard let container = textContainer, let manager = layoutManager else { return }
+        container.lineFragmentPadding = 0
+        container.widthTracksTextView = false; container.heightTracksTextView = false
+        container.containerSize = NSSize(width: geometry.contentSize.width, height: .greatestFiniteMagnitude)
+        manager.ensureLayout(for: container)
+        let used = manager.usedRect(for: container)
+        let extra = manager.extraLineFragmentTextContainer === container ? manager.extraLineFragmentRect.maxY : 0
+        frame = NSRect(x: 0, y: 0, width: geometry.contentSize.width, height: max(1, ceil(max(used.maxY, extra))))
+        layoutError = nil
+    }
+    override func knowsPageRange(_ range: NSRangePointer) -> Bool {
+        if let info = NSPrintOperation.current?.printInfo {
+            do {
+                apply(try NativePrintPageGeometry(paperSize: info.paperSize, top: info.topMargin, bottom: info.bottomMargin,
+                    left: info.leftMargin, right: info.rightMargin, scale: info.scalingFactor))
+            } catch {
+                layoutError = error; range.pointee = NSRange(location: 1, length: 0); return true
+            }
+        }
+        return super.knowsPageRange(range)
+    }
+}
+
 @MainActor protocol NativePrintDriver: AnyObject {
     var onFinish: ((Result<Bool, Error>) -> Void)? { get set }
     func start()
@@ -59,14 +118,13 @@ struct NativePrintConfiguration: Equatable {
         guard let window = NSApp?.keyWindow else { throw DraftlyError.message("Open a Draftly window before printing.") }
         guard window.attachedSheet == nil else { throw DraftlyError.message("Close the current window sheet before printing.") }
         self.window = window
-        let view = NSTextView(frame: NSRect(x: 0, y: 0, width: 600, height: 800))
-        if configuration.format == .html {
-            view.textStorage?.setAttributedString(try NSAttributedString(data: Data(configuration.text.utf8), options: [.documentType: NSAttributedString.DocumentType.html], documentAttributes: nil))
-        } else { view.string = configuration.text }
-        printedView = view
         let info = NSPrintInfo.shared.copy() as! NSPrintInfo
         info.topMargin = configuration.topMargin; info.bottomMargin = configuration.bottomMargin
         info.leftMargin = configuration.leftMargin; info.rightMargin = configuration.rightMargin
+        info.horizontalPagination = .clip; info.verticalPagination = .automatic
+        info.isHorizontallyCentered = false; info.isVerticallyCentered = false
+        let view = try NativePrintLayout.makeView(configuration, paperSize: info.paperSize, scalingFactor: info.scalingFactor)
+        printedView = view
         operation = NSPrintOperation(view: view, printInfo: info)
         operation.canSpawnSeparateThread = true
         super.init()
@@ -86,7 +144,8 @@ struct NativePrintConfiguration: Equatable {
     @objc private func didRun(_ operation: NSPrintOperation, success: Bool, contextInfo: UnsafeMutableRawPointer?) {
         ownedSheet = nil
         // AppKit does not distinguish user cancellation from printing failure here.
-        onFinish?(.success(success))
+        if let error = (printedView as? NativePrintTextView)?.layoutError { onFinish?(.failure(error)) }
+        else { onFinish?(.success(success)) }
         retention = nil
     }
 }
