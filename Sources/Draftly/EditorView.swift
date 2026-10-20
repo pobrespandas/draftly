@@ -190,6 +190,24 @@ struct NativeEditor: NSViewRepresentable {
 }
 
 final class DraftTextView: NSTextView {
+    override func paste(_ sender: Any?) {
+        do {
+            if try pasteHTML(from: .general) { return }
+            super.paste(sender)
+        } catch { NSApp.presentError(error) }
+    }
+
+    @discardableResult
+    func pasteHTML(from pasteboard: NSPasteboard, defaults: UserDefaults = .standard) throws -> Bool {
+        guard defaults.object(forKey: HTMLPreferences.pasteKey) as? Bool ?? true,
+              let html = pasteboard.string(forType: .html) else { return false }
+        guard let converted = try NativeActionHost().performAPI("htmlToMarkdown", values: ["text": html, "options": HTMLPreferences.options(defaults: defaults)]) as? String else {
+            throw DraftlyError.message("HTML could not be converted to Markdown.")
+        }
+        insertText(converted, replacementRange: selectedRange())
+        return true
+    }
+
     var syntaxDefinition: SyntaxDefinition?
     override func mouseDown(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)

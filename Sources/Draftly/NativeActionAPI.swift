@@ -72,7 +72,7 @@ import DraftlyCore
         if let data = UserDefaults.standard.data(forKey: key), let root = try? URL(resolvingBookmarkData: data, options: .withSecurityScope, bookmarkDataIsStale: &stale), !stale { return root }
         let panel = NSOpenPanel(); panel.canChooseFiles = false; panel.canChooseDirectories = true; panel.message = "Choose the folder for \(name)."
         guard panel.runModal() == .OK, let root = panel.url else { throw DraftlyError.message("Folder selection cancelled.") }
-        UserDefaults.standard.set(try root.bookmarkData(options: .withSecurityScope), forKey: key)
+        UserDefaults.standard.set(try BookmarkPreferences.data(for: root), forKey: key)
         return root
     }
     func fileAPI(_ values: [String: Any]) throws -> Any {
@@ -201,23 +201,54 @@ import DraftlyCore
     }
     func decodeHTML(_ text: String) throws -> String {
         let safe = text.replacingOccurrences(of: "<", with: "&lt;").replacingOccurrences(of: ">", with: "&gt;")
-        return try NSAttributedString(data: Data(safe.utf8), options: [.documentType: NSAttributedString.DocumentType.html], documentAttributes: nil).string
+        let document = "<span style=\"white-space:pre-wrap\">" + safe + "</span>"
+        return try NSAttributedString(data: Data(document.utf8), options: [.documentType: NSAttributedString.DocumentType.html, .characterEncoding: String.Encoding.utf8.rawValue], documentAttributes: nil).string
     }
     private func htmlToMarkdown(_ text: String, options: [String: Any]) throws -> String {
         var result = text
         func replace(_ pattern: String, _ replacement: String) { result = result.replacingOccurrences(of: pattern, with: replacement, options: [.regularExpression, .caseInsensitive]) }
-        replace("(?s)<(?:script|style)[^>]*>.*?</(?:script|style)>", "")
-        replace("(?s)<pre[^>]*>\\s*<code[^>]*>(.*?)</code>\\s*</pre>", "\n```\n$1\n```\n")
-        for level in 1...6 { replace("(?s)<h\(level)[^>]*>(.*?)</h\(level)>", "\n" + String(repeating: "#", count: level) + " $1\n") }
-        if options["ignoreLinks"] as? Bool == true { replace("(?s)<a[^>]*>(.*?)</a>", "$1") }
-        else { replace("(?s)<a[^>]*href=[\"']([^\"']*)[\"'][^>]*>(.*?)</a>", "[$2]($1)") }
-        if options["ignoreImages"] as? Bool == true { replace("<img[^>]*>", "") }
-        else { replace("<img[^>]*src=[\"']([^\"']*)[\"'][^>]*>", "![]($1)") }
+        replace("(?s)<(?:script|style)\\b[^>]*>.*?</(?:script|style)>", "")
+        replace("(?s)<pre\\b[^>]*>\\s*<code\\b[^>]*>(.*?)</code>\\s*</pre>", "\n```\n$1\n```\n")
+        for level in 1...6 { replace("(?s)<h\(level)\\b[^>]*>(.*?)</h\(level)>", "\n" + String(repeating: "#", count: level) + " $1\n") }
+        if options["ignoreLinks"] as? Bool == true { replace("(?s)<a\\b[^>]*>(.*?)</a>", "$1") }
+        else if options["inlineLinks"] as? Bool ?? true {
+            replace("(?s)<a\\b[^>]*href=[\"']([^\"']*)[\"'][^>]*>(.*?)</a>", "[$2]($1)")
+        } else {
+            let expression = try NSRegularExpression(pattern: "<a\\b[^>]*href=[\"']([^\"']*)[\"'][^>]*>(.*?)</a>", options: [.caseInsensitive, .dotMatchesLineSeparators])
+            var reference = 0
+            func convertLinks(_ source: String) -> (String, [String]) {
+                let text = source as NSString
+                let matches = expression.matches(in: source, range: NSRange(location: 0, length: text.length))
+                var replacements: [(NSRange, String)] = [], definitions: [String] = []
+                for match in matches {
+                    reference += 1
+                    replacements.append((match.range, "[" + text.substring(with: match.range(at: 2)) + "][\(reference)]"))
+                    definitions.append("[\(reference)]: " + text.substring(with: match.range(at: 1)))
+                }
+                var converted = source
+                for (range, value) in replacements.reversed() {
+                    if let range = Range(range, in: converted) { converted.replaceSubrange(range, with: value) }
+                }
+                return (converted, definitions)
+            }
+            if options["linksEachParagraph"] as? Bool == true {
+                replace("</p\\s*>", "</p>")
+                result = result.components(separatedBy: "</p>").map { paragraph in
+                    let (converted, definitions) = convertLinks(paragraph)
+                    return converted + "\n\n" + definitions.joined(separator: "\n")
+                }.joined(separator: "\n\n")
+            } else {
+                let (converted, definitions) = convertLinks(result)
+                result = converted + "\n\n" + definitions.joined(separator: "\n")
+            }
+        }
+        if options["ignoreImages"] as? Bool == true { replace("<img\\b[^>]*>", "") }
+        else { replace("<img\\b[^>]*src=[\"']([^\"']*)[\"'][^>]*>", "![]($1)") }
         let emphasis = options["emphasisMark"] as? String ?? "_", strong = options["strongMark"] as? String ?? "**"
-        replace("(?s)<(?:strong|b)[^>]*>(.*?)</(?:strong|b)>", options["ignoreEmphasis"] as? Bool == true ? "$1" : strong + "$1" + strong)
-        replace("(?s)<(?:em|i)[^>]*>(.*?)</(?:em|i)>", options["ignoreEmphasis"] as? Bool == true ? "$1" : emphasis + "$1" + emphasis)
-        replace("(?s)<code[^>]*>(.*?)</code>", "`$1`")
-        replace("<li[^>]*>", "\n" + (options["ulItemMark"] as? String ?? "*") + " ")
+        replace("(?s)<(?:strong|b)\\b[^>]*>(.*?)</(?:strong|b)>", options["ignoreEmphasis"] as? Bool == true ? "$1" : strong + "$1" + strong)
+        replace("(?s)<(?:em|i)\\b[^>]*>(.*?)</(?:em|i)>", options["ignoreEmphasis"] as? Bool == true ? "$1" : emphasis + "$1" + emphasis)
+        replace("(?s)<code\\b[^>]*>(.*?)</code>", "`$1`")
+        replace("<li\\b[^>]*>", "\n" + (options["ulItemMark"] as? String ?? "*") + " ")
         replace("<(?:br|hr)\\s*/?>", "\n"); replace("</(?:p|div|ul|ol|blockquote)>", "\n\n")
         replace("<[^>]+>", ""); replace("\n{3,}", "\n\n")
         return try decodeHTML(result).trimmingCharacters(in: .whitespacesAndNewlines)

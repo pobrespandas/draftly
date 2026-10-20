@@ -21,6 +21,63 @@ struct DraftlyCommands: Commands {
     }
 }
 
+struct LibraryApplicationCommands: Commands {
+    @ObservedObject var library: LibraryStore
+    var models: () -> [WindowModel]
+    @Environment(\.openSettings) private var openSettings
+
+    var body: some Commands {
+        CommandGroup(replacing: .appSettings) {
+            Button {
+                openSettings()
+            } label: { Label("Settings…", systemImage: "gearshape") }
+            .keyboardShortcut(",", modifiers: .command)
+            Button {
+                UserDefaults.standard.set("editor", forKey: "settings.selectedTab")
+                openSettings()
+            } label: { Label("Editor Settings…", systemImage: "textformat") }
+            .keyboardShortcut(",", modifiers: [.command, .option])
+            Divider()
+            Button("Library Summary") {
+                let alert = NSAlert()
+                alert.messageText = "Library Summary"
+                alert.informativeText = LibrarySummary(library: library).text
+                alert.addButton(withTitle: "OK")
+                alert.runModal()
+            }
+            Divider()
+            Button {
+                do { _ = try LibraryTrashCommand.run(library: library, models: models()) }
+                catch { NSApp.presentError(error) }
+            } label: { Label("Empty Trash", systemImage: "trash") }
+            .disabled(!library.notes.contains { $0.trashedAt != nil })
+        }
+    }
+}
+
+@MainActor
+struct LibrarySummary {
+    let inbox: Int
+    let archive: Int
+    let trash: Int
+    let revisions: Int
+    let actions: Int
+    let workspaces: Int
+
+    init(library: LibraryStore) {
+        inbox = library.notes.filter { $0.trashedAt == nil && !$0.isArchived }.count
+        archive = library.notes.filter { $0.trashedAt == nil && $0.isArchived }.count
+        trash = library.notes.filter { $0.trashedAt != nil }.count
+        revisions = library.revisions.count
+        actions = library.actions.count
+        workspaces = library.workspaces.count
+    }
+
+    var text: String {
+        "Inbox: \(inbox)\nArchive: \(archive)\nTrash: \(trash)\n\nVersions: \(revisions)\nActions: \(actions)\nWorkspaces: \(workspaces)"
+    }
+}
+
 private struct WindowCommands: Commands {
     @ObservedObject var model: WindowModel
     @Environment(\.openWindow) private var openWindow
@@ -34,6 +91,11 @@ private struct WindowCommands: Commands {
             Button("Export Draft…") { model.exportNote() }.disabled(model.currentNote == nil)
             Button("Export Full Backup…") { model.exportBackup() }
         }
+        CommandGroup(after: .textEditing) {
+            Button("Find…") {
+                model.perform { _ = try model.actionUIOperation(["operation": "showFind", "args": []]) }
+            }.keyboardShortcut("f", modifiers: .command)
+        }
         CommandGroup(after: .toolbar) {
             Button(model.showFilters ? "Hide Filters" : "Show Filters") { model.toggleFilters() }.commandShortcut("Filters")
             Button(model.showDraftList ? "Hide Draft List" : "Show Draft List") { model.toggleDraftList() }.commandShortcut("Draft List")
@@ -45,7 +107,7 @@ private struct WindowCommands: Commands {
         }
         if Bundle.main.object(forInfoDictionaryKey: "DraftlyUITesting") as? Bool == true {
             CommandMenu("Visual QA") {
-                ForEach(["1033 × 734", "1200 × 800", "850 × 600"], id: \.self) { size in
+                ForEach(["1033 × 734", "1200 × 800", "850 × 600", "1115 × 645"], id: \.self) { size in
                     Button(size) {
                         let values = size.components(separatedBy: " × ").compactMap(Double.init)
                         guard values.count == 2, let window = model.window else { return }

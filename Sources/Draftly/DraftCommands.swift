@@ -151,28 +151,41 @@ extension WindowModel {
         }
     }
     func confirmEmptyTrash() {
-        guard flush() else { return }
-        let trashIDs = Set(library.notes.filter { $0.trashedAt != nil }.map(\.id))
-        let count = trashIDs.count
-        guard count > 0 else { return }
-        let alert = NSAlert(); alert.alertStyle = .warning
-        alert.messageText = "Permanently delete \(count) " + (count == 1 ? "draft?" : "drafts?")
-        alert.informativeText = "This empties the entire Trash and deletes their revisions. This cannot be undone. Action history will remain."
-        alert.addButton(withTitle: "Cancel"); alert.addButton(withTitle: "Empty Trash")
-        guard alert.runModal() == .alertSecondButtonReturn else { return }
-        perform {
-            guard Set(library.notes.filter { $0.trashedAt != nil }.map(\.id)) == trashIDs else {
-                throw DraftlyError.message("Trash changed. Review it and try again.")
-            }
-            let removedCurrent = currentNote?.trashedAt != nil
-            try library.emptyTrash()
-            if removedCurrent { create() }
-        }
+        perform { _ = try LibraryTrashCommand.run(library: library, models: [self]) }
     }
+
     func openDraft(_ id: UUID, tab: Bool) {
         perform {
             _ = try checkedDrafts([id])
             _ = try actionUIOperation(["operation": tab ? "openInNewTab" : "openInNewWindow", "draft": ["uuid": id.uuidString]])
         }
+    }
+}
+
+@MainActor
+enum LibraryTrashCommand {
+    @discardableResult
+    static func run(library: LibraryStore, models: [WindowModel], confirm: @MainActor (Int) throws -> Bool = presentConfirmation) throws -> Bool {
+        for model in models {
+            guard model.flush() else { throw DraftlyError.message("Pending edits could not be saved. Trash was not emptied.") }
+        }
+        let ids = Set(library.notes.filter { $0.trashedAt != nil }.map(\.id))
+        guard !ids.isEmpty, try confirm(ids.count) else { return false }
+        guard Set(library.notes.filter { $0.trashedAt != nil }.map(\.id)) == ids else {
+            throw DraftlyError.message("Trash changed. Review it and try again.")
+        }
+        try library.emptyTrash()
+        for model in models where model.editor.noteID.map(ids.contains) == true { model.create() }
+        return true
+    }
+
+    private static func presentConfirmation(_ count: Int) -> Bool {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = "Permanently delete \(count) " + (count == 1 ? "draft?" : "drafts?")
+        alert.informativeText = "This empties the entire Trash and deletes their revisions. This cannot be undone. Action history will remain."
+        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: "Empty Trash")
+        return alert.runModal() == .alertSecondButtonReturn
     }
 }

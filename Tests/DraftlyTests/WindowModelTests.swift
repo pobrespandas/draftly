@@ -1,10 +1,12 @@
 import Foundation
+import AppKit
 import Testing
 @testable import DraftlyCore
 @testable import Draftly
 
 @Suite("Window transitions") @MainActor
 struct WindowModelTests {
+    init() { _ = NSApplication.shared }
     enum SaveFailure: Error { case unavailable }
 
     private func checkWorkspaceDisplayOption(_ property: String, enabled: Bool, read: (DraftListOptions) -> Bool) throws {
@@ -46,6 +48,26 @@ struct WindowModelTests {
         #expect(model.showAdvancedFind && model.advancedFindQuery.isEmpty)
         _ = try model.actionUIOperation(["operation": "showFind", "args": [false]])
         #expect(!model.showAdvancedFind)
+    }
+
+    @Test func findPreferenceSelectsTheDefaultButExplicitArgumentsWin() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Find café 🐼")
+        let model = WindowModel(library: library)
+        model.select(note.id)
+        model.editor.selection = NSRange(location: 5, length: 4)
+        model.prefersAdvancedFind = { true }
+        _ = try model.actionUIOperation(["operation": "showFind", "args": []])
+        #expect(model.showAdvancedFind)
+        _ = try model.actionUIOperation(["operation": "showFind", "args": [false]])
+        #expect(!model.showAdvancedFind)
+        model.prefersAdvancedFind = { false }
+        _ = try model.actionUIOperation(["operation": "showFind", "args": [true, "café"]])
+        #expect(model.showAdvancedFind && model.advancedFindQuery == "café")
+        _ = try model.actionUIOperation(["operation": "showFind", "args": []])
+        #expect(!model.showAdvancedFind)
+        #expect(model.editor.noteID == note.id && model.editor.content == note.content)
+        #expect(model.editor.selection == NSRange(location: 5, length: 4))
     }
 
     @Test func scriptedInfoUsesItsTargetWithoutOpeningIt() throws {

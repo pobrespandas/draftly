@@ -251,7 +251,7 @@ final class NativeActionHost: ActionHost {
                 panel.message = "Choose the folder for \(bookmarkName)."
                 guard panel.runModal() == .OK, let url = panel.url else { throw DraftlyError.message("File export cancelled.") }
                 root = url
-                UserDefaults.standard.set(try url.bookmarkData(options: .withSecurityScope), forKey: key)
+                UserDefaults.standard.set(try BookmarkPreferences.data(for: url), forKey: key)
             }
             guard let root else { throw DraftlyError.message("The destination folder is unavailable.") }
             _ = root.startAccessingSecurityScopedResource(); scope = root

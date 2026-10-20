@@ -36,6 +36,9 @@ final class WindowModel: ObservableObject {
     @Published var showActions = false
     @Published var darkTheme: Bool?
     @Published var showTags = true
+    var prefersAdvancedFind: () -> Bool = {
+        UserDefaults.standard.bool(forKey: GeneralPreferences.advancedFindKey)
+    }
     @Published var showAdvancedFind = false
     @Published var advancedFindQuery = ""
     @Published var showInfo = false
@@ -231,7 +234,7 @@ final class WindowModel: ObservableObject {
         case "undo", "redo":
             guard let performUndo = editor.performUndo else { throw DraftlyError.message("The editor undo manager is unavailable.") }; performUndo(operation == "redo")
         case "showFind":
-            if args.first as? Bool == true {
+            if (args.first as? Bool ?? prefersAdvancedFind()) {
                 advancedFindQuery = args.dropFirst().first as? String ?? ""
                 showAdvancedFind = true
                 return nil

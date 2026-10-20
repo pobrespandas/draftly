@@ -23,6 +23,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         app.capture(content: text)
     })
     func applicationDidFinishLaunching(_ notification: Notification) {
+        NSApp.appearance = ApplicationAppearance.resolved(
+            UserDefaults.standard.string(forKey: ApplicationAppearance.preferenceKey) ?? "System"
+        ).nativeAppearance
         Self.current = self
         NSApp.setActivationPolicy(.regular)
         NSApp.servicesProvider = self
@@ -58,6 +61,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(quitItem)
         statusMenu = menu
         status.menu = menu; item = status
+        setStatusItemVisible(GeneralPreferences.showInMenuBar(defaults: .standard))
         let id = EventHotKeyID(signature: 0x44524654, id: 1)
         let registered = RegisterEventHotKey(UInt32(kVK_ANSI_N), UInt32(controlKey | optionKey | cmdKey), id, GetApplicationEventTarget(), 0, &hotKey)
         if registered != noErr { AppController.shared.captureShortcutStatus = "Shortcut unavailable (\(registered)). Use the menu bar." }
@@ -66,6 +70,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Task { @MainActor in AppController.shared.capture() }; return noErr
         }, 1, &type, nil, nil)
         if AppController.shared.library?.cloudIdentifier != nil { NSApp.registerForRemoteNotifications() }
+    }
+    func setStatusItemVisible(_ visible: Bool) {
+        item?.isVisible = visible
     }
     func openStatusMenuForTesting() {
         guard Bundle.main.object(forInfoDictionaryKey: "DraftlyUITesting") as? Bool == true else { return }

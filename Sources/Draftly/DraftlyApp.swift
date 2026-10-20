@@ -23,5 +23,10 @@ struct DraftlyApp: App {
         .defaultSize(width: 1033, height: 734)
         .commands { DraftlyCommands() }
         Settings { SettingsView() }
+            .commands {
+                if let library = controller.library {
+                    LibraryApplicationCommands(library: library, models: { controller.windows.allObjects })
+                }
+            }
     }
 }

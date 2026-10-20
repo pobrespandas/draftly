@@ -444,7 +444,7 @@ struct EditorActionBar: View {
                     barButton("Move Right", "chevron.right") { move(1) }
                     barButton("Move Back by Word", "chevron.left.2") { NSApp.sendAction(NSSelectorFromString("moveWordLeft:"), to: nil, from: nil) }
                     barButton("Move Forward by Word", "chevron.right.2") { NSApp.sendAction(NSSelectorFromString("moveWordRight:"), to: nil, from: nil) }
-                    barButton("Find", "magnifyingglass") { NSApp.sendAction(#selector(NSTextView.performFindPanelAction(_:)), to: nil, from: findItem()) }
+                    barButton("Find", "magnifyingglass") { model.perform { _ = try model.actionUIOperation(["operation": "showFind", "args": []]) } }
                     barButton("Advanced Find", "plus.magnifyingglass") { model.perform { _ = try model.actionUIOperation(["operation": "showFind", "args": [true]]) } }
                     barButton("Make Tasks", "checkmark.square") { model.edit(EditingScripts.makeTasks) }
                     barButton("Toggle Tasks", "checklist") { model.edit(EditingScripts.toggleTasks) }
