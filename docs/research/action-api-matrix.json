@@ -7761,7 +7761,7 @@
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-19",
           "implementationEvidence": {
-            "file": "Sources/Draftly/NativeActionHost.swift",
+            "file": "Sources/Draftly/NativePromptAdapter.swift",
             "symbol": "prompt(_:) / PromptDatePolicy"
           },
           "limitations": [
@@ -7784,7 +7784,7 @@
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-19",
           "implementationEvidence": {
-            "file": "Sources/Draftly/NativeActionHost.swift",
+            "file": "Sources/Draftly/NativePromptAdapter.swift",
             "symbol": "prompt(_:) / PromptDatePolicy"
           },
           "limitations": [
@@ -7807,7 +7807,7 @@
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-19",
           "implementationEvidence": {
-            "file": "Sources/Draftly/NativeActionHost.swift",
+            "file": "Sources/Draftly/NativePromptAdapter.swift",
             "symbol": "prompt(_:) / PromptDatePolicy"
           },
           "limitations": [
@@ -7830,7 +7830,7 @@
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-19",
           "implementationEvidence": {
-            "file": "Sources/Draftly/NativeActionHost.swift",
+            "file": "Sources/Draftly/NativePromptAdapter.swift",
             "symbol": "prompt(_:) / PromptDatePolicy"
           },
           "limitations": [
@@ -7853,7 +7853,7 @@
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-19",
           "implementationEvidence": {
-            "file": "Sources/Draftly/NativeActionHost.swift",
+            "file": "Sources/Draftly/NativePromptAdapter.swift",
             "symbol": "prompt(_:) / PromptDatePolicy"
           },
           "limitations": [
@@ -7876,7 +7876,7 @@
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-19",
           "implementationEvidence": {
-            "file": "Sources/Draftly/NativeActionHost.swift",
+            "file": "Sources/Draftly/NativePromptAdapter.swift",
             "symbol": "prompt(_:) / PromptDatePolicy"
           },
           "limitations": [
@@ -7926,7 +7926,7 @@
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-19",
           "implementationEvidence": {
-            "file": "Sources/Draftly/NativeActionHost.swift",
+            "file": "Sources/Draftly/NativePromptAdapter.swift",
             "symbol": "prompt(_:) / PromptDatePolicy"
           },
           "limitations": [
@@ -8003,7 +8003,7 @@
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-19",
           "implementationEvidence": {
-            "file": "Sources/Draftly/NativeActionHost.swift",
+            "file": "Sources/Draftly/NativePromptAdapter.swift",
             "symbol": "prompt(_:) / PromptDatePolicy"
           },
           "limitations": [
@@ -8026,7 +8026,7 @@
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-19",
           "implementationEvidence": {
-            "file": "Sources/Draftly/NativeActionHost.swift",
+            "file": "Sources/Draftly/NativePromptAdapter.swift",
             "symbol": "prompt(_:) / PromptDatePolicy"
           },
           "limitations": [
@@ -8049,7 +8049,7 @@
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-19",
           "implementationEvidence": {
-            "file": "Sources/Draftly/NativeActionHost.swift",
+            "file": "Sources/Draftly/NativePromptAdapter.swift",
             "symbol": "prompt(_:) / PromptDatePolicy"
           },
           "limitations": [
@@ -8072,7 +8072,7 @@
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-19",
           "implementationEvidence": {
-            "file": "Sources/Draftly/NativeActionHost.swift",
+            "file": "Sources/Draftly/NativePromptAdapter.swift",
             "symbol": "prompt(_:) / PromptDatePolicy"
           },
           "limitations": [
@@ -8095,7 +8095,7 @@
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-19",
           "implementationEvidence": {
-            "file": "Sources/Draftly/NativeActionHost.swift",
+            "file": "Sources/Draftly/NativePromptAdapter.swift",
             "symbol": "prompt(_:) / PromptDatePolicy"
           },
           "limitations": [
@@ -8172,7 +8172,7 @@
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-19",
           "implementationEvidence": {
-            "file": "Sources/Draftly/NativeActionHost.swift",
+            "file": "Sources/Draftly/NativePromptAdapter.swift",
             "symbol": "prompt(_:) / PromptDatePolicy"
           },
           "limitations": [
@@ -8240,7 +8240,7 @@
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-19",
           "implementationEvidence": {
-            "file": "Sources/Draftly/NativeActionHost.swift",
+            "file": "Sources/Draftly/NativePromptAdapter.swift",
             "symbol": "prompt(_:) / PromptDatePolicy"
           },
           "limitations": [
@@ -8263,7 +8263,7 @@
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-19",
           "implementationEvidence": {
-            "file": "Sources/Draftly/NativeActionHost.swift",
+            "file": "Sources/Draftly/NativePromptAdapter.swift",
             "symbol": "prompt(_:) / PromptDatePolicy"
           },
           "limitations": [
@@ -8286,7 +8286,7 @@
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-19",
           "implementationEvidence": {
-            "file": "Sources/Draftly/NativeActionHost.swift",
+            "file": "Sources/Draftly/NativePromptAdapter.swift",
             "symbol": "prompt(_:) / PromptDatePolicy"
           },
           "limitations": [

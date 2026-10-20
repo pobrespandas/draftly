@@ -3,6 +3,7 @@ import DraftlyCore
 
 @MainActor
 struct WindowDependencies {
+    var makeActionHost: () -> NativeActionHost = { NativeActionHost() }
     var preferences = WindowPreferences()
     var recoverDictation: (String) -> Void = { _ in }
     var openQuickSearch: () -> Void = {}

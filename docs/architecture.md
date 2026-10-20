@@ -72,3 +72,17 @@ separate manual session. Do not claim that offscreen tests prove visible motion.
 
 The updated background suite passed 169 app and 267 core tests. No visible
 Computer Use session will run as part of this refactoring acceptance.
+
+## Stage 5: native and application adapters
+
+NativeActionHost routes operations to prompt, file, preview, automation, message,
+and system adapters. HTML conversion has a separate component. Legacy host
+methods delegate to those components. Existing operation names and results stay.
+Notification errors use an injected error callback. Production hosts are created
+by AppController; tests do not require its global instance.
+
+AppController composes capture, quick search, and window routes. ApplicationURLRouter
+handles existing URL endpoints. StatusMenuController owns the status menu and
+its update policy. Capture and search controllers receive library and navigation
+providers. The normal matrix check and all 436 background Swift tests passed.
+Prompt implementation paths were updated without changing compatibility status.

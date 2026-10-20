@@ -6,7 +6,7 @@ import DraftlyCore
 final class WindowModel: ObservableObject {
     let library: LibraryStore
     let editor = EditorSession()
-    let host = NativeActionHost()
+    let host: NativeActionHost
     let runner: ActionRunner
     @Published var folder: NoteFolder = .inbox {
         didSet {
@@ -84,6 +84,7 @@ final class WindowModel: ObservableObject {
 
     init(library: LibraryStore, dependencies: WindowDependencies = WindowDependencies(), saveDraft: ((Note) throws -> Void)? = nil, onAccessDraft: @escaping (UUID) -> Void = { _ in }) {
         self.library = library
+        self.host = dependencies.makeActionHost()
         self.dependencies = dependencies
         self.listOptions = dependencies.preferences.listOptions
         self.recoverDictation = dependencies.recoverDictation

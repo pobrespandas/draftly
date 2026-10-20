@@ -31,8 +31,8 @@ final class CaptureController {
     private let windowProvider: () -> [WindowModel]
     private var panel: NSPanel?
     init(buffer: CaptureBuffer = CaptureBuffer(),
-         libraryProvider: @escaping () -> LibraryStore? = { AppController.shared.library },
-         windowProvider: @escaping () -> [WindowModel] = { AppController.shared.windows.allObjects }) {
+         libraryProvider: @escaping () -> LibraryStore? = { nil },
+         windowProvider: @escaping () -> [WindowModel] = { [] }) {
         self.buffer = buffer
         self.libraryProvider = libraryProvider
         self.windowProvider = windowProvider
@@ -55,7 +55,7 @@ final class CaptureController {
             panel.title = "Capture"; panel.identifier = NSUserInterfaceItemIdentifier("draftly.capture")
             panel.isReleasedWhenClosed = false; panel.isFloatingPanel = true
             panel.hidesOnDeactivate = false; panel.minSize = NSSize(width: 420, height: 280)
-            panel.contentView = NSHostingView(rootView: CaptureView(buffer: buffer, save: { [weak self] target in self?.save(to: target) ?? false }))
+            panel.contentView = NSHostingView(rootView: CaptureView(buffer: buffer, library: libraryProvider(), save: { [weak self] target in self?.save(to: target) ?? false }))
             panel.center(); self.panel = panel
         }
         NSApp.activate(ignoringOtherApps: true)
@@ -90,7 +90,7 @@ final class CaptureController {
 
 private struct CaptureView: View {
     @ObservedObject var buffer: CaptureBuffer
-    @ObservedObject private var app = AppController.shared
+    let library: LibraryStore?
     @State private var target: UUID?
     let save: (UUID?) -> Bool
     var body: some View {
@@ -100,7 +100,7 @@ private struct CaptureView: View {
             HStack {
                 Picker("Save to", selection: $target) {
                     Text("New Draft").tag(UUID?.none)
-                    ForEach((app.library?.notes ?? []).filter { $0.trashedAt == nil }.sorted { $0.modifiedAt > $1.modifiedAt }) { note in
+                    ForEach((library?.notes ?? []).filter { $0.trashedAt == nil }.sorted { $0.modifiedAt > $1.modifiedAt }) { note in
                         Text(note.title).tag(Optional(note.id))
                     }
                 }.frame(maxWidth: 300)
@@ -130,8 +130,14 @@ enum QuickSearch {
 @MainActor
 final class QuickSearchController {
     private var panel: NSPanel?
+    private let libraryProvider: () -> LibraryStore?
+    private let openResult: (UUID) -> Bool
+    init(libraryProvider: @escaping () -> LibraryStore? = { nil }, openResult: @escaping (UUID) -> Bool = { _ in false }) {
+        self.libraryProvider = libraryProvider
+        self.openResult = openResult
+    }
     func show() {
-        guard let library = AppController.shared.library else { return }
+        guard let library = libraryProvider() else { return }
         if panel == nil {
             let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 620, height: 440), styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
             panel.title = "Quick Search"; panel.identifier = NSUserInterfaceItemIdentifier("draftly.quickSearch")
@@ -139,7 +145,7 @@ final class QuickSearchController {
             self.panel = panel
         }
         panel?.contentView = NSHostingView(rootView: QuickSearchView(library: library, open: { [weak self] id in
-            if AppController.shared.openSearchResult(id) { self?.panel?.orderOut(nil) }
+            if self?.openResult(id) == true { self?.panel?.orderOut(nil) }
         }, cancel: { [weak self] in self?.panel?.orderOut(nil) }))
         NSApp.activate(ignoringOtherApps: true)
         panel?.center(); panel?.makeKeyAndOrderFront(nil)
