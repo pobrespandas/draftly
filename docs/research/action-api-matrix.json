@@ -17514,15 +17514,13 @@
     },
     {
       "contract": "unknown disabled imports",
-      "compatibilityStatus": "partial",
+      "compatibilityStatus": "complete",
       "automatedTest": {
         "suite": "ExecutionActionAPITests",
         "test": "disabledUnknownStepsSurviveImportAndDoNotBlockExecution"
       },
       "liveCheck": "docs/validation.md: Unknown-step import and observer control — 20 October 2026",
-      "limitations": [
-        "Single native inspector edit/restart/export and wrapped mixed native/foreign import, execution, restart, and backup export passed in the isolated installed app. Container-specific inspector edits and native restoration remain separate checks. Automatic plain/wrapped native/mixed dispatch cases pass."
-      ],
+      "limitations": [],
       "defaults": "A missing isEnabled value enables a step. An explicitly false isEnabled value preserves the step but skips execution. The importer retains the original action payload.",
       "result": "Imported disabled unknown steps remain represented while following supported steps can execute. Enabled unknown steps prevent execution during preflight.",
       "errors": "An enabled unsupported step yields an error before earlier root steps produce side effects; no fake success is returned.",
@@ -17588,8 +17586,8 @@
         }
       ],
       "nativeVerification": {
-        "status": "pending",
-        "reason": "Single native inspector edits and wrapped mixed import/execution/restart/export pass. Container-specific inspector edits and native backup restoration remain pending.",
+        "status": "passed",
+        "reason": "Single and wrapped mixed native/foreign import acceptance includes inspector edits, process restart, export, native restoration, exact recovered definitions, and successful disabled-step execution. Earlier enabled-step error evidence stays in history.",
         "additionalChecks": [
           {
             "date": "2026-10-20",
@@ -17602,6 +17600,12 @@
             "executableSHA256": "0170b10a3847c64a3116de7dec02a1f84d453af551949f4eafcab7389b8a4436",
             "fixture": "scripts/fixtures/engine-mixed-container-actions.json",
             "result": "Both actions appeared in Actions and completed with their expected Unicode editor text. After process exit and restart, UI full backup export preserved complete native equality, foreign UUID, exact foreign rawPayload, and executable foreign script. No inspector edits or native restore ran for this container."
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "0170b10a3847c64a3116de7dec02a1f84d453af551949f4eafcab7389b8a4436",
+            "fixture": "scripts/fixtures/engine-mixed-container-actions.json",
+            "result": "Edited native name, description, and disabled-step value through list context-menu inspector. After confirmed process exit and restart, exported native action exactly matched the expected edited object. Restored earlier QA backup through File Import. Every exported action matched that backup exactly, and restored native execution completed with expected Unicode text."
           }
         ]
       },

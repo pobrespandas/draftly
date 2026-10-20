@@ -934,3 +934,9 @@ entry coverage remains pending; no production change was needed.
 Installed wrapped mixed import now passes execution, restart, and UI backup
 export. The complete native action and foreign identity/payload/script survive.
 Container inspector edits and native restoration remain separate acceptance.
+
+
+Unknown disabled imports now passes its added native/container acceptance:
+inspector edits survive restart, native restore recovers exact definitions,
+and the restored action executes. That engine record is complete. Other engine
+records remain partial. Library Organization editing needs a separate UI review.

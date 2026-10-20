@@ -4163,3 +4163,38 @@ not claim container inspector edits or native restore. The import contract
 remains partial for those remaining checks. The QA library stays isolated.
 The reproducible input is tracked; raw backup and logs stay in /tmp. No new
 automatic tests or build ran. Last regression remains app444/core468.
+
+
+### Native container editing and recovery — 20 October 2026
+
+Native: used the same isolated QA library and signed image0170b10a3847c64a.
+Opened QA Container native through the action-list context-menu inspector.
+Changed name to QA Container native edited, description to Container edit
+café 🐼, and disabled-step value to Container literal café 🐼. Saved, quit,
+confirmed process exit, reopened, and exported a full backup. Complete native
+object comparison matched exactly those three expected changes. Future fields,
+identities, disabled state, sourceURL, rawPayload, and supported script stayed
+intact.
+
+Restored the previous neutral QA backup through File > Import. The app showed
+Import complete. The original action name returned in Actions. It completed
+with Native future fields ran café 🐼. A second UI backup export contained
+exactly the same action definitions as the restored backup, for every action.
+No personal library changed. Temporary backups remain in /tmp.
+
+This completes the added native-format/container preservation acceptance.
+Together with the recorded enabled-unknown rejection, disabled-unknown
+execution, atomic import, export, backup, restore, and codec cases, the unknown
+disabled imports engine contract returns to complete. This does not close the
+other engine contracts or certify every imported presentation option. No new
+automatic tests or build ran. Last regression remains app444/core468.
+
+Inspector follow-up: Library Organization > Actions exposes each row as one
+combined accessibility element. A double-click and one observed Edit coordinate
+click produced no visible inspector during this session. The action-list
+context menu did open it. Review that management path separately; no cause or
+fix is established by these observations.
+
+Matrix structure passes. The engine strict gate reports 28 diagnostics for
+remaining contracts, down from 30. These are diagnostics, not a compatibility
+percentage. The full Mac goal remains open.
