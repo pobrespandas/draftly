@@ -823,3 +823,9 @@ Native CPU menu cancellation now passed on current QA: enabled Cancel was
 observed during the loop, history recorded Cancelled, and a later action
 succeeded. This does not claim instant interruption or close other native
 worker/cancellation variants.
+
+
+Current QA passed Prompt and SelectPrompt accept/cancel through the worker
+bridge. Unicode, discarded field edits, subtitle search, selected identity,
+and final history status were checked. Other options and interruption paths
+remain pending; this does not close these APIs or the engine.

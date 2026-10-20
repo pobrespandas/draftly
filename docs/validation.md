@@ -3705,3 +3705,29 @@ No code, test, or build changed. The previous full result remains app437/core456
 Native permission/dialog, remaining entry-point, and lifetime checks remain
 pending. The strict worker and task-cancellation contracts remain partial.
 Both QA windows remain open; the second shows the neutral caught result.
+
+
+### Native worker prompt boundaries — 20 October 2026
+
+Verified in use on QA executable fa4f515c36a19fe5. Imported the existing
+engine-prompt-actions.json fixture through File > Import. Ran both actions
+from the Actions menu in window 2 on neutral text.
+
+Prompt: edited its text field, then clicked Cancel. The field edit was discarded
+and the draft kept its previous text. Reopened the prompt, entered Accepted
+café 🐼, and accepted. The draft received that exact Unicode text.
+
+SelectPrompt: cancelled first and confirmed the draft stayed unchanged. Then
+reopened, searched for Second, and observed only Two Second. Pressed Return.
+The draft became Selected: two. This verifies subtitle search and selected
+identity, not every SelectPrompt option or visual layout.
+
+Execution History showed Cancelled and Success for each action. Closed history.
+The second QA window remains on Selected: two; both windows remain open. No
+personal text, external service, or permission setting was used.
+
+No code, test, or build changed. Previous full automatic result is app437/core456.
+Matrix structure passes. Prompt and SelectPrompt show retain their current
+classification; remaining fields, options, timeout, window-close, and permission
+dialog paths require separate acceptance. Worker and host lifetime remain
+partial. No screenshot or raw log is stored in the repo.

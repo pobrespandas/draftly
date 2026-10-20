@@ -8359,7 +8359,19 @@
               "suite": "PromptResponseContractTests",
               "test": "anUncaughtMalformedResponseStopsLaterStatementsAndSteps"
             }
-          ]
+          ],
+          "nativeVerification": {
+            "status": "pending",
+            "additionalChecks": [
+              {
+                "date": "2026-10-20",
+                "executableSHA256": "fa4f515c36a19fe557292b8ee73c1ed02e8a06e94456c55b7f4b20f69876ff4c",
+                "fixture": "scripts/fixtures/engine-prompt-actions.json",
+                "result": "Prompt cancellation discarded field edits and retained draft text; acceptance applied Unicode. SelectPrompt cancellation retained text; subtitle search and Return selected id two. History confirmed Cancelled/Success for both. Other fields, permission dialogs, and native interruption paths remain pending.",
+                "evidence": "docs/validation.md: Native worker prompt boundaries — 20 October 2026"
+              }
+            ]
+          }
         },
         {
           "member": "create",
@@ -8673,7 +8685,16 @@
           "nativeVerification": {
             "status": "passed",
             "date": "2026-10-19",
-            "evidence": "Core QA Select: subtitle filter café returns the second original item; a separate Cancel run leaves the custom-task draft unchanged."
+            "evidence": "Core QA Select: subtitle filter café returns the second original item; a separate Cancel run leaves the custom-task draft unchanged.",
+            "additionalChecks": [
+              {
+                "date": "2026-10-20",
+                "executableSHA256": "fa4f515c36a19fe557292b8ee73c1ed02e8a06e94456c55b7f4b20f69876ff4c",
+                "fixture": "scripts/fixtures/engine-prompt-actions.json",
+                "result": "Prompt cancellation discarded field edits and retained draft text; acceptance applied Unicode. SelectPrompt cancellation retained text; subtitle search and Return selected id two. History confirmed Cancelled/Success for both. Other fields, permission dialogs, and native interruption paths remain pending.",
+                "evidence": "docs/validation.md: Native worker prompt boundaries — 20 October 2026"
+              }
+            ]
           }
         },
         {
@@ -17346,6 +17367,13 @@
             "fixture": "scripts/fixtures/engine-deadline-actions.json",
             "result": "Batched observed UI sequence found enabled Cancel about 1.96 seconds after start and submitted cancellation about 2.71 seconds after start. Later history recorded Cancelled. Completed text stayed in Inbox without tail or archive. A following action succeeded. This is not an immediate CPU interruption latency claim.",
             "evidence": "docs/validation.md: Native CPU cancellation — 20 October 2026"
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "fa4f515c36a19fe557292b8ee73c1ed02e8a06e94456c55b7f4b20f69876ff4c",
+            "fixture": "scripts/fixtures/engine-prompt-actions.json",
+            "result": "Prompt cancellation discarded field edits and retained draft text; acceptance applied Unicode. SelectPrompt cancellation retained text; subtitle search and Return selected id two. History confirmed Cancelled/Success for both. Other fields, permission dialogs, and native interruption paths remain pending.",
+            "evidence": "docs/validation.md: Native worker prompt boundaries — 20 October 2026"
           }
         ]
       },
@@ -17498,7 +17526,16 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Real native callback timeout, successful Shortcut execution, and remaining permission/capability lifetime variants remain pending on the current build."
+        "reason": "Real native callback timeout, successful Shortcut execution, and remaining permission/capability lifetime variants remain pending on the current build.",
+        "additionalChecks": [
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "fa4f515c36a19fe557292b8ee73c1ed02e8a06e94456c55b7f4b20f69876ff4c",
+            "fixture": "scripts/fixtures/engine-prompt-actions.json",
+            "result": "Prompt cancellation discarded field edits and retained draft text; acceptance applied Unicode. SelectPrompt cancellation retained text; subtitle search and Return selected id two. History confirmed Cancelled/Success for both. Other fields, permission dialogs, and native interruption paths remain pending.",
+            "evidence": "docs/validation.md: Native worker prompt boundaries — 20 October 2026"
+          }
+        ]
       },
       "automatedVerification": {
         "status": "passed",
