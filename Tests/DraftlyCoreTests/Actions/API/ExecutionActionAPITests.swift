@@ -4,15 +4,37 @@ import Testing
 
 @Suite("Execution scripting API") @MainActor
 struct ExecutionActionAPITests {
-    @Test func contextStopsLaterStepsButFinishesTheCurrentScript() throws {
-        for stop in ["cancel", "fail"] {
-            let (_, _, host, runner) = try makeAPIContext()
-            var value = makeAPIAction("context.\(stop)('Reason');app.setClipboard('current script finished');")
+    @Test(arguments: [false, true])
+    func contextStopsLaterStepsButFinishesTheCurrentScript(worker: Bool) async throws {
+        let cases: [(call: String, message: String, cancelled: Bool)] = [
+            ("context.cancel('Reason')", "Reason", true),
+            ("context.fail()", "Action failed", false),
+            ("context.fail('')", "Action failed", false),
+            ("context.fail('Reason café 🐼')", "Reason café 🐼", false)
+        ]
+        for item in cases {
+            let (library, _, host, runner) = try makeAPIContext()
+            var value = makeAPIAction("var result=" + item.call + ";app.setClipboard(typeof result);")
+            value.presentation.notifyOnError = true
             value.steps.append(ActionStep("clipboard", ["template": "must not run"]))
-            let result = runner.runResult(value)
-            #expect(result == (stop == "cancel" ? .cancelled : .failure("Reason")))
-            #expect(host.clipboard == "current script finished")
+            let succeeded = await ActionTestExecution.succeeds(value, runner: runner, worker: worker)
+            #expect(!succeeded)
+            let report = try #require(runner.lastReport)
+            #expect(report.result == (item.cancelled ? .cancelled : .failure(item.message)))
+            #expect(report.reason == (item.cancelled ? .cancelled : .error))
+            #expect(host.clipboard == "undefined")
             #expect(host.calls.filter { $0.0 == "clipboard" }.count == 1)
+            let runs = library.runs.filter { $0.actionID == value.id }
+            try #require(runs.count == 1)
+            #expect(runs[0].status == (item.cancelled ? "Cancelled" : "Error"))
+            #expect(runs[0].message == item.message)
+            let notifications = host.calls.filter { $0.0 == "actionNotification" }
+            #expect(notifications.count == (item.cancelled ? 0 : 1))
+            if !item.cancelled {
+                let payload = try #require(notifications.first?.1)
+                #expect(payload["title"] as? String == value.name)
+                #expect(payload["message"] as? String == item.message)
+            }
         }
     }
 

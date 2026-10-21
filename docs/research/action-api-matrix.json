@@ -8719,20 +8719,61 @@
           },
           "liveCheck": null,
           "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-21",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Context.fail"
           },
-          "defaults": "Fresh run: no cancellation, failure, or success parameters. Omitted cancel text adds no log text; omitted fail text uses Action failed.",
-          "result": [
-            "fail(message: string): void"
-          ],
-          "errors": "addSuccessParameter requires strings. fail and cancel stop later steps after the current script.",
+          "defaults": "The signature declares a message string; the description permits omission. Draftly currently uses Action failed for omitted or empty text. That exact default wording is characterization, not a frozen-reference requirement.",
+          "result": "Returns undefined. The current script can finish; later steps stop with error. A supplied message reaches the action log.",
+          "errors": "Marks the action failed. An error notification is requested when the action presentation policy enables notifyOnError. The configured policy and visible native notification still need their own acceptance.",
           "limitations": [
-            "Message defaults require a separate contract assertion."
+            "The actual visible error notification and its relation to the configured notification policy remain unverified for Context.fail. The fake host proves only the request payload. The exact omitted-message wording is not defined by the frozen reference."
           ],
-          "evidenceLevel": "Member-specific assertions. Native verification is separate."
+          "evidenceLevel": "Member-specific assertions. Native verification is separate.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ExecutionActionAPITests",
+                "test": "contextStopsLaterStepsButFinishesTheCurrentScript"
+              },
+              "assertion": "Both engines return undefined, finish the current script once, stop the next step, retain typed error result and one exact Unicode message in the stored run."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ExecutionActionAPITests",
+                "test": "contextStopsLaterStepsButFinishesTheCurrentScript"
+              },
+              "assertion": "Omitted and empty message values produce the current Action failed result and log. The reference does not require those exact default words."
+            },
+            "errors": {
+              "test": {
+                "suite": "ExecutionActionAPITests",
+                "test": "contextStopsLaterStepsButFinishesTheCurrentScript"
+              },
+              "assertion": "An enabled error notification produces exactly one fake-host request with the action name and failure message. Cancel remains silent. No system notification or permission is invoked."
+            }
+          },
+          "supportingTests": [
+            {
+              "suite": "ActionNotificationImportTests",
+              "test": "importedPolicyAppliesOnlyToItsFinalOutcome"
+            },
+            {
+              "suite": "DraftActionLogContractTests",
+              "test": "failedAndCancelledRunsRetainEarlierScriptLogs"
+            }
+          ],
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Context.fail specific boundaries — 21 October 2026",
+            "scope": "Extended the existing method to both engines and optional/empty/Unicode message cases. Checked undefined, final result, exact stored log and fake notification payload. This does not accept visible native notification behavior."
+          },
+          "nativeVerification": {
+            "status": "pending",
+            "reason": "No specific visible Context.fail notification has been verified. Host request tests do not prove OS delivery or the original notification policy."
+          }
         }
       ]
     },

@@ -6746,3 +6746,31 @@ without treating those separate contracts as accepted.
 Unsigned Xcode compilation and all 41 Python tooling tests passed after the byte
 preservation change. Matrix structure has zero errors. Strict engine and global
 acceptance remain open; this change does not reclassify XMLRPC.request.
+
+
+### Context.fail specific boundaries — 21 October 2026
+
+Extended the existing current-script termination test instead of adding a
+second suite. Both engines now check cancel as a control and fail with omitted,
+empty and Unicode message values. A clipboard write after the call verifies
+undefined and proves that the current script continues. The sentinel next step
+never runs. The report retains error or cancellation, and one stored run has
+the exact expected message and status.
+
+Enabled notifyOnError for the fake host. Failure requests exactly one action
+notification with the action name and message. Cancellation stays silent.
+Existing notification-policy and log tests retain their broader responsibilities;
+the new case does not repeat those combinations. No visible notification,
+window, sound, permission or personal data is used.
+
+The focused run passed 30 methods across three suites. Omitted and empty fail
+text currently use Action failed. Those exact default words are not required
+by the frozen reference. Context.fail remains partial until its native visible
+notification and presentation-policy behavior are checked. A fake request is
+not proof of OS delivery. No production behavior changed in this test update.
+
+The final full rerun passed 468 app and 539 core methods. Production code was
+unchanged after the successful unsigned build and 41-test tooling run above.
+Matrix structure has zero errors. Strict engine/global gates retain 18/4,649
+diagnostics. The remaining Context.fail diagnostics refer to incomplete native
+acceptance and its recorded limit. These counts do not measure compatibility.

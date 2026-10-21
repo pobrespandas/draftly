@@ -1742,3 +1742,12 @@ the corresponding regression failed first. Transport metadata remains private;
 ordinary HTTP responses keep their shape. Guards preserve HTTP failures and
 reject empty or malformed byte payloads. Full regression passed 468 app and
 539 core methods. XML-RPC remains partial for its other specific contracts.
+
+
+### Context.fail boundaries tested — 21 October 2026
+
+The existing termination test now covers both engines, void return, omitted,
+empty and Unicode messages, one exact log, and the fake notification payload.
+The focused run passed 30 methods. The member remains partial: visible native
+notification and presentation-policy behavior still need acceptance. The current
+Action failed default is characterized without assigning it to the reference.
