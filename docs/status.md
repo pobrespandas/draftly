@@ -1645,3 +1645,12 @@ Both-runner member-specific boundaries and the existing actual callback delivery
 record now complete this contract. The extension reuses the existing test and
 adds no duplicate suite. Other Context members and the six partial engine
 contracts remain open. No new native run is claimed while the Mac is locked.
+
+
+### HTTP query values corrected — 21 October 2026
+
+Added parameters now preserve literal plus signs. Existing raw and encoded query
+values retain their original meaning. A real loopback server reproduced the
+failure on both transport routes and confirmed the correction. The specific
+builder regression also passed. HTTP timeout limits and remaining response
+contracts require separate acceptance; this correction does not close HTTP.

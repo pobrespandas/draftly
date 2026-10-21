@@ -25,10 +25,14 @@ final class ScriptHTTP: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
               ["http", "https"].contains(components.scheme?.lowercased() ?? "") else {
             throw DraftlyError.message("HTTP requests require an HTTP or HTTPS URL.")
         }
-        if let parameters = values["parameters"] as? [String: Any] {
-            components.queryItems = (components.queryItems ?? []) + parameters.map {
+        if let parameters = values["parameters"] as? [String: Any], !parameters.isEmpty {
+            var additions = URLComponents()
+            additions.queryItems = parameters.map {
                 URLQueryItem(name: $0.key, value: String(describing: $0.value))
             }
+            let encoded = additions.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B")
+            components.percentEncodedQuery = [components.percentEncodedQuery, encoded]
+                .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: "&")
         }
         guard let url = components.url else { throw DraftlyError.message("The request URL is invalid.") }
         var request = URLRequest(url: url)

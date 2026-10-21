@@ -31,6 +31,20 @@ struct ScriptHTTPTests {
         #expect(query.contains(URLQueryItem(name: "q", value: "🐼 café")))
     }
 
+    @Test func queryParametersPreservePlusAndExistingEncodedQuery() throws {
+        let request = try ScriptHTTP.makeRequest([
+            "url": "https://fixture.invalid/echo?existing=one+two&literal=one%2Btwo",
+            "parameters": ["q": "café 🐼 +&=", "empty": ""]
+        ])
+        let url = try #require(request.url)
+        let components = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
+        let query = try #require(components.percentEncodedQuery)
+        #expect(query.hasPrefix("existing=one+two&literal=one%2Btwo&"))
+        #expect(query.contains("%2B%26%3D"))
+        #expect(components.queryItems?.contains(URLQueryItem(name: "q", value: "café 🐼 +&=")) == true)
+        #expect(components.queryItems?.contains(URLQueryItem(name: "empty", value: "")) == true)
+    }
+
     @Test func asyncResponsePreservesUnicodeJSONStatusAndHeaders() async throws {
         let result = try envelope(await ScriptHTTP.requestSerialized(
             #"{"url":"https://fixture.invalid/json"}"#, configuration: configuration()))

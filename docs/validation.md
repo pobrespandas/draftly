@@ -6433,3 +6433,19 @@ run while the Mac is locked. The archived method signature has required string
 name and value and no optional defaults. Context.addSuccessParameter is complete
 for that contract. Context.fail notification behavior and other Context members
 remain separate and partial.
+
+
+### HTTP query value preservation — 21 October 2026
+
+A real loopback server decoded an added literal plus as a space on both transport
+routes. Request construction also changed an existing encoded plus in the source
+URL into a raw plus. The specific builder test failed before the correction.
+
+ScriptHTTP.makeRequest now appends separately encoded new parameters to the
+existing encoded query. New literal plus signs use %2B. The original query is not
+decoded and rebuilt. Existing raw plus and %2B therefore retain distinct server
+meanings. The correction does not change body encoding, authentication or the
+stored action format. The focused builder and loopback checks passed. Full
+regression passed 468 app and522 core methods. The server uses only a temporary
+loopback port and neutral values; no app window or permission prompt opens.
+The broader HTTP contract tests and their remaining limits are recorded below.
