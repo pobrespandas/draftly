@@ -1102,3 +1102,10 @@ records once. Second-file and storage failures leave the destination unchanged;
 disk reopen/retry and all eight backup collections have tests. Full regression
 app447/core475 and unsigned build pass. Native multi-selection and staging
 performance remain pending; QA was not updated.
+
+
+Native multi-file picker acceptance passes on QA image785e0548: a rejected lot
+leaves the full backup byte-identical; a valid mixed lot adds only its expected
+action/note/revision. Restart preserves all record data by ID. Export array
+order can change, so restart bytes are not identical. Performance and cloud
+acceptance remain pending.

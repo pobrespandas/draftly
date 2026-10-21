@@ -4845,3 +4845,33 @@ image13f8e82cecd3ed0e and was not replaced. Preparing a batch copies the current
 backup to memory; large-library cost has not been measured. This does not close
 performance, cloud recovery, or the pending UI timeout check. No screenshots
 or raw logs are tracked.
+
+
+### Native multi-file import acceptance — 20 October 2026
+
+Updated isolated QA after normal Quit and confirmed exit. Signed image SHA256
+785e0548ab98a23c6a0e865e90215b7e8a1534b2e27406581359249f825d2224.
+Exported a full baseline backup. In File Import, selected both
+import-batch-first-action.json and import-invalid-drafts.txt with Command-click.
+Confirmed both selection states before Open. The app showed A draft has no
+content. The full backup after rejection was byte-identical to the baseline.
+The valid first action was not installed.
+
+Selected import-batch-first-action.json and import-batch-last-note.txt together.
+The app showed Import complete and9 drafts. Export comparison found exactly
+one new action, one new note, and one related revision. The note matched the
+fixture UTF-8 text exactly. The stable action identity and futureBatchField in
+rawPayload remained intact. Every prior record stayed equal, including all
+history. No fixture action was executed.
+
+Quit normally, confirmed process exit, reopened, and exported again. Raw bytes
+differed because action/note array order changed. Canonical comparison by ID
+passed for every collection and field. This is data equality, not byte equality
+across restart. The rejected-lot before/after byte comparison remains valid.
+Temporary full backups stay in /tmp. No personal library changed.
+
+This verifies native multi-selection, all-or-nothing rejection, successful
+mixed import, retained unknown action data, and restart persistence. Large-
+library staging cost and cloud convergence remain pending. No production code
+or tests changed after the accepted app447/core475 and build. No screenshots
+or raw exported backups are tracked.
