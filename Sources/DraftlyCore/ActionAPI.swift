@@ -204,8 +204,7 @@ public enum APIValues {
                 return ["range": [change.0.location, change.0.length], "text": change.1]
             } catch SyntaxTaskError.invalidSnapshot { return ["changed": false] }
         case "themes":
-            if let uiOperation { return try uiOperation(["operation": "themes"]) }
-            return ["Default", "Dark", "Light"].map { ["name": $0, "type": "builtIn"] }
+            return ThemeCatalog.values(in: library)
         case "device": return ["systemName": "macOS", "model": "Mac", "systemVersion": ProcessInfo.processInfo.operatingSystemVersionString] as [String: Any]
         case "batteryLevel": return try ScriptDevice.batteryLevel()
         case "detectURLs":

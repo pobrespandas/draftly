@@ -17,15 +17,8 @@ enum WorkspacePresentationResolver {
         }
         for key in ["preferredDarkTheme", "preferredLightTheme"] {
             guard var theme = values[key] as? [String: Any] else { continue }
-            if theme["type"] as? String == "custom" {
-                let saved: EditorTheme?
-                if let id = (theme["uuid"] as? String).flatMap(UUID.init(uuidString:)) { saved = themes.first { $0.id == id } }
-                else { saved = themes.first { $0.name == theme["name"] as? String } }
-                guard let saved else { throw DraftlyError.message("The workspace theme was not found.") }
-                theme["name"] = saved.name; theme["uuid"] = saved.id.uuidString
-            } else {
-                guard ["Default", "Dark", "Light"].contains(theme["name"] as? String ?? "") else { throw DraftlyError.message("The workspace theme was not found.") }
-            }
+            theme = try ThemeReferenceResolver.resolve(theme, themes: themes,
+                errorMessage: "The workspace theme was not found.")
             values[key] = theme
         }
         if workspace.scriptMetadata != nil { workspace.scriptMetadata?["api"] = String(decoding: try JSONSerialization.data(withJSONObject: values), as: UTF8.self) }

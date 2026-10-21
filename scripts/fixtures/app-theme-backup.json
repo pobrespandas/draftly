@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "notes": [],
+  "revisions": [],
+  "workspaces": [],
+  "actions": [],
+  "themes": [
+    {
+      "id": "BBBF0025-0000-4000-8000-000000000011",
+      "name": "QA Theme night café 🐼",
+      "foreground": "F1F2F3",
+      "background": "162839",
+      "heading": "44DDAA",
+      "isDark": true
+    },
+    {
+      "id": "BBBF0025-0000-4000-8000-000000000012",
+      "name": "QA Theme day",
+      "foreground": "202020",
+      "background": "FFF3D6",
+      "heading": "993300",
+      "isDark": false
+    }
+  ]
+}

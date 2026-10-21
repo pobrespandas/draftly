@@ -17,8 +17,9 @@ struct EditorLayoutPreferences: View {
     @AppStorage("editor.verticalMargin") private var vertical = EditorTextLayout.verticalMargin
     @AppStorage("editor.maximumWidth") private var maximum = 0.0
     @AppStorage("editor.typewriter") private var typewriter = false
-    @AppStorage("editor.theme") private var themeName = "System"
+    @AppStorage(EditorThemePreferences.key) private var themeReferences = Data()
     @State private var editing: EditorTheme?
+    @State private var editingDark: Bool?
     @State private var error: String?
     @State private var indentationSyntax = "Markdown"
     @AppStorage(EditorIndentationPreferences.key) private var indentation = "{}"
@@ -42,27 +43,47 @@ struct EditorLayoutPreferences: View {
             Toggle("Typewriter Scrolling", isOn: $typewriter)
         }
         Section("Themes") {
-            Picker("Theme", selection: $themeName) {
-                Text("System").tag("System")
-                ForEach(themes) { theme in Text(theme.name).tag(theme.name) }
-            }
+            themePicker(dark: false)
+            themePicker(dark: true)
             HStack {
-                Button("New Theme") { editing = EditorTheme() }
+                Button("New Theme") { editingDark = nil; editing = EditorTheme() }
                 Button("Import Theme…") { importTheme() }
-                if let current = themes.first(where: { $0.name == themeName }) {
-                    Button("Edit") { editing = current }
-                    Button("Delete") {
-                        do { try library.deleteTheme(current.id); themeName = "System"; error = nil }
-                        catch { self.error = error.localizedDescription }
-                    }
-                }
             }
             if let error { Text(error).foregroundStyle(.red) }
         }
         .sheet(item: $editing) { value in
             ThemeSettingsView(theme: value, otherNames: themes.filter { $0.id != value.id }.map(\.name)) { theme in
                 try library.saveTheme(DraftsThemeImport.applyingEditorChanges(theme))
-                themeName = theme.name
+                try EditorThemePreferences().set(reference: ["type": "custom", "uuid": theme.id.uuidString, "name": theme.name],
+                    dark: editingDark ?? theme.isDark, themes: library.themes)
+            }
+        }
+    }
+    private func themePicker(dark: Bool) -> some View {
+        _ = themeReferences
+        let reference = EditorThemePreferences().reference(dark: dark, themes: themes)
+        let selectedID = reference["type"] as? String == "custom" ? (reference["uuid"] as? String).flatMap(UUID.init(uuidString:)) : nil
+        let selection = Binding<String>(get: {
+            if let selectedID { return "custom:" + selectedID.uuidString }
+            return "builtIn:" + (reference["name"] as? String ?? (dark ? "Dark" : "Light"))
+        }, set: { value in
+            let parts = value.split(separator: ":", maxSplits: 1).map(String.init)
+            guard parts.count == 2 else { return }
+            let newReference = parts[0] == "custom" ? ["type": "custom", "uuid": parts[1]] : ["type": "builtIn", "name": parts[1]]
+            do { try EditorThemePreferences().set(reference: newReference, dark: dark, themes: themes); error = nil }
+            catch { self.error = error.localizedDescription }
+        })
+        return HStack {
+            Picker(dark ? "Dark Theme" : "Light Theme", selection: selection) {
+                ForEach(ThemeCatalog.builtInNames, id: \.self) { Text($0).tag("builtIn:" + $0) }
+                ForEach(themes) { Text($0.name).tag("custom:" + $0.id.uuidString) }
+            }
+            if let current = themes.first(where: { $0.id == selectedID }) {
+                Button("Edit") { editingDark = dark; editing = current }
+                Button("Delete") {
+                    do { try library.deleteTheme(current.id); error = nil }
+                    catch { self.error = error.localizedDescription }
+                }
             }
         }
     }
@@ -91,6 +112,7 @@ struct EditorLayoutPreferences: View {
                 }
             }
             error = nil
+            editingDark = nil
             editing = theme
         } catch { self.error = error.localizedDescription }
     }

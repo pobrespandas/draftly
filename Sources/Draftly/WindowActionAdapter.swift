@@ -23,7 +23,7 @@ struct WindowActionAdapter {
             case "isIdleDisabled": return model.isIdleDisabled
             case "themeMode": return model.darkTheme.map { $0 ? "dark" : "light" } ?? "automatic"
             case "currentThemeMode": return (model.window?.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua) ? "dark" : "light"
-            case "darkTheme", "lightTheme": return ["name": key == "darkTheme" ? "Dark" : "Light", "type": "builtIn"]
+            case "darkTheme", "lightTheme": return model.configuredThemeReference(dark: key == "darkTheme")
             case "isChatConsoleVisible": return false
             default: throw DraftlyError.message("The window property \(key) is unavailable.")
             }
@@ -38,15 +38,15 @@ struct WindowActionAdapter {
             case "themeMode": model.darkTheme = value as? String == "automatic" ? nil : value as? String == "dark"
             case "isIdleDisabled": model.setIdleDisabled(enabled)
             case "darkTheme", "lightTheme":
-                guard let theme = value as? [String: Any], ["Default", "Dark", "Light"].contains(theme["name"] as? String ?? "") else { throw DraftlyError.message("The theme is unavailable.") }
+                guard let theme = value as? [String: Any] else { throw DraftlyError.message("The theme is unavailable.") }
+                try model.setConfiguredThemeReference(theme, dark: key == "darkTheme")
             default: throw DraftlyError.message("The window property \(key) cannot be assigned.")
             }
             return true
         }
         switch operation {
         case "themes":
-            let saved = model.library.themes
-            return ["Default", "Dark", "Light"].map { ["name": $0, "type": "builtIn"] } + saved.map { ["name": $0.name, "type": "custom", "uuid": $0.id.uuidString] }
+            return ThemeCatalog.values(in: model.library)
         case "configureWindow":
             let options = values["values"] as? [String: String] ?? [:]
             let toggles = ["showDraftList", "showActionList", "showFilters", "showActionBar", "showTagEntry", "pinCurrentDraft", "linkMode"]

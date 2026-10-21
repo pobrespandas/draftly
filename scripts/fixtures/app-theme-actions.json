@@ -1,0 +1,62 @@
+[
+  {
+    "uuid": "BBBF0025-0000-4000-8000-000000000001",
+    "name": "QA Configure theme pair",
+    "group": "Theme QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "function check(v,label){if(!v)throw Error(label);}\nconst before=editor.getText(), selection=editor.getSelectedRange().join(',');\nconst night=Theme.find('custom','QA Theme night café 🐼'),day=Theme.find('custom','QA Theme day');\ncheck(night instanceof Theme&&day instanceof Theme,'theme catalog');\napp.darkTheme=night;app.lightTheme=day;app.themeMode='dark';\ncheck(app.darkTheme instanceof Theme&&app.darkTheme.name===night.name,'configured dark');\ncheck(app.lightTheme instanceof Theme&&app.lightTheme.name===day.name,'configured light');\ncheck(editor.getText()===before&&editor.getSelectedRange().join(',')===selection,'editor preserved');\napp.displaySuccessMessage('Configured theme pair passed');"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0025-0000-4000-8000-000000000002",
+    "name": "QA Use light theme",
+    "group": "Theme QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "app.themeMode='light';app.displayInfoMessage(app.lightTheme.name);"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0025-0000-4000-8000-000000000003",
+    "name": "QA Use dark theme",
+    "group": "Theme QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "app.themeMode='dark';app.displayInfoMessage(app.darkTheme.name);"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0025-0000-4000-8000-000000000004",
+    "name": "QA Reset built-in themes",
+    "group": "Theme QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "app.darkTheme=Theme.find('builtIn','Dark');app.lightTheme=Theme.find('builtIn','Light');app.themeMode='automatic';app.displayInfoMessage('Built-in themes restored');"
+        }
+      }
+    ]
+  }
+]

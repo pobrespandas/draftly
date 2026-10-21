@@ -89,6 +89,14 @@ The current draft kept open when the user returns to the app after the new-draft
 **Capture**:
 Incoming text held separately from an editor draft until it is saved or discarded. It can become a new draft or be added to an existing draft.
 
+### Editor appearance
+
+**Theme**:
+A named definition of colors for the editor and its interface.
+
+**Configured theme**:
+The theme chosen on this Mac for light or dark appearance. A workspace can specify a different theme for its window.
+
 ### Actions
 
 **Action configuration**:
