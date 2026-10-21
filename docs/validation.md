@@ -5704,3 +5704,21 @@ The coordinator's focused run passed 48 methods across DraftMetadataContractTest
 WorkspaceDateBoundaryContractTests, and WorkspaceFilterContractTests. The two
 update methods each passed both runner variants. These are in-memory checks;
 native selection and Undo acceptance remain pending. No window opened.
+
+
+### Workspace calendar-day boundary coverage — 20 October 2026
+
+Added WorkspaceDateBoundaryContractTests for the shared filter evaluator.
+The archived QueryDate contract ignores time components and includes the
+whole selected calendar day. The test fixes the Gregorian calendar and
+America/New_York time zone. It checks 8 March 2026 (23 hours) and 1 November 2026
+(25 hours), created/modified/accessed fields, absolute dates, and relative
+±1 day. For each start/end boundary it checks one millisecond outside, the
+start, one millisecond before the next day, and the next day itself. Unknown
+access dates stay unknown and are excluded from active access-date filters.
+
+All six parameter combinations passed. No production defect was demonstrated.
+The combined coordinator run passed 48 methods in three suites. This is direct
+evaluator evidence; it does not establish JS property reconstruction, native
+window results, or persistence after restart. Existing property tests remain
+recorded separately, and startDate/endDate stay partial. No window opened.

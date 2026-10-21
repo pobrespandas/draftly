@@ -5354,6 +5354,23 @@
               "test": "accessedQueriesPersistWorkspaceAndOnlyEditorLoadsRecordAccess"
             },
             "scope": "Access date filters and sort. This evidence does not close other member branches."
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-20",
+            "evidence": "docs/validation.md",
+            "scope": "Additional evaluator boundary coverage; not exhaustive property or native acceptance.",
+            "additionalRuns": [
+              {
+                "date": "2026-10-20",
+                "suite": "WorkspaceDateBoundaryContractTests",
+                "tests": [
+                  "absoluteAndRelativeDatesUseInclusiveCalendarDays"
+                ],
+                "result": "Passed absolute and relative ±1-day boundaries for created/modified/accessed on fixed 23-hour and 25-hour DST days. Checks just outside and inside each boundary; unknown access dates are excluded. Direct evaluator coverage does not replace property reconstruction or visible-window acceptance.",
+                "evidence": "docs/validation.md: Workspace calendar-day boundary coverage — 20 October 2026"
+              }
+            ]
           }
         },
         {
@@ -5482,6 +5499,23 @@
               "test": "accessedQueriesPersistWorkspaceAndOnlyEditorLoadsRecordAccess"
             },
             "scope": "Access date filters and sort. This evidence does not close other member branches."
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-20",
+            "evidence": "docs/validation.md",
+            "scope": "Additional evaluator boundary coverage; not exhaustive property or native acceptance.",
+            "additionalRuns": [
+              {
+                "date": "2026-10-20",
+                "suite": "WorkspaceDateBoundaryContractTests",
+                "tests": [
+                  "absoluteAndRelativeDatesUseInclusiveCalendarDays"
+                ],
+                "result": "Passed absolute and relative ±1-day boundaries for created/modified/accessed on fixed 23-hour and 25-hour DST days. Checks just outside and inside each boundary; unknown access dates are excluded. Direct evaluator coverage does not replace property reconstruction or visible-window acceptance.",
+                "evidence": "docs/validation.md: Workspace calendar-day boundary coverage — 20 October 2026"
+              }
+            ]
           }
         },
         {
