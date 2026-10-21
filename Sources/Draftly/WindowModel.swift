@@ -281,10 +281,7 @@ final class WindowModel: ObservableObject {
     private func updateWorkspaceSort() {
         guard let raw = workspaceScriptMetadata?["api"], let data = raw.data(using: .utf8),
               var values = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else { return }
-        var sorts = values["_sorts"] as? [String: [String: Any]] ?? [:]
-        var value = sorts[folder.rawValue] ?? [:]
-        value["sort"] = sort == .title ? "name" : sort.rawValue; value["descending"] = !ascending
-        sorts[folder.rawValue] = value; values["_sorts"] = sorts
+        WorkspaceOptionsEditor.updateSortOptions(&values, sort: sort, ascending: ascending, folder: folder)
         if let encoded = try? JSONSerialization.data(withJSONObject: values) { workspaceScriptMetadata?["api"] = String(decoding: encoded, as: UTF8.self) }
     }
 

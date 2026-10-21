@@ -22,14 +22,19 @@ enum WorkspaceOptionsEditor {
     static func setSort(_ sort: NoteSort, ascending: Bool, flaggedFirst: Bool,
                         folder: NoteFolder, in workspace: inout Workspace) throws {
         var options = workspace.apiOptions
+        updateSortOptions(&options, sort: sort, ascending: ascending, flaggedFirst: flaggedFirst, folder: folder)
+        try store(options, in: &workspace)
+    }
+
+    static func updateSortOptions(_ options: inout [String: Any], sort: NoteSort, ascending: Bool,
+                                  flaggedFirst: Bool? = nil, folder: NoteFolder) {
         var sorts = options["_sorts"] as? [String: [String: Any]] ?? [:]
         var entry = sorts[folder.rawValue] ?? [:]
         entry["sort"] = sort == .title ? "name" : sort.rawValue
         entry["descending"] = !ascending
-        entry["flagged"] = flaggedFirst
+        if let flaggedFirst { entry["flagged"] = flaggedFirst }
         sorts[folder.rawValue] = entry
         options["_sorts"] = sorts
-        try store(options, in: &workspace)
     }
 
     static func setDate(_ value: Any, component: String, key: String,

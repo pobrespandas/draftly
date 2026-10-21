@@ -13,6 +13,13 @@ group membership, identity lookup, visibility and presentation order without
 persistence or UI dependencies. `LibraryStore` delegates its existing catalog
 methods. Storage reload order remains separate.
 
+## Workspace sort writer boundary
+
+`WorkspaceOptionsEditor.updateSortOptions` owns the common sort-field mutation.
+WindowModel retains its valid-object guard and silent encoding failure policy.
+The options editor retains recovery, validation and sorted serialization.
+The shared rule does not combine those different caller policies.
+
 ## Refactoring baseline
 
 The annotated tag `pre-refactor-2026-10-19` points to `2fba5bd`.

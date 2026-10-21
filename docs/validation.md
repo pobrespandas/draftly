@@ -6120,3 +6120,18 @@ All 25 named tests in the four changed suites remain, with 79 expectations
 and 19 requirements. All 455 app and 504 core methods passed. Matrix structure
 passed; the 18 strict engine diagnostics match the baseline exactly. Original
 action fixtures and production code are unchanged in this stage.
+
+
+### Refactoring Workspace sort writers — 21 October 2026
+
+Four characterization methods with 15 cases passed on the original writers
+(19 methods across four workspace suites). After extracting the common
+dictionary mutation, all 459 app and 504 core methods passed. Unsigned Xcode
+compilation and all 38 bundled-Python script tests passed. Matrix structure
+passed and strict engine output matched the same 18 baseline diagnostics.
+
+Window invalid-data no-op behavior, editor recovery, unknown fields, flagged
+values, other views, encoding policies and observer order remain unchanged.
+No public API, Note, record schema, bridge, original fixture or matrix changed.
+No test was removed and no visible UI, permission or sound check ran. Signed
+installation and client sync were not repeated. The cloning plan stays paused.

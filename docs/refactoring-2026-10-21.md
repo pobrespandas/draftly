@@ -162,3 +162,37 @@ All 19 methods in the four relevant workspace suites passed on the original
 writers. Tests use in-memory data and isolated preferences, without windows.
 Next: move only shared dictionary mutation to WorkspaceOptionsEditor. Keep
 parsing, encoding and error policy at each caller.
+
+### 4b. Shared Workspace sort mutation
+
+Implemented: both app writers use `WorkspaceOptionsEditor.updateSortOptions`
+for `_sorts`, the title/name mapping and descending order. An omitted flagged
+argument retains the existing value. Parsing, encoding, validation and error
+policy stay at their original callers. No observer or Core API changed.
+
+Verified automatically: all 459 app and 504 core methods passed after the
+extraction. The 15 new characterization cases passed before and after it.
+Unsigned Xcode compilation passed. The final bundled Python run passed all
+38 script tests. Matrix structure passed. Strict engine output still matches
+the same 18 baseline diagnostics.
+
+The package targets, Note model, record persistence, bridge, original action
+fixtures and API matrix are unchanged from the reference tag. No test was
+deleted. No manual Computer Use session was required by these four stages.
+The signed build and connected-client sync acceptance were not repeated.
+
+## Remaining refactoring and risks
+
+The first four stages are validated checkpoints, not a complete repository
+rewrite or Mac parity closure. Configuration defaults, auditor test indexing,
+benchmark ownership, native operation routing, editing transformations and
+execution/transaction ownership remain in the prioritized diagnosis.
+
+Next, characterize configuration-default differences at import, bootstrap and
+prompt boundaries before sharing their descriptor. Review auditor indexing
+as a separate scripts stage. Retain unique diagnostics and contract cases.
+Keep transaction recovery and execution-lifetime changes separate and later,
+because they carry the highest behavior risk.
+
+Cloning remains paused. The saved functional branch still requires its own
+review and native acceptance. Its correction has not entered main.
