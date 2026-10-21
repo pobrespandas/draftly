@@ -11,11 +11,11 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
     private var actionsVisible: Bool?
     private var floating: Bool?
     private var items: [NSToolbarItem.Identifier: NSToolbarItem] = [:]
-    // Keep Share with draft commands. Let trailing space absorb window width.
+    // Anchor draft commands to their panels. Let trailing space absorb window width.
     static let defaultItemIdentifiers: [NSToolbarItem.Identifier] = (
         ["filters", NSToolbarItem.Identifier.sidebarTrackingSeparator.rawValue, "drafts"]
-        + [NSToolbarItem.Identifier.flexibleSpace.rawValue, NSToolbarItem.Identifier.flexibleSpace.rawValue]
-        + ["last", "NSToolbarSpaceItem", "navigate", "NSToolbarSpaceItem", "capture", "flag", "tags", "folders", "NSToolbarSpaceItem", "share", "NSToolbarFlexibleSpaceItem", "search", "actions", "float"]
+        + [NSToolbarItem.Identifier.flexibleSpace.rawValue]
+        + ["last", "NSToolbarSpaceItem", "navigate", "draftEditorTrackingSeparator", "capture", "flag", "tags", "folders", "NSToolbarSpaceItem", "share", "NSToolbarFlexibleSpaceItem", "search", "actions", "float"]
     ).map { NSToolbarItem.Identifier($0) }
     init(model: WindowModel, window: NSWindow, splitView: NSSplitView) {
         self.model = model
@@ -40,6 +40,9 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
         case NSToolbarItem.Identifier.sidebarTrackingSeparator.rawValue:
             guard let splitView else { return nil }
             item = NSTrackingSeparatorToolbarItem(identifier: identifier, splitView: splitView, dividerIndex: 0)
+        case "draftEditorTrackingSeparator":
+            guard let splitView else { return nil }
+            item = NSTrackingSeparatorToolbarItem(identifier: identifier, splitView: splitView, dividerIndex: 1)
         case "navigate": item = group(identifier, symbols: ["chevron.up", "chevron.down"], labels: ["Previous Draft", "Next Draft"])
         case "capture": item = group(identifier, symbols: ["plus", "mic"], labels: ["New Draft", "Dictate Text"])
         case "flag": item = group(identifier, symbols: ["flag", "chevron.down"], labels: ["Flag", "Flag Color"])

@@ -6,6 +6,26 @@ import DraftlyCore
 
 @Suite("Reference toolbar layout") @MainActor
 struct ReferenceToolbarLayoutTests {
+    @Test func trackingSeparatorsUseBothPanelBoundariesOnTheSameNativeSplit() throws {
+        _ = NSApplication.shared
+        let model = WindowModel(library: try LibraryStore(inMemory: true, seed: false))
+        let controller = LibrarySplitController(model: model, panels: (0..<4).map { _ in AnyView(Color.clear) })
+        let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 1200, height: 800),
+            styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+        window.contentViewController = controller
+        defer { window.contentViewController = nil }
+        let toolbar = ReferenceToolbar(model: model, window: window, splitView: controller.splitView)
+        defer { withExtendedLifetime(toolbar) {} }
+        let items = try #require(window.toolbar?.items)
+        let tracking = items.compactMap { $0 as? NSTrackingSeparatorToolbarItem }
+        #expect(tracking.map(\.dividerIndex) == [0, 1])
+        #expect(tracking.allSatisfy { $0.splitView === controller.splitView })
+        let navigation = try #require(items.firstIndex { $0.itemIdentifier.rawValue == "navigate" })
+        let editorBoundary = try #require(items.firstIndex { ($0 as? NSTrackingSeparatorToolbarItem)?.dividerIndex == 1 })
+        let creation = try #require(items.firstIndex { $0.itemIdentifier.rawValue == "capture" })
+        #expect(navigation < editorBoundary && editorBoundary < creation)
+    }
+
     @Test func actionsToggleReflectsVisibilityFromTheModelAndKeepsTheSameImageOnUnrelatedUpdates() async throws {
         _ = NSApplication.shared
         let model = WindowModel(library: try LibraryStore(inMemory: true, seed: false))
