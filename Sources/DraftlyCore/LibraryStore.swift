@@ -295,10 +295,8 @@ public final class LibraryStore: ObservableObject {
     public func restore(_ data: Data) throws {
         let backup = try JSONDecoder().decode(Backup.self, from: data)
         guard backup.version == 1 else { throw DraftlyError.message("This backup version is not supported.") }
+        try validateBackupIdentities(backup)
         let runsToRestore = backup.runs ?? []
-        guard Set(runsToRestore.map(\.id)).count == runsToRestore.count else {
-            throw DraftlyError.message("The backup contains duplicate execution identities.")
-        }
         let themesToRestore = backup.themes ?? []
         try validateThemes(themesToRestore)
         let syntaxesToRestore = try (backup.syntaxes ?? []).map { try SyntaxDefinition(data: Data($0.source.utf8), type: $0.type, id: $0.id) }
@@ -347,6 +345,22 @@ public final class LibraryStore: ObservableObject {
         for action in backup.actions { try persist(action, id: action.id, kind: "action") }
         try beforeBatchCommit?(); try commit()
         } catch { container.viewContext.rollback(); try? reload(); throw error }
+    }
+
+    private func validateBackupIdentities(_ backup: Backup) throws {
+        let collections: [(String, [UUID])] = [
+            ("draft", backup.notes.map(\.id)),
+            ("revision", backup.revisions.map(\.id)),
+            ("workspace", backup.workspaces.map(\.id)),
+            ("action", backup.actions.map(\.id)),
+            ("action group", (backup.actionGroups ?? []).map(\.id)),
+            ("syntax", (backup.syntaxes ?? []).map(\.id)),
+            ("theme", (backup.themes ?? []).map(\.id)),
+            ("execution", (backup.runs ?? []).map(\.id))
+        ]
+        for (kind, ids) in collections where Set(ids).count != ids.count {
+            throw DraftlyError.message("The backup contains duplicate \(kind) identities.")
+        }
     }
 
     private func recoveryIdentity<T: Encodable>(_ source: T, kind: String, existing: [T],

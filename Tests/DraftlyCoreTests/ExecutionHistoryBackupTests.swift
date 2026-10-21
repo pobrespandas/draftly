@@ -183,13 +183,25 @@ import Testing
         #expect(reopened.notes.contains { $0.id == current.id && $0.content == current.content })
     }
 
-    @Test func duplicateExecutionIdentitiesAreRejectedBeforeAnyWrite() throws {
-        let value = run(noteID: nil)
+    @Test(arguments: ["notes", "revisions", "workspaces", "actions", "actionGroups", "syntaxes", "themes", "runs"])
+    func duplicateBackupIdentitiesAreRejectedBeforeAnyWrite(collection: String) throws {
         let note = Note(content: "Must not be saved")
-        let backup = Backup(notes: [note], revisions: [], workspaces: [], actions: [], runs: [value, value])
+        let syntax = try SyntaxDefinition(data: Data(#"{"name":"Neutral syntax","patterns":[],"navigationPatterns":[],"linkDefinitions":[],"taskMarkDefinitions":[],"indentationPatterns":[]}"#.utf8))
+        let backup = Backup(notes: [note], revisions: [Revision(noteID: note.id, content: note.content)],
+            workspaces: [Workspace(name: "Neutral workspace")], actions: [DraftAction(name: "Neutral action", steps: [])],
+            actionGroups: [ActionGroupRecord(name: "Neutral group")], syntaxes: [syntax],
+            themes: [EditorThemeDefinition(name: "Neutral theme")], runs: [run(noteID: note.id)])
+        var object = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(backup)) as? [String: Any])
+        let values = try #require(object[collection] as? [[String: Any]])
+        object[collection] = values + values
         let destination = try LibraryStore(inMemory: true, seed: false)
-        #expect(throws: (any Error).self) { try destination.restore(JSONEncoder().encode(backup)) }
-        #expect(destination.runs.isEmpty && destination.notes.isEmpty)
+        _ = try destination.createNote(content: "Existing text café 🐼")
+        let before = try destination.backupData()
+        var commits = 0
+        destination.beforeBatchCommit = { commits += 1 }
+        #expect(throws: (any Error).self) { try destination.restore(JSONSerialization.data(withJSONObject: object)) }
+        #expect(commits == 0)
+        #expect(try destination.backupData() == before)
     }
 
     @Test func legacyRunShapeAndDateStrategiesStayCompatible() throws {

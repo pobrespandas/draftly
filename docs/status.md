@@ -1071,3 +1071,9 @@ The UI timeout attempt ended in cancellation after the editor changed to Q;
 it is not accepted as timeout. Added queued-target coverage to the existing
 owned-editor typing cancellation test. Full regression passed app447/core471.
 The native UI production timeout check remains pending.
+
+
+Backup restore now rejects duplicate IDs in all eight record collections before
+writing. The regression failed before the fix and passes afterward without
+changing the destination. Full app447/core471 and unsigned build pass. Native
+import error presentation and sync acceptance remain pending. QA was not updated.

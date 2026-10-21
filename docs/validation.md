@@ -4724,3 +4724,27 @@ Automatic: all five automation safety methods passed, including both typing
 cases. The47 queue/boundary/runner/API methods passed separately. Full regression
 passed app447/core471. Matrix structure passes. No production code or build
 changed. No raw logs or screenshots are tracked.
+
+
+### Reject ambiguous backup identities — 20 October 2026
+
+Implemented: restore validates unique identities in notes, revisions, workspaces,
+actions, action groups, syntaxes, themes, and execution history before writing
+records. A duplicate returns an error that identifies the record kind. Backup
+version and encoding stay unchanged. This replaces the history-only identity
+check. Theme save validation remains separate because it also serves batch
+editing outside restore.
+
+Expanded the existing duplicate-history test across all eight collections.
+Before the fix, five collections accepted duplicate identities, reached commit,
+and changed the destination backup. After the fix, all eight throw before the
+batch commit hook and leave the complete existing destination backup unchanged.
+No visible windows or personal libraries are used.
+
+Automatic: nine history/backup methods passed, including eight parameterized
+identity cases and existing disk reopen, conflict recovery, legacy, and rollback
+checks. Full regression passed app447/core471. Unsigned app build passed.
+Matrix structure passes. Native import error presentation has not been checked
+for this change. The installed QA app is still image1b8988d3183ec067; it has not
+been replaced with this build. Sync and signed-update acceptance stay separate.
+No screenshots or raw logs are tracked.
