@@ -5604,3 +5604,29 @@ NativeProcessExecutorTests and ShortcutLaunchTests passed 15 tests. These use
 local process fixtures; they do not open windows or invoke real Shortcuts.
 Real native callback timeout and other permission/capability variants remain
 pending. No screenshot or raw process log is tracked.
+
+
+### Duplicate editor preflight writes — 20 October 2026
+
+Found a preflight regression with two editors on the same draft. When the
+dirty owner was flushed first, the clean duplicate wrote its old text back.
+The owner then restored its pending text. The final result looked correct,
+but the intermediate stale save could create revisions and sync changes.
+A save spy reproduced Pending → Stored → Pending without any visible window.
+
+Automation preflight now calls synchronizeStoredEditor before each flush and
+once after all flushes. That existing method skips dirty editors. It refreshes
+clean editors from current storage, so model enumeration order cannot cause
+a clean duplicate to save its stale text. Pending edits still use flush and
+retain the existing error path. This does not resolve simultaneous conflicting
+dirty edits or change window selection policy.
+
+Added cleanDuplicateEditorCannotOverwritePendingOwnerText with both owner
+orders. The original code failed for owner-first order. The correction passed
+both orders, retained Unicode text, used the selected owner's runner, and made
+no old-content write. Focused automation and Intent suites passed 23 tests; the
+full run passed 450 app and 480 core tests. Tests use in-memory libraries and do
+not create or activate windows. Native two-window acceptance remains pending.
+
+The unsigned local Xcode build passed. Matrix structure check passed with
+zero errors. No installed QA app was replaced for this change.

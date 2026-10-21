@@ -18787,6 +18787,15 @@
             "command": "swift test",
             "result": "Passed 402 app methods and 391 core methods. Actual headless intent ownership rejects five intent/window/batch entry cases before pending-save or selection changes; canonical file aliases observe the same gate.",
             "evidence": "docs/validation.md"
+          },
+          {
+            "date": "2026-10-20",
+            "suite": "AutomationEditorContextTests",
+            "tests": [
+              "cleanDuplicateEditorCannotOverwritePendingOwnerText"
+            ],
+            "result": "Both model orders passed after an owner-first red case demonstrated a clean duplicate writing stale content during preflight. Full suite passed 450 app and 480 core tests. Native multiwindow owner selection is not accepted by this test.",
+            "evidence": "docs/validation.md: Duplicate editor preflight writes — 20 October 2026"
           }
         ]
       },

@@ -77,8 +77,10 @@ import DraftlyCore
             return notStarted(action, noteID: noteID, reason: .cancelled, message: "The target window closed before the action started.")
         }
         for model in models {
+            model.synchronizeStoredEditor(library.notes)
             guard model.flush() else { throw DraftlyError.message("Pending edits could not be saved. The action was not started.") }
         }
+        for model in models { model.synchronizeStoredEditor(library.notes) }
         guard let note = library.notes.first(where: { $0.id == noteID }) else { throw DraftlyError.message("The draft was not found.") }
         if let model, model.editor.noteID != noteID {
             return notStarted(action, noteID: noteID, reason: .cancelled, message: "The target editor changed before the action started.")

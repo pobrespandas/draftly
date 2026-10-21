@@ -68,6 +68,32 @@ struct AutomationEditorContextTests {
     }
 
     @Test(arguments: [false, true])
+    func cleanDuplicateEditorCannotOverwritePendingOwnerText(ownerFirst: Bool) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Stored café 🐼")
+        var savedContents: [String] = []
+        let save: (Note) throws -> Void = { note in
+            savedContents.append(note.content); try library.saveNote(note)
+        }
+        let owner = WindowModel(library: library, saveDraft: save)
+        let duplicate = WindowModel(library: library, saveDraft: save)
+        owner.select(note.id); duplicate.select(note.id)
+        owner.editor.content = "Pending café 🐼"; owner.contentChanged()
+        let action = DraftAction(name: "Append to pending text", steps: [
+            ActionStep("script", ["script": "editor.setText(editor.getText()+' done');draft.update();"])
+        ])
+        let output = try await AutomationActionExecution.run(action, noteID: note.id, library: library,
+            models: ownerFirst ? [owner, duplicate] : [duplicate, owner], host: UnusedAutomationContextHost(),
+            resolveModel: { _, _ in owner })
+        #expect(output.report.reason == .success)
+        #expect(owner.editor.content == "Pending café 🐼 done")
+        #expect(library.notes.first { $0.id == note.id }?.content == "Pending café 🐼 done")
+        #expect(owner.runner.lastReport == output.report && duplicate.runner.lastReport == nil)
+        #expect(!savedContents.contains("Stored café 🐼"), "A clean stale editor must not write an older version.")
+        #expect(!owner.hasUnsavedChanges && !duplicate.hasUnsavedChanges)
+    }
+
+    @Test(arguments: [false, true])
     func busyReservationIsRejectedBeforeAnyPendingDraftIsSaved(ownerIsTarget: Bool) async throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let target = try library.createNote(content: "Stored target"), other = try library.createNote(content: "Stored other")
