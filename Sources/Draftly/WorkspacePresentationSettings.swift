@@ -5,7 +5,7 @@ struct WorkspacePresentationSettings: View {
     @Binding var workspace: Workspace
     @ObservedObject var library: LibraryStore
     @Binding var error: String?
-    private struct Choice: Identifiable {
+    struct Choice: Identifiable {
         let id: String
         let title: String
         let value: [String: String]
@@ -32,15 +32,17 @@ struct WorkspacePresentationSettings: View {
         }
     }
     private func selected(_ key: String, choices: [Choice]) -> String {
-        guard let value = workspace.apiOptions[key] as? [String: Any] else { return "" }
-        if let uuid = value["uuid"] as? String { return uuid }
+        Self.selectedReferenceID(workspace.apiOptions[key] as? [String: Any],
+            isTheme: ["preferredLightTheme", "preferredDarkTheme"].contains(key), choices: choices)
+    }
+    static func selectedReferenceID(_ value: [String: Any]?, isTheme: Bool, choices: [Choice]) -> String {
+        guard let value else { return "" }
+        let type = value["type"] as? String ?? "builtIn"
+        if (!isTheme || type != "builtIn"), let uuid = value["uuid"] as? String { return uuid }
         if let name = value["name"] as? String {
             return choices.first {
                 guard $0.value["name"] == name else { return false }
-                if ["preferredLightTheme", "preferredDarkTheme"].contains(key) {
-                    return ($0.value["type"] ?? "builtIn") == (value["type"] as? String ?? "builtIn")
-                }
-                return true
+                return !isTheme || ($0.value["type"] ?? "builtIn") == type
             }?.id ?? "missing:\(name)"
         }
         return "missing:reference"
