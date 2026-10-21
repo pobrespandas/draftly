@@ -1302,18 +1302,18 @@
           "contract": "Convenience method to scan the draft content for valid URLs, and return all found URLs as an array. This will return valid full URL strings - both for http(s) and custom URLs found in the text.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "SyntaxActionAPITests",
-            "test": "editorLinksAndMarkersExposeTheDocumentedFields"
+            "suite": "DraftURLContractTests",
+            "test": "fullCustomURLsAreReturnedAlongsideHTTPS"
           },
           "liveCheck": null,
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
           "result": [
             "urls: [string]"
           ],
           "errors": "Host and storage errors throw JavaScript errors.",
           "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
+            "Full explicit URL forms have specific contract tests. Opaque custom URI detection, punctuation boundaries and native comparison remain unverified. No broader lexical policy was inferred from the archived reference."
           ],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
           "compatibilityStatus": "partial",
@@ -3810,18 +3810,18 @@
           "contract": "Convenience method to scan the text for valid URLs, and return all found URLs as an array. This will return valid full URL strings - both for http(s) and custom URLs found in the text.",
           "implementation": "implemented-with-targeted-tests",
           "automatedTest": {
-            "suite": "SyntaxActionAPITests",
-            "test": "editorLinksAndMarkersExposeTheDocumentedFields"
+            "suite": "DraftURLContractTests",
+            "test": "fullCustomURLsAreReturnedAlongsideHTTPS"
           },
           "liveCheck": null,
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
           "result": [
             "urls: [string]"
           ],
           "errors": "Host and storage errors throw JavaScript errors.",
           "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
+            "Full explicit URL forms have specific contract tests. Opaque custom URI detection, punctuation boundaries and native comparison remain unverified. No broader lexical policy was inferred from the archived reference."
           ],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
           "compatibilityStatus": "partial",

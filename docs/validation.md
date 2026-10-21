@@ -5667,3 +5667,25 @@ selection, minimized-window fallback, or a timed pending edit before autosave.
 The automated regression covers that preflight write boundary. Both QA windows
 remain open on the one neutral draft; the helper has no pending reply timer.
 No screenshot is tracked.
+
+
+### Draft and Editor URL contract cases — 20 October 2026
+
+Added DraftURLContractTests.fullCustomURLsAreReturnedAlongsideHTTPS for both
+legacy and worker runners. It checks HTTPS with an escaped query, draftly://,
+shortcuts://, tel:, and mailto: URLs. It checks exact order, duplicate
+occurrences in an unsaved detached draft, unchanged editor reads, Unicode
+surroundings, no matches, and empty content. No production code changed.
+
+The archived Draft.urls and Editor.urls contracts promise full valid URL
+strings for HTTP(S) and custom schemes. They do not specify every lexical
+boundary. An exploratory opaque custom URI case such as obsidian:open was
+not retained as a required assertion without native comparison. Do not infer
+that all opaque schemes are supported, or add broad matching rules that could
+treat ordinary colon-separated prose as a URL. Punctuation boundaries also
+remain unverified. Both members remain partial.
+
+The focused run passed 4 core methods across this suite and SyntaxActionAPITests,
+plus 9 app methods in AutomationEditorContextTests. The new method expanded to
+both runners. No window, permission prompt, or private URL was used. These
+assertions do not establish native Drafts parity or all URL contracts.
