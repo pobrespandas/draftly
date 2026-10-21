@@ -1,0 +1,79 @@
+[
+  {
+    "uuid": "BBBF0037-0000-4000-8000-000000000001",
+    "name": "QA HTML lifetime pending",
+    "group": "HTML lifecycle QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText(editor.getText()+'\\nHTML completed write');draft.update();"
+        }
+      },
+      {
+        "type": "htmlpreview",
+        "data": {
+          "template": "<!doctype html><html><body><h1>Neutral HTML lifetime QA</h1><button onclick=\"setTimeout(()=>{Drafts.send('late','old preview');Drafts.continue()},15000);document.getElementById('state').textContent='Late result armed'\">Arm delayed result</button><p id=\"state\">Not armed</p></body></html>"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "ERROR: HTML continued"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0037-0000-4000-8000-000000000002",
+    "name": "QA HTML fresh response",
+    "group": "HTML lifecycle QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "htmlpreview",
+        "data": {
+          "template": "<h1>Fresh HTML response QA</h1><button onclick=\"Drafts.send('fresh',{text:'café 🐼',empty:null});Drafts.continue()\">Send fresh result</button>"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "const v=context.previewValues;if(v.late!==undefined||v.fresh.text!=='café 🐼'||v.fresh.empty!==null)throw Error('Preview responses crossed');console.log('Fresh preview isolated café 🐼');"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0037-0000-4000-8000-000000000003",
+    "name": "QA HTML production timeout",
+    "group": "HTML lifecycle QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText(editor.getText()+'\\nHTML timeout completed write');draft.update();"
+        }
+      },
+      {
+        "type": "htmlpreview",
+        "data": {
+          "template": "<h1>Neutral HTML timeout QA</h1><p>Wait for the production timeout.</p>"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "ERROR: HTML continued"
+        }
+      }
+    ]
+  }
+]

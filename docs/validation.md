@@ -7941,3 +7941,44 @@ text, escape/unescape roundtrip, decoded markup, one pass and empty strings.
 History recorded Success06:56; the editor was unchanged. Constructor is complete;
 escape/unescape remain partial for exact spelling/catalog comparison. No binary,
 malformed or complete native catalog result is inferred from the bridge tests.
+
+
+### Native HTML preview lifetime — 21 October 2026
+
+Verified in use on the signed Engine QA image recorded in the HTML literal
+entry. Imported engine-html-lifetime-actions.json. Pending actions save neutral
+text before presentation and have an ERROR tail plus Archive after success.
+The fresh-response action checks typed Unicode/null and absence of an old key.
+
+Task cancel: clicked Arm delayed result and observed Late result armed. The old
+page scheduled Drafts.send/continue after15 seconds. Actions > Cancel Running
+Action removed the preview. A fresh preview remained open42.9 seconds after the
+old timer was armed. Send fresh result returned only its own typed values;
+History showed pending Cancelled and fresh Success06:57. This demonstrates
+observable isolation. It does not prove that the old WebKit timer actually ran
+or delivered a message after its handler was detached. Direct late receive
+rejection is covered separately by the existing headless request tests.
+
+Owner close: opened another pending preview and clicked its owner close button.
+The source window disappeared; the next observed window was Untitled. Selected
+Alpha again. History recorded Cancelled06:57. Completed text remained Inbox
+without the tail or Archive. No preview remained from the closed owner.
+
+Production timeout: started the dedicated pending preview without changing the
+120-second limit. It was still visible at77.9 seconds after first observation,
+and absent at154.9 seconds. History recorded Error07:00 with The action operation
+timed out before it completed. This does not measure exact teardown latency or
+isolate equal host/request deadlines. Completed text remained Inbox without tail
+or Archive. A following fresh preview recorded Success07:01 and only its own
+values. History is closed; no preview or action remains pending.
+
+Implemented: no production preview change. Automatically tested: all six existing
+NativeHTMLPreviewRequestTests passed headlessly, including explicit late receive
+after timeout, cancellation, cleanup once, subframes and errors. The current
+production build also passed the499 app sequential and604 core concurrent runs
+recorded above. Capability-specific URL/Intent variants and actual stale WebKit
+message delivery remain separate. No remote content, permission or personal data
+was used. The HTML unescape correction is in its own commit.
+
+Final tooling passed47 Python tests and matrix structure0. Strict engine/global
+remain18/4356 diagnostics. These counts do not establish compatibility.

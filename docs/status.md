@@ -25,6 +25,12 @@ retain historical results. Later results supersede earlier counts.
 
 ## Current verification
 
+Native HTML preview task cancel, owner close and production timeout passed on
+the current QA image. Completed writes stayed Inbox without tail/Archive; fresh
+responses remained isolated. An old scheduled timer did not finish or contaminate
+the new preview. Actual stale WebKit delivery was not observed; direct late
+request rejection has headless coverage. No production preview code changed.
+
 HTML.unescape now preserves literal CRLF/CR, NUL and surrounding text while
 decoding entity tokens. Three red byte cases now pass; native QA passed.
 Sequential app499 and concurrent core604 methods plus unsigned Xcode passed.
