@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 import Testing
 import DraftlyCore
 @testable import Draftly
@@ -87,4 +88,73 @@ struct AppThemeContractTests {
         }
         #expect(defaults.data(forKey: EditorThemePreferences.key) == saved)
     }
+
+    @Test func normalScopeBackgroundAppliesWithoutReplacingCanvasOrForegroundAndKeepsUndo() async throws {
+        _ = NSApplication.shared
+        let source: [String: Any] = [
+            "name": "Normal paper QA", "description": "Neutral theme contract", "isDark": false,
+            "colors": [
+                "editor": ["ink": "#102030", "paper": "#A1B2C3", "codePaper": "#D4E5F6"],
+                "interface": ["textForeground": "#FF0000", "textBackground": "#17324D"]
+            ],
+            "scopes": [
+                "text.normal": ["settings": ["foreground": "ink", "background": "paper"]],
+                "code.inline": ["settings": ["background": "codePaper"]]
+            ]
+        ]
+        let theme = try DraftsThemeImport.decode(data: JSONSerialization.data(withJSONObject: source))
+        let session = EditorSession()
+        let original = "Original café 🐼 `code`"
+        session.load(Note(content: original), focusEditor: false)
+        func editor(_ theme: EditorTheme?) -> NativeEditor {
+            NativeEditor(session: session, fontName: "System", fontSize: 17, lineSpacing: 2,
+                markdown: true, theme: theme, onChange: {})
+        }
+        let host = NSHostingView(rootView: editor(nil))
+        let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 500, height: 400),
+            styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = host
+        defer { window.contentView = nil }
+        host.layoutSubtreeIfNeeded()
+        await TestMainQueue.drain()
+        func textView(_ view: NSView) -> DraftTextView? {
+            if let text = view as? DraftTextView { return text }
+            return view.subviews.lazy.compactMap { textView($0) }.first
+        }
+        let text = try #require(textView(host))
+        let manager = try #require(text.undoManager)
+        manager.groupsByEvent = false
+        manager.beginUndoGrouping()
+        try session.replace(NSRange(location: 0, length: 8), with: "Edited")
+        session.synchronizeScriptEdit?()
+        manager.endUndoGrouping()
+        let edited = session.content
+        let selected = (edited as NSString).range(of: "café 🐼")
+        session.selection = selected
+        session.synchronizeScriptEdit?()
+        host.rootView = editor(theme)
+        host.layoutSubtreeIfNeeded()
+        await TestMainQueue.drain()
+        func hex(_ value: Any?) throws -> String {
+            let color = try #require((value as? NSColor)?.usingColorSpace(.sRGB))
+            return String(format: "%02X%02X%02X", Int((color.redComponent * 255).rounded()),
+                Int((color.greenComponent * 255).rounded()), Int((color.blueComponent * 255).rounded()))
+        }
+        let storage = try #require(text.textStorage)
+        #expect(try hex(storage.attribute(.backgroundColor, at: 0, effectiveRange: nil)) == "A1B2C3")
+        #expect(try hex(storage.attribute(.foregroundColor, at: 0, effectiveRange: nil)) == "102030")
+        let code = (edited as NSString).range(of: "code").location
+        #expect(try hex(storage.attribute(.backgroundColor, at: code, effectiveRange: nil)) == "D4E5F6")
+        #expect(try hex(text.backgroundColor) == "17324D")
+        #expect(try hex(text.enclosingScrollView?.backgroundColor) == "17324D")
+        #expect(text.string == edited && text.selectedRange() == selected && session.selection == selected)
+        #expect(manager.canUndo)
+        manager.undo()
+        #expect(text.string == original && session.content == original)
+        manager.redo()
+        #expect(text.string == edited && session.content == edited)
+        #expect(try hex(storage.attribute(.backgroundColor, at: 0, effectiveRange: nil)) == "A1B2C3")
+        #expect(try hex(text.backgroundColor) == "17324D")
+    }
+
 }

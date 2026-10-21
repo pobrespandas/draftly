@@ -160,7 +160,7 @@ struct NativeEditor: NSViewRepresentable {
                 paragraphSpacing: parent.paragraphSpacing, legacyLineSpacing: parent.lineSpacing)
             var baseAttributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: foreground, .paragraphStyle: paragraph]
             if var style = parent.theme?.scopeStyle(named: "text.normal") {
-                style.foreground = nil; style.background = nil
+                style.foreground = nil
                 baseAttributes.merge(ThemeTextAttributes.make(style, currentFont: font, baseFont: baseFont)) { _, new in new }
                 font = baseAttributes[.font] as? NSFont ?? font
             }
