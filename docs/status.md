@@ -2,15 +2,22 @@
 
 Updated: 21 October 2026.
 
-Draftly works as a local Mac app. Mac parity is not complete. The inspector and
-personalization refactoring stage is complete. Cloning remains paused until the
-user resumes feature work. Read the [current record](refactoring-editing-2026-10-21.md)
-for the reference tag, diagnosis, checks and resume point. All four extractions
-passed: editing copy, theme commands, theme options and the editor/Undo fixture.
-Final results: 630 core methods, 557 app methods, 67 Python tests, local build
-and matrix structure. Separate manual QA checked bindings, Save, Cancel, theme
-references and Undo/Redo. The installed app was not replaced. Earlier refactoring
-passes are also closed.
+Draftly works as a local Mac app. Mac parity is not complete. Cloning resumed
+from 026cfbb after the completed inspector/personalization refactoring stage.
+The current delivery covers the main window, daily flows and personalization.
+Read [the delivery record](ui-flows-2026-10-21.md) for separate implementation,
+automatic, native and pending results. Capture receipt/append, File commands,
+Workspace sort, list preference ownership and shortcut/font fixes are committed.
+The final checked run passed 631 core / 596 app methods. All 67 Python tests,
+local compilation and matrix structure passed. Native QA confirmed capture
+restart, Services, Workspace view order, Merge cancellation, and restored panel
+widths after a narrow/wide transition. HTML list-mark persistence has its own
+paste, Unicode and Undo regression. These results do not accept all contracts.
+The installed signed app remains unchanged. Canonical visual pairs, missing
+Settings controls and complete native acceptance remain open. Read the finite
+remaining list in the delivery record before installing or claiming closure.
+The earlier [refactoring record](refactoring-editing-2026-10-21.md) retains the
+four completed extractions and their evidence.
 Historical sections below retain their original scope and dates.
 Keep the identity Draftly, `Note`, existing identities and libraries, original
 action scripts, Nerd Fonts, and the integrated Markdown preview.
@@ -39,8 +46,8 @@ and native acceptance remain separate. This does not close the Mac roadmap.
 
 ## Current delivery order — 21 October 2026
 
-The user now prioritizes inspector, Workspaces, Settings and personalization.
-Then close the visual comparison and capture/search flows. Keep outstanding
+The current order is main window and daily flows, then Workspaces, Settings
+and personalization, followed by validation and signed installation. Keep outstanding
 engine and API checks open; do not substitute these deliveries for them.
 
 The action step inspector now exposes Enabled through the existing isEnabled
