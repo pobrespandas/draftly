@@ -1167,3 +1167,9 @@ Native UI production timeout passed after the earlier URL/Intent timeout and
 interruption checks. Exact retained data and one root error were confirmed by
 native export. Strict engine parity still has24 diagnostics across eight other
 partial contracts. Full validation and remaining limitations are in the matrix.
+
+
+Promise acceptance —20 October2026: promise rejection and asynchronous timeout
+is complete for its named contracts. Direct returned-rejection URL now has one
+correct error callback and retained Inbox text. Strict engine parity remains
+open with21 diagnostics across seven other partial contracts.

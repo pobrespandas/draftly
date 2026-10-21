@@ -16899,15 +16899,13 @@
     },
     {
       "contract": "promise rejection and asynchronous timeout",
-      "compatibilityStatus": "partial",
+      "compatibilityStatus": "complete",
       "automatedTest": {
         "suite": "AsyncActionRunnerTests",
         "test": "timeoutAndRejectedPromisesStopLaterStepsAndSuccessEffects"
       },
-      "liveCheck": "docs/validation.md: Native action-list promise checks — 20 October 2026",
-      "limitations": [
-        "Native UI and direct Intent discarded/intrinsic/returned/caught variants passed, with recovery and preserved failure effects. Earlier URL discarded/intrinsic/caught callbacks are documented. Direct returned-rejection URL callback acceptance still needs a linked check. Production wait timeout is recorded for UI and queued URL/Intent entries."
-      ],
+      "liveCheck": "docs/validation.md: Native returned promise URL callback — 20 October 2026",
+      "limitations": [],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
         "test": "asyncPromiseRejectionAndTimeoutStopDisposition"
@@ -16982,8 +16980,7 @@
         }
       ],
       "nativeVerification": {
-        "status": "pending",
-        "reason": "Direct Intent rejection variants now join UI variants and earlier URL discarded/intrinsic/caught checks. Direct returned-rejection URL callback acceptance remains pending. Other capability-specific cancellation checks belong to their separate contracts.",
+        "status": "passed",
         "evidence": "docs/validation.md",
         "additionalChecks": [
           {
@@ -17031,8 +17028,18 @@
             "entryPoint": "actual Shortcuts Run Draft Action",
             "result": "Discarded, intrinsic and returned rejection each produced its exact Intent error and matching Error history. Returned text stayed in Inbox without tail/Archive. Caught rejection then completed and recorded Success. Shortcut fields restored.",
             "evidence": "docs/validation.md: Native Intent promise rejection variants — 20 October 2026"
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "785e0548ab98a23c6a0e865e90215b7e8a1534b2e27406581359249f825d2224",
+            "fixture": "scripts/fixtures/engine-promise-actions.json",
+            "entryPoint": "external run URL via isolated local helper",
+            "result": "Returned rejection produced one identified error callback with exact message and no discard success parameter. Text stayed exact in Inbox with no tail/Archive; History Error and callback count one remained after inspection.",
+            "evidence": "docs/validation.md: Native returned promise URL callback — 20 October 2026"
           }
-        ]
+        ],
+        "date": "2026-10-20",
+        "scope": "Linked native UI and direct Intent rejection variants, URL discarded/intrinsic/caught checks and direct returned rejection callback passed. Production UI and queued URL/Intent async wait timeout passed. Completed effects survive; later steps, disposition and failure success-parameters are excluded. Other capability cancellation and late-final-callback cases stay in separate contracts."
       },
       "automatedVerification": {
         "status": "passed",
@@ -17659,6 +17666,14 @@
             "fixture": "scripts/fixtures/engine-queue-actions.json",
             "evidence": "docs/validation.md: Current-image native queued URL timeout — 20 October 2026",
             "result": "Production-configured120-second pending child returned one URL error callback with no root success parameter. Callback count zero at57.243s and one at135.644s are observation times. Retained source/child Inbox writes, last-child editor, and Error history passed."
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "785e0548ab98a23c6a0e865e90215b7e8a1534b2e27406581359249f825d2224",
+            "fixture": "scripts/fixtures/engine-promise-actions.json",
+            "entryPoint": "external run URL via isolated local helper",
+            "result": "Returned rejection produced one identified error callback with exact message and no discard success parameter. Text stayed exact in Inbox with no tail/Archive; History Error and callback count one remained after inspection.",
+            "evidence": "docs/validation.md: Native returned promise URL callback — 20 October 2026"
           }
         ]
       },

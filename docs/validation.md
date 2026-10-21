@@ -5380,3 +5380,33 @@ discarded/intrinsic/caught URL callback checks are recorded in Discarded
 rejection correction. A direct returned-rejection URL callback check is not
 yet linked. Keep the promise contract partial until that specific gap closes.
 Other capability-specific cancellation checks remain in their own contracts.
+
+
+### Native returned promise URL callback — 20 October 2026
+
+Used the local callback helper to target Engine QA image
+785e0548ab98a23c6a0e865e90215b7e8a1534b2e27406581359249f825d2224.
+Built draftly://run for QA Returned rejection and neutral fixture UUID
+A52FA8DB-A020-40D3-AF18-25654E97CCE7, with separate identified success/error/
+cancel destinations. Used percent-encoded spaces. Confirmed the native Run
+Action prompt named the expected action and existing neutral target.
+
+The helper received exactly one callback: case returned-rejection-url, result
+error, errorMessage Error: Neutral returned rejection. It had no discard
+success parameter. Engine QA also showed its error alert; dismissed it. The
+full editor content was Returned rejection completed write. Inbox still had
+nine notes, with no tail text or Archive. History showed the new Error row.
+After closing History, helper count remained one with the same error fields.
+No personal library or shortcut setting changed in this check.
+
+This supplies the missing direct returned-rejection URL acceptance. The earlier
+UI and URL discarded/intrinsic/caught checks, direct Intent variants, and
+production UI/queued URL/Intent wait-timeout evidence remain linked in the
+matrix. The promise rejection and asynchronous timeout contract is complete
+for its named cases. Capability-specific cancellation and final late callback
+contracts remain separate and partial. No automatic code changed; the prior
+focused promise/runtime/epoch run passed8 methods. No screenshot is tracked.
+
+Structural matrix check passes. Strict engine parity now reports21 diagnostics
+for seven remaining partial contracts. The promise contract has no strict
+diagnostic. This closes that contract only, not the engine or Mac plan.
