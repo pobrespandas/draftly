@@ -5471,3 +5471,32 @@ and do not open windows. Native evidence accepts task-owned prompt cleanup,
 keyboard cancellation, fresh selection state and recovery. It does not accept
 transcription, EventKit, Apple model cancellation, or OS permission dialogs.
 Those engine contracts remain partial. No screenshot is tracked.
+
+
+### Native on-device model unavailability — 20 October 2026
+
+Added engine-apple-model-cancel-actions.json with a stable identity. It uses
+only the onDevice mode, clears toolSets, and uses a neutral prompt. It checks
+isAvailable before requesting a response. If unavailable, it requires respond
+to return undefined and lastError to contain the explicit availability error.
+If available, it requests a long neutral response for task-cancellation QA.
+No private-cloud or third-party provider is requested.
+
+Imported and ran the fixture in Engine QA image
+785e0548ab98a23c6a0e865e90215b7e8a1534b2e27406581359249f825d2224.
+The unavailable branch completed with exact editor text Apple model unavailable:
+The selected Apple Intelligence model is unavailable on this Mac. The Cancel
+Running Action command was disabled after completion; no generation was pending.
+NativeActionHost constructs NativeModelAPI without a test backend. Its mode
+list uses FoundationModels.SystemLanguageModel.default.isAvailable. This is
+the current system availability response, not a simulated failure. The cause
+(language, configuration, or model readiness) was not established.
+
+No permission, model download, or system setting changed. This accepts only
+the unavailable onDevice response and lastError path. Native cancellation of
+an actual generation remains blocked by current availability. Do not mark
+ModelSession globally unavailable or accept its successful-response contracts.
+PCC remains unchecked. The focused injected-backend model suite passed7 app
+methods, including cleanup, deadline, overlap, cancellation and tool lifetime.
+No automated test opens a window or requests the real model. No screenshot is
+tracked. The other native capability work can continue independently.

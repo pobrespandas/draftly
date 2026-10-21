@@ -1,0 +1,16 @@
+[
+  {
+    "uuid": "BBBF0003-0000-4000-8000-000000000001",
+    "name": "QA Apple on-device cancellation",
+    "group": "Native cancellation QA",
+    "notificationType": 0,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "var session=ModelSession.create('onDevice');session.toolSets=[];\nif(!session.isAvailable){var result=session.respond('Return neutral.');if(result!==undefined||typeof session.lastError!=='string'||session.lastError.indexOf('unavailable')<0)throw new Error('Unavailable model did not report its error');editor.setText('Apple model unavailable: '+session.lastError);draft.update();}\nelse{editor.setText('Apple model pending neutral');draft.update();var result=session.respond('Return 2000 repetitions of the word neutral, separated by spaces.');if(session.lastError)throw new Error(session.lastError);editor.setText('Model response completed before cancellation');draft.update();}"
+        }
+      }
+    ]
+  }
+]
