@@ -73,6 +73,8 @@ final class AppController: ObservableObject {
     @Published var globalShortcutErrors: [String: String] = [:]
     @Published var commandWindow: WindowModel?
     let recentDrafts: RecentDraftStore
+    private(set) var spotlight: SpotlightPreferences?
+    private var spotlightRequested = false
     var pendingNoteID: UUID? { didSet { pendingTargetWindow = nil; pendingTargetModel = nil; pendingExcludedModels = nil } }
     private var pendingExcludedModels: Set<ObjectIdentifier>?
     private weak var pendingTargetWindow: NSWindow?
@@ -118,9 +120,16 @@ final class AppController: ObservableObject {
             do { try LocalThemeMigration.run(in: store) }
             catch { store.error = "Theme migration failed: " + error.localizedDescription }
             library = store
+            if spotlightRequested { startSpotlightIndexing() }
             refreshThemeDevelopmentFolder()
             startupError = nil
         } catch { startupError = error.localizedDescription }
+    }
+    func startSpotlightIndexing() {
+        spotlightRequested = true
+        guard let library else { return }
+        if spotlight == nil { spotlight = SpotlightPreferences() }
+        spotlight?.attach(to: library)
     }
     func refreshThemeDevelopmentFolder(defaults: UserDefaults = .standard) {
         guard let library else { return }

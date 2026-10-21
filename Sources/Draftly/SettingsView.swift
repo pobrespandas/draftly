@@ -152,6 +152,11 @@ struct SettingsView: View {
                     .toggleStyle(.checkbox)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.leading, 205)
+                if let spotlight = controller.spotlight {
+                    SpotlightSettingsView(preferences: spotlight)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.leading, 205)
+                }
                 Divider()
                 GlobalShortcutPreferences(app: controller)
                 Divider()
@@ -212,6 +217,29 @@ struct LibrarySyncStatusView: View {
                 Button("Check iCloud Account") { Task { await library.refreshCloudAccount() } }
                 Text("Local saves do not confirm that other Macs received your changes.")
                     .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+
+private struct SpotlightSettingsView: View {
+    @ObservedObject var preferences: SpotlightPreferences
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Toggle("Index drafts in Spotlight", isOn: Binding(
+                get: { preferences.isEnabled }, set: { preferences.setEnabled($0) }))
+                .toggleStyle(.checkbox)
+                .disabled(!preferences.isAvailable)
+            if !preferences.isAvailable {
+                Text("Spotlight indexing is unavailable on this Mac.")
+                    .font(.caption).foregroundStyle(.secondary)
+            } else if preferences.isChanging {
+                Text("Updating Spotlight…").font(.caption).foregroundStyle(.secondary)
+            }
+            if let error = preferences.error {
+                Text(error).font(.caption).foregroundStyle(.red).textSelection(.enabled)
+                Button("Try Again") { preferences.retry() }
             }
         }
     }

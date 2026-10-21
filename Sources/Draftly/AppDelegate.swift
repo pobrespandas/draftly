@@ -23,6 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             UserDefaults.standard.string(forKey: ApplicationAppearance.preferenceKey) ?? "System"
         ).nativeAppearance
         Self.current = self
+        AppController.shared.startSpotlightIndexing()
         NSApp.setActivationPolicy(.regular)
         NSApp.servicesProvider = self
         statusController = StatusMenuController(controller: AppController.shared)
@@ -44,6 +45,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Self.routeExternalURLs(urls, receiveCallback: ActionCallbackRouter.receive) {
             AppController.shared.handle($0)
         }
+    }
+
+    func application(_ application: NSApplication, continue userActivity: NSUserActivity,
+                     restorationHandler: @escaping ([any NSUserActivityRestoring]) -> Void) -> Bool {
+        guard let id = SpotlightPreferences.draftID(activityType: userActivity.activityType,
+                                                   userInfo: userActivity.userInfo) else { return false }
+        return AppController.shared.openSearchResult(id)
     }
 
     static func routeExternalURLs(_ urls: [URL], receiveCallback: (URL) -> Bool, handle: (URL) -> Void) {
