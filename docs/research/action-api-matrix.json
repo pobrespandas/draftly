@@ -15231,10 +15231,59 @@
             "execute(subroutine: string, arguments: object[]): boolean"
           ],
           "contract": "Compiles and executes the AppleScript code, calling the subroutine passed with the arguments.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "implemented-with-specific-contract-tests",
+          "automatedTest": {
+            "suite": "AppleScriptContractTests",
+            "test": "executeForwardsSourceSubroutineAndStructuredArguments"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "AppleScript.execute"
+          },
+          "defaults": "The archived signature requires a subroutine and arguments array. Omitted arguments remain an existing Draftly extension ([]).",
+          "result": "Boolean true on execution success; false with lastError for ordinary host errors. Successful results update lastResult and the response collection.",
+          "errors": "Typed cancellation, timeout and raw CancellationError abort rather than becoming an ordinary false. Legacy final reports retain their generic error reason.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "AppleScriptContractTests",
+                "test": "executeForwardsSourceSubroutineAndStructuredArguments"
+              },
+              "assertion": "Both runners forward source, subroutine and structured arguments without mutation and retain independent results."
+            },
+            "defaults": {
+              "notApplicable": "The archived signature documents no defaults. Omitted arguments remain an extension."
+            },
+            "errors": {
+              "test": {
+                "suite": "AppleScriptContractTests",
+                "test": "ordinaryFailureReturnsFalseAndLaterSuccessClearsLastError"
+              },
+              "assertion": "Ordinary failures return false with the latest message. A following success clears lastError."
+            }
+          },
+          "supportingTests": [
+            {
+              "suite": "AppleScriptContractTests",
+              "test": "controlErrorsDoNotBecomeAnOrdinaryFailureBoolean"
+            }
+          ],
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: AppleScript interruption integrity — 21 October 2026"
+          },
+          "nativeVerification": {
+            "status": "pending",
+            "date": "2026-10-21",
+            "scope": "This change has headless host evidence only. Native interruption on the corrected image is not accepted."
+          },
+          "limitations": [
+            "Native AppleScript date conversion, including nested dates, remains missing. Date argument semantics and native permission-denied variants still need review. This result does not close AppleScript compatibility."
+          ]
         },
         {
           "member": "create",

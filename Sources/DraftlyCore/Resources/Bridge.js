@@ -355,7 +355,7 @@ class Shortcut {
 }
 class AppleScript {
     constructor(source){this.source=source;}static create(source){return new AppleScript(source);}
-    execute(subroutine,args=[]){try{this.lastResult=__call('appleScript',{source:this.source,subroutine,arguments:args});context.appleScriptResponses.push(this.lastResult);this.lastError=undefined;return true;}catch(e){this.lastError=e.message;return false;}}
+    execute(subroutine,args=[]){try{this.lastResult=__call('appleScript',{source:this.source,subroutine,arguments:args});context.appleScriptResponses.push(this.lastResult);this.lastError=undefined;return true;}catch(e){if(e.__draftlyTermination)throw e;this.lastError=e.message;return false;}}
 }
 class ShellScript {
     constructor(source){this.source=source;}static create(source){return new ShellScript(source);}

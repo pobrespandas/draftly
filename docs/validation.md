@@ -7683,3 +7683,34 @@ owner-close success. QA is back on Alpha with history closed and no print panel.
 Automatically tested: the15 NativePrintRequestTests passed headlessly on this
 source. No production implementation changed for the native timeout check.
 Owner-close and long-rendering acceptance remain pending.
+
+
+### AppleScript interruption integrity — 21 October 2026
+
+Implemented: AppleScript.execute now rethrows marked control errors before
+handling ordinary host failures as false. The new member suite first showed
+three legacy regressions: timeout, typed cancellation and CancellationError
+continued to edit text, publish a success parameter and Archive. The worker
+already rejected those effects. The same assertions now pass on both runners.
+Ordinary failures still return false and set lastError; later success clears it.
+
+Automatically tested: four specific methods cover12 runner/argument cases.
+They check independent constructors without host execution, optional writable
+properties, exact source/subroutine/structured arguments, independent results,
+ordinary failure/recovery and control errors. The focused suite passed. The
+full sequential run passed496 app and590 core methods. The unsigned Xcode
+build passed. Matrix structure validation passed. No automatic window, native
+permission or external message was used. The original five scripts are unchanged.
+
+The first full concurrent run did not finish. Its helper remained alive with
+no CPU or log changes. A process sample showed idle executors; outstanding
+async tests remained. After recording the diagnostic, that exact helper and
+parent were terminated. AsyncHostDrainTests then passed both cases alone, and
+the full sequential run passed. The concurrent-suite stall remains unresolved;
+the sequential result does not establish its cause or erase the failed attempt.
+
+Verified in use: none for this code change. QA still uses the earlier signed
+image. The five-member AppleScript audit is not closed. Native date conversion
+and nested dates are missing; permission and Date argument contracts need review.
+Only execute receives a partial classification in this stage. Constructor and
+property evidence is available in the new suite for the next member review.

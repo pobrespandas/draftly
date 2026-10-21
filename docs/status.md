@@ -25,6 +25,13 @@ retain historical results. Later results supersede earlier counts.
 
 ## Current verification
 
+AppleScript.execute now preserves fatal interruption in the legacy bridge.
+Three red cases showed later edits and Archive before correction. Four specific
+methods now pass on both runners. Full sequential regression passed496 app and
+590 core methods; unsigned Xcode passed. The concurrent full run stalled and
+remains a test-runner investigation. Native date conversion and native acceptance
+of this correction remain pending. AppleScript.execute stays partial.
+
 ShellScript now returns false for ordinary execution failures while retaining
 fatal cancellation/timeout. Six member-specific methods passed in both runners,
 and native status/streams/launch-failure checks passed. Four value/stream members
