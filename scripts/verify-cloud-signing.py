@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 """Check the signed app against its embedded provisioning profile."""
+import argparse
 import datetime
 import json
 import plistlib
 from pathlib import Path
 import subprocess
-import sys
 
 
 def read_plist(command):
     return plistlib.loads(subprocess.check_output(command, stderr=subprocess.DEVNULL))
 
 
-def verify(app):
+def verify(app, *, expected_bundle_identifier=None, expected_team=None, expected_container=None):
     app = Path(app)
     subprocess.run(["codesign", "--verify", "--deep", "--strict", str(app)], check=True)
     info = plistlib.loads((app / "Contents/Info.plist").read_bytes())
@@ -31,6 +31,12 @@ def verify(app):
     team = rights.get("com.apple.developer.team-identifier")
     if not team or team not in profile.get("TeamIdentifier", []):
         raise ValueError("The signature team does not match the profile.")
+    if expected_bundle_identifier is not None and info["CFBundleIdentifier"] != expected_bundle_identifier:
+        raise ValueError("The bundle identifier does not match the expected bundle identifier.")
+    if expected_team is not None and team != expected_team:
+        raise ValueError("The signature team does not match the expected team.")
+    if expected_container is not None and container != expected_container:
+        raise ValueError("The configured CloudKit container does not match the expected container.")
     application = rights.get("com.apple.application-identifier")
     if application != f"{team}.{info['CFBundleIdentifier']}" or application != allowed.get("com.apple.application-identifier"):
         raise ValueError("The app identity does not match the profile.")
@@ -50,10 +56,19 @@ def verify(app):
             "notarizationVerified": False}
 
 
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        raise SystemExit("Usage: scripts/verify-cloud-signing.py /path/to/Draftly.app")
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("app", help="Path to the signed app bundle.")
+    parser.add_argument("--expected-bundle-identifier", help="Required bundle identifier, when specified.")
+    parser.add_argument("--expected-team", help="Required signing team, when specified.")
+    parser.add_argument("--expected-container", help="Required CloudKit container, when specified.")
+    args = parser.parse_args(argv)
     try:
-        print(json.dumps(verify(sys.argv[1]), indent=2))
+        print(json.dumps(verify(args.app, expected_bundle_identifier=args.expected_bundle_identifier,
+                                expected_team=args.expected_team, expected_container=args.expected_container), indent=2))
     except (OSError, ValueError, KeyError, subprocess.CalledProcessError) as error:
         raise SystemExit(f"Signing check failed: {error}")
+
+
+if __name__ == "__main__":
+    main()

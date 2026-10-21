@@ -19,9 +19,11 @@ To enable iCloud:
 
 1. Copy `Configuration/Signing.xcconfig.example` to
    `Configuration/Signing.xcconfig`.
-2. Set your paid Apple Developer team ID, bundle ID, and CloudKit container ID.
+2. Set your paid Apple Developer team ID. The main bundle ID is
+   `com.pobrespandas.draftly`. Keep the existing
+   `iCloud.com.andrestobelem.draftly` container.
 3. Sign in to that team in Xcode. Open `Draftly.xcodeproj` and check Signing &
-   Capabilities. Create the CloudKit container if Xcode requests it.
+   Capabilities. Assign the existing container to the main App ID.
 4. Run `scripts/build-app.sh --icloud`.
 5. Open the app on two Macs with the same iCloud account. Use the checklist in
    [validation.md](docs/validation.md).
@@ -34,10 +36,15 @@ private Development container. The full sync matrix remains open.
 CloudKit sync is eventual. Local saves do not prove a remote save.
 
 Signed Debug builds use `.build/icloud/Build/Products/Debug/Draftly.app`.
-Local builds keep their existing output. Run `scripts/package-personal.sh` for a
-signed Release package for registered Macs. See
+Local builds keep their existing output. Set `DRAFTLY_BUILD_OUTPUT` to use an
+isolated build directory. Set `DRAFTLY_PROVISIONING_PROFILE` to use an installed
+manual profile when Xcode has no signed-in account. Run
+`scripts/package-personal.sh` for a signed Release package for registered Macs. See
 [icloud-distribution.md](docs/icloud-distribution.md) for profile limits,
-installation, updates, and the current server test result.
+installation, updates, and the current server test result. The main app is
+installed at `~/Applications/Draftly.app`. Read
+[bundle identity migration](docs/bundle-identity-2026-10-21.md) before changing
+its identifier or restoring the previous package.
 
 ## Use Draftly
 

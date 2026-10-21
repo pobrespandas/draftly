@@ -11,7 +11,16 @@ sections below retain their original scope and dates.
 Keep the identity Draftly, `Note`, existing identities and libraries, original
 action scripts, Nerd Fonts, and the integrated Markdown preview.
 
-## Current work — UI boundary refactoring
+## Main app identity — 21 October 2026
+
+The main app now uses `com.pobrespandas.draftly`, with the same display name,
+team and existing CloudKit container. The signed Release is installed at
+`~/Applications/Draftly.app`. Local preferences migrate before app initialization.
+Read [the migration record](bundle-identity-2026-10-21.md) for separate automated,
+native and pending results. The previous UI refactoring stage is complete.
+This delivery does not close any remaining cloning contracts.
+
+## Previous work — UI boundary refactoring
 
 The user requested behavior-preserving refactoring before more feature work.
 See [the accepted diagnosis](refactoring-ui-2026-10-21.md) for four bounded stages,

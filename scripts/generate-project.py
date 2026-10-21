@@ -35,7 +35,7 @@ signing = add("signing", 'isa = PBXFileReference; lastKnownFileType = text.xccon
 for config in ["Debug", "Release"]:
     active = 'YES' if config == 'Debug' else 'NO'
     add("project:" + config, f'isa = XCBuildConfiguration; name = {config}; buildSettings = {{ SDKROOT = macosx; MACOSX_DEPLOYMENT_TARGET = 26.0; SWIFT_VERSION = 6.0; CLANG_ENABLE_MODULES = YES; ONLY_ACTIVE_ARCH = {active}; }};')
-    settings = 'CODE_SIGN_STYLE = Automatic; CODE_SIGN_ENTITLEMENTS = Configuration/Draftly.entitlements; INFOPLIST_FILE = Configuration/Info.plist; GENERATE_INFOPLIST_FILE = NO; PRODUCT_NAME = Draftly; ENABLE_HARDENED_RUNTIME = YES; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks"; SWIFT_EMIT_LOC_STRINGS = YES;'
+    settings = 'CODE_SIGN_STYLE = "$(DRAFTLY_CODE_SIGN_STYLE)"; PROVISIONING_PROFILE_SPECIFIER = "$(DRAFTLY_PROVISIONING_PROFILE)"; CODE_SIGN_ENTITLEMENTS = Configuration/Draftly.entitlements; INFOPLIST_FILE = Configuration/Info.plist; GENERATE_INFOPLIST_FILE = NO; PRODUCT_NAME = Draftly; ENABLE_HARDENED_RUNTIME = YES; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks"; SWIFT_EMIT_LOC_STRINGS = YES;'
     settings += ' SWIFT_OPTIMIZATION_LEVEL = "' + ('-Onone' if config == 'Debug' else '-O') + '";'
     add("app:" + config, f'isa = XCBuildConfiguration; name = {config}; baseConfigurationReference = {signing}; buildSettings = {{ {settings} }};')
 projectconfigs = add("projectconfigs", 'isa = XCConfigurationList; buildConfigurations = (' + ','.join(uid('project:' + c) for c in ['Debug','Release']) + '); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug;')

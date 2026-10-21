@@ -1,18 +1,20 @@
 # iCloud and personal installation
 
-Reference date: 19 October 2026.
+Current identity: 21 October 2026. Historical server checks retain their dates.
+Read [the identity migration record](bundle-identity-2026-10-21.md) for data
+conservation, installation and remaining native checks.
 
 ## Configuration
 
 The configured team is `NM92LU2KKV`. Apple reports its name as
 `Andrés Tobelem`. Xcode does not list a separate team named `pobrespandas`.
 The team can now provision CloudKit and push notifications. This Mac was
-registered through automatic signing. The generated main profile expires on
-19 October 2027.
+registered through automatic signing. The new main development profile expires on
+21 October 2027 and covers the registered Mac and UTM guest.
 
 The main app uses these identifiers:
 
-- App: `com.andrestobelem.draftly`.
+- App: `com.pobrespandas.draftly`.
 - Container: `iCloud.com.andrestobelem.draftly`.
 - Database: private.
 - CloudKit environment: Development.
@@ -44,9 +46,12 @@ Run `scripts/package-personal.sh` to build the Release app and create:
 - `.build/distribution/signing-report.json`.
 
 This package uses a development profile. Only registered Macs covered by that
-profile can use it. The current profile covers one Mac. Register each additional
-Mac and regenerate the profile before building its package. The package is not
-notarized. General installation through Gatekeeper requires a Developer ID
+profile can use it. The `Draftly Mac and VM 2026-10-21` profile covers the host
+and registered VM.
+Set `DRAFTLY_PROVISIONING_PROFILE="Draftly Mac and VM 2026-10-21"` when building
+with that installed profile. Check the embedded profile after each build.
+Register each additional Mac and regenerate the profile before building its
+package. The package is not notarized. General installation through Gatekeeper requires a Developer ID
 certificate, the correct profile, and notarization. Those steps are not claimed
 by this package.
 

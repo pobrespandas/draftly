@@ -5,6 +5,19 @@ import DraftlyCore
 @main enum DraftlyLauncher {
     @MainActor static func main() {
         if let status = NativeAppleScriptProcess.runHelperIfRequested() { exit(status) }
+        while true {
+            do {
+                try ApplicationIdentityMigration.prepare()
+                break
+            } catch {
+                _ = NSApplication.shared
+                let alert = NSAlert(error: error)
+                alert.messageText = "Draftly could not migrate local preferences"
+                alert.addButton(withTitle: "Try Again")
+                alert.addButton(withTitle: "Quit")
+                if alert.runModal() != .alertFirstButtonReturn { exit(EXIT_FAILURE) }
+            }
+        }
         DraftlyApp.main()
     }
 }

@@ -1,6 +1,8 @@
 import copy
+import contextlib
 import datetime
 import importlib.util
+import io
 from pathlib import Path
 import plistlib
 import tempfile
@@ -38,6 +40,32 @@ class SigningTests(unittest.TestCase):
         self.assertEqual(result["registeredDeviceCount"], 1)
         self.assertFalse(result["notarizationVerified"])
         self.assertNotIn("private-device", str(result))
+
+    def test_matching_expected_identity_is_accepted(self):
+        result = module.verify(self.app, expected_bundle_identifier="com.example.draftly",
+                               expected_team="TEAM", expected_container="iCloud.com.example.draftly")
+        self.assertEqual(result["bundleIdentifier"], "com.example.draftly")
+
+    def test_self_consistent_identity_must_match_each_expectation(self):
+        cases = [("expected_bundle_identifier", "com.example.other", "expected bundle identifier"),
+                 ("expected_team", "OTHER", "expected team"),
+                 ("expected_container", "iCloud.com.example.other", "expected container")]
+        for name, value, message in cases:
+            with self.subTest(expectation=name), self.assertRaisesRegex(ValueError, message):
+                module.verify(self.app, **{name: value})
+
+    def test_command_line_passes_optional_expectations(self):
+        with patch.object(module, "verify", return_value={}) as verify, contextlib.redirect_stdout(io.StringIO()):
+            module.main([str(self.app), "--expected-bundle-identifier", "com.example.draftly",
+                         "--expected-team", "TEAM", "--expected-container", "iCloud.com.example.draftly"])
+        verify.assert_called_once_with(str(self.app), expected_bundle_identifier="com.example.draftly",
+                                       expected_team="TEAM", expected_container="iCloud.com.example.draftly")
+
+    def test_command_line_preserves_generic_mode(self):
+        with patch.object(module, "verify", return_value={}) as verify, contextlib.redirect_stdout(io.StringIO()):
+            module.main([str(self.app)])
+        verify.assert_called_once_with(str(self.app), expected_bundle_identifier=None,
+                                       expected_team=None, expected_container=None)
 
     def test_missing_or_wrong_container_is_rejected(self):
         self.rights["com.apple.developer.icloud-container-identifiers"] = []

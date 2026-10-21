@@ -1,4 +1,3 @@
-// Copy this file to Signing.xcconfig. Use your Apple Developer team ID.
+// Copy this file to Signing.xcconfig. Set only your Apple Developer team ID.
+// App.xcconfig defines the main app and its existing CloudKit container.
 DEVELOPMENT_TEAM = YOUR_TEAM_ID
-PRODUCT_BUNDLE_IDENTIFIER = com.yourname.draftly
-DRAFTLY_CLOUDKIT_CONTAINER = iCloud.com.yourname.draftly

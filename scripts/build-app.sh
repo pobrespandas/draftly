@@ -33,13 +33,23 @@ case "$mode" in
         exit 2
         ;;
 esac
+output="${DRAFTLY_BUILD_OUTPUT:-$output}"
+if [[ "$mode" != "--local" && -n "${DRAFTLY_PROVISIONING_PROFILE:-}" ]]; then
+    manual_signing=()
+    for argument in "${signing[@]}"; do
+        if [[ "$argument" != "-allowProvisioningUpdates" && "$argument" != "-allowProvisioningDeviceRegistration" ]]; then
+            manual_signing+=("$argument")
+        fi
+    done
+    signing=("${manual_signing[@]}" "DRAFTLY_CODE_SIGN_STYLE=Manual" "DRAFTLY_PROVISIONING_PROFILE=$DRAFTLY_PROVISIONING_PROFILE")
+fi
 xcodebuild -project Draftly.xcodeproj -scheme Draftly -configuration "$configuration" \
     -derivedDataPath "$output" "${signing[@]}" build
-app="$output/Build/Products/$configuration/Draftly.app"
+app="${output:a}/Build/Products/$configuration/Draftly.app"
 if [[ "$mode" == "--local" ]]; then
     codesign --force --sign - "$app"
 else
     python3 scripts/verify-cloud-signing.py "$app"
 fi
 codesign --verify --deep --strict "$app"
-print "App: $PWD/$app"
+print "App: $app"
