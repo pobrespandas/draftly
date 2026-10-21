@@ -112,8 +112,12 @@ public struct Workspace: Identifiable, Codable, Equatable {
             if effective?.2 == true && (a.flag > 0) != (b.flag > 0) { return a.flag > 0 }
             let ascending = effective?.1 ?? ascending
             switch effective?.0 ?? sort {
-            case .modified: return ascending ? a.modifiedAt < b.modifiedAt : a.modifiedAt > b.modifiedAt
-            case .created: return ascending ? a.createdAt < b.createdAt : a.createdAt > b.createdAt
+            case .modified:
+                if a.modifiedAt == b.modifiedAt { return a.id.uuidString < b.id.uuidString }
+                return ascending ? a.modifiedAt < b.modifiedAt : a.modifiedAt > b.modifiedAt
+            case .created:
+                if a.createdAt == b.createdAt { return a.id.uuidString < b.id.uuidString }
+                return ascending ? a.createdAt < b.createdAt : a.createdAt > b.createdAt
             case .accessed:
                 guard let left = a.accessedAt else {
                     return b.accessedAt == nil && a.id.uuidString < b.id.uuidString
@@ -121,7 +125,10 @@ public struct Workspace: Identifiable, Codable, Equatable {
                 guard let right = b.accessedAt else { return true }
                 if left == right { return a.id.uuidString < b.id.uuidString }
                 return ascending ? left < right : left > right
-            case .title: return ascending ? a.title.localizedStandardCompare(b.title) == .orderedAscending : a.title.localizedStandardCompare(b.title) == .orderedDescending
+            case .title:
+                let comparison = a.title.localizedStandardCompare(b.title)
+                if comparison == .orderedSame { return a.id.uuidString < b.id.uuidString }
+                return ascending ? comparison == .orderedAscending : comparison == .orderedDescending
             }
         }
     }

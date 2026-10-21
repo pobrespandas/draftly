@@ -4,6 +4,27 @@ import Testing
 
 @Suite("Workspace filter contracts") @MainActor
 struct WorkspaceFilterContractTests {
+    @Test(arguments: NoteSort.allCases.map(\.rawValue), [false, true])
+    func tiedSortKeysKeepIdentityOrderAcrossReloads(sortName: String, ascending: Bool) {
+        let sort = NoteSort(rawValue: sortName)!
+        let date = Date(timeIntervalSince1970: 1_700_000_000)
+        let notes = (1...3).map { value -> Note in
+            var note = Note(content: "Same title")
+            note.id = UUID(uuidString: String(format: "00000000-0000-0000-0000-%012d", value))!
+            note.createdAt = date; note.modifiedAt = date; note.accessedAt = date
+            return note
+        }
+        var workspace = Workspace(name: "Stable order")
+        workspace.sort = sort; workspace.ascending = ascending
+        for input in [notes, Array(notes.reversed()), [notes[1], notes[2], notes[0]]] {
+            #expect(workspace.filter(input).map(\.id) == notes.map(\.id))
+        }
+        var flagged = notes[2]; flagged.flag = 1
+        let name = sort == .title ? "name" : sort.rawValue
+        workspace.scriptMetadata = ["api": "{\"_sorts\":{\"inbox\":{\"sort\":\"\(name)\",\"descending\":\(!ascending),\"flagged\":true}}}"]
+        #expect(workspace.filter([notes[1], flagged, notes[0]]).map(\.id) == [flagged.id, notes[0].id, notes[1].id])
+    }
+
     private struct Harness {
         let library: LibraryStore
         let editor: EditorSession

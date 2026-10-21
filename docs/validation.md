@@ -4957,3 +4957,20 @@ note the same date. Selection caused tied rows to change order. The workspace
 comparator has no identity tie-break for modified, created, or title order.
 That separate ordering defect remains pending. No personal library changed.
 Full automatic regression passed app448/core475.
+
+
+### Stable workspace sort ties — 20 October 2026
+
+Implemented: modified date, created date, and title sorts use ascending UUID
+order when their primary keys compare equal. Access-date sorting already uses
+this rule. The primary direction and per-folder flagged-first rule remain in
+effect. Reload order no longer controls ties. This fixes a defect observed
+while selecting notes with equal dates in Scale QA. It does not claim that
+Drafts uses the same internal tie-break.
+
+Automatic: a regression checks all four sorts in both directions with three
+input permutations and flagged-first folder settings. Before the change, it
+reported 18 failed assertions for modified, created, and title ties. After the
+change, the full run passes app448/core476. No visible window opens.
+Native verification of this second correction remains pending. The installed
+Scale QA app still has only the earlier table-snapshot correction.
