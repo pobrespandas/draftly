@@ -74,7 +74,12 @@ and action-list option native checks remain pending. None is completed here.
    All five imported-action preservation methods also passed. Unsigned Xcode
    compilation passed after project generation registered the new app source.
    No new field, option, editor behavior or native acceptance is claimed.
-3. Test-only theme reader: pending.
+3. Test-only theme reader: complete. WorkspaceThemeValues now belongs to app
+   test support and reads through Workspace.apiOptions. The three existing
+   consumer files are unchanged. Three characterization methods passed against
+   the original helper, including malformed/type cases. After relocation all
+   48 affected methods in four suites passed headlessly. Unsigned Xcode
+   compilation and matrix structure passed. No production theme behavior changed.
 4. Preference fixtures: pending.
 
 ## Closure requirements

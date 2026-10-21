@@ -187,15 +187,6 @@ private struct ThemeSettingsView: View {
     }
 }
 
-enum WorkspaceThemeValues {
-    static func preference(_ metadata: [String: String]?, key: String) -> String? {
-        guard let raw = metadata?["api"], let data = raw.data(using: .utf8),
-              let options = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else { return nil }
-        return (options[key] as? [String: Any])?["name"] as? String
-    }
-}
-
-
 enum ThemeImportFileTypes {
     static var allowed: [UTType] { [UTType(filenameExtension: "draftsTheme") ?? .data, .json] }
 }
