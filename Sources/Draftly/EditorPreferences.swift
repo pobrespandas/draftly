@@ -11,6 +11,57 @@ enum EditorTextLayout {
     }
 }
 
+enum EditorParagraphLayout {
+    static let lineHeightKey = "editor.lineHeightMultiple"
+    static let paragraphSpacingKey = "editor.paragraphSpacing"
+
+    static func style(lineHeightMultiple: Double, paragraphSpacing: Double,
+                      legacyLineSpacing: Double) -> NSParagraphStyle {
+        let style = NSMutableParagraphStyle()
+        if lineHeightMultiple.isFinite && lineHeightMultiple > 0 {
+            style.lineHeightMultiple = lineHeightMultiple
+        } else {
+            style.lineSpacing = legacyLineSpacing
+        }
+        style.paragraphSpacing = paragraphSpacing.isFinite ? max(0, paragraphSpacing) : 0
+        return style
+    }
+
+    static func displayedMultiple(stored: Double, legacyLineSpacing: Double, font: NSFont) -> Double {
+        if stored.isFinite && stored > 0 { return stored }
+        let height = NSLayoutManager().defaultLineHeight(for: font)
+        guard height > 0, legacyLineSpacing.isFinite else { return 1 }
+        return max(0.8, min(3, 1 + legacyLineSpacing / height))
+    }
+}
+
+struct EditorSpacingPreferences: View {
+    var fontName: String
+    var fontSize: Double
+    var legacyLineSpacing: Double
+    @AppStorage(EditorParagraphLayout.lineHeightKey) private var lineHeightMultiple = 0.0
+    @AppStorage(EditorParagraphLayout.paragraphSpacingKey) private var paragraphSpacing = 0.0
+    private var font: NSFont {
+        fontName == "System" ? .systemFont(ofSize: fontSize)
+            : NSFont(name: fontName, size: fontSize) ?? .monospacedSystemFont(ofSize: fontSize, weight: .regular)
+    }
+    var body: some View {
+        HStack {
+            Text("Line height")
+            Slider(value: Binding(
+                get: { EditorParagraphLayout.displayedMultiple(stored: lineHeightMultiple, legacyLineSpacing: legacyLineSpacing, font: font) },
+                set: { lineHeightMultiple = $0 }
+            ), in: 0.8...3, step: 0.05)
+            Text(EditorParagraphLayout.displayedMultiple(stored: lineHeightMultiple, legacyLineSpacing: legacyLineSpacing, font: font), format: .number.precision(.fractionLength(2))).monospacedDigit()
+        }
+        HStack {
+            Text("Paragraph spacing")
+            Slider(value: $paragraphSpacing, in: 0...40, step: 1)
+            Text("\(Int(paragraphSpacing)) pt").monospacedDigit()
+        }
+    }
+}
+
 struct EditorLayoutPreferences: View {
     @ObservedObject var library: LibraryStore
     @AppStorage("editor.horizontalMargin") private var horizontal = EditorTextLayout.horizontalMargin

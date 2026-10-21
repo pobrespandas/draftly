@@ -10,6 +10,8 @@ struct NativeEditor: NSViewRepresentable {
     var fontSize: Double
     var lineSpacing: Double
     var markdown: Bool
+    var lineHeightMultiple = 0.0
+    var paragraphSpacing = 0.0
     var syntax = "Markdown"
     var syntaxDefinition: SyntaxDefinition?
     var horizontalMargin = EditorTextLayout.horizontalMargin
@@ -65,7 +67,7 @@ struct NativeEditor: NSViewRepresentable {
             ?? theme.flatMap { EditorTheme.color($0.foreground) } ?? .textColor
         let changedNote = coordinator.noteID != session.noteID || coordinator.style.isEmpty
         let changedText = text.string != session.content
-        let changedStyle = coordinator.theme != theme || coordinator.style != "\(fontName):\(fontSize):\(lineSpacing):\(markdown):\(syntax):\(linksEnabled):\(syntaxDefinition?.source ?? ""):\(theme?.foreground ?? ""):\(theme?.heading ?? "")"
+        let changedStyle = coordinator.theme != theme || coordinator.style != "\(fontName):\(fontSize):\(lineSpacing):\(lineHeightMultiple):\(paragraphSpacing):\(markdown):\(syntax):\(linksEnabled):\(syntaxDefinition?.source ?? ""):\(theme?.foreground ?? ""):\(theme?.heading ?? "")"
         if changedNote { text.undoManager?.removeAllActions(); coordinator.noteID = session.noteID }
         if changedText {
             if !changedNote {
@@ -77,7 +79,7 @@ struct NativeEditor: NSViewRepresentable {
         if changedText || changedStyle || changedNote {
             coordinator.highlight()
             coordinator.theme = theme
-            coordinator.style = "\(fontName):\(fontSize):\(lineSpacing):\(markdown):\(syntax):\(linksEnabled):\(syntaxDefinition?.source ?? ""):\(theme?.foreground ?? ""):\(theme?.heading ?? "")"
+            coordinator.style = "\(fontName):\(fontSize):\(lineSpacing):\(lineHeightMultiple):\(paragraphSpacing):\(markdown):\(syntax):\(linksEnabled):\(syntaxDefinition?.source ?? ""):\(theme?.foreground ?? ""):\(theme?.heading ?? "")"
         }
         if changedText || changedNote { coordinator.invalidateDisplay() }
         if text.selectedRange() != session.safeSelection { text.setSelectedRange(session.safeSelection); text.scrollRangeToVisible(session.safeSelection) }
@@ -151,7 +153,8 @@ struct NativeEditor: NSViewRepresentable {
             let baseFont = font
             let foreground = parent.theme.flatMap { EditorTheme.color($0.foreground) } ?? NSColor.textColor
             let heading = parent.theme.flatMap { EditorTheme.color($0.heading) } ?? NSColor.systemBlue
-            let paragraph = NSMutableParagraphStyle(); paragraph.lineSpacing = parent.lineSpacing
+            let paragraph = EditorParagraphLayout.style(lineHeightMultiple: parent.lineHeightMultiple,
+                paragraphSpacing: parent.paragraphSpacing, legacyLineSpacing: parent.lineSpacing)
             var baseAttributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: foreground, .paragraphStyle: paragraph]
             if var style = parent.theme?.scopeStyle(named: "text.normal") {
                 style.foreground = nil; style.background = nil
