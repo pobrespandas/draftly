@@ -90,14 +90,14 @@ struct EditorActionBar: View {
         if name.contains("Find") || name.contains("Dictat") { return .green }
         return .blue
     }
-    private func move(_ offset: Int) {
+    func move(_ offset: Int) {
         let source = session.content as NSString
         let range = session.safeSelection
         if offset < 0, range.location > 0 { session.selection = NSRange(location: source.rangeOfComposedCharacterSequence(at: range.location - 1).location, length: 0) }
         else if offset > 0, NSMaxRange(range) < source.length { session.selection = NSRange(location: NSMaxRange(source.rangeOfComposedCharacterSequence(at: NSMaxRange(range))), length: 0) }
         session.focusToken = UUID()
     }
-    private func moveLine(_ direction: Int) {
+    func moveLine(_ direction: Int) {
         let source = session.content as NSString
         guard source.length > 0 else { return }
         let selected = session.safeSelection
@@ -118,7 +118,7 @@ struct EditorActionBar: View {
         session.focusToken = UUID()
         model.contentChanged()
     }
-    private func duplicateLine() {
+    func duplicateLine() {
         let source = session.content as NSString
         guard source.length > 0 else { return }
         let selected = session.safeSelection
@@ -130,7 +130,7 @@ struct EditorActionBar: View {
         session.focusToken = UUID()
         model.contentChanged()
     }
-    private func moveToMarker(_ direction: Int) {
+    func moveToMarker(_ direction: Int) {
         let source = session.content as NSString
         guard let regex = try? NSRegularExpression(pattern: "(?m)^#{1,6}\\s+.+$") else { return }
         let matches = regex.matches(in: session.content, range: NSRange(location: 0, length: source.length))

@@ -254,6 +254,20 @@ The reference archive and matrix are unchanged. The last production build
 and Swift suite are from stage 5; this stage changes Python only. No manual
 session was needed.
 
+### 7a. Editing-bar characterization
+
+Four parameterized methods passed with 40 explicit cases against the original
+algorithms. Only method visibility changed to permit direct calls. The tests
+cover composed UTF-16 movement, clamped input and retained raw boundary ranges,
+line blocks, CRLF, missing final newlines, duplication and Markdown wrapping.
+They check content, selection, focus, dirty state and flush behavior using
+in-memory records and isolated preferences. No view was hosted or shown.
+
+The line-up text no-op and unterminated-line concatenation are characterized
+as current behavior, not accepted Drafts parity. The next extraction must
+retain them. A test-only parameter visibility compile error was corrected
+before the successful focused run. There was no production algorithm failure.
+
 ## Remaining refactoring and risks
 
 These six stages close this bounded refactoring pass. They do not complete a
