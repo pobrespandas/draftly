@@ -16855,6 +16855,14 @@
         {
           "suite": "EngineAcceptanceBoundaryTests",
           "test": "synchronousScriptsDoNotUseTheAsynchronousWaitLimit"
+        },
+        {
+          "suite": "ActionNotificationImportTests",
+          "test": "importedPolicyAppliesOnlyToItsFinalOutcome"
+        },
+        {
+          "suite": "ActionLogImportTests",
+          "test": "importedLevelControlsFinalHistoryWithoutChangingTheResult"
         }
       ],
       "nativeVerification": {
@@ -16868,7 +16876,15 @@
         "revision": "a308158",
         "date": "2026-10-20",
         "evidence": "docs/validation.md",
-        "scope": "The named contract cases were included in the recorded regression run. This is not native acceptance."
+        "scope": "The named contract cases were included in the recorded regression run. This is not native acceptance.",
+        "additionalRuns": [
+          {
+            "date": "2026-10-20",
+            "command": "swift test --filter ActionNotificationImportTests|ActionLogImportTests|EngineClosureContractTests|AsyncActionRunnerTests",
+            "result": "Twenty methods passed. Imported notification and log codes0/1/2/99 check initial CPU and async timer CPU timeout on both routes, final reason and exact effect count. No native notification or window is used.",
+            "evidence": "docs/validation.md: Imported policy CPU and timer deadlines — 20 October 2026"
+          }
+        ]
       }
     },
     {
@@ -16945,6 +16961,14 @@
         {
           "suite": "UnhandledPromiseRuntimeTests",
           "test": "closedRuntimeIgnoresRejections"
+        },
+        {
+          "suite": "ActionNotificationImportTests",
+          "test": "importedPolicyAppliesOnlyToItsFinalOutcome"
+        },
+        {
+          "suite": "ActionLogImportTests",
+          "test": "importedLevelControlsFinalHistoryWithoutChangingTheResult"
         }
       ],
       "nativeVerification": {
@@ -17002,6 +17026,12 @@
             "command": "swift test",
             "result": "388 app tests and 373 core tests passed, with no known issues. The previously known unreturned rejection assertions are now mandatory and pass.",
             "evidence": "docs/validation.md"
+          },
+          {
+            "date": "2026-10-20",
+            "command": "swift test --filter ActionNotificationImportTests|ActionLogImportTests|EngineClosureContractTests|AsyncActionRunnerTests",
+            "result": "Twenty methods passed. Imported notification and log codes0/1/2/99 check initial CPU and async timer CPU timeout on both routes, final reason and exact effect count. No native notification or window is used.",
+            "evidence": "docs/validation.md: Imported policy CPU and timer deadlines — 20 October 2026"
           }
         ]
       }

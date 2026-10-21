@@ -6,11 +6,12 @@ import Testing
 struct ActionLogImportTests {
     @Test(arguments: [0, 1, 2, 99], [false, true])
     func importedLevelControlsFinalHistoryWithoutChangingTheResult(level: Int, worker: Bool) async throws {
-        for ending in ["", "context.fail('Neutral error');", "context.cancel();", "while (true) {}"] {
+        for ending in ["", "context.fail('Neutral error');", "context.cancel();", "while (true) {}", "setTimeout(() => { while (true) {} }, 0);"] {
             let (library, editor, _, runner) = try makeAPIContext("Neutral source")
             if ending.contains("while") { runner.synchronousScriptTimeout = 0.02 }
+            runner.scriptTimeout = 0.5
             let data = try JSONSerialization.data(withJSONObject: ["name": "Log policy",
-                "logLevel": level, "steps": [["type": "script", "data": ["script": ending]]]] as [String: Any])
+                "logLevel": level, "steps": [["type": "script", "data": ["script": ending, "allowAsync": ending.hasPrefix("setTimeout") ? "true" : "false"]]]] as [String: Any])
             let imported = try #require(ActionImporter.decode(data).first)
             try library.saveAction(imported)
             let restored = try LibraryStore(inMemory: true, seed: false)

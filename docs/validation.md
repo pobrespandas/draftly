@@ -5269,3 +5269,23 @@ passed app449/core480; unsigned Xcode build passed. Existing deadline tests
 continue to check that later steps and success disposition do not run.
 Native reproduction of this legacy adapter correction remains pending. The
 installed Restore QA app still has the preceding build.
+
+
+### Imported policy CPU and timer deadlines — 20 October 2026
+
+Expanded the existing notification and history policy cases. Each code0,1,2,99
+now checks success, explicit error, cancellation, initial CPU timeout, and CPU
+timeout inside an asynchronous timer on both runner routes. Short deadlines
+apply only to the endless test script. Normal outcomes retain the production
+synchronous default. Tests use a fake host; no banner or sound is emitted.
+
+The cases require reason timeout for both deadline locations. They check exact
+notification count and history inclusion independently. None suppresses its
+respective effect; Errors applies once on timeout; All applies once. Cancel
+still never notifies. Backup/export fields and editor text remain intact.
+The focused four-suite run passed20 methods, including the expanded policy
+cases and existing completion/worker deadline cases. No production code changed
+after e458703. The matrix now links these specific tests as supporting evidence
+for initial and asynchronous deadline contracts. Native verification status
+remains unchanged. The last full run is app449/core480; this focused run covers
+the subsequent test-only edits.
