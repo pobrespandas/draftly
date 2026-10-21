@@ -93,6 +93,30 @@ from its old status and matrix edits. Reconcile that evidence with the current
 refactoring record instead of replacing current documentation with the WIP copy. Other Actions, engine, native integration,
 inspector, workspace, visual, data and sync work remains in the Mac roadmap.
 
+## Continued implementation review
+
+The next stages keep the original scope: behavior-preserving refactoring.
+The stable continuation checkpoint is `eca433e`. It has no uncommitted work.
+The original reference tag and separate Action.find branch remain unchanged.
+
+| Stage | Concrete problem and impact | Change and risk |
+| --- | --- | --- |
+| 7 | EditorActionBar combines composed-character and UTF-16 calculations with session mutation, focus and save effects. Private methods prevent direct characterization. | Test the current commands without a window, then move only their text/range calculation to a Foundation-only helper. Keep effects and selection clamping at the caller. Medium risk: line boundaries and no-op effects differ. |
+| 8 | NativeActionHost.supportsAsync lists operation strings that performAsync classifies again. A new operation can diverge between support and dispatch. | Use one internal route classifier. Keep model envelopes, prompt inventory, dictation injection and synchronous fallback. Low to medium risk: false support does not mean that direct asynchronous calls reject the operation. |
+
+New functional finding: `EditorActionBar.moveLine(-1)` concatenates the previous
+line and current block in their existing order. It moves the selection without
+moving text. Preserve this result during extraction. A correction needs its
+own change and regression test. Terminal-line duplication without a newline
+also retains concatenation; Markdown-only marker matching stays unchanged.
+
+Transaction review found distinct policies. Collision preservation materializes
+only affected implicit groups. Saving an explicit group can materialize all
+other implicit groups. Rollbacks cover preparation, normalization and saved-data
+reload failures at different boundaries. A generic transaction wrapper would
+hide these differences. Keep them separate until a specific change has its
+own characterization and recovery evidence.
+
 ## Stage results
 
 ### 1. Pure action catalog
