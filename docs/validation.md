@@ -4629,3 +4629,30 @@ Automatic: nine editor-context/owner-observer methods and five queue methods
 passed without visible windows. Matrix structure passes. No production code
 or build changed. Last full regression remains app447/core471. No screenshots
 or raw logs are tracked.
+
+
+### Native queued Intent owner-close cancellation — 20 October 2026
+
+Used isolated QA image1b8988d3183ec067 and the existing disposable Engine
+shortcut. The first run did not have a matching visible source: the window
+kept another draft with the same title while the headless run updated its
+source. Stopped that run through Shortcuts. It is not owner-close acceptance.
+The earlier queued Intent failure/cancel checks prove result propagation and
+retained writes, but do not establish exact source UUID or visible ownership.
+
+Opened the intended neutral source with draftly://open and its UUID. Re-entered
+the shortcut UUID through paste and Tab before Run. This time the visible
+window followed the queued child and showed its retained write while Shortcuts
+showed Stop. Closed that window. Shortcuts showed QA Queue multi-draft pending
+root cancelled. After reopening QA, source and child writes remained in Inbox,
+no sentinel appeared, and the latest root history entry was Cancelled.
+
+Restored both shortcut fields through paste and Tab. This verifies actual
+Intent owner-close after a queue changes the editor target. It does not prove
+why the initial field/run selection differed. Future identity-sensitive checks
+must commit each field and verify the visible owner before closing it.
+
+No production code, build, fixture, or tests changed. Latest full regression
+remains app447/core471. Matrix structure passes. Current-image production
+queued timeout entry combinations and other native capabilities stay pending.
+No screenshot or raw log is tracked.

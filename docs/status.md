@@ -1047,3 +1047,9 @@ window-lifetime, and current-image timeout combinations stay pending.
 Native URL owner-close cancellation now passes while a queued child waits on
 a different draft: one cancel callback, retained Inbox writes, no later work.
 Queued Intent owner-close and remaining timeout combinations stay pending.
+
+
+Native queued Intent owner-close now passes with the exact source opened by
+UUID and visible ownership confirmed. An initial non-owner run was stopped
+separately and is not counted as owner-close acceptance. Retained writes and
+Cancelled history passed. Current-image queued timeout combinations remain.

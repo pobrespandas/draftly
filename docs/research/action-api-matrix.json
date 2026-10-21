@@ -17321,7 +17321,7 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Separate-target UI/URL/Intent failure and cancellation passed. URL owner-close during a pending queued child also passed. Queued Intent owner-close and current-image production timeout through each applicable entry remain pending."
+        "UI/URL/Intent queued failure and cancellation plus URL/Intent owner-close during a pending child passed. Earlier separate-target production timeout passed through Shortcuts. Current-image production queued timeout through each applicable entry remains pending."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
@@ -17402,7 +17402,7 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Separate-target UI/URL/Intent failure and cancellation passed. URL owner-close during a pending queued child also passed. Queued Intent owner-close and current-image production timeout through each applicable entry remain pending.",
+        "reason": "UI/URL/Intent queued failure and cancellation plus URL/Intent owner-close during a pending child passed. Earlier separate-target production timeout passed through Shortcuts. Current-image production queued timeout through each applicable entry remains pending.",
         "evidence": "docs/validation.md",
         "additionalChecks": [
           {
@@ -17432,6 +17432,13 @@
             "fixture": "scripts/fixtures/engine-queue-actions.json",
             "evidence": "docs/validation.md: Native queued URL owner-close cancellation — 20 October 2026",
             "result": "After the child wrote to another draft and waited, closing the owner produced one cancel callback. Reopened Inbox retained source and target text; root history was Cancelled and no sentinel appeared."
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "1b8988d3183ec0675c0e5d3125665b1c22b3e155a9b82124b3a8039db45e5d20",
+            "fixture": "scripts/fixtures/engine-queue-actions.json",
+            "evidence": "docs/validation.md: Native queued Intent owner-close cancellation — 20 October 2026",
+            "result": "Opened the exact source by UUID, committed shortcut UUID with Tab, observed the owner follow the pending child, then closed it. Shortcuts reported cancellation; reopened Inbox retained writes and history recorded Cancelled. Initial non-owner run was stopped and excluded."
           }
         ]
       },
@@ -18195,6 +18202,13 @@
             "fixture": "scripts/fixtures/engine-queue-actions.json",
             "evidence": "docs/validation.md: Native queued URL owner-close cancellation — 20 October 2026",
             "result": "After the child wrote to another draft and waited, closing the owner produced one cancel callback. Reopened Inbox retained source and target text; root history was Cancelled and no sentinel appeared."
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "1b8988d3183ec0675c0e5d3125665b1c22b3e155a9b82124b3a8039db45e5d20",
+            "fixture": "scripts/fixtures/engine-queue-actions.json",
+            "evidence": "docs/validation.md: Native queued Intent owner-close cancellation — 20 October 2026",
+            "result": "Opened the exact source by UUID, committed shortcut UUID with Tab, observed the owner follow the pending child, then closed it. Shortcuts reported cancellation; reopened Inbox retained writes and history recorded Cancelled. Initial non-owner run was stopped and excluded."
           }
         ]
       },
@@ -18420,6 +18434,13 @@
             "fixture": "scripts/fixtures/engine-queue-actions.json",
             "evidence": "docs/validation.md: Native queued URL owner-close cancellation — 20 October 2026",
             "result": "After the child wrote to another draft and waited, closing the owner produced one cancel callback. Reopened Inbox retained source and target text; root history was Cancelled and no sentinel appeared."
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "1b8988d3183ec0675c0e5d3125665b1c22b3e155a9b82124b3a8039db45e5d20",
+            "fixture": "scripts/fixtures/engine-queue-actions.json",
+            "evidence": "docs/validation.md: Native queued Intent owner-close cancellation — 20 October 2026",
+            "result": "Opened the exact source by UUID, committed shortcut UUID with Tab, observed the owner follow the pending child, then closed it. Shortcuts reported cancellation; reopened Inbox retained writes and history recorded Cancelled. Initial non-owner run was stopped and excluded."
           }
         ]
       },
