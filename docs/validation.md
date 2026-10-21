@@ -7002,3 +7002,34 @@ cases cover required inventory, preservation, invalidation and invalid input.
 The Share page adds a constructor and three static methods. They start without
 compatibility acceptance. A larger inventory does not reduce the remaining
 work. This supplement does not establish Theme or other omitted utility scope.
+
+
+### Share argument and result contracts — 21 October 2026
+
+The new official Share supplement exposed a reversed argument order.
+shareAsFile now takes filename first and text second. The new tests first
+failed with 12 filename/content issues on both engines. Text, LF, Unicode,
+URLs and Boolean results now pass. Non-string arguments return false before
+a host request. Ordinary host sharing failures return false; that policy is
+an interpretation of the completion Boolean, not an explicit thrown-error
+clause in the reference. Native cancellation and timeout stay latched.
+The existing interruption test now covers all three Share routes in addition
+to Bookmark. Later writes, steps and archive effects stay blocked.
+
+The constructor has specific identity and no-host-effect checks on both
+engines. Its contract is complete. All three sharing methods remain partial:
+legacy native sharing returns immediately, and actual completed-service and
+post-handoff file lifecycle acceptance remain open. Fake host success does
+not close those native cases. No original action script changed.
+
+Updated Engine QA and imported QA Share file API cancel. Its picker displayed
+Draftly-neutral-api as a 39-byte text file. Read only the generated temporary
+file: its name, neutral Unicode contents and line break matched the fixture.
+Escape returned false to the script, which completed and reported Share API
+cancellation passed. History recorded Success at04:22. The earlier openIn
+step cancellation recorded Cancelled; these are different caller behaviors.
+The source note stayed unchanged. No service was chosen or content sent.
+
+The complete automatic run passed 476 app and 553 core methods, including
+the five unchanged original actions. The unsigned Xcode build passed. These
+results also include the independent draft-selector changes recorded below.

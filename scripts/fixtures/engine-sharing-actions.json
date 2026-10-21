@@ -20,5 +20,20 @@
         }
       }
     ]
+  },
+  {
+    "uuid": "BBBF0023-0000-4000-8000-000000000003",
+    "name": "QA Share file API cancel",
+    "group": "Sharing lifetime QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "const result=Share.shareAsFile('Draftly-neutral-api.txt','Neutral API file café 🐼\\nSecond line'); if(result!==false) throw new Error('Expected user cancellation'); app.displayInfoMessage('Share API cancellation passed');"
+        }
+      }
+    ]
   }
 ]

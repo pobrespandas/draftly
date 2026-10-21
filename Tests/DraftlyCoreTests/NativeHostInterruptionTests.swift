@@ -4,15 +4,17 @@ import Testing
 
 @Suite("Native host interruption contracts") @MainActor
 struct NativeHostInterruptionTests {
-    @Test(arguments: [false, true])
-    func caughtHostInterruptionCannotRunLaterHostEffects(timeout: Bool) async throws {
-        let f = try ScriptTestFixture(content: "Keep", host: InterruptedNativeHost(timeout: timeout))
-        var action = ScriptTestAction.make("try{Bookmark.findOrCreate('Neutral');}catch(e){};try{editor.setText('Late');}catch(e){};try{app.setClipboard('Late');}catch(e){};", name: "Native interruption")
+    @Test(arguments: [false, true], ["bookmark", "share", "shareFile", "shareURL"])
+    func caughtHostInterruptionCannotRunLaterHostEffects(timeout: Bool, operation: String) async throws {
+        let f = try ScriptTestFixture(content: "Keep", host: InterruptedNativeHost(timeout: timeout, operation: operation))
+        let call = ["bookmark": "Bookmark.findOrCreate('Neutral')", "share": "Share.shareAsText('Neutral')",
+                    "shareFile": "Share.shareAsFile('Neutral.txt','Neutral')", "shareURL": "Share.shareAsURL('https://example.invalid')"][operation]!
+        var action = ScriptTestAction.make("try{\(call);}catch(e){};try{editor.setText('Late');}catch(e){};try{app.setClipboard('Late');}catch(e){};", name: "Native interruption")
         action.steps.append(ActionStep("insertText", ["template": "Later step"]))
         action.afterSuccess = "archive"
         let report = await f.runner.runAsync(action)
         #expect(report.reason == (timeout ? .timeout : .cancelled))
-        #expect(f.host.operations == ["bookmark"])
+        #expect(f.host.operations == [operation])
         #expect(f.editor.content == "Keep" && f.library.notes.first?.content == "Keep")
         #expect(f.library.notes.first?.isArchived == false && report.successParameters.isEmpty)
     }
@@ -20,9 +22,10 @@ struct NativeHostInterruptionTests {
 
 @MainActor private final class InterruptedNativeHost: ActionHost {
     let timeout: Bool
+    let operation: String
     var operations: [String] = []
-    init(timeout: Bool) { self.timeout = timeout }
-    func supportsAsync(_ operation: String) -> Bool { operation == "bookmark" }
+    init(timeout: Bool, operation: String) { self.timeout = timeout; self.operation = operation }
+    func supportsAsync(_ operation: String) -> Bool { operation == self.operation }
     func perform(_ operation: String, values: [String: Any]) throws -> Any? {
         operations.append(operation); return true
     }

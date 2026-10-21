@@ -18915,9 +18915,47 @@
             "new Share(): Share"
           ],
           "contract": "",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "ShareActionContractTests",
+            "test": "constructorCreatesDistinctShareInstancesWithoutHostEffects"
+          },
+          "liveCheck": null,
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Share"
+          },
+          "defaults": "No arguments or options.",
+          "result": "Creates a distinct Share instance without host effects.",
+          "errors": "No constructor-specific error is documented.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ShareActionContractTests",
+                "test": "constructorCreatesDistinctShareInstancesWithoutHostEffects"
+              },
+              "assertion": "Both runners create distinct instances and expose all three static methods without native calls."
+            },
+            "defaults": {
+              "notApplicable": "No optional constructor or method arguments are documented."
+            },
+            "errors": {
+              "notApplicable": "No constructor-specific error is documented."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Share argument and result contracts — 21 October 2026",
+            "scope": "Both engines: exact filename/content order, LF/Unicode, Boolean outcomes, non-string input, native failure, constructor and interruption latch."
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "The constructor only creates an ECMAScript instance. Both engines verify identity and absence of native calls."
+          },
+          "limitations": []
         },
         {
           "member": "shareAsFile",
@@ -18929,9 +18967,67 @@
             "shareAsFile(filename: string, text: string): boolean"
           ],
           "contract": "Open system share sheet to share the content as a file, with the specified file name (with e). Returns true if share was completed by user amd false if input was invalid or user cancelled share. Drafts will create a temporary file for the purposes of the share and send it to the share sheet. The temporary file will be deleted after. Useful, for example, to create a text file and share to Mail, and it will be shared as an attachment to the email",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null
+          "implementation": "reviewed-partial",
+          "automatedTest": {
+            "suite": "ShareActionContractTests",
+            "test": "filenamePrecedesUnicodeContentsOnBothRunners"
+          },
+          "liveCheck": null,
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Share.shareAsFile"
+          },
+          "defaults": "The declared string arguments are required. No optional defaults are documented.",
+          "result": "Returns a Boolean. The file method takes filename first and contents second. Host completion and user cancellation results are forwarded; non-string arguments return false.",
+          "errors": "Invalid input or user cancellation returns false. Ordinary host sharing failures currently return false. Cancellation and timeout stay latched in the execution session even when the wrapper returns false.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ShareActionContractTests",
+                "test": "filenamePrecedesUnicodeContentsOnBothRunners"
+              },
+              "assertion": "Both runners forward exact Unicode text, URL or filename/content fields and Boolean completion results without changing source text."
+            },
+            "defaults": {
+              "notApplicable": "No optional constructor or method arguments are documented."
+            },
+            "errors": {
+              "test": {
+                "suite": "ShareActionContractTests",
+                "test": "nonStringInputsReturnFalseBeforeCallingTheHost"
+              },
+              "assertion": "Non-string values return false without requesting a sharing panel."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Share argument and result contracts — 21 October 2026",
+            "scope": "Both engines: exact filename/content order, LF/Unicode, Boolean outcomes, non-string input, native failure, constructor and interruption latch."
+          },
+          "supportingTests": [
+            {
+              "suite": "ShareActionContractTests",
+              "test": "textAndURLForwardExactValuesAndCompletionResult"
+            },
+            {
+              "suite": "ShareActionContractTests",
+              "test": "unsuccessfulNativeSharingReturnsFalseInsteadOfThrowing"
+            },
+            {
+              "suite": "NativeHostInterruptionTests",
+              "test": "caughtHostInterruptionCannotRunLaterHostEffects"
+            }
+          ],
+          "nativeVerification": {
+            "status": "pending",
+            "reason": "Native file API argument order, picker cancellation, false return, temporary cleanup and unchanged source passed. Service completion and post-handoff file lifecycle remain pending. Native text/URL API cases are separate."
+          },
+          "limitations": [
+            "Legacy synchronous native sharing still returns before service completion. Exact completed-service outcomes and cleanup after transfer require real acceptance. Ordinary native failure to false is an interpretation of the completion Boolean; the reference specifies invalid input and user cancellation."
+          ]
         },
         {
           "member": "shareAsText",
@@ -18943,9 +19039,67 @@
             "shareAsText(text: string): boolean"
           ],
           "contract": "Open system share sheet to share the string provided as text. Returns true if share was completed by user, false if input was invalid or user cancelled the share.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null
+          "implementation": "reviewed-partial",
+          "automatedTest": {
+            "suite": "ShareActionContractTests",
+            "test": "textAndURLForwardExactValuesAndCompletionResult"
+          },
+          "liveCheck": null,
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Share.shareAsText"
+          },
+          "defaults": "The declared string arguments are required. No optional defaults are documented.",
+          "result": "Returns a Boolean. The file method takes filename first and contents second. Host completion and user cancellation results are forwarded; non-string arguments return false.",
+          "errors": "Invalid input or user cancellation returns false. Ordinary host sharing failures currently return false. Cancellation and timeout stay latched in the execution session even when the wrapper returns false.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ShareActionContractTests",
+                "test": "textAndURLForwardExactValuesAndCompletionResult"
+              },
+              "assertion": "Both runners forward exact Unicode text, URL or filename/content fields and Boolean completion results without changing source text."
+            },
+            "defaults": {
+              "notApplicable": "No optional constructor or method arguments are documented."
+            },
+            "errors": {
+              "test": {
+                "suite": "ShareActionContractTests",
+                "test": "nonStringInputsReturnFalseBeforeCallingTheHost"
+              },
+              "assertion": "Non-string values return false without requesting a sharing panel."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Share argument and result contracts — 21 October 2026",
+            "scope": "Both engines: exact filename/content order, LF/Unicode, Boolean outcomes, non-string input, native failure, constructor and interruption latch."
+          },
+          "supportingTests": [
+            {
+              "suite": "ShareActionContractTests",
+              "test": "textAndURLForwardExactValuesAndCompletionResult"
+            },
+            {
+              "suite": "ShareActionContractTests",
+              "test": "unsuccessfulNativeSharingReturnsFalseInsteadOfThrowing"
+            },
+            {
+              "suite": "NativeHostInterruptionTests",
+              "test": "caughtHostInterruptionCannotRunLaterHostEffects"
+            }
+          ],
+          "nativeVerification": {
+            "status": "pending",
+            "reason": "Native file API argument order, picker cancellation, false return, temporary cleanup and unchanged source passed. Service completion and post-handoff file lifecycle remain pending. Native text/URL API cases are separate."
+          },
+          "limitations": [
+            "Legacy synchronous native sharing still returns before service completion. Exact completed-service outcomes and cleanup after transfer require real acceptance. Ordinary native failure to false is an interpretation of the completion Boolean; the reference specifies invalid input and user cancellation."
+          ]
         },
         {
           "member": "shareAsURL",
@@ -18957,9 +19111,67 @@
             "shareAsURL(url: string): boolean"
           ],
           "contract": "Open system share sheet to share the url provided as a URL object. Returns true if share was completed by user and false if input was invalid or user cancelled share.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null
+          "implementation": "reviewed-partial",
+          "automatedTest": {
+            "suite": "ShareActionContractTests",
+            "test": "textAndURLForwardExactValuesAndCompletionResult"
+          },
+          "liveCheck": null,
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Share.shareAsURL"
+          },
+          "defaults": "The declared string arguments are required. No optional defaults are documented.",
+          "result": "Returns a Boolean. The file method takes filename first and contents second. Host completion and user cancellation results are forwarded; non-string arguments return false.",
+          "errors": "Invalid input or user cancellation returns false. Ordinary host sharing failures currently return false. Cancellation and timeout stay latched in the execution session even when the wrapper returns false.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ShareActionContractTests",
+                "test": "textAndURLForwardExactValuesAndCompletionResult"
+              },
+              "assertion": "Both runners forward exact Unicode text, URL or filename/content fields and Boolean completion results without changing source text."
+            },
+            "defaults": {
+              "notApplicable": "No optional constructor or method arguments are documented."
+            },
+            "errors": {
+              "test": {
+                "suite": "ShareActionContractTests",
+                "test": "nonStringInputsReturnFalseBeforeCallingTheHost"
+              },
+              "assertion": "Non-string values return false without requesting a sharing panel."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Share argument and result contracts — 21 October 2026",
+            "scope": "Both engines: exact filename/content order, LF/Unicode, Boolean outcomes, non-string input, native failure, constructor and interruption latch."
+          },
+          "supportingTests": [
+            {
+              "suite": "ShareActionContractTests",
+              "test": "textAndURLForwardExactValuesAndCompletionResult"
+            },
+            {
+              "suite": "ShareActionContractTests",
+              "test": "unsuccessfulNativeSharingReturnsFalseInsteadOfThrowing"
+            },
+            {
+              "suite": "NativeHostInterruptionTests",
+              "test": "caughtHostInterruptionCannotRunLaterHostEffects"
+            }
+          ],
+          "nativeVerification": {
+            "status": "pending",
+            "reason": "Native file API argument order, picker cancellation, false return, temporary cleanup and unchanged source passed. Service completion and post-handoff file lifecycle remain pending. Native text/URL API cases are separate."
+          },
+          "limitations": [
+            "Legacy synchronous native sharing still returns before service completion. Exact completed-service outcomes and cleanup after transfer require real acceptance. Ordinary native failure to false is an interpretation of the completion Boolean; the reference specifies invalid input and user cancellation."
+          ]
         }
       ]
     }

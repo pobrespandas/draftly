@@ -325,7 +325,14 @@ class CallbackURL {
     get url(){return __call('buildURL',{url:this.baseURL,parameters:this.parameters});}
     open(){let r=__call('callbackURL',{url:this.url,waitForResponse:this.waitForResponse});this.status=r.status;this.callbackResponse=this.waitForResponse?(r.parameters||{}):{};if(this.waitForResponse&&this.status==='success'){context.callbackResponses.push(this.callbackResponse);for(let k in this.callbackResponse){__tags['callback_'+k]=this.callbackResponse[k];__call('setTemplateTag',{key:'callback_'+k,value:String(this.callbackResponse[k])});}}return this.status==='success';}
 }
-class Share {static shareAsText(text){return __call('share',{text});}static shareAsFile(text,name){return __call('shareFile',{text,name});}static shareAsURL(url){return __call('shareURL',{url});}}
+function __share(operation, values) {
+    try { return __call(operation, values) === true; } catch (_) { return false; }
+}
+class Share {
+    static shareAsText(text) { return typeof text === 'string' && __share('share', {text}); }
+    static shareAsFile(name, text) { return typeof name === 'string' && typeof text === 'string' && __share('shareFile', {name, text}); }
+    static shareAsURL(url) { return typeof url === 'string' && __share('shareURL', {url}); }
+}
 class Shortcut {
     constructor(){this.name='';this.text='';this.waitForResponse=true;this.response={};this.status='created';}
     static create(name,text=''){let s=new Shortcut();s.name=name;s.text=text;return s;}
