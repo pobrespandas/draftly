@@ -1031,3 +1031,8 @@ is claimed by this record correction.
 Native separate-target UI queue failure and cancellation now pass: retained
 writes, Inbox state, last-target editor, and stopped later work. Five queue
 acceptance methods pass. URL/Intent queue variants remain pending.
+
+
+Native URL cross-draft queued failure and cancellation now select one matching
+error/cancel callback and retain completed writes without later work. App Intent
+queue interruption and other callback variants remain pending.

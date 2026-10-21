@@ -4556,3 +4556,30 @@ legacy/async failure and cancellation, timeout, retained effects, and callback
 selection. Matrix structure passes. No production code or new build changed.
 The last full regression remains app447/core471. Native URL/Intent queue
 interruption variants remain pending. No screenshot or raw log is tracked.
+
+
+### Native URL queued interruption callbacks — 20 October 2026
+
+Used isolated QA image1b8988d3183ec067 and engine-queue-actions.json.
+The local helper opened draftly://run for each multi-draft root, with the
+neutral source UUID and all three callback URLs. Each callback URL used
+only draftly-engine-echo://received, a distinct case value, and a result value.
+Confirmed Run Action in the external-link dialog for each run.
+
+Failure: helper showed exactly one callback, case=queue-url-failure,
+result=error, errorMessage=Neutral queued failure. It had no root success
+parameter. The native failure alert showed the same message. After dismissal,
+the source and retained target write stayed in Inbox. The editor showed
+Queue failure completed write — café 🐼, without the sentinel text.
+
+Reset the target to Queue target neutral and selected the source again.
+Cancellation: helper showed exactly one callback, case=queue-url-cancel,
+result=cancel, with no success parameters. The editor showed Queue child
+completed write — café 🐼. The source remained Queue source retained, and both
+were visible in Inbox. Neither later-work sentinel appeared.
+
+This verifies the current-image URL error/cancel selection for queued actions
+on another draft. It does not close native App Intent queued interruption,
+all callback variants, or unbounded duplicate delivery. No production code,
+fixture, build, or tests changed. Last full regression remains app447/core471.
+No raw logs, exported data, or screenshots are tracked.
