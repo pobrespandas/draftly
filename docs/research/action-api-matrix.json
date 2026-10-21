@@ -18937,7 +18937,7 @@
         "result": "Temporary local QA app: panel use during delayed action, exact native Undo, window-close cancellation recorded in Execution History, and typing cancels while preserving user text. Other entry points remain pending."
       },
       "limitations": [
-        "Native task-owned Prompt/SelectPrompt cancellation and keyboard recovery passed. Transcription cancellation passed during file selection and recognition using an existing grant. EventKit task and dialog cancellation passed with existing access; permission-request cancellation remains pending. Actual onDevice model generation cancellation is blocked by real system unavailability; explicit unavailable response passed. PCC is unchecked."
+        "Native task-owned Prompt/SelectPrompt cancellation and keyboard recovery passed. Transcription and EventKit cancellation passed with existing access. Permission-request cancellation remains pending. On-device and PCC model generation cancellation remain blocked by current system readiness, not accepted as cancelled. Both unavailable responses passed on macOS 27.0.1."
       ],
       "defaults": "A new session starts with cancellationRequested false. Runner.cancel and cancellation of the task running runAsync both request termination. CPU-bound cancellation is bounded by the JavaScript evaluation limit.",
       "result": "Cancelled idle scripts stop before subsequent steps, return reason cancelled with no success parameters, and retain effects already completed. Host cleanup completes before the final report releases the library.",
@@ -18993,7 +18993,7 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Prompt/select and transcription task cancellation passed. Native EventKit task and dialog cancellation passed with existing access; permission-request cancellation remains pending. OnDevice generation cancellation is blocked by current unavailability; PCC is unchecked.",
+        "reason": "Prompt/select, transcription and EventKit task cancellation passed with existing access. Permission-request cancellation remains pending. On-device and PCC generation cancellation are blocked by current system readiness; both explicit unavailable responses passed on macOS 27.0.1.",
         "additionalChecks": [
           {
             "date": "2026-10-20",
@@ -19064,6 +19064,13 @@
             "fixture": "scripts/fixtures/engine-eventkit-cancel-actions.json",
             "result": "Existing Calendar access opened the native event dialog. Cancel Running Action closed the edited dialog; a fresh run reset the values and dialog Cancel closed it. Exact neutral editor text remained, no ERROR tail, and two History rows were Cancelled. Save Event was never pressed; no permission changed. Permission-request cancellation is not covered.",
             "evidence": "docs/validation.md: Native EventKit task cancellation — 20 October 2026"
+          },
+          {
+            "date": "2026-10-21",
+            "executableSHA256": "4664fdb9d438b13acb7b2f70256c19ff74e66e7f276be5608319f62d7a0d3188",
+            "fixture": "scripts/fixtures/engine-apple-model-availability-actions.json",
+            "result": "On macOS 27.0.1 build26A434 arm64, actual QA reported modes=[]; onDevice and pcc each returned undefined with an explicit unavailable error. History Success. Direct read-only FoundationModels availability reported modelNotReady and systemNotReady respectively. System Settings reported mismatched Mac/Siri languages. No setting or permission changed. Generation cancellation remains blocked, not passed.",
+            "evidence": "docs/validation.md: Current Apple model readiness and unavailable responses — 21 October 2026"
           }
         ]
       },

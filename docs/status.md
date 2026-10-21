@@ -1599,3 +1599,12 @@ save, replacement by identity, restart and execution passed. The neutral action
 returned its expected UUID and History Success. No production change was needed.
 See validation for exact fields and scope. Engine capability variants and the
 remaining API contracts stay open; no full delivery is closed by this result.
+
+
+### Apple model readiness rechecked — 21 October 2026
+
+Current macOS 27.0.1 reports modelNotReady for on-device and systemNotReady for
+PCC. Actual QA checked both explicit unavailable responses and History Success.
+Both-mode negative tests passed. No setting or permission changed. Generation
+and its native cancellation remain blocked by readiness; this is not a passed
+cancellation check. Continue other engine and contract work independently.

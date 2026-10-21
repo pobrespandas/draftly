@@ -1,0 +1,16 @@
+[
+  {
+    "uuid": "BBBF0003-0000-4000-8000-000000000016",
+    "name": "QA Apple model availability",
+    "group": "Native cancellation QA",
+    "notificationType": 0,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "function check(value,message){if(!value)throw new Error(message);}\nconst modes=ModelSession.availableModes();\ncheck(Array.isArray(modes),'mode array');\nconst lines=['Apple model availability — neutral QA','modes='+JSON.stringify(modes)];\nfor(const mode of ['onDevice','pcc']){\n const session=ModelSession.create(mode);session.toolSets=[];\n check(session.isAvailable===modes.includes(mode),'instance availability '+mode);\n check(ModelSession.isAvailable(mode)===modes.includes(mode),'static availability '+mode);\n if(session.isAvailable){lines.push(mode+': available; generation not requested');continue;}\n const result=session.respond('Return neutral.');\n check(result===undefined,'unavailable result '+mode);\n check(typeof session.lastError==='string' && session.lastError.includes('unavailable'),'explicit unavailable error '+mode);\n lines.push(mode+': unavailable; '+session.lastError);\n}\neditor.setText(lines.join('\\n'));draft.update();"
+        }
+      }
+    ]
+  }
+]

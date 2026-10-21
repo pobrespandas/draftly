@@ -6300,3 +6300,33 @@ No permissions changed. No personal data or screenshot is part of this check.
 
 This accepts Action.installURL only. It does not accept every imported option,
 external directory format, engine capability or full Mac delivery.
+
+
+### Current Apple model readiness and unavailable responses — 21 October 2026
+
+The host runs macOS 27.0.1, build 26A434, arm64. Imported the neutral fixture
+engine-apple-model-availability-actions.json into the same signed Engine QA
+image 4664fdb9d438b13acb7b2f70256c19ff74e66e7f276be5608319f62d7a0d3188.
+The action compared availableModes with static and instance availability for
+onDevice and pcc. The reported list was empty. Each unavailable respond call
+returned undefined and lastError contained the explicit unavailable message.
+The neutral editor showed both results. History showed Success at 02:01 local.
+Closed History. No action or dialog remains pending.
+
+A separate read-only FoundationModels probe reported:
+onDevice unavailable(modelNotReady); pcc unavailable(systemNotReady).
+System Settings > Siri also reported that Apple Intelligence requires the same
+Mac and Siri language. The Mac used Spanish (Argentina); Siri used Spanish
+(Mexico). No language, permission or system setting changed. Returned Settings
+to its original page. Do not infer that this notice is the only readiness cause.
+
+Expanded NativeModelAsyncTests.unavailableModesReturnNoFabricatedSuccess to
+cover both included modes. All seven methods passed, including cancellation,
+timeout, session cleanup and tool lifetime with the injected backend. Automatic
+checks did not request real models or open a window. No production code changed.
+
+This records current system readiness and both actual unavailable responses.
+It does not accept generation, generation cancellation, or the full task
+cancellation contract. Those native checks stay blocked until the system makes
+the relevant model available. Existing positive and other cancellation evidence
+remains separate. No screenshot or raw probe output is tracked.

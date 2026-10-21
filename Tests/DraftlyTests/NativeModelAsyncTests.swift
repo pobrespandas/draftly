@@ -26,8 +26,8 @@ struct NativeModelAsyncTests {
             }, discard: { id in self.discarded.append(id); self.history.removeValue(forKey: id) }, clear: { self.cleared = true; self.history.removeAll() })
         }
     }
-    private func payload(_ prompt: String, id: String = "neutral-session") throws -> String {
-        String(decoding: try JSONSerialization.data(withJSONObject: ["sessionID": id, "prompt": prompt]), as: UTF8.self)
+    private func payload(_ prompt: String, id: String = "neutral-session", mode: String = "onDevice") throws -> String {
+        String(decoding: try JSONSerialization.data(withJSONObject: ["sessionID": id, "prompt": prompt, "mode": mode]), as: UTF8.self)
     }
     private func waitUntilStarted(_ state: BackendState) async {
         let deadline = ContinuousClock.now + .seconds(5)
@@ -55,12 +55,13 @@ struct NativeModelAsyncTests {
         #expect(NSDictionary(dictionary: values).isEqual(to: state.lastPayload))
     }
 
-    @Test func unavailableModesReturnNoFabricatedSuccess() async throws {
+    @Test(arguments: ["onDevice", "pcc"])
+    func unavailableModesReturnNoFabricatedSuccess(mode: String) async throws {
         let state = BackendState(); state.modes = []
         let api = NativeModelAPI(backend: state.backend())
         let modes = try await api.performAsync("modelModes", payload: "{}")
         #expect((try JSONSerialization.jsonObject(with: Data(modes.utf8)) as? [String: Any])?["value"] as? [String] == [])
-        do { _ = try await api.performAsync("modelRespond", payload: payload("Neutral")); Issue.record("Unavailable model succeeded.") }
+        do { _ = try await api.performAsync("modelRespond", payload: payload("Neutral", mode: mode)); Issue.record("Unavailable model succeeded.") }
         catch { #expect(error.localizedDescription == "The selected Apple Intelligence model is unavailable on this Mac.") }
         #expect(!state.started)
     }
