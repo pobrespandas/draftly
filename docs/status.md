@@ -25,6 +25,14 @@ retain historical results. Later results supersede earlier counts.
 
 ## Current verification
 
+app.selectDraft now applies Workspace filters, sort, initial editable query
+and row options. Specific tests and native QA selection/cancellation checks
+passed, including a corrected Escape wait. Share has a dated reference
+supplement: its filename-first API and Boolean results are corrected. Native
+file cancellation passed. Completed-service and legacy sharing remain partial.
+See the latest validation records and member evidence in the API matrix.
+
+
 The four App display-message methods now return void and show severity banners
 in the owning window. Both-engine and headless routing tests pass. Native QA
 verified all four messages, close, expiry, history and text preservation.

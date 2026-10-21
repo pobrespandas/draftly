@@ -260,7 +260,17 @@ var app = {
     setClipboard:text=>__call('clipboard',{text}),getClipboard:()=>__call('getClipboard'),htmlToClipboard:html=>__call('htmlToClipboard',{html}),
     openURL:(url,useSafari)=>__call('openURL',{url,useSafari}),queueAction:(action,draft)=>__call('queueAction',{action,draft}),
     applyWorkspace:workspace=>__call('applyWorkspace',workspace===undefined?Workspace.create():workspace),setIdleDisabled:value=>__call('ui',{operation:'set',key:'isIdleDisabled',value}),
-    selectDraft:()=>{let p=new SelectPrompt();Draft.query().forEach(d=>p.addItem(d.uuid,d.displayTitle));return p.show()?Draft.find(p.selectedItem.id):undefined;},
+    selectDraft:workspace=>{
+        if(workspace!==undefined&&!(workspace instanceof Workspace))throw new Error('The workspace must be a Workspace.');
+        const p=new SelectPrompt();
+        let drafts;
+        if(workspace===undefined){drafts=Draft.query();p.draftSelectionQuery='';}
+        else{const source=new Workspace(JSON.parse(JSON.stringify(workspace)));p.draftSelectionQuery=source.queryString||'';source.queryString='';drafts=source.query(source.loadFolder||'all');}
+        const native=workspace&&workspace._draftlyNative?JSON.parse(workspace._draftlyNative):{};
+        p.draftListOptions={...(native.listOptions||{}),showPreview:workspace===undefined?true:workspace.showPreview,showDate:workspace===undefined?true:workspace.showDate,showTags:workspace===undefined?true:workspace.showTags,previewSearchMatches:workspace===undefined?false:workspace.showSearchPreview,showLastAction:workspace===undefined?false:workspace.showLastAction};
+        for(const d of drafts){p.addItem(d.uuid,d.displayTitle);const item=p.items[p.items.length-1];item.draft={uuid:d.uuid,content:d.content,tags:d.tags,flagType:d.flagType,createdAt:d.createdAt,modifiedAt:d.modifiedAt};if(p.draftListOptions.showLastAction){const log=d.actionLogs[0];if(log)item.lastAction=log.actionName;}}
+        return p.show()?Draft.find(p.selectedItem.id):undefined;
+    },
     openInNewWindow:d=>__call('ui',{operation:'openInNewWindow',draft:d}),lookup:text=>__call('lookup',{text})
 };
 for(let name of ['showActionList','hideActionList','showDraftList','hideDraftList','showDraftInfo','showQuickSearch','loadActionBarGroup','loadActionGroup','loadKeyboardActionGroup']) app[name]=value=>__call('ui',{operation:name,value});

@@ -158,9 +158,12 @@ struct NativePromptAdapter {
         let alert = NSAlert(); alert.messageText = values["title"] as? String ?? "Select a draft"
         if alert.messageText.isEmpty { alert.messageText = "Select a draft" }
         alert.informativeText = values["message"] as? String ?? ""
-        let choices = SearchablePromptChoices(items: items)
+        let options = (values["draftListOptions"] as? [String: Any]).map(DraftSelectionRow.options)
+        let choices = SearchablePromptChoices(items: items, draftListOptions: options, initialQuery: values["draftSelectionQuery"] as? String ?? "")
         alert.accessoryView = choices.view; alert.window.initialFirstResponder = choices.search
-        alert.addButton(withTitle: "Select"); alert.addButton(withTitle: "Cancel").keyEquivalent = "\u{1b}"
+        alert.addButton(withTitle: "Select")
+        let cancel = alert.addButton(withTitle: "Cancel"); cancel.keyEquivalent = "\u{1b}"
+        if options != nil { choices.cancelSelection = { [weak cancel] in cancel?.performClick(nil) } }
         return (alert, choices)
     }
 
@@ -176,10 +179,16 @@ struct NativePromptAdapter {
 @MainActor final class SearchablePromptChoices: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSSearchFieldDelegate {
     let view = NSStackView(), search = NSSearchField(), table = NSTableView()
     private let items: [[String: Any]]
+    private let draftListOptions: DraftListOptions?
+    private let draftRows: [DraftSelectionRow?]
     private(set) var visibleIndices: [Int] = []
+    private(set) var emphasizedRow: Int?
+    var cancelSelection: (() -> Void)?
     var selectedIndex: Int? { visibleIndices.indices.contains(table.selectedRow) ? visibleIndices[table.selectedRow] : nil }
-    init(items: [[String: Any]]) {
-        self.items = items; super.init()
+    init(items: [[String: Any]], draftListOptions: DraftListOptions? = nil, initialQuery: String = "") {
+        self.items = items; self.draftListOptions = draftListOptions
+        self.draftRows = items.map { item in draftListOptions.flatMap { DraftSelectionRow(item: item, options: $0) } }
+        super.init()
         view.orientation = .vertical; view.alignment = .leading
         view.frame = NSRect(x: 0, y: 0, width: 400, height: 340)
         search.placeholderString = "Search"; search.delegate = self
@@ -190,22 +199,66 @@ struct NativePromptAdapter {
         let scroll = NSScrollView(); scroll.documentView = table; scroll.hasVerticalScroller = true
         scroll.widthAnchor.constraint(equalToConstant: 400).isActive = true
         scroll.heightAnchor.constraint(equalToConstant: 300).isActive = true
-        view.addArrangedSubview(scroll); filter("")
+        view.addArrangedSubview(scroll)
+        search.stringValue = draftListOptions == nil ? "" : initialQuery
+        filter(search.stringValue)
     }
     func filter(_ query: String) {
         let previous = selectedIndex
         visibleIndices = items.indices.filter { index in
-            query.isEmpty || ["title", "subtitle"].contains { (items[index][$0] as? String ?? "").localizedStandardContains(query) }
+            if let presentation = draftRows[index] {
+                return presentation.matches(query)
+            }
+            return query.isEmpty || ["title", "subtitle"].contains { (items[index][$0] as? String ?? "").localizedStandardContains(query) }
         }
         table.reloadData()
         if let selected = previous.flatMap({ visibleIndices.firstIndex(of: $0) }) { table.selectRowIndexes(IndexSet(integer: selected), byExtendingSelection: false) }
         else if !visibleIndices.isEmpty { table.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false) }
         else { table.deselectAll(nil) }
+        if draftListOptions != nil { refreshSelectionStyle() }
     }
     func controlTextDidChange(_ notification: Notification) { filter(search.stringValue) }
+    func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
+        guard draftListOptions != nil, control === search else { return false }
+        if commandSelector == #selector(NSResponder.cancelOperation(_:)), let cancelSelection {
+            cancelSelection()
+            return true
+        }
+        guard commandSelector == #selector(NSResponder.moveUp(_:)) || commandSelector == #selector(NSResponder.moveDown(_:)) else { return false }
+        guard !visibleIndices.isEmpty else { return true }
+        let offset = commandSelector == #selector(NSResponder.moveUp(_:)) ? -1 : 1
+        let current = table.selectedRow
+        let next = current < 0 ? (offset > 0 ? 0 : visibleIndices.count - 1) : min(visibleIndices.count - 1, max(0, current + offset))
+        table.selectRowIndexes(IndexSet(integer: next), byExtendingSelection: false)
+        refreshSelectionStyle()
+        table.scrollRowToVisible(next)
+        return true
+    }
+
+    func tableViewSelectionDidChange(_ notification: Notification) {
+        refreshSelectionStyle()
+    }
+    private func refreshSelectionStyle() {
+        guard draftListOptions != nil else { return }
+        let previous = emphasizedRow
+        emphasizedRow = visibleIndices.indices.contains(table.selectedRow) ? table.selectedRow : nil
+        guard previous != emphasizedRow else { return }
+        let rows = [previous, emphasizedRow].compactMap { $0 }.filter { visibleIndices.indices.contains($0) }
+        table.reloadData(forRowIndexes: IndexSet(rows), columnIndexes: IndexSet(integer: 0))
+    }
+
+    func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat {
+        guard let presentation = draftRows[visibleIndices[row]] else { return 48 }
+        return presentation.height(width: tableView.bounds.width, query: search.stringValue)
+    }
+
     func numberOfRows(in tableView: NSTableView) -> Int { visibleIndices.count }
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-        let item = items[visibleIndices[row]], cell = NSTableCellView()
+        let item = items[visibleIndices[row]]
+        if let presentation = draftRows[visibleIndices[row]] {
+            return presentation.view(width: tableView.bounds.width, emphasized: tableView.selectedRow == row, query: search.stringValue)
+        }
+        let cell = NSTableCellView()
         let title = NSTextField(labelWithString: item["title"] as? String ?? "Untitled")
         let subtitle = NSTextField(labelWithString: item["subtitle"] as? String ?? "")
         title.font = .systemFont(ofSize: 13, weight: .medium); subtitle.font = .systemFont(ofSize: 11)

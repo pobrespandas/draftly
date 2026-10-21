@@ -1,0 +1,32 @@
+[
+  {
+    "uuid": "BBBF0024-0000-4000-8000-000000000001",
+    "name": "QA Draft picker compact",
+    "group": "Draft picker QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "const before=editor.getText(); const w=new Workspace(); w.loadFolder='all'; w.queryString='Picker QA:'; w.tagFilter='picker-qa,!excluded'; w.setAllSort('name',false,false); w.showPreview=false; w.showDate=false; w.showTags=false; const selected=app.selectDraft(w); if(editor.getText()!==before) throw new Error('Picker changed editor'); app.displayInfoMessage(selected ? 'Selected: '+selected.title : 'Selection cancelled');"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0024-0000-4000-8000-000000000002",
+    "name": "QA Draft picker full",
+    "group": "Draft picker QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "const before=editor.getText(); const w=new Workspace(); w.loadFolder='all'; w.queryString='Picker QA:'; w.tagFilter='picker-qa,!excluded'; w.setAllSort('name',false,false); w.showSearchPreview=false; w.showPreview=true; w.showDate=true; w.showTags=true; const selected=app.selectDraft(w); if(editor.getText()!==before) throw new Error('Picker changed editor'); app.displayInfoMessage(selected ? 'Selected: '+selected.title : 'Selection cancelled');"
+        }
+      }
+    ]
+  }
+]

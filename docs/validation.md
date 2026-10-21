@@ -7045,3 +7045,64 @@ effects. All four routes pass with cancellation and timeout: Bookmark, text
 sharing, file sharing and URL sharing. No duplicate test suite was added.
 The complete run passed 477 app and 556 core methods. This is controlled host
 evidence. It does not replace native service-completion acceptance.
+
+
+### Workspace draft selection — 21 October 2026
+
+app.selectDraft previously ignored its optional Workspace. It now uses a copy
+for structural filters, dates, folder and sort. The initial query stays visible
+and editable. Replacing it searches the same structural result set. The source
+Workspace does not change. The selector shares DraftTableRow drawing and
+DraftRowPresentation measurements with the real list. It carries preview, tags,
+date, last-action and search options. Parsed row data is cached once.
+
+Specific both-engine tests cover archive/date/tag exclusions, order, typed
+result and cache identity, last-action metadata, optional defaults, Trash
+exclusion, user cancellation, unmatched queries, invalid types and invalid
+dates. They preserve source selection and decoded library collections. Native
+headless cases cover shared dimensions, options, content search with previews
+hidden, case/title settings, original row identity, selection emphasis, keyboard
+bounds and query replacement. The ordinary SelectPrompt path stays unchanged.
+
+The first native pass found two keyboard defects. Down from search did nothing.
+Escape with a nonempty initial query hid the alert but left the action waiting.
+That run ended with Error at04:32: the action operation timed out. It is not an
+accepted cancellation. The native Cancel button control completed at04:33.
+Draft-mode search now routes arrows to the table and Escape to the actual
+Cancel button. The existing presenter owns finalization. A headless test
+replaces the button target and proves Escape uses its current action.
+
+Imported app-select-draft-notes.json and app-select-draft-actions.json into
+isolated Engine QA. The library now has five neutral drafts. The picker shows
+Alpha and Zulu in name order and excludes Excluded. Compact mode hides preview,
+tags and dates. Full mode shows them with its normal-preview option. The
+initial Picker QA: query is visible. Replaced it with Neutral body, which found
+both rows with previews hidden; an absent term found none; Zulu found its
+original row. Return yielded the typed Zulu result without loading it. Up/Down
+changed selection from the search field. Main Inbox, filters and source text
+stayed unchanged. History records the successful compact result at04:30.
+
+After refreshing all QA runtime images, Escape from the full picker with its
+nonempty initial query completed at04:36. The script reported Selection
+cancelled. History recorded Success because the script handled undefined.
+Cancel Running Action was disabled afterward. History is closed. No dialog or
+action remains. No permission or system setting changed. The source remains
+the prior Context callbacks fresh marker with its Unicode suffix.
+
+The final full regression passed 477 app and 556 core methods, including the
+five unchanged original scripts. Later focused runs passed all five selection
+contract methods and all six presentation methods, including the added actual
+Cancel-button target check and last-action assertions. All 45 Python tests and
+the unsigned Xcode build passed. Automatic tests opened no visible windows.
+This accepts the scripting contract; exact Drafts pixel parity remains separate.
+
+Final signed QA runtime hashes:
+
+```text
+Draftly: cc128c3bb217ed1490c495317fcd25336d29999e7f1ca67a152f0b843d77a0bf
+Draftly.debug.dylib: a444ecab3aa9532d60dc7bcada549f3233237a71a45ae6c341aba1f54451bc14
+```
+
+Matrix structure has zero errors after this update. Strict engine/global
+controls still report 18/4538 diagnostics. The newly required Share inventory
+adds real open contracts. These diagnostics are not a compatibility score.

@@ -7930,10 +7930,91 @@
             "selectDraft(workspace?: Workspace): Draft | undefined"
           ],
           "contract": "Open draft selection interface and wait for user to select a draft. Returns the select draft object, or undefined if user cancelled.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "AppSelectDraftContractTests",
+            "test": "workspaceFiltersDatesFolderSortAndPresentationReachTheSelector"
+          },
+          "liveCheck": "Engine QA manual checks on 21 October 2026. Reproducible actions and neutral notes are tracked.",
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "App.selectDraft"
+          },
+          "defaults": "Workspace is optional. Without one, the existing all-folder query supplies drafts and excludes Trash. With one, a copy supplies structural filters and folder sort. Its queryString starts visible and can be replaced without changing the original Workspace.",
+          "result": "Returns a cached typed Draft for the chosen original item identity, or undefined after user cancellation. Does not load that draft in the editor or change the main window filters.",
+          "errors": "Non-Workspace arguments and invalid workspace dates fail before showing the selector or applying success effects. An initially unmatched query displays an empty result list; cancelling returns undefined.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "AppSelectDraftContractTests",
+                "test": "workspaceFiltersDatesFolderSortAndPresentationReachTheSelector"
+              },
+              "assertion": "Both engines preserve archive/date/tag/exclusion/name order, initial editable query, presentation and last-action metadata. The selected result shares Draft cache identity. Source Workspace, editor selection and library collections stay unchanged."
+            },
+            "defaults": {
+              "test": {
+                "suite": "AppSelectDraftContractTests",
+                "test": "defaultSelectionAndCancellationKeepTheEditorUnchanged"
+              },
+              "assertion": "Optional workspace includes Inbox and Archive, excludes Trash, returns a typed result or undefined for cancellation, and preserves editor and stored data."
+            },
+            "errors": {
+              "test": {
+                "suite": "AppSelectDraftContractTests",
+                "test": "invalidWorkspaceDatesFailBeforePresentingOrApplyingSuccessEffects"
+              },
+              "assertion": "Both engines reject invalid date filters before host presentation and suppress archive success effects."
+            }
+          },
+          "supportingTests": [
+            {
+              "suite": "AppSelectDraftContractTests",
+              "test": "invalidWorkspaceTypesFailBeforeShowingTheSelector"
+            },
+            {
+              "suite": "AppSelectDraftContractTests",
+              "test": "cancelledNoMatchQueryReturnsUndefinedWithoutLoadingADraft"
+            },
+            {
+              "suite": "DraftSelectionPresentationTests",
+              "test": "preparedSelectionPreservesWorkspaceOptionsAndSharedRowMeasurements"
+            },
+            {
+              "suite": "DraftSelectionPresentationTests",
+              "test": "hiddenPreviewsStillSearchContentAndReturnTheOriginalItemIndex"
+            },
+            {
+              "suite": "DraftSelectionPresentationTests",
+              "test": "draftSearchKeysNavigateWithoutWrappingAndRouteEscapeToCancel"
+            },
+            {
+              "suite": "DraftSelectionPresentationTests",
+              "test": "workspaceQueryStartsVisibleAndCanBeReplacedWithoutLosingSourceRows"
+            },
+            {
+              "suite": "DraftSelectionPresentationTests",
+              "test": "preparedEscapeUsesTheCancelButtonsCurrentAction"
+            },
+            {
+              "suite": "DraftSelectionPresentationTests",
+              "test": "ordinarySelectPromptKeepsItsOriginalFixedRowsAndTitleSearch"
+            }
+          ],
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Workspace draft selection — 21 October 2026",
+            "scope": "Five member-specific both-engine cases and six headless native presentation cases. Full regression and subsequent focused assertions passed."
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Workspace draft selection — 21 October 2026",
+            "scope": "Compact/full rows, filters and order, visible initial query, body search with hidden preview, replacement query, no matches, keyboard selection, button cancellation and corrected Escape. Source editor and main filters unchanged. Pixel comparison remains in the visual matrix."
+          },
+          "limitations": []
         },
         {
           "member": "areLiveActivitiesSupported",

@@ -264,7 +264,7 @@ private final class DraftHostingCell: NSTableCellView {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 }
 
-private struct DraftTableRow: View {
+struct DraftTableRow: View {
     var note: Note
     var title: String
     var showPreview: Bool

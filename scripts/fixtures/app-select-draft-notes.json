@@ -1,0 +1,44 @@
+{
+  "drafts": [
+    {
+      "uuid": "BBBF0024-0000-4000-8000-000000000011",
+      "title": "Picker QA: Alpha",
+      "content": "Picker QA: Alpha\nNeutral body café 🐼\nSecond preview line",
+      "tags": [
+        "picker-qa"
+      ],
+      "flag": 2,
+      "syntax": "Markdown",
+      "isArchived": false,
+      "createdAt": "2025-01-01T12:00:00Z",
+      "modifiedAt": "2025-01-02T12:00:00Z"
+    },
+    {
+      "uuid": "BBBF0024-0000-4000-8000-000000000012",
+      "title": "Picker QA: Zulu",
+      "content": "Picker QA: Zulu\nNeutral body café 🐼\nSecond preview line",
+      "tags": [
+        "picker-qa"
+      ],
+      "flag": 0,
+      "syntax": "Markdown",
+      "isArchived": false,
+      "createdAt": "2025-01-01T12:00:00Z",
+      "modifiedAt": "2025-01-02T12:00:00Z"
+    },
+    {
+      "uuid": "BBBF0024-0000-4000-8000-000000000013",
+      "title": "Picker QA: Excluded",
+      "content": "Picker QA: Excluded\nNeutral body café 🐼\nSecond preview line",
+      "tags": [
+        "picker-qa",
+        "excluded"
+      ],
+      "flag": 0,
+      "syntax": "Markdown",
+      "isArchived": false,
+      "createdAt": "2025-01-01T12:00:00Z",
+      "modifiedAt": "2025-01-02T12:00:00Z"
+    }
+  ]
+}
