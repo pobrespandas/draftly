@@ -4773,3 +4773,25 @@ change to existing exported records. Other duplicate kinds have automatic
 coverage; this does not claim native coverage for each kind. No production
 code or tests changed after the accepted app447/core471 and build. iCloud and
 signed-update acceptance remain separate. No screenshots are tracked.
+
+
+### Reject invalid recognized imports without text fallback — 20 October 2026
+
+Implemented: file import recognizes explicit backup, action, and draft-export
+JSON shapes before applying plain-text fallback. An invalid recognized shape
+now propagates its decode error even when its extension is txt. Successful
+note imports still use one atomic batch with the existing conflict handling.
+Action shapes keep precedence over draft-like future fields. Unclassified
+JSON in a text file remains literal text.
+
+Automatic: four malformed recognized inputs failed before the fix because
+they were saved as raw text. They now throw and preserve the complete existing
+backup. The action batch rollback/retry test also retains an unknown content
+field without treating the action as a note. The existing text-route test
+covers literal unclassified JSON. Full regression passed app447/core472.
+Unsigned app build and matrix structure pass. No visible automatic tests ran.
+
+Native error presentation for this route change remains pending. Installed QA
+still has imageca22fd5931d5b495; it was not updated. This does not close broad
+import compatibility, sync, or UI timeout acceptance. No screenshots or raw
+logs are tracked.

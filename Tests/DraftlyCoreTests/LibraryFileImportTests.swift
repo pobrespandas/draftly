@@ -6,6 +6,7 @@ import Testing
     @Test func failedActionFileRestoresReplacementsAndDoesNotKeepNewActions() throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         var existing = DraftAction(name: "Original", steps: [ActionStep("script", ["script": "void 0;"])])
+        existing.unknownFields["content"] = .string("Future action field café 🐼")
         try library.saveAction(existing)
         let originalID = existing.id
         existing.name = "Replacement"
@@ -22,6 +23,7 @@ import Testing
         try LibraryFileImport.apply(file, fileExtension: "json", to: library)
         #expect(commits == 1)
         #expect(Set(library.actions.map(\.name)) == ["Replacement", "New action"])
+        #expect(library.actions.first { $0.id == originalID }?.unknownFields["content"] == existing.unknownFields["content"])
     }
 
     @Test func failedNoteFileRollsBackNotesAndRevisionsAndRetryKeepsConflicts() throws {
@@ -74,6 +76,22 @@ import Testing
         #expect(destination.notes == source.notes && destination.runs == [run])
     }
 
+    @Test(arguments: [
+        #"{"drafts":[{"content":"Must not save"},{"tags":[]}]}"#,
+        #"[{"content":"Must not save"},{"tags":[]}]"#,
+        #"{"actions":[{"name":"Must not save","steps":[{}]}]}"#,
+        #"{"name":"Must not save","steps":[{}]}"#
+    ])
+    func recognizedInvalidJSONCannotFallThroughToPlainText(json: String) throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        _ = try library.createNote(content: "Keep café 🐼")
+        let before = try library.backupData()
+        #expect(throws: (any Error).self) {
+            try LibraryFileImport.apply(Data(json.utf8), fileExtension: "txt", to: library)
+        }
+        #expect(try library.backupData() == before)
+    }
+
     @Test func textAndMalformedJSONKeepTheirDistinctRoutes() throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let text = "Neutral café 🐼\nSecond line"
@@ -81,5 +99,8 @@ import Testing
         #expect(library.notes.first?.content == text)
         #expect(throws: (any Error).self) { try LibraryFileImport.apply(Data("{broken".utf8), fileExtension: "json", to: library) }
         #expect(library.notes.count == 1)
+        let unclassified = #"{"shopping":["café 🐼"]}"#
+        try LibraryFileImport.apply(Data(unclassified.utf8), fileExtension: "txt", to: library)
+        #expect(library.notes.contains { $0.content == unclassified })
     }
 }

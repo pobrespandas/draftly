@@ -1083,3 +1083,9 @@ Native duplicate-draft backup rejection now passes on isolated QA imageca22fd59:
 the error is visible and before/after full backup exports are byte-identical.
 All existing notes, revisions, actions, and history stayed unchanged. Other
 duplicate record kinds retain automatic coverage; sync remains separate.
+
+
+Malformed recognized action/draft export JSON no longer falls back to a raw
+text note through txt imports. Unclassified JSON text and unknown action fields
+remain compatible. Full app447/core472, unsigned build, and matrix structure
+pass. Native error presentation for this change remains pending.

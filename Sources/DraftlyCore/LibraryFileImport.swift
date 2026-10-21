@@ -2,24 +2,35 @@ import Foundation
 
 @MainActor public enum LibraryFileImport {
     public static func apply(_ data: Data, fileExtension: String, to library: LibraryStore) throws {
-        if let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           object["version"] != nil, object["revisions"] != nil {
+        let object = try? JSONSerialization.jsonObject(with: data)
+        let dictionary = object as? [String: Any]
+        let entries = object as? [[String: Any]] ?? []
+        if dictionary?["version"] != nil, dictionary?["revisions"] != nil {
             try library.restore(data)
+        } else if dictionary?["actions"] != nil || dictionary?["steps"] != nil && dictionary?["name"] != nil
+                    || entries.contains(where: { $0["steps"] != nil }) {
+            try library.saveActions(ActionImporter.decode(data))
+        } else if dictionary?["drafts"] != nil || entries.contains(where: { $0["content"] != nil }) {
+            try applyNotes(ActionImporter.importNotes(data), to: library)
         } else if let actions = try? ActionImporter.decode(data) {
             try library.saveActions(actions)
         } else if let notes = try? ActionImporter.importNotes(data) {
-            var existing = Dictionary(uniqueKeysWithValues: library.notes.map { ($0.id, $0) })
-            var incoming: [Note] = []
-            for var note in notes {
-                if let prior = existing[note.id], prior.content != note.content { note.id = UUID() }
-                existing[note.id] = note
-                incoming.append(note)
-            }
-            try library.saveNotes(incoming, preserveDates: true)
+            try applyNotes(notes, to: library)
         } else if fileExtension.lowercased() != "json", let content = String(data: data, encoding: .utf8) {
             _ = try library.createNote(content: content)
         } else {
             throw DraftlyError.message("This file is not a Draftly backup, Drafts export, or action file.")
         }
+    }
+
+    private static func applyNotes(_ notes: [Note], to library: LibraryStore) throws {
+        var existing = Dictionary(uniqueKeysWithValues: library.notes.map { ($0.id, $0) })
+        var incoming: [Note] = []
+        for var note in notes {
+            if let prior = existing[note.id], prior.content != note.content { note.id = UUID() }
+            existing[note.id] = note
+            incoming.append(note)
+        }
+        try library.saveNotes(incoming, preserveDates: true)
     }
 }
