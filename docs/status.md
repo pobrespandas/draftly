@@ -1095,3 +1095,10 @@ Native txt imports of malformed recognized draft/action JSON now show their
 specific errors. Both before/after full backups are byte-identical; no valid
 prefix record or raw JSON note was added. QA is image13f8e82c. Broader import
 and synchronization acceptance remain separate.
+
+
+Multiple selected import files now prepare in isolation and commit changed
+records once. Second-file and storage failures leave the destination unchanged;
+disk reopen/retry and all eight backup collections have tests. Full regression
+app447/core475 and unsigned build pass. Native multi-selection and staging
+performance remain pending; QA was not updated.

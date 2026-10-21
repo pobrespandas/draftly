@@ -92,6 +92,81 @@ import Testing
         #expect(try library.backupData() == before)
     }
 
+    @Test func invalidSecondFileDoesNotKeepTheFirstFilesReplacementsOrNewRecords() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let original = DraftAction(name: "Keep action café 🐼", steps: [])
+        try library.saveAction(original)
+        _ = try library.createNote(content: "Keep note")
+        let before = try library.backupData()
+        var replacement = original; replacement.name = "Must not replace"
+        let added = DraftAction(name: "Must not add", steps: [])
+        let files = [LibraryFileImport.File(data: try JSONEncoder().encode([replacement, added]), fileExtension: "json"),
+            .init(data: Data(#"{"drafts":[{"tags":[]}]}"#.utf8), fileExtension: "txt")]
+        #expect(throws: (any Error).self) { try LibraryFileImport.apply(files, to: library) }
+        #expect(try library.backupData() == before)
+    }
+
+    @Test func failedMultiFileCommitKeepsDiskStateAndRetryCommitsOnce() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        var library: LibraryStore? = try LibraryStore(directory: directory, seed: false)
+        let original = DraftAction(name: "Original", steps: [])
+        try library?.saveAction(original)
+        var replacement = original; replacement.name = "Replacement"
+        let files = [LibraryFileImport.File(data: Data(#"{"drafts":[{"content":"Imported café 🐼","tags":["neutral"],"flag":7,"syntax":"TaskPaper","modifiedAt":"2020-02-03T04:05:06Z"}]}"#.utf8), fileExtension: "json"),
+            .init(data: try JSONEncoder().encode(replacement), fileExtension: "json")]
+        let before = try #require(library).backupData()
+        library?.beforeBatchCommit = { throw DraftlyError.message("Injected import commit failure") }
+        #expect(throws: (any Error).self) { try LibraryFileImport.apply(files, to: #require(library)) }
+        #expect(try library?.backupData() == before)
+        library = nil
+        let reopened = try LibraryStore(directory: directory, seed: false)
+        #expect(try reopened.backupData() == before)
+        var commits = 0
+        reopened.beforeBatchCommit = { commits += 1 }
+        try LibraryFileImport.apply(files, to: reopened)
+        #expect(commits == 1)
+        #expect(reopened.actions.first?.id == original.id && reopened.actions.first?.name == replacement.name)
+        let note = try #require(reopened.notes.first)
+        #expect(note.content == "Imported café 🐼" && note.tags == ["neutral"] && note.flag == 7 && note.syntax == "TaskPaper")
+        #expect(note.modifiedAt == ISO8601DateFormatter().date(from: "2020-02-03T04:05:06Z"))
+        #expect(reopened.revisions.filter { $0.noteID == note.id }.count == 1)
+    }
+
+    @Test(arguments: [false, true])
+    func multiFileBackupPreservesAllCollectionsAndCommitsNoPartialGraph(failCommit: Bool) throws {
+        let note = Note(content: "Backup café 🐼")
+        let action = DraftAction(name: "Related action", steps: [])
+        var run = ActionRun(actionName: action.name, status: "success", message: "Retained")
+        run.noteID = note.id; run.actionID = action.id
+        let syntax = try SyntaxDefinition(data: Data(#"{"name":"Batch syntax","patterns":[],"navigationPatterns":[],"linkDefinitions":[],"taskMarkDefinitions":[],"indentationPatterns":[]}"#.utf8))
+        let backup = Backup(notes: [note], revisions: [Revision(noteID: note.id, content: note.content)],
+            workspaces: [Workspace(name: "Batch workspace")], actions: [action],
+            actionGroups: [ActionGroupRecord(name: "Batch group")], syntaxes: [syntax],
+            themes: [EditorThemeDefinition(name: "Batch theme")], runs: [run])
+        let files = [LibraryFileImport.File(data: try JSONEncoder().encode(backup), fileExtension: "json"),
+            .init(data: Data("Additional text".utf8), fileExtension: "txt")]
+        let destination = try LibraryStore(inMemory: true, seed: false)
+        let before = try destination.backupData()
+        var commits = 0
+        destination.beforeBatchCommit = {
+            commits += 1
+            if failCommit { throw DraftlyError.message("Injected graph commit failure") }
+        }
+        if failCommit {
+            #expect(throws: (any Error).self) { try LibraryFileImport.apply(files, to: destination) }
+            #expect(try destination.backupData() == before)
+        } else {
+            try LibraryFileImport.apply(files, to: destination)
+            #expect(destination.notes.contains(note) && destination.notes.contains { $0.content == "Additional text" })
+            #expect(destination.revisions.contains(backup.revisions[0]))
+            #expect(destination.actions == backup.actions && destination.workspaces == backup.workspaces)
+            #expect(destination.actionGroups == backup.actionGroups && destination.syntaxes == backup.syntaxes)
+            #expect(destination.themes == backup.themes && destination.runs == backup.runs)
+        }
+        #expect(commits == 1)
+    }
+
     @Test func textAndMalformedJSONKeepTheirDistinctRoutes() throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let text = "Neutral café 🐼\nSecond line"

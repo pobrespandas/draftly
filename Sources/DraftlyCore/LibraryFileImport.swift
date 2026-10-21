@@ -1,6 +1,26 @@
 import Foundation
 
 @MainActor public enum LibraryFileImport {
+    public struct File {
+        public let data: Data
+        public let fileExtension: String
+        public init(data: Data, fileExtension: String) {
+            self.data = data; self.fileExtension = fileExtension
+        }
+    }
+
+    public static func apply(_ files: [File], to library: LibraryStore) throws {
+        guard !files.isEmpty else { return }
+        if files.count == 1, let file = files.first {
+            try apply(file.data, fileExtension: file.fileExtension, to: library)
+            return
+        }
+        let staging = try LibraryStore(inMemory: true, seed: false)
+        try staging.restore(library.backupData())
+        for file in files { try apply(file.data, fileExtension: file.fileExtension, to: staging) }
+        try library.applyImportedRecords(from: staging)
+    }
+
     public static func apply(_ data: Data, fileExtension: String, to library: LibraryStore) throws {
         let object = try? JSONSerialization.jsonObject(with: data)
         let dictionary = object as? [String: Any]

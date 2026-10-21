@@ -4820,3 +4820,28 @@ library changed. This verifies both recognized-format error paths through
 File Import, not all import formats or cloud recovery. No production code or
 tests changed after the accepted app447/core472 and build. No screenshots or
 raw exported backups are tracked.
+
+
+### Atomic multi-file import — 20 October 2026
+
+Implemented a multi-file LibraryFileImport entry. Multiple files are applied
+in order to an isolated in-memory library initialized from the current backup.
+Only changed records are persisted to the destination, in one transaction.
+No destination publication occurs during preparation. Existing generic records
+outside the imported collections remain untouched. Single-file import keeps
+its existing path. File Import reads all selected files before applying them.
+No library format or public scripting contract changed.
+
+Automatic: the prior sequential path failed two new regressions: a second-file
+error kept first-file changes, and a successful mixed import committed twice.
+Both pass after the fix. Tests also inject destination commit failure, reopen
+the disk store, retry with one commit, and check imported dates/tags/flag/syntax.
+A backup-plus-text case verifies all eight collections and note/action/history
+relationships, with success and commit-failure variants. Full regression passed
+app447/core475. Unsigned build and matrix structure pass.
+
+Native multiple-file picker acceptance remains pending. Installed QA is still
+image13f8e82cecd3ed0e and was not replaced. Preparing a batch copies the current
+backup to memory; large-library cost has not been measured. This does not close
+performance, cloud recovery, or the pending UI timeout check. No screenshots
+or raw logs are tracked.

@@ -347,6 +347,25 @@ public final class LibraryStore: ObservableObject {
         } catch { container.viewContext.rollback(); try? reload(); throw error }
     }
 
+    func applyImportedRecords(from staging: LibraryStore) throws {
+        func changed<T: Identifiable & Equatable>(_ incoming: [T], existing: [T]) -> [T] where T.ID == UUID {
+            let previous = Dictionary(uniqueKeysWithValues: existing.map { ($0.id, $0) })
+            return incoming.filter { previous[$0.id] != $0 }
+        }
+        do {
+            for note in changed(staging.notes, existing: notes) { try persist(note, id: note.id, kind: "note") }
+            for revision in changed(staging.revisions, existing: revisions) { try persist(revision, id: revision.id, kind: "revision") }
+            for action in changed(staging.actions, existing: actions) { try persist(action, id: action.id, kind: "action") }
+            for workspace in changed(staging.workspaces, existing: workspaces) { try persist(workspace, id: workspace.id, kind: "workspace") }
+            for group in changed(staging.actionGroups, existing: actionGroups) { try persist(group, id: group.id, kind: "actionGroup") }
+            for syntax in changed(staging.syntaxes, existing: syntaxes) { try persist(syntax, id: syntax.id, kind: "syntax") }
+            for theme in changed(staging.themes, existing: themes) { try persist(theme, id: theme.id, kind: "theme") }
+            for run in changed(staging.runs, existing: runs) { try persist(run, id: run.id, kind: "run") }
+            try beforeBatchCommit?()
+            try commit()
+        } catch { container.viewContext.rollback(); try? reload(); throw error }
+    }
+
     private func validateBackupIdentities(_ backup: Backup) throws {
         let collections: [(String, [UUID])] = [
             ("draft", backup.notes.map(\.id)),

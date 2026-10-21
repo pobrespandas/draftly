@@ -10,12 +10,13 @@ struct DraftFileCommands {
         let panel = NSOpenPanel(); panel.allowsMultipleSelection = true; panel.allowedContentTypes = [.json, .plainText, .data]
         guard panel.runModal() == .OK else { return }
         model.perform {
-            for url in panel.urls {
+            let files = try panel.urls.map { url -> LibraryFileImport.File in
                 let scoped = url.startAccessingSecurityScopedResource()
                 defer { if scoped { url.stopAccessingSecurityScopedResource() } }
                 let data = try Data(contentsOf: url)
-                try LibraryFileImport.apply(data, fileExtension: url.pathExtension, to: model.library)
+                return LibraryFileImport.File(data: data, fileExtension: url.pathExtension)
             }
+            try LibraryFileImport.apply(files, to: model.library)
             model.status = "Import complete"
         }
     }
