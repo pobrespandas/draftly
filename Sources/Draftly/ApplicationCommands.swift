@@ -14,8 +14,8 @@ struct DraftlyCommands: Commands {
         else {
             CommandGroup(replacing: .newItem) {
                 Button("New Draft") { controller.newDraft() }.commandShortcut("New Draft")
-                Button("Quick Capture") { controller.capture() }.commandShortcut("Quick Capture")
-                Button("New Window") { openWindow(id: "library") }.commandShortcut("New Window")
+                Button("Capture") { controller.capture() }.commandShortcut("Quick Capture")
+                Button("New Draft in New Window") { openWindow(id: "library") }.commandShortcut("New Window")
             }
         }
     }
@@ -83,14 +83,37 @@ private struct WindowCommands: Commands {
     @ObservedObject var model: WindowModel
     @Environment(\.openWindow) private var openWindow
     var body: some Commands {
+        let fileCommands = FileDraftCommands(model: model)
         CommandGroup(replacing: .newItem) {
-            Button("New Draft") { model.create() }.commandShortcut("New Draft")
-            Button("Quick Capture") { controller.capture() }.commandShortcut("Quick Capture")
-            Button("New Window") { openWindow(id: "library") }.commandShortcut("New Window")
+            creationItems(fileCommands)
             Divider()
-            Button("Import…") { model.importFile() }.commandShortcut("Import")
-            Button("Export Draft…") { model.exportNote() }.disabled(model.currentNote == nil)
-            Button("Export Full Backup…") { model.exportBackup() }
+            draftItems(fileCommands)
+            Divider()
+            Button("Merge…") { model.mergeDrafts(fileCommands.targetIDs) }
+                .disabled(!fileCommands.canUseTargets || fileCommands.targetIDs.count < 2)
+            Button("Duplicate") { model.duplicateDrafts(fileCommands.targetIDs) }.disabled(!fileCommands.canUseTargets)
+            Button("Save Version") { fileCommands.saveVersion() }.commandShortcut("Save Version")
+                .disabled(fileCommands.singleTarget == nil)
+            Divider()
+            Button("Get Info…") { if let id = fileCommands.singleTarget { model.inspectDraft(id, versions: false) } }
+                .commandShortcut("Get Info").disabled(fileCommands.singleTarget == nil)
+            Button("Versions…") { if let id = fileCommands.singleTarget { model.inspectDraft(id, versions: true) } }
+                .disabled(fileCommands.singleTarget == nil)
+            Divider()
+            copyItems(fileCommands)
+            sharingItems(fileCommands)
+            Divider()
+            Button { model.navigate(-1) } label: { Label("Previous Draft", systemImage: "chevron.up") }
+                .commandShortcut("Previous Draft").disabled(model.visibleNotes.isEmpty)
+            Button { model.navigate(1) } label: { Label("Next Draft", systemImage: "chevron.down") }
+                .commandShortcut("Next Draft").disabled(model.visibleNotes.isEmpty)
+        }
+        CommandGroup(replacing: .printItem) {
+            Button { model.preview() } label: { Label(model.showPreview ? "Hide Preview" : "Show Preview", systemImage: "doc.text.magnifyingglass") }
+                .commandShortcut("Markdown Preview")
+            Button { _ = NSPageLayout().runModal(with: .shared) } label: { Label("Page Setup…", systemImage: "doc.text") }
+            Button { Task { await fileCommands.printDraft() } } label: { Label("Print…", systemImage: "printer") }
+                .commandShortcut("Print").disabled(!fileCommands.canUseTargets)
         }
         CommandGroup(after: .textEditing) {
             Button("Find…") {
@@ -144,6 +167,75 @@ private struct WindowCommands: Commands {
             }
         }
     }
+    @ViewBuilder private func creationItems(_ fileCommands: FileDraftCommands) -> some View {
+        Button("New Draft") { model.create() }.commandShortcut("New Draft")
+        Button("New Draft in New Window") { Task { _ = await fileCommands.openNewWindow() } }.commandShortcut("New Window")
+        Button("Capture") { controller.capture() }.commandShortcut("Quick Capture")
+        Button("New with Clipboard") { _ = fileCommands.createWithClipboard(NSPasteboard.general.string(forType: .string)) }
+            .commandShortcut("New with Clipboard").disabled(NSPasteboard.general.string(forType: .string)?.isEmpty != false)
+        Button("New with Dictation…") { if model.create() { model.perform { try model.showDictation() } } }
+            .commandShortcut("New with Dictation")
+        Menu("New with Syntax") {
+            ForEach(fileCommands.syntaxNames, id: \.self) { name in Button(name) { _ = fileCommands.create(syntax: name) } }
+        }
+        Menu("New in Workspace") {
+            ForEach(model.library.workspaces) { workspace in Button(workspace.name) { _ = fileCommands.create(in: workspace) } }
+        }.disabled(model.library.workspaces.isEmpty)
+        Button("Import…") { model.importFile() }.commandShortcut("Import")
+        Menu("Export") {
+            Button("As Text…") { model.exportDrafts(fileCommands.targetIDs, format: .txt) }.disabled(!fileCommands.canUseTargets)
+            Button("As CSV…") { model.exportDrafts(fileCommands.targetIDs, format: .csv) }.disabled(!fileCommands.canUseTargets)
+            Button("As JSON…") { model.exportDrafts(fileCommands.targetIDs, format: .json) }.disabled(!fileCommands.canUseTargets)
+            Divider()
+            Button("Export Full Backup…") { model.exportBackup() }
+        }
+    }
+
+    @ViewBuilder private func draftItems(_ fileCommands: FileDraftCommands) -> some View {
+        Button("Move to Inbox") { model.moveDrafts(fileCommands.targetIDs, to: .inbox) }
+            .commandShortcut("Move to Inbox").disabled(!fileCommands.canUseTargets)
+        Button("Move to Archive") { model.moveDrafts(fileCommands.targetIDs, to: .archive) }
+            .commandShortcut("Move to Archive").disabled(!fileCommands.canUseTargets)
+        Button("Move to Trash") { model.moveDrafts(fileCommands.targetIDs, to: .trash) }
+            .commandShortcut("Move to Trash").disabled(!fileCommands.canUseTargets)
+        Menu {
+            ForEach([2, 1, 6, 5, 3, 4, 7], id: \.self) { flag in
+                Toggle(flagName(flag), isOn: Binding(get: { fileCommands.sharesFlag(flag) },
+                    set: { _ in model.flagDrafts(fileCommands.targetIDs, value: flag) }))
+            }
+            Divider()
+            Toggle("Clear Flag", isOn: Binding(get: { fileCommands.sharesFlag(0) },
+                set: { _ in model.flagDrafts(fileCommands.targetIDs, value: 0) }))
+        } label: { Label("Flag", systemImage: "flag") }.disabled(!fileCommands.canUseTargets)
+        Menu {
+            Button("Add…") { model.promptTags(fileCommands.targetIDs, remove: false) }
+            Button("Remove…") { model.promptTags(fileCommands.targetIDs, remove: true) }
+        } label: { Label("Tags", systemImage: "tag") }.disabled(!fileCommands.canUseTargets)
+        Button("Change Syntax…") { fileCommands.promptSyntax() }.disabled(fileCommands.targetIDs.isEmpty)
+    }
+
+    private func copyItems(_ fileCommands: FileDraftCommands) -> some View {
+        Menu {
+            Button("Contents") { model.copyDrafts(fileCommands.targetIDs, field: .contents) }
+            Button("Title") { model.copyDrafts(fileCommands.targetIDs, field: .title) }
+            Button("Link") { model.copyDrafts(fileCommands.targetIDs, field: .link) }
+            Button("UUID") { model.copyDrafts(fileCommands.targetIDs, field: .uuid) }
+        } label: { Label("Copy", systemImage: "doc.on.doc") }.disabled(!fileCommands.canUseTargets)
+    }
+
+    private func sharingItems(_ fileCommands: FileDraftCommands) -> some View {
+        let notes = fileCommands.targetIDs.compactMap { id in model.library.notes.first { $0.id == id } }
+        let services = NSSharingService.sharingServices(forItems: [notes.map(\.content).joined(separator: "\n\n")])
+        return Menu {
+            ForEach(Array(services.enumerated()), id: \.offset) { _, service in
+                Button {
+                    model.perform { service.perform(withItems: [try model.copyText(fileCommands.targetIDs, field: .contents)]) }
+                } label: { Label { Text(service.title) } icon: { Image(nsImage: service.image) } }
+            }
+            if services.isEmpty { Text("No sharing services available") }
+        } label: { Label("Share", systemImage: "square.and.arrow.up") }.disabled(!fileCommands.canUseTargets || services.isEmpty)
+    }
+
     private func modifiers(_ action: DraftAction) -> SwiftUI.EventModifiers {
         var result: SwiftUI.EventModifiers = []
         for name in ActionShortcut(action).modifiers {

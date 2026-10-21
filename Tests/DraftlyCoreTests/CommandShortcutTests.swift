@@ -4,6 +4,30 @@ import Testing
 
 @Suite("Command shortcut configuration")
 struct CommandShortcutTests {
+    @Test func fileMenuCommandsReserveTheObservedBindingsWithoutChangingImportedActions() {
+        let expected: [(String, String, [String])] = [
+            ("Import", "o", ["command"]), ("New with Clipboard", "n", ["command", "option"]),
+            ("New with Dictation", "n", ["command", "shift", "option"]),
+            ("Move to Inbox", "i", ["command", "shift"]), ("Move to Archive", "a", ["command", "shift"]),
+            ("Move to Trash", "\u{8}", ["command", "shift", "option"]),
+            ("Save Version", "s", ["command"]), ("Get Info", "i", ["command", "option"]),
+            ("Previous Draft", "\u{F700}", ["shift", "control"]), ("Next Draft", "\u{F701}", ["shift", "control"]),
+            ("Print", "p", ["command"]), ("Editor Settings", ",", ["command", "option"])
+        ]
+        let commands = CommandShortcuts.bindings(configuration: "{}")
+        #expect(Set(commands.map(\.0)).count == commands.count)
+        for (name, key, modifiers) in expected {
+            let binding = CommandShortcuts.binding(name, configuration: "{}")
+            #expect(binding.key == key && Set(binding.modifiers) == Set(modifiers))
+            var imported = DraftAction(name: "Imported neutral", steps: [])
+            imported.shortcut = key; imported.shortcutModifiers = modifiers.reversed()
+            let original = imported
+            #expect(ActionShortcut.conflict(for: imported, in: [], commands: commands) == "Shortcut conflicts with \(name).")
+            #expect(imported == original)
+        }
+        let configured = CommandShortcuts.binding("Import", configuration: #"{"Import":{"key":"x","modifiers":["command","control"]}}"#)
+        #expect(configured.key == "x" && Set(configured.modifiers) == ["command", "control"])
+    }
     @Test func actionLabelsUseNormalizedModifiersInMacOrder() {
         #expect(ActionShortcut(key: " K ", modifiers: nil).displayLabel == "⌥⌘K")
         #expect(ActionShortcut(key: "é", modifiers: [" SHIFT ", "command", "OPTION", "control", "shift"]).displayLabel == "⌃⌥⇧⌘É")
