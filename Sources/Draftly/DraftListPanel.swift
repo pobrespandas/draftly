@@ -29,7 +29,7 @@ struct DraftListPanel: View {
                 PanelMenu(symbol: "chevron.down.circle", help: "Workspaces", items:
                     [PanelMenuItem(title: "Default Workspace") { model.clearFilters(); model.folder = .inbox }]
                     + library.workspaces.map { workspace in PanelMenuItem(title: workspace.name) { model.apply(workspace) } }
-                    + [.separator, PanelMenuItem(title: "Save Workspace…") { model.showWorkspaceEditor = true }, PanelMenuItem(title: "Manage Workspaces…") { model.showLibraryManagement = true }]
+                    + [.separator, PanelMenuItem(title: "Save Workspace…") { model.showWorkspaceEditor = true }, PanelMenuItem(title: "Manage Workspaces…") { model.openLibraryManagement(section: .workspaces) }]
                 ).frame(width: 28, height: 28)
                 PanelMenu(symbol: "plus", help: "Add Items", items: [
                     PanelMenuItem(title: "New Draft") { model.create() },

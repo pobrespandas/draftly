@@ -26,7 +26,7 @@ struct ActionListPanel: View {
                     PanelMenuItem(title: "New Action…") { newAction() },
                     PanelMenuItem(title: "Import from Directory…") { model.showActionImporter = true },
                     PanelMenuItem(title: "Import File…") { model.importFile() },
-                    PanelMenuItem(title: "Manage Groups…") { model.showLibraryManagement = true }
+                    PanelMenuItem(title: "Manage Groups…") { model.openLibraryManagement(section: .groups) }
                 ]).frame(width: 28, height: 28)
                 }
                 Spacer(minLength: 4)
@@ -40,7 +40,7 @@ struct ActionListPanel: View {
                     PanelMenuItem(title: "Show Keyboard Shortcuts", isOn: showKeyboardShortcuts) { showKeyboardShortcuts.toggle() },
                     .separator,
                     PanelMenuItem(title: "Import from Directory…") { model.showActionImporter = true },
-                    PanelMenuItem(title: "Manage Groups…") { model.showLibraryManagement = true }
+                    PanelMenuItem(title: "Manage Groups…") { model.openLibraryManagement(section: .groups) }
                 ]).frame(width: 28, height: 28)
                 }
             }.buttonStyle(.plain).foregroundStyle(.secondary).padding(.horizontal, MainWindowStyle.utilityInset).frame(height: MainWindowStyle.utilityHeight)

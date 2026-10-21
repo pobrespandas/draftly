@@ -57,7 +57,7 @@ struct LibraryView: View {
         .sheet(item: $model.mergeRequest) { request in MergeDraftsView(model: model, request: request) }
         .sheet(item: $model.editingAction) { action in ActionEditor(action: action, library: library) }
         .sheet(isPresented: $model.showActionImporter) { ActionImportView(library: library) { actions in model.actionGroup = actions.first?.group ?? "General" } }
-        .sheet(isPresented: $model.showLibraryManagement) { LibraryManagementView(model: model, library: library) }
+        .sheet(isPresented: $model.showLibraryManagement) { LibraryManagementView(model: model, library: library, initialSection: model.libraryManagementSection) }
         .sheet(isPresented: $model.showWorkspaceEditor) { WorkspaceEditor(model: model, library: library) }
         .sheet(isPresented: $model.showHistory, onDismiss: { model.historyDraftID = nil }) { HistoryView(model: model, library: library, noteID: model.historyDraftID ?? model.editor.noteID) }
         .sheet(isPresented: $model.showRunLog) { RunLogView(library: library) }

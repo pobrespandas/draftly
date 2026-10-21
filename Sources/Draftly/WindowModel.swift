@@ -76,6 +76,7 @@ final class WindowModel: ObservableObject {
     @Published var showActionImporter = false
     @Published var showWorkspaceEditor = false
     @Published var showLibraryManagement = false
+    @Published private(set) var libraryManagementSection = LibraryManagementSection.groups
     @Published var listOptions: DraftListOptions {
         didSet {
             guard !usesWorkspaceListOptions, !loadingLocalListOptions, oldValue != listOptions else { return }
@@ -339,6 +340,11 @@ final class WindowModel: ObservableObject {
         }
         WorkspaceOptionsEditor.updateSortOptions(&values, sort: sort, ascending: ascending, folder: folder)
         if let encoded = try? JSONSerialization.data(withJSONObject: values) { workspaceScriptMetadata?["api"] = String(decoding: encoded, as: UTF8.self) }
+    }
+
+    func openLibraryManagement(section: LibraryManagementSection = .groups) {
+        libraryManagementSection = section
+        showLibraryManagement = true
     }
 
     func applyScriptWorkspace(_ workspace: Workspace) throws {

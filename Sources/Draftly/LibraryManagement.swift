@@ -1,6 +1,10 @@
 import SwiftUI
 import DraftlyCore
 
+enum LibraryManagementSection: String, CaseIterable {
+    case groups = "Groups", actions = "Actions", workspaces = "Workspaces"
+}
+
 struct LibraryManagementView: View {
     @ObservedObject var model: WindowModel
     @ObservedObject var library: LibraryStore
@@ -11,13 +15,18 @@ struct LibraryManagementView: View {
     @State private var workspace: Workspace?
     @State private var action: DraftAction?
     @State private var selectedGroup = ""
-    @State private var section = Section.groups
-    private enum Section: String, CaseIterable { case groups = "Groups", actions = "Actions", workspaces = "Workspaces" }
+    @State private var section: LibraryManagementSection
+
+    init(model: WindowModel, library: LibraryStore, initialSection: LibraryManagementSection = .groups) {
+        self.model = model
+        self.library = library
+        _section = State(initialValue: initialSection)
+    }
     var body: some View {
         VStack {
             HStack { Text("Library Organization").font(.title2); Spacer(); Button("Done") { dismiss() }.keyboardShortcut(.cancelAction) }.padding()
             Picker("Organization", selection: $section) {
-                ForEach(Section.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                ForEach(LibraryManagementSection.allCases, id: \.self) { Text($0.rawValue).tag($0) }
             }.pickerStyle(.segmented).frame(width: 420).padding(.horizontal)
             switch section {
             case .groups:

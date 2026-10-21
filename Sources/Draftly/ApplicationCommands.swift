@@ -152,7 +152,7 @@ private struct WindowCommands: Commands {
             Button("New Action…") { model.editingAction = DraftAction(name: "New Action", steps: [ActionStep("script", ["script": ""])]) }
             Button("Import from Directory…") { model.showActionImporter = true }
             Button("Execution History…") { model.showRunLog = true }
-            Button("Manage Actions and Workspaces…") { model.showLibraryManagement = true }
+            Button("Manage Actions and Workspaces…") { model.openLibraryManagement(section: .groups) }
             Divider()
             ForEach(ActionCatalogPresentation.entries(model.library.orderedActions())) { entry in
                 if let heading = entry.sectionHeading { Text(heading) }
