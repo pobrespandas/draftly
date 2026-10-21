@@ -10,9 +10,13 @@ final class WindowModel: ObservableObject {
     let runner: ActionRunner
     @Published var folder: NoteFolder = .inbox {
         didSet {
-            guard oldValue != folder, let metadata = workspaceScriptMetadata else { return }
+            guard !restoringWorkspaceSort, oldValue != folder, let metadata = workspaceScriptMetadata else { return }
             var workspace = Workspace(name: "Current"); workspace.scriptMetadata = metadata
-            if let (newSort, newAscending, _) = workspace.scriptSort(for: folder) { sort = newSort; ascending = newAscending }
+            if let (newSort, newAscending, _) = workspace.scriptSort(for: folder) {
+                restoringWorkspaceSort = true
+                defer { restoringWorkspaceSort = false }
+                sort = newSort; ascending = newAscending
+            }
         }
     }
     var cachedThemePresentation: (key: WindowThemePresentation.Key, value: WindowThemePresentation)?
@@ -93,6 +97,7 @@ final class WindowModel: ObservableObject {
     private let onAccessDraft: (UUID) -> Void
     private var inactiveSince: Date?
     private var idleActivity: NSObjectProtocol?
+    private var restoringWorkspaceSort = false
 
     func openCommandPalette(initialQuery: String = "") {
         paletteQuery = initialQuery
@@ -312,7 +317,7 @@ final class WindowModel: ObservableObject {
     }
 
     private func updateWorkspaceSort() {
-        guard let raw = workspaceScriptMetadata?["api"], let data = raw.data(using: .utf8),
+        guard !restoringWorkspaceSort, let raw = workspaceScriptMetadata?["api"], let data = raw.data(using: .utf8),
               var values = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else { return }
         WorkspaceOptionsEditor.updateSortOptions(&values, sort: sort, ascending: ascending, folder: folder)
         if let encoded = try? JSONSerialization.data(withJSONObject: values) { workspaceScriptMetadata?["api"] = String(decoding: encoded, as: UTF8.self) }
@@ -339,10 +344,16 @@ final class WindowModel: ObservableObject {
         perform { try applyScriptWorkspace(workspace) }
     }
     private func applyResolvedWorkspace(_ workspace: Workspace) {
+        let effectiveSort = workspace.scriptSort(for: workspace.folder)
+        let wasRestoringSort = restoringWorkspaceSort
+        restoringWorkspaceSort = true
+        defer { restoringWorkspaceSort = wasRestoringSort }
         cachedThemePresentation = nil
         listOptions = workspace.listOptions ?? dependencies.preferences.listOptions
-        folder = workspace.folder; query = workspace.query; sort = workspace.sort; ascending = workspace.ascending
         workspaceScriptMetadata = workspace.scriptMetadata
+        folder = workspace.folder; query = workspace.query
+        sort = effectiveSort?.0 ?? workspace.sort
+        ascending = effectiveSort?.1 ?? workspace.ascending
         selectedWorkspace = library.workspaces.contains(where: { $0.id == workspace.id }) ? workspace.id : nil
         selectedTags = Set(workspace.tags.map(TagRules.normalize))
         excludedTags = Set((workspace.excludedTags ?? []).map(TagRules.normalize))
