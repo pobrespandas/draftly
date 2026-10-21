@@ -5231,3 +5231,17 @@ Cancelled again. This verifies imported policy, native history filtering, and
 editor cancellation. It does not verify saving a changed policy, restart after
 editing, an imported timeout, or actual notification banners. No screenshot
 or raw exported library is tracked. No personal library changed.
+
+
+### Native log-level save and restart — 20 October 2026
+
+On the same Restore QA build, changed QA Log1 Error from Errors to None and
+committed the inspector with Return. Reopened the editor and confirmed None.
+Cancelled, quit normally, confirmed the process was absent, and relaunched.
+The inspector still showed None. Restored Errors, saved, reopened, and verified
+Errors before cancelling. A focus change interrupted one attempt; a fresh full
+state identified the open menu before resuming. No action ran in this check.
+
+This accepts native inspector Save and restart persistence for a known imported
+log level. The fixture ends at Errors. It does not cover unknown-level native
+editing, imported timeout, or notification banners. Nine notes remain intact.
