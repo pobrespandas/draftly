@@ -40,14 +40,17 @@ checker can require an expected bundle ID, team and container.
 - Before changes: 630 core methods and 531 app methods passed.
 - After changes: 630 core methods and 539 app methods passed through the checked
   runner. The eight new migration methods include parameterized write failures.
-- Python: 66 tests passed, including five build-script tests and nine signing
+- Python: 67 tests passed, including six build/packaging tests and nine signing
   checks. The first Python run used an interpreter without Pillow. The complete
   run used the Homebrew interpreter with Pillow installed.
 - Migration tests cover unknown fields, Unicode, binary values, destination
   precedence, registered-default exclusion, repeat runs, missing source, failed
   reads/writes, read-back failure, retry and QA exclusion. They use neutral domains.
 - Build-script tests use fake commands and temporary paths. They do not build,
-  sign, provision or open a real app.
+  sign, provision or open a real app. A packaging regression test failed when
+  an isolated build was followed by an archive of the default path. The packager
+  now checks and archives the same selected Release output, including paths with
+  spaces. The default package path remains unchanged.
 - The local Debug build and manual signed universal Release build passed. Both
   used isolated output directories. The signed package and installed copy passed
   deep signature and expected-identity checks. Their embedded profile covers two

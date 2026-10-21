@@ -2,7 +2,8 @@
 set -euo pipefail
 cd "${0:A:h:h}"
 scripts/build-app.sh --personal
-app=.build/personal/Build/Products/Release/Draftly.app
+build_output="${DRAFTLY_BUILD_OUTPUT:-.build/personal}"
+app="${build_output:a}/Build/Products/Release/Draftly.app"
 output=.build/distribution
 mkdir -p "$output"
 python3 scripts/verify-cloud-signing.py "$app" > "$output/signing-report.json"

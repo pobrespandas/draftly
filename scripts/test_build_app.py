@@ -88,6 +88,30 @@ class BuildAppTests(unittest.TestCase):
         self.assertNotIn("-allowProvisioningDeviceRegistration", build)
         self.assertIn(["python3", "scripts/verify-cloud-signing.py", app], calls)
 
+    def test_packager_uses_the_same_output_as_the_signed_build(self):
+        self.script.chmod(0o755)
+        package = self.root / "scripts/package-personal.sh"
+        shutil.copyfile(Path(__file__).with_name("package-personal.sh"), package)
+        for name in ["ditto", "shasum"]:
+            shutil.copyfile(self.root / "tools/codesign", self.root / "tools" / name)
+            (self.root / "tools" / name).chmod(0o755)
+        for output in [None, self.root / "isolated signed output"]:
+            with self.subTest(output=output):
+                self.log.unlink(missing_ok=True)
+                environment = dict(self.environment)
+                if output is not None:
+                    environment["DRAFTLY_BUILD_OUTPUT"] = str(output)
+                result = subprocess.run(["/bin/zsh", str(package)], env=environment,
+                                        capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                calls = [json.loads(line) for line in self.log.read_text().splitlines()]
+                _, app = self.assert_output(calls, output or ".build/personal", "Release")
+                archive = next(call for call in calls if call[0] == "ditto")
+                self.assertEqual((self.root / archive[-2]).resolve(), Path(app))
+                checks = [call for call in calls if call[:2] == ["python3", "scripts/verify-cloud-signing.py"]]
+                self.assertEqual(len(checks), 2)
+                self.assertTrue(all((self.root / call[2]).resolve() == Path(app) for call in checks))
+
     def test_cloud_qa_keeps_its_identity_with_automatic_or_manual_signing(self):
         for manual in [False, True]:
             with self.subTest(manual=manual):
