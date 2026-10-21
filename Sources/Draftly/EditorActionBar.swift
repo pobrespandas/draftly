@@ -91,55 +91,28 @@ struct EditorActionBar: View {
         return .blue
     }
     func move(_ offset: Int) {
-        let source = session.content as NSString
-        let range = session.safeSelection
-        if offset < 0, range.location > 0 { session.selection = NSRange(location: source.rangeOfComposedCharacterSequence(at: range.location - 1).location, length: 0) }
-        else if offset > 0, NSMaxRange(range) < source.length { session.selection = NSRange(location: NSMaxRange(source.rangeOfComposedCharacterSequence(at: NSMaxRange(range))), length: 0) }
+        if let selection = EditorBarTextCommands.move(in: session.content, selection: session.safeSelection, offset: offset) {
+            session.selection = selection
+        }
         session.focusToken = UUID()
     }
     func moveLine(_ direction: Int) {
-        let source = session.content as NSString
-        guard source.length > 0 else { return }
-        let selected = session.safeSelection
-        let block = source.lineRange(for: NSRange(location: selected.location, length: selected.length))
-        if direction < 0 {
-            guard block.location > 0 else { return }
-            let previous = source.lineRange(for: NSRange(location: block.location - 1, length: 0))
-            let text = source.substring(with: previous) + source.substring(with: block)
-            session.content = source.replacingCharacters(in: NSRange(location: previous.location, length: NSMaxRange(block) - previous.location), with: text)
-            session.selection = NSRange(location: max(0, selected.location - previous.length), length: selected.length)
-        } else {
-            guard NSMaxRange(block) < source.length else { return }
-            let next = source.lineRange(for: NSRange(location: NSMaxRange(block), length: 0))
-            let text = source.substring(with: next) + source.substring(with: block)
-            session.content = source.replacingCharacters(in: NSRange(location: block.location, length: NSMaxRange(next) - block.location), with: text)
-            session.selection = NSRange(location: selected.location + next.length, length: selected.length)
-        }
+        guard let change = EditorBarTextCommands.moveLine(in: session.content, selection: session.safeSelection, direction: direction) else { return }
+        session.content = change.content
+        session.selection = change.selection
         session.focusToken = UUID()
         model.contentChanged()
     }
     func duplicateLine() {
-        let source = session.content as NSString
-        guard source.length > 0 else { return }
-        let selected = session.safeSelection
-        let line = source.lineRange(for: NSRange(location: selected.location, length: selected.length))
-        let duplicate = source.substring(with: line)
-        let insertion = NSMaxRange(line)
-        session.content = source.replacingCharacters(in: NSRange(location: insertion, length: 0), with: duplicate)
-        session.selection = NSRange(location: insertion, length: (duplicate as NSString).length)
+        guard let change = EditorBarTextCommands.duplicateLine(in: session.content, selection: session.safeSelection) else { return }
+        session.content = change.content
+        session.selection = change.selection
         session.focusToken = UUID()
         model.contentChanged()
     }
     func moveToMarker(_ direction: Int) {
-        let source = session.content as NSString
-        guard let regex = try? NSRegularExpression(pattern: "(?m)^#{1,6}\\s+.+$") else { return }
-        let matches = regex.matches(in: session.content, range: NSRange(location: 0, length: source.length))
-        guard !matches.isEmpty else { return }
-        let current = session.safeSelection.location
-        let target = direction < 0
-            ? (matches.last { $0.range.location < current } ?? matches.last!)
-            : (matches.first { $0.range.location > current } ?? matches.first!)
-        session.selection = target.range
+        guard let selection = EditorBarTextCommands.marker(in: session.content, selection: session.safeSelection, direction: direction) else { return }
+        session.selection = selection
         session.focusToken = UUID()
     }
     private func toggleTheme() {

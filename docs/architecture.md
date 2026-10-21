@@ -33,6 +33,13 @@ validation. The auditor owns evidence policy, reference archives and CLI
 handling. A source cache ends with its validation. Compatibility wrappers
 use the current root and do not share cached source across calls.
 
+## Editing-bar boundary
+
+`EditorBarTextCommands` calculates text and selection results without UI or
+storage access. EditorActionBar supplies the safe selection and applies the
+result before focus and save effects. Markdown marker rules and current line
+behavior remain unchanged; syntax parity is a separate functional concern.
+
 ## Refactoring baseline
 
 The annotated tag `pre-refactor-2026-10-19` points to `2fba5bd`.

@@ -6159,3 +6159,13 @@ byte for byte: exit 1, 18 engine and 4,841 global diagnostics. No reference,
 classification or policy changed. No existing test was removed. Swift production
 is unchanged from the stage 5 build: 459 app and 508 core methods passed.
 No UI or permission check ran. Cloning remains paused.
+
+
+### Refactoring editing-bar calculations — 21 October 2026
+
+Four methods with 40 cases passed before and after extraction. They retain
+Unicode selection, line boundaries, marker wrapping, focus and save effects.
+The line-up text no-op remains a separately recorded functional defect.
+All 466 app and 508 core methods passed, including three native-routing
+characterizations against the original host. Unsigned Xcode compilation and
+matrix structure passed. No visible UI, permission or sound check ran.

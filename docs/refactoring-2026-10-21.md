@@ -268,6 +268,20 @@ as current behavior, not accepted Drafts parity. The next extraction must
 retain them. A test-only parameter visibility compile error was corrected
 before the successful focused run. There was no production algorithm failure.
 
+### 7b. Pure editing-bar text commands
+
+Implemented: Foundation-only `EditorBarTextCommands` returns text and range
+results. EditorActionBar retains safe selection, setter order, focus and
+content-change effects. No calculation reads a window, library or preference.
+The same 40 characterization cases passed before and after extraction.
+
+Verified automatically: all 466 app and 508 core methods passed. This includes
+the three prepared native-routing tests, which also passed against the original
+host. Unsigned Xcode compilation and matrix structure passed. The project file
+includes the new source through the existing generator. No public API, syntax
+rule, save path, stored format or test name changed. No manual session ran.
+The known line-up defect remains separate from this refactoring.
+
 ### 8a. Native routing characterization
 
 Three methods passed against the original native host. They retain the exact
@@ -279,8 +293,8 @@ No capability, window or permission flow ran. No production routing changed.
 
 ## Remaining refactoring and risks
 
-These six stages close this bounded refactoring pass. They do not complete a
-repository rewrite or Mac parity. Independent review found no concrete
+The first seven refactoring stages are validated checkpoints. They do not
+complete a repository rewrite or Mac parity. Independent review found no concrete
 regression in the production changes. The following work remains explicit:
 
 - Keep the Python tokenizer diagnostic and production statistics tests. The

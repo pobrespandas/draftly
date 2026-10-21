@@ -24,9 +24,10 @@ retain historical results. Later results supersede earlier counts.
 
 ## Current verification
 
-Six refactoring stages are validated: pure catalog rules, isolated bookmark
+Seven refactoring stages are validated: pure catalog rules, isolated bookmark
 preferences, shared test execution support, Workspace sort mutation,
-configuration default selection and auditor source indexing.
+configuration default selection, auditor source indexing and pure editing-bar
+text calculations. Native-routing characterization also passed.
 See [stage results](refactoring-2026-10-21.md#stage-results) for current checks
 and [remaining risks](refactoring-2026-10-21.md#remaining-refactoring-and-risks)
 for the next refactoring work. Cloning remains paused.
