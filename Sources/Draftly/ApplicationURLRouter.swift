@@ -110,7 +110,10 @@ struct ApplicationURLRouter {
         case .builtIn: return true
         case .custom(var incoming):
             let identityMatch = library.themes.first { $0.id == incoming.id }
-            let nameMatch = library.themes.first { $0.name == incoming.name }
+            let nameMatch = library.themes.first { $0.name == incoming.name && $0.type == incoming.type }
+            if let identityMatch, identityMatch.type != incoming.type {
+                throw DraftlyError.message("The theme identity belongs to a different theme type.")
+            }
             if let identityMatch, let nameMatch, identityMatch.id != nameMatch.id {
                 throw DraftlyError.message("The theme name belongs to a different installed theme.")
             }

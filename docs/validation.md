@@ -7261,3 +7261,63 @@ its Settings window. The request to close that window remains pending. Refresh
 all QA runtime images after a clean quit before testing this transport change.
 The new source resolves the transport issue recorded in Theme installation
 links above; it does not supply missing native acceptance.
+
+### Selected file themes — 21 October 2026
+
+Implemented: stored theme definitions now distinguish custom and file types.
+Older definitions default to custom. Custom encoding omits the new field to
+keep the previous shape. UUID and unknown fields remain intact. Names are
+unique within each type. A custom and file theme can share a name. Stable
+name/type/UUID ordering prevents catalog changes after unrelated draft saves.
+
+ThemeFileAccess prepares validated native JSON or Drafts theme JSON and a
+security-scoped bookmark. It saves the definition before storing that local
+bookmark. A failed new save or replacement leaves prior records and access
+unchanged. Reading a file resolves without UI, preserves its registered UUID,
+requires its registered name, and validates the current colors and source.
+Missing permissions, deleted files, invalid JSON and renamed themes fail
+explicitly. Backups retain definitions, not bookmarks or local paths. Restored
+file themes require local reselection.
+
+Settings now has Use Theme File, Reload and Reselect controls. Selectors carry
+the exact type and UUID. File choices are distinct from custom choices with
+the same name. App and Workspace references use those same identities. File
+access is checked before changing App preferences or applying a Workspace.
+A local revision triggers reapply in other windows. Window presentation caches
+its validated theme until configuration, library definitions, appearance or
+Workspace changes. It does not reread the file for each keystroke. Failed
+reload keeps the last valid presentation and reports the failure. Opening a
+new window with an unreadable selected file reports the read error.
+
+Theme.getAll and Theme.find include registered file metadata. They do not read
+or save file contents. Theme.installURL reads the current file and emits a
+portable custom snapshot, including preserved source fields but no local
+access. Direct file-reference URLs are rejected. A custom installation cannot
+replace an existing file record with the same UUID. Same-library import-as-
+custom identity behavior still needs comparison with Drafts.
+
+Automatically tested: file-access cases cover old decoding, unknown fields,
+native and official input, latest source, missing/corrupt/deleted/renamed files,
+rollback and backup/local-access separation. Both engines cover exact typed
+catalog lookup, portable current links, source preservation and failure before
+later steps or success effects. App/Workspace cases cover reload, local revision,
+last valid rendering, explicit reopen errors and atomic application failure.
+The existing native Undo test now runs with custom and file themes in both
+engines. Text, selection, persisted content and Undo/Redo remain coherent.
+
+The first shared-name test exposed unstable ordering after library reload.
+The catalog now has a deterministic tie-break, and the same test passes without
+sorting its assertion. Full regression passed 493 app and 573 core methods,
+including the five unchanged original scripts. All 46 Python tests and the
+unsigned Xcode build passed. Automatic tests opened no windows or prompts.
+Matrix structure has zero errors; strict engine/global retains 18/4529
+unresolved diagnostics. These counts do not establish parity.
+
+Native acceptance is pending. A fresh QA bind still reported a closed native
+pipe after Settings. QA has not been refreshed with this build. File selection,
+reload, reselection, moved-file behavior, sandbox permission lifetime and
+cross-window refresh require a separate manual session. Stale-bookmark renewal
+exists but has not been forced deterministically in tests. Automatic discovery
+from the developer-mode Themes folder is not implemented. The selected-file
+workflow does not replace that remaining contract. Do not declare file-theme
+parity complete from these tests.

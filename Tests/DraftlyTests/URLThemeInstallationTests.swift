@@ -84,6 +84,22 @@ struct URLThemeInstallationTests {
         try library.reload(); #expect(library.themes == [newer])
     }
 
+    @Test func portableCustomInstallationCannotReplaceAFileReferenceByIdentity() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let file = EditorThemeDefinition(name: "Same name", type: "file")
+        try library.saveTheme(file)
+        var portable = file; portable.type = "custom"
+        #expect(throws: (any Error).self) {
+            try ApplicationURLRouter.installTheme(ThemeInstallation.custom(portable).url, library: library) { _ in
+                Issue.record("A cross-type identity collision requested replacement."); return true
+            }
+        }
+        #expect(library.themes == [file])
+        portable.id = UUID()
+        #expect(try ApplicationURLRouter.installTheme(ThemeInstallation.custom(portable).url, library: library) { _ in false })
+        #expect(Set(library.themes.map(\.id)) == [file.id, portable.id])
+    }
+
     @Test func malformedLinksAndMissingLibraryFailBeforeConfirmation() throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         for text in ["draftly://theme?data=invalid", "draftly://theme?name=Missing", "draftly://theme?type=file&name=Dark"] {

@@ -5,14 +5,22 @@ import DraftlyCore
 
 @Suite("App configured theme contracts") @MainActor
 struct AppThemeContractTests {
-    @Test func scriptingPersistsTypedThemesAcrossWindowsAndKeepsEditorUndo() async throws {
+    @Test(arguments: [false, true])
+    func scriptingPersistsTypedThemesAcrossWindowsAndKeepsEditorUndo(fileTheme: Bool) async throws {
         let domain = "Draftly.AppTheme.\(UUID())"
         let defaults = try #require(UserDefaults(suiteName: domain))
         defer { defaults.removePersistentDomain(forName: domain) }
         let library = try LibraryStore(inMemory: true, seed: false)
         var theme = EditorTheme(name: "Night café 🐼", isDark: true)
         theme.background = "162839"; theme.foreground = "F1F2F3"
-        try library.saveTheme(theme)
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("Draftly.ThemeUndo.\(UUID()).json")
+        defer { if fileTheme { try? FileManager.default.removeItem(at: file) } }
+        if fileTheme {
+            try JSONEncoder().encode(theme).write(to: file)
+            let prepared = try ThemeFileAccess.prepare(file, id: theme.id)
+            try ThemeFileAccess.install(prepared, in: library, defaults: defaults)
+            theme = prepared.definition
+        } else { try library.saveTheme(theme) }
         let dependencies = WindowDependencies(preferences: WindowPreferences(defaults: defaults))
         let model = WindowModel(library: library, dependencies: dependencies)
         let note = try library.createNote(content: "Original 🐼"); model.select(note.id)
@@ -29,11 +37,11 @@ struct AppThemeContractTests {
             let action = DraftAction(name: "Configured themes", steps: [ActionStep("script", ["script": """
             function check(v,label){if(!v)throw Error(label);}
             editor.setSelectedText('Edited');const selection=editor.getSelectedRange().join(',');
-            app.darkTheme=Theme.find('custom','Night café 🐼');
+            app.darkTheme=Theme.find('\(theme.type)','Night café 🐼');
             app.lightTheme=Theme.find('builtIn','Light');
             check(app.darkTheme instanceof Theme,'typed dark');
             check(app.lightTheme instanceof Theme,'typed light');
-            check(app.darkTheme.name==='Night café 🐼'&&app.darkTheme.type==='custom','dark selection');
+            check(app.darkTheme.name==='Night café 🐼'&&app.darkTheme.type==='\(theme.type)','dark selection');
             check(app.lightTheme.name==='Light','light selection');
             check(editor.getSelectedRange().join(',')===selection,'selection');
             editor.undo();check(editor.getText()==='Original 🐼','theme kept undo');
@@ -50,7 +58,9 @@ struct AppThemeContractTests {
         #expect(other.editorThemePresentation(systemIsDark: true).theme == theme)
         #expect(other.editorThemePresentation(systemIsDark: false).theme == nil)
         #expect(other.editorThemePresentation(systemIsDark: false).dark == false)
-        theme.name = "Renamed night"; try library.saveTheme(theme)
+        theme.name = "Renamed night"
+        if fileTheme { try JSONEncoder().encode(theme).write(to: file) }
+        try library.saveTheme(theme)
         #expect(model.configuredThemeReference(dark: true)["name"] as? String == theme.name)
         #expect(other.editorThemePresentation(systemIsDark: true).theme == theme)
     }

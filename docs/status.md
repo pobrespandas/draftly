@@ -25,6 +25,13 @@ retain historical results. Later results supersede earlier counts.
 
 ## Current verification
 
+Selected file themes now use validated source snapshots and local bookmarks.
+Settings can select, reload and reselect a file. Actions, App and Workspace use
+its exact type and UUID. Specific tests cover source changes, local access,
+rollback, backup recovery and native Undo/Redo. Developer-folder discovery and
+manual file/permission checks remain pending. See the latest validation entry.
+
+
 App light/dark theme assignments now persist local identity references and
 return typed values. Settings and window rendering share those references.
 Both-engine and headless tests passed. Native QA rendered the custom dark

@@ -16,9 +16,10 @@ struct LibraryView: View {
     @AppStorage("editor.typewriter") private var typewriter = false
     @AppStorage("editor.theme") private var themeName = "System"
     @AppStorage(EditorThemePreferences.key) private var themeReferences = Data()
+    @AppStorage(EditorThemePreferences.revisionKey) private var themeRevision = 0
     private var themePresentation: WindowThemePresentation {
         // Observe both the previous setting and the current local selection.
-        _ = themeName; _ = themeReferences
+        _ = themeName; _ = themeReferences; _ = themeRevision
         return model.editorThemePresentation(systemIsDark: NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua)
     }
     private var theme: EditorTheme? { themePresentation.theme }
@@ -42,6 +43,9 @@ struct LibraryView: View {
             }
         }
         .preferredColorScheme(preferredScheme)
+        .onChange(of: themePresentation.error, initial: true) { _, error in
+            if let error { library.error = error }
+        }
         .frame(minWidth: 850, minHeight: 480)
         .background(WindowAccessor { window in
             hub.registerWindow(model, window: window)
@@ -103,7 +107,10 @@ struct LibraryView: View {
     private func panel<Content: View>(_ content: Content) -> AnyView {
         AnyView(content
             .focusedSceneValue(\.windowModel, model)
-            .preferredColorScheme(preferredScheme))
+            .preferredColorScheme(preferredScheme)
+        .onChange(of: themePresentation.error, initial: true) { _, error in
+            if let error { library.error = error }
+        })
     }
 
     private var sidebar: some View { DraftFiltersPanel(model: model, showTagSearch: $showTagSearch) }

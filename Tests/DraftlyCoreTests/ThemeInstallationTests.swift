@@ -97,10 +97,10 @@ struct ThemeInstallationTests {
         #expect(throws: (any Error).self) { try ThemeInstallation.custom(invalidValue).url }
     }
 
-    @Test func fileThemesFailExplicitlyInsteadOfEmittingANameOnlySuccess() throws {
+    @Test func fileReferencesCannotExposeLocalAccessThroughAnInstallationLink() throws {
         do {
             _ = try ThemeInstallation(url: link([.init(name: "type", value: "file"), .init(name: "name", value: "Neutral")]))
             Issue.record("A file theme link was accepted without file support.")
-        } catch { #expect(error.localizedDescription == "File theme installation is not implemented.") }
+        } catch { #expect(error.localizedDescription == "Theme links must contain a portable custom definition.") }
     }
 }

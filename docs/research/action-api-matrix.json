@@ -8478,8 +8478,8 @@
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-21",
           "defaults": "The device-local slot resolves the previous custom theme by exact name for its matching mode. Without a configured or matching legacy value it returns the Dark or Light built-in Theme. No historical preference is invented.",
-          "result": "A typed Theme for the configured device-local slot. Assignment stores a validated identity reference. Renames follow custom UUIDs. Workspace preferences override window rendering without changing this configured pair.",
-          "errors": "Missing, invalid and unsupported file references throw before preferences change. Non-JSON reference fields fail before serialization. A missing stored custom definition falls back to the slot built-in without deleting the stored reference.",
+          "result": "A typed Theme for the configured device-local slot. Assignment stores a validated identity reference. Renames follow custom UUIDs. Workspace preferences override window rendering without changing this configured pair. File references validate local access before assignment. Reapplying reloads current file colors and source without editing the draft.",
+          "errors": "Invalid references and unreadable file themes fail before preference writes. Missing local permission requires reselection. Failed reload preserves the previous configured pair and last valid rendered appearance.",
           "implementationEvidence": {
             "file": "Sources/Draftly/WindowThemePresentation.swift",
             "symbol": "WindowModel.setConfiguredThemeReference"
@@ -8500,6 +8500,10 @@
             {
               "suite": "EditorThemePreferencesTests",
               "test": "localPairSeedsTheLegacySlotAndDoesNotChangeModeOrOtherDevices"
+            },
+            {
+              "suite": "FileThemeApplicationTests",
+              "test": "fileReferencesReloadForAppAndWorkspaceWithoutEditingTheDraft"
             }
           ],
           "contractCases": {
@@ -8537,7 +8541,7 @@
             "scope": "Assignment returned typed configured slots and rendered the custom dark editor in signed Engine QA. Settings, light rendering, restart and cross-window refresh remain pending after a Computer Use native-pipe failure."
           },
           "limitations": [
-            "File themes are not implemented. Native light rendering, Settings consistency, restart and cross-window refresh remain pending. Broader App.themeMode behavior has a separate contract."
+            "Native light rendering, Settings consistency, restart, cross-window refresh and file selection/reselection remain pending. Developer-folder discovery is not implemented. Broader App.themeMode behavior has a separate contract."
           ]
         },
         {
@@ -8559,8 +8563,8 @@
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-21",
           "defaults": "The device-local slot resolves the previous custom theme by exact name for its matching mode. Without a configured or matching legacy value it returns the Dark or Light built-in Theme. No historical preference is invented.",
-          "result": "A typed Theme for the configured device-local slot. Assignment stores a validated identity reference. Renames follow custom UUIDs. Workspace preferences override window rendering without changing this configured pair.",
-          "errors": "Missing, invalid and unsupported file references throw before preferences change. Non-JSON reference fields fail before serialization. A missing stored custom definition falls back to the slot built-in without deleting the stored reference.",
+          "result": "A typed Theme for the configured device-local slot. Assignment stores a validated identity reference. Renames follow custom UUIDs. Workspace preferences override window rendering without changing this configured pair. File references validate local access before assignment. Reapplying reloads current file colors and source without editing the draft.",
+          "errors": "Invalid references and unreadable file themes fail before preference writes. Missing local permission requires reselection. Failed reload preserves the previous configured pair and last valid rendered appearance.",
           "implementationEvidence": {
             "file": "Sources/Draftly/WindowThemePresentation.swift",
             "symbol": "WindowModel.setConfiguredThemeReference"
@@ -8581,6 +8585,10 @@
             {
               "suite": "EditorThemePreferencesTests",
               "test": "localPairSeedsTheLegacySlotAndDoesNotChangeModeOrOtherDevices"
+            },
+            {
+              "suite": "FileThemeApplicationTests",
+              "test": "fileReferencesReloadForAppAndWorkspaceWithoutEditingTheDraft"
             }
           ],
           "contractCases": {
@@ -8618,7 +8626,7 @@
             "scope": "Assignment returned typed configured slots and rendered the custom dark editor in signed Engine QA. Settings, light rendering, restart and cross-window refresh remain pending after a Computer Use native-pipe failure."
           },
           "limitations": [
-            "File themes are not implemented. Native light rendering, Settings consistency, restart and cross-window refresh remain pending. Broader App.themeMode behavior has a separate contract."
+            "Native light rendering, Settings consistency, restart, cross-window refresh and file selection/reselection remain pending. Developer-folder discovery is not implemented. Broader App.themeMode behavior has a separate contract."
           ]
         },
         {
@@ -19423,14 +19431,14 @@
           },
           "compatibilityStatus": "partial",
           "defaults": "A built-in reference produces a typed name link. A saved custom reference resolves by UUID first, or exact name only when UUID is absent. This uses the deliberate Draftly URL scheme.",
-          "result": "A readonly, stable installation URL string. Custom links carry the complete current definition, identity, colors, unknown fields and original Drafts source. Generating the URL does not edit the definition.",
-          "errors": "Unknown type, missing definition, invalid or missing UUID and unsupported file themes throw explicitly. The decoder rejects malformed payloads, invalid names/colors, duplicate or conflicting query parameters and unsupported addresses before saving.",
+          "result": "A readonly, stable installation URL string. Custom links carry the complete current definition, identity, colors, unknown fields and original Drafts source. Generating the URL does not edit the definition. Registered file references read the current validated file and export a portable custom snapshot. Local paths and bookmarks are not exported.",
+          "errors": "Unknown type, missing definition, invalid UUID, cross-type identity mismatch and unreadable file themes throw explicitly. The decoder rejects direct file-reference links and malformed custom payloads before saving.",
           "nativeVerification": {
             "status": "pending",
             "reason": "The external URL receiver and replacement/cancellation alert require a separate manual QA session. QA AX is still inaccessible after opening Settings."
           },
           "limitations": [
-            "File themes remain unimplemented. Native external URL routing and replacement/cancellation acceptance remain pending. Draftly uses its own scheme and preserves destination identity on confirmed name replacement."
+            "Native external URL routing and replacement/cancellation acceptance remain pending. A portable custom snapshot with the same UUID as an installed file theme is rejected instead of changing that file reference; import-as-custom identity behavior needs comparison."
           ],
           "contractCases": {
             "normal": {
@@ -19474,7 +19482,7 @@
             },
             {
               "suite": "ThemeInstallationTests",
-              "test": "fileThemesFailExplicitlyInsteadOfEmittingANameOnlySuccess"
+              "test": "fileReferencesCannotExposeLocalAccessThroughAnInstallationLink"
             },
             {
               "suite": "URLThemeInstallationTests",
@@ -19495,6 +19503,14 @@
             {
               "suite": "URLThemeInstallationTests",
               "test": "malformedLinksAndMissingLibraryFailBeforeConfirmation"
+            },
+            {
+              "suite": "FileThemeScriptContractTests",
+              "test": "exactFileCatalogAndPortableLinkReadTheCurrentFileWithoutSavingIt"
+            },
+            {
+              "suite": "FileThemeScriptContractTests",
+              "test": "inaccessibleFileStopsTheActionAndDoesNotApplySuccessEffects"
             }
           ],
           "automatedVerification": {
@@ -19676,8 +19692,8 @@
           },
           "compatibilityStatus": "partial",
           "defaults": "Arguments to find are required by the reference. getAll has no arguments.",
-          "result": "Exact type and name lookup returns a typed Theme or undefined. getAll returns an independent array of typed built-in and saved custom themes from the current library.",
-          "errors": "Missing names and unsupported file or unknown types produce no match. The lookup does not mutate stored definitions.",
+          "result": "Exact type/name lookup returns typed built-in, custom or registered file metadata, or undefined. Arrays are independent. Custom and file definitions can share a name. File content is read when applied or exported, not by catalog queries.",
+          "errors": "Missing names and exact type/name mismatches return undefined. Local source or permission errors are explicit when the file theme is applied or exported.",
           "contractCases": {
             "normal": {
               "test": {
@@ -19706,7 +19722,17 @@
             "reason": "Native file-theme discovery and comparison remain pending."
           },
           "limitations": [
-            "File-theme discovery is not implemented. Draftly built-in names are not a measured Drafts catalog."
+            "Automatic developer-folder discovery is not implemented. Registered file metadata remains listed after a backup restore; applying or exporting it requires local reselection. Native catalog comparison remains pending."
+          ],
+          "supportingTests": [
+            {
+              "suite": "FileThemeScriptContractTests",
+              "test": "exactFileCatalogAndPortableLinkReadTheCurrentFileWithoutSavingIt"
+            },
+            {
+              "suite": "FileThemeScriptContractTests",
+              "test": "inaccessibleFileStopsTheActionAndDoesNotApplySuccessEffects"
+            }
           ]
         },
         {
@@ -19732,8 +19758,8 @@
           },
           "compatibilityStatus": "partial",
           "defaults": "Arguments to find are required by the reference. getAll has no arguments.",
-          "result": "Exact type and name lookup returns a typed Theme or undefined. getAll returns an independent array of typed built-in and saved custom themes from the current library.",
-          "errors": "Missing names and unsupported file or unknown types produce no match. The lookup does not mutate stored definitions.",
+          "result": "Exact type/name lookup returns typed built-in, custom or registered file metadata, or undefined. Arrays are independent. Custom and file definitions can share a name. File content is read when applied or exported, not by catalog queries.",
+          "errors": "Missing names and exact type/name mismatches return undefined. Local source or permission errors are explicit when the file theme is applied or exported.",
           "contractCases": {
             "normal": {
               "test": {
@@ -19762,7 +19788,17 @@
             "reason": "Native file-theme discovery and comparison remain pending."
           },
           "limitations": [
-            "File-theme discovery is not implemented. Draftly built-in names are not a measured Drafts catalog."
+            "Automatic developer-folder discovery is not implemented. Registered file metadata remains listed after a backup restore; applying or exporting it requires local reselection. Native catalog comparison remains pending."
+          ],
+          "supportingTests": [
+            {
+              "suite": "FileThemeScriptContractTests",
+              "test": "exactFileCatalogAndPortableLinkReadTheCurrentFileWithoutSavingIt"
+            },
+            {
+              "suite": "FileThemeScriptContractTests",
+              "test": "inaccessibleFileStopsTheActionAndDoesNotApplySuccessEffects"
+            }
           ]
         }
       ]

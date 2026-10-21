@@ -48,11 +48,12 @@ struct EditorLayoutPreferences: View {
             HStack {
                 Button("New Theme") { editingDark = nil; editing = EditorTheme() }
                 Button("Import Theme…") { importTheme() }
+                Button("Use Theme File…") { useThemeFile() }
             }
             if let error { Text(error).foregroundStyle(.red) }
         }
         .sheet(item: $editing) { value in
-            ThemeSettingsView(theme: value, otherNames: themes.filter { $0.id != value.id }.map(\.name)) { theme in
+            ThemeSettingsView(theme: value, otherNames: themes.filter { $0.id != value.id && $0.type == "custom" }.map(\.name)) { theme in
                 try library.saveTheme(DraftsThemeImport.applyingEditorChanges(theme))
                 try EditorThemePreferences().set(reference: ["type": "custom", "uuid": theme.id.uuidString, "name": theme.name],
                     dark: editingDark ?? theme.isDark, themes: library.themes)
@@ -62,31 +63,69 @@ struct EditorLayoutPreferences: View {
     private func themePicker(dark: Bool) -> some View {
         _ = themeReferences
         let reference = EditorThemePreferences().reference(dark: dark, themes: themes)
-        let selectedID = reference["type"] as? String == "custom" ? (reference["uuid"] as? String).flatMap(UUID.init(uuidString:)) : nil
+        let selectedID = ["custom", "file"].contains(reference["type"] as? String ?? "") ? (reference["uuid"] as? String).flatMap(UUID.init(uuidString:)) : nil
         let selection = Binding<String>(get: {
-            if let selectedID { return "custom:" + selectedID.uuidString }
+            if let selectedID { return (reference["type"] as? String ?? "custom") + ":" + selectedID.uuidString }
             return "builtIn:" + (reference["name"] as? String ?? (dark ? "Dark" : "Light"))
         }, set: { value in
             let parts = value.split(separator: ":", maxSplits: 1).map(String.init)
             guard parts.count == 2 else { return }
-            let newReference = parts[0] == "custom" ? ["type": "custom", "uuid": parts[1]] : ["type": "builtIn", "name": parts[1]]
+            let newReference = ["custom", "file"].contains(parts[0]) ? ["type": parts[0], "uuid": parts[1]] : ["type": "builtIn", "name": parts[1]]
             do { try EditorThemePreferences().set(reference: newReference, dark: dark, themes: themes); error = nil }
             catch { self.error = error.localizedDescription }
         })
         return HStack {
             Picker(dark ? "Dark Theme" : "Light Theme", selection: selection) {
                 ForEach(ThemeCatalog.builtInNames, id: \.self) { Text($0).tag("builtIn:" + $0) }
-                ForEach(themes) { Text($0.name).tag("custom:" + $0.id.uuidString) }
+                ForEach(themes) { Text($0.name + ($0.type == "file" ? " (File)" : "")).tag($0.type + ":" + $0.id.uuidString) }
             }
             if let current = themes.first(where: { $0.id == selectedID }) {
-                Button("Edit") { editingDark = dark; editing = current }
+                if current.type == "file" {
+                    Button("Reload") {
+                        do { try EditorThemePreferences().set(reference: reference, dark: dark, themes: themes); error = nil }
+                        catch { self.error = error.localizedDescription }
+                    }
+                    Button("Reselect…") { useThemeFile(replacing: current, dark: dark) }
+                } else { Button("Edit") { editingDark = dark; editing = current } }
                 Button("Delete") {
-                    do { try library.deleteTheme(current.id); error = nil }
+                    do {
+                        try library.deleteTheme(current.id)
+                        if current.type == "file" { UserDefaults.standard.removeObject(forKey: ThemeFileAccess.bookmarkKey(for: current.id)) }
+                        error = nil
+                    }
                     catch { self.error = error.localizedDescription }
                 }
             }
         }
     }
+    private func useThemeFile(replacing target: EditorTheme? = nil, dark: Bool? = nil) {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false; panel.canChooseDirectories = false
+        panel.allowedContentTypes = ThemeImportFileTypes.allowed
+        panel.message = "Select a theme file. Reload applies external file changes."
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            let before = library.themes
+            var prepared = try ThemeFileAccess.prepare(url, id: target?.id ?? UUID())
+            if let target, target.name != prepared.definition.name {
+                throw DraftlyError.message("Select the file for theme “\(target.name)”.")
+            }
+            if target == nil, let existing = themes.first(where: { $0.name == prepared.definition.name && $0.type == "file" }) {
+                let alert = NSAlert(); alert.messageText = "Replace theme file “\(existing.name)”?"
+                alert.addButton(withTitle: "Replace"); alert.addButton(withTitle: "Cancel")
+                guard alert.runModal() == .alertFirstButtonReturn else { return }
+                let originalName = prepared.definition.name
+                prepared = try ThemeFileAccess.prepare(url, id: existing.id)
+                guard prepared.definition.name == originalName else { throw DraftlyError.message("The theme file changed. Select it again.") }
+            }
+            guard library.themes == before else { throw DraftlyError.message("The installed themes changed. Select the file again.") }
+            try ThemeFileAccess.install(prepared, in: library)
+            try EditorThemePreferences().set(reference: ["type": "file", "uuid": prepared.definition.id.uuidString],
+                dark: dark ?? prepared.definition.isDark, themes: library.themes)
+            error = nil
+        } catch { self.error = error.localizedDescription }
+    }
+
     private func importTheme() {
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = false
@@ -98,7 +137,7 @@ struct EditorLayoutPreferences: View {
             let active = url.startAccessingSecurityScopedResource()
             defer { if active { url.stopAccessingSecurityScopedResource() } }
             var theme = try DraftsThemeImport.decode(data: Data(contentsOf: url))
-            if let existing = themes.first(where: { $0.name == theme.name }) {
+            if let existing = themes.first(where: { $0.name == theme.name && $0.type == "custom" }) {
                 let alert = NSAlert()
                 alert.messageText = "A theme named “\(theme.name)” already exists."
                 alert.informativeText = "Replace keeps its identity. Import as New lets you choose another name."

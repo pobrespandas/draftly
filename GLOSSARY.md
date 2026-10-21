@@ -94,6 +94,12 @@ Incoming text held separately from an editor draft until it is saved or discarde
 **Theme**:
 A named definition of colors for the editor and its interface.
 
+**Custom theme**:
+A theme definition saved in the library for use without its original external file.
+
+**File theme**:
+A theme definition maintained in an external file. It is distinct from an imported custom theme.
+
 **Configured theme**:
 The theme chosen on this Mac for light or dark appearance. A workspace can specify a different theme for its window.
 

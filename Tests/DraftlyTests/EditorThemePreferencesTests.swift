@@ -26,7 +26,7 @@ struct EditorThemePreferencesTests {
         do {
             _ = try ThemeReferenceResolver.resolve(["type": "file", "name": "Dark"], themes: [])
             Issue.record("A file theme resolved without support.")
-        } catch { #expect(error.localizedDescription == "File themes are unavailable on macOS.") }
+        } catch { #expect(error.localizedDescription == "The theme was not found.") }
     }
 
     @Test func localPairSeedsTheLegacySlotAndDoesNotChangeModeOrOtherDevices() throws {

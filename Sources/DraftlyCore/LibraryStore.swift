@@ -61,7 +61,11 @@ public final class LibraryStore: ObservableObject {
         func decode<T: Decodable>(_ kind: String, _ type: T.Type) throws -> [T] {
             try persistence.decode(kind, type)
         }
-        themes = try decode("theme", EditorThemeDefinition.self).sorted { $0.name < $1.name }
+        themes = try decode("theme", EditorThemeDefinition.self).sorted {
+            if $0.name != $1.name { return $0.name < $1.name }
+            if $0.type != $1.type { return $0.type < $1.type }
+            return $0.id.uuidString < $1.id.uuidString
+        }
         syntaxes = try decode("syntax", SyntaxDefinition.self).sorted { $0.name < $1.name }
         let accessDates = Dictionary(try decode("noteAccess", NoteAccess.self).map { ($0.id, $0.date) }, uniquingKeysWith: max)
         notes = try decode("note", Note.self).map { value in
@@ -295,7 +299,7 @@ public final class LibraryStore: ObservableObject {
         guard Set(values.map(\.id)).count == values.count else { throw DraftlyError.message("The themes contain duplicate identities.") }
         let replacements = Set(values.map(\.id))
         let combined = themes.filter { !replacements.contains($0.id) } + values
-        guard Set(combined.map(\.name)).count == combined.count else { throw DraftlyError.message("Use unique theme names.") }
+        guard Set(combined.map { [$0.type, $0.name] }).count == combined.count else { throw DraftlyError.message("Use unique names for each theme type.") }
     }
     public func saveTheme(_ value: EditorThemeDefinition) throws { try saveThemes([value]) }
     public func saveThemes(_ values: [EditorThemeDefinition]) throws {

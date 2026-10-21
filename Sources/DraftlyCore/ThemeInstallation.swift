@@ -14,6 +14,7 @@ public enum ThemeInstallation: Sendable, Equatable {
                 try Self.validateBuiltIn(name)
                 components.queryItems = [URLQueryItem(name: "type", value: "builtIn"), URLQueryItem(name: "name", value: name)]
             case .custom(let theme):
+                guard theme.type == "custom" else { throw DraftlyError.message("Export a portable custom theme snapshot.") }
                 try theme.validate()
                 let encoder = JSONEncoder()
                 encoder.outputFormatting = [.sortedKeys]
@@ -48,9 +49,10 @@ public enum ThemeInstallation: Sendable, Equatable {
             do { theme = try JSONDecoder().decode(EditorThemeDefinition.self, from: Data(text.utf8)) }
             catch { throw DraftlyError.message("The theme link contains invalid theme data.") }
             try theme.validate()
+            guard theme.type == "custom" else { throw Self.invalidLink }
             self = .custom(theme)
         case "file":
-            throw DraftlyError.message("File theme installation is not implemented.")
+            throw DraftlyError.message("Theme links must contain a portable custom definition.")
         default: throw Self.invalidLink
         }
     }

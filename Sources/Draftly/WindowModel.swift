@@ -15,6 +15,7 @@ final class WindowModel: ObservableObject {
             if let (newSort, newAscending, _) = workspace.scriptSort(for: folder) { sort = newSort; ascending = newAscending }
         }
     }
+    var cachedThemePresentation: (key: WindowThemePresentation.Key, value: WindowThemePresentation)?
     @Published var mergeRequest: MergeRequest?
     @Published var query = ""
     @Published var selectedTags: Set<String> = []
@@ -101,6 +102,7 @@ final class WindowModel: ObservableObject {
         self.saveDraft = saveDraft ?? { try library.saveNote($0) }
         self.onAccessDraft = onAccessDraft
         runner = ActionRunner(library: library, editor: editor, host: host)
+        runner.readTheme = { try ThemeFileAccess.read($0, defaults: dependencies.preferences.defaults) }
         actionExecutionSubscription = ActionRunner.executionBusyPublisher(in: library).sink { [weak self] in
             self?.libraryActionBusy = $0
         }
@@ -293,12 +295,14 @@ final class WindowModel: ObservableObject {
     func applyScriptWorkspace(_ workspace: Workspace) throws {
         let resolved = try WorkspacePresentationResolver.resolve(workspace, groupNames: library.groupNames,
             groups: library.actionGroups, themes: library.themes)
+        try validateWorkspaceThemeFiles(resolved)
         applyResolvedWorkspace(resolved)
     }
 
     func saveAndApplyWorkspace(_ workspace: Workspace) throws {
         let resolved = try WorkspacePresentationResolver.resolve(workspace, groupNames: library.groupNames,
             groups: library.actionGroups, themes: library.themes)
+        try validateWorkspaceThemeFiles(resolved)
         try library.saveWorkspace(resolved)
         cancelActionForUserEdit()
         applyResolvedWorkspace(resolved)
@@ -309,6 +313,7 @@ final class WindowModel: ObservableObject {
         perform { try applyScriptWorkspace(workspace) }
     }
     private func applyResolvedWorkspace(_ workspace: Workspace) {
+        cachedThemePresentation = nil
         listOptions = workspace.listOptions ?? dependencies.preferences.listOptions
         folder = workspace.folder; query = workspace.query; sort = workspace.sort; ascending = workspace.ascending
         workspaceScriptMetadata = workspace.scriptMetadata

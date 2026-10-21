@@ -18,9 +18,9 @@ struct WorkspacePresentationSettings: View {
     }
     private var themes: [Choice] {
         let custom = library.themes
-        return ["Default", "Light", "Dark"].map { Choice(id: $0, title: $0, value: ["name": $0]) }
-            + custom.map { Choice(id: $0.id.uuidString, title: $0.name,
-                value: ["name": $0.name, "uuid": $0.id.uuidString, "type": "custom"]) }
+        return ThemeCatalog.builtInNames.map { Choice(id: $0, title: $0, value: ["name": $0]) }
+            + custom.map { Choice(id: $0.id.uuidString, title: $0.name + ($0.type == "file" ? " (File)" : ""),
+                value: ["name": $0.name, "uuid": $0.id.uuidString, "type": $0.type]) }
     }
     var body: some View {
         Section("Action Groups") {
@@ -36,7 +36,13 @@ struct WorkspacePresentationSettings: View {
         guard let value = workspace.apiOptions[key] as? [String: Any] else { return "" }
         if let uuid = value["uuid"] as? String { return uuid }
         if let name = value["name"] as? String {
-            return choices.first { $0.title == name }?.id ?? "missing:\(name)"
+            return choices.first {
+                guard $0.value["name"] == name else { return false }
+                if ["preferredLightTheme", "preferredDarkTheme"].contains(key) {
+                    return ($0.value["type"] ?? "builtIn") == (value["type"] as? String ?? "builtIn")
+                }
+                return true
+            }?.id ?? "missing:\(name)"
         }
         return "missing:reference"
     }

@@ -6,6 +6,6 @@ public enum ThemeCatalog {
 
     public static func values(in library: LibraryStore) -> [[String: String]] {
         builtInNames.map { ["name": $0, "type": "builtIn"] }
-            + library.themes.map { ["name": $0.name, "type": "custom", "uuid": $0.id.uuidString] }
+            + library.themes.map { ["name": $0.name, "type": $0.type, "uuid": $0.id.uuidString] }
     }
 }

@@ -207,17 +207,19 @@ public enum APIValues {
             let name = values["name"] as? String ?? ""
             switch values["type"] as? String {
             case "builtIn": return try ThemeInstallation.builtIn(name).url.absoluteString
-            case "custom":
+            case "custom", "file":
+                let type = values["type"] as? String
                 let theme: EditorThemeDefinition?
                 if let rawID = values["uuid"] {
                     guard let raw = rawID as? String, let id = UUID(uuidString: raw) else {
                         throw DraftlyError.message("The theme ID is invalid.")
                     }
-                    theme = library.themes.first { $0.id == id }
-                } else { theme = library.themes.first { $0.name == name } }
+                    theme = library.themes.first { $0.id == id && $0.type == type }
+                } else { theme = library.themes.first { $0.name == name && $0.type == type } }
                 guard let theme else { throw DraftlyError.message("The theme is not installed.") }
-                return try ThemeInstallation.custom(theme).url.absoluteString
-            case "file": throw DraftlyError.message("File theme installation is not implemented.")
+                var snapshot = try readTheme(theme)
+                snapshot.type = "custom"
+                return try ThemeInstallation.custom(snapshot).url.absoluteString
             default: throw DraftlyError.message("The theme type is invalid.")
             }
         case "themes":
