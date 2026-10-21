@@ -11105,10 +11105,52 @@
             "new HTTPResponse(): HTTPResponse"
           ],
           "contract": "",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "reviewed-complete",
+          "automatedTest": {
+            "suite": "HTTPResponseContractTests",
+            "test": "responseConstructorExposesInitialFieldValues"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "HTTPResponse"
+          },
+          "defaults": "The frozen no-argument signature defines no initial field values. Draftly starts with false success, status 0, empty text and headers, and absent optional fields.",
+          "result": "Returns a new HTTPResponse instance.",
+          "errors": "The frozen constructor defines no failure result.",
+          "limitations": [],
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "HTTPResponseContractTests",
+                "test": "responseConstructorExposesInitialFieldValues"
+              },
+              "assertion": "Both runners create a typed instance and check its initial status, text, headers and optional fields."
+            },
+            "defaults": {
+              "test": {
+                "suite": "HTTPResponseContractTests",
+                "test": "responseConstructorExposesInitialFieldValues"
+              },
+              "assertion": "The frozen no-argument signature defines no initial field values. Draftly starts with false success, status 0, empty text and headers, and absent optional fields."
+            },
+            "errors": {
+              "notApplicable": "The constructor defines no error result."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: HTTP response charset and member review — 21 October 2026",
+            "scope": "Both runners create a typed instance and check its initial status, text, headers and optional fields. Partial boundaries remain explicit; this is not whole-object parity."
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This response contract uses no native dialog or permission. Tests execute actual URLSession on neutral loopback connections and the JavaScriptCore bridge. No Computer Use check is claimed."
+          },
+          "evidenceLevel": "Member-specific response assertions and real loopback integration; unresolved reference boundaries remain partial."
         },
         {
           "member": "error",
@@ -11120,10 +11162,72 @@
             "error: string | undefined"
           ],
           "contract": "If an error occurred, a description of the type of error.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "reviewed-partial",
+          "automatedTest": {
+            "suite": "ScriptHTTPLocalServerTests",
+            "test": "actualErrorsDoNotFabricateParsedData"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/ScriptHTTP.swift",
+            "symbol": "responseValue / failure"
+          },
+          "defaults": "No error yields undefined. The frozen description does not specify HTTP-status failure versus transport failure.",
+          "result": "Transport errors return a description. Current HTTP 503 responses retain text and status but have no error field.",
+          "errors": "Network disconnect and timeout return nonempty error descriptions; infrastructure cancellation is handled by the engine report.",
+          "limitations": [
+            "Compare Drafts error values for non-2xx responses. The current 503 error absence is characterized, not accepted as reference parity."
+          ],
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualErrorsDoNotFabricateParsedData"
+              },
+              "assertion": "Both actual transports distinguish 503, malformed JSON and disconnect. The interruption case checks actual timeout and cancellation."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualErrorsDoNotFabricateParsedData"
+              },
+              "assertion": "No error yields undefined. The frozen description does not specify HTTP-status failure versus transport failure."
+            },
+            "errors": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualErrorsDoNotFabricateParsedData"
+              },
+              "assertion": "Network disconnect and timeout return nonempty error descriptions; infrastructure cancellation is handled by the engine report."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: HTTP response charset and member review — 21 October 2026",
+            "scope": "Both actual transports distinguish 503, malformed JSON and disconnect. The interruption case checks actual timeout and cancellation. Partial boundaries remain explicit; this is not whole-object parity."
+          },
+          "nativeVerification": {
+            "status": "pending",
+            "reason": "Compare Drafts error values for non-2xx responses. The current 503 error absence is characterized, not accepted as reference parity."
+          },
+          "evidenceLevel": "Member-specific response assertions and real loopback integration; unresolved reference boundaries remain partial.",
+          "supportingTests": [
+            {
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualErrorsDoNotFabricateParsedData"
+            },
+            {
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "interruptedRequestClosesTheActualConnection"
+            },
+            {
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualBodylessResponsesPreserveMetadata"
+            }
+          ]
         },
         {
           "member": "headers",
@@ -11135,10 +11239,62 @@
             "headers: object"
           ],
           "contract": "Key-value dictionary containing any HTTP header information returned with the response. Useful for access cookie headers, etc.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "reviewed-complete",
+          "automatedTest": {
+            "suite": "ScriptHTTPLocalServerTests",
+            "test": "actualBodylessResponsesPreserveMetadata"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/ScriptHTTP.swift",
+            "symbol": "responseValue"
+          },
+          "defaults": "The reference defines no options for this response property. With no response, Draftly returns an empty dictionary.",
+          "result": "Returns a string-keyed dictionary of returned HTTP headers, including cookie headers.",
+          "errors": "The property defines no independent error result. Transport errors are reported separately.",
+          "limitations": [],
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualBodylessResponsesPreserveMetadata"
+              },
+              "assertion": "Both actual transports preserve custom and Set-Cookie headers on GET 204 and HEAD 200 responses with no body."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualBodylessResponsesPreserveMetadata"
+              },
+              "assertion": "The reference defines no options for this response property. With no response, Draftly returns an empty dictionary."
+            },
+            "errors": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualBodylessResponsesPreserveMetadata"
+              },
+              "assertion": "The property defines no independent error result. Transport errors are reported separately."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: HTTP response charset and member review — 21 October 2026",
+            "scope": "Both actual transports preserve custom and Set-Cookie headers on GET 204 and HEAD 200 responses with no body. Partial boundaries remain explicit; this is not whole-object parity."
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This response contract uses no native dialog or permission. Tests execute actual URLSession on neutral loopback connections and the JavaScriptCore bridge. No Computer Use check is claimed."
+          },
+          "evidenceLevel": "Member-specific response assertions and real loopback integration; unresolved reference boundaries remain partial.",
+          "supportingTests": [
+            {
+              "suite": "HTTPResponseContractTests",
+              "test": "bodylessResponsesKeepStatusHeadersAndEmptyValues"
+            }
+          ]
         },
         {
           "member": "otherData",
@@ -11150,10 +11306,58 @@
             "otherData: string | undefined"
           ],
           "contract": "Some responses return additional data that is placed in this field.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "reviewed-partial",
+          "automatedTest": {
+            "suite": "ScriptHTTPLocalServerTests",
+            "test": "actualScriptingRequestsReturnHTTPResponseAndUseClientOptions"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "HTTPResponse"
+          },
+          "defaults": "The optional field is undefined for the covered ordinary responses. The reference gives no condition that fills it.",
+          "result": "The bridge preserves a provided response field, but the current HTTP transport does not populate additional data.",
+          "errors": "No property-specific error is defined.",
+          "limitations": [
+            "The reference says some responses fill this field but defines no triggering response or representation. This contract is not complete; obtain a reproducible Drafts response before adding behavior."
+          ],
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualScriptingRequestsReturnHTTPResponseAndUseClientOptions"
+              },
+              "assertion": "Both actual scripting routes check undefined for ordinary successful JSON responses; no additional-data behavior is inferred."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualScriptingRequestsReturnHTTPResponseAndUseClientOptions"
+              },
+              "assertion": "The optional field is undefined for the covered ordinary responses. The reference gives no condition that fills it."
+            },
+            "errors": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualScriptingRequestsReturnHTTPResponseAndUseClientOptions"
+              },
+              "assertion": "No property-specific error is defined."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: HTTP response charset and member review — 21 October 2026",
+            "scope": "Both actual scripting routes check undefined for ordinary successful JSON responses; no additional-data behavior is inferred. Partial boundaries remain explicit; this is not whole-object parity."
+          },
+          "nativeVerification": {
+            "status": "pending",
+            "reason": "The reference says some responses fill this field but defines no triggering response or representation. This contract is not complete; obtain a reproducible Drafts response before adding behavior."
+          },
+          "evidenceLevel": "Member-specific response assertions and real loopback integration; unresolved reference boundaries remain partial."
         },
         {
           "member": "responseData",
@@ -11165,10 +11369,72 @@
             "responseData: any"
           ],
           "contract": "The raw data returned. Typically an object or array of objects, but exact content varies by server response.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "reviewed-partial",
+          "automatedTest": {
+            "suite": "HTTPResponseContractTests",
+            "test": "JSONArraysAndFragmentsRemainTyped"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/ScriptHTTP.swift",
+            "symbol": "responseValue"
+          },
+          "defaults": "The reference does not define defaults or non-JSON representation. Draftly returns null when JSON parsing is unavailable.",
+          "result": "JSON objects, arrays, strings, numbers, booleans and null retain their types. Other raw-data representations remain unresolved.",
+          "errors": "Invalid JSON does not throw; responseText remains available. Whether non-JSON raw data must have another representation needs Drafts comparison.",
+          "limitations": [
+            "The frozen description does not define the non-JSON raw-data representation. Draftly currently returns null for non-JSON, invalid JSON and absent data. Compare Drafts before accepting this boundary."
+          ],
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "HTTPResponseContractTests",
+                "test": "JSONArraysAndFragmentsRemainTyped"
+              },
+              "assertion": "Checks explicit array, Unicode string, numeric, Boolean and null values; actual UTF-16 JSON remains parsed."
+            },
+            "defaults": {
+              "test": {
+                "suite": "HTTPResponseContractTests",
+                "test": "JSONArraysAndFragmentsRemainTyped"
+              },
+              "assertion": "The reference does not define defaults or non-JSON representation. Draftly returns null when JSON parsing is unavailable."
+            },
+            "errors": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualErrorsDoNotFabricateParsedData"
+              },
+              "assertion": "Invalid JSON does not throw; responseText remains available. Whether non-JSON raw data must have another representation needs Drafts comparison."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: HTTP response charset and member review — 21 October 2026",
+            "scope": "Checks explicit array, Unicode string, numeric, Boolean and null values; actual UTF-16 JSON remains parsed. Partial boundaries remain explicit; this is not whole-object parity."
+          },
+          "nativeVerification": {
+            "status": "pending",
+            "reason": "The frozen description does not define the non-JSON raw-data representation. Draftly currently returns null for non-JSON, invalid JSON and absent data. Compare Drafts before accepting this boundary."
+          },
+          "evidenceLevel": "Member-specific response assertions and real loopback integration; unresolved reference boundaries remain partial.",
+          "supportingTests": [
+            {
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualErrorsDoNotFabricateParsedData"
+            },
+            {
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "interruptedRequestClosesTheActualConnection"
+            },
+            {
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualBodylessResponsesPreserveMetadata"
+            }
+          ]
         },
         {
           "member": "responseText",
@@ -11180,10 +11446,70 @@
             "responseText: string"
           ],
           "contract": "The data returned as a string format.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "reviewed-complete",
+          "automatedTest": {
+            "suite": "HTTPResponseContractTests",
+            "test": "responseTextUsesTheDeclaredCharset"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/ScriptHTTP.swift",
+            "symbol": "responseText"
+          },
+          "defaults": "The reference defines no encoding option for this response property. A missing body returns an empty string.",
+          "result": "Returns response bytes as text using the declared IANA charset when it can be decoded, then the existing UTF-8-or-empty fallback.",
+          "errors": "This getter does not throw on absent, unknown or invalid charset data. The prior fallback remains unchanged.",
+          "limitations": [],
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "HTTPResponseContractTests",
+                "test": "responseTextUsesTheDeclaredCharset"
+              },
+              "assertion": "ISO-8859-1, UTF-16LE and UTF-16BE decode correctly; actual transport checks preserve Latin-1 text and UTF-16 JSON Unicode."
+            },
+            "defaults": {
+              "test": {
+                "suite": "HTTPResponseContractTests",
+                "test": "responseTextUsesTheDeclaredCharset"
+              },
+              "assertion": "The reference defines no encoding option for this response property. A missing body returns an empty string."
+            },
+            "errors": {
+              "test": {
+                "suite": "HTTPResponseContractTests",
+                "test": "absentUnknownOrInvalidCharsetKeepsTheUTF8Fallback"
+              },
+              "assertion": "This getter does not throw on absent, unknown or invalid charset data. The prior fallback remains unchanged."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: HTTP response charset and member review — 21 October 2026",
+            "scope": "ISO-8859-1, UTF-16LE and UTF-16BE decode correctly; actual transport checks preserve Latin-1 text and UTF-16 JSON Unicode. Partial boundaries remain explicit; this is not whole-object parity."
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This response contract uses no native dialog or permission. Tests execute actual URLSession on neutral loopback connections and the JavaScriptCore bridge. No Computer Use check is claimed."
+          },
+          "evidenceLevel": "Member-specific response assertions and real loopback integration; unresolved reference boundaries remain partial.",
+          "supportingTests": [
+            {
+              "suite": "HTTPResponseContractTests",
+              "test": "absentUnknownOrInvalidCharsetKeepsTheUTF8Fallback"
+            },
+            {
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualResponseTextUsesDeclaredEncoding"
+            },
+            {
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualBodylessResponsesPreserveMetadata"
+            }
+          ]
         },
         {
           "member": "statusCode",
@@ -11195,10 +11521,70 @@
             "statusCode: number"
           ],
           "contract": "The HTTP status code (like 200, 301, etc.) returned.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "reviewed-complete",
+          "automatedTest": {
+            "suite": "ScriptHTTPLocalServerTests",
+            "test": "redirectOptionControlsActualDestination"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/ScriptHTTP.swift",
+            "symbol": "responseValue"
+          },
+          "defaults": "The reference defines no options. Draftly uses 0 when no HTTP response exists.",
+          "result": "Returns the actual HTTP response status as a number.",
+          "errors": "Transport failure has no HTTP status; the error field reports that failure.",
+          "limitations": [],
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "redirectOptionControlsActualDestination"
+              },
+              "assertion": "Both transports return actual 301/302 codes without following and final 200 codes when following redirects."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "redirectOptionControlsActualDestination"
+              },
+              "assertion": "The reference defines no options. Draftly uses 0 when no HTTP response exists."
+            },
+            "errors": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualErrorsDoNotFabricateParsedData"
+              },
+              "assertion": "Transport failure has no HTTP status; the error field reports that failure."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: HTTP response charset and member review — 21 October 2026",
+            "scope": "Both transports return actual 301/302 codes without following and final 200 codes when following redirects. Partial boundaries remain explicit; this is not whole-object parity."
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This response contract uses no native dialog or permission. Tests execute actual URLSession on neutral loopback connections and the JavaScriptCore bridge. No Computer Use check is claimed."
+          },
+          "evidenceLevel": "Member-specific response assertions and real loopback integration; unresolved reference boundaries remain partial.",
+          "supportingTests": [
+            {
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualErrorsDoNotFabricateParsedData"
+            },
+            {
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "interruptedRequestClosesTheActualConnection"
+            },
+            {
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualBodylessResponsesPreserveMetadata"
+            }
+          ]
         },
         {
           "member": "success",
@@ -11210,10 +11596,72 @@
             "success: boolean"
           ],
           "contract": "true/false for whether the request was completed successfully.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "reviewed-partial",
+          "automatedTest": {
+            "suite": "ScriptHTTPLocalServerTests",
+            "test": "redirectOptionControlsActualDestination"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/ScriptHTTP.swift",
+            "symbol": "responseValue"
+          },
+          "defaults": "A constructed response starts false. The reference gives no exact HTTP status success range.",
+          "result": "Draftly returns true only for a response without transport error and status 200 through 299.",
+          "errors": "Transport failure, cancellation and timeout return false; infrastructure failure also stops the engine.",
+          "limitations": [
+            "The archived wording does not define success for an unfollowed 3xx status. Draftly currently reports false. Compare Drafts before accepting the complete status policy."
+          ],
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "redirectOptionControlsActualDestination"
+              },
+              "assertion": "Both transports check followed and unfollowed redirects; 503/disconnect and cancellation/timeout are false, and actual 200/204 responses are true."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "redirectOptionControlsActualDestination"
+              },
+              "assertion": "A constructed response starts false. The reference gives no exact HTTP status success range."
+            },
+            "errors": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualErrorsDoNotFabricateParsedData"
+              },
+              "assertion": "Transport failure, cancellation and timeout return false; infrastructure failure also stops the engine."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: HTTP response charset and member review — 21 October 2026",
+            "scope": "Both transports check followed and unfollowed redirects; 503/disconnect and cancellation/timeout are false, and actual 200/204 responses are true. Partial boundaries remain explicit; this is not whole-object parity."
+          },
+          "nativeVerification": {
+            "status": "pending",
+            "reason": "The archived wording does not define success for an unfollowed 3xx status. Draftly currently reports false. Compare Drafts before accepting the complete status policy."
+          },
+          "evidenceLevel": "Member-specific response assertions and real loopback integration; unresolved reference boundaries remain partial.",
+          "supportingTests": [
+            {
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualErrorsDoNotFabricateParsedData"
+            },
+            {
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "interruptedRequestClosesTheActualConnection"
+            },
+            {
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualBodylessResponsesPreserveMetadata"
+            }
+          ]
         }
       ]
     },

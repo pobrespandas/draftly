@@ -15,7 +15,10 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         self.respond()
 
-    def respond(self):
+    def do_HEAD(self):
+        self.respond(head=True)
+
+    def respond(self, head=False):
         body = self.rfile.read(int(self.headers.get("Content-Length", "0")))
         target = urlsplit(self.path)
         print(json.dumps({"path": target.path, "method": self.command}), flush=True)
@@ -37,7 +40,16 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             return
         status = 200
-        if target.path == "/error":
+        content_type = "application/json; charset=utf-8"
+        if target.path == "/latin1":
+            data = "café".encode("iso-8859-1")
+            content_type = "text/plain; charset=iso-8859-1"
+        elif target.path == "/utf16-json":
+            data = json.dumps({"text": "café 🐼"}, ensure_ascii=False).encode("utf-16le")
+            content_type = "application/json; charset=utf-16le"
+        elif target.path == "/bodyless":
+            status, data = 204, b""
+        elif target.path == "/error":
             status, data = 503, "Unavailable café 🐼".encode("utf-8")
         elif target.path == "/invalid-json":
             data = "{invalid café 🐼".encode("utf-8")
@@ -51,11 +63,13 @@ class Handler(BaseHTTPRequestHandler):
         else:
             data = json.dumps({"text": "café 🐼"}, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Type", content_type)
         self.send_header("X-Neutral", "yes")
+        self.send_header("Set-Cookie", "neutral=fixture")
         self.send_header("Content-Length", str(len(data)))
         self.end_headers()
-        self.wfile.write(data)
+        if not head:
+            self.wfile.write(data)
 
 
 with HTTPServer(("127.0.0.1", 0), Handler) as server:

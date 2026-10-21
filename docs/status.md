@@ -1693,3 +1693,18 @@ After an actual delayed reply, the editor retained its later action result.
 History confirmed the expected outcomes. Exact deadline-before-timer behavior
 remains covered by controlled-clock tests, not this manual run. Native permission
 and capability variants remain pending. See validation for timing limits.
+
+
+### HTTPResponse charset and contracts — 21 October 2026
+
+Declared response charsets now decode correctly. Three specific cases failed
+before the correction. Actual loopback cases also check Latin-1, UTF-16 JSON,
+HEAD and 204 metadata. The separate test cleanup fix bounds process teardown.
+Full regression passed 468 app and 530 core methods; unsigned Xcode build passed.
+
+The matrix accepts constructor, headers, statusCode and responseText. Four
+members remain partial: non-JSON responseData, HTTP-status error policy,
+unfollowed-redirect success policy and unspecified otherData population.
+Do not infer their parity from successful HTTP requests. Current native QA
+predates this charset change. Continue the unresolved reference comparisons
+and other engine capability contracts before closing the wider delivery.

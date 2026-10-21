@@ -1,4 +1,5 @@
 import Foundation
+import CoreFoundation
 
 final class ScriptHTTP: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
     private let follow: Bool
@@ -74,7 +75,7 @@ final class ScriptHTTP: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
         var value: [String: Any] = [
             "success": error == nil && (200..<300).contains(response?.statusCode ?? 0),
             "statusCode": response?.statusCode ?? 0,
-            "responseText": String(data: data, encoding: .utf8) ?? "",
+            "responseText": responseText(data, response: response),
             "headers": response?.allHeaderFields.reduce(into: [String: String]()) {
                 $0[String(describing: $1.key)] = String(describing: $1.value)
             } ?? [:],
@@ -82,6 +83,17 @@ final class ScriptHTTP: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
         ]
         if let error { value["error"] = error.localizedDescription }
         return value
+    }
+
+    private static func responseText(_ data: Data, response: HTTPURLResponse?) -> String {
+        if let charset = response?.textEncodingName {
+            let encoding = CFStringConvertIANACharSetNameToEncoding(charset as CFString)
+            if encoding != kCFStringEncodingInvalidId {
+                let stringEncoding = String.Encoding(rawValue: CFStringConvertEncodingToNSStringEncoding(encoding))
+                if let text = String(data: data, encoding: stringEncoding) { return text }
+            }
+        }
+        return String(data: data, encoding: .utf8) ?? ""
     }
 
     private static func failure(_ error: Error) -> [String: Any] {

@@ -69,6 +69,31 @@ struct ScriptHTTPLocalServerTests {
         }
     }
 
+    @Test(arguments: [false, true], ["/latin1", "/utf16-json"])
+    func actualResponseTextUsesDeclaredEncoding(worker: Bool, path: String) async throws {
+        let server = try LoopbackHTTPServer(); defer { server.stop() }
+        let response = try await request(["url": server.url(path)], worker: worker)
+        #expect(response["success"] as? Bool == true)
+        if path == "/latin1" {
+            #expect(response["responseText"] as? String == "café")
+        } else {
+            #expect((response["responseText"] as? String)?.contains("café 🐼") == true)
+            #expect((response["responseData"] as? [String: String])?["text"] == "café 🐼")
+        }
+    }
+
+    @Test(arguments: [false, true], [("GET", "/bodyless", 204), ("HEAD", "/json", 200)])
+    func actualBodylessResponsesPreserveMetadata(worker: Bool, target: (String, String, Int)) async throws {
+        let server = try LoopbackHTTPServer(); defer { server.stop() }
+        let response = try await request(["url": server.url(target.1), "method": target.0], worker: worker)
+        #expect(response["success"] as? Bool == true && response["statusCode"] as? Int == target.2)
+        #expect(response["responseText"] as? String == "" && response["responseData"] is NSNull)
+        #expect(response["error"] == nil)
+        let headers = try #require(response["headers"] as? [String: String])
+        #expect(headers.first { $0.key.lowercased() == "x-neutral" }?.value == "yes")
+        #expect(headers.first { $0.key.lowercased() == "set-cookie" }?.value == "neutral=fixture")
+    }
+
     @Test(arguments: ["cancel", "timeout"])
     func interruptedRequestClosesTheActualConnection(_ interruption: String) async throws {
         let server = try LoopbackHTTPServer(); defer { server.stop() }

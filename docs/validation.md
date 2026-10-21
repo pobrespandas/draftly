@@ -6588,3 +6588,45 @@ permission or personal data is used. No production code changed in this fix.
 The focused response and loopback run passed 12 methods. A fresh full run
 passed 468 app and 530 core methods, including the response work recorded
 separately. The counts describe executed tests, not API parity.
+
+
+### HTTP response charset and member review — 21 October 2026
+
+Reviewed all eight HTTPResponse members against the archived 19 October
+reference. Kept its hash and signatures. The responseText regression first
+failed for ISO-8859-1, UTF-16LE and UTF-16BE: the old UTF-8-only decoder returned
+empty text. ScriptHTTP now converts the declared IANA charset with CoreFoundation.
+A missing, unknown or undecodable charset retains the prior UTF-8-or-empty
+fallback. It does not invent a binary or otherData representation.
+
+Specific automatic cases cover those three charsets, fallback behavior,
+explicit JSON array and scalar types, absent bodies and initial constructor
+fields on both scripting runners. The frozen constructor does not document
+those initial values; the test records Draftly behavior without inventing a
+reference default. The real loopback fixture also returns Latin-1 text,
+UTF-16 JSON, GET 204 and HEAD 200. Both transports preserve text, parsed Unicode,
+status, custom headers and Set-Cookie values. No remote endpoint, permission,
+visible window or personal data is used.
+
+The member review accepts constructor, headers, statusCode and responseText
+for their frozen contracts. Network and object checks require no native dialog;
+actual URLSession and JavaScriptCore run in automatic integration tests.
+This is not a new Computer Use or updated QA image claim.
+
+Four members remain partial. responseData needs the non-JSON representation
+checked in Drafts. error needs the HTTP-status failure policy compared; Draftly
+currently leaves error absent for 503. success needs unfollowed 3xx behavior
+compared; Draftly currently returns false. otherData has no documented trigger
+and is not populated by this transport. No guessed behavior or broad test count
+accepts those boundaries. Each member has its own matrix record.
+
+The focused response and loopback run passed 12 methods. After the separate
+fixture cleanup correction, the full regression passed 468 app and 530 core
+methods. Unsigned Xcode compilation passed. The previous unfinished full run
+remains recorded as unfinished. The QA image used above predates this charset
+change. No complete integration, engine or Mac acceptance is claimed.
+
+The final tooling run passed all 41 Python tests. Matrix structure has zero
+errors. The strict engine gate still reports 18 diagnostics. The global gate
+reports 4,670. Its HTTPResponse diagnostics refer only to the four explicitly
+partial members. These diagnostic totals do not measure compatibility.
