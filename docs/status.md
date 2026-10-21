@@ -1,10 +1,12 @@
 # Draftly implementation and remaining work
 
-Updated: 20 October 2026.
+Updated: 21 October 2026.
 
-Draftly works as a local Mac app. Mac parity is not complete. The current work is
-the Actions engine delivery. See [architecture](architecture.md) for the baseline
-and [Actions execution](actions-engine.md) for the new async route and its limits.
+Draftly works as a local Mac app. Mac parity is not complete. The cloning plan
+is paused at the user's request. Current work is behavior-preserving refactoring.
+Read [the refactoring record](refactoring-2026-10-21.md) for the reference tag,
+saved functional branch, diagnosis, baseline and stage results. Historical
+sections below retain their original scope and dates.
 Keep the identity Draftly, `Note`, existing identities and libraries, original
 action scripts, Nerd Fonts, and the integrated Markdown preview.
 
@@ -22,20 +24,17 @@ retain historical results. Later results supersede earlier counts.
 
 ## Current verification
 
-| Check | Latest result |
-| --- | --- |
-| App tests | 382 passed after owner lifetime and deadline checks |
-| Core tests | 350 passed; original actions run on both routes |
-| Python tools | 32 passed |
-| Local Xcode build after native services and canonical exclusion | Passed; signing disabled |
-| Matrix structure check | 0 errors |
-| Whitespace check | Passed |
-| Strict core and global parity | Still open |
+The refactoring base is `a415883`, tagged `pre-refactor-2026-10-21`.
+Swift baseline: 455 app methods and 502 core methods passed. Matrix structure
+has zero errors. Strict engine acceptance retains 18 existing diagnostics.
+See [the refactoring record](refactoring-2026-10-21.md) for tool-environment
+results and later stage checks.
 
-The matrix contains 562 API members: 106 complete, 139 partial, 312 unclassified,
-3 unavailable, and 2 excluded. It also tracks 25 step types. These are inventory
-counts, not a compatibility percentage. The reference remains Drafts 54.1.1 and
-the archived official documentation from 19 October 2026.
+The functional `Action.find` duplicate-name correction is saved separately in
+`agent/wip-action-lookup-2026-10-21` at `35a790c`. Its automatic checks passed;
+native acceptance is pending. It is not in the refactoring base. Other Mac
+contracts remain pending. The API matrix owns current member classifications;
+test totals are not a compatibility percentage.
 
 ## Architecture refactoring completed 19 October 2026
 

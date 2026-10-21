@@ -45,7 +45,7 @@ A new Inbox draft that combines the content and tags of selected drafts. The sou
 A file containing selected drafts as text, CSV, or JSON. It is separate from a full backup.
 
 **Library**:
-The collection of saved drafts, revisions, workspaces, actions, action groups, syntax definitions, and execution history.
+The collection of saved drafts, revisions, workspaces, actions, action groups, syntax definitions, themes, and execution history.
 
 **Tag**:
 A label attached to a draft for classification and filtering. A draft can have more than one tag.
@@ -110,6 +110,9 @@ One operation in an action's ordered sequence. A step can be enabled or disabled
 **Action group**:
 A named collection of actions. Each action belongs to one action group.
 
+**Action catalog**:
+The actions and action groups available in a library, including their organization and visibility.
+
 **Included action**:
 An action whose enabled steps form part of another action's sequence.
 
@@ -149,7 +152,7 @@ A named placeholder replaced with a value when a template is rendered. It is sep
 ### Backup and import
 
 **Full backup**:
-A saved copy of drafts, revisions, workspaces, actions, action groups, and syntax definitions. It currently excludes execution history, credentials, and local file permissions.
+A saved copy of drafts, revisions, workspaces, actions, action groups, syntax definitions, themes, and execution history. Credentials and local file permissions are separate from the backup.
 
 **Backup import**:
 A merge of a full backup into the library. When a draft with the same identity has different content or metadata, both copies are kept.

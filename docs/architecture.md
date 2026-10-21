@@ -1,5 +1,11 @@
 # Draftly architecture
 
+## Current refactoring phase
+
+Cloning is paused. The [21 October refactoring record](refactoring-2026-10-21.md)
+owns the current diagnosis, reference tag and stage results. The sections below
+record earlier work and its original acceptance scope.
+
 ## Refactoring baseline
 
 The annotated tag `pre-refactor-2026-10-19` points to `2fba5bd`.
