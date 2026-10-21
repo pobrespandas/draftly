@@ -6465,3 +6465,50 @@ and host request deadlines remain unchanged. The new unit case and the focused
 17-method HTTP run passed. The real loopback timeout test also confirms that an
 expired request closes its connection. No 900-second wait is needed to verify
 that a 900-second request setting is preserved. Full regression follows below.
+
+
+### HTTP loopback and worker contracts — 21 October 2026
+
+Read the frozen HTTP reference, including the nested request-setting descriptions.
+Added a neutral Python standard-library server fixture on an ephemeral 127.0.0.1
+port. It is a real HTTP server, not URLProtocol. Each test stops its child process
+and closes its pipe. No personal data, remote endpoint, permission or visible
+window is used. The server source is retained; raw traffic and logs are not.
+
+The loopback cases check both legacy and async transports. Actual 301 and 302
+redirects are followed or stopped according to the option; server events prove
+the destination. JSON/form POST bodies preserve Unicode, quotes, newlines and
+reserved characters. Query checks distinguish an original raw plus, an original
+encoded plus and an added literal plus. Empty values, custom headers and neutral
+Basic Authentication survive. A 503 response, invalid JSON and abrupt disconnect have their
+correct response/error shape. Cancellation and timeout close the actual waiting
+connection. The server observes that disconnect.
+
+A separate scripting case runs both engines against that server. It checks HTTP
+constructor/factory types and defaults, mutable redirect and timeout options,
+HTTPResponse type, status, Unicode JSON/text, returned headers and undefined
+optional fields when absent. A positive 900-second setting is used for an immediate
+response; zero produces an explicit HTTP failure. This is not a 900-second wait.
+
+Four injected worker cases isolate factory/default/option forwarding, a network
+failure that the script can handle, an infrastructure error that stops execution,
+and cancellation after a transport returns a failure value. Cancellation retains
+its typed report; subsequent script and steps, Archive and success parameters
+are suppressed. The library is released after transport cleanup. No timer sleep
+coordinates that cancellation case.
+
+These cases accept the five HTTP object members for the frozen signatures.
+The API needs no platform dialog, so manual Computer Use is not required for
+these network and object contracts. This is automatic integration evidence,
+not a new manual UI check. HTTPResponse still needs its own complete per-member
+review. In particular, the reference does not explain when otherData is filled;
+the tests do not invent such a condition. The raw body encoding option remains
+a Draftly extension; the included reference options are JSON and form.
+
+The focused HTTP run passed 17 methods. The final full regression passed
+468 app and 523 core methods. All 41 Python tooling tests passed. The final
+unsigned Xcode build passed. Matrix structure has zero errors. The strict
+engine gate still reports 18 diagnostics; the full gate reports 4,757. No HTTP
+member has a strict diagnostic. These counts do not measure compatibility.
+The Mac remains locked; configuredValues and callback-boundary native checks
+remain separately pending. No full engine or Mac delivery is closed here.

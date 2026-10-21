@@ -10732,10 +10732,62 @@
             "followRedirects: boolean"
           ],
           "contract": "If true, requests will automatically resolve 301/302 redirect responses. Defaults: true",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "reviewed-complete",
+          "automatedTest": {
+            "suite": "ScriptHTTPLocalServerTests",
+            "test": "redirectOptionControlsActualDestination"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "HTTP"
+          },
+          "limitations": [],
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: HTTP loopback and worker contracts — 21 October 2026",
+            "scope": "Specific real loopback and scripting cases passed. Network tests use actual URLSession on 127.0.0.1 and both execution routes. Worker error/cancellation cases use an injected serialized transport."
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This contract needs no native dialog or permission. Automatic integration executes the actual JavaScriptCore bridge and URLSession against a neutral loopback server. This is not a Computer Use acceptance claim."
+          },
+          "supportingTests": [
+            {
+              "suite": "HTTPBridgeContractTests",
+              "test": "factoriesAndInstanceOptionsReachTheSerializedTransport"
+            },
+            {
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualScriptingRequestsReturnHTTPResponseAndUseClientOptions"
+            }
+          ],
+          "defaults": "True on a new HTTP instance.",
+          "result": "A Boolean client option. True follows real 301/302 redirects; false returns the redirect response without opening its target.",
+          "errors": "The typed Boolean property defines no error contract.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "redirectOptionControlsActualDestination"
+              },
+              "assertion": "Legacy and async transport follow or stop both 301 and 302 responses. Server events prove the actual destination. The scripting integration changes the property between requests."
+            },
+            "defaults": {
+              "test": {
+                "suite": "HTTPBridgeContractTests",
+                "test": "factoriesAndInstanceOptionsReachTheSerializedTransport"
+              },
+              "assertion": "New instances start with followRedirects true. A changed instance sends false to the serialized transport."
+            },
+            "errors": {
+              "notApplicable": "The archived Boolean property defines no failure behavior."
+            }
+          },
+          "evidenceLevel": "Member-specific assertions and real loopback integration. This does not accept every HTTPResponse property or other integration."
         },
         {
           "member": "constructor",
@@ -10747,10 +10799,58 @@
             "new HTTP(): HTTP"
           ],
           "contract": "Create new instance.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "reviewed-complete",
+          "automatedTest": {
+            "suite": "ScriptHTTPLocalServerTests",
+            "test": "actualScriptingRequestsReturnHTTPResponseAndUseClientOptions"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "HTTP"
+          },
+          "limitations": [],
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: HTTP loopback and worker contracts — 21 October 2026",
+            "scope": "Specific real loopback and scripting cases passed. Network tests use actual URLSession on 127.0.0.1 and both execution routes. Worker error/cancellation cases use an injected serialized transport."
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This contract needs no native dialog or permission. Automatic integration executes the actual JavaScriptCore bridge and URLSession against a neutral loopback server. This is not a Computer Use acceptance claim."
+          },
+          "supportingTests": [
+            {
+              "suite": "HTTPBridgeContractTests",
+              "test": "factoriesAndInstanceOptionsReachTheSerializedTransport"
+            }
+          ],
+          "defaults": "A new instance has followRedirects true and timeout 60 seconds.",
+          "result": "Returns a new HTTP instance. The factory and constructor use the same defined client options.",
+          "errors": "The frozen constructor/factory contract defines no failure result.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualScriptingRequestsReturnHTTPResponseAndUseClientOptions"
+              },
+              "assertion": "The actual scripting client has HTTP type and performs requests with mutable options. The injected bridge separately checks new HTTP and HTTP.create instances."
+            },
+            "defaults": {
+              "test": {
+                "suite": "HTTPBridgeContractTests",
+                "test": "factoriesAndInstanceOptionsReachTheSerializedTransport"
+              },
+              "assertion": "Both constructor and factory expose followRedirects true and timeout 60 before changes."
+            },
+            "errors": {
+              "notApplicable": "The no-argument constructor and factory define no error contract."
+            }
+          },
+          "evidenceLevel": "Member-specific assertions and real loopback integration. This does not accept every HTTPResponse property or other integration."
         },
         {
           "member": "timeout",
@@ -10762,10 +10862,70 @@
             "timeout: number"
           ],
           "contract": "Time in seconds to wait for a request to receive a response from the server. Default: 60 seconds.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "reviewed-complete",
+          "automatedTest": {
+            "suite": "ScriptHTTPTests",
+            "test": "timeoutRetainsPositiveFiniteValuesAndRejectsInvalidDurations"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "HTTP"
+          },
+          "limitations": [],
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: HTTP loopback and worker contracts — 21 October 2026",
+            "scope": "Specific real loopback and scripting cases passed. Network tests use actual URLSession on 127.0.0.1 and both execution routes. Worker error/cancellation cases use an injected serialized transport."
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This contract needs no native dialog or permission. Automatic integration executes the actual JavaScriptCore bridge and URLSession against a neutral loopback server. This is not a Computer Use acceptance claim."
+          },
+          "supportingTests": [
+            {
+              "suite": "HTTPBridgeContractTests",
+              "test": "factoriesAndInstanceOptionsReachTheSerializedTransport"
+            },
+            {
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "interruptedRequestClosesTheActualConnection"
+            },
+            {
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualScriptingRequestsReturnHTTPResponseAndUseClientOptions"
+            }
+          ],
+          "defaults": "60 seconds on a new HTTP instance.",
+          "result": "Preserves a positive finite client wait in seconds, without an HTTP-specific maximum. A real waiting request fails and closes its connection when its configured timeout expires.",
+          "errors": "Zero, negative, NaN and infinite durations fail explicitly with The HTTP timeout must be positive and finite. Independent engine deadlines still apply.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ScriptHTTPTests",
+                "test": "timeoutRetainsPositiveFiniteValuesAndRejectsInvalidDurations"
+              },
+              "assertion": "Request settings preserve 0.001, 2.5, 900 and 3600 seconds. A separate real loopback wait verifies timeout and disconnect."
+            },
+            "defaults": {
+              "test": {
+                "suite": "HTTPBridgeContractTests",
+                "test": "factoriesAndInstanceOptionsReachTheSerializedTransport"
+              },
+              "assertion": "New clients expose 60 seconds; an edited client forwards 2.5 seconds unchanged."
+            },
+            "errors": {
+              "test": {
+                "suite": "ScriptHTTPTests",
+                "test": "timeoutRetainsPositiveFiniteValuesAndRejectsInvalidDurations"
+              },
+              "assertion": "Zero, negative, NaN and infinite durations throw instead of being silently clamped. The scripting integration also receives an explicit HTTP failure response for zero."
+            }
+          },
+          "evidenceLevel": "Member-specific assertions and real loopback integration. This does not accept every HTTPResponse property or other integration."
         },
         {
           "member": "request",
@@ -10777,10 +10937,82 @@
             "request( settings: { data?: { [x: string]: string }; encoding?: \"json\" | \"form\"; headers?: { [x: string]: string }; method: string; parameters?: { [x: string]: string }; password?: string; url: string; username?: string; },): HTTPResponse"
           ],
           "contract": "An object configuring the request.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "reviewed-complete",
+          "automatedTest": {
+            "suite": "ScriptHTTPLocalServerTests",
+            "test": "actualScriptingRequestsReturnHTTPResponseAndUseClientOptions"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "HTTP"
+          },
+          "limitations": [],
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: HTTP loopback and worker contracts — 21 October 2026",
+            "scope": "Specific real loopback and scripting cases passed. Network tests use actual URLSession on 127.0.0.1 and both execution routes. Worker error/cancellation cases use an injected serialized transport."
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This contract needs no native dialog or permission. Automatic integration executes the actual JavaScriptCore bridge and URLSession against a neutral loopback server. This is not a Computer Use acceptance claim."
+          },
+          "supportingTests": [
+            {
+              "suite": "HTTPBridgeContractTests",
+              "test": "factoriesAndInstanceOptionsReachTheSerializedTransport"
+            },
+            {
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualErrorsDoNotFabricateParsedData"
+            },
+            {
+              "suite": "HTTPBridgeContractTests",
+              "test": "infrastructureFailureStopsTheActionWithoutSuccessEffects"
+            },
+            {
+              "suite": "HTTPBridgeContractTests",
+              "test": "cancellationCannotBecomeARecoverableHTTPFailure"
+            },
+            {
+              "suite": "ScriptHTTPTests",
+              "test": "queryParametersPreservePlusAndExistingEncodedQuery"
+            },
+            {
+              "suite": "ScriptHTTPTests",
+              "test": "timeoutRetainsPositiveFiniteValuesAndRejectsInvalidDurations"
+            }
+          ],
+          "defaults": "Settings require URL and method. Query parameters, headers, credentials, data and encoding are optional. Current implementation defaults omitted body encoding to JSON; the frozen text does not state an encoding default.",
+          "result": "Returns HTTPResponse for HTTP and transport responses. Query parameters merge with the original URL without losing literal plus signs. JSON/form bodies, custom headers and Basic Authentication retain their data. An infrastructure envelope error fails the action.",
+          "errors": "HTTP and network failures remain response values that a script can handle. Infrastructure errors fail the action. Task cancellation remains typed cancellation and cannot be converted to a recoverable network failure.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualRequestPreservesBodyQueryHeadersAndAuthentication"
+              },
+              "assertion": "Both transports send JSON/form bodies, Unicode, reserved characters, empty query values, custom headers and neutral Basic Authentication correctly to an actual local server."
+            },
+            "defaults": {
+              "test": {
+                "suite": "HTTPBridgeContractTests",
+                "test": "factoriesAndInstanceOptionsReachTheSerializedTransport"
+              },
+              "assertion": "A new client forwards the documented followRedirects true and 60-second timeout. No undocumented body-encoding default is claimed as Drafts parity."
+            },
+            "errors": {
+              "test": {
+                "suite": "HTTPBridgeContractTests",
+                "test": "networkFailureIsAResponseThatTheScriptCanHandle"
+              },
+              "assertion": "A network failure produces an HTTPResponse and the script can continue. Independent tests prove infrastructure failure and cancellation suppress subsequent work and success effects."
+            }
+          },
+          "evidenceLevel": "Member-specific assertions and real loopback integration. This does not accept every HTTPResponse property or other integration."
         },
         {
           "member": "create",
@@ -10792,10 +11024,58 @@
             "create(): HTTP"
           ],
           "contract": "Instantiate an HTTP object.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "reviewed-complete",
+          "automatedTest": {
+            "suite": "ScriptHTTPLocalServerTests",
+            "test": "actualScriptingRequestsReturnHTTPResponseAndUseClientOptions"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "HTTP"
+          },
+          "limitations": [],
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: HTTP loopback and worker contracts — 21 October 2026",
+            "scope": "Specific real loopback and scripting cases passed. Network tests use actual URLSession on 127.0.0.1 and both execution routes. Worker error/cancellation cases use an injected serialized transport."
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This contract needs no native dialog or permission. Automatic integration executes the actual JavaScriptCore bridge and URLSession against a neutral loopback server. This is not a Computer Use acceptance claim."
+          },
+          "supportingTests": [
+            {
+              "suite": "HTTPBridgeContractTests",
+              "test": "factoriesAndInstanceOptionsReachTheSerializedTransport"
+            }
+          ],
+          "defaults": "A new instance has followRedirects true and timeout 60 seconds.",
+          "result": "Returns a new HTTP instance. The factory and constructor use the same defined client options.",
+          "errors": "The frozen constructor/factory contract defines no failure result.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualScriptingRequestsReturnHTTPResponseAndUseClientOptions"
+              },
+              "assertion": "The actual scripting client has HTTP type and performs requests with mutable options. The injected bridge separately checks new HTTP and HTTP.create instances."
+            },
+            "defaults": {
+              "test": {
+                "suite": "HTTPBridgeContractTests",
+                "test": "factoriesAndInstanceOptionsReachTheSerializedTransport"
+              },
+              "assertion": "Both constructor and factory expose followRedirects true and timeout 60 before changes."
+            },
+            "errors": {
+              "notApplicable": "The no-argument constructor and factory define no error contract."
+            }
+          },
+          "evidenceLevel": "Member-specific assertions and real loopback integration. This does not accept every HTTPResponse property or other integration."
         }
       ]
     },

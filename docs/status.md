@@ -1653,7 +1653,8 @@ Added parameters now preserve literal plus signs. Existing raw and encoded query
 values retain their original meaning. A real loopback server reproduced the
 failure on both transport routes and confirmed the correction. The specific
 builder regression also passed. HTTP timeout limits and remaining response
-contracts require separate acceptance; this correction does not close HTTP.
+contracts required separate acceptance. The later HTTP object review records
+that acceptance without closing the HTTPResponse object or the broader scope.
 
 
 ### HTTP timeout range corrected — 21 October 2026
@@ -1662,3 +1663,15 @@ Positive finite HTTP timeouts now retain their value, including values above
 600 seconds. Invalid durations fail explicitly. The default remains 60 seconds;
 engine deadlines stay unchanged. A specific regression failed first and passed
 after correction. Broader HTTP evidence and classification follow separately.
+
+
+### HTTP object contracts audited — 21 October 2026
+
+Real loopback tests and both scripting routes cover the five HTTP object members.
+Added independent worker cases for recoverable network failures, infrastructure
+failure and typed cancellation. The query and timeout corrections have separate
+commits. Full regression passed 468 app and 523 core methods; all 41 Python
+tooling tests and the unsigned Xcode build passed. Structure validation has zero
+errors. Strict engine/global gates remain open at 18/4,757 diagnostics.
+HTTPResponse still needs its own review, including the unspecified otherData
+condition. This does not close the broader integration or Mac scope.
