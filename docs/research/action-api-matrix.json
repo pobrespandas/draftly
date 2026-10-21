@@ -19255,6 +19255,14 @@
             "fixture": "scripts/fixtures/engine-native-timeout-actions.json",
             "result": "Helper zero final callbacks at112976ms; one timeout error at126983ms before the scheduled130s reply. At138811ms helper recorded one successful late native open; result stayed one error through163971ms. Target text retained, no sentinel, one root Error history row. Host and callback limits both120s, so the winning timeout is not isolated.",
             "evidence": "docs/validation.md: Native callback timeout and late delivery — 20 October 2026"
+          },
+          {
+            "date": "2026-10-21",
+            "executableSHA256": "1119f1dab32b157510b34f67380f61c175889fdbcab72478358aa57933c1e00e",
+            "debugImageSHA256": "1b2c4be2bfdc696e100349a4dc21ae022c0ec040459eb71605758f6bdf8655d4",
+            "fixture": "scripts/fixtures/engine-native-actions.json",
+            "result": "Updated-image native success, cancellation and error produced matching History results. Cancelled an eight-second callback wait; after the helper opened the delayed reply, the later typed lookup marker remained. The ordering does not prove that lookup completed before that reply. Exact deadline-before-timer acceptance remains automatic controlled-clock evidence; other native capability variants remain pending.",
+            "evidence": "docs/validation.md: Native callback regression after deadline correction — 21 October 2026"
           }
         ]
       },

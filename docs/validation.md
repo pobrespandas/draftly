@@ -6542,3 +6542,31 @@ Together with the specific both-runner stored-override, disabled-field and
 nonmutation tests, this accepts Action.configuredValues. Shared included-action
 collision precedence remains a separate pending engine contract. No full engine
 or Mac delivery is closed by this member acceptance.
+
+
+### Native callback regression after deadline correction — 21 October 2026
+
+Used the refreshed Engine QA image from the typed configuration check above.
+Its launcher and Debug hashes are recorded there. Imported the unchanged
+engine-native-actions.json fixture. The local callback helper targeted only
+that isolated QA bundle. No permission or system setting changed.
+
+QA Native success wrote Callback: Native café 🐼. QA Native cancelled preserved
+that text. QA Native error returned the expected callback error and preserved
+that text. Started QA Native late, then used Actions > Cancel Running Action
+while it waited. Ran QA Typed configuration lookup afterwards. The editor
+showed Typed other-action configuration passed café 🐼.
+
+The helper reported four replies opened, a successful last open, an eight-second
+delay and the neutral callback value. After that actual delayed URL open, the
+editor retained the typed marker. History showed Success, Cancelled, Error and
+Cancelled for the four callback cases, then Success for the typed lookup, all
+at 02:34 local. Closed History and quit the helper. Its process was absent.
+QA retains one window, two neutral notes and no pending action or dialog.
+
+This checks ordinary native delivery and cancellation with the corrected image.
+It does not establish that the next action completed before the delayed reply.
+It does not reproduce an OS delivery at the exact deadline before the timeout
+task runs. The controlled-clock tests retain that boundary evidence. Permission
+and capability lifetime variants remain pending. No screenshot or raw log is
+tracked, and no complete engine or Mac acceptance is claimed.

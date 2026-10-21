@@ -1684,3 +1684,12 @@ actions both passed. The latter checked Boolean/number/Unicode-LF values through
 find, group membership and recency while preserving its own context. The member
 is complete with its existing specific automatic tests. Included configuration
 precedence and other engine acceptance remain open. See validation for hashes.
+
+
+### Updated-image native callback regression — 21 October 2026
+
+The refreshed isolated QA passed success, error and cancellation callbacks.
+After an actual delayed reply, the editor retained its later action result.
+History confirmed the expected outcomes. Exact deadline-before-timer behavior
+remains covered by controlled-clock tests, not this manual run. Native permission
+and capability variants remain pending. See validation for timing limits.
