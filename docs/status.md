@@ -16,8 +16,9 @@ action scripts, Nerd Fonts, and the integrated Markdown preview.
 The user requested behavior-preserving refactoring before more feature work.
 See [the accepted diagnosis](refactoring-ui-2026-10-21.md) for four bounded stages,
 the validated baseline and preserved checkpoint. The shared sort writer, inspector field policy and test-only theme-reader stages
-and preference fixture stages are complete. Final inventory and regression checks
-are in progress. Functional Workspace defects
+and preference fixture stages are complete. Final checks passed: 630 core methods,
+531 app methods, 57 Python methods and unsigned compilation. All baseline test
+identities remain. See the record for closure and the exact cloning resume point. Functional Workspace defects
 and native acceptance remain separate. This does not close the Mac roadmap.
 
 ## Current delivery order — 21 October 2026
