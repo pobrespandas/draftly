@@ -6453,25 +6453,23 @@
             "configuredValues: [string: any]"
           ],
           "contract": "If this action has \"Configured Value\" action steps and the user has configured values for the action, this object will contain those values. Primarily of use to load configuration values from a different action than is currently running.",
-          "implementation": "reviewed-partial",
+          "implementation": "reviewed-complete",
           "automatedTest": {
             "suite": "ActionConfiguredValuesContractTests",
             "test": "otherActionSnapshotsUseTypedStoredConfigurationWithoutChangingExecutionContext"
           },
           "liveCheck": null,
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "reviewDate": "2026-10-21",
           "implementationEvidence": {
-            "file": "Sources/DraftlyCore/Resources/Bridge.js",
-            "symbol": "Action.configuredValues"
+            "file": "Sources/DraftlyCore/ActionAPI.swift",
+            "symbol": "actionValue"
           },
           "defaults": "Readonly property. The getter has no arguments. An action without configured keys exposes an empty object. Stored text overrides step defaults before the shared runtime type conversion.",
           "result": "Object containing configured values. Enabled boolean and number fields use the same types as execution configuration. Text and unknown stored keys retain strings. Current action configuration remains shared with context.configuredValues.",
           "errors": "The archived reference defines no getter-specific errors. Reading another action does not prompt, expand included actions or write its configuration.",
-          "limitations": [
-            "Updated signed QA acceptance of typed values from another action is pending. Included-action configuration collision precedence remains a separate engine acceptance item."
-          ],
-          "evidenceLevel": "Member-specific assertions. Native verification is separate.",
+          "limitations": [],
+          "evidenceLevel": "Specific both-runner contract assertions plus native typed lookup acceptance. Included-action collision precedence belongs to the separate engine contract.",
           "automatedVerification": {
             "status": "passed",
             "date": "2026-10-20",
@@ -6516,6 +6514,12 @@
             "errors": {
               "notApplicable": "The readonly property has no documented getter-specific failure contract. Readonly replacement is rejected in the normal test."
             }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Native typed other-action configuration — 21 October 2026",
+            "scope": "Refreshed signed Engine QA. Imported neutral configuration source/lookup; source succeeded, then lookup asserted Boolean false, number3.5 and Unicode text with LF through find, group.actions and recent. Own context identity and readonly replacement passed. History displayed both Success rows. No permission changed."
           }
         },
         {

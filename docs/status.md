@@ -1675,3 +1675,12 @@ tooling tests and the unsigned Xcode build passed. Structure validation has zero
 errors. Strict engine/global gates remain open at 18/4,757 diagnostics.
 HTTPResponse still needs its own review, including the unspecified otherData
 condition. This does not close the broader integration or Mac scope.
+
+
+### Native configuredValues acceptance — 21 October 2026
+
+After unlock, refreshed and signed Engine QA. Actual typed source and lookup
+actions both passed. The latter checked Boolean/number/Unicode-LF values through
+find, group membership and recency while preserving its own context. The member
+is complete with its existing specific automatic tests. Included configuration
+precedence and other engine acceptance remain open. See validation for hashes.
