@@ -6889,25 +6889,52 @@
           "contract": "URL which can be used to install this Action Group in another installation of Drafts. Useful for sharing and backups.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "CatalogActionAPITests",
-            "test": "actionAndGroupQueriesKeepIdentityOrderAndInstallationData"
+            "suite": "ActionGroupInstallationContractTests",
+            "test": "emptyAndPopulatedGroupLinksPreserveRecordsAndInstallAtomically"
           },
           "liveCheck": null,
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-21",
           "implementationEvidence": {
-            "file": "Sources/DraftlyCore/Resources/Bridge.js",
-            "symbol": "ActionGroup.installURL"
+            "file": "Sources/DraftlyCore/ActionAPI.swift",
+            "symbol": "groupInstallURL / installURL; ActionImporter.installationData"
           },
           "defaults": "Queries return an empty list or undefined for missing records. Factory defaults still need an exhaustive assertion set.",
-          "result": [
-            "installURL: string"
-          ],
+          "result": "A stable draftly://action link carries the group record plus ordered member actions. Installation preserves an empty group and its name, ID, symbol and order.",
           "errors": "Storage failures throw; missing lookups return undefined.",
           "limitations": [
-            "groupInstallURL currently serializes only member actions. An empty group has no name or group metadata in that payload, so installing the link cannot restore it. Preserve the group record and its options through export and installation before closure."
+            "Empty and populated group links now preserve the group record and actions. Automatic round-trip, rollback, readonly and legacy link checks pass; native URL and import-preview acceptance with the new binary remain pending."
           ],
-          "evidenceLevel": "Member-specific assertions. Native verification is separate."
+          "evidenceLevel": "Member-specific assertions. Native verification is separate.",
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Group installation envelope — 21 October 2026",
+            "scope": "Both runners; empty/populated Unicode groups, record and action preservation, readonly and stable link, rollback and legacy action adapter. URL router covers base64 and excludes unrelated backup data."
+          },
+          "nativeVerification": {
+            "status": "pending",
+            "reason": "New group envelope, empty-group preview and native installation require the updated binary."
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionGroupInstallationContractTests",
+                "test": "emptyAndPopulatedGroupLinksPreserveRecordsAndInstallAtomically"
+              },
+              "assertion": "A stable draftly://action link carries the group record plus ordered member actions. Installation preserves an empty group and its name, ID, symbol and order."
+            },
+            "defaults": {
+              "notApplicable": "The readonly getter has no optional arguments."
+            },
+            "errors": {
+              "test": {
+                "suite": "ActionGroupInstallationContractTests",
+                "test": "emptyAndPopulatedGroupLinksPreserveRecordsAndInstallAtomically"
+              },
+              "assertion": "Failed installation leaves the target library unchanged. Reflect.set rejects replacement of the readonly link."
+            }
+          }
         },
         {
           "member": "name",

@@ -78,14 +78,25 @@ public enum ActionImporter {
     }
 
     public static func installationActions(_ url: URL) throws -> [DraftAction] {
+        try decode(installationData(url))
+    }
+
+    public static func installationData(_ url: URL) throws -> Data {
         let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems
         guard let encoded = query?.first(where: { $0.name == "data" })?.value else {
             throw DraftlyError.message("This installation link has no action data.")
         }
         // URL can add one encoding layer when a directory link contains raw brackets.
         for candidate in [encoded, encoded.removingPercentEncoding ?? encoded] {
-            if let data = candidate.data(using: .utf8), let actions = try? decode(data) { return actions }
-            if let data = Data(base64Encoded: candidate), let actions = try? decode(data) { return actions }
+            for data in [candidate.data(using: .utf8), Data(base64Encoded: candidate)].compactMap({ $0 }) {
+                guard let actions = try? decode(data) else { continue }
+                if let backup = try? JSONDecoder().decode(Backup.self, from: data) {
+                    guard backup.version == 1 else { throw DraftlyError.message("This installation version is not supported.") }
+                    return try JSONEncoder().encode(Backup(notes: [], revisions: [], workspaces: [],
+                        actions: actions, actionGroups: backup.actionGroups))
+                }
+                return data
+            }
         }
         throw DraftlyError.message("The installation link contains invalid action data.")
     }

@@ -6026,3 +6026,31 @@ installURL member stays partial. Next: add a group installation envelope,
 preserve its record and options, keep older action links readable, and test
 empty groups, populated groups and atomic import. Continue other engine and
 Mac roadmap requirements after that work.
+
+
+### Group installation envelope — 21 October 2026
+
+The new contract test failed on both runners because the old link contained
+only an action array. groupInstallURL now uses the existing backup envelope
+with only its group record and ordered actions. This preserves empty groups,
+name, ID, symbol and order. Sorted JSON keys keep repeated links stable.
+
+installationData reads new envelopes and old JSON/base64 action links. It
+limits an installation envelope to actions and groups; unrelated notes and
+workspaces are not installed. The legacy installationActions adapter remains.
+The URL router imports the data atomically. The review dialog shows group
+names, permits an empty group, and saves through atomic library operations.
+It no longer saves downloaded actions one at a time.
+
+The full regression passed 455 app methods and 502 core methods. Unsigned
+Xcode compilation passed. Specific tests cover both runners, empty/populated
+Unicode group links, record and action preservation, stable readonly links,
+rollback, base64 URL routing, repeated installation, unrelated-data exclusion
+and legacy action decoding. No automatic test opens a window.
+
+Native URL installation and the empty-group review dialog remain pending.
+ActionGroup.installURL stays partial until those checks pass with the new
+binary. Visual QA still uses the earlier collision-verification build. Next:
+update that isolated bundle, import a neutral empty group, obtain its link,
+and verify URL installation and the review dialog. The complete Mac roadmap
+remains active.

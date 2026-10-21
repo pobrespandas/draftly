@@ -8,6 +8,7 @@ struct ActionImportView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var link = ""
     @State private var imported: [DraftAction] = []
+    @State private var installationData: Data?
     @State private var loading = false
     @State private var error: String?
     var body: some View {
@@ -16,12 +17,15 @@ struct ActionImportView: View {
             Text("Paste a Drafts Directory URL or an installation link. Review the steps before saving.").foregroundStyle(.secondary)
             HStack { TextField("https://actions.getdrafts.com/a/…", text: $link).textFieldStyle(.roundedBorder); Button("Load") { load() }.disabled(loading || link.isEmpty) }
             if loading { ProgressView() }
-            if imported.isEmpty {
+            if imported.isEmpty && installationData == nil {
                 Text("Compatibility reference actions").font(.headline)
                 ForEach([("New Draft with Template", "1VL"), ("Add to List", "1Ga"), ("Text Modifier…", "1Bg"), ("Copy as Rich Text", "1DM"), ("Save in Obsidian Vault", "1qn")], id: \.1) { name, id in
                     Button(name) { link = "https://actions.getdrafts.com/a/" + id; load() }.buttonStyle(.link)
                 }
             } else {
+                if let installationData, let backup = try? JSONDecoder().decode(Backup.self, from: installationData) {
+                    ForEach(backup.actionGroups ?? []) { group in Text("Group: " + group.name).font(.headline) }
+                }
                 List(imported) { action in
                     VStack(alignment: .leading, spacing: 5) {
                         Text(action.name).font(.headline)
@@ -30,7 +34,11 @@ struct ActionImportView: View {
                     }.padding(.vertical, 6)
                 }.frame(height: 180)
                 Button("Save Actions") {
-                    do { for action in imported { try library.saveAction(action) }; onImport?(imported); dismiss() }
+                    do {
+                        if let installationData { try LibraryFileImport.apply(installationData, fileExtension: "json", to: library) }
+                        else { try library.saveActions(imported) }
+                        onImport?(imported); dismiss()
+                    }
                     catch { self.error = error.localizedDescription }
                 }.buttonStyle(.borderedProminent)
             }
@@ -40,7 +48,15 @@ struct ActionImportView: View {
     }
     private func load() {
         guard let url = URL(string: link) else { error = "Enter a valid URL."; return }
-        loading = true; error = nil
-        Task { do { imported = try await ActionImporter.download(url) } catch { self.error = error.localizedDescription }; loading = false }
+        loading = true; error = nil; installationData = nil; imported = []
+        Task {
+            do {
+                if ["draftly", "drafts", "drafts5"].contains(url.scheme ?? ""), url.host == "action" {
+                    let data = try ActionImporter.installationData(url)
+                    imported = try ActionImporter.decode(data); installationData = data
+                } else { imported = try await ActionImporter.download(url) }
+            } catch { self.error = error.localizedDescription }
+            loading = false
+        }
     }
 }

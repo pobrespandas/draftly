@@ -85,8 +85,7 @@ struct ApplicationURLRouter {
     }
     static func installActions(_ url: URL, library: LibraryStore?) throws {
         guard let library else { throw DraftlyError.message("The library is unavailable.") }
-        let actions = try ActionImporter.installationActions(url)
-        try library.saveActions(actions)
+        try LibraryFileImport.apply(ActionImporter.installationData(url), fileExtension: "json", to: library)
     }
 
     static func runTarget(parameters: [String: String], library: LibraryStore?) throws -> (action: DraftAction, note: Note) {

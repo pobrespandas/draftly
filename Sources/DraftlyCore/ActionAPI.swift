@@ -177,7 +177,13 @@ public enum APIValues {
         case "actionInstallURL":
             guard let action = library.actions.first(where: { $0.id.uuidString == values["uuid"] as? String }) else { return nil }
             return try installURL(action)
-        case "groupInstallURL": return try installURL(library.orderedActions().filter { $0.group == values["name"] as? String })
+        case "groupInstallURL":
+            guard let name = values["name"] as? String, library.groupNames.contains(name) else {
+                throw DraftlyError.message("The action group is not installed.")
+            }
+            return try installURL(Backup(notes: [], revisions: [], workspaces: [],
+                actions: library.orderedActions().filter { $0.group == name },
+                actionGroups: [library.actionGroupRecord(named: name)]))
         case "syntaxes": return ScriptSyntax.names.map { ["name": $0, "type": "builtIn"] } + library.syntaxes.map { ["name": $0.name, "type": $0.type] }
         case "syntaxInstallURL":
             let name = values["name"] as? String ?? ""
@@ -229,7 +235,8 @@ public enum APIValues {
         }
     }
     private func installURL<T: Encodable>(_ value: T) throws -> String {
-        let text = String(decoding: try JSONEncoder().encode(value), as: UTF8.self)
+        let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
+        let text = String(decoding: try encoder.encode(value), as: UTF8.self)
         var components = URLComponents(); components.scheme = "draftly"; components.host = "action"; components.queryItems = [URLQueryItem(name: "data", value: text)]
         return components.string!
     }

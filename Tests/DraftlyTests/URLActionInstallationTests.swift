@@ -55,6 +55,28 @@ struct URLActionInstallationTests {
         #expect((unknown["keep"] as? [Any])?.last as? String == "café 🐼")
     }
 
+    @Test func emptyGroupInstallationPreservesRecordWithoutImportingUnrelatedBackupData() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        var group = ActionGroupRecord(name: "Empty café 🐼")
+        group.symbol = "folder.fill"; group.order = 9
+        let backup = Backup(notes: [Note(content: "Not part of an action installation")],
+            revisions: [], workspaces: [Workspace(name: "Unrelated")], actions: [], actionGroups: [group])
+        let data = try JSONEncoder().encode(backup)
+        var components = URLComponents(); components.scheme = "draftly"; components.host = "action"
+        components.queryItems = [URLQueryItem(name: "data", value: data.base64EncodedString())]
+        let url = try #require(components.url)
+        let before = try library.backupData()
+        library.beforeBatchCommit = { throw DraftlyError.message("Injected group installation failure") }
+        #expect(throws: (any Error).self) { try ApplicationURLRouter.installActions(url, library: library) }
+        library.beforeBatchCommit = nil
+        #expect(try library.backupData() == before)
+        try ApplicationURLRouter.installActions(url, library: library)
+        #expect(library.actionGroups == [group])
+        #expect(library.actions.isEmpty && library.notes.isEmpty && library.workspaces.isEmpty)
+        try ApplicationURLRouter.installActions(url, library: library)
+        #expect(library.actionGroups == [group])
+    }
+
     @Test func missingLibraryFailsExplicitly() throws {
         let url = try link([["name": "Neutral", "steps": []]])
         #expect(throws: (any Error).self) { try ApplicationURLRouter.installActions(url, library: nil) }
