@@ -1089,3 +1089,9 @@ Malformed recognized action/draft export JSON no longer falls back to a raw
 text note through txt imports. Unclassified JSON text and unknown action fields
 remain compatible. Full app447/core472, unsigned build, and matrix structure
 pass. Native error presentation for this change remains pending.
+
+
+Native txt imports of malformed recognized draft/action JSON now show their
+specific errors. Both before/after full backups are byte-identical; no valid
+prefix record or raw JSON note was added. QA is image13f8e82c. Broader import
+and synchronization acceptance remain separate.

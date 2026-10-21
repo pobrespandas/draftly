@@ -4795,3 +4795,28 @@ Native error presentation for this route change remains pending. Installed QA
 still has imageca22fd5931d5b495; it was not updated. This does not close broad
 import compatibility, sync, or UI timeout acceptance. No screenshots or raw
 logs are tracked.
+
+
+### Native recognized invalid text imports — 20 October 2026
+
+Updated isolated QA after normal Quit and confirmed process exit. Signed image
+SHA256 13f8e82cecd3ed0e1d8679b83ac75361a68be6183497d74fe35cd7b667ccdffb.
+Exported the full existing library before either import.
+
+Imported scripts/fixtures/import-invalid-drafts.txt. It contains one valid
+neutral note and one note without content. The app showed A draft has no
+content. The subsequent full backup export matched the original byte for byte.
+Neither the valid prefix note nor raw JSON was added.
+
+Imported scripts/fixtures/import-invalid-actions.txt. It contains one valid
+neutral action and one action step without a type. The app showed An action
+step has no type. The next full backup also matched the original byte for byte.
+The valid prefix action was not installed and raw JSON was not added as a note.
+
+Both comparisons covered the existing8 notes,70 revisions,61 actions,64 runs,
+and empty remaining collections. Confirmed the selected fixture in the native
+open panel before importing. Temporary exports remain in /tmp. No personal
+library changed. This verifies both recognized-format error paths through
+File Import, not all import formats or cloud recovery. No production code or
+tests changed after the accepted app447/core472 and build. No screenshots or
+raw exported backups are tracked.
