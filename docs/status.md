@@ -18,7 +18,7 @@ access now have their own evidence. Three both-runner tests cover typed detached
 snapshots, query-based sort independence, default/explicit forwarding, Boolean
 results and host failure before later edits. They do not accept every Workspace
 rule. The complete run is 623 core and 520 app methods. Matrix structure0;
-strict global4106 remains open, not a percentage.
+strict global4107 remains open, not a percentage.
 
 Verified in use: the selection fixture read a typed Inbox snapshot, changed its
 query locally and observed an unchanged query on the next read. Success08:03.

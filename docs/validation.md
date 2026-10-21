@@ -8408,8 +8408,12 @@ still pending. No generic application failure is credited as a getter test.
 
 Automatically tested: all three methods were included in the checked623core/
 520app run recorded above. Unsigned Xcode build passed. Matrix structure0 and
-strict global4106. These counts do not measure compatibility.
+strict global4107. These counts do not measure compatibility.
 Verified in use: window-selection-actions.json also read an Inbox Workspace
 with empty query, changed the detached query and read the unchanged real query.
 History Success08:03 on the same signed selection image. No native apply was
 added by this review. Native application and full Workspace closure stay open.
+
+Final gate recheck:4107 diagnostics after the getter record explicitly retained
+its missing serialization-error case. The preliminary4106 count preceded that
+record correction. Structure remains valid; strict closure remains pending.
