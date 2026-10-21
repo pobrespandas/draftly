@@ -10897,10 +10897,45 @@
             "areFiltersVisible: boolean"
           ],
           "contract": "Is the tag filters side panel is visible.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "WindowContractTests",
+            "test": "visibilityAndTabAvailabilityAreReadOnlyHostValues"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "defaults": "Reads use current host state; tests do not assert a fixed initial window layout. Optional command arguments remain omitted when no argument is passed.",
+          "result": "A getter-only Boolean supplied by the active window host. Assignment does not issue a host write.",
+          "errors": "Host errors propagate through the bridge. No new error policy is defined by this review.",
+          "limitations": [
+            "Native acceptance of this member remains pending. Fake-host state checks do not prove visible window behavior.",
+            "A dedicated host failure test is not included in this member suite."
+          ],
+          "evidenceLevel": "Specific bridge member assertions in both the legacy runner and worker. No native run in this review.",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Window.areFiltersVisible"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "visibilityAndTabAvailabilityAreReadOnlyHostValues"
+              },
+              "assertion": "A getter-only Boolean supplied by the active window host. Assignment does not issue a host write."
+            },
+            "defaults": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "visibilityAndTabAvailabilityAreReadOnlyHostValues"
+              },
+              "assertion": "No fixed native window default is inferred from the controlled host. Commands use current state; omitted Info argument remains absent."
+            },
+            "errors": {
+              "pending": "Dedicated host-error injection remains pending. This member stays partial."
+            }
+          }
         },
         {
           "member": "canCreateTab",
@@ -10912,10 +10947,45 @@
             "canCreateTab: boolean"
           ],
           "contract": "Returns true if tabbed windows are available (Mac only)",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "WindowContractTests",
+            "test": "visibilityAndTabAvailabilityAreReadOnlyHostValues"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "defaults": "Reads use current host state; tests do not assert a fixed initial window layout. Optional command arguments remain omitted when no argument is passed.",
+          "result": "A getter-only Boolean supplied by the active window host. Assignment does not issue a host write.",
+          "errors": "Host errors propagate through the bridge. No new error policy is defined by this review.",
+          "limitations": [
+            "Native acceptance of this member remains pending. Fake-host state checks do not prove visible window behavior.",
+            "A dedicated host failure test is not included in this member suite."
+          ],
+          "evidenceLevel": "Specific bridge member assertions in both the legacy runner and worker. No native run in this review.",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Window.canCreateTab"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "visibilityAndTabAvailabilityAreReadOnlyHostValues"
+              },
+              "assertion": "A getter-only Boolean supplied by the active window host. Assignment does not issue a host write."
+            },
+            "defaults": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "visibilityAndTabAvailabilityAreReadOnlyHostValues"
+              },
+              "assertion": "No fixed native window default is inferred from the controlled host. Commands use current state; omitted Info argument remains absent."
+            },
+            "errors": {
+              "pending": "Dedicated host-error injection remains pending. This member stays partial."
+            }
+          }
         },
         {
           "member": "floatOnTop",
@@ -10927,10 +10997,45 @@
             "floatOnTop: boolean"
           ],
           "contract": "Toggle whether \"Float on Top\" is enabled for the window, keeping it above other apps. This property only has effect on macOS, and is ignored on iOS.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "WindowContractTests",
+            "test": "floatOnTopWritesThroughAndDoesNotChangePanelVisibility"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "defaults": "Reads use current host state; tests do not assert a fixed initial window layout. Optional command arguments remain omitted when no argument is passed.",
+          "result": "A writable Boolean read from and written to the active window host.",
+          "errors": "Host errors propagate through the bridge. No new error policy is defined by this review.",
+          "limitations": [
+            "Native acceptance of this member remains pending. Fake-host state checks do not prove visible window behavior.",
+            "A dedicated host failure test is not included in this member suite."
+          ],
+          "evidenceLevel": "Specific bridge member assertions in both the legacy runner and worker. No native run in this review.",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Window.floatOnTop"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "floatOnTopWritesThroughAndDoesNotChangePanelVisibility"
+              },
+              "assertion": "A writable Boolean read from and written to the active window host."
+            },
+            "defaults": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "floatOnTopWritesThroughAndDoesNotChangePanelVisibility"
+              },
+              "assertion": "No fixed native window default is inferred from the controlled host. Commands use current state; omitted Info argument remains absent."
+            },
+            "errors": {
+              "pending": "Dedicated host-error injection remains pending. This member stays partial."
+            }
+          }
         },
         {
           "member": "isActionListVisible",
@@ -10942,10 +11047,45 @@
             "isActionListVisible: boolean"
           ],
           "contract": "Is the action list side panel is visible.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "WindowContractTests",
+            "test": "visibilityAndTabAvailabilityAreReadOnlyHostValues"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "defaults": "Reads use current host state; tests do not assert a fixed initial window layout. Optional command arguments remain omitted when no argument is passed.",
+          "result": "A getter-only Boolean supplied by the active window host. Assignment does not issue a host write.",
+          "errors": "Host errors propagate through the bridge. No new error policy is defined by this review.",
+          "limitations": [
+            "Native acceptance of this member remains pending. Fake-host state checks do not prove visible window behavior.",
+            "A dedicated host failure test is not included in this member suite."
+          ],
+          "evidenceLevel": "Specific bridge member assertions in both the legacy runner and worker. No native run in this review.",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Window.isActionListVisible"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "visibilityAndTabAvailabilityAreReadOnlyHostValues"
+              },
+              "assertion": "A getter-only Boolean supplied by the active window host. Assignment does not issue a host write."
+            },
+            "defaults": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "visibilityAndTabAvailabilityAreReadOnlyHostValues"
+              },
+              "assertion": "No fixed native window default is inferred from the controlled host. Commands use current state; omitted Info argument remains absent."
+            },
+            "errors": {
+              "pending": "Dedicated host-error injection remains pending. This member stays partial."
+            }
+          }
         },
         {
           "member": "isChatConsoleVisible",
@@ -10957,10 +11097,45 @@
             "isChatConsoleVisible: boolean"
           ],
           "contract": "Is the Chat Console side panel is visible.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "WindowContractTests",
+            "test": "visibilityAndTabAvailabilityAreReadOnlyHostValues"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "defaults": "Reads use current host state; tests do not assert a fixed initial window layout. Optional command arguments remain omitted when no argument is passed.",
+          "result": "A getter-only Boolean supplied by the active window host. Assignment does not issue a host write.",
+          "errors": "Host errors propagate through the bridge. No new error policy is defined by this review.",
+          "limitations": [
+            "Native acceptance of this member remains pending. Fake-host state checks do not prove visible window behavior.",
+            "A dedicated host failure test is not included in this member suite."
+          ],
+          "evidenceLevel": "Specific bridge member assertions in both the legacy runner and worker. No native run in this review.",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Window.isChatConsoleVisible"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "visibilityAndTabAvailabilityAreReadOnlyHostValues"
+              },
+              "assertion": "A getter-only Boolean supplied by the active window host. Assignment does not issue a host write."
+            },
+            "defaults": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "visibilityAndTabAvailabilityAreReadOnlyHostValues"
+              },
+              "assertion": "No fixed native window default is inferred from the controlled host. Commands use current state; omitted Info argument remains absent."
+            },
+            "errors": {
+              "pending": "Dedicated host-error injection remains pending. This member stays partial."
+            }
+          }
         },
         {
           "member": "isDraftListVisible",
@@ -10972,10 +11147,45 @@
             "isDraftListVisible: boolean"
           ],
           "contract": "Is the draft list side panel is visible.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "WindowContractTests",
+            "test": "visibilityAndTabAvailabilityAreReadOnlyHostValues"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "defaults": "Reads use current host state; tests do not assert a fixed initial window layout. Optional command arguments remain omitted when no argument is passed.",
+          "result": "A getter-only Boolean supplied by the active window host. Assignment does not issue a host write.",
+          "errors": "Host errors propagate through the bridge. No new error policy is defined by this review.",
+          "limitations": [
+            "Native acceptance of this member remains pending. Fake-host state checks do not prove visible window behavior.",
+            "A dedicated host failure test is not included in this member suite."
+          ],
+          "evidenceLevel": "Specific bridge member assertions in both the legacy runner and worker. No native run in this review.",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Window.isDraftListVisible"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "visibilityAndTabAvailabilityAreReadOnlyHostValues"
+              },
+              "assertion": "A getter-only Boolean supplied by the active window host. Assignment does not issue a host write."
+            },
+            "defaults": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "visibilityAndTabAvailabilityAreReadOnlyHostValues"
+              },
+              "assertion": "No fixed native window default is inferred from the controlled host. Commands use current state; omitted Info argument remains absent."
+            },
+            "errors": {
+              "pending": "Dedicated host-error injection remains pending. This member stays partial."
+            }
+          }
         },
         {
           "member": "hideActionList",
@@ -10987,10 +11197,45 @@
             "hideActionList(): void"
           ],
           "contract": "Close action list side bar.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "WindowContractTests",
+            "test": "panelCommandsReturnUndefinedAndUpdateSubsequentVisibilityReads"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "defaults": "Reads use current host state; tests do not assert a fixed initial window layout. Optional command arguments remain omitted when no argument is passed.",
+          "result": "undefined after the host operation, as required by the void signature.",
+          "errors": "Host errors propagate through the bridge. No new error policy is defined by this review.",
+          "limitations": [
+            "Native acceptance of this member remains pending. Fake-host state checks do not prove visible window behavior.",
+            "A dedicated host failure test is not included in this member suite."
+          ],
+          "evidenceLevel": "Specific bridge member assertions in both the legacy runner and worker. No native run in this review.",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Window.hideActionList"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "panelCommandsReturnUndefinedAndUpdateSubsequentVisibilityReads"
+              },
+              "assertion": "undefined after the host operation, as required by the void signature."
+            },
+            "defaults": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "panelCommandsReturnUndefinedAndUpdateSubsequentVisibilityReads"
+              },
+              "assertion": "No fixed native window default is inferred from the controlled host. Commands use current state; omitted Info argument remains absent."
+            },
+            "errors": {
+              "pending": "Dedicated host-error injection remains pending. This member stays partial."
+            }
+          }
         },
         {
           "member": "hideChatConsole",
@@ -11034,10 +11279,45 @@
             "hideDraftList(): void"
           ],
           "contract": "Close draft list side bar.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "WindowContractTests",
+            "test": "panelCommandsReturnUndefinedAndUpdateSubsequentVisibilityReads"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "defaults": "Reads use current host state; tests do not assert a fixed initial window layout. Optional command arguments remain omitted when no argument is passed.",
+          "result": "undefined after the host operation, as required by the void signature.",
+          "errors": "Host errors propagate through the bridge. No new error policy is defined by this review.",
+          "limitations": [
+            "Native acceptance of this member remains pending. Fake-host state checks do not prove visible window behavior.",
+            "A dedicated host failure test is not included in this member suite."
+          ],
+          "evidenceLevel": "Specific bridge member assertions in both the legacy runner and worker. No native run in this review.",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Window.hideDraftList"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "panelCommandsReturnUndefinedAndUpdateSubsequentVisibilityReads"
+              },
+              "assertion": "undefined after the host operation, as required by the void signature."
+            },
+            "defaults": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "panelCommandsReturnUndefinedAndUpdateSubsequentVisibilityReads"
+              },
+              "assertion": "No fixed native window default is inferred from the controlled host. Commands use current state; omitted Info argument remains absent."
+            },
+            "errors": {
+              "pending": "Dedicated host-error injection remains pending. This member stays partial."
+            }
+          }
         },
         {
           "member": "hideFilters",
@@ -11049,10 +11329,45 @@
             "hideFilters(): void"
           ],
           "contract": "Close tag filters side bar.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "WindowContractTests",
+            "test": "panelCommandsReturnUndefinedAndUpdateSubsequentVisibilityReads"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "defaults": "Reads use current host state; tests do not assert a fixed initial window layout. Optional command arguments remain omitted when no argument is passed.",
+          "result": "undefined after the host operation, as required by the void signature.",
+          "errors": "Host errors propagate through the bridge. No new error policy is defined by this review.",
+          "limitations": [
+            "Native acceptance of this member remains pending. Fake-host state checks do not prove visible window behavior.",
+            "A dedicated host failure test is not included in this member suite."
+          ],
+          "evidenceLevel": "Specific bridge member assertions in both the legacy runner and worker. No native run in this review.",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Window.hideFilters"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "panelCommandsReturnUndefinedAndUpdateSubsequentVisibilityReads"
+              },
+              "assertion": "undefined after the host operation, as required by the void signature."
+            },
+            "defaults": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "panelCommandsReturnUndefinedAndUpdateSubsequentVisibilityReads"
+              },
+              "assertion": "No fixed native window default is inferred from the controlled host. Commands use current state; omitted Info argument remains absent."
+            },
+            "errors": {
+              "pending": "Dedicated host-error injection remains pending. This member stays partial."
+            }
+          }
         },
         {
           "member": "loadActionBarGroup",
@@ -11109,10 +11424,45 @@
             "showActionList(): void"
           ],
           "contract": "Open action list side bar.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "WindowContractTests",
+            "test": "panelCommandsReturnUndefinedAndUpdateSubsequentVisibilityReads"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "defaults": "Reads use current host state; tests do not assert a fixed initial window layout. Optional command arguments remain omitted when no argument is passed.",
+          "result": "undefined after the host operation, as required by the void signature.",
+          "errors": "Host errors propagate through the bridge. No new error policy is defined by this review.",
+          "limitations": [
+            "Native acceptance of this member remains pending. Fake-host state checks do not prove visible window behavior.",
+            "A dedicated host failure test is not included in this member suite."
+          ],
+          "evidenceLevel": "Specific bridge member assertions in both the legacy runner and worker. No native run in this review.",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Window.showActionList"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "panelCommandsReturnUndefinedAndUpdateSubsequentVisibilityReads"
+              },
+              "assertion": "undefined after the host operation, as required by the void signature."
+            },
+            "defaults": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "panelCommandsReturnUndefinedAndUpdateSubsequentVisibilityReads"
+              },
+              "assertion": "No fixed native window default is inferred from the controlled host. Commands use current state; omitted Info argument remains absent."
+            },
+            "errors": {
+              "pending": "Dedicated host-error injection remains pending. This member stays partial."
+            }
+          }
         },
         {
           "member": "showChatConsole",
@@ -11156,10 +11506,46 @@
             "showCommandPalette(initialQuery?: string): void"
           ],
           "contract": "Open command palette window, optionally providing a initial query value.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "WindowContractTests",
+            "test": "queryAndInfoCommandsForwardArgumentsAndReturnUndefined"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "defaults": "Reads use current host state; tests do not assert a fixed initial window layout. Optional command arguments remain omitted when no argument is passed.",
+          "result": "undefined after the host operation, as required by the void signature.",
+          "errors": "Host errors propagate through the bridge. No new error policy is defined by this review.",
+          "limitations": [
+            "Native acceptance of this member remains pending. Fake-host state checks do not prove visible window behavior.",
+            "A dedicated host failure test is not included in this member suite.",
+            "WindowActionAdapter currently ignores the forwarded initial query. This is a separate known functional defect; do not close this member from bridge forwarding coverage."
+          ],
+          "evidenceLevel": "Specific bridge member assertions in both the legacy runner and worker. No native run in this review.",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Window.showCommandPalette"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "queryAndInfoCommandsForwardArgumentsAndReturnUndefined"
+              },
+              "assertion": "undefined after the host operation, as required by the void signature."
+            },
+            "defaults": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "queryAndInfoCommandsForwardArgumentsAndReturnUndefined"
+              },
+              "assertion": "No fixed native window default is inferred from the controlled host. Commands use current state; omitted Info argument remains absent."
+            },
+            "errors": {
+              "pending": "Dedicated host-error injection remains pending. This member stays partial."
+            }
+          }
         },
         {
           "member": "showDraftInfo",
@@ -11171,10 +11557,45 @@
             "showDraftInfo(draft?: Draft): void"
           ],
           "contract": "Open the \"Get Info\" view for a draft. If no draft is passed, the current active draft in the editor will be used.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "WindowContractTests",
+            "test": "queryAndInfoCommandsForwardArgumentsAndReturnUndefined"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "defaults": "Reads use current host state; tests do not assert a fixed initial window layout. Optional command arguments remain omitted when no argument is passed.",
+          "result": "undefined after the host operation, as required by the void signature.",
+          "errors": "Host errors propagate through the bridge. No new error policy is defined by this review.",
+          "limitations": [
+            "Native acceptance of this member remains pending. Fake-host state checks do not prove visible window behavior.",
+            "A dedicated host failure test is not included in this member suite."
+          ],
+          "evidenceLevel": "Specific bridge member assertions in both the legacy runner and worker. No native run in this review.",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Window.showDraftInfo"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "queryAndInfoCommandsForwardArgumentsAndReturnUndefined"
+              },
+              "assertion": "undefined after the host operation, as required by the void signature."
+            },
+            "defaults": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "queryAndInfoCommandsForwardArgumentsAndReturnUndefined"
+              },
+              "assertion": "No fixed native window default is inferred from the controlled host. Commands use current state; omitted Info argument remains absent."
+            },
+            "errors": {
+              "pending": "Dedicated host-error injection remains pending. This member stays partial."
+            }
+          }
         },
         {
           "member": "showDraftList",
@@ -11186,10 +11607,45 @@
             "showDraftList(): void"
           ],
           "contract": "Open draft list side bar.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "WindowContractTests",
+            "test": "panelCommandsReturnUndefinedAndUpdateSubsequentVisibilityReads"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "defaults": "Reads use current host state; tests do not assert a fixed initial window layout. Optional command arguments remain omitted when no argument is passed.",
+          "result": "undefined after the host operation, as required by the void signature.",
+          "errors": "Host errors propagate through the bridge. No new error policy is defined by this review.",
+          "limitations": [
+            "Native acceptance of this member remains pending. Fake-host state checks do not prove visible window behavior.",
+            "A dedicated host failure test is not included in this member suite."
+          ],
+          "evidenceLevel": "Specific bridge member assertions in both the legacy runner and worker. No native run in this review.",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Window.showDraftList"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "panelCommandsReturnUndefinedAndUpdateSubsequentVisibilityReads"
+              },
+              "assertion": "undefined after the host operation, as required by the void signature."
+            },
+            "defaults": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "panelCommandsReturnUndefinedAndUpdateSubsequentVisibilityReads"
+              },
+              "assertion": "No fixed native window default is inferred from the controlled host. Commands use current state; omitted Info argument remains absent."
+            },
+            "errors": {
+              "pending": "Dedicated host-error injection remains pending. This member stays partial."
+            }
+          }
         },
         {
           "member": "showFilters",
@@ -11201,10 +11657,45 @@
             "showFilters(): void"
           ],
           "contract": "Open tag filters side bar.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "WindowContractTests",
+            "test": "panelCommandsReturnUndefinedAndUpdateSubsequentVisibilityReads"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "defaults": "Reads use current host state; tests do not assert a fixed initial window layout. Optional command arguments remain omitted when no argument is passed.",
+          "result": "undefined after the host operation, as required by the void signature.",
+          "errors": "Host errors propagate through the bridge. No new error policy is defined by this review.",
+          "limitations": [
+            "Native acceptance of this member remains pending. Fake-host state checks do not prove visible window behavior.",
+            "A dedicated host failure test is not included in this member suite."
+          ],
+          "evidenceLevel": "Specific bridge member assertions in both the legacy runner and worker. No native run in this review.",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Window.showFilters"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "panelCommandsReturnUndefinedAndUpdateSubsequentVisibilityReads"
+              },
+              "assertion": "undefined after the host operation, as required by the void signature."
+            },
+            "defaults": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "panelCommandsReturnUndefinedAndUpdateSubsequentVisibilityReads"
+              },
+              "assertion": "No fixed native window default is inferred from the controlled host. Commands use current state; omitted Info argument remains absent."
+            },
+            "errors": {
+              "pending": "Dedicated host-error injection remains pending. This member stays partial."
+            }
+          }
         },
         {
           "member": "showQuickSearch",
@@ -11216,10 +11707,46 @@
             "showQuickSearch(initialQuery?: string): void"
           ],
           "contract": "Open quick search window, optionally providing a initial query value.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "WindowContractTests",
+            "test": "queryAndInfoCommandsForwardArgumentsAndReturnUndefined"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "defaults": "Reads use current host state; tests do not assert a fixed initial window layout. Optional command arguments remain omitted when no argument is passed.",
+          "result": "undefined after the host operation, as required by the void signature.",
+          "errors": "Host errors propagate through the bridge. No new error policy is defined by this review.",
+          "limitations": [
+            "Native acceptance of this member remains pending. Fake-host state checks do not prove visible window behavior.",
+            "A dedicated host failure test is not included in this member suite.",
+            "WindowActionAdapter currently ignores the forwarded initial query. This is a separate known functional defect; do not close this member from bridge forwarding coverage."
+          ],
+          "evidenceLevel": "Specific bridge member assertions in both the legacy runner and worker. No native run in this review.",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Window.showQuickSearch"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "queryAndInfoCommandsForwardArgumentsAndReturnUndefined"
+              },
+              "assertion": "undefined after the host operation, as required by the void signature."
+            },
+            "defaults": {
+              "test": {
+                "suite": "WindowContractTests",
+                "test": "queryAndInfoCommandsForwardArgumentsAndReturnUndefined"
+              },
+              "assertion": "No fixed native window default is inferred from the controlled host. Commands use current state; omitted Info argument remains absent."
+            },
+            "errors": {
+              "pending": "Dedicated host-error injection remains pending. This member stays partial."
+            }
+          }
         },
         {
           "member": "selectedDrafts",

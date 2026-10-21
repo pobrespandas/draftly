@@ -11,6 +11,24 @@ sections below retain their original scope and dates.
 Keep the identity Draftly, `Note`, existing identities and libraries, original
 action scripts, Nerd Fonts, and the integrated Markdown preview.
 
+## Latest correction — Window bridge, 21 October 2026
+
+Implemented: Window void commands no longer expose the host Boolean return.
+Visibility and tab-availability properties have getters only. floatOnTop keeps
+its setter. Boolean group and tab methods keep their existing return path.
+
+Automatically tested: four new member tests run through both runners. Three
+failed before the correction and all four now pass. The checked full runner
+verified 617 core methods and 499 app methods. Unsigned Xcode build passed.
+Fifteen Window members have specific bridge evidence but remain partial.
+
+Verified in use: no new native check or QA refresh. Native member acceptance and
+host-error cases remain pending. The query commands forward initialQuery in the
+bridge, but WindowActionAdapter ignores it. Fix this defect independently, with
+its own regression test. Strict engine/global gates remain 18/4154 diagnostics.
+These counts do not measure compatibility. Continue native file-panel lifetime
+checks and remaining Window contracts.
+
 ## Latest contract review — HTMLPreview, 21 October 2026
 
 Implemented: no production change. The four archived HTMLPreview members now

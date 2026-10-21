@@ -8122,3 +8122,32 @@ not prove WebKit presentation. Constructor and factory are complete for their
 construction contracts. hideInterface and show remain partial for hidden-toolbar
 comparison, actual stale WebKit delivery and capability-specific URL/Intent
 acceptance. No reference content, original scripts or personal data changed.
+
+
+### Window bridge contracts — 21 October 2026
+
+Implemented: getter-only Window properties now match the archived readonly
+signatures. floatOnTop remains writable. Void panel, Info, search and palette
+commands discard the native host result. Group and tab commands retain their
+Boolean return path. No storage format, identity or original script changed.
+
+Automatically tested: WindowContractTests adds four methods, each run on both
+runners. Readonly, panel void results and query/Info void results failed before
+the correction. The first red run also exposed an unsafe test array index after
+an earlier failed assertion. Added a count requirement, then repeated the red
+run without that test crash. The corrected bridge passed the same assertions.
+The floatOnTop test passed before and after. Exact query text, Info target UUID,
+omitted Info argument and source-content preservation are checked. The controlled
+host is not a real window. No default native window layout is inferred.
+
+The checked runner verified 617 core and 499 app method identities. Unsigned
+Xcode build passed. Matrix structure passed. Strict engine/global gates remain
+18/4154 diagnostics, not a compatibility percentage. Fifteen Window member
+records now cite their specific test and preserve remaining limitations.
+
+Verified in use: none added in this review. QA remains on the preceding URL
+image; no refresh or new native acceptance is claimed. Dedicated host-error
+cases, native Window behavior and remaining group/tab/Workspace contracts stay
+pending. Source inspection found that WindowActionAdapter ignores initialQuery
+for showQuickSearch and showCommandPalette. The forwarding tests cannot close
+that functional gap. Correct it separately with native-model regression coverage.

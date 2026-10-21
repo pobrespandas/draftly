@@ -301,8 +301,10 @@ class Window {
 }
 var window = new Window();
 __define(app,'currentWindow',()=>window);
-for(let key of ['areFiltersVisible','canCreateTab','floatOnTop','isActionListVisible','isDraftListVisible','isChatConsoleVisible']) __define(Window.prototype,key,()=>__call('ui',{operation:'get',key}),value=>__call('ui',{operation:'set',key,value}));
-for(let name of ['showActionList','hideActionList','showDraftList','hideDraftList','showFilters','hideFilters','showDraftInfo','showQuickSearch','showCommandPalette','loadActionBarGroup','loadActionGroup','openInNewTab','showChatConsole','hideChatConsole']) Window.prototype[name]=function(value){return __call('ui',{operation:name,value});};
+for(let key of ['areFiltersVisible','canCreateTab','isActionListVisible','isDraftListVisible','isChatConsoleVisible']) __define(Window.prototype,key,()=>__call('ui',{operation:'get',key}));
+__define(Window.prototype,'floatOnTop',()=>__call('ui',{operation:'get',key:'floatOnTop'}),value=>__call('ui',{operation:'set',key:'floatOnTop',value}));
+for(let name of ['showActionList','hideActionList','showDraftList','hideDraftList','showFilters','hideFilters','showDraftInfo','showQuickSearch','showCommandPalette','showChatConsole','hideChatConsole']) Window.prototype[name]=function(value){__call('ui',{operation:name,value});};
+for(let name of ['loadActionBarGroup','loadActionGroup','openInNewTab']) Window.prototype[name]=function(value){return __call('ui',{operation:name,value});};
 var Base64={encode:text=>__call('base64Encode',{text}),decode:text=>__call('base64Decode',{text})};
 class Credential {
     constructor(name,description=''){this.name=name;this.description=description;this.fields=[];this.values={};}
