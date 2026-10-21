@@ -25,6 +25,11 @@ retain historical results. Later results supersede earlier counts.
 
 ## Current verification
 
+AppleScript production timeout now passed on the signed QA image. The helper
+and private directory were removed, completed text stayed in Inbox without
+tail/Archive, and a following native action succeeded. Permission variants and
+Date argument comparison remain pending; execute stays partial.
+
 Current-image native AppleScript task cancel and owner close now passed. Exact
 helpers and temporary directories disappeared. Completed writes stayed in Inbox
 without tail/Archive; a following native action succeeded. Native timeout and

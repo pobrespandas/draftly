@@ -15432,11 +15432,11 @@
             "status": "passed",
             "date": "2026-10-21",
             "evidence": "docs/validation.md: AppleScript date and member contracts — 21 October 2026",
-            "scope": "Native construction, ordinary errors/recovery, Date results and step collection passed. Current-image task cancel and owner close removed the helper/temp directory, preserved completed text and blocked caught-interruption tail/Archive. Native timeout and Automation permission variants remain pending.",
-            "supportingEvidence": "docs/validation.md: Native AppleScript helper lifetime — 21 October 2026"
+            "scope": "Native construction, ordinary errors/recovery, Date results and step collection passed. Current-image task cancel, owner close and unchanged production120s timeout removed helper/temp directories, preserved completed text and blocked caught-interruption tail/Archive. Authorized Automation permission variants remain pending.",
+            "supportingEvidence": "docs/validation.md: Native AppleScript helper lifetime — 21 October 2026; Native AppleScript production timeout — 21 October 2026"
           },
           "limitations": [
-            "Date arguments still cross the existing JSON string conversion; precise reference behavior requires comparison. Native production timeout and Automation permission request/denied/cancel remain pending. Omitted arguments are an existing extension; legacy interruption reports retain their generic reason."
+            "Date arguments still cross the existing JSON string conversion; precise reference behavior requires comparison. Native Automation permission request/denied/cancel and pending-permission cleanup remain pending. Omitted arguments are an existing extension; legacy interruption reports retain their generic reason."
           ]
         },
         {

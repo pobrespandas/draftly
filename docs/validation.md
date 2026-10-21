@@ -7847,3 +7847,32 @@ contracts and the test-only stream fix. No UI runs inside automatic tests.
 Production120s native timeout, Automation permission paths, and Date argument
 comparison remain pending. This acceptance does not close AppleScript.execute
 or any other native route.
+
+
+### Native AppleScript production timeout — 21 October 2026
+
+Extended engine-applescript-lifetime-actions.json with QA AppleScript production
+timeout. It uses a180-second neutral delay and the unchanged120-second production
+limit. No executable or runtime setting changed. The source writes text before
+waiting and tries a caught-error tail and Archive afterward.
+
+Verified in use on the current signed Engine QA Date image. Observed helper67146
+and its exact request directory83461698-C3EC-4BB2-BB03-27A0E93255FC. A process
+monitor watched that PID, then confirmed it absent and the directory removed.
+The later monitor origin was not the execution start, so its111.4-second duration
+is not a precise execution latency. At129.6 seconds after the first UI
+observation, History recorded Error06:49: The action operation timed out before
+it completed. The completed write stayed in Inbox without tail or Archive.
+Equal host/helper deadlines were not isolated.
+
+A following QA AppleScript dates and recovery action recorded Success06:50.
+The neutral editor text remained intact. History is closed and no helper or
+action remains pending. No Automation permission was requested and no external
+application was targeted. Permission request/denied/cancel and pending-permission
+cleanup remain open. Date argument semantics still need comparison. This result
+accepts only the native UI helper timeout; URL/Intent and other routes keep their
+own pending checks.
+
+Automatically tested: the concurrent suite with the accompanying utility tests
+passed498 app/601 core methods. No production code changed after the preceding
+successful unsigned build. No automatic test opens a visible window.
