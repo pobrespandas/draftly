@@ -208,6 +208,174 @@ struct LibrarySplitViewTests {
         #expect(controller.splitViewItems[3].minimumThickness == 200)
     }
 
+    @Test func compressedPanelsRestoreChosenWidthsWhenTheWindowWidens() async throws {
+        _ = NSApplication.shared
+        let preferences = try TestPreferences(prefix: "Draftly.PanelWidthRestoration.")
+        defer { preferences.close() }
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Neutral café 🐼")
+        let model = WindowModel(library: library,
+            dependencies: WindowDependencies(preferences: WindowPreferences(defaults: preferences.defaults)))
+        model.select(note.id)
+        model.editor.selection = NSRange(location: 8, length: 4)
+        let focus = model.editor.focusToken
+        let panels = (0..<4).map { _ in AnyView(Color.clear.frame(maxWidth: .infinity, maxHeight: .infinity)) }
+        let controller = LibrarySplitController(model: model, panels: panels)
+        let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 1200, height: 700),
+            styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+        window.contentViewController = controller
+        window.setContentSize(NSSize(width: 1200, height: 700))
+        defer { window.contentViewController = nil }
+        controller.viewDidAppear()
+        await settleLayout(controller)
+        controller.splitView.setPosition(255, ofDividerAt: 0)
+        controller.view.layoutSubtreeIfNeeded()
+        controller.splitView.setPosition(255 + 300 + controller.splitView.dividerThickness, ofDividerAt: 1)
+        controller.view.layoutSubtreeIfNeeded()
+        let chosen = controller.splitViewItems.prefix(2).map { $0.viewController.view.frame.width }
+        #expect(abs(chosen[0] - 255) <= 1 && abs(chosen[1] - 300) <= 1)
+
+        window.setContentSize(NSSize(width: 850, height: 600))
+        controller.view.setFrameSize(NSSize(width: 850, height: 600))
+        await settleLayout(controller)
+        model.showActions = true
+        controller.update(panels: panels)
+        await settleLayout(controller)
+        #expect(abs(controller.splitView.bounds.width - 850) <= 1)
+        #expect(!controller.splitViewItems[3].isCollapsed)
+        #expect(controller.splitViewItems[2].viewController.view.frame.width >= 240)
+
+        window.setContentSize(NSSize(width: 1200, height: 800))
+        controller.view.setFrameSize(NSSize(width: 1200, height: 800))
+        await settleLayout(controller)
+        #expect(abs(controller.splitView.bounds.width - 1200) <= 1)
+        for index in 0..<2 {
+            #expect(abs(controller.splitViewItems[index].viewController.view.frame.width - chosen[index]) <= 1,
+                "Panel \(index) must recover its chosen width after temporary compression.")
+        }
+        #expect(abs(controller.splitViewItems[3].viewController.view.frame.width - 260) <= 1)
+
+        model.showActions = false
+        controller.update(panels: panels)
+        await settleLayout(controller)
+        model.showActions = true
+        controller.update(panels: panels)
+        await settleLayout(controller)
+        for index in 0..<2 {
+            #expect(abs(controller.splitViewItems[index].viewController.view.frame.width - chosen[index]) <= 1)
+        }
+        #expect(abs(controller.splitViewItems[3].viewController.view.frame.width - 260) <= 1)
+
+        controller.splitView.setPosition(controller.splitViewItems[0].viewController.view.frame.width + controller.splitView.dividerThickness + 320, ofDividerAt: 1)
+        controller.view.layoutSubtreeIfNeeded()
+        controller.splitView.setPosition(controller.splitView.bounds.width - 290 - controller.splitView.dividerThickness, ofDividerAt: 2)
+        controller.view.layoutSubtreeIfNeeded()
+        let updated = [0, 1, 3].map { controller.splitViewItems[$0].viewController.view.frame.width }
+        #expect(abs(updated[0] - chosen[0]) <= 1 && abs(updated[1] - 320) <= 1 && abs(updated[2] - 290) <= 1)
+        window.setContentSize(NSSize(width: 850, height: 600))
+        controller.view.setFrameSize(NSSize(width: 850, height: 600))
+        await settleLayout(controller)
+        model.showActions = false
+        controller.update(panels: panels)
+        await settleLayout(controller)
+        model.showActions = true
+        controller.update(panels: panels)
+        await settleLayout(controller)
+        window.setContentSize(NSSize(width: 1200, height: 800))
+        controller.view.setFrameSize(NSSize(width: 1200, height: 800))
+        await settleLayout(controller)
+        for (index, width) in zip([0, 1, 3], updated) {
+            #expect(abs(controller.splitViewItems[index].viewController.view.frame.width - width) <= 1,
+                "A new divider position must survive another narrow window and panel toggle.")
+        }
+        #expect(model.editor.noteID == note.id && model.editor.content == note.content)
+        #expect(model.editor.selection == NSRange(location: 8, length: 4) && model.editor.focusToken == focus)
+    }
+
+    @Test(arguments: [0, 1, 2])
+    func draggingACompressedDividerChangesOnlyAdjacentPanelPreferences(divider: Int) async throws {
+        _ = NSApplication.shared
+        let preferences = try TestPreferences(prefix: "Draftly.CompressedDivider.")
+        defer { preferences.close() }
+        let model = WindowModel(library: try LibraryStore(inMemory: true, seed: false),
+            dependencies: WindowDependencies(preferences: WindowPreferences(defaults: preferences.defaults)))
+        model.showActions = true
+        let panels = (0..<4).map { _ in AnyView(Color.clear.frame(maxWidth: .infinity, maxHeight: .infinity)) }
+        let controller = LibrarySplitController(model: model, panels: panels)
+        let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 1200, height: 700),
+            styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+        window.contentViewController = controller
+        window.setContentSize(NSSize(width: 1200, height: 700))
+        defer { window.contentViewController = nil }
+        controller.viewDidAppear()
+        await settleLayout(controller)
+        controller.splitView.setPosition(255, ofDividerAt: 0)
+        controller.view.layoutSubtreeIfNeeded()
+        controller.splitView.setPosition(255 + 300 + controller.splitView.dividerThickness, ofDividerAt: 1)
+        controller.view.layoutSubtreeIfNeeded()
+        controller.splitView.setPosition(1200 - 310 - controller.splitView.dividerThickness, ofDividerAt: 2)
+        controller.view.layoutSubtreeIfNeeded()
+        var expected = controller.splitViewItems.map { $0.viewController.view.frame.width }
+        window.setContentSize(NSSize(width: 850, height: 600))
+        controller.view.setFrameSize(NSSize(width: 850, height: 600))
+        await settleLayout(controller)
+        let dividerView = controller.splitViewItems[divider].viewController.view
+        let currentPosition = dividerView.convert(dividerView.bounds, to: controller.splitView).maxX
+        controller.splitView.setPosition(currentPosition + (divider == 1 ? -2 : 2), ofDividerAt: divider)
+        controller.view.layoutSubtreeIfNeeded()
+        for index in [divider, divider + 1] where index != 2 {
+            expected[index] = controller.splitViewItems[index].viewController.view.frame.width
+        }
+        window.setContentSize(NSSize(width: 1200, height: 800))
+        controller.view.setFrameSize(NSSize(width: 1200, height: 800))
+        await settleLayout(controller)
+        for index in [0, 1, 3] {
+            #expect(abs(controller.splitViewItems[index].viewController.view.frame.width - expected[index]) <= 1,
+                "Divider \(divider) must preserve the preferences of unrelated panel \(index).")
+        }
+    }
+
+    @Test func realPanelContentRestoresDefaultWidthsAfterNarrowExpansion() async throws {
+        _ = NSApplication.shared
+        let preferences = try TestPreferences(prefix: "Draftly.RealPanelWidths.")
+        defer { preferences.close() }
+        let library = try LibraryStore(inMemory: true, seed: false)
+        _ = try library.createNote(content: "Neutral café 🐼\nA short preview for the list.")
+        let model = WindowModel(library: library,
+            dependencies: WindowDependencies(preferences: WindowPreferences(defaults: preferences.defaults)))
+        let panels = [
+            AnyView(DraftFiltersPanel(model: model, showTagSearch: .constant(false)).defaultAppStorage(preferences.defaults)),
+            AnyView(DraftListPanel(model: model, library: library,
+                selection: Binding(get: { model.selectedDraftIDs }, set: { model.selectedDraftIDs = $0 }))
+                .defaultAppStorage(preferences.defaults)),
+            AnyView(Color.clear.frame(maxWidth: .infinity, maxHeight: .infinity)),
+            AnyView(ActionListPanel(model: model, library: library).defaultAppStorage(preferences.defaults))
+        ]
+        let controller = LibrarySplitController(model: model, panels: panels)
+        let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 1200, height: 800),
+            styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+        window.contentViewController = controller
+        window.setContentSize(NSSize(width: 1200, height: 800))
+        defer { window.contentViewController = nil }
+        controller.viewDidAppear()
+        await settleLayout(controller)
+        let chosen = controller.splitViewItems.prefix(2).map { $0.viewController.view.frame.width }
+        #expect(abs(chosen[0] - 240) <= 1 && abs(chosen[1] - 280) <= 1)
+        window.setContentSize(NSSize(width: 850, height: 600))
+        controller.view.setFrameSize(NSSize(width: 850, height: 600))
+        await settleLayout(controller)
+        model.showActions = true
+        controller.update(panels: panels)
+        await settleLayout(controller)
+        window.setContentSize(NSSize(width: 1200, height: 800))
+        controller.view.setFrameSize(NSSize(width: 1200, height: 800))
+        await settleLayout(controller)
+        for index in 0..<2 {
+            #expect(abs(controller.splitViewItems[index].viewController.view.frame.width - chosen[index]) <= 1,
+                "Real panel \(index) must recover its width after temporary compression.")
+        }
+    }
+
     private func settleLayout(_ controller: LibrarySplitController) async {
         for _ in 0..<4 {
             await withCheckedContinuation { continuation in DispatchQueue.main.async { continuation.resume() } }

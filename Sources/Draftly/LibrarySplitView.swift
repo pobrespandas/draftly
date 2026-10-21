@@ -26,6 +26,10 @@ final class LibrarySplitController: NSSplitViewController {
     private var panelWidths: [CGFloat] = [240, 280, 0, 260]
     private var pendingPanels: [AnyView]?
     private let animationsEnabled: @MainActor () -> Bool
+    private var completedInitialLayout = false
+    private var applyingPanelPositions = false
+    private var lastContainerWidth: CGFloat?
+    private var pendingDivider: (index: Int, widths: [CGFloat])?
 
     init(model: WindowModel, panels: [AnyView], animationsEnabled: @escaping @MainActor () -> Bool = {
         !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
@@ -85,6 +89,8 @@ final class LibrarySplitController: NSSplitViewController {
                     let width = restorationWidths(collapsed: splitViewItems.map(\.isCollapsed))[3]
                     splitView.setPosition(splitView.bounds.width - width - splitView.dividerThickness, ofDividerAt: 2)
                 }
+                completedInitialLayout = true
+                lastContainerWidth = splitView.bounds.width
             }
         }
         if let window = view.window {
@@ -93,6 +99,63 @@ final class LibrarySplitController: NSSplitViewController {
                 model.referenceToolbar = ReferenceToolbar(model: model, window: window, splitView: splitView)
             }
         }
+    }
+
+    override func viewDidLayout() {
+        super.viewDidLayout()
+        restoreWidthsAfterContainerResize()
+    }
+
+    override func splitView(_ splitView: NSSplitView, constrainSplitPosition proposedPosition: CGFloat,
+                            ofSubviewAt dividerIndex: Int) -> CGFloat {
+        let position: CGFloat
+        // Call optional superclass methods only when the controller implements them.
+        if NSSplitViewController.instancesRespond(to: #selector(NSSplitViewDelegate.splitView(_:constrainSplitPosition:ofSubviewAt:))) {
+            position = super.splitView(splitView, constrainSplitPosition: proposedPosition, ofSubviewAt: dividerIndex)
+        } else {
+            position = proposedPosition
+        }
+        guard completedInitialLayout, !changingVisibility, !applyingPanelPositions,
+              let previousWidth = lastContainerWidth, abs(splitView.bounds.width - previousWidth) <= 0.5 else {
+            pendingDivider = nil
+            return position
+        }
+        pendingDivider = (dividerIndex, splitViewItems.map { $0.viewController.view.frame.width })
+        return position
+    }
+
+    override func splitViewDidResizeSubviews(_ notification: Notification) {
+        if NSSplitViewController.instancesRespond(to: #selector(NSSplitViewDelegate.splitViewDidResizeSubviews(_:))) {
+            super.splitViewDidResizeSubviews(notification)
+        }
+        guard let pending = pendingDivider else { return }
+        guard completedInitialLayout, !changingVisibility, !applyingPanelPositions,
+              let previousWidth = lastContainerWidth, abs(splitView.bounds.width - previousWidth) <= 0.5 else {
+            pendingDivider = nil
+            return
+        }
+        let affected = [pending.index, pending.index + 1].filter { splitViewItems.indices.contains($0) && $0 != 2 }
+        guard affected.contains(where: { abs(splitViewItems[$0].viewController.view.frame.width - pending.widths[$0]) > 0.5 }) else { return }
+        pendingDivider = nil
+        // Record native results only for the panels next to the moved divider.
+        for index in affected {
+            let item = splitViewItems[index]
+            guard !item.isCollapsed else { continue }
+            let width = item.viewController.view.frame.width
+            if width.isFinite && width > 0 { panelWidths[index] = width }
+        }
+    }
+
+    private func restoreWidthsAfterContainerResize() {
+        guard completedInitialLayout, !changingVisibility, !applyingPanelPositions else { return }
+        let width = splitView.bounds.width
+        guard width > 0 else { return }
+        let previousWidth = lastContainerWidth
+        lastContainerWidth = width
+        guard let previousWidth, abs(width - previousWidth) > 0.5 else { return }
+        pendingDivider = nil
+        let collapsed = splitViewItems.map(\.isCollapsed)
+        applyPanelPositions(restorationWidths(collapsed: collapsed), collapsed: collapsed)
     }
     func update(panels: [AnyView]) {
         pendingPanels = panels
@@ -115,13 +178,8 @@ final class LibrarySplitController: NSSplitViewController {
         let collapsed = [!model.showFilters, !model.showDraftList, false, !model.showActions]
         guard zip(splitViewItems, collapsed).contains(where: { $0.isCollapsed != $1 }) else { return }
         changingVisibility = true
+        pendingDivider = nil
         restoredWidthConstraints = []
-        for (index, item) in splitViewItems.enumerated() where index != 2 {
-            if !item.isCollapsed {
-                let width = item.viewController.view.frame.width
-                if width > 0 { panelWidths[index] = width }
-            }
-        }
         let restoredWidths = restorationWidths(collapsed: collapsed)
         for (index, item) in splitViewItems.enumerated() where index != 2 {
             if !collapsed[index] {
@@ -157,19 +215,34 @@ final class LibrarySplitController: NSSplitViewController {
     }
 
     private func applyPanelPositions(_ widths: [CGFloat], collapsed: [Bool]) {
+        pendingDivider = nil
+        let wasApplying = applyingPanelPositions
+        applyingPanelPositions = true
+        defer { applyingPanelPositions = wasApplying }
+        // Keep the other fixed panels in place while AppKit moves each divider.
+        let widthsToHold = splitViewItems.indices.filter { $0 != 2 && !collapsed[$0] }.map { index in
+            let constraint = splitViewItems[index].viewController.view.widthAnchor.constraint(equalToConstant: widths[index])
+            constraint.priority = .defaultHigh
+            return constraint
+        }
+        NSLayoutConstraint.activate(widthsToHold)
+        defer {
+            NSLayoutConstraint.deactivate(widthsToHold)
+            view.layoutSubtreeIfNeeded()
+        }
         view.window?.layoutIfNeeded()
         view.layoutSubtreeIfNeeded()
         if !collapsed[3] {
             splitView.setPosition(splitView.bounds.width - widths[3] - splitView.dividerThickness, ofDividerAt: 2)
             view.layoutSubtreeIfNeeded()
         }
-        if !collapsed[0] {
-            splitView.setPosition(widths[0], ofDividerAt: 0)
+        if !collapsed[1] {
+            let start = collapsed[0] ? 0 : widths[0] + splitView.dividerThickness
+            splitView.setPosition(start + widths[1], ofDividerAt: 1)
             view.layoutSubtreeIfNeeded()
         }
-        if !collapsed[1] {
-            let start = collapsed[0] ? 0 : splitViewItems[0].viewController.view.frame.maxX + splitView.dividerThickness
-            splitView.setPosition(start + widths[1], ofDividerAt: 1)
+        if !collapsed[0] {
+            splitView.setPosition(widths[0], ofDividerAt: 0)
             view.layoutSubtreeIfNeeded()
         }
     }
@@ -215,6 +288,7 @@ final class LibrarySplitController: NSSplitViewController {
             view.layoutSubtreeIfNeeded()
         }
         changingVisibility = false
+        restoreWidthsAfterContainerResize()
         updateVisibility()
     }
 }
