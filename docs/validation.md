@@ -6520,21 +6520,21 @@ The user unlocked the Mac. Quit Engine QA through its native menu and confirmed
 the process was absent. Refreshed every runtime image and resource from the
 validated unsigned build with refresh-engine-qa.py, then development-signed it.
 The QA bundle and isolated library identities stayed unchanged. Signed hashes:
-launcher1119f1dab32b157510b34f67380f61c175889fdbcab72478358aa57933c1e00e;
-Debug image1b2c4be2bfdc696e100349a4dc21ae022c0ec040459eb71605758f6bdf8655d4.
+launcher 1119f1dab32b157510b34f67380f61c175889fdbcab72478358aa57933c1e00e;
+Debug image 1b2c4be2bfdc696e100349a4dc21ae022c0ec040459eb71605758f6bdf8655d4.
 This image includes the configuredValues, callback-deadline and HTTP fixes.
 It predates the new HTTP response charset correction.
 
-Adjusted the neutral configuration fixture to use an actual LF in its text value
-and the matching JavaScript string escape. Imported it through File > Import.
+Confirmed that the neutral configuration fixture uses an actual LF in its text
+value and the matching JavaScript string escape. Imported it through File > Import.
 Selected an existing neutral QA draft. Ran QA Typed configuration source and
 then QA Typed configuration lookup. The lookup checked the same source through
 Action.find, ActionGroup.actions and Action.recent. Each returned Boolean false,
-number3.5 and café 🐼 followed by LF and Text. Readonly replacement was rejected.
+number 3.5 and café 🐼 followed by LF and Text. Readonly replacement was rejected.
 The running action retained its own typed shared context and no source count key.
 
 The editor displayed Typed other-action configuration passed café 🐼. History
-showed source Success at02:29 and lookup Success at02:30 local. Closed History.
+showed source Success at 02:29 and lookup Success at 02:30 local. Closed History.
 QA retains two neutral notes and no pending action or dialog. No permission,
 personal note or system setting changed. No screenshot or raw log is tracked.
 
