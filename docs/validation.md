@@ -5935,3 +5935,23 @@ Library saves, scripting, and workspace consumers do not use this allocator
 yet. The stored-group overwrite defect remains open. Next: add a failing
 library regression, connect allocation to atomic saves and all consumers,
 and verify restore and reopen. ActionGroup.uuid remains partial.
+
+
+### Group save collision protection — 20 October 2026
+
+Two isolated regression tests first failed with six issues: a new colliding
+group replaced the stored group and retargeted its action; batch saves accepted
+duplicate IDs. Single-group saves now allocate an unused identity for a new
+legacy collision. Materialized implicit groups use the same reserved mapping.
+Batch saves reject duplicate IDs before writes. Existing rename behavior stays
+covered by the organization and both-runner catalog tests.
+
+The final focused run passed 14 methods in four suites. The collision test also
+checks backup restore and SQLite reopen. A separate case preserves an implicit
+group and its action when a colliding explicit group is added. No automatic
+test opens a window. Native verification of this change is pending.
+
+ActionGroup.uuid remains partial. Remaining work: persist collision-safe IDs
+when action saves create only implicit groups; unify scripting, workspace and
+UI identity consumers; cover deletion, rollback, import and restore collisions.
+Do not infer complete group identity acceptance from these save tests.

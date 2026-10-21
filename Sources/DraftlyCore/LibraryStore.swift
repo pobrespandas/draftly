@@ -191,13 +191,22 @@ public final class LibraryStore: ObservableObject {
         }
     }
     public func saveActionGroup(_ group: ActionGroupRecord, replacing previousName: String? = nil) throws {
+        var group = group
         let name = group.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let reserved = ActionGroupIdentity.identifiers(names: groupNames, records: actionGroups)
+        if previousName == nil, group.id == ActionGroupRecord.identifier(for: name),
+           !actionGroups.contains(where: { $0.name == name }) {
+            group.id = ActionGroupIdentity.identifiers(names: groupNames + [name], records: actionGroups,
+                preferred: reserved)[name]!
+        }
         guard !name.isEmpty, !actionGroups.contains(where: { $0.id != group.id && $0.name == name }) else { throw DraftlyError.message("Use a unique group name.") }
         let oldName = actionGroups.first(where: { $0.id == group.id })?.name ?? previousName
         guard !groupNames.contains(name) || oldName == name || name == group.name && oldName == nil && !actionGroups.contains(where: { $0.name == name }) else { throw DraftlyError.message("Use a unique group name.") }
         do {
             for (order, existingName) in groupNames.enumerated() where !actionGroups.contains(where: { $0.name == existingName }) && existingName != oldName && existingName != name {
-                var record = ActionGroupRecord(name: existingName); record.order = order
+                var record = ActionGroupRecord(name: existingName)
+                record.id = reserved[existingName]!
+                record.order = order
                 try persist(record, id: record.id, kind: "actionGroup")
             }
             if let oldName, oldName != name {
@@ -210,6 +219,7 @@ public final class LibraryStore: ObservableObject {
     public func saveActionGroups(_ values: [ActionGroupRecord]) throws {
         let names = values.map { $0.name.trimmingCharacters(in: .whitespacesAndNewlines) }
         guard !names.contains(""), Set(names).count == names.count else { throw DraftlyError.message("Use unique nonempty group names.") }
+        guard Set(values.map(\.id)).count == values.count else { throw DraftlyError.message("Use unique action group identifiers.") }
         do {
             for group in values { try persist(group, id: group.id, kind: "actionGroup") }
             try beforeBatchCommit?(); try commit()
