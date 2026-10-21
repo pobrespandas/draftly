@@ -1,0 +1,17 @@
+[
+  {
+    "uuid": "BBBF0043-0000-4000-8000-000000000001",
+    "name": "QA Window confirmed target tabs",
+    "group": "Window contract QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "function check(value,message){if(!value)throw Error(message);}\nconst before=editor.getText();\nconst notes=Draft.query('','all',[]);\nfor(const title of ['Picker QA: Zulu','Picker QA: Excluded']){\n const target=notes.find(item=>item.title===title);\n check(target,'missing neutral target');\n check(app.currentWindow.openInNewTab(target)===true,'tab not confirmed: '+title);\n check(editor.getText()===before,'source editor changed');\n}\ncontext.addSuccessParameter('tabs','two confirmed targets');\nconsole.log('Two target tabs confirmed; source preserved café 🐼');"
+        }
+      }
+    ]
+  }
+]

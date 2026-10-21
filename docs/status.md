@@ -11,6 +11,28 @@ sections below retain their original scope and dates.
 Keep the identity Draftly, `Note`, existing identities and libraries, original
 action scripts, Nerd Fonts, and the integrated Markdown preview.
 
+## Latest correction — confirmed tab opening, 21 October 2026
+
+Implemented: a typed library scene carries a unique opening request. The worker
+awaits the exact scene, draft selection and native tab attachment. Removed the
+0.2-second search for an arbitrary new window. A concrete registry handles single
+completion, deadline, cancellation and retired requests. Window registration now
+follows actual view attachment. The legacy runner keeps its separate synchronous
+adapter. Normal worker opening does not poll RunLoop.
+
+Automatically tested: eight registry, four adapter/controller and three worker
+methods cover confirmation, rejection, independent requests, cancellation,
+timeout and late results. Checked runner verified 620 core and 516 app methods.
+Unsigned Xcode build and matrix structure passed. Strict engine/global remain
+18/4127 diagnostics. Counts are not compatibility percentages.
+
+Verified in use: native fixture opened Zulu and Excluded sequentially into the
+origin tab group, with three correct titles and target content. The source Alpha
+stayed unchanged. History Success07:54. Closed test tabs with Command-W; Alpha
+remains. Deliberately slow native creation, pending origin close, concurrent native
+requests, restoration and URL/Intent variants remain pending. Window parity is
+not complete. Continue those paths and the remaining contracts.
+
 ## Latest correction — stable action group references, 21 October 2026
 
 Implemented: Window group loaders and Workspace use one concrete resolver. A

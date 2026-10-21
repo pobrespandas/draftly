@@ -11487,10 +11487,72 @@
             "openInNewTab(draft: Draft): boolean"
           ],
           "contract": "If able, open the requested draft in a new tab in the current window. This method only functions on Mac. The ability to open new tabs is not available on iPhone or iPad.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-correlated-native-scene-completion",
+          "automatedTest": {
+            "suite": "AsyncWindowOpeningTests",
+            "test": "scriptWaitsForTheConfirmedWindowResult"
+          },
+          "liveCheck": "21 October signed Engine QA: window-tab-opening-actions.json opened Zulu and Excluded sequentially into Alpha tab group. Three titled native tabs, exact target editor checks, source preserved; Success07:54. Closed both test tabs with native Command-W; Alpha remains.",
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/Draftly/AppController.swift",
+            "symbol": "openDraftWindow / registerRequestedWindow"
+          },
+          "defaults": "The worker waits for a request-specific scene. Remaining host deadline bounds the request; production host timeout remains120 seconds. A missing target or unavailable tab origin returns false.",
+          "result": "Boolean true only after the exact requested draft is loaded into its new scene and the new window is present in the origin tab group. Native attachment no longer uses a fixed delay.",
+          "errors": "Task cancellation and timeout retire the request, close a partially created target, and reject late registration. Missing opening dependency returns false. The legacy synchronous runner retains an event-servicing adapter; normal worker execution suspends.",
+          "evidenceLevel": "Request-registry, worker, model adapter and native sequential-target checks are separate. No claim of exhaustive window parity.",
+          "limitations": [
+            "Native deliberately slow scene creation, cancellation/timeout during creation, source close during creation and simultaneous cross-window opens remain pending.",
+            "Typed-scene restoration compatibility is implemented for unknown prior-process request IDs but has not received a native restart acceptance check.",
+            "Native legacy-runner opening and capability-specific URL/App Intent variants remain pending."
+          ],
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "AsyncWindowOpeningTests",
+                "test": "scriptWaitsForTheConfirmedWindowResult"
+              },
+              "assertion": "The worker uses the async hook, waits for confirmation and receives the actual true or false result before following script edits."
+            },
+            "defaults": {
+              "test": {
+                "suite": "WindowOpeningAdapterTests",
+                "test": "absentOpeningDependencyCannotReportSuccess"
+              },
+              "assertion": "No opener and a missing tab target return false rather than reporting success."
+            },
+            "errors": {
+              "test": {
+                "suite": "AsyncWindowOpeningTests",
+                "test": "cancellationAndTimeoutDrainTheOpeningWaitBeforeReturning"
+              },
+              "assertion": "Cancel and timeout drain the host wait, stop following text mutation and prevent Archive."
+            }
+          },
+          "supportingTests": [
+            {
+              "suite": "WindowOpenRequestRegistryTests",
+              "test": "simultaneousRequestsCompleteOnlyTheirOwnWaiters"
+            },
+            {
+              "suite": "WindowOpenRequestRegistryTests",
+              "test": "completionAtTheDeadlineCannotBeatTheScheduledTimeout"
+            },
+            {
+              "suite": "WindowOpeningAdapterTests",
+              "test": "closingAnUnattachedRequestedModelCancelsOnlyItsRequest"
+            },
+            {
+              "suite": "WindowOpeningAdapterTests",
+              "test": "controllerRejectsUnavailableTargetsAndTabOriginsWithoutOpeningAScene"
+            },
+            {
+              "suite": "AsyncWindowOpeningTests",
+              "test": "missingAsyncHookKeepsTheLegacyBooleanAdapter"
+            }
+          ]
         },
         {
           "member": "showActionList",
@@ -23146,6 +23208,13 @@
             "entryPoint": "UI command palette; Actions Cancel Running Action; native Save panel",
             "result": "Task cancellation closed the Save panel and recorded Cancelled07:34. Production120s panel visible85.4s, absent133.6s after observation; Error07:37. Completed writes remained Inbox, no tail or Archive. Following Save recovery Success07:37 wrote exact35-byte Unicode content. Interrupted targets still absent after recovery. Exact teardown latency and real stale panel callback delivery are not measured. Bookmark restart/access, owner close and URL/Intent variants remain pending.",
             "evidence": "docs/validation.md: Native file save lifetime — 21 October 2026"
+          },
+          {
+            "date": "2026-10-21",
+            "executableSHA256": "ff4b3ac82766e5011dd575edfe64f193f0eeb99da08a7e8693593992693dcb19",
+            "fixture": "scripts/fixtures/window-tab-opening-actions.json",
+            "result": "Two native target tabs confirmed in origin tab group before worker action success. Exact targets and source preservation observed; Success07:54. Slow, canceled and simultaneous native scene creation not accepted by this success case.",
+            "evidence": "docs/validation.md: Correlated native tab opening — 21 October 2026"
           }
         ]
       },

@@ -5,6 +5,7 @@ struct LibraryView: View {
     @ObservedObject var library: LibraryStore
     @StateObject private var model: WindowModel
     @ObservedObject private var hub: AppController
+    private let requestID: UUID?
     @State private var selection: Set<UUID> = []
     @State private var showTagSearch = false
     @AppStorage("editor.fontName") private var fontName = "System"
@@ -26,9 +27,10 @@ struct LibraryView: View {
     private var preferredScheme: ColorScheme? { themePresentation.dark.map { $0 ? .dark : .light } }
     @AppStorage("capture.newDraftAfter") private var newDraftAfter = 300.0
 
-    init(library: LibraryStore, controller: AppController) {
+    init(library: LibraryStore, controller: AppController, requestID: UUID? = nil) {
         self.hub = controller
         self.library = library
+        self.requestID = requestID
         _model = StateObject(wrappedValue: controller.makeWindowModel(library: library))
     }
     var body: some View {
@@ -48,7 +50,7 @@ struct LibraryView: View {
         }
         .frame(minWidth: 850, minHeight: 480)
         .background(WindowAccessor { window in
-            hub.registerWindow(model, window: window)
+            hub.registerWindow(model, window: window, requestID: requestID)
         })
         .focusedSceneValue(\.windowModel, model)
         .sheet(isPresented: $model.showAdvancedFind) { AdvancedFindView(model: model) }
@@ -79,7 +81,7 @@ struct LibraryView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in model.flush() }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { event in
-            if let window = event.object as? NSWindow, window === model.window { hub.registerWindow(model, window: window) }
+            if let window = event.object as? NSWindow, window === model.window { hub.registerWindow(model, window: window, requestID: requestID) }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { event in
             if let window = event.object as? NSWindow, window === model.window {
@@ -95,11 +97,13 @@ struct LibraryView: View {
         .onReceive(library.$notes) { notes in model.synchronizeStoredEditor(notes) }
         .onAppear {
             model.editor.typewriterScrollingEnabled = typewriter
-            hub.registerWindow(model)
+            hub.registerWindow(model, requestID: requestID)
             hub.commandWindow = model
-            hub.consumePendingMenuAction(for: model)
-            _ = hub.consumePendingDraft(for: model)
-            if hub.pendingNoteID == nil && model.editor.noteID == nil { model.create() }
+            if !hub.hasDraftSceneRequest(requestID) {
+                hub.consumePendingMenuAction(for: model)
+                _ = hub.consumePendingDraft(for: model)
+                if hub.pendingNoteID == nil && model.editor.noteID == nil { model.create() }
+            }
             if let id = model.editor.noteID { selection = [id] }
         }
     }

@@ -107,6 +107,19 @@ import Foundation
             guard Date() < request.deadline else { throw ActionExecutionInterruption.timeout }
             guard authority.consume(request) else { throw DraftlyError.message("The host request is unknown or already consumed.") }
             try checkCancellation()
+            if request.operation == "ui", let uiOperationAsync,
+               let values = try JSONSerialization.jsonObject(with: Data(request.payload.utf8)) as? [String: Any],
+               ["openInNewTab", "openInNewWindow"].contains(values["operation"] as? String ?? "") {
+                let remaining = request.deadline.timeIntervalSinceNow
+                guard remaining > 0 else { throw ActionExecutionInterruption.timeout }
+                let result = try await uiOperationAsync(values, remaining)
+                try Task.checkCancellation()
+                try checkCancellation()
+                guard activeSession?.id == request.executionID, bridgeStepID == request.stepID else {
+                    throw DraftlyError.message("The action was closed.")
+                }
+                return try json(["value": result ?? NSNull()])
+            }
             if request.operation == "ui",
                let values = try JSONSerialization.jsonObject(with: Data(request.payload.utf8)) as? [String: Any],
                let operation = values["operation"] as? String,

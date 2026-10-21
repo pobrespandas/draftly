@@ -24,6 +24,7 @@ public final class ActionRunner: ObservableObject {
     public var defaultWorkspace: (() -> Workspace)?
     public var currentWorkspace: (() -> Workspace)?
     public var uiOperation: (([String: Any]) throws -> Any?)?
+    public var uiOperationAsync: (([String: Any], TimeInterval) async throws -> Any?)?
     public var readTheme: (EditorThemeDefinition) throws -> EditorThemeDefinition = { try ThemeFileAccess.read($0) }
     public var selectedDrafts: (() -> [Note])?
     public var applyWorkspace: ((Workspace) throws -> Void)?

@@ -334,8 +334,27 @@ final class DraftTextView: NSTextView {
 
 struct WindowAccessor: NSViewRepresentable {
     var callback: (NSWindow) -> Void
-    func makeNSView(context: Context) -> NSView { let view = NSView(); DispatchQueue.main.async { if let window = view.window { callback(window) } }; return view }
-    func updateNSView(_ view: NSView, context: Context) {}
+    func makeNSView(context: Context) -> WindowAccessorView { WindowAccessorView(callback: callback) }
+    func updateNSView(_ view: WindowAccessorView, context: Context) { view.callback = callback }
+}
+
+final class WindowAccessorView: NSView {
+    var callback: (NSWindow) -> Void
+    private weak var reportedWindow: NSWindow?
+    init(callback: @escaping (NSWindow) -> Void) {
+        self.callback = callback
+        super.init(frame: .zero)
+    }
+    required init?(coder: NSCoder) { fatalError("Use init(callback:).") }
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if window == nil { reportedWindow = nil; return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let window = self.window, self.reportedWindow !== window else { return }
+            self.reportedWindow = window
+            self.callback(window)
+        }
+    }
 }
 
 struct InlineMarkdownPreview: NSViewRepresentable {

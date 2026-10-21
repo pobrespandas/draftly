@@ -90,3 +90,13 @@ cases as a substitute for missing capability checks. The strict gate stays open.
 Native shell lifetime evidence is recorded in validation.md under Native shell
 process lifetime — 21 October 2026. It accepts the UI cases in the shell row,
 not the other routes or the entire engine.
+
+
+## Window scene opening — 21 October 2026
+
+The worker now awaits correlated library scene creation and native tab attachment.
+Native sequential Zulu/Excluded targets passed with source text preserved. The
+registry, adapter and worker tests are headless. Pending native checks: slow scene
+creation, pending origin close, cancellation/timeout during creation, concurrent
+opens, restored scene IDs and URL/Intent variants. Legacy synchronous opening is
+separate. See validation.md, Correlated native tab opening.

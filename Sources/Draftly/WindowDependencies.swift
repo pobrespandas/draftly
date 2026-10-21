@@ -8,5 +8,6 @@ struct WindowDependencies {
     var preferences = WindowPreferences()
     var recoverDictation: (String) -> Void = { _ in }
     var openQuickSearch: (String) -> Void = { _ in }
-    var openDraftWindow: (UUID?, Bool, NSWindow?) -> Void = { _, _, _ in }
+    var openDraftWindow: (UUID?, Bool, NSWindow?) -> Bool = { _, _, _ in false }
+    var openDraftWindowAsync: ((UUID?, Bool, NSWindow?, TimeInterval) async throws -> Bool)?
 }

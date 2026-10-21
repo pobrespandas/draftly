@@ -54,6 +54,17 @@ private enum PendingMenuAction {
     case newDraft(String)
 }
 
+@MainActor private final class DraftSceneRequest {
+    let noteID: UUID?
+    let tab: Bool
+    weak var origin: NSWindow?
+    weak var model: WindowModel?
+    var completed = false
+    init(noteID: UUID?, tab: Bool, origin: NSWindow?) {
+        self.noteID = noteID; self.tab = tab; self.origin = origin
+    }
+}
+
 @MainActor
 final class AppController: ObservableObject {
     static let shared = AppController()
@@ -71,6 +82,10 @@ final class AppController: ObservableObject {
     lazy var quickSearchController = QuickSearchController(libraryProvider: { [weak self] in self?.library },
         openResult: { [weak self] in self?.openSearchResult($0) ?? false })
     private var libraryWindowRequested = false
+    var openDraftLibrary: ((UUID) -> Void)?
+    private let windowOpenRequests = WindowOpenRequestRegistry()
+    private var draftSceneRequests: [UUID: DraftSceneRequest] = [:]
+    private var retiredDraftSceneRequests: Set<UUID> = []
     var openLibrary: (() -> Void)? {
         didSet {
             guard libraryWindowRequested, let openLibrary else { return }
@@ -132,14 +147,20 @@ final class AppController: ObservableObject {
         dependencies.recoverDictation = { [weak self] in self?.capture(content: $0) }
         dependencies.openQuickSearch = { [weak self] query in self?.showQuickSearch(initialQuery: query) }
         dependencies.openDraftWindow = { [weak self] id, tab, window in
-            let before = Set(NSApp.windows.map(ObjectIdentifier.init))
-            self?.queueNewWindowDraftSelection(id)
-            self?.requestLibraryWindow()
-            if tab, let window {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                    if let created = NSApp.windows.first(where: { !before.contains(ObjectIdentifier($0)) && $0.identifier?.rawValue.hasPrefix("library") == true }) { window.addTabbedWindow(created, ordered: .above) }
-                }
+            guard let self else { return false }
+            var result: Bool?
+            let task = Task { @MainActor in
+                do { result = try await self.openDraftWindow(id, tab: tab, origin: window) }
+                catch { result = false }
             }
+            defer { task.cancel() }
+            // The legacy synchronous runner needs to service scene events.
+            while result == nil { RunLoop.current.run(until: Date().addingTimeInterval(0.01)) }
+            return result == true
+        }
+        dependencies.openDraftWindowAsync = { [weak self] id, tab, window, timeout in
+            guard let self else { return false }
+            return try await self.openDraftWindow(id, tab: tab, origin: window, timeout: timeout)
         }
         return WindowModel(library: library, dependencies: dependencies,
             onAccessDraft: { [weak self] in self?.recordRecentDraft($0) })
@@ -149,11 +170,80 @@ final class AppController: ObservableObject {
         guard library != nil else { return }
         captureController.show(content: content)
     }
-    func registerWindow(_ model: WindowModel, window: NSWindow? = nil) {
+    func openDraftWindow(_ id: UUID?, tab: Bool, origin: NSWindow?, timeout: TimeInterval = 120) async throws -> Bool {
+        guard let library, let openDraftLibrary else { return false }
+        if let id, !library.notes.contains(where: { $0.id == id }) { return false }
+        if tab, origin == nil || !windows.allObjects.contains(where: { $0.window === origin }) { return false }
+        return try await windowOpenRequests.request(timeout: timeout, start: { requestID in
+            draftSceneRequests[requestID] = DraftSceneRequest(noteID: id, tab: tab, origin: origin)
+            openDraftLibrary(requestID)
+        }, onEnd: { [weak self] requestID in
+            guard let self, let request = self.draftSceneRequests[requestID], !request.completed else { return }
+            self.draftSceneRequests.removeValue(forKey: requestID)
+            self.retiredDraftSceneRequests.insert(requestID)
+            request.model?.window?.close()
+        })
+    }
+
+    func registerWindow(_ model: WindowModel, window: NSWindow? = nil, requestID: UUID? = nil) {
         if let window { model.window = window }
+        if let requestID {
+            registerRequestedWindow(model, requestID: requestID)
+            return
+        }
         windows.add(model)
         if model.window?.isKeyWindow == true { commandWindow = model }
         _ = consumePendingDraft(for: model)
+    }
+
+    private func registerRequestedWindow(_ model: WindowModel, requestID: UUID) {
+        if draftSceneRequests[requestID] == nil, !retiredDraftSceneRequests.contains(requestID) {
+            // A restored scene has no pending request in this process.
+            registerWindow(model, window: model.window)
+            return
+        }
+        guard let request = draftSceneRequests[requestID],
+              request.model == nil || request.model === model else {
+            model.window?.close()
+            return
+        }
+        request.model = model
+        windows.add(model)
+        if model.window?.isKeyWindow == true { commandWindow = model }
+        guard !request.completed, let window = model.window else { return }
+        guard windowOpenRequests.contains(requestID), model.library === library else {
+            _ = windowOpenRequests.complete(requestID, false)
+            return
+        }
+        guard model.flush() else { _ = windowOpenRequests.complete(requestID, false); return }
+        if let id = request.noteID {
+            guard model.library.notes.contains(where: { $0.id == id }) else {
+                _ = windowOpenRequests.complete(requestID, false); return
+            }
+            model.folder = .inbox; model.clearFilters(); model.select(id)
+            guard model.editor.noteID == id else { _ = windowOpenRequests.complete(requestID, false); return }
+        } else { model.create() }
+        if request.tab {
+            guard let origin = request.origin, origin !== window,
+                  windows.allObjects.contains(where: { $0.window === origin }) else {
+                _ = windowOpenRequests.complete(requestID, false); return
+            }
+            origin.addTabbedWindow(window, ordered: .above)
+            guard origin.tabbedWindows?.contains(where: { $0 === window }) == true else {
+                _ = windowOpenRequests.complete(requestID, false); return
+            }
+        }
+        request.completed = true
+        if !windowOpenRequests.complete(requestID, true) {
+            draftSceneRequests.removeValue(forKey: requestID)
+            retiredDraftSceneRequests.insert(requestID)
+            window.close()
+        }
+    }
+
+    func hasDraftSceneRequest(_ requestID: UUID?) -> Bool {
+        guard let requestID else { return false }
+        return draftSceneRequests[requestID] != nil || retiredDraftSceneRequests.contains(requestID)
     }
     func queueDraftSelection(_ id: UUID?) { if let id { pendingNoteID = id } }
     func queueNewWindowDraftSelection(_ id: UUID?) {
@@ -161,6 +251,14 @@ final class AppController: ObservableObject {
         if id != nil { pendingExcludedModels = Set(windows.allObjects.map(ObjectIdentifier.init)) }
     }
     func unregisterWindow(_ model: WindowModel) {
+        for (id, request) in Array(draftSceneRequests) {
+            if request.model === model {
+                if request.completed { draftSceneRequests.removeValue(forKey: id); retiredDraftSceneRequests.insert(id) }
+                else { windowOpenRequests.cancel(id) }
+            } else if !request.completed, let origin = request.origin, origin === model.window {
+                windowOpenRequests.cancel(id)
+            }
+        }
         if pendingTargetModel === model || (model.window != nil && pendingTargetWindow === model.window)
             || (pendingExcludedModels != nil && pendingExcludedModels?.contains(ObjectIdentifier(model)) == false) { pendingNoteID = nil }
         windows.remove(model)

@@ -124,6 +124,10 @@ final class WindowModel: ObservableObject {
             return self.workspaceSnapshot(name: "Current")
         }
         runner.uiOperation = { [weak self] values in try self?.actionUIOperation(values) }
+        runner.uiOperationAsync = { [weak self] values, timeout in
+            guard let self else { throw CancellationError() }
+            return try await WindowActionAdapter(model: self).performAsync(values, timeout: timeout)
+        }
         host.onMessage = { [weak self] message, severity in
             guard let self else { throw DraftlyError.message("The action window is closed.") }
             try self.showMessageBanner(message, severity: severity)

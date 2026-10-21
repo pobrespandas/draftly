@@ -16,9 +16,9 @@ struct DraftlyApp: App {
     @AppStorage(GeneralPreferences.showMainWindowAtLaunchKey) private var showMainWindowAtLaunch = true
     @StateObject private var controller = AppController.shared
     var body: some Scene {
-        WindowGroup(id: "library") {
+        WindowGroup(id: "library", for: UUID.self) { requestID in
             Group {
-                if let library = controller.library { LibraryView(library: library, controller: controller) }
+                if let library = controller.library { LibraryView(library: library, controller: controller, requestID: requestID.wrappedValue) }
                 else {
                     VStack(spacing: 18) {
                         Image(systemName: "externaldrive.badge.exclamationmark").font(.largeTitle)
@@ -34,6 +34,7 @@ struct DraftlyApp: App {
         .restorationBehavior(showMainWindowAtLaunch ? .automatic : .disabled)
         .onChange(of: scenePhase, initial: true) {
             controller.openLibrary = { openWindow(id: "library") }
+            controller.openDraftLibrary = { openWindow(id: "library", value: $0) }
         }
         .defaultSize(width: 1033, height: 734)
         .commands { DraftlyCommands(controller: controller) }

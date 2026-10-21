@@ -5,6 +5,16 @@ import DraftlyCore
 struct WindowActionAdapter {
     unowned let model: WindowModel
 
+    func performAsync(_ values: [String: Any], timeout: TimeInterval) async throws -> Any? {
+        let operation = values["operation"] as? String ?? ""
+        guard ["openInNewTab", "openInNewWindow"].contains(operation),
+              let open = model.dependencies.openDraftWindowAsync else { return try perform(values) }
+        let details = values["draft"] as? [String: Any] ?? values["value"] as? [String: Any] ?? [:]
+        let id = (details["uuid"] as? String).flatMap(UUID.init(uuidString:))
+        if operation == "openInNewTab", id == nil { return false }
+        return try await open(id, operation == "openInNewTab", model.window, timeout)
+    }
+
     func perform(_ values: [String: Any]) throws -> Any? {
         let operation = values["operation"] as? String ?? "", key = values["key"] as? String ?? ""
         let value = values["value"], args = values["args"] as? [Any] ?? []
@@ -124,7 +134,9 @@ struct WindowActionAdapter {
         case "transcribe": return try model.host.perform("transcribe", values: [:])
         case "openInNewWindow", "openInNewTab":
             let details = values["draft"] as? [String: Any] ?? value as? [String: Any] ?? [:]
-            model.dependencies.openDraftWindow((details["uuid"] as? String).flatMap(UUID.init(uuidString:)), operation == "openInNewTab", model.window)
+            let id = (details["uuid"] as? String).flatMap(UUID.init(uuidString:))
+            if operation == "openInNewTab", id == nil { return false }
+            return model.dependencies.openDraftWindow(id, operation == "openInNewTab", model.window)
         case "hideChatConsole", "showChatConsole": throw DraftlyError.message("Chat Console is outside the Draftly Mac scope.")
         default: throw DraftlyError.message("The window operation \(operation) is unavailable.")
         }

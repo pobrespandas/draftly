@@ -30,7 +30,7 @@ struct WindowDependencyTests {
         var received: (UUID?, Bool)?
         var searches = 0
         var dependencies = WindowDependencies()
-        dependencies.openDraftWindow = { id, tab, _ in received = (id, tab) }
+        dependencies.openDraftWindow = { id, tab, _ in received = (id, tab); return true }
         dependencies.openQuickSearch = { _ in searches += 1 }
         let model = WindowModel(library: library, dependencies: dependencies)
         let id = UUID()

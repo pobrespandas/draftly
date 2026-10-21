@@ -8281,3 +8281,62 @@ This closes the internal stable-identity defect. Frozen Window prose does not
 define stale references, missing-group error behavior or whether list loading
 must reveal the panel. Preserve the existing behavior and keep those comparison
 limits explicit. Tab scene completion remains a separate defect and next task.
+
+
+### Correlated native tab opening — 21 October 2026
+
+Implemented: WindowOpenRequestRegistry gives every opening request a UUID,
+deadline and one final result. The existing library WindowGroup now accepts an
+optional UUID scene value. AppController routes the request to its exact model
+and native window. It loads the target draft and checks membership in the origin
+tab group before returning true. Missing target, missing origin or unavailable
+opener returns false. Removed the0.2-second window scan. Completed scene records
+cannot reapply a draft on later key events. Failed requests retire their IDs;
+late scene registration closes that target. Prior-process IDs take the normal
+restored-scene path. Origin/target closure cancels pending owned requests.
+
+The worker has an optional async UI hook for opening operations. JavaScript
+remains synchronous from the script's perspective while MainActor suspends.
+Replies revalidate execution and step, preserve typed timeout/cancellation and
+drain cleanup. Existing sync UI access remains available. The legacy runner
+uses a separate event-servicing adapter; the new worker path does not poll.
+WindowAccessor now observes viewDidMoveToWindow instead of checking window
+attachment only once. An event schedules registration after actual attachment.
+
+Automatically tested: eight registry methods check actual-result return, inline
+and duplicate completion, independent requests, timeout, absolute deadline,
+cancellation, invalid limits and pre-cancelled tasks. Four adapter/controller
+methods check unavailable dependencies/origins/targets, exact argument forwarding,
+rejection, pending target close and rejected late registration. Three worker
+methods check awaited true/false results, legacy fallback, MainActor availability,
+cancellation/timeout cleanup, no later text edits and no Archive after failure.
+All tests are headless and use neutral in-memory data.
+
+Registry test drafts first had local variable redeclarations; fixed before the
+eight-method targeted pass. Initial full run rejected a new worker timeout case
+because its0.05-second fixture budget expired before the host hook started under
+concurrent load. Increased that test budget to5seconds, matching the existing
+cleanup-test approach. Production120-second limits did not change. Repeated the
+checked full run: all620 core and516 app method identities verified. Unsigned
+Xcode build passed after project generation. Matrix structure0; strict18/4127.
+The failed run is not counted as acceptance and the runner did not retry it.
+
+Verified in use: refreshed signed Engine QA only after native Quit and process
+absence guard. NSServices remains absent. Executable SHA256:
+ff4b3ac82766e5011dd575edfe64f193f0eeb99da08a7e8693593992693dcb19.
+Debug dylib SHA256:
+1fa20a0d47054c03548dfe6f7e514a82e428db4a76044285279bef6265412a77.
+Imported window-tab-opening-actions.json. From Alpha, the action requested Zulu
+and then Excluded. Native AX showed one tab group with Alpha, Excluded and Zulu;
+Excluded editor held its exact neutral content. Switched to Zulu and confirmed
+its editor. The script checked Boolean true after each opening and unchanged
+source content. Alpha still held its original text. History recorded Success
+07:54 and the expected confirmation message. Clicks on AX close-tab controls did
+not remove tabs; native Command-W closed each test tab. Final state: Alpha,
+one tab, five drafts, no pending action or dialog. No screenshots were saved.
+
+This accepts sequential target success on the worker route. It does not accept
+deliberately slow native creation, cancellation/timeout during scene creation,
+source closure before creation, concurrent native opens, native restoration,
+legacy-runner native opening or capability-specific URL/Intent variants. Those
+remain explicit in the Window member record. No complete Window parity claim.
