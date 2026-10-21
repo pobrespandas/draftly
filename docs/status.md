@@ -25,6 +25,11 @@ retain historical results. Later results supersede earlier counts.
 
 ## Current verification
 
+Host cleanup test streams now finish when the action returns before the expected
+signal. A regression checks early failure and a following run on the same
+library. Focused tests and full concurrent498 app/599 core passed. Production
+drain behavior did not change. The exact historical stall cause is not proved.
+
 AppleScript results now preserve Date objects, including nested lists/records,
 through the helper, both bridges and native steps. Specific headless tests and
 two native QA actions passed. Four construction/property members are complete;

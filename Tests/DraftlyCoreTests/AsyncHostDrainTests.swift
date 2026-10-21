@@ -12,10 +12,15 @@ struct AsyncHostDrainTests {
         let other = ActionRunner(library: f.library, editor: f.editor, host: host)
         var action = ScriptTestAction.make("ShellScript.create('neutral').execute();editor.setText('Late');", name: "Host cleanup")
         action.afterSuccess = "archive"
-        let task = Task { await f.runner.runAsync(action) }
-        await host.waitForStart()
+        let task = Task {
+            let report = await f.runner.runAsync(action)
+            host.finishSignals()
+            return report
+        }
+        defer { task.cancel(); host.releaseCleanup() }
+        try #require(await host.waitForStart(), Comment(rawValue: f.runner.message ?? "The action ended before the host started."))
         if !timeout { f.runner.cancel() }
-        await host.waitForCleanup()
+        try #require(await host.waitForCleanup(), Comment(rawValue: f.runner.message ?? "The action ended before host cleanup started."))
         // This host pauses cleanup. MainActor must remain available during the drain.
         #expect(f.runner.isRunning)
         #expect(f.runner.activeSession?.report == nil)
@@ -31,12 +36,34 @@ struct AsyncHostDrainTests {
         #expect(await other.runAsync(next).reason == .success)
         #expect(f.editor.content == "Next")
     }
+
+    @Test func actionFailureBeforeHostStartFinishesBothSignalStreams() async throws {
+        let host = CleanupGateHost()
+        let f = try ScriptTestFixture(content: "Keep", host: host)
+        let action = ScriptTestAction.make("throw new Error('Before host');", name: "Early failure")
+        let task = Task {
+            let report = await f.runner.runAsync(action)
+            host.finishSignals()
+            return report
+        }
+        defer { task.cancel(); host.releaseCleanup() }
+        #expect(await host.waitForStart() == false)
+        #expect(await host.waitForCleanup() == false)
+        let report = await task.value
+        #expect(report.reason == .error)
+        #expect(f.runner.message?.contains("Before host") == true)
+        #expect(!f.runner.isRunning && f.runner.activeSession == nil)
+        #expect(f.editor.content == "Keep" && host.finishes == 1)
+        let next = ActionRunner(library: f.library, editor: f.editor, host: host)
+        #expect(await next.runAsync(ScriptTestAction.make("", name: "Next")).reason == .success)
+    }
 }
 
 @MainActor private final class CleanupGateHost: ActionHost {
     private let started = AsyncStream.makeStream(of: Bool.self)
     private let cleanup = AsyncStream.makeStream(of: Bool.self)
     private var cleanupGate: CheckedContinuation<Void, Never>?
+    private var cleanupReleased = false
     var cleaned = false
     var finishes = 0
 
@@ -49,7 +76,8 @@ struct AsyncHostDrainTests {
         do { try await Task.sleep(for: .seconds(30)) }
         catch {
             await withCheckedContinuation { continuation in
-                cleanupGate = continuation
+                if cleanupReleased { continuation.resume() }
+                else { cleanupGate = continuation }
                 cleanup.continuation.yield(true)
             }
             cleaned = true
@@ -57,17 +85,22 @@ struct AsyncHostDrainTests {
         }
         return #"{"value":{"status":0,"stdout":"","stderr":""}}"#
     }
-    func waitForStart() async {
+    func waitForStart() async -> Bool {
         var iterator = started.stream.makeAsyncIterator()
-        _ = await iterator.next()
+        return await iterator.next() != nil
     }
-    func waitForCleanup() async {
+    func waitForCleanup() async -> Bool {
         var iterator = cleanup.stream.makeAsyncIterator()
-        _ = await iterator.next()
+        return await iterator.next() != nil
     }
     func releaseCleanup() {
+        cleanupReleased = true
         cleanupGate?.resume()
         cleanupGate = nil
+    }
+    func finishSignals() {
+        started.continuation.finish()
+        cleanup.continuation.finish()
     }
     func finishAction() { finishes += 1 }
 }

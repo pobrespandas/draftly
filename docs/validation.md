@@ -7793,3 +7793,27 @@ Execute stays partial: Date argument behavior, native permission-denied and
 corrected-image interruption acceptance remain open. No binary or undocumented
 post-failure result contract is claimed. Structure validation passed0; strict
 engine/global still reports18/4412 diagnostics, not a compatibility percentage.
+
+
+### Host cleanup fixture completion — 21 October 2026
+
+A new full concurrent reproduction passed498 app/598 core before any change.
+The historical stall therefore remains intermittent. Source review found two
+definite fixture gaps in AsyncHostDrainTests: start and cleanup streams never
+finished when the action returned before their expected signal. A terminal
+action could leave the test waiting forever. The cleanup release could also
+arrive before its continuation was installed and be lost.
+
+Implemented in tests only: the action task finishes both streams on return.
+Required signals now fail with the runner message when absent. Deferred cleanup
+cancels the task and releases a latched gate. The original busy-library and
+cleanup-drain assertions remain unchanged. Production still waits for native
+cleanup; no runtime deadline or exclusion contract was weakened.
+
+Automatically tested: a new regression throws Before host, observes both absent
+signals without waiting for a deadline, checks the error and retained content,
+and runs a following action on the same library. Both focused methods passed,
+including the existing cancellation and timeout cases. A full concurrent run
+then passed498 app/599 core. This proves the fixture correction, not the exact
+cause of every earlier suspended test. No production source or visible UI changed.
+The preceding successful Xcode build remains the production code baseline.
