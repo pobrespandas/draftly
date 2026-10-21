@@ -177,7 +177,7 @@ struct QAWindowInventory {
             }
             callback.queryItems = (callback.queryItems ?? []) + response
             guard let destination = callback.url else { continue }
-            let delay = min(10, max(0, Double(value("delay") ?? "0") ?? 0))
+            let delay = min(150, max(0, Double(value("delay") ?? "0") ?? 0))
             replyField.stringValue = "Reply pending: \(delay) seconds."
             Task { @MainActor in
                 try? await Task.sleep(for: .seconds(delay))

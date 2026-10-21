@@ -18230,7 +18230,7 @@
         "result": "Separate QA app and local helper: real macOS success, cancel, error, and late callback delivery. User typing cancelled an eight-second wait; late reply retained text and did not create another window. Native 120-second timeout and other entry points remain pending."
       },
       "limitations": [
-        "Native awaited Shortcut script and step responses passed. Real native callback timeout and remaining permission/capability lifetime variants remain pending."
+        "Native awaited Shortcut and production-limit callback timeout with ignored late reply passed. Remaining permission/capability lifetime variants are pending."
       ],
       "defaults": "Host request waiting defaults to 120 seconds and is capped by the current async script deadline. Each request has a new token and carries its execution ID, step ID, and absolute deadline.",
       "result": "Only the first reply reaches a live request. Worker close invalidates pending replies, releases its runtime, and drains cooperative host cleanup before releasing the library.",
@@ -18335,7 +18335,7 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Prompt/select, delayed and overlapping callbacks, transcription, EventKit dialog cancellation, and awaited Shortcut script/step responses have native evidence. Real callback timeout and remaining permission/capability variants remain pending.",
+        "reason": "Prompts, delayed/overlapping callbacks, transcription, EventKit cancellation, awaited Shortcuts and production-limit callback timeout have evidence. Remaining permission/capability variants remain pending.",
         "additionalChecks": [
           {
             "date": "2026-10-20",
@@ -18385,6 +18385,13 @@
             "fixture": "scripts/fixtures/engine-shortcut-wait-actions.json",
             "result": "Existing neutral Shortcuts fixture completed directly in its editor. QA Shortcut waited script and waited step then completed through native CLI in Engine QA, reporting 5238 and 5199 ms. Their assertions verified exact Unicode output, one response, and shortcut_result. History showed Success for both. Separate callback control recorded Cancelled during an unestablished external draft change and is excluded from success acceptance.",
             "evidence": "docs/validation.md: Native awaited Shortcut responses — 20 October 2026"
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "785e0548ab98a23c6a0e865e90215b7e8a1534b2e27406581359249f825d2224",
+            "fixture": "scripts/fixtures/engine-native-timeout-actions.json",
+            "result": "Helper zero final callbacks at112976ms; one timeout error at126983ms before the scheduled130s reply. At138811ms helper recorded one successful late native open; result stayed one error through163971ms. Target text retained, no sentinel, one root Error history row. Host and callback limits both120s, so the winning timeout is not isolated.",
+            "evidence": "docs/validation.md: Native callback timeout and late delivery — 20 October 2026"
           }
         ]
       },
@@ -18808,6 +18815,13 @@
             "entryPoint": "Visual QA run URLs with two windows on the same UUID",
             "result": "Window1 selected Alpha; URL returned one success callback selected=Alpha. Activated confirmed Window2 and selected Gamma; second URL returned one success callback selected=Gamma. Both windows displayed Owner:Alpha 🐼 Beta café Owner:Gamma. App Intent same-draft ownership and other capability variants remain pending.",
             "evidence": "docs/validation.md: Native duplicate-window URL owner selection — 20 October 2026"
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "785e0548ab98a23c6a0e865e90215b7e8a1534b2e27406581359249f825d2224",
+            "fixture": "scripts/fixtures/engine-native-timeout-actions.json",
+            "result": "Helper zero final callbacks at112976ms; one timeout error at126983ms before the scheduled130s reply. At138811ms helper recorded one successful late native open; result stayed one error through163971ms. Target text retained, no sentinel, one root Error history row. Host and callback limits both120s, so the winning timeout is not isolated.",
+            "evidence": "docs/validation.md: Native callback timeout and late delivery — 20 October 2026"
           }
         ]
       },

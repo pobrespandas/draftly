@@ -1,0 +1,21 @@
+[
+  {
+    "uuid": "BBBF0003-0000-4000-8000-000000000005",
+    "name": "QA Native callback timeout",
+    "notificationType": 0,
+    "steps": [
+      {
+        "type": "callbackUrl",
+        "data": {
+          "url": "draftly-engine-echo://reply?status=success&delay=130&replyValue=Expired%20timeout%20reply"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "ERROR callback continued after timeout"
+        }
+      }
+    ]
+  }
+]

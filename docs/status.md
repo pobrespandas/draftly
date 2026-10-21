@@ -1324,3 +1324,12 @@ The combined coordinator run passed 48 methods in three suites. This is direct
 evaluator evidence; it does not establish JS property reconstruction, native
 window results, or persistence after restart. Existing property tests remain
 recorded separately, and startDate/endDate stay partial. No window opened.
+
+
+### Native callback timeout acceptance — 20 October 2026
+
+The production 120-second host/callback wait returned one final error before a
+130-second neutral native reply. Late delivery did not run the sentinel,
+change target text, or emit a second result. See validation.md for observation
+times and build identity. Six app and three core focused callback tests passed.
+Permission and capability lifetime checks remain pending; the contract is partial.

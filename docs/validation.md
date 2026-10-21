@@ -5722,3 +5722,37 @@ The combined coordinator run passed 48 methods in three suites. This is direct
 evaluator evidence; it does not establish JS property reconstruction, native
 window results, or persistence after restart. Existing property tests remain
 recorded separately, and startDate/endDate stay partial. No window opened.
+
+
+### Native callback timeout and late delivery — 20 October 2026
+
+Extended only the manual helper's reply-delay cap from 10 to 150 seconds.
+Compiled and replaced its stopped copy, then passed its inventory self-test.
+Added engine-native-timeout-actions.json: a callback step requests a neutral
+reply after 130 seconds, followed by an ERROR insertion sentinel. Production
+callback and host limits remain 120 seconds. No permission or setting changed.
+
+Imported the fixture into Engine QA image
+785e0548ab98a23c6a0e865e90215b7e8a1534b2e27406581359249f825d2224.
+Sent a run URL for scratch UUID A52FA8DB-A020-40D3-AF18-25654E97CCE7.
+Its confirmation showed the expected Shortcut waited step text. The other
+draft So was not edited. Confirmed Run Action and measured observations from
+that click. At 112976 ms, the helper still showed zero final callbacks and a
+pending 130-second reply. At 126983 ms, it showed one error callback with
+The action operation timed out before it completed. The reply was still pending.
+
+At 138811 ms, the helper reported one native reply open, successful, with
+Delay 130 seconds and value Expired timeout reply. The final callback count
+remained one error. At 163971 ms, after checking the draft and history, that
+count was still one. Target text stayed exactly
+Shortcut waited step finished in 5199 ms café 🐼, with no ERROR sentinel.
+History had one new root Error row with the timeout message. Closed History.
+Engine QA still has 10 drafts; no action or reply timer remains pending.
+
+This proves final timeout, stopped subsequent steps, and ignored late native
+reply for the combined host/callback path at production limits. Both limits
+are 120 seconds; the observation does not establish which timeout won the race
+or the precise app-handler delivery timestamp. It does not accept all native
+permission or capability lifetimes. Focused ActionCallbackRouterTests passed
+6 app methods and CallbackResponseContractTests passed 3 core methods. These use
+injected URL openers and do not control visible windows. No screenshot is tracked.
