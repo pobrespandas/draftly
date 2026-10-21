@@ -15275,10 +15275,52 @@
             "new ShellScript(script: string): ShellScript"
           ],
           "contract": "Create new instance.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "ShellScriptContractTests",
+            "test": "constructorsCreateIndependentRunnersWithUndefinedStreams"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "ShellScript.constructor"
+          },
+          "defaults": "The script argument is required; no default script or invalid-input coercion is documented.",
+          "result": "A distinct ShellScript instance. Construction retains its source and does not run it.",
+          "errors": "No error outcome is documented for this construction member.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ShellScriptContractTests",
+                "test": "constructorsCreateIndependentRunnersWithUndefinedStreams"
+              },
+              "assertion": "Both runners create independent typed instances without calling the host; execution later forwards each exact source."
+            },
+            "defaults": {
+              "notApplicable": "The reference defines no default script argument."
+            },
+            "errors": {
+              "notApplicable": "The reference defines no construction error."
+            }
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "Constructing this JavaScript value does not invoke a native capability."
+          },
+          "limitations": [],
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: ShellScript member contracts and failure results — 21 October 2026"
+          },
+          "supportingTests": [
+            {
+              "suite": "ShellScriptContractTests",
+              "test": "executePreservesSourceAndLiteralArgumentsAndReturnsStatusBoolean"
+            }
+          ]
         },
         {
           "member": "standardError",
@@ -15290,10 +15332,53 @@
             "standardError?: string"
           ],
           "contract": "Content sent to standard error during the execution of the script",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "ShellScriptContractTests",
+            "test": "optionalStreamsContainTheLatestExecutionOutputWithoutCrossingInstances"
+          },
+          "liveCheck": "docs/validation.md: ShellScript member contracts and failure results — 21 October 2026",
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "ShellScript.standardError"
+          },
+          "defaults": "The property is optional. Draftly leaves it undefined before execution; the reference specifies no initial string.",
+          "result": "The latest text sent to stderr. Text, Unicode and line endings remain exact. Empty output replaces prior output. Properties are writable and independent across instances.",
+          "errors": "No separate read/write error is documented. Execution owns process and host errors.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ShellScriptContractTests",
+                "test": "optionalStreamsContainTheLatestExecutionOutputWithoutCrossingInstances"
+              },
+              "assertion": "Both runners retain exact Unicode/newline text, writable values, empty and repeated output, nonzero stderr and independent instance streams."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ShellScriptContractTests",
+                "test": "constructorsCreateIndependentRunnersWithUndefinedStreams"
+              },
+              "assertion": "Optional streams are undefined before execution; this does not invent a default string."
+            },
+            "errors": {
+              "notApplicable": "The reference defines no error outcome for reading or writing this optional stream property."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: ShellScript member contracts and failure results — 21 October 2026",
+            "scope": "Native nonzero exit returned exact stdout/stderr, including Unicode/newlines. Final-image strict JavaScript equality passed. The normal shell recovery action also completed successfully."
+          },
+          "limitations": [],
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: ShellScript member contracts and failure results — 21 October 2026"
+          },
+          "supportingTests": []
         },
         {
           "member": "standardOutput",
@@ -15305,10 +15390,53 @@
             "standardOutput?: string"
           ],
           "contract": "Content sent to standard output during the execution of the script",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "ShellScriptContractTests",
+            "test": "optionalStreamsContainTheLatestExecutionOutputWithoutCrossingInstances"
+          },
+          "liveCheck": "docs/validation.md: ShellScript member contracts and failure results — 21 October 2026",
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "ShellScript.standardOutput"
+          },
+          "defaults": "The property is optional. Draftly leaves it undefined before execution; the reference specifies no initial string.",
+          "result": "The latest text sent to stdout. Text, Unicode and line endings remain exact. Empty output replaces prior output. Properties are writable and independent across instances.",
+          "errors": "No separate read/write error is documented. Execution owns process and host errors.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ShellScriptContractTests",
+                "test": "optionalStreamsContainTheLatestExecutionOutputWithoutCrossingInstances"
+              },
+              "assertion": "Both runners retain exact Unicode/newline text, writable values, empty and repeated output, nonzero stderr and independent instance streams."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ShellScriptContractTests",
+                "test": "constructorsCreateIndependentRunnersWithUndefinedStreams"
+              },
+              "assertion": "Optional streams are undefined before execution; this does not invent a default string."
+            },
+            "errors": {
+              "notApplicable": "The reference defines no error outcome for reading or writing this optional stream property."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: ShellScript member contracts and failure results — 21 October 2026",
+            "scope": "Native nonzero exit returned exact stdout/stderr, including Unicode/newlines. Final-image strict JavaScript equality passed. The normal shell recovery action also completed successfully."
+          },
+          "limitations": [],
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: ShellScript member contracts and failure results — 21 October 2026"
+          },
+          "supportingTests": []
         },
         {
           "member": "execute",
@@ -15320,10 +15448,72 @@
             "execute(arguments: string[]): boolean"
           ],
           "contract": "Executes the shell script.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "ShellScriptContractTests",
+            "test": "executePreservesSourceAndLiteralArgumentsAndReturnsStatusBoolean"
+          },
+          "liveCheck": "docs/validation.md: ShellScript member contracts and failure results — 21 October 2026",
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "ShellScript.execute"
+          },
+          "defaults": "The reference requires an argument array. Draftly retains its existing omitted-array extension ([]), and supplies /bin/sh when the source has no shebang.",
+          "result": "true for status zero; false for nonzero status or ordinary execution/launch failure. Native arguments preserve UTF-8 bytes, including distinct Unicode compositions. Repeated execution replaces captured streams.",
+          "errors": "Ordinary host failures return false. Typed action cancellation/timeout still aborts execution; they cannot become false followed by success effects. NUL in a native argument is rejected. Legacy termination reports keep their existing generic error classification.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ShellScriptContractTests",
+                "test": "executePreservesSourceAndLiteralArgumentsAndReturnsStatusBoolean"
+              },
+              "assertion": "Both runners forward exact source/literal argument arrays and map zero/nonzero status to Boolean without changing the arguments."
+            },
+            "defaults": {
+              "notApplicable": "Arguments are required by the reference. Omitted arguments remain a documented Draftly extension."
+            },
+            "errors": {
+              "test": {
+                "suite": "ShellScriptContractTests",
+                "test": "ordinaryExecutionFailureReturnsFalseInsteadOfThrowing"
+              },
+              "assertion": "An ordinary host execution error returns false in both runners. No stream semantics after launch failure are invented."
+            }
+          },
+          "nativeVerification": {
+            "status": "pending",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: ShellScript member contracts and failure results — 21 October 2026",
+            "scope": "Native status seven and missing interpreter returned false, exact streams and final-image task cancellation/recovery passed. The reference Application Scripts location and first-use access contract remain unresolved."
+          },
+          "limitations": [
+            "Drafts documents its Application Scripts directory and first-use access grant. Draftly executes private temporary scripts; that location/permission contract remains a difference. QA is not sandboxed. Native permission-denied variants are not accepted. Omitted arguments and automatic /bin/sh are retained extensions; invalid input coercion and nontext output decoding are not specified by the reference. Legacy synchronous adapters retain generic interruption report reasons."
+          ],
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: ShellScript member contracts and failure results — 21 October 2026"
+          },
+          "supportingTests": [
+            {
+              "suite": "ShellScriptContractTests",
+              "test": "uncaughtControlErrorsNeverBecomeAnExecutionBoolean"
+            },
+            {
+              "suite": "ShellScriptContractTests",
+              "test": "catchingShellInterruptionCannotRunLaterEffects"
+            },
+            {
+              "suite": "NativeProcessExecutorTests",
+              "test": "shellPreservesLiteralArgumentsStatusAndBothStreams"
+            },
+            {
+              "suite": "NativeProcessExecutorTests",
+              "test": "shellRejectsNULInsteadOfTruncatingAnArgument"
+            }
+          ]
         },
         {
           "member": "create",
@@ -15335,10 +15525,52 @@
             "create(script: string): ShellScript"
           ],
           "contract": "Convenience method to create a ShellScript object.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "ShellScriptContractTests",
+            "test": "constructorsCreateIndependentRunnersWithUndefinedStreams"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "ShellScript.create"
+          },
+          "defaults": "The script argument is required; no default script or invalid-input coercion is documented.",
+          "result": "A distinct ShellScript instance. Construction retains its source and does not run it.",
+          "errors": "No error outcome is documented for this construction member.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ShellScriptContractTests",
+                "test": "constructorsCreateIndependentRunnersWithUndefinedStreams"
+              },
+              "assertion": "Both runners create independent typed instances without calling the host; execution later forwards each exact source."
+            },
+            "defaults": {
+              "notApplicable": "The reference defines no default script argument."
+            },
+            "errors": {
+              "notApplicable": "The reference defines no construction error."
+            }
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "Constructing this JavaScript value does not invoke a native capability."
+          },
+          "limitations": [],
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: ShellScript member contracts and failure results — 21 October 2026"
+          },
+          "supportingTests": [
+            {
+              "suite": "ShellScriptContractTests",
+              "test": "executePreservesSourceAndLiteralArgumentsAndReturnsStatusBoolean"
+            }
+          ]
         }
       ]
     },

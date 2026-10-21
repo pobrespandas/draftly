@@ -25,6 +25,12 @@ retain historical results. Later results supersede earlier counts.
 
 ## Current verification
 
+ShellScript now returns false for ordinary execution failures while retaining
+fatal cancellation/timeout. Six member-specific methods passed in both runners,
+and native status/streams/launch-failure checks passed. Four value/stream members
+are complete; execute remains partial for its scripts-directory/access contract.
+Final regression passed 496 app and 586 core methods and the unsigned build.
+
 Shell arguments now retain their exact Unicode composition in both native
 adapters. Byte-level tests exposed and fixed the Foundation argument conversion.
 Native nonzero status/streams and process-group cancellation passed after the fix.

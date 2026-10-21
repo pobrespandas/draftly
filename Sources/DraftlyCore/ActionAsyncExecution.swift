@@ -162,6 +162,9 @@ import Foundation
             if let interruption = error as? ActionExecutionInterruption {
                 return (try? json(["error": error.localizedDescription, "termination": interruption == .timeout ? "timeout" : "cancelled"])) ?? "{}"
             }
+            if error is CancellationError {
+                return (try? json(["error": error.localizedDescription, "termination": "cancelled"])) ?? "{}"
+            }
             return (try? json(["error": error.localizedDescription])) ?? "{\"error\":\"The action failed.\"}"
         }
     }

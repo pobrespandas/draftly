@@ -7524,14 +7524,14 @@ After correction, it generated an actual one-page PDF with print/progress panels
 disabled. PDFKit found the heading, café, emoji and final line. The first text
 assertion assumed font runs had one extraction order; PDFKit extracts the emoji
 run later. The test now checks all source segments on the single page. Existing
-layout tests still check wrapping and final glyph bounds. All15 focused print
+layout tests still check wrapping and final glyph bounds. All 15 focused print
 methods passed. No automatic test opened or moved a window or printer panel.
 
-Verified in use: refreshed all13 QA runtime files after confirming the process
+Verified in use: refreshed all 13 QA runtime files after confirming the process
 was stopped, retained its identity/library and verified development signing.
-The first corrected image saved `/tmp/Draftly Print QA.pdf`, one page,45514 bytes.
+The first corrected image saved `/tmp/Draftly Print QA.pdf`, one page, 45514 bytes.
 The success banner confirmed the following action step ran. The final image
-repeated the complete print to a distinct PDF: one page,45506 bytes, all neutral
+repeated the complete print to a distinct PDF: one page, 45506 bytes, all neutral
 text verified through PDFKit. That second panel used its fixtures location; the
 neutral output was moved to `/tmp/Draftly Print QA current.pdf`. Neither PDF is
 tracked. The original draft stayed unchanged; history recorded Print Success.
@@ -7545,7 +7545,7 @@ The final image, including the independent shell fixes, was
 `e9671565e875cdba2498ccbfabd106159e6834478dc9091b57d0532ab9ad6b10` /
 `f582263651117d2e5523775e4a66b47e8e4ee68e1f0607b7adf6d14fed4952a4`.
 Bundle/library/scheme remain the isolated Theme QA values recorded above.
-Full final regression passed496 app and586 core methods and the unsigned Xcode
+Full final regression passed 496 app and 586 core methods and the unsigned Xcode
 build. Five original action scripts remain unchanged. These counts do not close
 print format/margin variants, native task cancellation, timeout or owner close.
 
@@ -7590,3 +7590,54 @@ private content or external service was used. The earlier120-second native
 timeout/owner-close evidence predates this launcher change. Group behavior has
 headless regression coverage and the repeated native task-cancel case; native
 timeout/owner-close were not repeated on the final launcher image.
+
+
+### ShellScript member contracts and failure results — 21 October 2026
+
+Audited all five ShellScript members against their archived 19 October reference.
+No reference hash or signature changed. Constructor/create are independent typed
+values and do not execute source. Optional stream properties hold the latest
+text, preserve Unicode/newlines, accept assignment, replace old output with empty
+output and remain independent across instances. No undocumented default script,
+invalid-input coercion or post-launch-failure stream result was invented.
+
+Implemented: execute returns false for ordinary host errors, matching its Boolean
+contract. It still returns false for nonzero process status and true for zero.
+Typed interruption metadata now crosses both host transports. ShellScript
+rethrows marked interruption errors. The async transport also preserves raw
+CancellationError as cancelled. Without this last change, the new regression
+showed a cancelled worker continuing to edit text and Archive. The corrected
+regression stops all later effects and success parameters. Legacy native shell
+timeout now retains typed interruption through the bridge rather than becoming
+an ordinary false. Legacy final reports keep their prior generic error reason.
+No message-string matching determines interruption type.
+
+Automatically tested: six methods cover both runners with source/argument
+forwarding, independent construction, writable streams, repeated/empty/status7
+output, ordinary host failure, uncaught typed/raw cancellation and timeout, and
+caught interruption with blocked later effects. The ordinary-host-error test
+failed before correction. The raw worker CancellationError case also failed
+before its transport fix. Both now pass without weakening their assertions.
+The final full run passed 496 app and 586 core methods; five original scripts were
+unchanged. The unsigned Xcode build passed. The added writable-stream assertions
+also passed the focused member suite afterward.
+
+Verified in use: the final signed image recorded in the print entry ran
+shell-member-actions.json. Status7 returned false with exact Unicode stdout and
+stderr. The missing-interpreter action returned false and continued to its
+explicit handled-result message. Both kept the editor text. A real task cancel
+then removed the shell and child, retained the completed write without Archive
+or tail, and a following shell action returned Success. The earlier fixture and
+Unicode failures remain recorded in the preceding entry; they are not accepted.
+
+Constructor/create and the two stream members now have member-specific complete
+records. Execute stays partial: the reference uses the Drafts Application Scripts
+directory and first-use access. Draftly uses private temporary scripts and the QA
+build is not sandboxed. Real permission-denied acceptance remains pending.
+Omitted arguments and automatic /bin/sh remain compatible Draftly extensions.
+Successful UTF-8 text tests do not define a contract for binary output decoding.
+No unrelated native route is accepted by these ShellScript checks.
+
+Final tooling passed all 46 Python tests. Matrix structure passed with zero
+errors. Strict engine/global acceptance remains open with 18/4470 diagnostics.
+Member-specific evidence, not these totals, determines compatibility status.

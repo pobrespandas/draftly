@@ -31,7 +31,13 @@ final class ActionScriptRuntime {
                 let data = try JSONSerialization.data(withJSONObject: ["value": result ?? NSNull()], options: [.fragmentsAllowed])
                 return String(decoding: data, as: UTF8.self)
             } catch {
-                let data = try! JSONSerialization.data(withJSONObject: ["error": error.localizedDescription])
+                var response: [String: Any] = ["error": error.localizedDescription]
+                if let interruption = error as? ActionExecutionInterruption {
+                    response["termination"] = interruption == .timeout ? "timeout" : "cancelled"
+                } else if error is CancellationError {
+                    response["termination"] = "cancelled"
+                }
+                let data = try! JSONSerialization.data(withJSONObject: response)
                 return String(decoding: data, as: UTF8.self)
             }
         }

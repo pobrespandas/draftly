@@ -63,7 +63,7 @@ struct NativeAutomationAdapter {
         process.standardOutput = output; process.standardError = errors; try process.run()
         let deadline = Date().addingTimeInterval(120)
         while process.isRunning && Date() < deadline { RunLoop.current.run(until: Date().addingTimeInterval(0.01)) }
-        if process.isRunning { process.terminate(); throw DraftlyError.message("The shell script exceeded 120 seconds.") }
+        if process.isRunning { process.terminate(); throw ActionExecutionInterruption.timeout }
         return ["status": Int(process.terminationStatus), "stdout": (try? String(contentsOf: out, encoding: .utf8)) ?? "", "stderr": (try? String(contentsOf: err, encoding: .utf8)) ?? ""]
     }
     func executeShellAsync(_ values: [String: Any], timeout: TimeInterval = 120) async throws -> [String: Any] {

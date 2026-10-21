@@ -2,7 +2,11 @@
 var __cancelled = false, __failure = null, __completed = false, __tags = Object.create(null), __draftCache = Object.create(null);
 function __call(op, value) {
     var result = JSON.parse(__host(op, JSON.stringify(value === undefined ? {} : value)));
-    if (result.error) throw new Error(result.error);
+    if (result.error) {
+        const error = new Error(result.error);
+        if (result.termination) error.__draftlyTermination = result.termination;
+        throw error;
+    }
     return result.value;
 }
 function __date(value) { return value == null ? undefined : new Date(value); }
@@ -355,7 +359,7 @@ class AppleScript {
 }
 class ShellScript {
     constructor(source){this.source=source;}static create(source){return new ShellScript(source);}
-    execute(args=[]){let r=__call('shellScript',{source:this.source,arguments:args});this.standardOutput=r.stdout;this.standardError=r.stderr;return r.status===0;}
+    execute(args=[]){try{let r=__call('shellScript',{source:this.source,arguments:args});this.standardOutput=r.stdout;this.standardError=r.stderr;return r.status===0;}catch(error){if(error.__draftlyTermination)throw error;return false;}}
 }
 class HTML {static escape(text){return String(text).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}static unescape(text){return __call('htmlUnescape',{text});}}
 class HTMLPreview {
