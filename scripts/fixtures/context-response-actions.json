@@ -1,0 +1,91 @@
+[
+  {
+    "uuid": "BBBF0019-0000-4000-8000-000000000001",
+    "name": "QA Context preview script",
+    "groupName": "Context QA",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "if(Object.keys(context.previewValues).length!==0||context.appleScriptResponses.length!==0)throw new Error('Context not fresh');const p=HTMLPreview.create();if(!p.show(\"<!doctype html><html><body><h1>Context values QA</h1><button onclick=\\\"Drafts.send('text','replaced');Drafts.send('text','café 🐼');Drafts.send('empty',null);Drafts.send('nested',{items:[false,3.5,'café']});Drafts.continue()\\\">Send typed context values</button></body></html>\"))context.cancel();const v=context.previewValues;if(Object.keys(v).length!==3||v.text!=='café 🐼'||v.empty!==null||!Array.isArray(v.nested.items)||v.nested.items[0]!==false||v.nested.items[1]!==3.5||v.nested.items[2]!=='café')throw new Error('Preview context types');editor.setText('Context preview script passed café 🐼');"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0019-0000-4000-8000-000000000002",
+    "name": "QA Context preview step",
+    "groupName": "Context QA",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "if(Object.keys(context.previewValues).length!==0||context.appleScriptResponses.length!==0)throw new Error('Context not fresh');"
+        }
+      },
+      {
+        "type": "htmlpreview",
+        "data": {
+          "template": "<!doctype html><html><body><h1>Context values QA</h1><button onclick=\"Drafts.send('text','replaced');Drafts.send('text','café 🐼');Drafts.send('empty',null);Drafts.send('nested',{items:[false,3.5,'café']});Drafts.continue()\">Send typed context values</button></body></html>",
+          "hideInterface": "true"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "const v=context.previewValues;if(Object.keys(v).length!==3||v.text!=='café 🐼'||v.empty!==null||!Array.isArray(v.nested.items)||v.nested.items[0]!==false||v.nested.items[1]!==3.5||v.nested.items[2]!=='café')throw new Error('Preview context types');editor.setText('Context preview step passed café 🐼');"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0019-0000-4000-8000-000000000003",
+    "name": "QA Context AppleScript values",
+    "groupName": "Context QA",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "if(Object.keys(context.previewValues).length!==0||context.appleScriptResponses.length!==0)throw new Error('Context not fresh');"
+        }
+      },
+      {
+        "type": "runAppleScript",
+        "data": {
+          "script": "on execute(d)\nreturn {|label|:\"café 🐼\", |enabled|:false, |count|:3.5}\nend execute"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "const a=AppleScript.create(\"on execute()\\nreturn {\\\"café 🐼\\\", false, 3.5}\\nend execute\");if(!a.execute('execute'))throw new Error(a.lastError);"
+        }
+      },
+      {
+        "type": "runAppleScript",
+        "data": {
+          "script": "on execute(d)\nreturn missing value\nend execute"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "const r=context.appleScriptResponses;if(r.length!==3||r[0].label!=='café 🐼'||r[0].enabled!==false||r[0].count!==3.5||!Array.isArray(r[1])||r[1][0]!=='café 🐼'||r[1][1]!==false||r[1][2]!==3.5||r[2]!==null)throw new Error('Native AppleScript context types');{const a=AppleScript.create(\"on execute()\\nerror \\\"Neutral AppleScript failure\\\" number -2700\\nend execute\");if(a.execute('execute')!==false||!a.lastError.includes('Neutral AppleScript failure')||context.appleScriptResponses.length!==3)throw new Error('Failed script invented response');}editor.setText('Context AppleScript values passed café 🐼');"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0019-0000-4000-8000-000000000004",
+    "name": "QA Context fresh execution",
+    "groupName": "Context QA",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "if(Object.keys(context.previewValues).length!==0||context.appleScriptResponses.length!==0)throw new Error('Context not fresh');editor.setText('Context fresh execution passed café 🐼');"
+        }
+      }
+    ]
+  }
+]

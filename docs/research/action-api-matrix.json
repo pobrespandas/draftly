@@ -8263,27 +8263,77 @@
             "appleScriptResponses: { [x: string]: any }"
           ],
           "contract": "If AppleScripts run using the AppleScript object return values, they will be converted to JavaScript object and stored in this array. See AppleScript docs for details.",
-          "implementation": "reviewed-partial",
+          "implementation": "reviewed-complete",
           "automatedTest": {
-            "suite": "ExecutionActionAPITests",
-            "test": "contextConfigurationDefaultsAndAppleScriptResponsesKeepTheirTypes"
+            "suite": "ContextResponseContractTests",
+            "test": "appleScriptResponsesPreserveMixedPathOrderTypesAndReset"
           },
-          "liveCheck": null,
-          "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-19",
+          "liveCheck": "docs/validation.md: Context response contracts and native acceptance — 21 October 2026",
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Context.appleScriptResponses"
           },
-          "defaults": "Empty at the start of execution. Host responses keep execution order.",
-          "result": [
-            "appleScriptResponses: { [x: string]: any }"
+          "defaults": "A fresh execution has an empty array. The description calls this an array although the archived type signature uses an object indexer.",
+          "result": "Returns converted AppleScript values in execution order. Records, lists, booleans, numbers, Unicode text and missing-value null retain their types.",
+          "errors": "AppleScript.execute returns false with lastError on failure and adds no invented response; native step failure stops execution.",
+          "limitations": [],
+          "evidenceLevel": "Member-specific assertions on both engines and separate native context-access verification.",
+          "automatedTestHistory": [
+            {
+              "suite": "ExecutionActionAPITests",
+              "test": "contextConfigurationDefaultsAndAppleScriptResponsesKeepTheirTypes"
+            }
           ],
-          "errors": "Host errors stop the relevant step.",
-          "limitations": [
-            "Not all native response variants and configuration defaults are covered."
-          ],
-          "evidenceLevel": "Member-specific assertions. Native verification is separate."
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ContextResponseContractTests",
+                "test": "appleScriptResponsesPreserveMixedPathOrderTypesAndReset"
+              },
+              "assertion": "Both runners mix step record, script list and step null values, verify order and exact types, then verify an empty array in the next action."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ContextResponseContractTests",
+                "test": "appleScriptResponsesPreserveMixedPathOrderTypesAndReset"
+              },
+              "assertion": "A fresh execution has an empty array. The description calls this an array although the archived type signature uses an object indexer."
+            },
+            "errors": {
+              "test": {
+                "suite": "ContextResponseContractTests",
+                "test": "failedHostCallsDoNotInventContextResponseValues"
+              },
+              "assertion": "AppleScript.execute returns false with lastError on failure and adds no invented response; native step failure stops execution."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Context response contracts and native acceptance — 21 October 2026",
+            "scope": "Both runners mix step record, script list and step null values, verify order and exact types, then verify an empty array in the next action."
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Context response contracts and native acceptance — 21 October 2026",
+            "executableSHA256": "1119f1dab32b157510b34f67380f61c175889fdbcab72478358aa57933c1e00e",
+            "debugImageSHA256": "1b2c4be2bfdc696e100349a4dc21ae022c0ec040459eb71605758f6bdf8655d4",
+            "fixture": "scripts/fixtures/context-response-actions.json",
+            "actions": [
+              "QA Context AppleScript values",
+              "QA Context fresh execution"
+            ],
+            "result": "Native AppleScript step returned a record, script returned a list and another step returned missing value. The checker verified order and types. An intentional caught AppleScript failure added no response. A later action verified reset."
+          },
+          "supportingTests": [
+            {
+              "suite": "ContextResponseContractTests",
+              "test": "failedHostCallsDoNotInventContextResponseValues"
+            }
+          ]
         },
         {
           "member": "callbackResponses",
@@ -8365,27 +8415,67 @@
             "configuredValues: { string: any }"
           ],
           "contract": "If your action contains configurable values defined Configured Value action steps the user's selected values will be available in this object, with keys matching the key property of the Configured Value step.",
-          "implementation": "reviewed-partial",
+          "implementation": "reviewed-complete",
           "automatedTest": {
-            "suite": "ExecutionActionAPITests",
-            "test": "contextConfigurationDefaultsAndAppleScriptResponsesKeepTheirTypes"
+            "suite": "ActionConfigurationDefaultsTests",
+            "test": "runtimePrefersStoredTextThenConvertsOnlyKnownTypes"
           },
-          "liveCheck": null,
-          "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-19",
+          "liveCheck": "docs/validation.md: Context response contracts and native acceptance — 21 October 2026",
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Context.configuredValues"
           },
-          "defaults": "Empty at the start of execution. Host responses keep execution order.",
-          "result": [
-            "configuredValues: { string: any }"
+          "defaults": "Configured Value steps supply saved values or their type-specific defaults before the script. An action with no configured fields has an empty object.",
+          "result": "Keys match configured step keys. String/text, Boolean and numeric fields retain their runtime types. action.configuredValues shares the running context object.",
+          "errors": "The property has no independent error result. Configuration-step validation and included-action collision precedence have separate contracts.",
+          "limitations": [],
+          "evidenceLevel": "Member-specific assertions on both engines and separate native context-access verification.",
+          "automatedTestHistory": [
+            {
+              "suite": "ExecutionActionAPITests",
+              "test": "contextConfigurationDefaultsAndAppleScriptResponsesKeepTheirTypes"
+            }
           ],
-          "errors": "Host errors stop the relevant step.",
-          "limitations": [
-            "Not all native response variants and configuration defaults are covered."
-          ],
-          "evidenceLevel": "Member-specific assertions. Native verification is separate."
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionConfigurationDefaultsTests",
+                "test": "runtimePrefersStoredTextThenConvertsOnlyKnownTypes"
+              },
+              "assertion": "Both runners assert saved overrides, typed defaults, empty strings, false, zero, unknown retained values and shared object identity. Fallback cases characterize current policies; included collisions are not accepted here."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ActionConfigurationDefaultsTests",
+                "test": "runtimePrefersStoredTextThenConvertsOnlyKnownTypes"
+              },
+              "assertion": "Configured Value steps supply saved values or their type-specific defaults before the script. An action with no configured fields has an empty object."
+            },
+            "errors": {
+              "notApplicable": "Reading this data property has no independent error result. Underlying configuration validation and inclusion precedence are separate contracts."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Context response contracts and native acceptance — 21 October 2026",
+            "scope": "Both runners assert saved overrides, typed defaults, empty strings, false, zero, unknown retained values and shared object identity. Fallback cases characterize current policies; included collisions are not accepted here."
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Native typed other-action configuration — 21 October 2026",
+            "executableSHA256": "1119f1dab32b157510b34f67380f61c175889fdbcab72478358aa57933c1e00e",
+            "debugImageSHA256": "1b2c4be2bfdc696e100349a4dc21ae022c0ec040459eb71605758f6bdf8655d4",
+            "fixture": "scripts/fixtures/action-configured-values-actions.json",
+            "actions": [
+              "QA Typed configuration source",
+              "QA Typed configuration lookup"
+            ],
+            "result": "The earlier native typed source and lookup actions verified own running action/context identity and exact Boolean false, number 3.5, Unicode and LF values. This accepts this Context accessor, not included-action precedence."
+          }
         },
         {
           "member": "previewValues",
@@ -8397,27 +8487,78 @@
             "previewValues: { string: any }"
           ],
           "contract": "If HTML Preview makes calls to Drafts.send(key, value) those values are stored in this object by key.",
-          "implementation": "reviewed-partial",
+          "implementation": "reviewed-complete",
           "automatedTest": {
-            "suite": "ExecutionActionAPITests",
-            "test": "callbackAndPreviewResponsesReachLaterSteps"
+            "suite": "ContextResponseContractTests",
+            "test": "previewValuesExposeTypedFieldsAndResetBetweenActions"
           },
-          "liveCheck": null,
-          "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-19",
+          "liveCheck": "docs/validation.md: Context response contracts and native acceptance — 21 October 2026",
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Context.previewValues"
           },
-          "defaults": "Empty at the start of execution. Host responses keep execution order.",
-          "result": [
-            "previewValues: { string: any }"
+          "defaults": "A fresh execution has an empty object. The property has no arguments.",
+          "result": "Values sent by HTML Preview are available by key. Nested objects and arrays retain strings, numbers, booleans and null.",
+          "errors": "A failed preview host request publishes no invented values. Reading the object has no independent error result.",
+          "limitations": [],
+          "evidenceLevel": "Member-specific assertions on both engines and separate native context-access verification.",
+          "automatedTestHistory": [
+            {
+              "suite": "ExecutionActionAPITests",
+              "test": "callbackAndPreviewResponsesReachLaterSteps"
+            }
           ],
-          "errors": "Host errors stop the relevant step.",
-          "limitations": [
-            "Not all native response variants and configuration defaults are covered."
-          ],
-          "evidenceLevel": "Member-specific assertions. Native verification is separate."
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ContextResponseContractTests",
+                "test": "previewValuesExposeTypedFieldsAndResetBetweenActions"
+              },
+              "assertion": "Both runners and script/step paths check an initially empty object, three keys, nested array types and reset in a new action."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ContextResponseContractTests",
+                "test": "previewValuesExposeTypedFieldsAndResetBetweenActions"
+              },
+              "assertion": "A fresh execution has an empty object. The property has no arguments."
+            },
+            "errors": {
+              "test": {
+                "suite": "ContextResponseContractTests",
+                "test": "failedHostCallsDoNotInventContextResponseValues"
+              },
+              "assertion": "A failed preview host request publishes no invented values. Reading the object has no independent error result."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Context response contracts and native acceptance — 21 October 2026",
+            "scope": "Both runners and script/step paths check an initially empty object, three keys, nested array types and reset in a new action."
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Context response contracts and native acceptance — 21 October 2026",
+            "executableSHA256": "1119f1dab32b157510b34f67380f61c175889fdbcab72478358aa57933c1e00e",
+            "debugImageSHA256": "1b2c4be2bfdc696e100349a4dc21ae022c0ec040459eb71605758f6bdf8655d4",
+            "fixture": "scripts/fixtures/context-response-actions.json",
+            "actions": [
+              "QA Context preview script",
+              "QA Context preview step",
+              "QA Context fresh execution"
+            ],
+            "result": "Native HTML script and step fixtures both called Drafts.send for three keys, replaced one key, continued, and verified exact Unicode, null and nested typed values. A later action verified fresh empty context."
+          },
+          "supportingTests": [
+            {
+              "suite": "ContextResponseContractTests",
+              "test": "failedHostCallsDoNotInventContextResponseValues"
+            }
+          ]
         },
         {
           "member": "addSuccessParameter",

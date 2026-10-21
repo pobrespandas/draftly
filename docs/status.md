@@ -1718,3 +1718,17 @@ Actual Latin-1 and UTF-16 loopback requests passed on both scripting runners.
 Malformed XML still fails explicitly. Full regression passed 468 app and 535
 core methods; unsigned Xcode build passed. XML-RPC remains partial for its
 other recorded contracts, including encoding detection without an HTTP charset.
+
+
+### Context data access accepted — 21 October 2026
+
+Specific both-engine tests and actual QA checks now accept previewValues and
+appleScriptResponses. Native HTML checks cover keyed values; native AppleScript
+checks cover mixed path order, record/list/null types and a caught error. A new
+action verifies clean collections. The invalid initial AppleScript fixture and
+successful repeat are recorded separately. No production Context code changed.
+
+The matrix also gives configuredValues its own existing default/type/identity
+and native evidence. Included-action collision precedence remains a partial
+engine contract. callbackResponses and fail remain partial pending their specific
+acceptance; these results do not close Context or the wider Mac scope.

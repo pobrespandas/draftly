@@ -6655,3 +6655,58 @@ passed 468 app and 535 core methods. Unsigned Xcode compilation passed. Context
 acceptance is recorded separately. This fixes the decoded-text boundary; it
 does not close date/binary mapping, complete grammar, XML encoding detection
 without an HTTP charset, invalid inputs or the full XML-RPC contract.
+
+
+### Context response contracts and native acceptance — 21 October 2026
+
+Read the frozen Context reference. Added three specific methods on both engines.
+previewValues starts empty, preserves three keys and nested typed fields through
+script and step paths, and resets in a later execution. appleScriptResponses
+starts empty, preserves mixed step/script order and record/list/null types, and
+resets later. The failure case checks that a failed host call publishes no
+invented values. A failed AppleScript.execute returns false and retains lastError.
+The tests use a narrow fake host; no real native capability or window opens.
+
+Manual verification used the existing Engine QA image. Its launcher hash is
+1119f1dab32b157510b34f67380f61c175889fdbcab72478358aa57933c1e00e and Debug hash is
+1b2c4be2bfdc696e100349a4dc21ae022c0ec040459eb71605758f6bdf8655d4. This image
+predates the HTTP charset changes. Context production code did not change.
+Imported context-response-actions.json through File > Import into the isolated
+library. Kept the existing neutral note selected.
+
+QA Context preview script and QA Context preview step each opened actual HTML.
+Clicked Send typed context values. Drafts.send replaced one key and returned
+Unicode text, null and a nested list containing Boolean false and number 3.5.
+Each checker wrote its expected editor marker. History showed Success at 02:47.
+The first AppleScript fixture failed to compile because a record key used a
+reserved identifier. Quoted the fixture keys, reimported the same identities,
+and repeated it. That fixture error remains in History; it is not a product fix.
+
+QA Context AppleScript values then ran actual neutral AppleScript handlers.
+The step record, script list and step missing value reached context in order.
+The checker also caught an intentional AppleScript error and verified that it
+added no response. The editor showed Context AppleScript values passed café 🐼.
+QA Context fresh execution then checked empty preview and AppleScript collections
+and wrote its fresh marker. Both History rows showed Success at 02:49. Closed
+History. QA retains one window, two neutral notes and no pending action or dialog.
+No Automation permission, third-party app, message, private data or system setting
+was used. No screenshot or raw log is tracked.
+
+This accepts Context.previewValues and Context.appleScriptResponses with their
+specific automatic and native checks. Context.configuredValues also receives
+its own record: the existing runtime default assertions read that exact accessor
+on both engines, and the earlier typed native fixture checked the running
+context and action object identity. Included-action key collision precedence
+remains a separate partial engine contract. Context.callbackResponses and fail
+still need their remaining specific acceptance. No whole Context, engine or Mac
+closure is claimed.
+
+The focused run passed 23 methods across five suites. The full run passed
+468 app and 535 core methods. Unsigned Xcode compilation passed. The tests and
+manual results have different scopes; the totals do not establish parity.
+
+The final full rerun, including the explicit empty configuredValues assertion,
+passed 468 app and 535 core methods. All 41 Python tooling tests passed.
+Matrix structure has zero errors. The strict engine gate retains 18 diagnostics;
+the global gate retains 4,652. None refers to the three Context members accepted
+above. The remaining diagnostics retain their original contract scope.
