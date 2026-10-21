@@ -8,13 +8,21 @@ The current delivery covers the main window, daily flows and personalization.
 Read [the delivery record](ui-flows-2026-10-21.md) for separate implementation,
 automatic, native and pending results. Capture receipt/append, File commands,
 Workspace sort, list preference ownership and shortcut/font fixes are committed.
-The latest measured pass aligns five list titles, row pitch and editor text at
-1200 by 800 points against Drafts. The complete checked run passed 631 core and
-597 app methods. An earlier run failed in two unchanged timing-sensitive engine
-cases; isolated checks and a complete run with QA closed passed. No test deadline
-or retry policy changed. Read the delivery record for this observation and the
-specific visual measurements. Other canonical sizes, Settings controls and the
-complete native matrix remain open. The habitual app is unchanged.
+The measured pass aligns five list titles, row pitch and editor text at
+1200 by 800 points against Drafts. New reference captures at 1033 by 734 and
+850 by 600 points are valid at 2x. Right toolbar alignment is still being refined.
+The latest checked complete run passed 646 Core and 616 app methods. Python: 68.
+Local Debug passed. An initial new Spotlight test found unstable payload order;
+its identity-order correction passed focused and complete checks. Prior engine
+timing fragility remains documented, without retries or deadline changes.
+
+Implemented and tested: Workspace management routing, opt-in Spotlight indexing,
+editor line-height/paragraph spacing and custom Touch Bar support. Specific
+Markdown, HTML and bookmark contracts now have separate tests. Native Workspace
+lifecycle checks passed for the two named QA definitions. Spotlight result
+opening, native Settings persistence and the remaining visual matrix stay open.
+The host has no Touch Bar. Do not treat headless construction as hardware
+acceptance. The habitual app is unchanged by this delivery. Do not install yet.
 The earlier [refactoring record](refactoring-editing-2026-10-21.md) retains the
 four completed extractions and their evidence.
 Historical sections below retain their original scope and dates.
