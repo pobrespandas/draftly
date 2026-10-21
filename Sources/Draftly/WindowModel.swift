@@ -254,6 +254,13 @@ final class WindowModel: ObservableObject {
         }
         else { editor.noteID = nil; editor.content = ""; tagsText = "" }
     }
+    @discardableResult
+    func restoreEditorDraft(_ identifier: String) -> Bool {
+        guard editor.noteID == nil, let id = UUID(uuidString: identifier),
+              library.notes.contains(where: { $0.id == id }) else { return false }
+        select(id, focusEditor: false)
+        return editor.noteID == id
+    }
     func synchronizeStoredEditor(_ notes: [Note]) {
         guard !hasUnsavedChanges, let id = editor.noteID,
               let note = notes.first(where: { $0.id == id }), note.content != editor.content else { return }

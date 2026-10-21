@@ -8417,3 +8417,48 @@ added by this review. Native application and full Workspace closure stay open.
 Final gate recheck:4107 diagnostics after the getter record explicitly retained
 its missing serialization-error case. The preliminary4106 count preceded that
 record correction. Structure remains valid; strict closure remains pending.
+
+
+### Local scene draft references — 21 October 2026
+
+Source review found a gap distinct from system window reopening policy. Unknown
+prior-process scene request IDs were accepted, but LibraryView did not retain a
+per-scene editor identity. It would create an empty draft in a restored model.
+Added a String SceneStorage value for the current draft UUID, with no text or
+shared library data. On appearance, explicit pending targets and existing editor
+state take precedence. A fresh model restores the stored ID only if it exists.
+An invalid or missing ID falls through to the existing startup flow.
+
+Implementation reference: Apple's [SwiftUI state restoration guidance](https://developer.apple.com/documentation/swiftui/restoring-your-app-s-state-with-swiftui)
+describes scene-local storage and leaves persistence timing to the system.
+The [scene restoration modifier](https://developer.apple.com/documentation/swiftui/scene/restorationbehavior(_:))
+controls scene behavior. These are implementation references, not changes to the
+frozen Drafts reference. The app does not promise immediate SceneStorage writes,
+change the system reopening policy or synchronize local scene references.
+
+Automatically tested: four WindowDraftRestorationTests pass headlessly. A saved
+Unicode draft restores with its UTF-16 selection, current selection IDs and an
+access timestamp, without changing modifiedAt, content or revision history.
+Invalid/missing IDs create no draft. Injected access-write failure leaves the
+editor unloaded and permits retry. An existing target with pending text and
+selection is not replaced or saved by a stale restored ID. Checked full runner
+verified623 core and524 app method identities. Unsigned Xcode build passed before
+the fourth test-only addition; production did not change after that build.
+
+Verified in use: refreshed and signed Engine QA after native Quit/absence guard.
+NSServices0. Executable SHA256:
+3316ba606c910e41fbde27da07deee780c4a79562530f320df7890a88d1cb241.
+Debug dylib SHA256:
+c26e3a59aa9942570ee70e2bb8545d57641c0ee20fa12fdffd7c545a767af19c.
+Repeated the existing neutral tab fixture. Three correct titles appeared in one
+group. This is opening regression evidence, not restored-scene evidence.
+
+A native app-menu snapshot exposed Quit and Keep Windows. Later fresh snapshots
+did not expose that alternate. A modifier-only key request was rejected; an
+Option-click menu request failed as offscreen. Option-Command-Q returned without
+terminating the app; exact executable PID inspection and fresh AX confirmed it
+was still running with three tabs. The alternate quit was not completed, so no
+relaunch from that path was attempted or accepted. No system setting was changed,
+no force quit was used and no normal Quit is credited as keep-windows acceptance.
+Closed both target tabs with Command-W. QA ends on Alpha with one tab/five drafts,
+no pending action or dialog. Native full scene restoration remains pending.

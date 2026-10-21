@@ -6,6 +6,7 @@ struct LibraryView: View {
     @StateObject private var model: WindowModel
     @ObservedObject private var hub: AppController
     private let requestID: UUID?
+    @SceneStorage("draftly.scene.editorDraftID") private var restoredDraftID = ""
     @State private var showTagSearch = false
     @AppStorage("editor.fontName") private var fontName = "System"
     @AppStorage("editor.fontSize") private var fontSize = 17.0
@@ -71,6 +72,7 @@ struct LibraryView: View {
         }
         .onChange(of: model.selectedDraftIDs) { _, ids in if ids.count == 1 { model.select(ids.first, focusEditor: false) } }
         .onChange(of: model.editor.noteID) { _, id in
+            restoredDraftID = id?.uuidString ?? ""
             hub.draftSelectionDidChange(id, for: model)
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.willResignActiveNotification)) { _ in model.applicationResigned() }
@@ -100,6 +102,7 @@ struct LibraryView: View {
             if !hub.hasDraftSceneRequest(requestID) {
                 hub.consumePendingMenuAction(for: model)
                 _ = hub.consumePendingDraft(for: model)
+                if model.editor.noteID == nil { model.restoreEditorDraft(restoredDraftID) }
                 if hub.pendingNoteID == nil && model.editor.noteID == nil { model.create() }
             }
         }

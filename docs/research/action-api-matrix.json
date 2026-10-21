@@ -11505,7 +11505,7 @@
           "evidenceLevel": "Request-registry, worker, model adapter and native sequential-target checks are separate. No claim of exhaustive window parity.",
           "limitations": [
             "Native deliberately slow scene creation, cancellation/timeout during creation, source close during creation and simultaneous cross-window opens remain pending.",
-            "Typed-scene restoration compatibility is implemented for unknown prior-process request IDs but has not received a native restart acceptance check.",
+            "Prior-process scene IDs and local draft references have headless restoration guards. Native restored-scene acceptance remains pending; ordinary Quit reopened Untitled and the alternate keep-windows action was not executed reliably.",
             "Native legacy-runner opening and capability-specific URL/App Intent variants remain pending."
           ],
           "contractCases": {
@@ -11552,7 +11552,33 @@
               "suite": "AsyncWindowOpeningTests",
               "test": "missingAsyncHookKeepsTheLegacyBooleanAdapter"
             }
-          ]
+          ],
+          "sceneRestorationEvidence": {
+            "date": "2026-10-21",
+            "implementation": "LibraryView stores only its current draft UUID in local SceneStorage. On a scene without an active opening request, a fresh model can restore that draft. Existing targets and pending edits take precedence. This does not force system window reopening.",
+            "automatedTests": [
+              {
+                "suite": "WindowDraftRestorationTests",
+                "test": "storedIdentityLoadsTheDraftAndItsUTF16SelectionWithoutChangingContentHistory"
+              },
+              {
+                "suite": "WindowDraftRestorationTests",
+                "test": "invalidOrMissingIdentityDoesNotCreateOrReplaceADraft"
+              },
+              {
+                "suite": "WindowDraftRestorationTests",
+                "test": "accessWriteFailureLeavesTheEditorUnloadedAndAllowsARetry"
+              },
+              {
+                "suite": "WindowDraftRestorationTests",
+                "test": "aRestoredIdentityCannotOverwriteAnAlreadyChosenTargetOrPendingEdits"
+              }
+            ],
+            "nativeVerification": {
+              "status": "pending",
+              "result": "Updated image opens sequential tabs successfully. Native Quit and Keep Windows was observed in one menu snapshot but could not be reliably executed by Computer Use. Option-Command-Q did not terminate the verified process. No restored scene acceptance."
+            }
+          }
         },
         {
           "member": "showActionList",

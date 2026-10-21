@@ -100,3 +100,8 @@ registry, adapter and worker tests are headless. Pending native checks: slow sce
 creation, pending origin close, cancellation/timeout during creation, concurrent
 opens, restored scene IDs and URL/Intent variants. Legacy synchronous opening is
 separate. See validation.md, Correlated native tab opening.
+
+Local scene reference update: LibraryView now stores a draft UUID per scene.
+Four headless restore guards pass. This does not accept native restoration.
+The keep-windows alternative could not be reliably executed by Computer Use;
+ordinary Quit observations remain separate. No OS reopening preference changed.

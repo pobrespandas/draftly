@@ -11,6 +11,26 @@ sections below retain their original scope and dates.
 Keep the identity Draftly, `Note`, existing identities and libraries, original
 action scripts, Nerd Fonts, and the integrated Markdown preview.
 
+## Latest correction — local scene draft reference, 21 October 2026
+
+Implemented: each LibraryView stores its current draft UUID in local SceneStorage.
+A restored scene can load that draft before creating an empty draft. An explicit
+opening target or existing editor wins. Missing IDs are ignored. This state is
+local UI data; library and backup formats do not change. The app does not force
+macOS to reopen windows.
+
+Automatically tested: four headless tests cover saved identity, UTF-16 selection,
+unchanged content history, invalid/missing IDs, access-write failure/retry and
+existing target/pending-edit preservation. Checked runner verified 623 core and
+524 app methods. Unsigned Xcode build passed. Matrix structure remains valid.
+
+Verified in use: refreshed QA and repeated sequential tab success. Native full
+restoration remains pending. One menu snapshot exposed Quit and Keep Windows,
+but Computer Use could not reliably invoke it. Option-Command-Q did not terminate
+the verified process. No system preferences changed and no force quit was used.
+Closed test tabs; Alpha remains open with five unchanged drafts. Continue other
+Window/native contracts while retaining this acceptance gap.
+
 ## Latest access audit — Window Workspaces, 21 October 2026
 
 Implemented: no additional production change. The exact Window getter and apply
