@@ -4,8 +4,8 @@ import DraftlyCore
 import UniformTypeIdentifiers
 
 enum EditorTextLayout {
-    static let horizontalMargin = 5.0
-    static let verticalMargin = 19.0
+    static let horizontalMargin = 6.0
+    static let verticalMargin = 26.0
     static func inset(width: CGFloat, margin: CGFloat, maximumWidth: CGFloat) -> CGFloat {
         max(margin, maximumWidth > 0 ? (width - maximumWidth) / 2 : margin)
     }

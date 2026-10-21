@@ -72,7 +72,7 @@ struct DraftListPanel: View {
                     .font(.system(size: 22, weight: .regular)).lineLimit(1)
                 Spacer()
             }
-                .padding(.horizontal, 16).frame(height: 38)
+                .padding(.horizontal, 16).frame(height: MainWindowStyle.listTitleHeight)
             FolderControl(folder: $model.folder).frame(height: 28).padding(.horizontal, 10).padding(.bottom, 8).offset(y: MainWindowStyle.listControlOffset)
             HStack {
                 Text("\(model.visibleNotes.count) " + (model.visibleNotes.count == 1 ? "draft" : "drafts"))
@@ -251,8 +251,8 @@ private final class DraftHostingCell: NSTableCellView {
         host.translatesAutoresizingMaskIntoConstraints = false
         addSubview(host)
         NSLayoutConstraint.activate([
-            host.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 6),
-            host.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            host.leadingAnchor.constraint(equalTo: leadingAnchor, constant: DraftRowPresentation.contentLeadingInset),
+            host.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -DraftRowPresentation.contentTrailingInset),
             host.topAnchor.constraint(equalTo: topAnchor, constant: DraftRowPresentation.verticalInset),
             host.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -DraftRowPresentation.bottomInset)
         ])
@@ -279,11 +279,11 @@ struct DraftTableRow: View {
         VStack(alignment: .leading, spacing: DraftRowPresentation.contentSpacing) {
             HStack(spacing: 5) {
                 Text(title).font(Font(DraftRowPresentation.titleFont)).foregroundStyle(primaryText).lineLimit(1)
-                Spacer(minLength: 3)
-                if note.flag > 0 { Image(systemName: "flag.fill").font(.system(size: 9)).foregroundStyle(emphasized ? .white : flagColor(note.flag)) }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                if note.flag > 0 { Image(systemName: "flag.fill").font(.system(size: DraftRowPresentation.flagSize)).foregroundStyle(emphasized ? .white : flagColor(note.flag)) }
             }.frame(height: DraftRowPresentation.titleHeight)
             if showPreview && !previewText.isEmpty {
-                Text(previewText).font(Font(DraftRowPresentation.previewFont(query: query))).foregroundStyle(secondaryText).lineLimit(min(3, max(1, previewLines))).fixedSize(horizontal: false, vertical: true)
+                Text(previewText).font(Font(DraftRowPresentation.previewFont(query: query))).foregroundStyle(secondaryText).lineLimit(min(3, max(1, previewLines))).allowsTightening(true).fixedSize(horizontal: false, vertical: true)
             }
             if showTags && !note.tags.isEmpty {
                 HStack(spacing: 4) {

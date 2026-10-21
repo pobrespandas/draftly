@@ -8,14 +8,13 @@ The current delivery covers the main window, daily flows and personalization.
 Read [the delivery record](ui-flows-2026-10-21.md) for separate implementation,
 automatic, native and pending results. Capture receipt/append, File commands,
 Workspace sort, list preference ownership and shortcut/font fixes are committed.
-The final checked run passed 631 core / 596 app methods. All 67 Python tests,
-local compilation and matrix structure passed. Native QA confirmed capture
-restart, Services, Workspace view order, Merge cancellation, and restored panel
-widths after a narrow/wide transition. HTML list-mark persistence has its own
-paste, Unicode and Undo regression. These results do not accept all contracts.
-The installed signed app remains unchanged. Canonical visual pairs, missing
-Settings controls and complete native acceptance remain open. Read the finite
-remaining list in the delivery record before installing or claiming closure.
+The latest measured pass aligns five list titles, row pitch and editor text at
+1200 by 800 points against Drafts. The complete checked run passed 631 core and
+597 app methods. An earlier run failed in two unchanged timing-sensitive engine
+cases; isolated checks and a complete run with QA closed passed. No test deadline
+or retry policy changed. Read the delivery record for this observation and the
+specific visual measurements. Other canonical sizes, Settings controls and the
+complete native matrix remain open. The habitual app is unchanged.
 The earlier [refactoring record](refactoring-editing-2026-10-21.md) retains the
 four completed extractions and their evidence.
 Historical sections below retain their original scope and dates.

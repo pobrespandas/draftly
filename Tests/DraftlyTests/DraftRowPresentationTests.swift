@@ -70,9 +70,12 @@ struct DraftRowPresentationTests {
         #expect(DraftRowPresentation.preview(note, query: "missing") == DraftRowPresentation.preview(note))
     }
     @Test func twoLineRowsMatchTheMeasuredReferencePitch() {
-        let note = Note(content: "Title\n" + String(repeating: "Preview text ", count: 50))
+        var note = Note(content: "Title\n" + String(repeating: "Preview text ", count: 50))
         #expect(DraftRowPresentation.height(note: note, width: 236, showPreview: true, previewLines: 2,
-                                           showTags: false, showDate: true, lastAction: false) == 81)
+                                           showTags: false, showDate: true, lastAction: false) == 84)
+        note.tags = ["visual-qa-20261021"]
+        #expect(DraftRowPresentation.height(note: note, width: 236, showPreview: true, previewLines: 2,
+                                           showTags: true, showDate: true, lastAction: false) == 105)
     }
 
     @Test func titleUsesTheMeasuredSemiboldReferenceFont() throws {
@@ -90,9 +93,9 @@ struct DraftRowPresentationTests {
                                         showTags: tags, showDate: date, lastAction: false)
         }
         #expect(height() == DraftRowPresentation.titleHeight + DraftRowPresentation.verticalInset + DraftRowPresentation.bottomInset)
-        #expect(height(date: true) - height() == 17)
+        #expect(height(date: true) - height() == 20)
         #expect(height(tags: true) - height() == 21)
-        #expect(height(tags: true, date: true) == height(tags: true) + 17)
+        #expect(height(tags: true, date: true) == height(tags: true) + 20)
     }
 
     @Test func dateUsesRelativeLabelsAndRegionalFormatting() {

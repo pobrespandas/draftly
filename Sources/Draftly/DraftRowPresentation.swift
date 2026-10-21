@@ -4,19 +4,22 @@ import DraftlyCore
 struct DraftRowPresentation {
     static let verticalInset: CGFloat = 7
     static let bottomInset: CGFloat = 6
+    static let contentLeadingInset: CGFloat = 6
+    static let contentTrailingInset: CGFloat = 10
     static let contentSpacing: CGFloat = 2
     static let titleHeight: CGFloat = 17
     static let tagHeight: CGFloat = 14
     static let tagTopInset: CGFloat = 5
     static let dateHeight: CGFloat = 13
-    static let dateTopInset: CGFloat = 2
+    static let dateTopInset: CGFloat = 5
     static let dateBaselineOffset: CGFloat = 2
     static let titleSize: CGFloat = 15
     static let titleWeight: NSFont.Weight = .semibold
     static let previewSize: CGFloat = 13
     static let previewLineHeight: CGFloat = 16
-    static let tagSize: CGFloat = 10
+    static let tagSize: CGFloat = 11
     static let dateSize: CGFloat = 11
+    static let flagSize: CGFloat = 13
 
     static var titleFont: NSFont { .systemFont(ofSize: titleSize, weight: titleWeight) }
     static var tagFont: NSFont { .systemFont(ofSize: tagSize) }

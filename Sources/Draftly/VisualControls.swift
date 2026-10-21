@@ -322,6 +322,7 @@ enum MainWindowStyle {
     static let utilityInset: CGFloat = 9
     static let utilityLeadingSpacing: CGFloat = 12
     static let utilityTrailingSpacing: CGFloat = 6
+    static let listTitleHeight: CGFloat = 39
     static let listSearchOffset: CGFloat = -2
     static let listControlOffset: CGFloat = 2
     static let tagsHeadingOffset: CGFloat = -2
