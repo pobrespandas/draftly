@@ -6893,7 +6893,7 @@
             "test": "emptyAndPopulatedGroupLinksPreserveRecordsAndInstallAtomically"
           },
           "liveCheck": null,
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "reviewDate": "2026-10-21",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/ActionAPI.swift",
@@ -6902,10 +6902,8 @@
           "defaults": "Queries return an empty list or undefined for missing records. Factory defaults still need an exhaustive assertion set.",
           "result": "A stable draftly://action link carries the group record plus ordered member actions. Installation preserves an empty group and its name, ID, symbol and order.",
           "errors": "Storage failures throw; missing lookups return undefined.",
-          "limitations": [
-            "Empty and populated group links now preserve the group record and actions. Automatic round-trip, rollback, readonly and legacy link checks pass; native URL and import-preview acceptance with the new binary remain pending."
-          ],
-          "evidenceLevel": "Member-specific assertions. Native verification is separate.",
+          "limitations": [],
+          "evidenceLevel": "Specific both-runner round-trip tests and native empty-group URL/review installation passed.",
           "automatedVerification": {
             "status": "passed",
             "date": "2026-10-21",
@@ -6913,8 +6911,12 @@
             "scope": "Both runners; empty/populated Unicode groups, record and action preservation, readonly and stable link, rollback and legacy action adapter. URL router covers base64 and excludes unrelated backup data."
           },
           "nativeVerification": {
-            "status": "pending",
-            "reason": "New group envelope, empty-group preview and native installation require the updated binary."
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Native empty-group installation — 21 October 2026",
+            "fixture": "scripts/fixtures/action-group-installation-actions.json; scripts/fixtures/action-group-installation-envelope.json",
+            "executableSHA256": "421225aab7bac23d331dada17f03f26047ec1cf8b1b46253f04105d7ef7c0c15",
+            "scope": "Installed a neutral empty group by URL into Visual QA. The script checked its UUID, name, symbol, order, empty membership, envelope and stable URL. Loaded the generated URL in the review dialog, saved it and repeated the checks with History Success."
           },
           "contractCases": {
             "normal": {

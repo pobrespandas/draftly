@@ -1531,3 +1531,32 @@ binary. Visual QA still uses the earlier collision-verification build. Next:
 update that isolated bundle, import a neutral empty group, obtain its link,
 and verify URL installation and the review dialog. The complete Mac roadmap
 remains active.
+
+
+### Native empty-group installation — 21 October 2026
+
+Updated the isolated Visual QA bundle from the successful build. Executable
+SHA256: 421225aab7bac23d331dada17f03f26047ec1cf8b1b46253f04105d7ef7c0c15.
+The QA helper targeted the exact Visual QA bundle. Opened a neutral action URL
+with the tracked action-group-installation-envelope.json payload. This created
+QA Empty café 🐼 with ID BBBF0003-0000-4000-8000-000000000011, symbol
+folder.fill and order 7. No actions were included in that group.
+
+Imported action-group-installation-actions.json through File > Import. Ran
+QA Empty group link against the existing neutral note. It checked the installed
+group, empty membership, exported record, exact fields and stable link. The
+editor displayed Empty group link passed café 🐼 and the generated URL.
+
+Loaded that observed URL through Actions > Import from Directory. The review
+displayed Group: QA Empty café 🐼 with an empty list and an enabled save
+button. Saved it, ran the checker again, and verified two Success records in
+History. Closed History. No permission changed. QA retains one neutral note,
+its update-qa tag and flag. No screenshot or raw log is tracked.
+
+This completes ActionGroup.installURL with the existing automatic populated
+group, rollback and legacy-link cases. The fixture envelope is neutral input,
+not a user backup. Replay it as URL data, import the checker, and run the action.
+All ActionGroup members now have recorded acceptance; this does not close
+Actions, the engine, other APIs, inspector, sync or the Mac roadmap. Next:
+review Action.installURL and find with specific boundary cases, then resume
+the remaining configuredValues/recent and engine acceptance work.

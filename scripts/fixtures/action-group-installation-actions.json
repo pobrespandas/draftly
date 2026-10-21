@@ -1,0 +1,16 @@
+[
+  {
+    "uuid": "BBBF0003-0000-4000-8000-000000000012",
+    "name": "QA Empty group link",
+    "group": "Native installation QA",
+    "notificationType": 0,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "function check(v,m){if(!v)throw new Error(m);}\nconst g=ActionGroup.find('QA Empty café 🐼');\ncheck(g && g.uuid==='BBBF0003-0000-4000-8000-000000000011' && g.actions.length===0,'empty installed group');\nconst url=g.installURL;\nconst payload=JSON.parse(decodeURIComponent(url.split('data=')[1]));\ncheck(payload.actions.length===0 && payload.actionGroups.length===1,'empty envelope');\nconst record=payload.actionGroups[0];\ncheck(record.id===g.uuid && record.name===g.name && record.symbol==='folder.fill' && record.order===7,'group record');\ncheck(url===g.installURL,'stable URL');\neditor.setText('Empty group link passed café 🐼\\n'+url);draft.update();"
+        }
+      }
+    ]
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "notes": [],
+  "revisions": [],
+  "workspaces": [],
+  "actions": [],
+  "actionGroups": [
+    {
+      "id": "BBBF0003-0000-4000-8000-000000000011",
+      "name": "QA Empty café 🐼",
+      "symbol": "folder.fill",
+      "order": 7
+    }
+  ]
+}
