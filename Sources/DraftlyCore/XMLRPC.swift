@@ -4,7 +4,21 @@ import CoreFoundation
 public enum ScriptXMLRPC {
     static func requestValues(_ values: [String: Any]) throws -> [String: Any] {
         let body = try requestBody(method: values["methodName"] as? String ?? "", params: values["params"] as? [Any] ?? [])
-        return ["url": values["url"] ?? "", "method": "POST", "headers": ["Content-Type": "text/xml; charset=utf-8"], "encoding": "raw", "data": body]
+        return ["url": values["url"] ?? "", "method": "POST", "headers": ["Content-Type": "text/xml; charset=utf-8"], "encoding": "raw", "data": body, "includeResponseBytes": true]
+    }
+
+    static func responseEnvelope(_ envelope: [String: Any]) throws -> [String: Any] {
+        guard let value = envelope["value"] as? [String: Any] else {
+            throw DraftlyError.message("The XML-RPC transport response has no value.")
+        }
+        guard value["success"] as? Bool == true else { return responseValue(value) }
+        if let encoded = envelope["responseBodyBase64"] {
+            guard let encoded = encoded as? String, let data = Data(base64Encoded: encoded) else {
+                throw DraftlyError.message("The XML-RPC response body is not valid base64.")
+            }
+            return response(data, statusCode: value["statusCode"] as? Int ?? 0)
+        }
+        return responseValue(value)
     }
 
     static func responseValue(_ value: [String: Any]) -> [String: Any] {
@@ -33,10 +47,7 @@ public enum ScriptXMLRPC {
                 throw DraftlyError.message("The XML-RPC transport response is invalid.")
             }
             if let error = response["error"] as? String { throw DraftlyError.message(error) }
-            guard let value = response["value"] as? [String: Any] else {
-                throw DraftlyError.message("The XML-RPC transport response has no value.")
-            }
-            envelope = ["value": responseValue(value)]
+            envelope = ["value": try responseEnvelope(response)]
         } catch { envelope = ["error": error.localizedDescription] }
         return (try? String(decoding: JSONSerialization.data(withJSONObject: envelope), as: UTF8.self))
             ?? "{\"error\":\"The XML-RPC response could not be serialized.\"}"

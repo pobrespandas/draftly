@@ -41,13 +41,16 @@ class Handler(BaseHTTPRequestHandler):
             return
         status = 200
         content_type = "application/json; charset=utf-8"
-        if target.path in ("/xml-latin1", "/xml-utf16"):
-            encoding = "iso-8859-1" if target.path == "/xml-latin1" else "utf-16"
+        xml_encodings = {"/xml-latin1": "iso-8859-1", "/xml-utf16": "utf-16",
+                         "/xml-utf16le": "utf-16le", "/xml-utf16be": "utf-16be"}
+        xml_path = target.path.removesuffix("-no-charset")
+        if xml_path in xml_encodings:
+            encoding = xml_encodings[xml_path]
             xml = ('<?xml version="1.0" encoding="' + encoding + '"?>'
                    '<methodResponse><params><param><value><string>'
                    'café &amp; mañana</string></value></param></params></methodResponse>')
             data = xml.encode(encoding)
-            content_type = "text/xml; charset=" + encoding
+            content_type = "text/xml" if target.path.endswith("-no-charset") else "text/xml; charset=" + encoding
         elif target.path == "/latin1":
             data = "café".encode("iso-8859-1")
             content_type = "text/plain; charset=iso-8859-1"

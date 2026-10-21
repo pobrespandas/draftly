@@ -11862,7 +11862,7 @@
           "result": "XMLRPCResponse with success, HTTP status, decoded parameters, or explicit failure/fault fields.",
           "errors": "Transport envelope failures throw to the script. HTTP failures remain response values. Runner cancellation and timeout interrupt later script work.",
           "limitations": [
-            "Real loopback checks cover Unicode/CDATA, faults, malformed payloads, request wire format, and Latin-1/UTF-16 responses with matching HTTP charsets. Native app automation, JavaScript date/binary mapping, complete XML grammar, encoding detection without HTTP charset, and remaining invalid inputs are not accepted.",
+            "Real loopback checks cover Unicode/CDATA, faults, malformed payloads, request wire format, declared HTTP charsets, and XML declaration/BOM detection without an HTTP charset. Native app automation, JavaScript date/binary mapping, complete XML grammar, unknown HTTP charsets and remaining invalid inputs are not accepted.",
             "Task cancellation closes the tested pending loopback TCP connection and returns an error envelope. This does not accept native UI cancellation or every network condition."
           ],
           "supportingTests": [
@@ -11901,13 +11901,29 @@
             {
               "suite": "ScriptHTTPLocalServerTests",
               "test": "actualXMLRPCResponsePreservesTheDecodedHTTPCharset"
+            },
+            {
+              "suite": "XMLRPCAsyncTests",
+              "test": "originalXMLBytesTakePrecedenceWhenHTTPHasNoCharset"
+            },
+            {
+              "suite": "XMLRPCAsyncTests",
+              "test": "malformedOriginalXMLByteEnvelopeDoesNotFallBackToSuccessfulText"
+            },
+            {
+              "suite": "XMLRPCAsyncTests",
+              "test": "originalBytesDoNotHideEmptyXMLOrAnHTTPFailure"
+            },
+            {
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "responseBytesRequireAnOptInAndStayOutsideThePublicValue"
             }
           ],
           "automatedVerification": {
             "status": "passed",
             "date": "2026-10-21",
-            "evidence": "docs/validation.md: XML-RPC decoded HTTP charset boundary — 21 October 2026",
-            "scope": "Specific charset regression failed first and passed after correction. Both engines also passed actual Latin-1/UTF-16 loopback requests. This does not accept the remaining limitations."
+            "evidence": "docs/validation.md: XML-RPC original response bytes — 21 October 2026",
+            "scope": "Eight actual no-charset cases failed first across both engines. Latin-1, UTF-16 BOM, and UTF-16LE/BE declaration cases now pass. Internal metadata isolation, old decoded-text transports, empty body, malformed base64 and HTTP failure guards passed. This does not accept the remaining limitations."
           }
         }
       ]

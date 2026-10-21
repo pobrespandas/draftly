@@ -6710,3 +6710,39 @@ passed 468 app and 535 core methods. All 41 Python tooling tests passed.
 Matrix structure has zero errors. The strict engine gate retains 18 diagnostics;
 the global gate retains 4,652. None refers to the three Context members accepted
 above. The remaining diagnostics retain their original contract scope.
+
+
+### XML-RPC original response bytes — 21 October 2026
+
+Extended the actual loopback regression before changing production. Latin-1,
+UTF-16 with BOM, UTF-16LE without BOM and UTF-16BE without BOM all failed when
+HTTP omitted charset. The eight failures covered both engines. The HTTP text
+fallback could not preserve the original XML bytes. Separate envelope tests
+also failed on Latin-1/UTF-16 bytes and malformed base64.
+
+XML-RPC now requests original bytes through its internal HTTP envelope. A
+response without HTTP charset can carry responseBodyBase64 beside value. The
+XML-RPC parser consumes those bytes directly. HTTPResponse and XMLRPCResponse
+keep their existing public fields. Ordinary HTTP requests omit the byte payload.
+The legacy XML-RPC adapter uses the same envelope rule. A declared HTTP charset
+keeps the previously tested decoded-text path. Older injected text-only
+transports still work.
+
+Added guards for invalid base64, an empty body and a failed HTTP response whose
+body contains otherwise valid XML. The first fails explicitly; an empty body
+remains a parse failure; valid XML cannot erase an HTTP failure. Actual metadata
+checks prove opt-in behavior and charset priority on both transports. A public
+HTTP script cannot see the transport byte field even when the internal flag is
+present in its settings. No additional data is stored in a library or backup.
+
+The focused run passed 41 methods in seven suites. The full run passed 468 app
+and 539 core methods. Tests use neutral data on ephemeral loopback ports and
+injected envelopes. No app window, permission, personal data or external service
+is used. No manual native check or refreshed QA image is claimed. XML-RPC stays
+partial for JavaScript date/binary mapping, complete grammar, unknown HTTP
+charsets, invalid inputs and native automation. This fixes the encoding boundary
+without treating those separate contracts as accepted.
+
+Unsigned Xcode compilation and all 41 Python tooling tests passed after the byte
+preservation change. Matrix structure has zero errors. Strict engine and global
+acceptance remain open; this change does not reclassify XMLRPC.request.

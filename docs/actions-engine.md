@@ -321,10 +321,27 @@ available. Automatic tests cover no-host rendering, timeout, and reuse after
 timeout. Native responsiveness and directory permission acceptance remain open.
 
 
-## XML-RPC asynchronous transport — 20 October 2026
+## XML-RPC transport — 21 October 2026
 
 The async host awaits XML-RPC through the serialized HTTP transport. Request and
 response conversion share helpers with the legacy adapter. Cancellation and
 timeout retain their execution result and stop later steps. Injected transport
-tests cover cleanup and library gate release. Real server and native automation
-checks remain pending. The legacy route still uses its synchronous adapter.
+tests cover cleanup and library gate release. The legacy route keeps its
+synchronous adapter.
+
+XML-RPC requests set the internal includeResponseBytes flag. Without a declared
+HTTP charset, the transport can add responseBodyBase64 beside value in its
+internal response envelope. XMLParser receives those original bytes and detects
+the XML declaration or BOM. The extra field stays outside HTTPResponse and
+XMLRPCResponse. Ordinary HTTP requests omit it.
+
+A declared HTTP charset keeps priority. That path decodes text through HTTP,
+then aligns the XML declaration with its UTF-8 conversion. Older injected
+transports with only responseText still use that path. Invalid present base64
+fails explicitly. An HTTP failure cannot become XML-RPC success through its body.
+
+Real loopback tests cover both engines, declared charsets, declaration/BOM
+encoding detection, request wire format, faults, malformed XML and disconnects.
+Native automation, JavaScript date/binary mapping, full grammar and remaining
+invalid inputs still require their specific acceptance. See docs/validation.md
+and the API matrix for the exact scope.

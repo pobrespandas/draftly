@@ -1732,3 +1732,13 @@ The matrix also gives configuredValues its own existing default/type/identity
 and native evidence. Included-action collision precedence remains a partial
 engine contract. callbackResponses and fail remain partial pending their specific
 acceptance; these results do not close Context or the wider Mac scope.
+
+
+### XML-RPC byte preservation — 21 October 2026
+
+Original response bytes now reach XMLParser when HTTP has no charset. Both
+engines passed real Latin-1, UTF-16 BOM and UTF-16 LE/BE declaration cases after
+the corresponding regression failed first. Transport metadata remains private;
+ordinary HTTP responses keep their shape. Guards preserve HTTP failures and
+reject empty or malformed byte payloads. Full regression passed 468 app and
+539 core methods. XML-RPC remains partial for its other specific contracts.

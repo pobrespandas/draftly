@@ -217,7 +217,7 @@ public enum APIValues {
             return Templates.render("[[date|\(format)]]", note: Note(), now: date)
         case "adjustDate": return APIValues.date(try ScriptUtilities.adjustDate(values))
         case "xmlrpc":
-            return ScriptXMLRPC.responseValue(ScriptHTTP.request(try ScriptXMLRPC.requestValues(values)))
+            return try ScriptXMLRPC.responseEnvelope(ScriptHTTP.requestEnvelope(try ScriptXMLRPC.requestValues(values)))
         case "http": return ScriptHTTP.request(values)
         case "mustache": return try MustacheRenderer.render(values["template"] as? String ?? "", data: values["data"] ?? [:], escape: values["contentType"] as? String != "text", partials: values["partials"] as? [String: String] ?? [:])
         case "renderMarkdown":

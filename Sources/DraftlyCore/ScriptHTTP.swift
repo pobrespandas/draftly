@@ -85,6 +85,15 @@ final class ScriptHTTP: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
         return value
     }
 
+    private static func responseEnvelope(data: Data?, response: URLResponse?, error: Error?,
+                                         includeResponseBytes: Bool) -> [String: Any] {
+        var envelope: [String: Any] = ["value": responseValue(data: data, response: response, error: error)]
+        if includeResponseBytes, response?.textEncodingName == nil, let data {
+            envelope["responseBodyBase64"] = data.base64EncodedString()
+        }
+        return envelope
+    }
+
     private static func responseText(_ data: Data, response: HTTPURLResponse?) -> String {
         if let charset = response?.textEncodingName {
             let encoding = CFStringConvertIANACharSetNameToEncoding(charset as CFString)
@@ -102,6 +111,11 @@ final class ScriptHTTP: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
 
     // This adapter retains the synchronous contract for legacy callers.
     static func request(_ values: [String: Any]) -> [String: Any] {
+        requestEnvelope(values)["value"] as? [String: Any]
+            ?? failure(DraftlyError.message("The HTTP transport response has no value."))
+    }
+
+    static func requestEnvelope(_ values: [String: Any]) -> [String: Any] {
         do {
             let request = try makeRequest(values)
             let session = URLSession(configuration: .ephemeral,
@@ -110,14 +124,15 @@ final class ScriptHTTP: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
             defer { session.invalidateAndCancel() }
             let result = Result()
             session.dataTask(with: request) { data, response, error in
-                result.set(responseValue(data: data, response: response, error: error))
+                result.set(responseEnvelope(data: data, response: response, error: error,
+                    includeResponseBytes: values["includeResponseBytes"] as? Bool == true))
             }.resume()
             let deadline = Date().addingTimeInterval(request.timeoutInterval + 1)
             while result.get() == nil && Date() < deadline {
                 RunLoop.current.run(until: Date().addingTimeInterval(0.005))
             }
-            return result.get() ?? failure(DraftlyError.message("The HTTP request timed out."))
-        } catch { return failure(error) }
+            return result.get() ?? ["value": failure(DraftlyError.message("The HTTP request timed out."))]
+        } catch { return ["value": failure(error)] }
     }
 
     static func requestSerialized(_ payload: String) async -> String {
@@ -131,7 +146,7 @@ final class ScriptHTTP: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
             guard let values = try JSONSerialization.jsonObject(with: Data(payload.utf8)) as? [String: Any] else {
                 throw DraftlyError.message("The HTTP request payload must be an object.")
             }
-            let value: [String: Any]
+            let responseEnvelope: [String: Any]
             do {
                 try Task.checkCancellation()
                 let request = try makeRequest(values)
@@ -141,12 +156,13 @@ final class ScriptHTTP: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
                 defer { session.invalidateAndCancel() }
                 do {
                     let (data, response) = try await session.data(for: request)
-                    value = responseValue(data: data, response: response, error: nil)
+                    responseEnvelope = Self.responseEnvelope(data: data, response: response, error: nil,
+                        includeResponseBytes: values["includeResponseBytes"] as? Bool == true)
                 } catch {
-                    value = responseValue(data: nil, response: nil, error: error)
+                    responseEnvelope = ["value": responseValue(data: nil, response: nil, error: error)]
                 }
-            } catch { value = failure(error) }
-            envelope = ["value": value]
+            } catch { responseEnvelope = ["value": failure(error)] }
+            envelope = responseEnvelope
         } catch { envelope = ["error": error.localizedDescription] }
         do {
             return String(decoding: try JSONSerialization.data(withJSONObject: envelope, options: [.fragmentsAllowed]), as: UTF8.self)

@@ -50,6 +50,59 @@ struct XMLRPCAsyncTests {
         #expect(!(failure["error"] as? String ?? "").isEmpty)
     }
 
+    @Test(arguments: [false, true])
+    func originalXMLBytesTakePrecedenceWhenHTTPHasNoCharset(utf16: Bool) async throws {
+        let encoding = utf16 ? "UTF-16" : "ISO-8859-1"
+        let expected = utf16 ? "café & mañana 🐼" : "café & mañana"
+        let xml = "<?xml version=\"1.0\" encoding=\"\(encoding)\"?><methodResponse><params><param><value><string>\(expected.replacingOccurrences(of: "&", with: "&amp;"))</string></value></param></params></methodResponse>"
+        let bytes: Data
+        if utf16 {
+            bytes = Data([0xFF, 0xFE]) + (try #require(xml.data(using: .utf16LittleEndian)))
+        } else {
+            bytes = try #require(xml.data(using: .isoLatin1))
+        }
+        let transportReply = String(decoding: try JSONSerialization.data(withJSONObject: [
+            "responseBodyBase64": bytes.base64EncodedString(),
+            "value": ["success": true, "statusCode": 200, "responseText": "", "headers": ["Content-Type": "text/xml"]]
+        ]), as: UTF8.self)
+        let payload = #"{"url":"https://fixture.invalid/rpc","methodName":"echo","params":[]}"#
+        let result = try value(await ScriptXMLRPC.requestSerialized(payload) { _ in transportReply })
+        #expect(result["success"] as? Bool == true)
+        #expect(result["statusCode"] as? Int == 200)
+        #expect(result["params"] as? [String] == [expected])
+        #expect(result["error"] == nil)
+        #expect(result["responseBodyBase64"] == nil)
+    }
+
+    @Test func malformedOriginalXMLByteEnvelopeDoesNotFallBackToSuccessfulText() async throws {
+        let xml = "<methodResponse><params><param><value><string>Fallback must not succeed</string></value></param></params></methodResponse>"
+        let transportReply = String(decoding: try JSONSerialization.data(withJSONObject: [
+            "responseBodyBase64": "%%% invalid base64 %%%",
+            "value": ["success": true, "statusCode": 200, "responseText": xml]
+        ]), as: UTF8.self)
+        let payload = #"{"url":"https://fixture.invalid/rpc","methodName":"echo","params":[]}"#
+        let reply = await ScriptXMLRPC.requestSerialized(payload) { _ in transportReply }
+        let envelope = try #require(JSONSerialization.jsonObject(with: Data(reply.utf8)) as? [String: Any])
+        #expect(envelope["value"] == nil)
+        #expect(!(envelope["error"] as? String ?? "").isEmpty)
+    }
+
+    @Test(arguments: [true, false])
+    func originalBytesDoNotHideEmptyXMLOrAnHTTPFailure(httpSucceeded: Bool) async throws {
+        let valid = Data("<methodResponse><params/></methodResponse>".utf8).base64EncodedString()
+        let reply: [String: Any] = [
+            "responseBodyBase64": httpSucceeded ? "" : valid,
+            "value": ["success": httpSucceeded, "statusCode": httpSucceeded ? 200 : 503,
+                      "error": httpSucceeded ? "" : "HTTP failure café"]
+        ]
+        let result = try ScriptXMLRPC.responseEnvelope(reply)
+        #expect(result["success"] as? Bool == false)
+        #expect(result["statusCode"] as? Int == (httpSucceeded ? 200 : 503))
+        #expect((result["params"] as? [Any])?.isEmpty == true)
+        if httpSucceeded { #expect(!(result["error"] as? String ?? "").isEmpty) }
+        else { #expect(result["error"] as? String == "HTTP failure café") }
+    }
+
     @Test func requestAndReplyUseTheSharedXMLContract() async throws {
         let transport: @Sendable (String) async -> String = { payload in
             #expect(!xmlRPCIsMainThread())

@@ -94,7 +94,10 @@ struct ScriptHTTPLocalServerTests {
         #expect(headers.first { $0.key.lowercased() == "set-cookie" }?.value == "neutral=fixture")
     }
 
-    @Test(arguments: [false, true], ["/xml-latin1", "/xml-utf16"])
+    @Test(arguments: [false, true], [
+        "/xml-latin1", "/xml-utf16", "/xml-latin1-no-charset", "/xml-utf16-no-charset",
+        "/xml-utf16le-no-charset", "/xml-utf16be-no-charset"
+    ])
     @MainActor
     func actualXMLRPCResponsePreservesTheDecodedHTTPCharset(worker: Bool, path: String) async throws {
         let server = try LoopbackHTTPServer(); defer { server.stop() }
@@ -107,6 +110,35 @@ struct ScriptHTTPLocalServerTests {
         """, name: "Encoded XML-RPC")
         #expect(await ActionTestExecution.succeeds(action, runner: fixture.runner, worker: worker),
                 Comment(rawValue: fixture.runner.message ?? ""))
+    }
+
+    @Test(arguments: [false, true], [false, true])
+    func responseBytesRequireAnOptInAndStayOutsideThePublicValue(worker: Bool, charset: Bool) async throws {
+        let server = try LoopbackHTTPServer(); defer { server.stop() }
+        let path = charset ? "/xml-latin1" : "/xml-latin1-no-charset"
+        for include in [false, true] {
+            let values: [String: Any] = ["url": server.url(path), "includeResponseBytes": include]
+            let envelope: [String: Any]
+            if worker {
+                let payload = String(decoding: try JSONSerialization.data(withJSONObject: values), as: UTF8.self)
+                envelope = try #require(JSONSerialization.jsonObject(with: Data(await ScriptHTTP.requestSerialized(payload).utf8)) as? [String: Any])
+            } else { envelope = ScriptHTTP.requestEnvelope(values) }
+            let value = try #require(envelope["value"] as? [String: Any])
+            #expect(value["success"] as? Bool == true && value["statusCode"] as? Int == 200)
+            #expect(value["responseBodyBase64"] == nil)
+            if include && !charset {
+                let encoded = try #require(envelope["responseBodyBase64"] as? String)
+                let bytes = try #require(Data(base64Encoded: encoded))
+                #expect(String(data: bytes, encoding: .isoLatin1)?.contains("café") == true)
+            } else { #expect(envelope["responseBodyBase64"] == nil) }
+        }
+        let fixture = try await ScriptTestFixture(content: "Neutral HTTP", host: APIContractHost())
+        let action = ScriptTestAction.make("""
+        const r=HTTP.create().request({url:'\(server.url(path))',includeResponseBytes:true});
+        check(r instanceof HTTPResponse && r.success,'public HTTP response');
+        check(!Object.prototype.hasOwnProperty.call(r,'responseBodyBase64'),'transport bytes stay private');
+        """, name: "Private response bytes")
+        #expect(await ActionTestExecution.succeeds(action, runner: fixture.runner, worker: worker))
     }
 
     @Test(arguments: ["cancel", "timeout"])
