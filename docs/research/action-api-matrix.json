@@ -20542,6 +20542,12 @@
             "fixture": "scripts/fixtures/engine-native-actions.json",
             "result": "Updated-image native success, cancellation and error produced matching History results. Cancelled an eight-second callback wait; after the helper opened the delayed reply, the later typed lookup marker remained. The ordering does not prove that lookup completed before that reply. Exact deadline-before-timer acceptance remains automatic controlled-clock evidence; other native capability variants remain pending.",
             "evidence": "docs/validation.md: Native callback regression after deadline correction — 21 October 2026"
+          },
+          {
+            "date": "2026-10-21",
+            "fixture": "scripts/fixtures/engine-sharing-actions.json",
+            "evidence": "docs/validation.md: Native sharing file cancellation — 21 October 2026",
+            "result": "Native openIn picker displayed neutral 26-byte text file. Escape returned Cancelled, preserved source, stopped tail and removed temporary folder. No service selected. Task cancellation and post-handoff lifecycle are not accepted by this case."
           }
         ]
       },

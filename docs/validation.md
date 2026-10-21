@@ -6964,3 +6964,24 @@ Draftly.debug.dylib: 303d2d93531f1714f5afdc3759e680c85459635a15052e4a6ccdde2feb4
 This accepts the four message contracts. Exact banner geometry and styling
 against Drafts remain part of the separate visual matrix. Context.fail OS
 notification delivery remains pending. No raw log or screenshot is tracked.
+
+
+### Native sharing file cancellation — 21 October 2026
+
+Imported engine-sharing-actions.json into Engine QA. The openIn step prepared
+Draftly-neutral-sharing.txt and opened the native sharing picker at 04:08.
+The picker showed a 26-byte text document. A read-only check of the generated
+temporary file found exactly Neutral sharing plus the neutral Unicode text
+from the fixture. No Draftly-Share folder existed before the run.
+
+Pressed Escape without choosing a service. The picker closed. History recorded
+Cancelled. The source text stayed Context callbacks fresh passed followed by
+its existing Unicode suffix. No tail sentinel appeared. No Draftly-Share folder
+remained afterward. No content was sent and no permission changed.
+
+This accepts native file preparation and cleanup before service handoff on
+user cancellation. It does not accept service completion, transferred-file
+cleanup, task cancellation, owner-window close or every automation entry.
+The existing headless NativeSharingRequestTests cover controlled driver
+completion, cancellation and late callbacks separately. No production code
+changed for this check. The full 7047474 Swift run already passed those tests.

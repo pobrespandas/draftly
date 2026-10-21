@@ -1,0 +1,24 @@
+[
+  {
+    "uuid": "BBBF0023-0000-4000-8000-000000000002",
+    "name": "QA Sharing cancel file",
+    "group": "Sharing lifetime QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "openIn",
+        "data": {
+          "template": "Neutral sharing café 🐼",
+          "name": "Draftly-neutral-sharing.txt"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "ERROR: sharing tail executed"
+        }
+      }
+    ]
+  }
+]
