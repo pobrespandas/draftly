@@ -92,8 +92,10 @@ struct WindowActionAdapter {
         case "showQuickSearch": model.openQuickSearch(value as? String ?? "")
         case "showCommandPalette": model.openCommandPalette(initialQuery: value as? String ?? "")
         case "loadActionBarGroup", "loadKeyboardActionGroup", "loadActionGroup":
-            let name = (value as? [String: Any])?["name"] as? String ?? value as? String ?? ""
-            guard model.library.groupNames.contains(name) else { throw DraftlyError.message("The action group was not found.") }
+            let reference = value as? [String: Any] ?? ["name": value as? String ?? ""]
+            let resolved = try ActionGroupReferenceResolver.resolve(reference, names: model.library.groupNames,
+                groups: model.library.actionGroups)
+            guard let name = resolved["name"] as? String else { throw DraftlyError.message("The action group was not found.") }
             if operation == "loadActionGroup" { model.actionGroup = name; model.showActions = true } else { model.actionBarGroup = name }
         case "nextDraft": model.navigate(1)
         case "previousDraft": model.navigate(-1)

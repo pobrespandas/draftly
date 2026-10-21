@@ -11,6 +11,27 @@ sections below retain their original scope and dates.
 Keep the identity Draftly, `Note`, existing identities and libraries, original
 action scripts, Nerd Fonts, and the integrated Markdown preview.
 
+## Latest correction — stable action group references, 21 October 2026
+
+Implemented: Window group loaders and Workspace use one concrete resolver. A
+UUID selects its current group name. Missing or malformed identities cannot
+fall back to another group with the old name. Name-only references still work.
+Unknown Workspace reference fields remain intact.
+
+Automatically tested: three parameterized model tests cover both Window loaders,
+actual rename and name reuse, Workspace equivalence, missing/malformed IDs and
+unchanged presentation on failure. The first two failed before the correction.
+Checked runner verified 617 core and 504 app methods. Unsigned Xcode build passed
+after regenerating the project to include the new source. Matrix structure0;
+strict global4136 remains open, not a percentage.
+
+Verified in use: native prepared-state fixture loaded QA Identity renamed into
+the action list and checked bar selection from a reference with its old name.
+Success07:43; Alpha unchanged. This native fixture is a final-state snapshot;
+the actual rename is tested headlessly. Window group contracts remain partial
+for undefined failure behavior and list-visibility comparison with Drafts.
+Next: replace unconfirmed tab success with correlated native scene completion.
+
 ## Latest native acceptance — file save lifetime, 21 October 2026
 
 Implemented: no production change. Added neutral file lifetime fixtures.

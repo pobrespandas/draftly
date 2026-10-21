@@ -11379,10 +11379,49 @@
             "loadActionBarGroup(actionGroup: ActionGroup): boolean"
           ],
           "contract": "Load the ActionGroup in the action bar below editor.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "WindowGroupReferenceTests",
+            "test": "retainedIdentitySurvivesRenameAndNameReuse"
+          },
+          "liveCheck": "21 October Engine QA: window-group-reference-library.json. List header and checked bar group both QA Identity renamed despite stale name. Success07:43; Alpha unchanged.",
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/Draftly/ActionGroupReferenceResolver.swift",
+            "symbol": "resolve"
+          },
+          "defaults": "Use UUID when present. Legacy name-only references retain exact-name resolution. No group is selected implicitly.",
+          "result": "Boolean true after resolving the reference and updating the requested list or bar group. Resolution completes before presentation changes.",
+          "errors": "Missing or malformed UUID throws without falling back to a reused name. Name-only lookup failure throws. Existing error behavior is preserved rather than inventing a false result.",
+          "limitations": [
+            "Frozen Window prose does not define missing-group errors or stale-object behavior. Native Drafts comparison remains pending.",
+            "Whether loadActionGroup must also reveal the list remains pending for comparison. Current visibility behavior is preserved."
+          ],
+          "evidenceLevel": "Headless model tests perform actual library rename and name reuse. Native fixture exercises a prepared renamed-state snapshot; it does not repeat the rename through UI.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "WindowGroupReferenceTests",
+                "test": "retainedIdentitySurvivesRenameAndNameReuse"
+              },
+              "assertion": "Both methods use the retained UUID after actual rename and reuse, agree with Workspace resolution, and preserve unknown reference fields."
+            },
+            "defaults": {
+              "test": {
+                "suite": "WindowGroupReferenceTests",
+                "test": "nameOnlyReferencesRemainCompatible"
+              },
+              "assertion": "Existing name-only dictionary and string paths still load the named group."
+            },
+            "errors": {
+              "test": {
+                "suite": "WindowGroupReferenceTests",
+                "test": "missingIdentityDoesNotFallBackToAnExistingNameOrChangePresentation"
+              },
+              "assertion": "Both missing and malformed identities fail before changing either group or panel visibility. Workspace resolution rejects the same identities."
+            }
+          }
         },
         {
           "member": "loadActionGroup",
@@ -11394,10 +11433,49 @@
             "loadActionGroup(actionGroup: ActionGroup): boolean"
           ],
           "contract": "Load the ActionGroup in the action list side bar.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "WindowGroupReferenceTests",
+            "test": "retainedIdentitySurvivesRenameAndNameReuse"
+          },
+          "liveCheck": "21 October Engine QA: window-group-reference-library.json. List header and checked bar group both QA Identity renamed despite stale name. Success07:43; Alpha unchanged.",
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/Draftly/ActionGroupReferenceResolver.swift",
+            "symbol": "resolve"
+          },
+          "defaults": "Use UUID when present. Legacy name-only references retain exact-name resolution. No group is selected implicitly.",
+          "result": "Boolean true after resolving the reference and updating the requested list or bar group. Resolution completes before presentation changes.",
+          "errors": "Missing or malformed UUID throws without falling back to a reused name. Name-only lookup failure throws. Existing error behavior is preserved rather than inventing a false result.",
+          "limitations": [
+            "Frozen Window prose does not define missing-group errors or stale-object behavior. Native Drafts comparison remains pending.",
+            "Whether loadActionGroup must also reveal the list remains pending for comparison. Current visibility behavior is preserved."
+          ],
+          "evidenceLevel": "Headless model tests perform actual library rename and name reuse. Native fixture exercises a prepared renamed-state snapshot; it does not repeat the rename through UI.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "WindowGroupReferenceTests",
+                "test": "retainedIdentitySurvivesRenameAndNameReuse"
+              },
+              "assertion": "Both methods use the retained UUID after actual rename and reuse, agree with Workspace resolution, and preserve unknown reference fields."
+            },
+            "defaults": {
+              "test": {
+                "suite": "WindowGroupReferenceTests",
+                "test": "nameOnlyReferencesRemainCompatible"
+              },
+              "assertion": "Existing name-only dictionary and string paths still load the named group."
+            },
+            "errors": {
+              "test": {
+                "suite": "WindowGroupReferenceTests",
+                "test": "missingIdentityDoesNotFallBackToAnExistingNameOrChangePresentation"
+              },
+              "assertion": "Both missing and malformed identities fail before changing either group or panel visibility. Workspace resolution rejects the same identities."
+            }
+          }
         },
         {
           "member": "openInNewTab",

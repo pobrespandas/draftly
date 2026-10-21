@@ -8241,3 +8241,43 @@ scene exists; AppController uses a0.2-second delayed attachment. Fixing only the
 no-window return cannot prove tab completion. Add focused identity regressions
 and correlate scene completion before closing these contracts. No production
 fix for either issue is included in this acceptance change.
+
+
+### Stable Window action group references — 21 October 2026
+
+Implemented: ActionGroupReferenceResolver shares UUID-first lookup between
+WindowActionAdapter and WorkspacePresentationResolver. It returns the current
+name while retaining unknown reference fields. A supplied invalid or absent
+identity throws before mutations. References without UUID keep name lookup.
+No persisted format or identity changed. List-opening behavior is unchanged.
+
+Automatically tested: WindowGroupReferenceTests has three methods, each with
+both list and bar operations. Actual LibraryStore rename followed by reuse of
+the old name exposed both methods selecting the wrong group. Missing identity
+also exposed an incorrect name fallback and changed presentation. Name-only
+compatibility passed before and after. The first test draft did not compile
+because an editor helper accepts String values only; it now builds Workspace
+metadata through JSON to preserve the unknown Boolean field. The compiled red
+run reproduced the functional failures before the resolver edit. Corrected
+methods pass, including malformed identity rejection and Workspace equivalence.
+Checked runner verified 617 core and 504 app methods. Initial unsigned Xcode
+build missed the new source. Regenerated the project and repeated successfully.
+Matrix structure0 and strict global4136. No compatibility percentage inferred.
+
+Verified in use: quit and refreshed Engine QA, signed and verified; NSServices0.
+Executable SHA256 a1b4d6967fcf3d68a788215ca3ec54067f96036cadaacfffdd08adf9bd36446d.
+Debug dylib SHA256 920a3ee79d330503ecf5d14686728f9a0ff582f34a74327aa258c3ea6c366608.
+Imported window-group-reference-library.json into isolated QA. It adds two
+neutral groups and an action, preserving the five existing drafts. The fixture
+represents the renamed-state snapshot; it does not rename through UI. Its stale
+ActionGroup name refers to another current group while its UUID identifies QA
+Identity renamed. The action returned true from both loaders and kept source
+text. Native list header showed QA Identity renamed. The bar menu screenshot
+showed its check beside that same group. History recorded Success07:43. Closed
+the menu and history. Alpha remains open; action panel is visible and both group
+selections are the neutral renamed group. No external data or permission used.
+
+This closes the internal stable-identity defect. Frozen Window prose does not
+define stale references, missing-group error behavior or whether list loading
+must reveal the panel. Preserve the existing behavior and keep those comparison
+limits explicit. Tab scene completion remains a separate defect and next task.

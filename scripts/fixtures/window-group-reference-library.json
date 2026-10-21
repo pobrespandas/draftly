@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "notes": [],
+  "revisions": [],
+  "workspaces": [],
+  "actions": [
+    {
+      "id": "BBBF0042-0000-4000-8000-000000000001",
+      "name": "QA Window stable group reference",
+      "symbol": "bolt",
+      "group": "Window contract QA",
+      "shortcut": "",
+      "afterSuccess": "none",
+      "configuredValues": {},
+      "steps": [
+        {
+          "id": "BBBF0042-0000-4000-8000-000000000002",
+          "type": "script",
+          "values": {
+            "script": "function check(v,m){if(!v)throw Error(m);}\nconst stale=new ActionGroup({uuid:'BBBF0042-0000-4000-8000-000000000101',name:'QA Identity old name'});\nconst before=editor.getText();\ncheck(app.currentWindow.loadActionGroup(stale)===true,'list group result');\ncheck(app.currentWindow.loadActionBarGroup(stale)===true,'bar group result');\ncheck(editor.getText()===before,'source preserved');\nconsole.log('Stable group reference loaded café 🐼');"
+          }
+        }
+      ]
+    }
+  ],
+  "actionGroups": [
+    {
+      "id": "BBBF0042-0000-4000-8000-000000000101",
+      "name": "QA Identity renamed",
+      "symbol": "arrow.up.right.square",
+      "order": 50
+    },
+    {
+      "id": "BBBF0042-0000-4000-8000-000000000102",
+      "name": "QA Identity old name",
+      "symbol": "arrow.up.right.square",
+      "order": 51
+    }
+  ]
+}
