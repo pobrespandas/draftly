@@ -1,6 +1,6 @@
 # Actions execution
 
-Updated: 20 October 2026.
+Updated: 21 October 2026.
 
 ## Implemented
 
@@ -131,8 +131,10 @@ The async host boundary accepts and returns JSON strings. The native host opts i
 for callback URLs, shell scripts, and Shortcuts. First-party callback and Shortcut
 steps use that boundary too. Legacy entry points keep their synchronous adapters.
 
-Callback requests register their token before opening the destination. Completion,
-cancellation, and timeout remove the token. Unknown and late callbacks cannot
+Callback requests register their token and absolute deadline before opening the
+destination. Delivery checks that deadline even if the timeout task has not run.
+Opening the destination consumes the same wait budget. Completion, cancellation,
+and timeout remove the token. Unknown and late callbacks cannot
 complete another request. A private bundle setting can select an isolated QA
 callback scheme; the normal app still uses `draftly`.
 

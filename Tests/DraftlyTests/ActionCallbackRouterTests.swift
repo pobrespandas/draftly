@@ -29,6 +29,43 @@ struct ActionCallbackRouterTests {
         #expect(!ActionCallbackRouter.receive(try #require(callbackURL)))
     }
 
+    @Test(arguments: ["during launch", "before timer resumes"])
+    func absoluteDeadlineRejectsDeliveryBeforeTheTimeoutTaskRuns(_ phase: String) async throws {
+        let origin = Date(timeIntervalSince1970: 1_700_000_000)
+        var now = origin
+        var delivered: URL?
+        let task = Task { @MainActor in
+            let result = try await ActionCallbackRouter.openAsync(["url": "neutral-test://deadline"], timeout: 10,
+                now: { now }, openURL: { url in
+                    delivered = try? callback(url)
+                    if phase == "during launch", let delivered {
+                        now = origin.addingTimeInterval(10)
+                        #expect(!ActionCallbackRouter.receive(delivered))
+                    }
+                    return true
+                })
+            return (result["status"] as? String, result["parameters"] as? [String: String])
+        }
+        let setupDeadline = ContinuousClock.now + .seconds(5)
+        while delivered == nil, ContinuousClock.now < setupDeadline { await Task.yield() }
+        let expired = try #require(delivered)
+        if phase == "before timer resumes" {
+            now = origin.addingTimeInterval(10)
+            #expect(!ActionCallbackRouter.receive(expired))
+        }
+        let response = try await task.value
+        #expect(response.0 == "timeout")
+        #expect(response.1?.isEmpty == true)
+        #expect(!ActionCallbackRouter.receive(expired))
+        let next = try await ActionCallbackRouter.openAsync(["url": "neutral-test://next"],
+            now: { now }, openURL: { url in
+                do { #expect(ActionCallbackRouter.receive(try callback(url))) }
+                catch { Issue.record(error) }
+                return true
+            })
+        #expect(next["status"] as? String == "success")
+    }
+
     @Test func timeoutInvalidatesTheToken() async throws {
         var late: URL?
         let result = try await ActionCallbackRouter.openAsync(["url": "neutral-test://run"], timeout: 0.02, openURL: { url in

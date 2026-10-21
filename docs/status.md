@@ -1628,3 +1628,12 @@ The full suite passed 467 app and 512 core methods. Unsigned build and all
 18/4,823 diagnostics. Persistent formats and current action/context sharing
 stay unchanged. Updated native acceptance is
 pending because the Mac locked before QA refresh. The member stays partial.
+
+
+### Callback adapter absolute deadline — 21 October 2026
+
+A controlled clock reproduced overdue success accepted before the timeout task
+ran. The async callback adapter now starts its absolute deadline before opening
+the destination and rejects overdue deliveries. Focused tests passed without
+opening a URL or window. Full regression passed 468 app and512 core methods;
+unsigned Xcode compilation passed. Native OS delivery of this boundary and the other engine acceptance items stay pending.

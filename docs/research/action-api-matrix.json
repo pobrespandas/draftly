@@ -18878,6 +18878,11 @@
         {
           "suite": "XMLRPCAsyncTests",
           "test": "actionInterruptionCancelsTransportAndStopsLaterSteps"
+        },
+        {
+          "suite": "ActionCallbackRouterTests",
+          "test": "absoluteDeadlineRejectsDeliveryBeforeTheTimeoutTaskRuns",
+          "file": "Tests/DraftlyTests/ActionCallbackRouterTests.swift"
         }
       ],
       "nativeVerification": {
@@ -18954,6 +18959,15 @@
             "command": "swift test",
             "result": "Specific authority and real receiver boundary cases passed in the 373-core-test run. This does not replace native capability lifetime acceptance.",
             "evidence": "docs/validation.md"
+          },
+          {
+            "date": "2026-10-21",
+            "suite": "ActionCallbackRouterTests",
+            "tests": [
+              "absoluteDeadlineRejectsDeliveryBeforeTheTimeoutTaskRuns"
+            ],
+            "result": "A controlled clock reproduced expired callbacks accepted as success during launch and before the timeout task ran. The adapter now records the absolute deadline before opening and rejects both expired deliveries. Focused tests passed. Native OS delivery of this boundary is pending; worker deadline acceptance remains separate.",
+            "evidence": "docs/validation.md: Native callback adapter absolute deadline — 21 October 2026"
           }
         ]
       },

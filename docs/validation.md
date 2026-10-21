@@ -6381,3 +6381,33 @@ diagnostics. These gates remain open and do not imply compatibility percentages.
 The Mac locked before QA could be refreshed. The native check remains pending;
 the earlier binary cannot accept this correction. Included-action collision
 precedence is a separate engine contract and remains pending.
+
+
+### Native callback adapter absolute deadline — 21 October 2026
+
+ActionCallbackRouter.openAsync previously started its timeout after openURL
+returned. Pending tokens did not carry an absolute deadline. A callback could
+be accepted after the requested deadline if opening consumed that time or if
+delivery ran before the timeout task resumed. The worker already enforced its
+own reply deadline; this test does not claim that an expired result could bypass
+that separate worker guard.
+
+Added an injected per-request clock. The test failed with success instead of
+timeout in both controlled cases: delivery during opening and delivery before
+the timer task resumed. No URL or app was opened. No real sleep or system clock
+change creates the boundary. The default production clock remains Date.
+
+Pending callbacks now retain the deadline before opening. Delivery at or after
+that deadline finishes with timeout and reports the token as rejected. The timer
+waits only for the remaining budget. Completion also checks the deadline.
+A duplicate expired response is rejected, and a new independent request succeeds.
+Cancellation retains its existing error path. The legacy synchronous adapter and
+public scripting contract are unchanged.
+
+The focused app suite passed seven methods, including both new cases. Three core
+callback response methods also passed. Full regression passed 468 app and512
+core methods, including the independent Context test extension. Unsigned Xcode
+compilation passed. Matrix structure has zero errors.
+Native OS delivery for this new boundary is pending while the Mac is locked.
+Previously recorded native callbacks remain evidence only for their exact cases.
+The host request lifetime contract remains partial for its other native checks.

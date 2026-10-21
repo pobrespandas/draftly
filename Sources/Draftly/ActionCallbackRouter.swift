@@ -3,10 +3,16 @@ import DraftlyCore
 
 @MainActor final class ActionCallbackRouter {
     static var callbackScheme: String { Bundle.main.object(forInfoDictionaryKey: "DraftlyCallbackScheme") as? String ?? "draftly" }
-    private final class Pending {
+    @MainActor private final class Pending {
         let continuation: CheckedContinuation<String, Error>
         var timeout: Task<Void, Never>?
-        init(_ continuation: CheckedContinuation<String, Error>) { self.continuation = continuation }
+        let deadline: Date
+        let now: @MainActor () -> Date
+        var hasExpired: Bool { now() >= deadline }
+        init(_ continuation: CheckedContinuation<String, Error>, deadline: Date,
+             now: @escaping @MainActor () -> Date) {
+            self.continuation = continuation; self.deadline = deadline; self.now = now
+        }
     }
     private static var pending: [String: Pending] = [:]
     private static var legacyTokens: Set<String> = []
@@ -19,6 +25,10 @@ import DraftlyCore
               pending[token] != nil || legacyTokens.contains(token),
               let status = query.first(where: { $0.name == "status" })?.value,
               ["success", "cancelled", "error"].contains(status) else { return false }
+        if pending[token]?.hasExpired == true {
+            finish(token, result: .success(timeoutResponse))
+            return false
+        }
         var parameters: [String: String] = [:]
         for item in query where item.name != "token" && item.name != "status" { parameters[item.name] = item.value ?? "" }
         let response: [String: Any] = ["status": status, "parameters": parameters]
@@ -31,6 +41,7 @@ import DraftlyCore
     }
 
     static func openAsync(_ values: [String: Any], timeout: TimeInterval = 120,
+                          now: @escaping @MainActor () -> Date = Date.init,
                           openURL: @MainActor (URL) -> Bool = { NSWorkspace.shared.open($0) }) async throws -> [String: Any] {
         try Task.checkCancellation()
         guard timeout.isFinite, timeout > 0 else { throw DraftlyError.message("The callback timeout must be positive and finite.") }
@@ -39,13 +50,13 @@ import DraftlyCore
         if !wait { return openURL(url) ? ["status": "success", "parameters": [String: String]()] : ["status": "invalid"] }
         let response: String = try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
-                pending[token] = Pending(continuation)
+                pending[token] = Pending(continuation, deadline: now().addingTimeInterval(timeout), now: now)
                 guard !Task.isCancelled else { finish(token, result: .failure(CancellationError())); return }
                 guard openURL(url) else { finish(token, result: .success(["status": "invalid"])); return }
                 guard let request = pending[token] else { return }
                 request.timeout = Task { @MainActor in
-                    do { try await Task.sleep(for: .seconds(timeout)) } catch { return }
-                    finish(token, result: .success(["status": "timeout", "parameters": [String: String]()]))
+                    do { try await Task.sleep(for: .seconds(max(0, request.deadline.timeIntervalSince(now())))) } catch { return }
+                    finish(token, result: .success(timeoutResponse))
                 }
             }
         } onCancel: {
@@ -67,13 +78,17 @@ import DraftlyCore
         return responses[token] ?? ["status": "timeout", "parameters": [String: String]()]
     }
 
+    private static var timeoutResponse: [String: Any] {
+        ["status": "timeout", "parameters": [String: String]()]
+    }
+
     private static func finish(_ token: String, result: Result<[String: Any], Error>) {
         guard let request = pending.removeValue(forKey: token) else { return }
         request.timeout?.cancel()
         switch result {
         case .success(let value):
             do {
-                let data = try JSONSerialization.data(withJSONObject: value)
+                let data = try JSONSerialization.data(withJSONObject: request.hasExpired ? timeoutResponse : value)
                 request.continuation.resume(returning: String(decoding: data, as: UTF8.self))
             } catch { request.continuation.resume(throwing: error) }
         case .failure(let error): request.continuation.resume(throwing: error)
