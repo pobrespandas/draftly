@@ -2,6 +2,24 @@ import Foundation
 import Testing
 @testable import DraftlyCore
 
+@MainActor private final class OrderedCallbackResponseHost: ActionHost {
+    let fallback = APIContractHost()
+    private(set) var received: [String] = []
+    func perform(_ operation: String, values: [String: Any]) throws -> Any? {
+        if operation == "callbackURL" {
+            let source = URLComponents(string: values["url"] as? String ?? "")?.host ?? ""
+            received.append(source)
+            return ["status": "success", "parameters": ["source": source]]
+        }
+        if operation == "shortcut" {
+            let name = values["name"] as? String ?? ""
+            received.append(name)
+            return name
+        }
+        return try fallback.perform(operation, values: values)
+    }
+}
+
 @Suite("Callback response collection contracts") @MainActor
 struct CallbackResponseContractTests {
     @Test(arguments: [false, true], [false, true])
@@ -75,6 +93,45 @@ struct CallbackResponseContractTests {
         let action = DraftAction(name: "Callback response keys", steps: [callback, check])
         if worker { #expect((await runner.runAsync(action)).result.succeeded, Comment(rawValue: runner.message ?? "")) }
         else { #expect(runner.run(action), Comment(rawValue: runner.message ?? "")) }
+    }
+
+    @Test(arguments: [false, true])
+    func mixedCallbackAndShortcutResponsesKeepExecutionOrderAndReset(worker: Bool) async throws {
+        let fixture = try ScriptTestFixture(content: "Neutral", host: OrderedCallbackResponseHost())
+        var action = makeAPIAction("check(Array.isArray(context.callbackResponses) && context.callbackResponses.length===0,'fresh responses');")
+        action.steps.append(ActionStep("callbackUrl", ["url": "fixture://step"]))
+        action.steps.append(ActionStep("runShortcut", ["name": "Step café 🐼"]))
+        action.steps += makeAPIAction("""
+        const callback=CallbackURL.create();callback.baseURL='fixture://script';
+        check(callback.open()===true,'script callback');
+        check(Shortcut.create('Script café 🐼').run()===true,'script shortcut');
+        const responses=context.callbackResponses;
+        check(responses.length===4,'mixed response count');
+        check(responses[0].source==='step' && responses[1].result==='Step café 🐼' && responses[2].source==='script' && responses[3].result==='Script café 🐼','mixed response order');
+        """).steps
+        #expect(await ActionTestExecution.succeeds(action, runner: fixture.runner, worker: worker),
+                Comment(rawValue: fixture.runner.message ?? ""))
+        #expect(fixture.host.received == ["step", "Step café 🐼", "script", "Script café 🐼"])
+        #expect(await ActionTestExecution.succeeds(makeAPIAction("check(Array.isArray(context.callbackResponses) && context.callbackResponses.length===0,'responses reset');"),
+                                                 runner: fixture.runner, worker: worker))
+    }
+
+    @Test(arguments: [false, true], ["error", "cancelled"])
+    func unsuccessfulScriptCallbacksDoNotPublishReturnedParameters(worker: Bool, status: String) async throws {
+        let (_, _, host, runner) = try makeAPIContext()
+        defer { withExtendedLifetime(host) {} }
+        host.callbackStatus = status
+        host.callbackParameters = ["discard": "Not a successful response café 🐼"]
+        let action = makeAPIAction("""
+        check(context.callbackResponses.length===0,'initial responses');
+        const callback=CallbackURL.create();callback.baseURL='fixture://unsuccessful';
+        check(callback.open()===false,'unsuccessful callback return');
+        check(context.callbackResponses.length===0,'no fabricated success response');
+        app.setClipboard('Script continued');
+        """)
+        #expect(await ActionTestExecution.succeeds(action, runner: runner, worker: worker),
+                Comment(rawValue: runner.message ?? ""))
+        #expect(host.clipboard == "Script continued")
     }
 
 }

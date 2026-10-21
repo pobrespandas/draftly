@@ -1,0 +1,60 @@
+[
+  {
+    "uuid": "BBBF0020-0000-4000-8000-000000000001",
+    "name": "QA Context mixed callbacks",
+    "groupName": "Context callbacks QA",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "if(!Array.isArray(context.callbackResponses)||context.callbackResponses.length!==0)throw new Error('Callback context not fresh');"
+        }
+      },
+      {
+        "type": "callbackUrl",
+        "data": {
+          "url": "draftly-engine-echo://reply?status=success&replyValue=Step%20callback%20caf%C3%A9%20%F0%9F%90%BC"
+        }
+      },
+      {
+        "type": "runShortcut",
+        "data": {
+          "name": "Draftly QA Output — disposable",
+          "waitForResponse": "true"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "var cb=CallbackURL.create();cb.baseURL=\"draftly-engine-echo://reply?status=success&replyValue=Script%20callback%20caf%C3%A9%20%F0%9F%90%BC\";if(!cb.open())throw new Error('Script callback failed');var shortcut=Shortcut.create(\"Draftly QA Output — disposable\");if(!shortcut.run())throw new Error('Script shortcut failed');var r=context.callbackResponses;if(r.length!==4||r[0].value!=='Step callback café 🐼'||r[1].result!=='Native shortcut output café 🐼'||r[2].value!=='Script callback café 🐼'||r[3].result!=='Native shortcut output café 🐼')throw new Error('Mixed callback order');editor.setText('Context mixed callbacks passed café 🐼');"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0020-0000-4000-8000-000000000002",
+    "name": "QA Context unsuccessful callbacks",
+    "groupName": "Context callbacks QA",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "if(!Array.isArray(context.callbackResponses)||context.callbackResponses.length!==0)throw new Error('Callback context not fresh');{const cb=CallbackURL.create();cb.baseURL=\"draftly-engine-echo://reply?status=error&replyValue=Discarded%20caf%C3%A9%20%F0%9F%90%BC\";if(cb.open()!==false||context.callbackResponses.length!==0)throw new Error('Unsuccessful callback published a response');}{const cb=CallbackURL.create();cb.baseURL=\"draftly-engine-echo://reply?status=cancelled&replyValue=Discarded%20caf%C3%A9%20%F0%9F%90%BC\";if(cb.open()!==false||context.callbackResponses.length!==0)throw new Error('Unsuccessful callback published a response');}editor.setText('Context unsuccessful callbacks passed café 🐼');"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0020-0000-4000-8000-000000000003",
+    "name": "QA Context callbacks fresh",
+    "groupName": "Context callbacks QA",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "if(!Array.isArray(context.callbackResponses)||context.callbackResponses.length!==0)throw new Error('Callback context not fresh');editor.setText('Context callbacks fresh passed café 🐼');"
+        }
+      }
+    ]
+  }
+]

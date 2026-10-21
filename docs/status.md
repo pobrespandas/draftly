@@ -1767,3 +1767,17 @@ disconnect. params and request remain partial for Date/binary mapping, complete
 grammar, unknown charsets and other unresolved policies. Native engine acceptance
 is separate. Full regression passed 468 app and 543 core methods; all 41 Python
 tooling tests and the unsigned Xcode build passed.
+
+
+### Context callback collection accepted — 21 October 2026
+
+Both engines now have specific order/reset and unsuccessful-reply collection
+assertions. Actual QA mixed callback and Shortcut steps/scripts, verified all
+four responses, handled error/cancelled callbacks and checked a fresh execution.
+The corrected neutral fixture passed; its initial URL-encoding failure remains
+recorded. No production Context code changed. Only Context.fail remains partial
+in this object. Engine permission/capability variants remain separate.
+
+Full regression passed 468 app and 545 core methods. The unsigned Xcode build
+and all 41 Python tooling tests passed. QA now has the validated HTTP/XML-RPC
+runtime too; the manual acceptance here covers callbacks.

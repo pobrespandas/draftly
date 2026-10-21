@@ -8345,32 +8345,31 @@
             "callbackResponses: { [x: string]: any }"
           ],
           "contract": "If Callback URL or Run Shortcut action steps using the \"Wait for response\" option have been run in steps before the script step in an action, and the target app returned to Drafts using an x-success callback, this object will contain an array of objects with the parsed query parameters included in those responses, in the order they were received.",
-          "implementation": "reviewed-partial",
+          "implementation": "reviewed-complete",
           "automatedTest": {
             "suite": "CallbackResponseContractTests",
-            "test": "noWaitLaunchDoesNotPublishAResponseOrShiftTheNextReply"
+            "test": "mixedCallbackAndShortcutResponsesKeepExecutionOrderAndReset"
           },
-          "liveCheck": "docs/validation.md: No-wait callback response collection — 20 October 2026",
-          "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-20",
+          "liveCheck": "docs/validation.md: Context callback collection acceptance — 21 October 2026",
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Context.callbackResponses"
           },
-          "defaults": "Empty at execution start. A no-wait launch adds no response or callback tags. Waiting success responses keep execution order.",
-          "result": [
-            "callbackResponses: { [x: string]: any }"
-          ],
-          "errors": "Host errors stop the relevant step.",
-          "limitations": [
-            "Not all native response variants and configuration defaults are covered.",
-            "Returned prototype-named keys, quotes, and newlines pass both runner routes for script and step callbacks. The native response-key fixture passed with the updated local helper on 20 October 2026."
-          ],
-          "evidenceLevel": "Member-specific assertions. Native verification is separate.",
+          "defaults": "A fresh execution has an empty array. A no-wait launch adds no response; a new action starts with a new collection.",
+          "result": "An ordered array of parsed successful callback parameters or awaited Shortcut result objects. The archived description calls it an array although the signature uses an object indexer.",
+          "errors": "Unsuccessful script CallbackURL.open calls return false and add no success response. The script can handle that return and continue. Step failure and task cancellation keep their separate execution contracts.",
+          "limitations": [],
+          "evidenceLevel": "Member-specific assertions plus actual mixed URL/Shortcut collection checks. Engine permission and capability lifetime acceptance stays separate.",
           "automatedTestHistory": [
             {
               "suite": "ExecutionActionAPITests",
               "test": "shortcutResponsesReachContextInExecutionOrder"
+            },
+            {
+              "suite": "CallbackResponseContractTests",
+              "test": "noWaitLaunchDoesNotPublishAResponseOrShiftTheNextReply"
             }
           ],
           "supportingTests": [
@@ -8385,10 +8384,18 @@
             {
               "suite": "ShortcutResponseContractTests",
               "test": "waitOptionReachesTheHostAndControlsResponses"
+            },
+            {
+              "suite": "CallbackResponseContractTests",
+              "test": "noWaitLaunchDoesNotPublishAResponseOrShiftTheNextReply"
+            },
+            {
+              "suite": "CallbackResponseContractTests",
+              "test": "unsuccessfulScriptCallbacksDoNotPublishReturnedParameters"
             }
           ],
           "nativeVerification": {
-            "status": "pending",
+            "status": "passed",
             "additionalChecks": [
               {
                 "date": "2026-10-20",
@@ -8401,8 +8408,46 @@
                 "executableSHA256": "d58f3e5b45380631ea93b0364d0b63856b598ab0d57890bd0dc1a98cae7075b4",
                 "fixture": "scripts/fixtures/engine-callback-response-key-actions.json",
                 "result": "Passed: own prototype-named keys, Unicode, quotes, newlines, and callback tags. Editor showed Returned callback keys preserved café 🐼; history showed Success."
+              },
+              {
+                "date": "2026-10-21",
+                "executableSHA256": "34cc6a16a64ce79f408765abfcf4bea43375fa47cfaab80e6b50132907b07bed",
+                "debugImageSHA256": "47eb6869273c66efb69cc836e19de186aaa1c73ef98c19f04c44d2a52e4cae63",
+                "fixture": "scripts/fixtures/context-callback-actions.json",
+                "result": "Actual callback step, existing neutral Shortcut step, script callback and script Shortcut produced four ordered Unicode responses. Error/cancelled script callbacks published none; another action checked empty collection. History Success at03:14/03:15. Initial fixture used plus for spaces; corrected to percent20 and repeated. No product change, permission or personal data."
               }
-            ]
+            ],
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Context callback collection acceptance — 21 October 2026"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "CallbackResponseContractTests",
+                "test": "mixedCallbackAndShortcutResponsesKeepExecutionOrderAndReset"
+              },
+              "assertion": "Both engines mix step callback, step Shortcut, script callback and script Shortcut, then assert exactly four distinct responses in execution order."
+            },
+            "defaults": {
+              "test": {
+                "suite": "CallbackResponseContractTests",
+                "test": "mixedCallbackAndShortcutResponsesKeepExecutionOrderAndReset"
+              },
+              "assertion": "The collection starts as an empty array and is empty again in a second execution on the same runner. Existing no-wait cases verify no synthetic entry."
+            },
+            "errors": {
+              "test": {
+                "suite": "CallbackResponseContractTests",
+                "test": "unsuccessfulScriptCallbacksDoNotPublishReturnedParameters"
+              },
+              "assertion": "Both engines reject returned parameters as success entries for error and cancelled statuses; the handling script continues. Native helper checks cover the same collection behavior."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Context callback collection acceptance — 21 October 2026",
+            "scope": "Specific mixed-source order, initial/reset, unsuccessful reply exclusion, prior no-wait and prototype-key cases passed on both engines. Hosts are neutral fakes and do not invoke Shortcuts or open URLs."
           }
         },
         {

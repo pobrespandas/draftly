@@ -6848,3 +6848,63 @@ diagnostics. XMLRPC.request and XMLRPCResponse.params retain incomplete status,
 comparison and limitation diagnostics. Their known normal/default/error cases
 are now recorded explicitly. No accepted metadata member has a strict diagnostic.
 These counts are not a compatibility percentage.
+
+
+### Context callback collection acceptance — 21 October 2026
+
+Read the frozen Context.callbackResponses contract. Added two member-specific
+methods to the existing suite. Both engines mix callback and Shortcut responses
+through step and script paths, verify four distinct ordered entries, and verify
+an empty collection in a second execution. Error and cancelled script replies
+publish no success entry; the handling script continues. Existing no-wait and
+prototype-key tests keep their separate assertions.
+
+The first automatic fixture compared a full callback URL against a base without
+its empty query suffix. It now identifies the source by URL host; URL formatting
+was not the contract under test. No product code changed. The focused family
+passed 29 methods. Full regression passed 468 app and 545 core methods.
+
+For manual verification, quit Engine QA and confirmed its process was absent.
+Refreshed the complete runtime from the validated build with the existing helper
+script and development signature. Kept its bundle, library and signing identities.
+Signed launcher SHA256:
+34cc6a16a64ce79f408765abfcf4bea43375fa47cfaab80e6b50132907b07bed.
+Signed Debug image SHA256:
+47eb6869273c66efb69cc836e19de186aaa1c73ef98c19f04c44d2a52e4cae63.
+This image includes the HTTP/XML-RPC corrections. This session checks callbacks.
+
+Inspected the existing Draftly QA Output — disposable Shortcut. It still has
+Wait 5 seconds, neutral Unicode Text and Stop and Output with no further action.
+No Shortcut was edited, created or deleted. Imported context-callback-actions.json
+through File > Import and selected the existing neutral QA draft. The local
+callback helper targeted Engine QA with its inventory monitor off.
+
+The first mixed run failed its fixture assertion at 03:13. The fixture encoded
+spaces as plus signs; URLComponents preserved those literal plus signs. Changed
+only those fixture URL values to percent-encoded spaces and reimported the same
+identities. The corrected mixed run wrote Context mixed callbacks passed café 🐼
+and History showed Success at 03:14. It verified callback step, Shortcut step,
+script callback and script Shortcut values in that exact order.
+
+QA Context unsuccessful callbacks then handled actual error and cancelled
+responses, checked an empty success collection and wrote its marker. QA Context
+callbacks fresh checked the empty collection in another execution. Both History
+rows showed Success at 03:15. The helper reported six replies opened and a
+successful last open. This includes the two replies from the initial fixture
+run. The first Error row stays in History; it is not a production regression.
+
+Closed History, quit the helper and confirmed its process was absent. Closed
+only the neutral Shortcut editor opened for inspection. QA retains one window,
+two neutral drafts and the final Context callbacks fresh passed café 🐼 marker.
+No permission, system setting, personal data or remote message changed. No raw
+log or screenshot is tracked. These native cases accept this collection member;
+engine task cancellation and remaining capability variants retain their own
+acceptance. Context.fail still needs its visible native notification check.
+
+The unsigned Xcode build and all 41 Python tooling tests passed. The automatic
+tests use fake hosts and stay headless. Real URLs and Shortcuts ran only in the
+separate manual session. No whole engine or Mac closure is claimed.
+
+Matrix structure has zero errors. Strict engine/global gates retain 18/4,589
+diagnostics. Context.callbackResponses has no strict diagnostic. Its completion
+does not accept other native capabilities or the remaining Mac deliveries.
