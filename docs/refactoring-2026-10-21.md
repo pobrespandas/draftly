@@ -2,6 +2,10 @@
 
 ## Current scope
 
+This record describes the closed refactoring checkpoint. Cloning resumed later
+on 21 October. The Action.find fix and native acceptance now follow in status
+and validation. WIP statements below describe their state during refactoring.
+
 The user paused the cloning plan. This phase preserves behavior and improves
 responsibility boundaries. Resume feature work only after the user resumes it.
 The complete Mac plan remains open.

@@ -6205,3 +6205,34 @@ to main, all four editing-bar methods/40 cases passed. Main retains the full
 No production source, fixture, format or matrix changed during branch
 preservation. The final checkout audit confirmed that main has no red reproducer
 and both WIP branches remain local. Main and the reference tag match origin.
+
+
+### Native deterministic Action.find — 21 October 2026
+
+Resumed the cloning roadmap after the nine refactoring stages. Selected only
+the lookup code, specific test and neutral fixture from local WIP 35a790c.
+Reload now breaks equal-name ties by UUID. No saved note or record format changed.
+The lookup test uses shared execution support instead of restoring its old helper.
+
+Automatic checks passed: 11 focused methods across four suites; the full run
+passed 467 app and 509 core methods. Unsigned Xcode compilation passed. Drafts
+installed reference remains 54.1.1 (943). No archived reference was refreshed.
+
+Refreshed the existing signed Engine QA bundle with refresh-engine-qa.py.
+Its identity and isolated library ID remained unchanged. Signed executable
+SHA256: 4664fdb9d438b13acb7b2f70256c19ff74e66e7f276be5608319f62d7a0d3188.
+Imported scripts/fixtures/action-lookup-installation-actions.json through File
+Import. Created one neutral draft. Ran QA Action lookup link from its group.
+The editor showed Action lookup link passed café 🐼 and History showed Success.
+
+Quit through the native app menu. The process was absent before relaunch.
+Reopened the same QA bundle, selected the persisted draft and ran the checker
+again. History displayed two Success rows (01:47 and 01:48 local). The fixture
+checks the first duplicate UUID, exact missing names and stable action identity.
+It also checks generated link structure and readonly behavior; it does not
+install that URL, so Action.installURL remains separately pending.
+
+This accepts Action.find only. The six partial engine contracts and other API
+members remain open. No screenshot is tracked. AX state supplied functional
+observations; screenshot capture was unavailable and no visual parity is claimed.
+No permission changed, message was sent or personal note was edited.

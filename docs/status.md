@@ -3,7 +3,8 @@
 Updated: 21 October 2026.
 
 Draftly works as a local Mac app. Mac parity is not complete. The cloning plan
-is paused at the user's request. Current work is behavior-preserving refactoring.
+resumed after the user requested completion of the cloning stages. The nine-stage
+refactoring pass is closed. Current work follows the motor-first roadmap.
 Read [the refactoring record](refactoring-2026-10-21.md) for the reference tag,
 saved functional branch, diagnosis, baseline and stage results. Historical
 sections below retain their original scope and dates.
@@ -30,7 +31,7 @@ configuration default selection, auditor source indexing and pure editing-bar
 text calculations, native asynchronous routing and window-submission ownership.
 See [stage results](refactoring-2026-10-21.md#stage-results) for current checks
 and [remaining risks](refactoring-2026-10-21.md#remaining-refactoring-and-risks)
-for retained boundaries and separate functional work. Cloning remains paused.
+for retained boundaries and separate functional work. Cloning has resumed.
 
 The refactoring base is `a415883`, tagged `pre-refactor-2026-10-21`.
 Swift baseline: 455 app methods and 502 core methods passed. Matrix structure
@@ -38,9 +39,10 @@ has zero errors. Strict engine acceptance retains 18 existing diagnostics.
 See [the refactoring record](refactoring-2026-10-21.md) for tool-environment
 results and later stage checks.
 
-The functional `Action.find` duplicate-name correction is saved separately in
-`agent/wip-action-lookup-2026-10-21` at `35a790c`. Its automatic checks passed;
-native acceptance is pending. It is not in the refactoring base. Other Mac
+The functional `Action.find` duplicate-name correction was selected from local
+WIP `35a790c` after refactoring. Its specific automatic and native restart checks
+passed on 21 October. Only Action.find is accepted; installation-contract work
+from that WIP remains separate. It was not part of the refactoring base. Other Mac
 contracts remain pending. The API matrix owns current member classifications;
 test totals are not a compatibility percentage.
 The new line-up text no-op has a separate local reproducer at `3af40f2` on
@@ -1571,3 +1573,18 @@ All ActionGroup members now have recorded acceptance; this does not close
 Actions, the engine, other APIs, inspector, sync or the Mac roadmap. Next:
 review Action.installURL and find with specific boundary cases, then resume
 the remaining configuredValues/recent and engine acceptance work.
+
+
+### Cloning resumed and Action.find accepted — 21 October 2026
+
+The user resumed the eight cloning deliveries. The first functional correction
+makes duplicate-name lookup stable across reload and backup restore. Both
+execution routes passed specific tests. The signed isolated Engine QA checker
+passed before and after restart, with two Success records. Action.find now has
+member-specific complete evidence. Action.installURL is not accepted by that
+checker alone. See validation for the executable and exact native scope.
+
+Next: same-draft App Intent ownership with two windows, then the remaining
+engine capability/lifetime variants. Six engine records remain partial.
+Line-up correction remains separate and pending. Do not close any full delivery
+based on this one accepted member or the global number of passing tests.

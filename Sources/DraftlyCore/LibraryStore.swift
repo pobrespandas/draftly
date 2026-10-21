@@ -72,7 +72,9 @@ public final class LibraryStore: ObservableObject {
         revisions = try decode("revision", Revision.self).sorted { $0.date > $1.date }
         workspaces = try decode("workspace", Workspace.self).sorted { ($0.order ?? 0) == ($1.order ?? 0) ? $0.name < $1.name : ($0.order ?? 0) < ($1.order ?? 0) }
         actionGroups = try decode("actionGroup", ActionGroupRecord.self).sorted { $0.order == $1.order ? $0.name < $1.name : $0.order < $1.order }
-        actions = try decode("action", DraftAction.self).sorted { $0.name < $1.name }
+        actions = try decode("action", DraftAction.self).sorted {
+            $0.name == $1.name ? $0.id.uuidString < $1.id.uuidString : $0.name < $1.name
+        }
         runs = try decode("run", ActionRun.self).sorted { $0.date > $1.date }
     }
 

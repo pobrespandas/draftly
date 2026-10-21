@@ -6754,27 +6754,54 @@
             "find(name: string): Action | undefined"
           ],
           "contract": "Search for action matching the name passed and return it if found. Useful to lookup and action and queue it to be run using the App.queueAction function of the App object. This method will return only the first found action with the given name, be sure to avoid duplicate names in your action list.",
-          "implementation": "reviewed-partial",
+          "implementation": "reviewed-complete",
           "automatedTest": {
-            "suite": "CatalogActionAPITests",
-            "test": "actionAndGroupQueriesKeepIdentityOrderAndInstallationData"
+            "suite": "ActionLookupContractTests",
+            "test": "findUsesExactNamesAndReturnsFirstDuplicateOrUndefined"
           },
           "liveCheck": null,
-          "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-19",
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Action.find"
           },
-          "defaults": "Queries return an empty list or undefined for missing records. Factory defaults still need an exhaustive assertion set.",
-          "result": [
-            "find(name: string): Action | undefined"
-          ],
-          "errors": "Storage failures throw; missing lookups return undefined.",
-          "limitations": [
-            "Not every documented default and error path has a member-specific assertion."
-          ],
-          "evidenceLevel": "Member-specific assertions. Native verification is separate."
+          "defaults": "The signature requires a name. No optional arguments or factory defaults apply.",
+          "result": "Returns the first loaded action with an exact matching name, or undefined. Reload and backup restore retain deterministic UUID tie order for duplicate names.",
+          "errors": "Missing, case-different, prefix-only and whitespace-different names return undefined. The lookup reads the loaded catalog; it does not write storage.",
+          "limitations": [],
+          "evidenceLevel": "Member-specific assertions. Native verification is separate.",
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Native deterministic Action.find — 21 October 2026",
+            "scope": "Specific lookup contract passed on legacy and worker routes, including exact Unicode names, repeated identity, missing variants, duplicate order and backup restore."
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionLookupContractTests",
+                "test": "findUsesExactNamesAndReturnsFirstDuplicateOrUndefined"
+              },
+              "assertion": "Exact Unicode lookup returns an Action with the first duplicate identity; repeat lookup and backup restore retain it."
+            },
+            "defaults": {
+              "notApplicable": "The archived signature requires a name and has no optional arguments."
+            },
+            "errors": {
+              "test": {
+                "suite": "ActionLookupContractTests",
+                "test": "findUsesExactNamesAndReturnsFirstDuplicateOrUndefined"
+              },
+              "assertion": "Missing, case-different, prefix-only, empty and whitespace-different names return undefined."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Native deterministic Action.find — 21 October 2026",
+            "scope": "Signed isolated Engine QA: imported reversed duplicate UUIDs, ran the checker from the action list, quit/reopened the same library, reran it and observed two Success records. Generated URL checks are not full installation acceptance."
+          }
         },
         {
           "member": "recent",

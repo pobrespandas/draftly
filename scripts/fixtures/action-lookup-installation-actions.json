@@ -1,0 +1,28 @@
+[
+  {
+    "uuid": "BBBF0003-0000-4000-8000-000000000015",
+    "name": "QA Action lookup link",
+    "group": "Native installation QA",
+    "notificationType": 0,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "function check(v,m){if(!v)throw new Error(m);}\nconst found=Action.find('QA duplicate café 🐼');\ncheck(found && found.uuid==='BBBF0003-0000-4000-8000-000000000013','first duplicate');\ncheck(Action.find('QA duplicate café 🐼 ')===undefined && Action.find('QA Missing lookup')===undefined,'exact missing names');\nconst source=Action.find('QA Action lookup link'),url=source.installURL;\ncheck(source.uuid==='BBBF0003-0000-4000-8000-000000000015' && url===source.installURL,'stable source identity/link');\nconst payload=JSON.parse(decodeURIComponent(url.split('data=')[1]));\ncheck(payload.name===source.name && payload.steps.length===1,'installation payload');\ncheck(Reflect.set(source,'installURL','wrong')===false,'readonly link');\neditor.setText('Action lookup link passed café 🐼\\n'+url);draft.update();"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0003-0000-4000-8000-000000000014",
+    "name": "QA duplicate café 🐼",
+    "group": "Native lookup duplicates",
+    "steps": []
+  },
+  {
+    "uuid": "BBBF0003-0000-4000-8000-000000000013",
+    "name": "QA duplicate café 🐼",
+    "group": "Native lookup duplicates",
+    "steps": []
+  }
+]
