@@ -112,7 +112,7 @@ struct DraftListPanel: View {
     private func clearFilters() { model.clearFilters() }
 }
 
-private struct NativeDraftTable: NSViewRepresentable {
+struct NativeDraftTable: NSViewRepresentable {
     @ObservedObject var model: WindowModel
     @ObservedObject var library: LibraryStore
     @Binding var selection: Set<UUID>
@@ -178,7 +178,7 @@ private struct NativeDraftTable: NSViewRepresentable {
         var options: [Int] = []
         var synchronizingSelection = false
         init(_ parent: NativeDraftTable) { self.parent = parent }
-        func numberOfRows(in tableView: NSTableView) -> Int { parent.model.visibleNotes.count }
+        func numberOfRows(in tableView: NSTableView) -> Int { notes.count }
         func tableViewColumnDidResize(_ notification: Notification) {
             guard let table else { return }
             NSAnimationContext.runAnimationGroup { context in
@@ -187,8 +187,8 @@ private struct NativeDraftTable: NSViewRepresentable {
             }
         }
         func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat {
-            guard parent.model.visibleNotes.indices.contains(row) else { return 56 }
-            let note = parent.model.visibleNotes[row]
+            guard notes.indices.contains(row) else { return 56 }
+            let note = notes[row]
             return DraftRowPresentation.height(note: note, width: max(80, tableView.bounds.width - 44),
                 showPreview: parent.showPreview, previewLines: parent.previewLines,
                 showTags: parent.showTags, showDate: parent.showDate,
@@ -196,7 +196,6 @@ private struct NativeDraftTable: NSViewRepresentable {
                 query: parent.model.listOptions.previewSearchMatches ? parent.model.query : "")
         }
         func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-            let notes = parent.model.visibleNotes
             guard notes.indices.contains(row) else { return nil }
             let id = NSUserInterfaceItemIdentifier("DraftCell")
             let cell = (tableView.makeView(withIdentifier: id, owner: self) as? DraftHostingCell) ?? DraftHostingCell(identifier: id)
@@ -212,18 +211,16 @@ private struct NativeDraftTable: NSViewRepresentable {
         }
         func tableViewSelectionDidChange(_ notification: Notification) {
             guard let table, !synchronizingSelection else { return }
-            let notes = parent.model.visibleNotes
             parent.selection = Set(table.selectedRowIndexes.compactMap { notes.indices.contains($0) ? notes[$0].id : nil })
             if parent.selection.count == 1 { parent.model.select(parent.selection.first, focusEditor: false) }
             table.window?.makeFirstResponder(table)
         }
         func tableView(_ tableView: NSTableView, rowActionsForRow row: Int, edge: NSTableView.RowActionEdge) -> [NSTableViewRowAction] {
-            guard edge == .trailing, parent.model.visibleNotes.indices.contains(row) else { return [] }
-            let id = parent.model.visibleNotes[row].id
+            guard edge == .trailing, notes.indices.contains(row) else { return [] }
+            let id = notes[row].id
             return parent.model.swipeCommands(for: id).map { $0.nativeAction(model: parent.model, table: tableView) }
         }
         func tableView(_ tableView: NSTableView, menuFor event: NSEvent, at row: Int) -> NSMenu? {
-            let notes = parent.model.visibleNotes
             guard notes.indices.contains(row) else { return nil }
             let ids = parent.model.contextTargets(rowID: notes[row].id, selection: parent.selection)
             return parent.model.draftContextMenu(ids: ids)

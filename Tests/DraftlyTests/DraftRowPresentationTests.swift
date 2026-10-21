@@ -1,10 +1,36 @@
 import AppKit
+import SwiftUI
 import Testing
 import DraftlyCore
 @testable import Draftly
 
 @Suite("Draft row presentation") @MainActor
 struct DraftRowPresentationTests {
+    @Test func tableCallbacksUseTheDisplayedSnapshotUntilTheNextUpdate() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let model = WindowModel(library: library)
+        let note = Note(content: "Displayed title\nDisplayed preview", tags: ["snapshot"])
+        try library.saveNote(note)
+        let view = NativeDraftTable(model: model, library: library, selection: .constant([]),
+                                   showPreview: true, previewLines: 2, showTags: true, showDate: true)
+        let coordinator = view.makeCoordinator()
+        coordinator.notes = [note]
+        model.query = "No matching rows"
+        #expect(model.visibleNotes.isEmpty)
+        let table = NSTableView(frame: NSRect(x: 0, y: 0, width: 300, height: 200))
+        #expect(coordinator.numberOfRows(in: table) == 1)
+        let expected = DraftRowPresentation.height(note: note, width: 256, showPreview: true,
+            previewLines: 2, showTags: true, showDate: true, lastAction: false)
+        #expect(coordinator.tableView(table, heightOfRow: 0) == expected)
+        #expect(coordinator.tableView(table, heightOfRow: -1) == 56)
+        #expect(coordinator.tableView(table, heightOfRow: 1) == 56)
+        #expect(coordinator.tableView(table, viewFor: nil, row: 1) == nil)
+        #expect(coordinator.tableView(table, rowActionsForRow: 0, edge: .trailing).count > 0)
+        coordinator.notes = []
+        #expect(coordinator.numberOfRows(in: table) == 0)
+        #expect(coordinator.tableView(table, rowActionsForRow: 0, edge: .trailing).isEmpty)
+    }
+
     @Test func paragraphsUseSeparatorsWithoutChangingTheDraft() {
         let note = Note(content: "Title\n\n First paragraph 🐼\n\nSecond café\n")
         #expect(DraftRowPresentation.preview(note) == "First paragraph 🐼 • Second café")

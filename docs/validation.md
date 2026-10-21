@@ -4932,3 +4932,28 @@ the file. Native import into the separate, local Scale QA app caused UI reads
 to time out. A later process sample showed an idle main thread. This does not
 establish the cause or accept native scale performance. Row rendering and
 selection still need investigation. No screenshots or raw reports are tracked.
+
+
+### Draft table snapshot consistency — 20 October 2026
+
+Implemented: table callbacks now use the displayed note snapshot. Row counts,
+heights, cells, selection, swipe commands, and context menus no longer compute
+a new filtered and sorted list for each request. The next view update replaces
+the snapshot before it reloads the table. No public API or storage format changed.
+
+Automatic: the offscreen regression reproduced incorrect row count, height, and
+swipe availability when the model query differed from the displayed snapshot.
+It now passes, including invalid row bounds and an empty replacement snapshot.
+All eight row presentation tests pass. The full Swift test command passes.
+No test opens a window. Native scale responsiveness still needs verification;
+this correction does not establish the cause of the earlier UI timeouts.
+
+Native follow-up: the unsigned Xcode build passed. Updated only the separate
+Scale QA app and kept its local library identity. Relaunch showed 10,000 drafts.
+Selected Note 5665, scrolled five pages, and selected Note 2275. The editor
+showed the matching Unicode content. These observations completed without a
+timeout; they are not precise latency measurements. The fixture gives every
+note the same date. Selection caused tied rows to change order. The workspace
+comparator has no identity tie-break for modified, created, or title order.
+That separate ordering defect remains pending. No personal library changed.
+Full automatic regression passed app448/core475.
