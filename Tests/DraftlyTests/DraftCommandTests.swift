@@ -91,33 +91,79 @@ struct DraftCommandTests {
         #expect(model.editor.noteID == b.id && store.runs.count == 2)
     }
 
-    @Test func queuedWindowActionRejectsDuplicateRequests() async throws {
+    @Test(arguments: [false, true], [false, true])
+    func queuedWindowActionRejectsDuplicateRequests(firstBatch: Bool, secondBatch: Bool) async throws {
+        let suite = "Draftly-WindowSubmission-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
         let store = try LibraryStore(inMemory: true, seed: false)
         let note = try store.createNote(content: "Source")
-        let model = WindowModel(library: store); model.select(note.id)
+        var dependencies = WindowDependencies()
+        dependencies.preferences = WindowPreferences(defaults: defaults)
+        let model = WindowModel(library: store, dependencies: dependencies)
+        model.select(note.id)
         let action = DraftAction(name: "Append once", steps: [ActionStep("script", ["script": "draft.content += ' done'; draft.update();"])])
-        model.run(action)
-        model.run(action)
-        #expect(model.actionPending)
-        let deadline = ContinuousClock.now + .seconds(5)
-        while model.actionPending && ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(5)) }
-        #expect(!model.actionPending)
+        submit(action, to: model, noteID: note.id, batch: firstBatch)
+        let task = try #require(model.actionTask)
+        #expect(model.actionPending && !model.runner.isRunning)
+        submit(action, to: model, noteID: note.id, batch: secondBatch)
+        #expect(model.actionPending && model.actionTask == task)
+        await task.value
+        #expect(!model.actionPending && model.actionTask == nil)
         #expect(store.notes.first { $0.id == note.id }?.content == "Source done")
         #expect(store.runs.count == 1)
     }
 
-    @Test func cancellingQueuedWindowActionDoesNotStartIt() async throws {
+    @Test(arguments: [false, true])
+    func cancellingQueuedWindowActionDoesNotStartIt(batch: Bool) async throws {
+        let suite = "Draftly-WindowSubmission-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
         let store = try LibraryStore(inMemory: true, seed: false)
         let note = try store.createNote(content: "Source")
-        let model = WindowModel(library: store); model.select(note.id)
+        var dependencies = WindowDependencies()
+        dependencies.preferences = WindowPreferences(defaults: defaults)
+        let model = WindowModel(library: store, dependencies: dependencies)
+        model.select(note.id)
         let action = DraftAction(name: "Do not start", steps: [ActionStep("script", ["script": "draft.content = 'Unexpected'; draft.update();"])])
-        model.run(action)
+        submit(action, to: model, noteID: note.id, batch: batch)
+        let task = try #require(model.actionTask)
+        #expect(model.actionPending && !model.runner.isRunning)
         model.cancelActions()
-        let deadline = ContinuousClock.now + .seconds(5)
-        while model.actionPending && ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(5)) }
-        #expect(!model.actionPending)
+        #expect(task.isCancelled)
+        await task.value
+        #expect(!model.actionPending && model.actionTask == nil)
+        #expect(store.notes.first { $0.id == note.id }?.content == "Source")
+        #expect(store.runs.isEmpty && model.runner.lastReport == nil)
+    }
+
+    @Test(arguments: [false, true])
+    func scheduledWindowSubmissionDoesNotKeepItsModelAliveBeforeStart(batch: Bool) async throws {
+        let suite = "Draftly-WindowSubmission-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = try LibraryStore(inMemory: true, seed: false)
+        let note = try store.createNote(content: "Source")
+        var dependencies = WindowDependencies()
+        dependencies.preferences = WindowPreferences(defaults: defaults)
+        var model: WindowModel? = WindowModel(library: store, dependencies: dependencies)
+        model?.select(note.id)
+        let action = DraftAction(name: "Released submission", steps: [ActionStep("script", ["script": "draft.content = 'Unexpected'; draft.update();"])])
+        if batch { model?.runAction(action, on: [note.id]) }
+        else { model?.run(action) }
+        let task = try #require(model?.actionTask)
+        #expect(model?.actionPending == true)
+        weak var released = model
+        model = nil
+        #expect(released == nil)
+        await task.value
         #expect(store.notes.first { $0.id == note.id }?.content == "Source")
         #expect(store.runs.isEmpty)
+    }
+
+    private func submit(_ action: DraftAction, to model: WindowModel, noteID: UUID, batch: Bool) {
+        if batch { model.runAction(action, on: [noteID]) }
+        else { model.run(action) }
     }
 
     @Test func fullMenuHasGatedSingleDraftCommandsAndCopyUsesCapturedOrder() throws {

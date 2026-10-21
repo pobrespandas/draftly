@@ -104,6 +104,13 @@ The original reference tag and separate Action.find branch remain unchanged.
 | 7 | EditorActionBar combines composed-character and UTF-16 calculations with session mutation, focus and save effects. Private methods prevent direct characterization. | Test the current commands without a window, then move only their text/range calculation to a Foundation-only helper. Keep effects and selection clamping at the caller. Medium risk: line boundaries and no-op effects differ. |
 | 8 | NativeActionHost.supportsAsync lists operation strings that performAsync classifies again. A new operation can diverge between support and dispatch. | Use one internal route classifier. Keep model envelopes, prompt inventory, dictation injection and synchronous fallback. Low to medium risk: false support does not mean that direct asynchronous calls reject the operation. |
 
+Window submission review found one further shared responsibility:
+`WindowModel.run` and `DraftCommands.runAction` repeat immediate reservation,
+weak task ownership and deferred release. Stage 9 will share only this window
+submission. Execution bodies and caller-awaited entry points remain separate.
+Risk is medium to low: reservation must precede scheduling, and the task must
+not retain a model before it starts. App.queueAction is a different contract.
+
 New functional finding: `EditorActionBar.moveLine(-1)` concatenates the previous
 line and current block in their existing order. It moves the selection without
 moving text. Preserve this result during extraction. A correction needs its
@@ -290,6 +297,18 @@ sensitivity. Invalid JSON and non-object payloads fail before any handler for
 all these names. Tests use isolated preferences and an unused temporary root.
 Existing bookmark coverage retains the successful asynchronous fallback path.
 No capability, window or permission flow ran. No production routing changed.
+
+### 9a. Window-submission characterization
+
+The two existing test names remain for matrix references. Their cases now cover
+all four single/batch duplicate-submission combinations and both cancellation
+routes. A third method checks weak-owner release on both routes before startup.
+All three methods and eight cases passed against the original submission code.
+
+Tests assert immediate pending state, owned task identity, cancellation before
+startup, final cleanup and execution counts. They await the actual task instead
+of polling with sleeps. Preferences are isolated and records remain in memory.
+No UI, native capability or permission flow ran. No production submission changed.
 
 ## Remaining refactoring and risks
 
