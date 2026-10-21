@@ -1109,3 +1109,11 @@ leaves the full backup byte-identical; a valid mixed lot adds only its expected
 action/note/revision. Restart preserves all record data by ID. Export array
 order can change, so restart bytes are not identical. Performance and cloud
 acceptance remain pending.
+
+
+An optional release benchmark now measures10,000-note local imports, queries,
+and100,000-character saves without visible windows or fixed thresholds. On
+M2 Max/64 GiB, five fresh SQLite samples gave import median1092.570 ms and
+maximum1296.808 ms; query median17.014 ms; save median196.603 ms. Data checks
+and full app447/core475 pass. Native UI responsiveness and the remaining scale
+acceptance stay pending. Reproduction and conditions are in validation.md.

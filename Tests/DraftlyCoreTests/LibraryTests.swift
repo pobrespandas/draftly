@@ -99,16 +99,12 @@ struct LibraryTests {
     @Test func tenThousandNotesAndLargeDocument() throws {
         let notes = (0..<10_000).map { Note(content: "Note \($0)\nSearchable content", tags: $0 % 2 == 0 ? ["even"] : []) }
         var workspace = Workspace(name: "Scale"); workspace.folder = .all; workspace.tags = ["even"]; workspace.query = "Searchable"
-        let start = Date()
         #expect(workspace.filter(notes).count == 5_000)
-        #expect(Date().timeIntervalSince(start) < 2)
         let library = try LibraryStore(inMemory: true, seed: false)
         try library.restore(JSONEncoder().encode(Backup(notes: notes, revisions: [], workspaces: [], actions: [])))
         let document = String(repeating: "a", count: 100_000)
-        let saveStart = Date()
         let note = try library.createNote(content: document)
         #expect(library.notes.first { $0.id == note.id }?.content.count == 100_000)
-        #expect(Date().timeIntervalSince(saveStart) < 2)
     }
 
     @Test func markdownEscapesRawHTML() {

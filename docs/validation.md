@@ -4875,3 +4875,45 @@ mixed import, retained unknown action data, and restart persistence. Large-
 library staging cost and cloud convergence remain pending. No production code
 or tests changed after the accepted app447/core475 and build. No screenshots
 or raw exported backups are tracked.
+
+
+### Reproducible library scale measurements — 20 October 2026
+
+Added the optional DraftlyLibraryBenchmark executable. It creates fresh local
+stores and removes its temporary directory. It does not open an app or use
+CloudKit. The normal scale test still checks its data; it no longer imposes
+two arbitrary two-second limits. Timing acceptance has no fixed threshold.
+
+Run:
+`swift run -c release DraftlyLibraryBenchmark --notes 10000 --samples 5 --storage sqlite`
+
+Measured on Mac14,6, Apple M2 Max,12 logical processors,64 GiB RAM, arm64,
+macOS27.0.1 build26A434, Swift6.4. The fixture contains10,000 notes and10,000
+revisions, fixed identities/dates, Unicode text, and even/odd tags. Encoded
+baseline size is3,727,846 bytes. Fixture SHA256:
+9e6b4803d18fcb75b8071b2b568d4e0c3f8bad258cd282e25bd871dee0942448.
+Each of five samples uses a fresh SQLite store. No warm-up sample is discarded;
+filesystem caches are uncontrolled. Store construction is outside restore timing.
+
+| Operation | Median ms | Maximum ms |
+| --- | ---: | ---: |
+| Baseline restore | 586.167 | 947.194 |
+| Two-file atomic import | 1092.570 | 1296.808 |
+| Workspace query | 17.014 | 18.597 |
+| Save edited100,000-character document | 196.603 | 244.264 |
+
+The import includes staging, final persistence, and reload. Query filters by
+tag and text and returns5,000 notes. Document input has100,000 Swift characters
+and114,285 UTF-16 units; one character changes without changing its length.
+Every sample verifies baseline note/revision data, imported identity and
+metadata, query count, and stored document text. The report includes samples,
+minimum/median/maximum, configuration, environment, fixture hash, and the hashes
+of LibraryStore.swift and LibraryFileImport.swift.
+
+Automatic: a small memory smoke run, help, and five invalid-option paths passed.
+The release five-sample SQLite run passed its data checks. Full regression
+passed app447/core475. No application sources or installed QA changed.
+The import remains synchronous on MainActor. These core timings do not accept
+visible responsiveness, scrolling, selection, typing, Undo, memory usage, iCloud,
+or cold-cache performance. Native scale acceptance remains pending. Raw JSON
+and compiler logs stay in /tmp; no screenshots or raw reports are tracked.
