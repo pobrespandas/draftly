@@ -1,0 +1,17 @@
+[
+  {
+    "uuid": "BBBF0036-0000-4000-8000-000000000001",
+    "name": "QA HTML member contracts",
+    "group": "Utility member QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "function check(ok,message){if(!ok)throw Error(message);}\nconst before=editor.getText();\nconst sample='🐼  &amp;\\r\\n\\t&lt;tag&gt;  \\0end';\ncheck(HTML.unescape(sample)==='🐼  &\\r\\n\\t<tag>  \\0end','literal bytes and entities');\ncheck(HTML.unescape(HTML.escape('<One> & \"Two\" café 🐼'))==='<One> & \"Two\" café 🐼','escape/unescape roundtrip');\ncheck(HTML.unescape('&lt;script&gt;alert(1)&lt;/script&gt;')==='<script>alert(1)</script>','literal decoded markup');\ncheck(HTML.unescape('&amp;lt;')==='&lt;','one pass');\ncheck(HTML.unescape('')===''&&HTML.escape('')==='','empty strings');\ncheck(editor.getText()===before,'editor preserved');\nconsole.log('HTML literal bytes and entities passed café 🐼');"
+        }
+      }
+    ]
+  }
+]

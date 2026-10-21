@@ -25,6 +25,12 @@ retain historical results. Later results supersede earlier counts.
 
 ## Current verification
 
+HTML.unescape now preserves literal CRLF/CR, NUL and surrounding text while
+decoding entity tokens. Three red byte cases now pass; native QA passed.
+Sequential app499 and concurrent core604 methods plus unsigned Xcode passed.
+Concurrent app runs exited0 without a final summary and are not accepted as
+complete. HTML constructor is complete; escape/unescape comparison stays partial.
+
 Base64 encode/decode now have specific contract records. Independent UTF-8 and
 standard vectors pass both runners; native QA checked values and unchanged text.
 Full concurrent498 app/601 core passed. No production implementation changed.

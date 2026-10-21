@@ -75,6 +75,14 @@ struct HTMLPreferencesTests {
         #expect(try host.performAPI("htmlToMarkdown", values: ["text": html]) as? String == "One\n\nTwo")
     }
 
+    @Test func entityUnescapeChangesOnlyEntitiesAndKeepsLiteralTextBytes() throws {
+        let host = NativeActionHost()
+        for text in ["A\r\nB\rC\nD", "before\0after", "  &amp;\r\n\t&lt;tag&gt;  "] {
+            let expected = text.replacingOccurrences(of: "&amp;", with: "&").replacingOccurrences(of: "&lt;", with: "<").replacingOccurrences(of: "&gt;", with: ">")
+            #expect(Array(try host.decodeHTML(text).utf8) == Array(expected.utf8))
+        }
+    }
+
     @Test func plainTextPasteboardLeavesConversionAndSelectionUntouched() throws {
         let pasteboard = NSPasteboard.withUniqueName()
         defer { pasteboard.releaseGlobally() }

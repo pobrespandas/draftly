@@ -13660,10 +13660,46 @@
             "new HTML(): HTML"
           ],
           "contract": "",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "HTMLContractTests",
+            "test": "constructorCreatesIndependentObjectsWithoutHostWork"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "HTML.constructor"
+          },
+          "defaults": "No arguments are required.",
+          "result": "An independent HTML instance; construction does not call the host.",
+          "errors": "The archived reference documents no error outcome or malformed-entity policy.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "HTMLContractTests",
+                "test": "constructorCreatesIndependentObjectsWithoutHostWork"
+              },
+              "assertion": "Distinct typed instances without native work."
+            },
+            "defaults": {
+              "notApplicable": "No default behavior beyond the declared constructor/signature is documented."
+            },
+            "errors": {
+              "notApplicable": "No error outcome or malformed-entity rule is documented."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: HTML literal text and member contracts — 21 October 2026"
+          },
+          "limitations": [],
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "The constructor has no host or native effect. Both engines verify distinct typed instances and no host call."
+          }
         },
         {
           "member": "escape",
@@ -13675,10 +13711,50 @@
             "escape(string: string): string"
           ],
           "contract": "Escape HTML entities in a string to be HTML safe.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "HTMLContractTests",
+            "test": "escapeProtectsMarkupAndPreservesOrdinaryText"
+          },
+          "liveCheck": "docs/validation.md: HTML literal text and member contracts — 21 October 2026",
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "HTML.escape"
+          },
+          "defaults": "The string argument is required. No default is documented.",
+          "result": "A string with ampersands, angle brackets and quotes escaped; ordinary Unicode and newlines are retained. Current named/numeric spelling is tested separately from the reference example.",
+          "errors": "The archived reference documents no error outcome or malformed-entity policy.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "HTMLContractTests",
+                "test": "escapeProtectsMarkupAndPreservesOrdinaryText"
+              },
+              "assertion": "Both runners preserve the source and return safe entity text for markup, quotes, existing ampersands, Unicode and empty strings."
+            },
+            "defaults": {
+              "notApplicable": "No default behavior beyond the declared constructor/signature is documented."
+            },
+            "errors": {
+              "notApplicable": "No error outcome or malformed-entity rule is documented."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: HTML literal text and member contracts — 21 October 2026"
+          },
+          "limitations": [
+            "Exact escape spelling differs from the archived illustrative hexadecimal output. Compare actual Drafts output before claiming exact parity."
+          ],
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: HTML literal text and member contracts — 21 October 2026",
+            "scope": "QA HTML member contracts checked whitespace/NUL/entity preservation, roundtrip, literal decoded markup, one pass and empty inputs without changing the editor. This is not complete parser acceptance."
+          }
         },
         {
           "member": "unescape",
@@ -13690,10 +13766,60 @@
             "unescape(string: string): string"
           ],
           "contract": "Unescape HTML entities in a string.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "HTMLContractTests",
+            "test": "unescapeForwardsTheExactStringAndReturnsTheDecodedHostValue"
+          },
+          "liveCheck": "docs/validation.md: HTML literal text and member contracts — 21 October 2026",
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/Draftly/NativeHTMLConversion.swift",
+            "symbol": "decodeHTML"
+          },
+          "defaults": "The string argument is required. No default is documented.",
+          "result": "A string with entity tokens decoded once. Literal text outside tokens preserves CRLF, CR, LF, tabs, NUL, markup and Unicode.",
+          "errors": "The archived reference documents no error outcome or malformed-entity policy.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "HTMLContractTests",
+                "test": "unescapeForwardsTheExactStringAndReturnsTheDecodedHostValue"
+              },
+              "assertion": "Both runners forward the exact text and return the native string without changing the source/editor."
+            },
+            "defaults": {
+              "notApplicable": "No default behavior beyond the declared constructor/signature is documented."
+            },
+            "errors": {
+              "notApplicable": "No error outcome or malformed-entity rule is documented."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: HTML literal text and member contracts — 21 October 2026"
+          },
+          "limitations": [
+            "The full named/numeric entity catalog and parser boundary behavior still need specific native/Drafts comparison. Bridge fixtures do not establish parser completeness."
+          ],
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: HTML literal text and member contracts — 21 October 2026",
+            "scope": "QA HTML member contracts checked whitespace/NUL/entity preservation, roundtrip, literal decoded markup, one pass and empty inputs without changing the editor. This is not complete parser acceptance."
+          },
+          "supportingTests": [
+            {
+              "suite": "HTMLPreferencesTests",
+              "test": "entityUnescapeChangesOnlyEntitiesAndKeepsLiteralTextBytes"
+            },
+            {
+              "suite": "HTMLPreferencesTests",
+              "test": "entityDecodingPreservesUnicodeAndWhitespaceWithoutLoadingHTML"
+            }
+          ]
         }
       ]
     },

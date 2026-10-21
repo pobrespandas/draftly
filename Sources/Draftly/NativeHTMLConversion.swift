@@ -2,9 +2,24 @@ import AppKit
 
 struct NativeHTMLConversion {
     func decodeHTML(_ text: String) throws -> String {
-        let safe = text.replacingOccurrences(of: "<", with: "&lt;").replacingOccurrences(of: ">", with: "&gt;")
-        let document = "<span style=\"white-space:pre-wrap\">" + safe + "</span>"
-        return try NSAttributedString(data: Data(document.utf8), options: [.documentType: NSAttributedString.DocumentType.html, .characterEncoding: String.Encoding.utf8.rawValue], documentAttributes: nil).string
+        guard text.contains("&") else { return text }
+        let pattern = try NSRegularExpression(pattern: "&(?:#[xX][0-9A-Fa-f]+|#[0-9]+|[A-Za-z][A-Za-z0-9]*);?")
+        let source = text as NSString
+        let result = NSMutableString(string: text)
+        var decoded: [String: String] = [:]
+        // Decode entity tokens, never the surrounding document or literal text.
+        for match in pattern.matches(in: text, range: NSRange(location: 0, length: source.length)).reversed() {
+            let entity = source.substring(with: match.range)
+            let replacement: String
+            if let cached = decoded[entity] { replacement = cached }
+            else {
+                let document = "<span>" + entity + "</span>"
+                replacement = try NSAttributedString(data: Data(document.utf8), options: [.documentType: NSAttributedString.DocumentType.html, .characterEncoding: String.Encoding.utf8.rawValue], documentAttributes: nil).string
+                decoded[entity] = replacement
+            }
+            result.replaceCharacters(in: match.range, with: replacement)
+        }
+        return result as String
     }
     func htmlToMarkdown(_ text: String, options: [String: Any]) throws -> String {
         var result = text

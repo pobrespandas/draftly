@@ -7903,3 +7903,41 @@ contracts. This does not define behavior for undocumented malformed data.
 
 Final tooling: Python47 and matrix structure0 passed. Strict engine/global
 remain open with18/4388 diagnostics. Totals are not a parity percentage.
+
+
+### HTML literal text and member contracts — 21 October 2026
+
+Reviewed the frozen HTML reference. It declares a constructor and static escape
+and unescape methods. It specifies no defaults, error outcomes or malformed-
+entity policy. Its escape illustration uses hexadecimal spelling; Draftly uses
+equivalent named/numeric forms. Exact spelling comparison remains pending.
+
+Implemented: HTML unescape no longer parses the whole input as an HTML document.
+That parser normalized literal CRLF/CR and changed NUL text. Three byte-level
+cases failed before correction. The function now finds entity tokens, decodes
+them once with the existing native entity parser, and replaces them in reverse
+UTF-16 order. A per-call cache avoids reparsing repeated entity tokens. Literal
+text is copied unchanged. Tokens contain no markup or resource URLs. Native
+entity-parser behavior remains in use; no guessed malformed-entity rule was added.
+
+Automatically tested: the original three byte assertions now pass. New specific
+HTML member methods cover construction, escape output and unescape forwarding
+on both engines. Their fake-host unescape results accept the bridge only. Actual
+NativeActionHost tests check literal markup, Unicode, whitespace and entity text.
+Core concurrent604 methods passed. The full concurrent command and a separate
+app-only concurrent command exited0 without an app final summary;499 methods
+started but nine lacked completion lines in the latter. Those app runs are not
+accepted as a full pass. A separate sequential app run reported all499 methods
+passed in86 suites. This output anomaly remains open and is distinct from the
+previous stream-wait fixture. Unsigned Xcode passed. Original scripts unchanged.
+
+Verified in use: refreshed stopped Engine QA through the guarded script; runtime
+hashes and development signature verified. Final executable/debug SHA256:
+73b16024c8d44debf0ce788011e09674dd4c724c590bf01f76bbb80b23c12e50 /
+7233791c50afe6f70646c1f0f0377e5b16b7eb8bc6ee028f46fd1dc3e5a45e30.
+NSServices stays absent; identity and library unchanged. Imported
+html-member-actions.json. The action checked literal CRLF/tab/NUL and entity
+text, escape/unescape roundtrip, decoded markup, one pass and empty strings.
+History recorded Success06:56; the editor was unchanged. Constructor is complete;
+escape/unescape remain partial for exact spelling/catalog comparison. No binary,
+malformed or complete native catalog result is inferred from the bridge tests.
