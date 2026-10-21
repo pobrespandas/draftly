@@ -4917,3 +4917,18 @@ The import remains synchronous on MainActor. These core timings do not accept
 visible responsiveness, scrolling, selection, typing, Undo, memory usage, iCloud,
 or cold-cache performance. Native scale acceptance remains pending. Raw JSON
 and compiler logs stay in /tmp; no screenshots or raw reports are tracked.
+
+
+### Export the scale fixture — 20 October 2026
+
+The benchmark accepts `--export-baseline /tmp/fixture.json`. This mode writes
+the same deterministic backup used for measurements and reports its record
+counts, byte count, and SHA256. It does not run the measurements. An existing
+file causes an error and remains unchanged.
+
+The release export of 10,000 notes and 10,000 revisions passed. Its hash matched
+the measured baseline. A second export to the same path failed without changing
+the file. Native import into the separate, local Scale QA app caused UI reads
+to time out. A later process sample showed an idle main thread. This does not
+establish the cause or accept native scale performance. Row rendering and
+selection still need investigation. No screenshots or raw reports are tracked.

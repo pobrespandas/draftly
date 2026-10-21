@@ -8,13 +8,14 @@ import Foundation
         var notes = 10_000
         var samples = 5
         var storage = "sqlite"
+        var exportBaseline: String?
     }
 
     @MainActor static func main() {
         do {
             let arguments = Array(CommandLine.arguments.dropFirst())
             if arguments == ["--help"] {
-                print("DraftlyLibraryBenchmark [--notes 10000] [--samples 5] [--storage sqlite|memory]")
+                print("DraftlyLibraryBenchmark [--notes 10000] [--samples 5] [--storage sqlite|memory] [--export-baseline /tmp/fixture.json]")
                 return
             }
             var options = Options()
@@ -29,6 +30,7 @@ import Foundation
                 case "--samples":
                     guard let count = Int(value), count > 0 else { throw DraftlyError.message("Use a positive sample count.") }
                     options.samples = count
+                case "--export-baseline": options.exportBaseline = value
                 case "--storage":
                     guard ["sqlite", "memory"].contains(value) else { throw DraftlyError.message("Use sqlite or memory storage.") }
                     options.storage = value
@@ -74,6 +76,14 @@ import Foundation
         }
         let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
         let baseline = try encoder.encode(Backup(notes: notes, revisions: revisions, workspaces: [], actions: []))
+        if let path = options.exportBaseline {
+            try baseline.write(to: URL(fileURLWithPath: path), options: .withoutOverwriting)
+            let report: [String: Any] = ["path": path, "notes": notes.count, "revisions": revisions.count,
+                "bytes": baseline.count, "fixtureSHA256": SHA256.hash(data: baseline).map { String(format: "%02x", $0) }.joined()]
+            let data = try JSONSerialization.data(withJSONObject: report, options: [.sortedKeys])
+            print(String(decoding: data, as: UTF8.self))
+            return
+        }
         let actionID = identity(0, prefix: "BAAA0003")
         let action = DraftAction(name: "Benchmark neutral action", steps: [])
         var importedAction = action; importedAction.id = actionID
