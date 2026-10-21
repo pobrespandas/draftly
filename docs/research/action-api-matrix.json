@@ -21286,6 +21286,14 @@
             "entryPoint": "UI command palette, Actions Cancel Running Action and native owner close",
             "result": "Shell and sleep child were observed in their isolated group. Task cancel, owner close and production timeout each stopped both processes and removed the exact temporary directory. Completed writes stayed in Inbox; no tail or Archive. History Cancelled/Cancelled/Error and following Unicode recovery Success passed. The 120-second deadline winner was not isolated. URL/Intent shell variants remain pending.",
             "evidence": "docs/validation.md: Native shell process lifetime — 21 October 2026"
+          },
+          {
+            "date": "2026-10-21",
+            "executableSHA256": "e9671565e875cdba2498ccbfabd106159e6834478dc9091b57d0532ab9ad6b10",
+            "fixture": "scripts/fixtures/engine-print-completion-actions.json",
+            "entryPoint": "UI command palette and native Save as PDF",
+            "result": "Pre-fix Save crashed in MainActor NativePrintTextView pagination on an AppKit worker. The corrected operation renders on MainActor. Two corrected native runs saved one-page PDFs with all neutral text and continued to the success step without editing the draft. This does not accept print cancellation/timeout/owner-close variants.",
+            "evidence": "docs/validation.md: Completed PDF printing and actor isolation — 21 October 2026"
           }
         ]
       },
@@ -21523,6 +21531,14 @@
             "entryPoint": "UI command palette, Actions Cancel Running Action and native owner close",
             "result": "Shell and sleep child were observed in their isolated group. Task cancel, owner close and production timeout each stopped both processes and removed the exact temporary directory. Completed writes stayed in Inbox; no tail or Archive. History Cancelled/Cancelled/Error and following Unicode recovery Success passed. The 120-second deadline winner was not isolated. URL/Intent shell variants remain pending.",
             "evidence": "docs/validation.md: Native shell process lifetime — 21 October 2026"
+          },
+          {
+            "date": "2026-10-21",
+            "executableSHA256": "e9671565e875cdba2498ccbfabd106159e6834478dc9091b57d0532ab9ad6b10",
+            "fixture": "scripts/fixtures/engine-print-completion-actions.json",
+            "entryPoint": "UI command palette and native Save as PDF",
+            "result": "Pre-fix Save crashed in MainActor NativePrintTextView pagination on an AppKit worker. The corrected operation renders on MainActor. Two corrected native runs saved one-page PDFs with all neutral text and continued to the success step without editing the draft. This does not accept print cancellation/timeout/owner-close variants.",
+            "evidence": "docs/validation.md: Completed PDF printing and actor isolation — 21 October 2026"
           }
         ]
       },
@@ -21718,6 +21734,14 @@
             "entryPoint": "UI command palette, Actions Cancel Running Action and native owner close",
             "result": "Shell and sleep child were observed in their isolated group. Task cancel, owner close and production timeout each stopped both processes and removed the exact temporary directory. Completed writes stayed in Inbox; no tail or Archive. History Cancelled/Cancelled/Error and following Unicode recovery Success passed. The 120-second deadline winner was not isolated. URL/Intent shell variants remain pending.",
             "evidence": "docs/validation.md: Native shell process lifetime — 21 October 2026"
+          },
+          {
+            "date": "2026-10-21",
+            "executableSHA256": "e9671565e875cdba2498ccbfabd106159e6834478dc9091b57d0532ab9ad6b10",
+            "fixture": "scripts/fixtures/engine-print-completion-actions.json",
+            "entryPoint": "UI command palette and native Save as PDF",
+            "result": "Pre-fix Save crashed in MainActor NativePrintTextView pagination on an AppKit worker. The corrected operation renders on MainActor. Two corrected native runs saved one-page PDFs with all neutral text and continued to the success step without editing the draft. This does not accept print cancellation/timeout/owner-close variants.",
+            "evidence": "docs/validation.md: Completed PDF printing and actor isolation — 21 October 2026"
           }
         ]
       },
@@ -21995,6 +22019,14 @@
             "entryPoint": "UI command palette, Actions Cancel Running Action and native owner close",
             "result": "Shell and sleep child were observed in their isolated group. Task cancel, owner close and production timeout each stopped both processes and removed the exact temporary directory. Completed writes stayed in Inbox; no tail or Archive. History Cancelled/Cancelled/Error and following Unicode recovery Success passed. The 120-second deadline winner was not isolated. URL/Intent shell variants remain pending.",
             "evidence": "docs/validation.md: Native shell process lifetime — 21 October 2026"
+          },
+          {
+            "date": "2026-10-21",
+            "executableSHA256": "e9671565e875cdba2498ccbfabd106159e6834478dc9091b57d0532ab9ad6b10",
+            "fixture": "scripts/fixtures/engine-print-completion-actions.json",
+            "entryPoint": "UI command palette and native Save as PDF",
+            "result": "Pre-fix Save crashed in MainActor NativePrintTextView pagination on an AppKit worker. The corrected operation renders on MainActor. Two corrected native runs saved one-page PDFs with all neutral text and continued to the success step without editing the draft. This does not accept print cancellation/timeout/owner-close variants.",
+            "evidence": "docs/validation.md: Completed PDF printing and actor isolation — 21 October 2026"
           }
         ]
       },
@@ -22236,13 +22268,16 @@
           "name": "Print",
           "compatibilityStatus": "partial",
           "implementationEvidence": {
-            "file": "Sources/DraftlyCore/ActionRunner.swift",
-            "symbol": "execute / expandedSteps"
+            "file": "Sources/Draftly/NativePrintRequest.swift",
+            "symbol": "NativePrintLayout.makeOperation"
           },
-          "automatedTest": null,
-          "liveCheck": null,
+          "automatedTest": {
+            "suite": "NativePrintRequestTests",
+            "test": "completedPDFKeepsPaginationOnTheMainActorWithoutShowingPanels"
+          },
+          "liveCheck": "docs/validation.md: Completed PDF printing and actor isolation — 21 October 2026",
           "limitations": [
-            "Format and margin options need a full native contract pass."
+            "Text printing to a local PDF passed. Full native format/margin variants, task cancellation, timeout and owner-close cleanup remain pending. Rendering runs on MainActor; large-document print latency has not been measured."
           ],
           "referenceArchive": {
             "path": "docs/research/action-api-reference/2026-10-19/steps-system.e966f52631eae0a3a4417aa302d72ac0a259cebccc5726f52c611fbcfc608c7f.html.gz",

@@ -1,0 +1,25 @@
+[
+  {
+    "uuid": "BBBF0030-0000-4000-8000-000000000001",
+    "name": "QA Print completed PDF",
+    "group": "Print lifecycle QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "print",
+        "data": {
+          "template": "Print QA heading\nUnicode café 🐼\nSecond line",
+          "printFormat": "Text",
+          "topMargin": "72"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "context.addSuccessParameter('printed','yes');app.displaySuccessMessage('Print completed; next step ran');"
+        }
+      }
+    ]
+  }
+]

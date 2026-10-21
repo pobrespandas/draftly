@@ -48,6 +48,20 @@ struct NativePrintPageGeometry {
 }
 
 @MainActor enum NativePrintLayout {
+    static func makeOperation(_ configuration: NativePrintConfiguration, printInfo: NSPrintInfo) throws -> NSPrintOperation {
+        let info = printInfo.copy() as! NSPrintInfo
+        info.topMargin = configuration.topMargin; info.bottomMargin = configuration.bottomMargin
+        info.leftMargin = configuration.leftMargin; info.rightMargin = configuration.rightMargin
+        info.horizontalPagination = .clip; info.verticalPagination = .automatic
+        info.isHorizontallyCentered = false; info.isVerticallyCentered = false
+        let view = try makeView(configuration, paperSize: info.paperSize, scalingFactor: info.scalingFactor)
+        let operation = NSPrintOperation(view: view, printInfo: info)
+        // AppKit calls pagination and the delegate on the printing thread.
+        // The text view and delegate require MainActor.
+        operation.canSpawnSeparateThread = false
+        return operation
+    }
+
     static func makeView(_ configuration: NativePrintConfiguration, paperSize: NSSize, scalingFactor: CGFloat = 1) throws -> NativePrintTextView {
         let geometry = try NativePrintPageGeometry(paperSize: paperSize, top: configuration.topMargin, bottom: configuration.bottomMargin,
             left: configuration.leftMargin, right: configuration.rightMargin, scale: scalingFactor)
@@ -110,7 +124,6 @@ struct NativePrintPageGeometry {
 @MainActor private final class SheetPrintDriver: NSObject, NativePrintDriver {
     let window: NSWindow
     let operation: NSPrintOperation
-    let printedView: NSTextView
     var onFinish: ((Result<Bool, Error>) -> Void)?
     private weak var ownedSheet: NSWindow?
     private var retention: SheetPrintDriver?
@@ -118,15 +131,7 @@ struct NativePrintPageGeometry {
         guard let window = NSApp?.keyWindow else { throw DraftlyError.message("Open a Draftly window before printing.") }
         guard window.attachedSheet == nil else { throw DraftlyError.message("Close the current window sheet before printing.") }
         self.window = window
-        let info = NSPrintInfo.shared.copy() as! NSPrintInfo
-        info.topMargin = configuration.topMargin; info.bottomMargin = configuration.bottomMargin
-        info.leftMargin = configuration.leftMargin; info.rightMargin = configuration.rightMargin
-        info.horizontalPagination = .clip; info.verticalPagination = .automatic
-        info.isHorizontallyCentered = false; info.isVerticallyCentered = false
-        let view = try NativePrintLayout.makeView(configuration, paperSize: info.paperSize, scalingFactor: info.scalingFactor)
-        printedView = view
-        operation = NSPrintOperation(view: view, printInfo: info)
-        operation.canSpawnSeparateThread = true
+        operation = try NativePrintLayout.makeOperation(configuration, printInfo: .shared)
         super.init()
     }
     func start() {
@@ -144,7 +149,7 @@ struct NativePrintPageGeometry {
     @objc private func didRun(_ operation: NSPrintOperation, success: Bool, contextInfo: UnsafeMutableRawPointer?) {
         ownedSheet = nil
         // AppKit does not distinguish user cancellation from printing failure here.
-        if let error = (printedView as? NativePrintTextView)?.layoutError { onFinish?(.failure(error)) }
+        if let error = (operation.view as? NativePrintTextView)?.layoutError { onFinish?(.failure(error)) }
         else { onFinish?(.success(success)) }
         retention = nil
     }

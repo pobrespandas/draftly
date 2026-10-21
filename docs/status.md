@@ -25,6 +25,11 @@ retain historical results. Later results supersede earlier counts.
 
 ## Current verification
 
+Completed PDF printing exposed and fixed an AppKit worker/MainActor crash.
+The shared print operation now renders on MainActor. A headless PDF regression
+and two real Save as PDF runs passed, with the action continuing after Save.
+Large print rendering latency and remaining cancellation variants stay open.
+
 The six partial engine records point to the finite
 [native engine checklist](research/engine-native-checklist.md). It separates
 18 route families, permission cases and unresolved inclusion/import comparisons.

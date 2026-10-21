@@ -1,11 +1,37 @@
 import Foundation
 import AppKit
+import PDFKit
 import Testing
 import DraftlyCore
 @testable import Draftly
 
 @Suite("Asynchronous printing requests") @MainActor
 struct NativePrintRequestTests {
+    @Test func completedPDFKeepsPaginationOnTheMainActorWithoutShowingPanels() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let output = directory.appendingPathComponent("neutral.pdf")
+        let info = NSPrintInfo()
+        info.paperSize = NSSize(width: 612, height: 792)
+        info.jobDisposition = .save
+        info.dictionary()[NSPrintInfo.AttributeKey.jobSavingURL] = output
+        let text = "Print QA heading\nUnicode café 🐼\nSecond line"
+        let operation = try NativePrintLayout.makeOperation(NativePrintConfiguration(["text": text]), printInfo: info)
+        // Stop before rendering if AppKit could call the actor-isolated view on another thread.
+        try #require(!operation.canSpawnSeparateThread)
+        operation.showsPrintPanel = false
+        operation.showsProgressPanel = false
+        #expect(operation.run())
+        let document = try #require(PDFDocument(url: output))
+        #expect(document.pageCount == 1)
+        let contents = try #require(document.string)
+        // PDFKit can extract the emoji font run after the other text runs.
+        for part in ["Print QA heading", "Unicode café", "🐼", "Second line"] {
+            #expect(contents.contains(part), "Missing PDF text: \(part)")
+        }
+    }
+
     @MainActor private final class Driver: NativePrintDriver {
         var onFinish: ((Result<Bool, Error>) -> Void)?
         var late: ((Result<Bool, Error>) -> Void)?

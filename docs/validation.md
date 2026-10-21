@@ -7500,3 +7500,51 @@ closed. No private data, permissions, external service or screenshots were used.
 Post-session tooling passed all46 Python tests with the bundled runtime. Matrix
 structure passed. Strict engine/global checks remain open at18/4529 diagnostics;
 new native shell evidence does not close the other capability obligations.
+
+
+### Completed PDF printing and actor isolation — 21 October 2026
+
+Native QA found a real crash when Save as PDF completed. The process was absent
+and no output existed. The local crash report identified a dispatch isolation
+trap in NativePrintTextView.knowsPageRange, called from AppKit's printing thread.
+SheetPrintDriver had enabled canSpawnSeparateThread for a MainActor text view
+and delegate. The failed run is not accepted.
+
+Implemented: NativePrintLayout now creates the shared operation configuration.
+It disables the separate printing thread. SheetPrintDriver uses that operation.
+Pagination and delegate delivery stay on MainActor. The panel still uses its
+asynchronous completion callback and the existing cancellable request boundary.
+AppKit renders on the current thread after panel completion; long-document print
+latency remains unmeasured. Apple documents this behavior in
+[canSpawnSeparateThread](https://developer.apple.com/documentation/appkit/nsprintoperation/canspawnseparatethread).
+This AppKit lookup does not change the frozen Drafts reference.
+
+Automatically tested: the new regression first rejected the unsafe thread flag.
+After correction, it generated an actual one-page PDF with print/progress panels
+disabled. PDFKit found the heading, café, emoji and final line. The first text
+assertion assumed font runs had one extraction order; PDFKit extracts the emoji
+run later. The test now checks all source segments on the single page. Existing
+layout tests still check wrapping and final glyph bounds. All15 focused print
+methods passed. No automatic test opened or moved a window or printer panel.
+
+Verified in use: refreshed all13 QA runtime files after confirming the process
+was stopped, retained its identity/library and verified development signing.
+The first corrected image saved `/tmp/Draftly Print QA.pdf`, one page,45514 bytes.
+The success banner confirmed the following action step ran. The final image
+repeated the complete print to a distinct PDF: one page,45506 bytes, all neutral
+text verified through PDFKit. That second panel used its fixtures location; the
+neutral output was moved to `/tmp/Draftly Print QA current.pdf`. Neither PDF is
+tracked. The original draft stayed unchanged; history recorded Print Success.
+No physical printer, network service or permission was used.
+
+Fixture: `scripts/fixtures/engine-print-completion-actions.json`.
+The first corrected executable/debug image SHA-256 values were
+`0a49f7f3cb4319c2fb26cd189d5a4853671f1f954f90f3bc69415a30b21b022a` /
+`501517692b67f7a2e79702f068437f605602f078bd9e9be845de2a4f3536ddb1`.
+The final image, including the independent shell fixes, was
+`e9671565e875cdba2498ccbfabd106159e6834478dc9091b57d0532ab9ad6b10` /
+`f582263651117d2e5523775e4a66b47e8e4ee68e1f0607b7adf6d14fed4952a4`.
+Bundle/library/scheme remain the isolated Theme QA values recorded above.
+Full final regression passed496 app and586 core methods and the unsigned Xcode
+build. Five original action scripts remain unchanged. These counts do not close
+print format/margin variants, native task cancellation, timeout or owner close.
