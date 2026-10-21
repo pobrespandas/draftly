@@ -1,0 +1,66 @@
+[
+  {
+    "uuid": "BBBF0003-0000-4000-8000-000000000017",
+    "name": "QA Typed configuration source",
+    "group": "Native typed values source",
+    "notificationType": 0,
+    "steps": [
+      {
+        "type": "configurationKey",
+        "data": {
+          "key": "enabled",
+          "dataType": "boolean",
+          "defaultBoolValue": "false",
+          "requiresInitialConfiguration": "false"
+        }
+      },
+      {
+        "type": "configurationKey",
+        "data": {
+          "key": "count",
+          "dataType": "number",
+          "defaultNumberValue": "3.5",
+          "requiresInitialConfiguration": "false"
+        }
+      },
+      {
+        "type": "configurationKey",
+        "data": {
+          "key": "label",
+          "dataType": "text",
+          "defaultTextValue": "café 🐼\nText",
+          "requiresInitialConfiguration": "false"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "if(action.configuredValues!==context.configuredValues||context.configuredValues.enabled!==false||context.configuredValues.count!==3.5)throw new Error('Own typed configuration');context.addSuccessParameter('typed','passed');"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0003-0000-4000-8000-000000000018",
+    "name": "QA Typed configuration lookup",
+    "group": "Native configuration QA",
+    "notificationType": 0,
+    "steps": [
+      {
+        "type": "configurationKey",
+        "data": {
+          "key": "local",
+          "dataType": "boolean",
+          "defaultBoolValue": "true",
+          "requiresInitialConfiguration": "false"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "function check(value,message){if(!value)throw new Error(message);}\ncheck(action.configuredValues===context.configuredValues && context.configuredValues.local===true,'own context');\nconst snapshots=[Action.find('QA Typed configuration source'),ActionGroup.find('Native typed values source').actions[0],Action.recent().find(a=>a.name==='QA Typed configuration source')];\nfor(const item of snapshots){\n check(item,'source present; run source first');\n const v=item.configuredValues;\n check(v.enabled===false && v.count===3.5 && v.label==='café 🐼\\nText','typed source snapshot');\n check(Reflect.set(item,'configuredValues',{})===false,'readonly property');\n}\ncheck(context.configuredValues.local===true && context.configuredValues.count===undefined,'context unchanged');\neditor.setText('Typed other-action configuration passed café 🐼');draft.update();"
+        }
+      }
+    ]
+  }
+]

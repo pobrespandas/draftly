@@ -6455,23 +6455,21 @@
           "contract": "If this action has \"Configured Value\" action steps and the user has configured values for the action, this object will contain those values. Primarily of use to load configuration values from a different action than is currently running.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "CatalogActionAPITests",
-            "test": "actionAndGroupQueriesKeepIdentityOrderAndInstallationData"
+            "suite": "ActionConfiguredValuesContractTests",
+            "test": "otherActionSnapshotsUseTypedStoredConfigurationWithoutChangingExecutionContext"
           },
           "liveCheck": null,
           "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-20",
+          "reviewDate": "2026-10-21",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Action.configuredValues"
           },
-          "defaults": "Queries return an empty list or undefined for missing records. Factory defaults still need an exhaustive assertion set.",
-          "result": [
-            "configuredValues: [string: any]"
-          ],
-          "errors": "Storage failures throw; missing lookups return undefined.",
+          "defaults": "Readonly property. The getter has no arguments. An action without configured keys exposes an empty object. Stored text overrides step defaults before the shared runtime type conversion.",
+          "result": "Object containing configured values. Enabled boolean and number fields use the same types as execution configuration. Text and unknown stored keys retain strings. Current action configuration remains shared with context.configuredValues.",
+          "errors": "The archived reference defines no getter-specific errors. Reading another action does not prompt, expand included actions or write its configuration.",
           "limitations": [
-            "Readonly replacement and shared mutable contents are specifically checked. Typed values from another saved action and included-action configuration precedence require separate acceptance."
+            "Updated signed QA acceptance of typed values from another action is pending. Included-action configuration collision precedence remains a separate engine acceptance item."
           ],
           "evidenceLevel": "Member-specific assertions. Native verification is separate.",
           "automatedVerification": {
@@ -6488,8 +6486,36 @@
                 ],
                 "result": "Reflect.set rejects property replacement on both runners; original identity, installation URL and group ownership remain. configuredValues contents still share mutable context state. No native UI acceptance inferred.",
                 "evidence": "docs/validation.md: Read-only action catalog properties — 20 October 2026"
+              },
+              {
+                "date": "2026-10-21",
+                "suite": "ActionConfiguredValuesContractTests",
+                "tests": [
+                  "otherActionSnapshotsUseTypedStoredConfigurationWithoutChangingExecutionContext"
+                ],
+                "result": "Red on both runners for a stored Boolean returned as string. Shared conversion fixed it. Focused 24 methods passed, followed by 467 app and512 core methods. Source action/group/history values stay unchanged. Native acceptance of the updated binary is pending.",
+                "evidence": "docs/validation.md: Typed configuration of another action — 21 October 2026"
               }
             ]
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionConfiguredValuesContractTests",
+                "test": "otherActionSnapshotsUseTypedStoredConfigurationWithoutChangingExecutionContext"
+              },
+              "assertion": "Both runners read typed stored configuration through find, group.actions and recent. Stored false/3.5/Unicode override different defaults; disabled fields do not alter conversion; unknown keys retain strings; empty configuration is empty; own execution context identity and stored actions/groups/history stay unchanged."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ActionConfiguredValuesContractTests",
+                "test": "otherActionSnapshotsUseTypedStoredConfigurationWithoutChangingExecutionContext"
+              },
+              "assertion": "Stored values override differing defaults. No configured keys yields an empty object. The getter has no optional arguments."
+            },
+            "errors": {
+              "notApplicable": "The readonly property has no documented getter-specific failure contract. Readonly replacement is rejected in the normal test."
+            }
           }
         },
         {

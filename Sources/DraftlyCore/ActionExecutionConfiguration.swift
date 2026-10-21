@@ -1,7 +1,7 @@
 import Foundation
 
 @MainActor extension ActionRunner {
-    private func configurationValues(_ action: DraftAction, steps: [ActionStep]) -> [String: Any] {
+    func configurationValues(_ action: DraftAction, steps: [ActionStep]) -> [String: Any] {
         var configured: [String: Any] = action.configuredValues
         for step in steps where step.type == "configurationKey" {
             let field = ActionConfigurationField(step)

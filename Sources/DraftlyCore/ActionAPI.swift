@@ -73,7 +73,7 @@ public enum APIValues {
 
 @MainActor extension ActionRunner {
     func actionValue(_ action: DraftAction) -> [String: Any] {
-        ["uuid": action.id.uuidString, "name": action.name, "configuredValues": action.configuredValues,
+        ["uuid": action.id.uuidString, "name": action.name, "configuredValues": configurationValues(action, steps: action.steps.filter { $0.isEnabled != false }),
          "isSeparator": action.isSeparator]
     }
     func workspaceValue(_ workspace: Workspace) throws -> [String: Any] {

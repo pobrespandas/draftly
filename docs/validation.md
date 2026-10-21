@@ -6350,3 +6350,34 @@ That coupling means an unlogged use cannot enter the current recent list.
 The saved-history test does not approve this limitation. Compare actual Drafts
 behavior with omitted logs before deciding the separate persistence change.
 No production or public API change was made for this test.
+
+
+### Typed configuration of another action — 21 October 2026
+
+A specific test failed on both legacy and worker runners: Action.find returned
+a string for a stored field declared as Boolean. The same action's execution
+configuration already converted that field to a Boolean. Catalog snapshots used
+raw persisted strings instead of the shared execution conversion.
+
+ActionRunner.actionValue now calls the existing configurationValues function
+with only that action's enabled steps. No inclusion expansion, prompt or write
+occurs during lookup. Bootstrap still replaces its snapshot field with the
+shared context.configuredValues object. The persisted string format is unchanged.
+This is a functional correction. Scripts that relied on strings for declared
+Boolean or number fields will now receive their declared types.
+
+The test checks Action.find, ActionGroup.actions and Action.recent in both
+runners. Stored false, 3.5 and Unicode text override different defaults. Disabled
+fields do not alter conversion. Unknown stored keys remain strings. Readonly
+replacement is rejected. An empty configuration returns an empty object. The
+observer keeps its own typed shared context. Stored actions, groups and history
+remain unchanged. The test does not require all execution metadata to stay fixed.
+
+All 24 focused methods passed after the correction. The full run passed
+467 app methods and 512 core methods. No automatic test opens a window.
+Unsigned Xcode compilation passed. All 41 Python tooling tests passed. Matrix
+structure has zero errors; strict engine/global gates still report 18/4,823
+diagnostics. These gates remain open and do not imply compatibility percentages.
+The Mac locked before QA could be refreshed. The native check remains pending;
+the earlier binary cannot accept this correction. Included-action collision
+precedence is a separate engine contract and remains pending.

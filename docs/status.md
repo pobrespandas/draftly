@@ -1617,3 +1617,14 @@ use, rename, deletion, unknown identities, legacy records and nonmutating reads.
 The method stays partial: recent use still depends on saved logs. Compare the
 omitted-log behavior in Drafts before changing recency persistence. The accepted
 find and installURL members do not close the remaining Action contracts.
+
+
+### Typed other-action configuration correction — 21 October 2026
+
+Catalog lookups now use the same Boolean/number conversion as execution. A
+specific test failed first on both runners and passed after the correction.
+The full suite passed 467 app and 512 core methods. Unsigned build and all
+41 Python tooling tests passed. Strict engine/global gates remain open at
+18/4,823 diagnostics. Persistent formats and current action/context sharing
+stay unchanged. Updated native acceptance is
+pending because the Mac locked before QA refresh. The member stays partial.
