@@ -5549,3 +5549,30 @@ of task cancellation during event creation. The second step inserts an ERROR
 marker if execution continues. JSON parsing and the fixture structure passed.
 The native check has not run. It must not save an event. Calendar permission
 and dialog cancellation remain pending; this fixture does not prove acceptance.
+
+
+### Native EventKit task cancellation — 20 October 2026
+
+Ran engine-eventkit-cancel-actions.json in installed Draftly Visual QA, local
+library 6f947773-92ee-4bd9-a0ae-3e06b5c9377f, with CloudKit disabled.
+Executable SHA256:
+fc4f02d4d2ea7dbb9eb65f523e3ae7d75154ab2990d0ec66bf89c5b3c91e6e55.
+The native Create calendar event dialog opened without a new permission prompt.
+No permission changed. This establishes an existing usable Calendar grant,
+not which similarly named entry appeared in the earlier privacy page.
+
+Edited the neutral title, then used Actions > Cancel Running Action. The dialog
+closed and the editor retained Transcription cancellation neutral café 🐼.
+The ERROR tail did not run. Opened the action again: the original neutral title
+and notes appeared, without the discarded edit. Clicked Cancel in that dialog.
+The editor remained unchanged. History showed two EventKit rows, both Cancelled.
+Save Event was never pressed. The save closure is reached only after an accepted
+dialog result; this check did not create an event or inspect private calendars.
+
+The focused NativeEventDialogTests and NativeEventKitWaitTests run passed
+18 tests. It covers cancel-before-save, late acceptance after cancellation,
+authorization errors, timeout, duplicate callbacks, and reminder fetch cleanup
+with injected hosts. It does not open windows or request real permissions.
+Native permission-request cancellation and successful Calendar saving remain
+outside this check. Actual model generation cancellation remains blocked by
+current system availability. The task cancellation contract remains partial.
