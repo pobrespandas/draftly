@@ -20444,7 +20444,8 @@
             "evidence": "docs/validation.md"
           }
         ]
-      }
+      },
+      "nativeAcceptanceChecklist": "docs/research/engine-native-checklist.md"
     },
     {
       "contract": "circular inclusion",
@@ -21141,7 +21142,8 @@
             "evidence": "docs/validation.md: Separator container preservation cases — 20 October 2026"
           }
         ]
-      }
+      },
+      "nativeAcceptanceChecklist": "docs/research/engine-native-checklist.md"
     },
     {
       "contract": "worker isolation and responsiveness",
@@ -21303,7 +21305,8 @@
             "evidence": "docs/validation.md"
           }
         ]
-      }
+      },
+      "nativeAcceptanceChecklist": "docs/research/engine-native-checklist.md"
     },
     {
       "contract": "host request lifetime",
@@ -21536,7 +21539,8 @@
         "evidence": "docs/validation.md",
         "accepted": "Native print Cancel and share picker Escape retain text and record cancellation. UI arrange reorders Unicode lines. Show Arrange Cancel keeps text. Updated 01:59 QA: URL arrange accepts text without a window adapter and saves its result; short print preview shows one page; Cancel retains text.",
         "pending": "Actual service completion, print output, arrangement close/navigation paths, real template folder permissions and location. Legacy sync sharing remains unchanged. Window-bound automation needs an explicit editor context."
-      }
+      },
+      "nativeAcceptanceChecklist": "docs/research/engine-native-checklist.md"
     },
     {
       "contract": "task cancellation",
@@ -21727,7 +21731,8 @@
             "evidence": "docs/validation.md"
           }
         ]
-      }
+      },
+      "nativeAcceptanceChecklist": "docs/research/engine-native-checklist.md"
     },
     {
       "contract": "common asynchronous entry points",
@@ -21747,7 +21752,7 @@
         "result": "Real QA cold-launch Run awaited delayed success and returned its success parameters. URL failure and cancellation returned matching callbacks. Development-signed QA App Intent through Shortcuts returned success, delayed failure, and cancellation messages. Timeout, busy, concurrent-entry, and window-close variants remain pending."
       },
       "limitations": [
-        "Native UI/URL/Intent queue and exclusion checks remain recorded. Same-draft URL and App Intent owner selection passed with both visible windows active in turn. Remaining capability-specific entry variants remain unverified."
+        "Native UI/URL/Intent queue and exclusion checks remain recorded, including same-draft two-window ownership. The finite remaining capability, outcome, permission and entry obligations are listed in docs/research/engine-native-checklist.md. Generic entry-point evidence does not accept every route."
       ],
       "defaults": "A window model permits one pending or running action request at a time. It reserves execution before starting its Task. A repeated request is ignored rather than queued. The default is limited here to window scheduling; automation uses its separate save and target checks.",
       "result": "Successful batches process every captured draft and leave the last open. Automation saves pending visible edits before loading its target; final reports supply the result used by callbacks and Intents.",
@@ -21862,7 +21867,7 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Same-draft URL and App Intent ownership passed with both visible windows active in turn. Remaining native capability paths still require separate checks.",
+        "reason": "Generic native entry-point evidence is retained. Complete the unresolved route and permission cases in docs/research/engine-native-checklist.md, recording the entry and final result for each actual session.",
         "additionalChecks": [
           {
             "date": "2026-10-20",
@@ -22002,7 +22007,8 @@
         "evidence": "docs/validation.md",
         "accepted": "Cold Open selected the target. URL showArrange kept its panel, changed the real editor, and supported native Cmd-Z. Closing a source window cancelled its waiting prompt and retained text. Independent CGWindow observation at 02:19 confirmed zero visible QA windows after source close. A separate direct CUA AX observation reopened a new window in the no-action control.",
         "pending": "Multiple windows, native pre-start close, actual busy/timeout, and typed App Intent failures remain pending. The tested source-close no-reopen path passed under independent observation."
-      }
+      },
+      "nativeAcceptanceChecklist": "docs/research/engine-native-checklist.md"
     }
   ],
   "schemaVersion": 2,

@@ -7441,3 +7441,9 @@ from these local lifecycle checks. No screenshots or raw logs were added.
 The system Python tooling run could not import Pillow and did not count as a
 complete run. Repeating with the bundled runtime passed all 46 Python tests.
 The matrix structure check passed. Production code was unchanged in this session.
+
+Read-only engine review retained the 18 strict diagnostics across six partial
+contracts. The finite acceptance checklist is now
+`docs/research/engine-native-checklist.md`; the matrix points to it. It separates
+current async-route evidence from older voice checks and theme-file access.
+The review did not accept new motor behavior or change production rules.

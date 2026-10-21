@@ -25,6 +25,12 @@ retain historical results. Later results supersede earlier counts.
 
 ## Current verification
 
+The six partial engine records point to the finite
+[native engine checklist](research/engine-native-checklist.md). It separates
+18 route families, permission cases and unresolved inclusion/import comparisons.
+Recorded UI/URL/Intent acceptance remains valid for its tested scope.
+The checklist does not add native passes.
+
 Selected-file themes now support a chosen development folder. Direct supported
 files are validated together and saved in one library operation. Source identity
 survives reload and name changes. Launch, activation and manual reload refresh
