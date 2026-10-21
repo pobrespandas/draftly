@@ -136,7 +136,7 @@ final class QuickSearchController {
         self.libraryProvider = libraryProvider
         self.openResult = openResult
     }
-    func show() {
+    func show(initialQuery: String = "") {
         guard let library = libraryProvider() else { return }
         if panel == nil {
             let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 620, height: 440), styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
@@ -144,7 +144,7 @@ final class QuickSearchController {
             panel.isReleasedWhenClosed = false; panel.minSize = NSSize(width: 420, height: 280)
             self.panel = panel
         }
-        panel?.contentView = NSHostingView(rootView: QuickSearchView(library: library, open: { [weak self] id in
+        panel?.contentView = NSHostingView(rootView: QuickSearchView(library: library, initialQuery: initialQuery, open: { [weak self] id in
             if self?.openResult(id) == true { self?.panel?.orderOut(nil) }
         }, cancel: { [weak self] in self?.panel?.orderOut(nil) }))
         NSApp.activate(ignoringOtherApps: true)
@@ -160,6 +160,12 @@ private struct QuickSearchView: View {
     @FocusState private var focused: Bool
     let open: (UUID) -> Void
     let cancel: () -> Void
+    init(library: LibraryStore, initialQuery: String, open: @escaping (UUID) -> Void, cancel: @escaping () -> Void) {
+        self.library = library
+        _query = State(initialValue: initialQuery)
+        self.open = open
+        self.cancel = cancel
+    }
     private var results: [Note] { QuickSearch.results(in: library.notes, query: query) }
     var body: some View {
         VStack(spacing: 0) {

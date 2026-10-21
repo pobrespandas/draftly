@@ -89,8 +89,8 @@ struct WindowActionAdapter {
                 model.infoDraft = note
             } else { model.infoDraft = model.currentNote }
             model.showInfo = true
-        case "showQuickSearch": model.openQuickSearch()
-        case "showCommandPalette": model.showPalette = true
+        case "showQuickSearch": model.openQuickSearch(value as? String ?? "")
+        case "showCommandPalette": model.openCommandPalette(initialQuery: value as? String ?? "")
         case "loadActionBarGroup", "loadKeyboardActionGroup", "loadActionGroup":
             let name = (value as? [String: Any])?["name"] as? String ?? value as? String ?? ""
             guard model.library.groupNames.contains(name) else { throw DraftlyError.message("The action group was not found.") }

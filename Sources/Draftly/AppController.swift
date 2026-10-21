@@ -130,7 +130,7 @@ final class AppController: ObservableObject {
         dependencies.windowModels = { [weak self] in self?.windows.allObjects ?? [] }
         dependencies.makeActionHost = { [weak self] in self?.makeActionHost() ?? NativeActionHost() }
         dependencies.recoverDictation = { [weak self] in self?.capture(content: $0) }
-        dependencies.openQuickSearch = { [weak self] in self?.showQuickSearch() }
+        dependencies.openQuickSearch = { [weak self] query in self?.showQuickSearch(initialQuery: query) }
         dependencies.openDraftWindow = { [weak self] id, tab, window in
             let before = Set(NSApp.windows.map(ObjectIdentifier.init))
             self?.queueNewWindowDraftSelection(id)
@@ -218,9 +218,9 @@ final class AppController: ObservableObject {
         recentDrafts.record(id)
     }
     func newDraft(content: String = "") { pendingNoteID = nil; openMenuAction(.newDraft(content)) }
-    func showQuickSearch() {
+    func showQuickSearch(initialQuery: String = "") {
         if let model = commandWindow, !model.flush() { return }
-        quickSearchController.show()
+        quickSearchController.show(initialQuery: initialQuery)
     }
     func findInDraftList() { openMenuAction(.findInDraftList) }
     func showCommandPalette() { openMenuAction(.commandPalette) }
@@ -245,7 +245,7 @@ final class AppController: ObservableObject {
             model.showNoteSearch = true
             model.noteSearchFocus = UUID()
         case .commandPalette:
-            model.showPalette = true
+            model.openCommandPalette()
         case .newDraft(let content):
             _ = model.capture(content)
         }

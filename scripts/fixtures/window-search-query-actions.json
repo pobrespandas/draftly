@@ -1,0 +1,62 @@
+[
+  {
+    "uuid": "BBBF0040-0000-4000-8000-000000000001",
+    "name": "QA Window search initial query",
+    "group": "Window contract QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "app.currentWindow.showQuickSearch('Picker QA: Zulu');"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0040-0000-4000-8000-000000000002",
+    "name": "QA Window palette initial query",
+    "group": "Window contract QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "app.currentWindow.showCommandPalette('QA URL member contracts');"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0040-0000-4000-8000-000000000003",
+    "name": "QA Window search empty query",
+    "group": "Window contract QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "app.currentWindow.showQuickSearch();"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0040-0000-4000-8000-000000000004",
+    "name": "QA Window palette empty query",
+    "group": "Window contract QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "app.currentWindow.showCommandPalette();"
+        }
+      }
+    ]
+  }
+]

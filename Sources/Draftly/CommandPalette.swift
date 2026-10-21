@@ -6,14 +6,13 @@ struct CommandPalette: View {
     @ObservedObject var model: WindowModel
     @ObservedObject var library: LibraryStore
     @Environment(\.dismiss) private var dismiss
-    @State private var query = ""
     @FocusState private var focused: Bool
-    private var actions: [DraftAction] { ActionCatalogPresentation.actions(library.orderedActions(), on: .search, query: query) }
+    private var actions: [DraftAction] { ActionCatalogPresentation.actions(library.orderedActions(), on: .search, query: model.paletteQuery) }
     var body: some View {
         VStack(spacing: 0) {
             HStack {
                 Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                TextField("Find an action…", text: $query).textFieldStyle(.plain).font(.title3).focused($focused)
+                TextField("Find an action…", text: $model.paletteQuery).textFieldStyle(.plain).font(.title3).focused($focused)
                     .onSubmit { if model.canRunActions, let action = actions.first { dismiss(); model.run(action) } }
                 Button("Done") { dismiss() }.keyboardShortcut(.cancelAction)
             }.padding(20)

@@ -31,7 +31,7 @@ struct WindowDependencyTests {
         var searches = 0
         var dependencies = WindowDependencies()
         dependencies.openDraftWindow = { id, tab, _ in received = (id, tab) }
-        dependencies.openQuickSearch = { searches += 1 }
+        dependencies.openQuickSearch = { _ in searches += 1 }
         let model = WindowModel(library: library, dependencies: dependencies)
         let id = UUID()
         _ = try model.actionUIOperation(["operation": "openInNewTab", "draft": ["uuid": id.uuidString]])

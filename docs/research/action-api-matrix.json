@@ -11511,16 +11511,14 @@
             "suite": "WindowContractTests",
             "test": "queryAndInfoCommandsForwardArgumentsAndReturnUndefined"
           },
-          "liveCheck": null,
+          "liveCheck": "21 October Engine QA: window-search-query-actions.json. Initial queries visible, correct filtered result, omitted queries empty on next invocation. Cancel kept Alpha open. Four Success records at 07:31–07:32. See docs/validation.md.",
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-21",
           "defaults": "Reads use current host state; tests do not assert a fixed initial window layout. Optional command arguments remain omitted when no argument is passed.",
           "result": "undefined after the host operation, as required by the void signature.",
           "errors": "Host errors propagate through the bridge. No new error policy is defined by this review.",
           "limitations": [
-            "Native acceptance of this member remains pending. Fake-host state checks do not prove visible window behavior.",
-            "A dedicated host failure test is not included in this member suite.",
-            "WindowActionAdapter currently ignores the forwarded initial query. This is a separate known functional defect; do not close this member from bridge forwarding coverage."
+            "Dedicated host-error injection and cross-window presentation checks remain pending. Native query checks do not establish all Window contracts."
           ],
           "evidenceLevel": "Specific bridge member assertions in both the legacy runner and worker. No native run in this review.",
           "implementationEvidence": {
@@ -11545,6 +11543,14 @@
             "errors": {
               "pending": "Dedicated host-error injection remains pending. This member stays partial."
             }
+          },
+          "queryEvidence": {
+            "implementation": "WindowActionAdapter forwards the query through the dedicated Quick Search dependency or the window-local palette state. Normal entry points clear the query.",
+            "automatedTest": {
+              "suite": "WindowSearchQueryTests",
+              "test": "paletteReceivesExactQueryAndOmittedArgumentClearsPreviousQuery"
+            },
+            "nativeVerification": "Initial and omitted query checked with Computer Use on the refreshed signed QA image. No personal library."
           }
         },
         {
@@ -11712,16 +11718,14 @@
             "suite": "WindowContractTests",
             "test": "queryAndInfoCommandsForwardArgumentsAndReturnUndefined"
           },
-          "liveCheck": null,
+          "liveCheck": "21 October Engine QA: window-search-query-actions.json. Initial queries visible, correct filtered result, omitted queries empty on next invocation. Cancel kept Alpha open. Four Success records at 07:31–07:32. See docs/validation.md.",
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-21",
           "defaults": "Reads use current host state; tests do not assert a fixed initial window layout. Optional command arguments remain omitted when no argument is passed.",
           "result": "undefined after the host operation, as required by the void signature.",
           "errors": "Host errors propagate through the bridge. No new error policy is defined by this review.",
           "limitations": [
-            "Native acceptance of this member remains pending. Fake-host state checks do not prove visible window behavior.",
-            "A dedicated host failure test is not included in this member suite.",
-            "WindowActionAdapter currently ignores the forwarded initial query. This is a separate known functional defect; do not close this member from bridge forwarding coverage."
+            "Dedicated host-error injection and cross-window presentation checks remain pending. Native query checks do not establish all Window contracts."
           ],
           "evidenceLevel": "Specific bridge member assertions in both the legacy runner and worker. No native run in this review.",
           "implementationEvidence": {
@@ -11746,6 +11750,14 @@
             "errors": {
               "pending": "Dedicated host-error injection remains pending. This member stays partial."
             }
+          },
+          "queryEvidence": {
+            "implementation": "WindowActionAdapter forwards the query through the dedicated Quick Search dependency or the window-local palette state. Normal entry points clear the query.",
+            "automatedTest": {
+              "suite": "WindowSearchQueryTests",
+              "test": "quickSearchReceivesExactQueryAndOmittedArgumentClearsIt"
+            },
+            "nativeVerification": "Initial and omitted query checked with Computer Use on the refreshed signed QA image. No personal library."
           }
         },
         {

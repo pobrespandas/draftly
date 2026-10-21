@@ -61,6 +61,7 @@ final class WindowModel: ObservableObject {
     @Published var actionGroup = "General"
     @Published var actionQuery = ""
     @Published var showPalette = false
+    @Published var paletteQuery = ""
     @Published var showHistory = false
     @Published var showPreview = false
     @Published var actionPreview: ActionPreviewRequest?
@@ -78,7 +79,7 @@ final class WindowModel: ObservableObject {
     @Published private var scratchNote: Note?
     weak var window: NSWindow?
     var referenceToolbar: ReferenceToolbar?
-    var openQuickSearch: () -> Void
+    var openQuickSearch: (String) -> Void
     let dependencies: WindowDependencies
     private var saveTask: Task<Void, Never>?
     @Published var actionPending = false
@@ -90,6 +91,11 @@ final class WindowModel: ObservableObject {
     private let onAccessDraft: (UUID) -> Void
     private var inactiveSince: Date?
     private var idleActivity: NSObjectProtocol?
+
+    func openCommandPalette(initialQuery: String = "") {
+        paletteQuery = initialQuery
+        showPalette = true
+    }
 
     init(library: LibraryStore, dependencies: WindowDependencies = WindowDependencies(), saveDraft: ((Note) throws -> Void)? = nil, onAccessDraft: @escaping (UUID) -> Void = { _ in }) {
         self.library = library

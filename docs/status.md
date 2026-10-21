@@ -11,6 +11,25 @@ sections below retain their original scope and dates.
 Keep the identity Draftly, `Note`, existing identities and libraries, original
 action scripts, Nerd Fonts, and the integrated Markdown preview.
 
+## Latest correction — initial search queries, 21 October 2026
+
+Implemented: scripted Quick Search and Command Palette now use initialQuery.
+The search dependency carries the exact string to a new view state. The palette
+uses window-local query state. Normal entry points and omitted arguments clear
+previous queries. Library filters remain separate.
+
+Automatically tested: two new model regressions failed before the adapter fix
+and passed afterward. They cover Unicode, omitted arguments, independent list
+and action filters, source text and selection. The checked runner verified
+617 core and 501 app methods. Unsigned Xcode build and matrix structure passed.
+
+Verified in use: refreshed and signed isolated Engine QA. Four fixture actions
+showed the exact initial queries, the matching results and empty fields on the
+next no-argument call. Cancel kept Alpha open. History recorded four Success
+results at 07:31–07:32. No QA Services registered. Window members remain partial
+for host errors and other native cases. Continue remaining Window contracts and
+file-panel lifetime acceptance. The complete Mac roadmap remains open.
+
 ## Latest correction — Window bridge, 21 October 2026
 
 Implemented: Window void commands no longer expose the host Boolean return.

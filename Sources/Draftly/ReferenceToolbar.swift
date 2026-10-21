@@ -188,8 +188,8 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
                 else { note.trashedAt = Date() }
             }
         case "search":
-            if index == 0 { model.showPalette = true }
-            else { model.openQuickSearch() }
+            if index == 0 { model.openCommandPalette() }
+            else { model.openQuickSearch("") }
         default: break
         }
     }

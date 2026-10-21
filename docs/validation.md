@@ -8151,3 +8151,44 @@ cases, native Window behavior and remaining group/tab/Workspace contracts stay
 pending. Source inspection found that WindowActionAdapter ignores initialQuery
 for showQuickSearch and showCommandPalette. The forwarding tests cannot close
 that functional gap. Correct it separately with native-model regression coverage.
+
+
+### Window search initial query correction — 21 October 2026
+
+Implemented: the Quick Search dependency carries a String to AppController and
+QuickSearchController. A fresh QuickSearchView starts with that exact query.
+CommandPalette binds to window-local paletteQuery. The common palette opener
+sets its query on every invocation. Menu and toolbar paths use an empty query.
+The list query and action-list query remain independent. No format or public
+scripting signature changed.
+
+Automatically tested: WindowSearchQueryTests has two headless model tests.
+After adding query-capable state and dependency transport, both failed with the
+old adapter behavior: Quick Search received two empty strings, and the palette
+query stayed empty. The adapter correction passed the same tests. Cases cover
+Unicode and a newline, omitted arguments after a nonempty query, unchanged list
+and action filters, unchanged source identity, unsaved text and selection.
+Existing injected-route tests use the new String parameter. No test opens UI.
+Checked runner verified 617 core and 501 app method identities. Unsigned Xcode
+build and matrix structure passed. No new Python source changed.
+
+Verified in use: quit Engine QA through its native shortcut. The final AX read
+timed out because the process exited. The refresh guard verified its absence,
+then copied and checked the runtime files, signed and verified the bundle.
+NSServices remains absent. Signed executable SHA256:
+60d30be1b1c7fa47965f14e00a2fa5d3b6cdd3e1998759d2f488b3b9d07abc6b.
+Debug dylib SHA256:
+f60ed97b774b3dc3eb4095ffc15a02dbf7ac8c6de85eab845f5e620c6f2872a4.
+
+Imported window-search-query-actions.json in the isolated library. Quick Search
+showed Picker QA: Zulu in its field with one matching result. Cancel kept Alpha
+open with its existing text. The palette showed QA URL member contracts with
+one matching action. Done did not run that action. Reopening both through the
+no-argument fixtures showed empty fields and the full result lists. History
+recorded four Success results at 07:31–07:32. Closed all dialogs. QA remains on
+Alpha with five neutral drafts. No data was sent and no permission requested.
+
+This closes the ignored-initialQuery defect. It does not close every contract of
+Window.showQuickSearch or Window.showCommandPalette. Dedicated host-error and
+cross-window checks remain pending. The native state confirms fields and results;
+it is not a new comparison with Drafts. Full Mac parity remains open.

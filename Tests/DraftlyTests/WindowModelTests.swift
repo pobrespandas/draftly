@@ -202,7 +202,7 @@ struct WindowModelTests {
         model.setDraftListVisible(false)
         let focus = model.noteSearchFocus
         var opened = false
-        model.openQuickSearch = { opened = true }
+        model.openQuickSearch = { _ in opened = true }
         model.query = "Keep this filter"
         _ = try model.actionUIOperation(["operation": "showQuickSearch"])
         #expect(opened)
