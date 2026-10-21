@@ -1398,3 +1398,17 @@ the library in an isolated test, prevent replacement/data loss, and assign a
 collision-safe identity while preserving existing stored and implicit IDs.
 Do not replace every legacy group ID without a migration. No production
 change for this issue has been made yet.
+
+
+### Collision-safe group identity allocator — 20 October 2026
+
+Added ActionGroupIdentity to reserve stored IDs, retain available preferred
+IDs, and resolve legacy name collisions with deterministic SHA256-derived IDs.
+The legacy constructor and identifier function remain unchanged. Six pure
+tests passed for the known collision, input order, stored and preferred IDs,
+and an occupied hash candidate. No test opened a window.
+
+Library saves, scripting, and workspace consumers do not use this allocator
+yet. The stored-group overwrite defect remains open. Next: add a failing
+library regression, connect allocation to atomic saves and all consumers,
+and verify restore and reopen. ActionGroup.uuid remains partial.

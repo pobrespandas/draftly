@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 public enum ActionSurface { case list, bar, search }
 
@@ -33,6 +34,53 @@ public struct ActionGroupRecord: Codable, Equatable, Identifiable {
         var bytes = [UInt8](repeating: 0, count: 16)
         for (index, value) in name.utf8.enumerated() { bytes[index % 16] = bytes[index % 16] &* 31 &+ value }
         return UUID(uuid: (bytes[0],bytes[1],bytes[2],bytes[3],bytes[4],bytes[5],bytes[6],bytes[7],bytes[8],bytes[9],bytes[10],bytes[11],bytes[12],bytes[13],bytes[14],bytes[15]))
+    }
+}
+
+public enum ActionGroupIdentity {
+    public static func identifiers(names: [String], records: [ActionGroupRecord],
+                                   preferred: [String: UUID] = [:]) -> [String: UUID] {
+        let records = firstRecords(records)
+        var result = Dictionary(uniqueKeysWithValues: records.map { ($0.name, $0.id) })
+        var occupied = Set(records.map(\.id))
+        let missing = Set(names).subtracting(result.keys).sorted()
+        for name in missing.filter({ preferred[$0] != nil }) + missing.filter({ preferred[$0] == nil }) {
+            var candidate = preferred[name] ?? ActionGroupRecord.identifier(for: name)
+            var attempt = 0
+            while occupied.contains(candidate) {
+                candidate = collisionIdentifier(name: name, attempt: attempt)
+                attempt += 1
+            }
+            result[name] = candidate
+            occupied.insert(candidate)
+        }
+        return result
+    }
+
+    public static func collisionNames(names: [String], records: [ActionGroupRecord]) -> Set<String> {
+        let records = firstRecords(records)
+        let names = Set(names).union(records.map(\.name))
+        let legacyOwners = Dictionary(grouping: names, by: ActionGroupRecord.identifier(for:))
+        let storedOwners = Dictionary(grouping: records, by: \.id)
+        return Set(names.filter { name in
+            let legacy = ActionGroupRecord.identifier(for: name)
+            return (legacyOwners[legacy]?.count ?? 0) > 1 ||
+                storedOwners[legacy]?.contains(where: { $0.name != name }) == true
+        })
+    }
+
+    private static func firstRecords(_ records: [ActionGroupRecord]) -> [ActionGroupRecord] {
+        var seen: Set<String> = []
+        return records.filter { seen.insert($0.name).inserted }
+    }
+
+    private static func collisionIdentifier(name: String, attempt: Int) -> UUID {
+        let input = Data("Draftly action group identity v1\u{0}\(name)\u{0}\(attempt)".utf8)
+        var bytes = Array(SHA256.hash(data: input).prefix(16))
+        bytes[6] = (bytes[6] & 0x0f) | 0x80
+        bytes[8] = (bytes[8] & 0x3f) | 0x80
+        return UUID(uuid: (bytes[0],bytes[1],bytes[2],bytes[3],bytes[4],bytes[5],bytes[6],bytes[7],
+                           bytes[8],bytes[9],bytes[10],bytes[11],bytes[12],bytes[13],bytes[14],bytes[15]))
     }
 }
 
