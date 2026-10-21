@@ -21278,6 +21278,14 @@
             "entryPoint": "Visual QA Actions Cancel Running Action",
             "result": "With the existing speech grant, task cancellation closed the audio picker and preserved neutral text. A second run accepted synthetic silence, remained pending after picker closure, then task cancellation preserved text and recorded Cancelled. No ERROR tail, microphone or private audio. Successful recognition is not covered.",
             "evidence": "docs/validation.md: Native transcription task cancellation — 20 October 2026"
+          },
+          {
+            "date": "2026-10-21",
+            "executableSHA256": "42172c0ec0d388e0ac09c58502181f611d1a01bc7c363cf5f5a42f535144ebf6",
+            "fixture": "scripts/fixtures/engine-shell-lifetime-actions.json",
+            "entryPoint": "UI command palette, Actions Cancel Running Action and native owner close",
+            "result": "Shell and sleep child were observed in their isolated group. Task cancel, owner close and production timeout each stopped both processes and removed the exact temporary directory. Completed writes stayed in Inbox; no tail or Archive. History Cancelled/Cancelled/Error and following Unicode recovery Success passed. The 120-second deadline winner was not isolated. URL/Intent shell variants remain pending.",
+            "evidence": "docs/validation.md: Native shell process lifetime — 21 October 2026"
           }
         ]
       },
@@ -21507,6 +21515,14 @@
             "fixture": "scripts/fixtures/engine-sharing-actions.json",
             "evidence": "docs/validation.md: Native sharing file cancellation — 21 October 2026",
             "result": "Native openIn picker displayed neutral 26-byte text file. Escape returned Cancelled, preserved source, stopped tail and removed temporary folder. No service selected. Task cancellation and post-handoff lifecycle are not accepted by this case."
+          },
+          {
+            "date": "2026-10-21",
+            "executableSHA256": "42172c0ec0d388e0ac09c58502181f611d1a01bc7c363cf5f5a42f535144ebf6",
+            "fixture": "scripts/fixtures/engine-shell-lifetime-actions.json",
+            "entryPoint": "UI command palette, Actions Cancel Running Action and native owner close",
+            "result": "Shell and sleep child were observed in their isolated group. Task cancel, owner close and production timeout each stopped both processes and removed the exact temporary directory. Completed writes stayed in Inbox; no tail or Archive. History Cancelled/Cancelled/Error and following Unicode recovery Success passed. The 120-second deadline winner was not isolated. URL/Intent shell variants remain pending.",
+            "evidence": "docs/validation.md: Native shell process lifetime — 21 October 2026"
           }
         ]
       },
@@ -21694,6 +21710,14 @@
             "fixture": "scripts/fixtures/engine-apple-model-availability-actions.json",
             "result": "On macOS 27.0.1 build26A434 arm64, actual QA reported modes=[]; onDevice and pcc each returned undefined with an explicit unavailable error. History Success. Direct read-only FoundationModels availability reported modelNotReady and systemNotReady respectively. System Settings reported mismatched Mac/Siri languages. No setting or permission changed. Generation cancellation remains blocked, not passed.",
             "evidence": "docs/validation.md: Current Apple model readiness and unavailable responses — 21 October 2026"
+          },
+          {
+            "date": "2026-10-21",
+            "executableSHA256": "42172c0ec0d388e0ac09c58502181f611d1a01bc7c363cf5f5a42f535144ebf6",
+            "fixture": "scripts/fixtures/engine-shell-lifetime-actions.json",
+            "entryPoint": "UI command palette, Actions Cancel Running Action and native owner close",
+            "result": "Shell and sleep child were observed in their isolated group. Task cancel, owner close and production timeout each stopped both processes and removed the exact temporary directory. Completed writes stayed in Inbox; no tail or Archive. History Cancelled/Cancelled/Error and following Unicode recovery Success passed. The 120-second deadline winner was not isolated. URL/Intent shell variants remain pending.",
+            "evidence": "docs/validation.md: Native shell process lifetime — 21 October 2026"
           }
         ]
       },
@@ -21963,6 +21987,14 @@
             "entryPoint": "Actual Shortcuts Run Draft Action with two windows on the same UUID",
             "result": "Window2 selected Gamma; Intent replaced it with Owner:Gamma. Activated confirmed Window1 and selected Alpha; the next Intent replaced it with Owner:Alpha. Final text was Owner:Alpha 🐼 Beta Owner:Gamma café. Shortcuts returned to Run after each invocation. History displayed two Success rows. Original Shortcut parameters were restored.",
             "evidence": "docs/validation.md: Native duplicate-window App Intent owner selection — 21 October 2026"
+          },
+          {
+            "date": "2026-10-21",
+            "executableSHA256": "42172c0ec0d388e0ac09c58502181f611d1a01bc7c363cf5f5a42f535144ebf6",
+            "fixture": "scripts/fixtures/engine-shell-lifetime-actions.json",
+            "entryPoint": "UI command palette, Actions Cancel Running Action and native owner close",
+            "result": "Shell and sleep child were observed in their isolated group. Task cancel, owner close and production timeout each stopped both processes and removed the exact temporary directory. Completed writes stayed in Inbox; no tail or Archive. History Cancelled/Cancelled/Error and following Unicode recovery Success passed. The 120-second deadline winner was not isolated. URL/Intent shell variants remain pending.",
+            "evidence": "docs/validation.md: Native shell process lifetime — 21 October 2026"
           }
         ]
       },

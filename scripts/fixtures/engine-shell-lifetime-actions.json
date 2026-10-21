@@ -1,0 +1,61 @@
+[
+  {
+    "uuid": "BBBF0029-0000-4000-8000-000000000001",
+    "name": "QA Shell lifetime cancellation",
+    "group": "Shell lifetime QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText(editor.getText()+'\\nShell lifetime completed write');draft.update();\nconst s=ShellScript.create(\"#!/bin/sh\\ntrap '' TERM\\n/bin/sleep 90 &\\nwait\\nprintf 'ERROR: shell finished after cancellation'\\n\");\nif(!s.execute(['draftly-shell-lifetime-qa']))throw Error(s.standardError);\neditor.setText(editor.getText()+'\\nERROR: shell script continued');"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "ERROR: shell tail ran"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0029-0000-4000-8000-000000000002",
+    "name": "QA Shell lifetime recovery",
+    "group": "Shell lifetime QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "const s=ShellScript.create(\"printf 'Shell recovery café 🐼'\");if(!s.execute())throw Error(s.standardError);if(s.standardOutput!=='Shell recovery café 🐼')throw Error('Unexpected recovery response');app.displaySuccessMessage(s.standardOutput);"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0029-0000-4000-8000-000000000003",
+    "name": "QA Shell production timeout",
+    "group": "Shell lifetime QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText(editor.getText()+'\\nShell timeout completed write');draft.update();\nconst s=ShellScript.create(\"#!/bin/sh\\ntrap '' TERM\\n/bin/sleep 180 &\\nwait\\nprintf 'ERROR: shell finished after cancellation'\\n\");\nif(!s.execute(['draftly-shell-timeout-qa']))throw Error(s.standardError);\neditor.setText(editor.getText()+'\\nERROR: shell script continued');"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "ERROR: shell tail ran"
+        }
+      }
+    ]
+  }
+]

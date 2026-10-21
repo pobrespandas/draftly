@@ -26,7 +26,7 @@ Message sending still requires an authorized recipient and content.
 | file | Save Cancel and successful output with exact bytes | Action-host bookmark access after restart, denied/lost access, task cancel/timeout in panel, no late write |
 | message | Injected tests only; no real composer acceptance | Mail and Messages availability, authorized neutral composition, cancel/timeout/owner close and handoff lifetime |
 | callback | Success/error/cancel, overlapping expired/fresh replies, production timeout and ignored late reply, response collections | Exact deadline race has controlled-clock evidence only. Remaining API options are separate |
-| shell | UI completed a neutral command and stored Unicode output | Child cancellation, timeout, owner close, process/pipe cleanup and recovery |
+| shell | UI Unicode success; task cancel, owner close and production timeout stopped the parent/child group and removed temporary output; completed writes stayed in Inbox and recovery passed | Shell-specific URL/Intent entry variants; the native deadline winner was not isolated |
 | shortcut | Script/step waited output and no-wait launch; native CLI response order | Host-operation cancellation/timeout and child cleanup. Intent queue timeout does not accept this operation; detached completion is intentionally unobserved |
 | eventAPI | No native scripting query/edit/fetch acceptance recorded | Calendar/Reminders queries and persistence, async fetch, authorization outcomes, cancel/timeout and late results |
 | event | Calendar creation panel with existing access: task and dialog Cancel, no save | Successful Calendar persistence, Reminders creation, grant/denial, pending-authorization cancel, timeout and late authorization |
@@ -86,3 +86,7 @@ same-draft two-window ownership. Keep those results. For the unresolved routes
 above, record the entry used and its actual final result. Do not infer a full
 route-by-entry cross-product from a generic test, or rerun accepted generic
 cases as a substitute for missing capability checks. The strict gate stays open.
+
+Native shell lifetime evidence is recorded in validation.md under Native shell
+process lifetime — 21 October 2026. It accepts the UI cases in the shell row,
+not the other routes or the entire engine.

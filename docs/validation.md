@@ -7447,3 +7447,56 @@ contracts. The finite acceptance checklist is now
 `docs/research/engine-native-checklist.md`; the matrix points to it. It separates
 current async-route evidence from older voice checks and theme-file access.
 The review did not accept new motor behavior or change production rules.
+
+
+### Native shell process lifetime — 21 October 2026
+
+Manual session used the same signed Theme QA build, isolated library and hashes
+recorded in Development-folder themes and native acceptance. No runtime code or
+production deadline changed. Fixture:
+`scripts/fixtures/engine-shell-lifetime-actions.json`. The cancellation action
+saves a completed editor write, starts a shell with a child sleep, ignores TERM,
+and has sentinel steps plus Archive on success. The recovery action validates
+literal Unicode output without editing the draft.
+
+UI Cancel Running Action: observed shell PID53915 and child53916 in isolated
+PGID53915 while pending. The native cancel control returned Cancelled. Both PIDs
+were absent and the exact temporary directory was removed on the following
+process check. The draft stayed in Inbox with its completed write and no
+sentinel. Recovery returned Shell recovery café 🐼; history showed Cancelled
+followed by Success.
+
+Owner close: repeated with live shell53926, child53927 and PGID53926. The native
+window close control replaced the editor with Untitled. Both PIDs disappeared
+and the exact temporary directory was removed. Inbox still listed the original
+neutral draft and its second completed write. A following recovery action
+completed before the next timeout run. This tests UI owner close, not a URL or
+Intent shell operation.
+
+Focused NativeProcessExecutorTests passed 15 methods in two suites. They cover
+literal arguments, output/status, task cancellation, timeout, TERM escalation,
+descendants, launch errors and waited/detached Shortcut lifetime. They opened
+no windows, requested no permissions and produced no audio. Production code
+was unchanged; the earlier full build remains the current build evidence.
+
+
+Production timeout: the fixture used a 180-second child, longer than the unchanged
+120-second limits. Observed shell53974 and child53975 in PGID53974. Both were
+still live at ps elapsed01:46. The next monitor observation, 20 seconds later,
+found both PIDs absent and the exact temporary directory removed. These are
+observation bounds, not a precise timeout timestamp. Execution History showed
+Error with “The action operation timed out before it completed.” at05:54.
+The completed write stayed in Inbox, with no sentinel or Archive. Recovery then
+returned the exact Unicode result and history Success. History also confirmed
+the owner-close run as Cancelled and its following recovery as Success.
+
+The action/host deadlines can race at the same production limit. This session
+accepts final timeout, interruption cleanup and recovery through the UI; it does
+not isolate which deadline won. It does not accept shell operation variants
+through URLs or App Intents. All fixture processes and the process monitor are
+terminal. Theme QA remains open on the retained neutral Alpha draft, history
+closed. No private data, permissions, external service or screenshots were used.
+
+Post-session tooling passed all46 Python tests with the bundled runtime. Matrix
+structure passed. Strict engine/global checks remain open at18/4529 diagnostics;
+new native shell evidence does not close the other capability obligations.
