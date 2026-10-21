@@ -1,0 +1,17 @@
+[
+  {
+    "uuid": "BBBF0039-0000-4000-8000-000000000001",
+    "name": "QA URL member contracts",
+    "group": "Utility member QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "function check(value,message){if(!value)throw Error(message);}\nconst before=editor.getText();\nconst source='https://old.example:8443/path?q=one#old';\nconst first=URL.parse(source),second=URL.parse(source);\ncheck(first instanceof URL&&first.hostname==='old.example','typed parse');\nfirst.fragment='new';\ncheck(first.fragment==='#new'&&first.href==='https://old.example:8443/path?q=one#new','fragment coherence');\nfirst.hostname='new.example';\ncheck(first.host==='new.example:8443'&&String(first)==='https://new.example:8443/path?q=one#new','hostname coherence');\ncheck(JSON.parse(JSON.stringify(first)).hostname==='new.example','enumerable hostname');\ncheck(second.href===source&&second.fragment==='#old','independent objects');\nconst relative=URL.parse('../next?q=boo#section','https://example.com/folder/page');\ncheck(relative.href==='https://example.com/next?q=boo#section'&&relative.searchParams.q==='boo','base resolution');\ncheck(editor.getText()===before,'editor preserved');\nconsole.log('URL component coherence passed café 🐼');"
+        }
+      }
+    ]
+  }
+]

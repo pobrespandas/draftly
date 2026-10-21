@@ -25,6 +25,11 @@ retain historical results. Later results supersede earlier counts.
 
 ## Current verification
 
+URL fragment/hostname writes now update their serialized URL and related host
+fields. Both-runner regressions and native QA passed. Constructor is complete;
+encoding/normalization and other edge cases keep the remaining members partial.
+The checked runner verified499 app/609 core; unsigned Xcode passed.
+
 Native explicit-text Arrange task cancel and production timeout now close the
 dialog and preserve completed writes without later edits or Archive. A following
 Done result passed. Owner-close and stale-navigation checks remain open.

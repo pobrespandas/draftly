@@ -17695,10 +17695,46 @@
             "new URL(): URL"
           ],
           "contract": "",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "implemented-with-specific-contract-tests",
+          "automatedTest": {
+            "suite": "URLContractTests",
+            "test": "constructorCreatesIndependentURLObjects"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "URL.constructor"
+          },
+          "defaults": "No constructor argument is required. The existing URL/base constructor overload remains an extension.",
+          "result": "An independent typed URL instance. Empty construction performs no host work.",
+          "errors": "The archived reference does not specify invalid-input returns or exceptions. Existing parse failure behavior was not redefined.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "URLContractTests",
+                "test": "constructorCreatesIndependentURLObjects"
+              },
+              "assertion": "Distinct constructor objects retain independent hostname values without host work."
+            },
+            "defaults": {
+              "notApplicable": "No additional defaults beyond the tested signature/base behavior are documented."
+            },
+            "errors": {
+              "notApplicable": "The reference defines no invalid-input error contract."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: URL component coherence — 21 October 2026"
+          },
+          "limitations": [],
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "Empty construction has no host/native effect and is tested in both engines."
+          }
         },
         {
           "member": "fragment",
@@ -17710,10 +17746,60 @@
             "fragment: string"
           ],
           "contract": "The hash string starting with a # of the URL, if present. When setting, if the string does not begin with a # it will be added, and the value",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-specific-contract-tests",
+          "automatedTest": {
+            "suite": "URLContractTests",
+            "test": "fragmentMutationKeepsTheSerializedURLCoherent"
+          },
+          "liveCheck": "docs/validation.md: URL component coherence — 21 October 2026",
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "URL.fragment"
+          },
+          "defaults": "Parsed URLs without a fragment return an empty string. A value without # gets that prefix.",
+          "result": "A writable hash string. The tested mutations update href and String(url) on the same instance without changing other instances.",
+          "errors": "The archived reference does not specify invalid-input returns or exceptions. Existing parse failure behavior was not redefined.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "URLContractTests",
+                "test": "fragmentMutationKeepsTheSerializedURLCoherent"
+              },
+              "assertion": "Fragment writes keep href and serialization coherent on both engines."
+            },
+            "defaults": {
+              "test": {
+                "suite": "URLContractTests",
+                "test": "fragmentSetterAddsOneHashAndKeepsItsValueOnTheSameObject"
+              },
+              "assertion": "Fragment setters add one # prefix and keep other objects unchanged."
+            },
+            "errors": {
+              "notApplicable": "The reference defines no invalid-input error contract."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: URL component coherence — 21 October 2026"
+          },
+          "limitations": [
+            "Full parity for percent-encoded component values, Unicode/IDN/IPv6 normalization and other Web URL edge cases remains unverified. The reference describes a close Web URL mirror; basic snapshot coherence does not accept all those behaviors. Existing non-heading component/searchParams mutation behavior remains outside this acceptance."
+          ],
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: URL component coherence — 21 October 2026",
+            "scope": "Native QA parsed absolute/base-relative examples and verified fragment/hostname href/host/String coherence, port/query retention, instance isolation, enumerable hostname and unchanged editor. No URL was opened."
+          },
+          "supportingTests": [
+            {
+              "suite": "URLContractTests",
+              "test": "fragmentSetterAddsOneHashAndKeepsItsValueOnTheSameObject"
+            }
+          ]
         },
         {
           "member": "hostname",
@@ -17725,10 +17811,50 @@
             "hostname: string"
           ],
           "contract": "Host (domain name) portion of the URL",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-specific-contract-tests",
+          "automatedTest": {
+            "suite": "URLContractTests",
+            "test": "hostnameMutationPreservesTheOtherURLComponents"
+          },
+          "liveCheck": "docs/validation.md: URL component coherence — 21 October 2026",
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "URL.hostname"
+          },
+          "defaults": "No default hostname is documented for an uninitialized object.",
+          "result": "A writable hostname. The tested mutation updates host/href while retaining port, path, query and fragment.",
+          "errors": "The archived reference does not specify invalid-input returns or exceptions. Existing parse failure behavior was not redefined.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "URLContractTests",
+                "test": "hostnameMutationPreservesTheOtherURLComponents"
+              },
+              "assertion": "Hostname writes keep host/href coherent and preserve port and remaining URL components."
+            },
+            "defaults": {
+              "notApplicable": "No additional defaults beyond the tested signature/base behavior are documented."
+            },
+            "errors": {
+              "notApplicable": "The reference defines no invalid-input error contract."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: URL component coherence — 21 October 2026"
+          },
+          "limitations": [
+            "Full parity for percent-encoded component values, Unicode/IDN/IPv6 normalization and other Web URL edge cases remains unverified. The reference describes a close Web URL mirror; basic snapshot coherence does not accept all those behaviors. Existing non-heading component/searchParams mutation behavior remains outside this acceptance."
+          ],
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: URL component coherence — 21 October 2026",
+            "scope": "Native QA parsed absolute/base-relative examples and verified fragment/hostname href/host/String coherence, port/query retention, instance isolation, enumerable hostname and unchanged editor. No URL was opened."
+          }
         },
         {
           "member": "parse",
@@ -17740,10 +17866,50 @@
             "parse(url: string, base?: string): URL"
           ],
           "contract": "Creates a new URL object with provided URL.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-specific-contract-tests",
+          "automatedTest": {
+            "suite": "URLContractTests",
+            "test": "parseSupportsAbsoluteURLsAndRelativeReferencesWithABase"
+          },
+          "liveCheck": "docs/validation.md: URL component coherence — 21 October 2026",
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "URL.parse"
+          },
+          "defaults": "base is optional for absolute input; relative input uses the supplied base. No invalid-input default is documented.",
+          "result": "A typed URL with the parsed component snapshot, href and the existing dictionary searchParams. Absolute URLs and relative URLs with a base are covered.",
+          "errors": "The archived reference does not specify invalid-input returns or exceptions. Existing parse failure behavior was not redefined.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "URLContractTests",
+                "test": "parseSupportsAbsoluteURLsAndRelativeReferencesWithABase"
+              },
+              "assertion": "Absolute and base-relative parsing match the reference example and preserve source/base strings."
+            },
+            "defaults": {
+              "notApplicable": "No additional defaults beyond the tested signature/base behavior are documented."
+            },
+            "errors": {
+              "notApplicable": "The reference defines no invalid-input error contract."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: URL component coherence — 21 October 2026"
+          },
+          "limitations": [
+            "Full parity for percent-encoded component values, Unicode/IDN/IPv6 normalization and other Web URL edge cases remains unverified. The reference describes a close Web URL mirror; basic snapshot coherence does not accept all those behaviors. Existing non-heading component/searchParams mutation behavior remains outside this acceptance."
+          ],
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: URL component coherence — 21 October 2026",
+            "scope": "Native QA parsed absolute/base-relative examples and verified fragment/hostname href/host/String coherence, port/query retention, instance isolation, enumerable hostname and unchanged editor. No URL was opened."
+          }
         }
       ]
     },

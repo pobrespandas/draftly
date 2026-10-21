@@ -8052,3 +8052,48 @@ Automatically tested: the checked499-method app report includes all three
 NativeArrangementRequestTests: accepted Unicode text, exact original text on
 user Cancel, and rejection of an accepted result after task cancellation. The
 UI acceptance above does not infer these cases from a global test total.
+
+
+### URL component coherence — 21 October 2026
+
+Reviewed the frozen URL page. Its four headings match the inventory. It says
+the implementation closely mirrors Web URL; host/searchParams also occur in
+its parsing example. No invalid-input return or exception policy is documented.
+No reference URL/hash changed.
+
+Implemented: hostname and hash now retain one private component snapshot and
+update the native URL before replacing the snapshot. fragment uses hash. The
+new internal updateURL route changes only hostname or hash through the existing
+URLComponents parser/serializer. It returns a fresh component snapshot so href,
+host and String(url) stay coherent. Source/base strings and independent objects
+remain unchanged. The empty constructor and existing URL/base overload remain
+compatible. Enumerable hostname/hash values remain serializable. No library
+format, Note identity, public method name or original script changed.
+
+Automatically tested: the new five-method both-runner suite first found stale
+href after fragment mutation and stale host/href after hostname mutation. The
+same assertions now pass. Construction, prefix handling and absolute/base-
+relative parsing also pass. The checked runner verified499 app and609 core
+method identities against fresh reports. Unsigned Xcode passed. The Foundation
+URLComponents documentation lookup confirms component setter/encoding behavior;
+it does not replace the frozen Drafts reference or prove Web URL equivalence.
+
+Verified in use: safely quit and refreshed Engine QA after the native Arrange
+check. Copied runtime hashes and development signature verified; identity/library
+and callback scheme unchanged, NSServices absent. Final executable/debug SHA256:
+7c47e9dd2014c4fc88c5512e10be61141def3d2697ef0d7c0f190a0471cf30a5 /
+92bb1adc94ef4f9361f16070051e329b5c04137e5d8f12ba9dd6c10a52e0d66e.
+Imported url-member-actions.json. QA URL member contracts checked href/host/
+String coherence, port/query retention, separate instances, enumerable hostname
+and relative resolution without opening a URL or changing the editor. History
+recorded Success07:18. History is closed; QA stays open on Alpha.
+
+Constructor is complete. The other members remain partial: percent-encoded
+component values, Unicode/IDN/IPv6 normalization and further Web URL edge cases
+need dedicated comparison. Existing non-heading fields/searchParams mutations
+are not accepted by these tests. Basic coherence is not full URL compatibility.
+No malformed-input policy was invented. Native Arrange acceptance is a separate
+commit and refers to its preceding executable.
+
+Final tooling passed56 Python tests and matrix structure0. Strict engine/global
+remain18/4314 diagnostics. Those totals are not a compatibility percentage.

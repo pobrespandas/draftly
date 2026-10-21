@@ -229,7 +229,7 @@ public enum APIValues {
         case "detectURLs":
             let text = values["text"] as? String ?? ""
             return try NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue).matches(in: text, range: NSRange(text.startIndex..., in: text)).compactMap { $0.url?.absoluteString }
-        case "parseURL", "buildURL": return try ScriptUtilities.url(operation, values)
+        case "parseURL", "buildURL", "updateURL": return try ScriptUtilities.url(operation, values)
         case "formatDate":
             let date = APIValues.parseDate(values["date"]) ?? Date(), format = values["format"] as? String ?? "%Y-%m-%d"
             return Templates.render("[[date|\(format)]]", note: Note(), now: date)
@@ -268,6 +268,16 @@ enum ScriptUtilities {
         let base = (values["base"] as? String).flatMap(URL.init(string:))
         guard let url = URL(string: values["url"] as? String ?? "", relativeTo: base)?.absoluteURL,
               var components = URLComponents(url: url, resolvingAgainstBaseURL: true), components.scheme != nil else { throw DraftlyError.message("The URL is invalid.") }
+        if operation == "updateURL" {
+            guard let value = values["value"] as? String else { throw DraftlyError.message("The URL component value is invalid.") }
+            switch values["component"] as? String {
+            case "hostname": components.host = value
+            case "hash": components.fragment = value.hasPrefix("#") ? String(value.dropFirst()) : value
+            default: throw DraftlyError.message("The URL component is unsupported.")
+            }
+            guard let updated = components.url else { throw DraftlyError.message("The URL component is invalid.") }
+            return try ScriptUtilities.url("parseURL", ["url": updated.absoluteString])
+        }
         if operation == "buildURL" {
             let parameters = values["parameters"] as? [String: Any] ?? [:]
             components.queryItems = (components.queryItems ?? []) + parameters.sorted { $0.key < $1.key }.map { URLQueryItem(name: $0.key, value: String(describing: $0.value)) }

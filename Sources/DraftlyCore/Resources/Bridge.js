@@ -342,7 +342,20 @@ class HTTP {constructor(){this.followRedirects=true;this.timeout=60;}static crea
 class XMLRPCResponse { constructor(v={}) { Object.assign(this, {success:false,statusCode:0,params:[]},v); } }
 class XMLRPC { static request(url,methodName,params) { return new XMLRPCResponse(__call('xmlrpc',{url,methodName,params})); } }
 class URL {
-    constructor(url,base){if(url!==undefined)Object.assign(this,__call('parseURL',{url,base}));}
+    constructor(url,base){
+        let components = url === undefined ? {} : __call('parseURL',{url,base});
+        const apply = value => {
+            components = value;
+            for (const key of Object.keys(value)) if (key !== 'hostname' && key !== 'hash') this[key] = value[key];
+        };
+        for (const key of ['hostname','hash']) Object.defineProperty(this,key,{
+            enumerable:true,configurable:true,get:()=>components[key],set:value=>{
+                if (this.href === undefined) { components[key]=value; return; }
+                apply(__call('updateURL',{url:this.href,component:key,value:String(value)}));
+            }
+        });
+        apply(components);
+    }
     static parse(url,base){try{return new URL(url,base);}catch(e){return undefined;}}
     get fragment(){return this.hash||'';}set fragment(v){this.hash=v.startsWith('#')?v:'#'+v;}
     toString(){return this.href;}
