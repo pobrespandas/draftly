@@ -1117,3 +1117,28 @@ M2 Max/64 GiB, five fresh SQLite samples gave import median1092.570 ms and
 maximum1296.808 ms; query median17.014 ms; save median196.603 ms. Data checks
 and full app447/core475 pass. Native UI responsiveness and the remaining scale
 acceptance stay pending. Reproduction and conditions are in validation.md.
+
+
+### Imported action option gaps — 20 October 2026
+
+Reviewed ActionImporter.decode against the five unchanged original action
+fixtures. Foreign import explicitly maps description, tint, bar label/icon,
+confirmation, assigned tags, disposition, shortcut, icon, and separator state.
+It retains the full foreign object as rawPayload. Retention does not apply
+these other settings:
+
+| Field | Values present in original fixtures | Current behavior |
+| --- | --- | --- |
+| visibility | 2,480,2016 | Retained in rawPayload; presentation visibility stays at Draftly defaults. |
+| notificationType | 0,1,2 | Retained; notifyOnSuccess/notifyOnError stay false. |
+| backingAssignFlag | 0 | Retained when present; flagAfterSuccess stays nil. |
+| groupDisposition | 0 | Retained; no imported group-disposition effect. |
+| logLevel | 1,2 | Retained; no imported log-level policy. |
+| groupUUID | Four UUIDs | Retained when present; import uses a group name or Imported. |
+| backingPlatforms | 3 | Retained when present; no imported action platform restriction. |
+
+Do not infer enum/bitmask meaning from these samples. Check the archived
+reference and observable Drafts behavior before mapping values. Native Draftly
+options use their typed persisted fields; this gap concerns foreign import.
+Unknown numeric values must survive any later mapping. This audit does not
+change the original scripts or claim completion of these imported options.
