@@ -6471,8 +6471,7 @@
           ],
           "errors": "Storage failures throw; missing lookups return undefined.",
           "limitations": [
-            "Not every documented default and error path has a member-specific assertion.",
-            "Action.find returns stored string values. Typed values need a separate review."
+            "Readonly replacement and shared mutable contents are specifically checked. Typed values from another saved action and included-action configuration precedence require separate acceptance."
           ],
           "evidenceLevel": "Member-specific assertions. Native verification is separate.",
           "automatedVerification": {
@@ -6535,27 +6534,23 @@
             "isSeparator: boolean"
           ],
           "contract": "If true, the action is a separator.",
-          "implementation": "reviewed-partial",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "CatalogActionAPITests",
-            "test": "actionAndGroupQueriesKeepIdentityOrderAndInstallationData"
+            "suite": "ActionCatalogReadOnlyContractTests",
+            "test": "actionIdentificationAndConfigurationCannotBeReassigned"
           },
           "liveCheck": null,
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "reviewDate": "2026-10-20",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Action.isSeparator"
           },
-          "defaults": "Queries return an empty list or undefined for missing records. Factory defaults still need an exhaustive assertion set.",
-          "result": [
-            "isSeparator: boolean"
-          ],
-          "errors": "Storage failures throw; missing lookups return undefined.",
-          "limitations": [
-            "Not every documented default and error path has a member-specific assertion."
-          ],
-          "evidenceLevel": "Member-specific assertions. Native verification is separate.",
+          "defaults": "Readonly getter has no arguments and exposes its catalog value. New ordinary actions report isSeparator=false.",
+          "result": "Stored action name/UUID and both separator states are returned, and rejected writes retain identity and installation target.",
+          "errors": "The reference defines no getter error. Reflect.set rejects readonly replacement and preserves the original value.",
+          "limitations": [],
+          "evidenceLevel": "Specific both-runner readonly/value checks, identity restoration where applicable, and native catalog assertions.",
           "automatedVerification": {
             "status": "passed",
             "date": "2026-10-20",
@@ -6572,6 +6567,37 @@
                 "evidence": "docs/validation.md: Read-only action catalog properties — 20 October 2026"
               }
             ]
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionCatalogReadOnlyContractTests",
+                "test": "actionIdentificationAndConfigurationCannotBeReassigned"
+              },
+              "assertion": "Stored action name/UUID and both separator states are returned, and rejected writes retain identity and installation target."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ActionCatalogReadOnlyContractTests",
+                "test": "actionIdentificationAndConfigurationCannotBeReassigned"
+              },
+              "assertion": "Ordinary action false and separator true are both checked."
+            },
+            "errors": {
+              "test": {
+                "suite": "ActionCatalogReadOnlyContractTests",
+                "test": "actionIdentificationAndConfigurationCannotBeReassigned"
+              },
+              "assertion": "Reflect.set returns false without replacing the property."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-20",
+            "fixture": "scripts/fixtures/action-catalog-readonly-actions.json",
+            "executableSHA256": "9db58717ac543a171d3bd0fbf90e6525e364f5bfc63a247dae90a4c3a52ba420",
+            "evidence": "docs/validation.md: Native action catalog identity acceptance — 20 October 2026",
+            "result": "Known native action UUID/name, both separator values, group identity and readonly rejection passed; History Success and exact neutral marker displayed."
           }
         },
         {
@@ -6584,27 +6610,23 @@
             "name: string"
           ],
           "contract": "The display name of the action as displayed in the action list.",
-          "implementation": "reviewed-partial",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "CatalogActionAPITests",
-            "test": "actionAndGroupQueriesKeepIdentityOrderAndInstallationData"
+            "suite": "ActionCatalogReadOnlyContractTests",
+            "test": "actionIdentificationAndConfigurationCannotBeReassigned"
           },
           "liveCheck": null,
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "reviewDate": "2026-10-20",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Action.name"
           },
-          "defaults": "Queries return an empty list or undefined for missing records. Factory defaults still need an exhaustive assertion set.",
-          "result": [
-            "name: string"
-          ],
-          "errors": "Storage failures throw; missing lookups return undefined.",
-          "limitations": [
-            "Not every documented default and error path has a member-specific assertion."
-          ],
-          "evidenceLevel": "Member-specific assertions. Native verification is separate.",
+          "defaults": "Readonly getter has no arguments and exposes its catalog value.",
+          "result": "Stored action name/UUID and both separator states are returned, and rejected writes retain identity and installation target.",
+          "errors": "The reference defines no getter error. Reflect.set rejects readonly replacement and preserves the original value.",
+          "limitations": [],
+          "evidenceLevel": "Specific both-runner readonly/value checks, identity restoration where applicable, and native catalog assertions.",
           "automatedVerification": {
             "status": "passed",
             "date": "2026-10-20",
@@ -6621,6 +6643,33 @@
                 "evidence": "docs/validation.md: Read-only action catalog properties — 20 October 2026"
               }
             ]
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionCatalogReadOnlyContractTests",
+                "test": "actionIdentificationAndConfigurationCannotBeReassigned"
+              },
+              "assertion": "Stored action name/UUID and both separator states are returned, and rejected writes retain identity and installation target."
+            },
+            "defaults": {
+              "notApplicable": "The getter has no parameters or selectable default."
+            },
+            "errors": {
+              "test": {
+                "suite": "ActionCatalogReadOnlyContractTests",
+                "test": "actionIdentificationAndConfigurationCannotBeReassigned"
+              },
+              "assertion": "Reflect.set returns false without replacing the property."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-20",
+            "fixture": "scripts/fixtures/action-catalog-readonly-actions.json",
+            "executableSHA256": "9db58717ac543a171d3bd0fbf90e6525e364f5bfc63a247dae90a4c3a52ba420",
+            "evidence": "docs/validation.md: Native action catalog identity acceptance — 20 October 2026",
+            "result": "Known native action UUID/name, both separator values, group identity and readonly rejection passed; History Success and exact neutral marker displayed."
           }
         },
         {
@@ -6633,27 +6682,23 @@
             "uuid: string"
           ],
           "contract": "The unique identifier of the action group.",
-          "implementation": "reviewed-partial",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "CatalogActionAPITests",
-            "test": "actionAndGroupQueriesKeepIdentityOrderAndInstallationData"
+            "suite": "ActionCatalogReadOnlyContractTests",
+            "test": "actionIdentificationAndConfigurationCannotBeReassigned"
           },
           "liveCheck": null,
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "reviewDate": "2026-10-20",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Action.uuid"
           },
-          "defaults": "Queries return an empty list or undefined for missing records. Factory defaults still need an exhaustive assertion set.",
-          "result": [
-            "uuid: string"
-          ],
-          "errors": "Storage failures throw; missing lookups return undefined.",
-          "limitations": [
-            "Not every documented default and error path has a member-specific assertion."
-          ],
-          "evidenceLevel": "Member-specific assertions. Native verification is separate.",
+          "defaults": "Readonly getter has no arguments and exposes its catalog value.",
+          "result": "Stored action name/UUID and both separator states are returned, and rejected writes retain identity and installation target.",
+          "errors": "The reference defines no getter error. Reflect.set rejects readonly replacement and preserves the original value.",
+          "limitations": [],
+          "evidenceLevel": "Specific both-runner readonly/value checks, identity restoration where applicable, and native catalog assertions.",
           "automatedVerification": {
             "status": "passed",
             "date": "2026-10-20",
@@ -6670,6 +6715,33 @@
                 "evidence": "docs/validation.md: Read-only action catalog properties — 20 October 2026"
               }
             ]
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionCatalogReadOnlyContractTests",
+                "test": "actionIdentificationAndConfigurationCannotBeReassigned"
+              },
+              "assertion": "Stored action name/UUID and both separator states are returned, and rejected writes retain identity and installation target."
+            },
+            "defaults": {
+              "notApplicable": "The getter has no parameters or selectable default."
+            },
+            "errors": {
+              "test": {
+                "suite": "ActionCatalogReadOnlyContractTests",
+                "test": "actionIdentificationAndConfigurationCannotBeReassigned"
+              },
+              "assertion": "Reflect.set returns false without replacing the property."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-20",
+            "fixture": "scripts/fixtures/action-catalog-readonly-actions.json",
+            "executableSHA256": "9db58717ac543a171d3bd0fbf90e6525e364f5bfc63a247dae90a4c3a52ba420",
+            "evidence": "docs/validation.md: Native action catalog identity acceptance — 20 October 2026",
+            "result": "Known native action UUID/name, both separator values, group identity and readonly rejection passed; History Success and exact neutral marker displayed."
           }
         },
         {
@@ -6732,7 +6804,7 @@
           ],
           "errors": "Storage failures throw; missing lookups return undefined.",
           "limitations": [
-            "Not every documented default and error path has a member-specific assertion."
+            "Recent actions currently derive from saved ActionRun entries. Behavior when logLevel omits successful or all runs needs comparison with Drafts; log-independent recency is not accepted. Other ordering/deletion boundary cases remain pending."
           ],
           "evidenceLevel": "Member-specific assertions. Native verification is separate."
         }
@@ -6824,27 +6896,23 @@
             "name: string"
           ],
           "contract": "The display name of the action group.",
-          "implementation": "reviewed-partial",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "CatalogActionAPITests",
-            "test": "actionAndGroupQueriesKeepIdentityOrderAndInstallationData"
+            "suite": "ActionCatalogReadOnlyContractTests",
+            "test": "groupIdentificationCannotBeReassignedOrRetargetItsActions"
           },
           "liveCheck": null,
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "reviewDate": "2026-10-20",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "ActionGroup.name"
           },
-          "defaults": "Queries return an empty list or undefined for missing records. Factory defaults still need an exhaustive assertion set.",
-          "result": [
-            "name: string"
-          ],
-          "errors": "Storage failures throw; missing lookups return undefined.",
-          "limitations": [
-            "Not every documented default and error path has a member-specific assertion."
-          ],
-          "evidenceLevel": "Member-specific assertions. Native verification is separate.",
+          "defaults": "Readonly getter has no arguments and exposes its catalog value.",
+          "result": "Stored group name/UUID are returned and cannot be reassigned; rename and backup/restore preserve UUID and member identity.",
+          "errors": "The reference defines no getter error. Reflect.set rejects readonly replacement and preserves the original value.",
+          "limitations": [],
+          "evidenceLevel": "Specific both-runner readonly/value checks, identity restoration where applicable, and native catalog assertions.",
           "automatedVerification": {
             "status": "passed",
             "date": "2026-10-20",
@@ -6861,6 +6929,33 @@
                 "evidence": "docs/validation.md: Read-only action catalog properties — 20 October 2026"
               }
             ]
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionCatalogReadOnlyContractTests",
+                "test": "groupIdentificationCannotBeReassignedOrRetargetItsActions"
+              },
+              "assertion": "Stored group name/UUID are returned and cannot be reassigned; rename and backup/restore preserve UUID and member identity."
+            },
+            "defaults": {
+              "notApplicable": "The getter has no parameters or selectable default."
+            },
+            "errors": {
+              "test": {
+                "suite": "ActionCatalogReadOnlyContractTests",
+                "test": "groupIdentificationCannotBeReassignedOrRetargetItsActions"
+              },
+              "assertion": "Reflect.set returns false without replacing the property."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-20",
+            "fixture": "scripts/fixtures/action-catalog-readonly-actions.json",
+            "executableSHA256": "9db58717ac543a171d3bd0fbf90e6525e364f5bfc63a247dae90a4c3a52ba420",
+            "evidence": "docs/validation.md: Native action catalog identity acceptance — 20 October 2026",
+            "result": "Known native action UUID/name, both separator values, group identity and readonly rejection passed; History Success and exact neutral marker displayed."
           }
         },
         {
@@ -6873,10 +6968,10 @@
             "uuid: string"
           ],
           "contract": "The unique identifier of the action group.",
-          "implementation": "reviewed-partial",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "CatalogActionAPITests",
-            "test": "actionAndGroupQueriesKeepIdentityOrderAndInstallationData"
+            "suite": "ActionCatalogReadOnlyContractTests",
+            "test": "groupIdentificationCannotBeReassignedOrRetargetItsActions"
           },
           "liveCheck": null,
           "compatibilityStatus": "partial",
@@ -6885,15 +6980,13 @@
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "ActionGroup.uuid"
           },
-          "defaults": "Queries return an empty list or undefined for missing records. Factory defaults still need an exhaustive assertion set.",
-          "result": [
-            "uuid: string"
-          ],
-          "errors": "Storage failures throw; missing lookups return undefined.",
+          "defaults": "Readonly getter has no arguments and exposes its catalog value.",
+          "result": "Stored group name/UUID are returned and cannot be reassigned; rename and backup/restore preserve UUID and member identity.",
+          "errors": "The reference defines no getter error. Reflect.set rejects readonly replacement and preserves the original value.",
           "limitations": [
-            "Not every documented default and error path has a member-specific assertion."
+            "The current ActionGroupRecord identifier maps B plus16As and question mark plus15As to the same UUID. A source-extracted Swift probe reproduced this without library writes. Collision-safe creation must preserve stored/implicit identities before this member can close."
           ],
-          "evidenceLevel": "Member-specific assertions. Native verification is separate.",
+          "evidenceLevel": "Readonly and identity restoration checks pass; uniqueness is contradicted by a legacy identifier collision.",
           "automatedVerification": {
             "status": "passed",
             "date": "2026-10-20",
@@ -6908,6 +7001,39 @@
                 ],
                 "result": "Reflect.set rejects property replacement on both runners; original identity, installation URL and group ownership remain. configuredValues contents still share mutable context state. No native UI acceptance inferred.",
                 "evidence": "docs/validation.md: Read-only action catalog properties — 20 October 2026"
+              }
+            ]
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionCatalogReadOnlyContractTests",
+                "test": "groupIdentificationCannotBeReassignedOrRetargetItsActions"
+              },
+              "assertion": "Stored group name/UUID are returned and cannot be reassigned; rename and backup/restore preserve UUID and member identity."
+            },
+            "defaults": {
+              "notApplicable": "The getter has no parameters or selectable default."
+            },
+            "errors": {
+              "test": {
+                "suite": "ActionCatalogReadOnlyContractTests",
+                "test": "groupIdentificationCannotBeReassignedOrRetargetItsActions"
+              },
+              "assertion": "Reflect.set returns false without replacing the property."
+            }
+          },
+          "nativeVerification": {
+            "status": "pending",
+            "reason": "Readonly/value native assertions passed, but identifier uniqueness remains unresolved due to the reproduced legacy collision.",
+            "additionalChecks": [
+              {
+                "status": "passed",
+                "date": "2026-10-20",
+                "fixture": "scripts/fixtures/action-catalog-readonly-actions.json",
+                "executableSHA256": "9db58717ac543a171d3bd0fbf90e6525e364f5bfc63a247dae90a4c3a52ba420",
+                "evidence": "docs/validation.md: Native action catalog identity acceptance — 20 October 2026",
+                "result": "Known native action UUID/name, both separator values, group identity and readonly rejection passed; History Success and exact neutral marker displayed."
               }
             ]
           }

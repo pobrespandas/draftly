@@ -1372,3 +1372,29 @@ buttons, Undo/Redo after a preference change, and two-space persistence after
 restart. preferredTabString now has specific contract and native acceptance.
 Full regression passed 453 app/484 core methods; final property tests passed 15.
 This does not close all Editor Settings or remaining API contracts.
+
+
+### Catalog identification members accepted — 20 October 2026
+
+Native fixture and both-runner tests accepted Action.name/uuid/isSeparator
+and ActionGroup.name, including readonly assignment rejection. Group rename
+plus backup/restore preserved identity, but a legacy identifier collision
+keeps ActionGroup.uuid partial. configuredValues,
+recent usage, installation formats and broader group contracts remain partial.
+
+
+### Action group identifier collision found — 20 October 2026
+
+Before closing ActionGroup.uuid, compiled the current ActionGroupRecord
+structure extracted verbatim from PresentationSettings.swift into a temporary
+Foundation-only probe. Distinct valid names BAAAAAAAAAAAAAAAA (B plus 16 As)
+and ?AAAAAAAAAAAAAAA (question mark plus 15 As) both produced
+3F414141-4141-4141-4141-414141414141. The legacy sixteen-byte rolling algorithm
+is not collision-safe. The probe did not open or change a library.
+
+Readonly and rename/restore checks passed, but they do not prove uniqueness.
+ActionGroup.uuid stays partial. Next: reproduce creation of both names through
+the library in an isolated test, prevent replacement/data loss, and assign a
+collision-safe identity while preserving existing stored and implicit IDs.
+Do not replace every legacy group ID without a migration. No production
+change for this issue has been made yet.

@@ -5873,3 +5873,51 @@ Markdown = 2 Spaces in Settings. The existing neutral note retained its final
 text and metadata. Settings closed; one QA window remains on that one note.
 No new permission or screenshot. This accepts the archived preferredTabString
 contract and local preference behavior, not visual parity of all Settings.
+
+
+### Native action catalog identity acceptance — 20 October 2026
+
+Imported action-catalog-readonly-actions.json into Visual QA image
+9db58717ac543a171d3bd0fbf90e6525e364f5bfc63a247dae90a4c3a52ba420.
+The fixture contains one runnable action and one separator in Native catalog QA.
+The action verified its exact stored UUID/name, false separator state, the
+other entry's true separator state, group name and UUID shape, and matching
+identities through find/getAll/group.actions. Missing lookups returned undefined.
+Reflect.set rejected each readonly property and left the original values intact.
+History recorded Success and the editor displayed Catalog readonly passed café 🐼.
+No permission changed. The separator was not offered as a runnable menu item.
+
+Expanded the existing readonly tests with both separator states. The group
+case now renames its implicit group through the library, restores a backup,
+and queries it through scripting on both runners. Group UUID and member UUID
+survive; the old name is absent and the new name matches. The focused catalog
+run passed 7 methods; the final identity/restore run passed 2 methods with four
+runner variants. No automatic test opens a visible window.
+
+This closes Action.name/uuid/isSeparator and ActionGroup.name for the
+archived contracts. ActionGroup.uuid remains partial because the legacy
+identifier algorithm has the collision described below. configuredValues remains partial: reference sharing and
+readonly replacement are tested, but typed values from another action and
+inclusion precedence need separate acceptance. Action.recent currently derives
+usage from saved logs. Behavior when log policy omits a run needs comparison;
+it is not accepted as log-independent history. No speculative behavior change
+was made. Installation formats and complete ActionGroup methods remain separate.
+QA retains one neutral note, its update-qa tag and flag, Markdown 2 Spaces, and
+no open History. No screenshot or raw log is tracked.
+
+
+### Action group identifier collision found — 20 October 2026
+
+Before closing ActionGroup.uuid, compiled the current ActionGroupRecord
+structure extracted verbatim from PresentationSettings.swift into a temporary
+Foundation-only probe. Distinct valid names BAAAAAAAAAAAAAAAA (B plus 16 As)
+and ?AAAAAAAAAAAAAAA (question mark plus 15 As) both produced
+3F414141-4141-4141-4141-414141414141. The legacy sixteen-byte rolling algorithm
+is not collision-safe. The probe did not open or change a library.
+
+Readonly and rename/restore checks passed, but they do not prove uniqueness.
+ActionGroup.uuid stays partial. Next: reproduce creation of both names through
+the library in an isolated test, prevent replacement/data loss, and assign a
+collision-safe identity while preserving existing stored and implicit IDs.
+Do not replace every legacy group ID without a migration. No production
+change for this issue has been made yet.

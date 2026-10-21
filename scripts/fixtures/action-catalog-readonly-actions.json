@@ -1,0 +1,23 @@
+[
+  {
+    "uuid": "BBBF0003-0000-4000-8000-000000000007",
+    "name": "QA Native catalog readonly",
+    "group": "Native catalog QA",
+    "notificationType": 0,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "function check(value,label){if(!value)throw new Error(label);}\nconst source=Action.find('QA Native catalog readonly'), group=ActionGroup.find('Native catalog QA'), separator=Action.find('QA Native catalog section');\ncheck(source && source.uuid==='BBBF0003-0000-4000-8000-000000000007','source identity');\ncheck(source.name==='QA Native catalog readonly' && source.isSeparator===false,'source values');\ncheck(separator && separator.isSeparator===true,'separator value');\ncheck(group && group.name==='Native catalog QA' && /^[0-9a-f-]{36}$/i.test(group.uuid),'group identity');\nfor(const value of [action,source,separator]){for(const key of ['name','uuid','isSeparator','configuredValues']){const before=value[key];check(Reflect.set(value,key,'wrong')===false,'readonly '+key);check(value[key]===before,'retained '+key);}}\nfor(const key of ['name','uuid']){const before=group[key];check(Reflect.set(group,key,'wrong')===false,'readonly group '+key);check(group[key]===before,'retained group '+key);}\ncheck(Action.find('QA missing catalog action')===undefined && ActionGroup.find('QA missing catalog group')===undefined,'missing lookups');\ncheck(group.actions.some(value=>value.uuid===source.uuid) && group.actions.some(value=>value.uuid===separator.uuid),'group membership');\ncheck(ActionGroup.getAll().some(value=>value.uuid===group.uuid),'getAll identity');\neditor.setText('Catalog readonly passed café 🐼');draft.update();"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0003-0000-4000-8000-000000000008",
+    "name": "QA Native catalog section",
+    "group": "Native catalog QA",
+    "backingIsSeparator": true,
+    "steps": []
+  }
+]
