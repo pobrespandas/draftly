@@ -164,6 +164,56 @@ struct WorkspaceApplicationContractTests {
         }
     }
 
+    @Test(arguments: ["number", "string", "boolean", "array"])
+    func malformedReferencesRejectApplicationAndSaveWithoutChangingStoredDefinitionsOrWindow(shape: String) throws {
+        let model = try model()
+        model.query = "Keep query"; model.folder = .archive
+        let original = Workspace(name: "Keep definition")
+        try model.library.saveWorkspace(original)
+        let before = state(model)
+        let invalid: Any
+        switch shape {
+        case "number": invalid = 17
+        case "string": invalid = "Missing reference"
+        case "boolean": invalid = false
+        default: invalid = ["Missing reference"]
+        }
+        for key in ["loadActionListGroup", "loadActionBarGroup", "preferredDarkTheme", "preferredLightTheme"] {
+            var workspace = original
+            workspace.name = "Must not save"; workspace.folder = .trash
+            workspace.query = "Changed query"; workspace.tags = ["changed"]
+            workspace.listOptions = DraftListOptions(); workspace.listOptions?.showTags = false
+            workspace.scriptMetadata = try metadata([key: invalid])
+            #expect(throws: (any Error).self) { try model.applyScriptWorkspace(workspace) }
+            #expect(state(model) == before)
+            #expect(model.library.workspaces == [original])
+            #expect(throws: (any Error).self) { try model.saveAndApplyWorkspace(workspace) }
+            #expect(state(model) == before)
+            #expect(model.library.workspaces == [original])
+        }
+    }
+
+    @Test func nullGroupAndThemeReferencesRetainNoOverrideBehavior() throws {
+        let model = try model()
+        model.actionGroup = "Keep list"; model.actionBarGroup = "Keep bar"
+        let before = state(model)
+        var workspace = Workspace(name: "Null references")
+        workspace.folder = .archive; workspace.query = "Applied query"
+        workspace.scriptMetadata = try metadata([
+            "loadActionListGroup": NSNull(), "loadActionBarGroup": NSNull(),
+            "preferredDarkTheme": NSNull(), "preferredLightTheme": NSNull()
+        ])
+        try model.saveAndApplyWorkspace(workspace)
+        #expect(model.folder == .archive && model.query == "Applied query")
+        #expect(model.actionGroup == "Keep list" && model.actionBarGroup == "Keep bar")
+        #expect(model.editor.noteID == before.noteID && model.editor.content == before.text)
+        #expect(model.editor.selection == before.selection && model.editor.focusToken == before.focus)
+        let saved = try #require(model.library.workspaces.first { $0.id == workspace.id })
+        for key in ["loadActionListGroup", "loadActionBarGroup", "preferredDarkTheme", "preferredLightTheme"] {
+            #expect(saved.apiOptions[key] is NSNull)
+        }
+    }
+
     @Test func preferredThemesResolveBothCustomIDsAndBuiltInNames() throws {
         let model = try model()
         var dark = EditorTheme(); dark.name = "Night 🐼"; dark.isDark = true
