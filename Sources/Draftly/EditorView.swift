@@ -18,6 +18,7 @@ struct NativeEditor: NSViewRepresentable {
     var theme: EditorTheme?
     var linksEnabled = false
     var isActive = true
+    var indentation = "\t"
     var onChange: () -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -48,6 +49,7 @@ struct NativeEditor: NSViewRepresentable {
         let coordinator = context.coordinator; coordinator.parent = self; coordinator.updating = true
         defer { coordinator.updating = false }
         if let text = text as? DraftTextView {
+            text.indentation = indentation
             text.syntaxDefinition = syntaxDefinition
             text.horizontalMargin = max(0, horizontalMargin); text.verticalMargin = max(0, verticalMargin)
             text.maximumLineWidth = max(0, maximumWidth); text.updateTextInsets()
@@ -260,6 +262,11 @@ struct NativeEditor: NSViewRepresentable {
 }
 
 final class DraftTextView: NSTextView {
+    var indentation = "\t"
+    override func insertTab(_ sender: Any?) {
+        insertText(indentation, replacementRange: selectedRange())
+    }
+
     override func paste(_ sender: Any?) {
         do {
             if try pasteHTML(from: .general) { return }

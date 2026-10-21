@@ -1362,3 +1362,13 @@ properties. Action configuration keeps its shared mutable contents while
 rejecting property replacement. Both runners passed explicit reassignment
 checks and full regression passed 453 app/484 core methods. Included-action
 configuration precedence and other member acceptance remain pending.
+
+
+### Syntax indentation completed — 20 October 2026
+
+Local per-syntax Tab/2 Spaces/4 Spaces settings now drive native Tab, scripting
+and built-in Indent/Outdent. Native QA verified four-space insertion, editing
+buttons, Undo/Redo after a preference change, and two-space persistence after
+restart. preferredTabString now has specific contract and native acceptance.
+Full regression passed 453 app/484 core methods; final property tests passed 15.
+This does not close all Editor Settings or remaining API contracts.

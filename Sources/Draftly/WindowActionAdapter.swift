@@ -18,7 +18,7 @@ struct WindowActionAdapter {
             case "linkModeEnabled": return model.linksEnabled
             case "pinningEnabled", "focusModeEnabled": return model.isDraftPinned
             case "isActive": return model.window?.firstResponder is DraftTextView
-            case "preferredTabString": return "\t"
+            case "preferredTabString": return EditorIndentationPreferences.text(for: model.currentNote?.syntax ?? "Markdown", defaults: model.dependencies.preferences.defaults)
             case "typewriterScrollingEnabled": return model.editor.typewriterScrollingEnabled
             case "isIdleDisabled": return model.isIdleDisabled
             case "themeMode": return model.darkTheme.map { $0 ? "dark" : "light" } ?? "automatic"

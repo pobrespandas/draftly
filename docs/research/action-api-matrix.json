@@ -2913,26 +2913,52 @@
             "preferredTabString: string"
           ],
           "contract": "Returns the current tab string is use. This could be 2 spaces, 4 spaces, or \\t depending on the editor preferences for the current syntax. Useful in actions, such as indent/outdent actions, which need to insert or remove indentation and want to match the options of the current syntax.",
-          "implementation": "implemented-with-targeted-tests",
+          "implementation": "implemented-with-member-contract-tests",
           "automatedTest": {
-            "suite": "EditorActionAPITests",
-            "test": "editorInterfaceMembersDelegateWithoutLosingArguments"
+            "suite": "EditorIndentationTests",
+            "test": "editingActionsAndScriptingUseTheCurrentSyntaxPreference"
           },
           "liveCheck": null,
-          "reviewDate": "2026-10-19",
-          "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "preferredTabString: string"
-          ],
-          "errors": "Host and storage errors throw JavaScript errors.",
-          "limitations": [
-            "The recorded regression test does not cover every documented default and error. The member contract is not closed."
-          ],
-          "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
-          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-20",
+          "defaults": "Readonly getter has no arguments. Local syntax options are Tab, 2 Spaces or 4 Spaces; absent/invalid options retain the existing Tab default.",
+          "result": "Returns the indentation string for the current syntax, shared by the native Tab key and built-in Indent/Outdent actions.",
+          "errors": "The reference defines no getter error. Reflect.set rejects assignment; the existing strict-assignment test verifies TypeError.",
+          "limitations": [],
+          "evidenceLevel": "Specific both-runner and native insertion, Undo, preference-change and restart acceptance.",
+          "compatibilityStatus": "complete",
           "implementationEvidence": {
-            "file": "Sources/DraftlyCore/Resources/Bridge.js",
-            "symbol": "Editor.preferredTabString"
+            "file": "Sources/Draftly/WindowActionAdapter.swift",
+            "symbol": "WindowActionAdapter.perform preferredTabString"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "EditorIndentationTests",
+                "test": "editingActionsAndScriptingUseTheCurrentSyntaxPreference"
+              },
+              "assertion": "All three styles agree between scripting and editing actions on legacy/worker routes; switching syntax preserves content and selection."
+            },
+            "defaults": {
+              "test": {
+                "suite": "EditorIndentationTests",
+                "test": "preferencesPersistPerSyntaxWithoutChangingLibraryData"
+              },
+              "assertion": "Absent/invalid/unknown preferences use Tab; per-syntax values persist without changing backup data."
+            },
+            "errors": {
+              "test": {
+                "suite": "EditorIndentationTests",
+                "test": "editingActionsAndScriptingUseTheCurrentSyntaxPreference"
+              },
+              "assertion": "Reflect.set cannot replace the readonly getter."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-20",
+            "evidence": "docs/validation.md: Shared syntax indentation — 20 October 2026",
+            "executableSHA256": "9db58717ac543a171d3bd0fbf90e6525e364f5bfc63a247dae90a4c3a52ba420",
+            "result": "Settings four spaces drove native Tab and Indent/Outdent; Unicode selection and Undo/Redo retained. Changing to two spaces preserved prior Undo. Restart retained the selected preference and note text."
           }
         },
         {

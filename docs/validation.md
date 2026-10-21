@@ -5827,3 +5827,49 @@ agent's catalog/configuration/inclusion regression passed 29 methods; the
 coordinator full run passed 453 app/484 core methods. These are automatic
 contracts, not native inspector acceptance. Members retain partial status
 for the other unresolved parts of their contracts. No window opened.
+
+
+### Shared syntax indentation — 20 October 2026
+
+Editor.preferredTabString previously returned a fixed Tab while the editing
+buttons inserted/removed two spaces. Added local indentation preferences per
+syntax: Tab, 2 Spaces, or 4 Spaces. Missing, invalid, or unknown options use Tab
+for compatibility with the existing getter and native key. String entries
+for unknown syntax names are preserved when another preference changes.
+Settings > Editor exposes Syntax and Insert controls. Preferences stay in
+UserDefaults and are not included in library records, backups, or sync.
+
+The native Tab key, scripting getter, and built-in Indent/Outdent actions
+now share that value. The native insertion uses insertTab and the documented
+insertText(_:replacementRange:) user-input path. Outdent removes the selected
+configured prefix; space modes also remove a shorter leading space run. It
+does not remove a different indentation style. The five original imported
+action scripts were not changed. Regenerated the Xcode project for the new
+source file; the final unsigned build passed.
+
+Automatic EditorIndentationTests cover isolated defaults, per-syntax reload,
+unknown-value fallback/preservation, unchanged library backup data, native
+UTF-16 selection replacement with no window, and Indent/Outdent on both
+runners for all three styles. Changing syntax updates the getter without
+changing content or selection. Reflect.set cannot assign the getter. Full
+regression passed 453 app/484 core methods; final indentation/property checks
+passed 15 methods after adding the readonly assertion. No automatic test
+opens or activates a visible window.
+
+Updated stopped Visual QA, retaining Info.plist/local data/ad-hoc signature;
+signature verification passed. Executable SHA256:
+9db58717ac543a171d3bd0fbf90e6525e364f5bfc63a247dae90a4c3a52ba420.
+Debug library SHA256:
+aa57edf4b0acb85bd72f94f82f5c0e6b8da2b46a15796156202843a522d0ebb5.
+Changed Markdown from Tab to 4 Spaces in native Settings. Selecting Updated
+and pressing Tab inserted four spaces, leaving the following source space.
+Undo restored Updated and its selection; Redo restored the insertion. Undid
+again, then selected Updated and used Indent: exactly four spaces appeared.
+Selecting that prefix plus Updated and using Outdent restored the source.
+
+Changed Markdown to 2 Spaces. Undo of the prior Outdent still restored the
+four-space edit and selection; Redo restored the source. Quit/relaunch kept
+Markdown = 2 Spaces in Settings. The existing neutral note retained its final
+text and metadata. Settings closed; one QA window remains on that one note.
+No new permission or screenshot. This accepts the archived preferredTabString
+contract and local preference behavior, not visual parity of all Settings.

@@ -20,8 +20,21 @@ struct EditorLayoutPreferences: View {
     @AppStorage("editor.theme") private var themeName = "System"
     @State private var editing: EditorTheme?
     @State private var error: String?
+    @State private var indentationSyntax = "Markdown"
+    @AppStorage(EditorIndentationPreferences.key) private var indentation = "{}"
     private var themes: [EditorTheme] { library.themes }
     var body: some View {
+        Section("Indentation") {
+            Picker("Syntax", selection: $indentationSyntax) {
+                ForEach(Array(Set(ScriptSyntax.names + library.syntaxes.map(\.name))).sorted(), id: \.self) { Text($0).tag($0) }
+            }
+            Picker("Insert", selection: Binding(
+                get: { EditorIndentationPreferences.style(for: indentationSyntax, encoded: indentation) },
+                set: { indentation = EditorIndentationPreferences.setting($0, for: indentationSyntax, encoded: indentation) }
+            )) {
+                ForEach(EditorIndentationStyle.allCases, id: \.self) { Text($0.label).tag($0) }
+            }
+        }
         Section("Editor Layout") {
             HStack { Text("Horizontal Margin"); Slider(value: $horizontal, in: 0...80, step: 1); Text("\(Int(horizontal)) pt") }
             HStack { Text("Vertical Margin"); Slider(value: $vertical, in: 0...80, step: 1); Text("\(Int(vertical)) pt") }
