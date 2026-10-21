@@ -23059,6 +23059,15 @@
             "entryPoint": "UI command palette and native Save as PDF",
             "result": "Pre-fix Save crashed in MainActor NativePrintTextView pagination on an AppKit worker. The corrected operation renders on MainActor. Two corrected native runs saved one-page PDFs with all neutral text and continued to the success step without editing the draft. This does not accept print cancellation/timeout/owner-close variants.",
             "evidence": "docs/validation.md: Completed PDF printing and actor isolation — 21 October 2026"
+          },
+          {
+            "date": "2026-10-21",
+            "executableSHA256": "60d30be1b1c7fa47965f14e00a2fa5d3b6cdd3e1998759d2f488b3b9d07abc6b",
+            "debugImageSHA256": "f60ed97b774b3dc3eb4095ffc15a02dbf7ac8c6de85eab845f5e620c6f2872a4",
+            "fixture": "scripts/fixtures/engine-file-lifetime-actions.json",
+            "entryPoint": "UI command palette; Actions Cancel Running Action; native Save panel",
+            "result": "Task cancellation closed the Save panel and recorded Cancelled07:34. Production120s panel visible85.4s, absent133.6s after observation; Error07:37. Completed writes remained Inbox, no tail or Archive. Following Save recovery Success07:37 wrote exact35-byte Unicode content. Interrupted targets still absent after recovery. Exact teardown latency and real stale panel callback delivery are not measured. Bookmark restart/access, owner close and URL/Intent variants remain pending.",
+            "evidence": "docs/validation.md: Native file save lifetime — 21 October 2026"
           }
         ]
       },

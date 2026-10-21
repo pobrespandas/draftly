@@ -8192,3 +8192,52 @@ This closes the ignored-initialQuery defect. It does not close every contract of
 Window.showQuickSearch or Window.showCommandPalette. Dedicated host-error and
 cross-window checks remain pending. The native state confirms fields and results;
 it is not a new comparison with Drafts. Full Mac parity remains open.
+
+
+### Native file save lifetime — 21 October 2026
+
+Implemented: no production change. Added engine-file-lifetime-actions.json with
+pending, production-timeout and recovery actions. Pending actions save neutral
+text before export, then have an ERROR insertion and Archive on success. The
+fixture does not change production timeout settings.
+
+Automatically tested: all 14 NativeFileSelectionTests passed headlessly. They
+include simulated late selection after cancellation, duplicate completion,
+absolute deadline rejection, timeout closure and exact Unicode export. No new
+automatic test opens a panel. The previous checked 617-core/501-app run and
+unsigned build are unchanged. Matrix structure passed. Strict engine remains18.
+
+Verified in use on the signed Engine QA image from the initial-query correction
+(executable60d30be1b1c7fa47965f14e00a2fa5d3b6cdd3e1998759d2f488b3b9d07abc6b).
+Imported the fixture. Opened pending Save and selected /tmp without saving.
+Actions > Cancel Running Action closed the panel. History recorded Cancelled
+07:34. Earlier File completed write remained in Alpha in Inbox. No ERROR tail
+or Archive occurred. The target did not exist.
+
+Opened the timeout fixture. Save showed /tmp and its distinct target name.
+The panel was still visible85.4seconds after first observation and absent133.6s.
+The120-second production limit was unchanged. This observation does not measure
+exact teardown latency or distinguish host and selector deadline winners.
+History recorded Error07:37: The action operation timed out before it completed.
+Earlier File timeout completed write remained in Alpha; no tail or Archive.
+
+The recovery fixture then opened Save with a third target in /tmp. Save completed
+and History recorded Success07:37. Its bytes exactly matched Neutral file café 🐼,
+a newline and Second line (35 UTF-8 bytes). Both interrupted targets remained
+absent after recovery. This proves no observed late write in these native paths;
+it does not prove an actual late AppKit completion was delivered. The headless
+late-completion tests remain separate evidence. History is closed, Alpha is open
+with five neutral drafts, and no action or Save panel remains pending.
+
+Bookmark restart/access loss, owner close and capability-specific URL/Intent
+variants remain pending. No personal data, permission or external destination
+was used. The temporary output stays outside Git.
+
+A parallel read-only Window review found independent defects. Group loading
+resolves the serialized name rather than stable UUID. Reusing an old name after
+rename can select another group. WorkspacePresentationResolver already has a
+UUID-first rule. Tab opening uses a Void dependency and returns true before a
+scene exists; AppController uses a0.2-second delayed attachment. Fixing only the
+no-window return cannot prove tab completion. Add focused identity regressions
+and correlate scene completion before closing these contracts. No production
+fix for either issue is included in this acceptance change.

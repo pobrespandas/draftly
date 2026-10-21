@@ -11,6 +11,25 @@ sections below retain their original scope and dates.
 Keep the identity Draftly, `Note`, existing identities and libraries, original
 action scripts, Nerd Fonts, and the integrated Markdown preview.
 
+## Latest native acceptance — file save lifetime, 21 October 2026
+
+Implemented: no production change. Added neutral file lifetime fixtures.
+Automatically tested: all 14 NativeFileSelectionTests passed headlessly. The
+previous checked 617-core/501-app run and unsigned build remain the source
+baseline. Matrix structure passed; strict engine remains open with 18 diagnostics.
+
+Verified in use: Actions task cancel closed the native Save panel. The unchanged
+120-second production timeout also closed it and recorded an error. Earlier
+writes remained in Inbox; later insertion and Archive did not occur. A following
+Save wrote the exact 35-byte Unicode output. Neither interrupted target existed
+after recovery. Real stale callback delivery, owner close, bookmark restart and
+permission paths remain pending.
+
+Read-only review found separate Window defects: tab opening reports success
+before native completion, and group loading resolves only names. Correct stable
+group references first with a regression. Tab opening needs correlated scene
+completion; a source-window Boolean alone cannot prove success.
+
 ## Latest correction — initial search queries, 21 October 2026
 
 Implemented: scripted Quick Search and Command Palette now use initialQuery.

@@ -1,0 +1,76 @@
+[
+  {
+    "uuid": "BBBF0041-0000-4000-8000-000000000001",
+    "name": "QA File pending operation",
+    "group": "File lifetime QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText(editor.getText()+'\\nFile completed write');draft.update();"
+        }
+      },
+      {
+        "type": "export",
+        "data": {
+          "name": "draftly-file-lifetime-1.txt",
+          "template": "Neutral file café 🐼\nSecond line"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "ERROR: file tail"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0041-0000-4000-8000-000000000002",
+    "name": "QA File production timeout",
+    "group": "File lifetime QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText(editor.getText()+'\\nFile timeout completed write');draft.update();"
+        }
+      },
+      {
+        "type": "export",
+        "data": {
+          "name": "draftly-file-lifetime-2.txt",
+          "template": "Neutral file café 🐼\nSecond line"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "ERROR: file tail"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0041-0000-4000-8000-000000000003",
+    "name": "QA File recovery",
+    "group": "File lifetime QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "export",
+        "data": {
+          "name": "draftly-file-recovery-20261021.txt",
+          "template": "Neutral file café 🐼\nSecond line"
+        }
+      }
+    ]
+  }
+]
