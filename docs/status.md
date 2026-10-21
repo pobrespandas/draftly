@@ -1077,3 +1077,9 @@ Backup restore now rejects duplicate IDs in all eight record collections before
 writing. The regression failed before the fix and passes afterward without
 changing the destination. Full app447/core471 and unsigned build pass. Native
 import error presentation and sync acceptance remain pending. QA was not updated.
+
+
+Native duplicate-draft backup rejection now passes on isolated QA imageca22fd59:
+the error is visible and before/after full backup exports are byte-identical.
+All existing notes, revisions, actions, and history stayed unchanged. Other
+duplicate record kinds retain automatic coverage; sync remains separate.

@@ -4748,3 +4748,28 @@ Matrix structure passes. Native import error presentation has not been checked
 for this change. The installed QA app is still image1b8988d3183ec067; it has not
 been replaced with this build. Sync and signed-update acceptance stay separate.
 No screenshots or raw logs are tracked.
+
+
+### Native duplicate-backup rejection — 20 October 2026
+
+Updated isolated QA after normal Quit and confirmed process exit. Signed image
+SHA256 ca22fd5931d5b495c596b19f312d977ac05ab2c0cea6362f6e02d22e79b048c0.
+The prior edited Q/remaining-text draft was preserved. No pending action ran.
+
+Exported a full QA backup through File. Imported the neutral reproducible
+backup-duplicate-drafts.json fixture. The app showed The backup contains
+duplicate draft identities. Dismissed the error and exported another full
+backup. Decoded equality and exact byte equality both passed. The exports had
+8 notes,70 revisions,61 actions,64 runs, and empty group/syntax/theme/workspace
+collections. Neither rejected fixture draft appeared.
+
+During the second export, the save dialog offered to replace the input fixture.
+Cancelled that replacement, corrected the temporary name and folder, verified
+them, and saved. The tracked fixture stayed unchanged. Both exported backups
+remain temporary in /tmp and are not tracked.
+
+This verifies native draft-duplicate rejection, error presentation, and no
+change to existing exported records. Other duplicate kinds have automatic
+coverage; this does not claim native coverage for each kind. No production
+code or tests changed after the accepted app447/core471 and build. iCloud and
+signed-update acceptance remain separate. No screenshots are tracked.

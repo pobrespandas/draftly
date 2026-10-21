@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "notes": [
+    {
+      "id": "FF0710D1-4C41-45AA-A25C-0A25FE4B4A12",
+      "content": "Must not import — café 🐼",
+      "tags": [],
+      "flag": 0,
+      "isArchived": false,
+      "createdAt": 1700000000,
+      "modifiedAt": 1700000000,
+      "syntax": "Markdown"
+    },
+    {
+      "id": "FF0710D1-4C41-45AA-A25C-0A25FE4B4A12",
+      "content": "Must not overwrite — café 🐼",
+      "tags": [],
+      "flag": 0,
+      "isArchived": false,
+      "createdAt": 1700000000,
+      "modifiedAt": 1700000000,
+      "syntax": "Markdown"
+    }
+  ],
+  "revisions": [],
+  "workspaces": [],
+  "actions": []
+}
