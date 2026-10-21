@@ -4583,3 +4583,26 @@ on another draft. It does not close native App Intent queued interruption,
 all callback variants, or unbounded duplicate delivery. No production code,
 fixture, build, or tests changed. Last full regression remains app447/core471.
 No raw logs, exported data, or screenshots are tracked.
+
+
+### Native App Intent queued interruptions — 20 October 2026
+
+Used the existing Draftly QA Engine — disposable shortcut, editor identity
+D11EC900-D6B4-48DD-AE0D-7CD51353D655, with isolated QA image1b8988d3183ec067.
+Set Run Draft Action to the multi-draft failure root and the neutral source
+UUID. Shortcuts showed an error alert and inline Neutral queued failure.
+The target retained Queue failure completed write — café 🐼. The source remained
+Queue source retained. Both remained in Inbox; no sentinel text appeared.
+
+Reset the target and selected the source. Set the action name to the multi-draft
+cancellation root. Shortcuts showed QA Queue multi-draft cancellation root
+cancelled. The editor retained Queue child completed write — café 🐼 on the
+child. The source stayed unchanged and both remained in Inbox. History recorded
+Error and Cancelled for the matching roots. The shortcut parameters were then
+restored to QA Caught rejection and its earlier neutral target UUID.
+
+This verifies queued failure/cancellation propagation through actual Intent
+perform calls. It does not verify every asynchronous queued interruption,
+window-lifetime combination, or current-image production timeout entry.
+No production code, build, or test changed. Last full regression remains
+app447/core471. No screenshot or raw export is tracked.

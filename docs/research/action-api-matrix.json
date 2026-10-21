@@ -17321,7 +17321,7 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Separate-target UI and URL failure/cancellation passed with retained writes and stopped later work. Separate-target production timeout passed through Shortcuts earlier. Native App Intent queued failure/cancellation and remaining interruption variants stay pending."
+        "Separate-target UI, URL, and actual Intent failure/cancellation passed. Earlier separate-target production timeout passed through Shortcuts. Native asynchronous queued interruption with window closure and current-image production timeout through each applicable entry remain pending."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
@@ -17402,7 +17402,7 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Native URL cancellation, failure, and production 120-second timeout passed on one draft. Separate-source/target cancellation also passed with a matching visible editor left on the processed target. Separate-target failure/timeout and remaining native entry points are pending.",
+        "reason": "Separate-target UI, URL, and actual Intent failure/cancellation passed. Earlier separate-target production timeout passed through Shortcuts. Native asynchronous queued interruption with window closure and current-image production timeout through each applicable entry remain pending.",
         "evidence": "docs/validation.md",
         "additionalChecks": [
           {
@@ -17418,6 +17418,13 @@
             "fixture": "scripts/fixtures/engine-queue-actions.json",
             "evidence": "docs/validation.md: Native URL queued interruption callbacks — 20 October 2026",
             "result": "External URL failure and cancellation each returned one matching callback with no root success parameters. Retained source and child writes stayed in Inbox; no sentinel ran."
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "1b8988d3183ec0675c0e5d3125665b1c22b3e155a9b82124b3a8039db45e5d20",
+            "fixture": "scripts/fixtures/engine-queue-actions.json",
+            "evidence": "docs/validation.md: Native App Intent queued interruptions — 20 October 2026",
+            "result": "Actual Shortcuts Run Draft Action returned Neutral queued failure and the root cancellation message. Root history recorded Error/Cancelled. Separate drafts retained their text in Inbox; no later sentinel appeared. Shortcut parameters were restored."
           }
         ]
       },
@@ -18385,6 +18392,13 @@
             "fixture": "scripts/fixtures/engine-queue-actions.json",
             "evidence": "docs/validation.md: Native URL queued interruption callbacks — 20 October 2026",
             "result": "External URL failure and cancellation each returned one matching callback with no root success parameters. Retained source and child writes stayed in Inbox; no sentinel ran."
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "1b8988d3183ec0675c0e5d3125665b1c22b3e155a9b82124b3a8039db45e5d20",
+            "fixture": "scripts/fixtures/engine-queue-actions.json",
+            "evidence": "docs/validation.md: Native App Intent queued interruptions — 20 October 2026",
+            "result": "Actual Shortcuts Run Draft Action returned Neutral queued failure and the root cancellation message. Root history recorded Error/Cancelled. Separate drafts retained their text in Inbox; no later sentinel appeared. Shortcut parameters were restored."
           }
         ]
       },

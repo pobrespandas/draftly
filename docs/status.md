@@ -1036,3 +1036,9 @@ acceptance methods pass. URL/Intent queue variants remain pending.
 Native URL cross-draft queued failure and cancellation now select one matching
 error/cancel callback and retain completed writes without later work. App Intent
 queue interruption and other callback variants remain pending.
+
+
+Actual App Intent queued failure/cancellation now propagate the child result
+through Shortcuts, retain completed writes in Inbox, and stop later work.
+The QA shortcut parameters were restored. Remaining asynchronous interruption,
+window-lifetime, and current-image timeout combinations stay pending.
