@@ -23,6 +23,15 @@ class CaptureTests(unittest.TestCase):
         self.assertTrue(result["whitePaddingDetected"])
         self.assertFalse(result["usableForFullWindowMeasurement"])
 
+    def test_compression_pixels_do_not_validate_a_padded_capture(self):
+        image = Image.new("RGB", (200, 160), "white")
+        ImageDraw.Draw(image).rectangle((0, 0, 99, 79), fill="#eeeeee")
+        image.putpixel((100, 20), (246, 246, 246))
+        image.putpixel((101, 20), (246, 246, 246))
+        result = self.inspect(image, (100, 80))
+        self.assertTrue(result["whitePaddingDetected"])
+        self.assertFalse(result["usableForFullWindowMeasurement"])
+
     def test_accepts_full_sidebar_at_one_or_two_x(self):
         for scale in (1, 2):
             image = Image.new("RGB", (100 * scale, 80 * scale), "white")

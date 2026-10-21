@@ -3,7 +3,7 @@
 import argparse
 import json
 from pathlib import Path
-from PIL import Image
+from PIL import Image, ImageChops
 
 
 def inspect_capture(path, points):
@@ -13,7 +13,12 @@ def inspect_capture(path, points):
     scale_x, scale_y = width / points[0], height / points[1]
     half_x, half_y = width // 2, height // 2
     def white(rect):
-        return all(low >= 248 for low, high in image.crop(rect).getextrema())
+        region = image.crop(rect)
+        red, green, blue = region.split()
+        minimum = ImageChops.darker(ImageChops.darker(red, green), blue)
+        dark_pixels = sum(minimum.histogram()[:248])
+        # Ignore isolated compression pixels in an otherwise empty half.
+        return dark_pixels <= max(4, region.width * region.height // 100000)
     padded = white((half_x, 0, width, height)) and white((0, half_y, width, height))
     reasons = []
     if abs(scale_x - scale_y) > 0.002 or not any(abs(scale_x - value) < 0.002 for value in (1, 2)):
