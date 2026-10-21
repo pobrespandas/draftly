@@ -27,7 +27,6 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
         toolbar.autosavesConfiguration = false
         window.titleVisibility = .hidden; window.toolbarStyle = .unified
         window.toolbar = toolbar
-        if window.tabGroup?.isTabBarVisible != true { window.toggleTabBar(nil) }
         for publisher in [model.objectWillChange, model.editor.objectWillChange, model.library.objectWillChange] {
             publisher.sink { [weak self] _ in self?.scheduleRefresh() }.store(in: &subscriptions)
         }

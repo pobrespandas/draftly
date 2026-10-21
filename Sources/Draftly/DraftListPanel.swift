@@ -284,7 +284,7 @@ struct DraftTableRow: View {
             HStack(spacing: 5) {
                 Text(title).font(Font(DraftRowPresentation.titleFont)).foregroundStyle(primaryText).lineLimit(1)
                 Spacer(minLength: 3)
-                if note.flag > 0 { Image(systemName: "flag.fill").font(.system(size: 9)).foregroundStyle(flagColor(note.flag)) }
+                if note.flag > 0 { Image(systemName: "flag.fill").font(.system(size: 9)).foregroundStyle(emphasized ? .white : flagColor(note.flag)) }
             }.frame(height: DraftRowPresentation.titleHeight)
             if showPreview && !previewText.isEmpty {
                 Text(previewText).font(Font(DraftRowPresentation.previewFont(query: query))).foregroundStyle(secondaryText).lineLimit(min(3, max(1, previewLines))).fixedSize(horizontal: false, vertical: true)
@@ -294,8 +294,8 @@ struct DraftTableRow: View {
                     ForEach(note.tags, id: \.self) { tag in
                         Text(tag).font(Font(DraftRowPresentation.tagFont)).foregroundStyle(primaryText).lineLimit(1)
                             .padding(.horizontal, 6).padding(.vertical, 1)
-                            .background(RoundedRectangle(cornerRadius: 6).fill((emphasized ? Color.white.opacity(0.08) : Color.accentColor.opacity(0.1))))
-                            .overlay(RoundedRectangle(cornerRadius: 6).stroke((emphasized ? Color.white.opacity(0.25) : Color.accentColor.opacity(0.25)), lineWidth: 0.5))
+                            .background(RoundedRectangle(cornerRadius: 6).fill((emphasized ? Color.clear : Color.accentColor.opacity(0.1))))
+                            .overlay(RoundedRectangle(cornerRadius: 6).stroke((emphasized ? Color.white.opacity(0.65) : Color.accentColor.opacity(0.25)), lineWidth: 0.5))
                     }
                 }.frame(height: DraftRowPresentation.tagHeight).padding(.top, DraftRowPresentation.tagTopInset)
             }
