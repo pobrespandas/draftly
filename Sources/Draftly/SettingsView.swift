@@ -35,6 +35,7 @@ struct SettingsView: View {
     @AppStorage(GeneralPreferences.showInMenuBarKey) private var showInMenuBar = true
     @AppStorage(GeneralPreferences.showMainWindowAtLaunchKey) private var showMainWindowAtLaunch = true
     @AppStorage(GeneralPreferences.advancedFindKey) private var preferAdvancedFind = false
+    @AppStorage(GeneralPreferences.showCustomTouchBarKey) private var showCustomTouchBar = true
     @AppStorage("editor.fontName") private var fontName = "System"
     @AppStorage("editor.fontSize") private var fontSize = 17.0
     @AppStorage("editor.lineSpacing") private var lineSpacing = 2.0
@@ -183,6 +184,10 @@ struct SettingsView: View {
                         }
                     }.labelsHidden().frame(width: 170)
                 }
+                Toggle("Show custom TouchBar in editor (when available)", isOn: $showCustomTouchBar)
+                    .toggleStyle(.checkbox)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.leading, 205)
                 Toggle("Use advanced find panel in editor", isOn: $preferAdvancedFind)
                     .toggleStyle(.checkbox)
                     .frame(maxWidth: .infinity, alignment: .leading)

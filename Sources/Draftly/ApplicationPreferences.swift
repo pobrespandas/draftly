@@ -4,6 +4,7 @@ enum GeneralPreferences {
     static let showInMenuBarKey = "application.showInMenuBar"
     static let showMainWindowAtLaunchKey = "application.showMainWindowAtLaunch"
     static let advancedFindKey = "editor.preferAdvancedFind"
+    static let showCustomTouchBarKey = "editor.showCustomTouchBar"
 
     static func showMainWindowAtLaunch(defaults: UserDefaults) -> Bool {
         defaults.object(forKey: showMainWindowAtLaunchKey) as? Bool ?? true

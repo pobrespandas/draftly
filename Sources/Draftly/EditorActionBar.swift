@@ -29,30 +29,9 @@ struct EditorActionBar: View {
                     symbolSize: 21
                 ).frame(width: 28, height: 28)
                 if model.actionBarGroup == "Editing" {
-                    barButton("Undo", "arrow.uturn.backward") { NSApp.sendAction(NSSelectorFromString("undo:"), to: nil, from: nil) }
-                    barButton("Redo", "arrow.uturn.forward") { NSApp.sendAction(NSSelectorFromString("redo:"), to: nil, from: nil) }
-                    barButton("Move Left", "chevron.left") { move(-1) }
-                    barButton("Move Right", "chevron.right") { move(1) }
-                    barButton("Move Back by Word", "chevron.left.2") { NSApp.sendAction(NSSelectorFromString("moveWordLeft:"), to: nil, from: nil) }
-                    barButton("Move Forward by Word", "chevron.right.2") { NSApp.sendAction(NSSelectorFromString("moveWordRight:"), to: nil, from: nil) }
-                    barButton("Find", "magnifyingglass") { model.perform { _ = try model.actionUIOperation(["operation": "showFind", "args": []]) } }
-                    barButton("Advanced Find", "plus.magnifyingglass") { model.perform { _ = try model.actionUIOperation(["operation": "showFind", "args": [true]]) } }
-                    barButton("Make Tasks", "checkmark.square") { model.edit(EditingScripts.makeTasks) }
-                    barButton("Toggle Tasks", "checklist") { model.edit(EditingScripts.toggleTasks) }
-                    barButton("Insert Date", "calendar.badge.plus") { model.edit(EditingScripts.insertDate) }
-                    barButton("Insert Dictation", "mic.badge.plus") { model.perform { _ = try model.actionUIOperation(["operation": "showDictate"]) } }
-                    barButton("Dictate New Draft", "mic") { if model.create() { model.perform { _ = try model.actionUIOperation(["operation": "showDictate"]) } } }
-                    barButton("Copy Selection", "doc.on.doc") { model.perform { _ = try model.host.perform("clipboard", values: ["text": session.selectedText.isEmpty ? session.content : session.selectedText]) } }
-                    barButton("Paste as Plain Text", "doc.on.clipboard") { NSApp.sendAction(NSSelectorFromString("pasteAsPlainText:"), to: nil, from: nil) }
-                    barButton("Indent", "increase.indent") { model.edit(EditingScripts.indent) }
-                    barButton("Outdent", "decrease.indent") { model.edit(EditingScripts.outdent) }
-                    barButton("Move Line Up", "arrow.up.to.line") { moveLine(-1) }
-                    barButton("Move Line Down", "arrow.down.to.line") { moveLine(1) }
-                    barButton("Duplicate Line", "plus.square.on.square") { duplicateLine() }
-                    barButton("Previous Marker", "arrow.up.to.line.compact") { moveToMarker(-1) }
-                    barButton("Next Marker", "arrow.down.to.line.compact") { moveToMarker(1) }
-                    barButton("Toggle Theme", "circle.lefthalf.filled") { toggleTheme() }
-                    barButton("Preview", "eye") { model.preview() }
+                    ForEach(EditorBarCommand.allCases, id: \.self) { command in
+                        barButton(command.title, command.symbol) { command.perform(model: model, session: session) }
+                    }
                 }
                 ForEach(ActionCatalogPresentation.entries(library.orderedActions(), on: .bar, group: model.actionBarGroup)) { entry in
                     if entry.kind == .separator {
@@ -90,36 +69,11 @@ struct EditorActionBar: View {
         if name.contains("Find") || name.contains("Dictat") { return .green }
         return .blue
     }
-    func move(_ offset: Int) {
-        if let selection = EditorBarTextCommands.move(in: session.content, selection: session.safeSelection, offset: offset) {
-            session.selection = selection
-        }
-        session.focusToken = UUID()
-    }
-    func moveLine(_ direction: Int) {
-        guard let change = EditorBarTextCommands.moveLine(in: session.content, selection: session.safeSelection, direction: direction) else { return }
-        session.content = change.content
-        session.selection = change.selection
-        session.focusToken = UUID()
-        model.contentChanged()
-    }
-    func duplicateLine() {
-        guard let change = EditorBarTextCommands.duplicateLine(in: session.content, selection: session.safeSelection) else { return }
-        session.content = change.content
-        session.selection = change.selection
-        session.focusToken = UUID()
-        model.contentChanged()
-    }
-    func moveToMarker(_ direction: Int) {
-        guard let selection = EditorBarTextCommands.marker(in: session.content, selection: session.safeSelection, direction: direction) else { return }
-        session.selection = selection
-        session.focusToken = UUID()
-    }
-    private func toggleTheme() {
-        let isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        model.darkTheme = !(model.darkTheme ?? isDark)
-    }
-    private func findItem(replace: Bool = false) -> NSMenuItem { let item = NSMenuItem(); item.tag = (replace ? NSTextFinder.Action.showReplaceInterface : .showFindInterface).rawValue; return item }
+    func move(_ offset: Int) { EditorBarCommand.move(offset, session: session) }
+    func moveLine(_ direction: Int) { EditorBarCommand.moveLine(direction, model: model, session: session) }
+    func duplicateLine() { EditorBarCommand.duplicateLine(model: model, session: session) }
+    func moveToMarker(_ direction: Int) { EditorBarCommand.moveToMarker(direction, session: session) }
+
 }
 
 // Keep unknown imported names in storage. Use the existing surface default.

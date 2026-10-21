@@ -20,6 +20,8 @@ struct NativeEditor: NSViewRepresentable {
     var theme: EditorTheme?
     var linksEnabled = false
     var isActive = true
+    var showCustomTouchBar = true
+    var touchBarModel: WindowModel?
     var indentation = "\t"
     var onChange: () -> Void
 
@@ -52,6 +54,7 @@ struct NativeEditor: NSViewRepresentable {
         defer { coordinator.updating = false }
         if let text = text as? DraftTextView {
             text.indentation = indentation
+            text.configureTouchBar(model: touchBarModel, showCustom: showCustomTouchBar)
             text.syntaxDefinition = syntaxDefinition
             text.horizontalMargin = max(0, horizontalMargin); text.verticalMargin = max(0, verticalMargin)
             text.maximumLineWidth = max(0, maximumWidth); text.updateTextInsets()
@@ -265,6 +268,21 @@ struct NativeEditor: NSViewRepresentable {
 }
 
 final class DraftTextView: NSTextView {
+    private(set) var customTouchBarController: EditorTouchBarController?
+    private(set) var showCustomTouchBar = true
+    func configureTouchBar(model: WindowModel?, showCustom: Bool) {
+        let changed = showCustomTouchBar != showCustom || customTouchBarController?.model !== model
+        showCustomTouchBar = showCustom
+        if customTouchBarController?.model !== model {
+            customTouchBarController = model.map { EditorTouchBarController(model: $0, responder: self) }
+            customTouchBarController?.invalidate = { [weak self] in self?.touchBar = nil }
+        }
+        if changed { touchBar = nil }
+    }
+    override func makeTouchBar() -> NSTouchBar? {
+        if showCustomTouchBar, let customTouchBarController { return customTouchBarController.makeTouchBar() }
+        return super.makeTouchBar()
+    }
     var indentation = "\t"
     override func insertTab(_ sender: Any?) {
         insertText(indentation, replacementRange: selectedRange())
