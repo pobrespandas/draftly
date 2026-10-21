@@ -5245,3 +5245,27 @@ state identified the open menu before resuming. No action ran in this check.
 This accepts native inspector Save and restart persistence for a known imported
 log level. The fixture ends at Errors. It does not cover unknown-level native
 editing, imported timeout, or notification banners. Nine notes remain intact.
+
+
+### Legacy CPU deadline classification — 20 October 2026
+
+Extending the imported log-policy test with a CPU timeout exposed a separate
+engine defect. All four legacy cases returned reason error instead of timeout.
+Worker cases returned timeout. The legacy path installed the JSC limit without
+a deadline state, so it only received the generic JavaScript exception.
+
+Implemented: retain ScriptExecutionDeadline in the legacy script runtime and
+pass it to the existing limit callback. Check the timeout state before treating
+the evaluation exception as a generic error, including the async wait loop.
+The state stays alive while JSC can reference it. No JavaScript value crosses
+executors. Production limits remain unchanged. This does not move the legacy
+runner off MainActor or change the new worker route.
+
+Automatic: the expanded policy test now checks CPU timeout for levels0,1,2,99
+on both routes, with a short limit only for the endless script. It verifies
+final report reason, history inclusion, raw/typed persistence, and unchanged
+text. Four classification failures reproduced before the fix. Full regression
+passed app449/core480; unsigned Xcode build passed. Existing deadline tests
+continue to check that later steps and success disposition do not run.
+Native reproduction of this legacy adapter correction remains pending. The
+installed Restore QA app still has the preceding build.

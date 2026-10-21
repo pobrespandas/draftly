@@ -6,6 +6,8 @@ import Darwin
 final class ActionScriptRuntime {
     let context = JSContext()!
     var scriptError: String?
+    // Retain the state passed to the legacy JavaScriptCore deadline callback.
+    var legacyExecutionDeadline: ScriptExecutionDeadline?
     private var acceptingCalls = true
     private var rejectionEpoch: UUID?
     private typealias RejectionHook = @convention(c) (JSGlobalContextRef?, JSObjectRef?, UnsafeMutablePointer<JSValueRef?>?) -> Void

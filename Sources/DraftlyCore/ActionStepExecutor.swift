@@ -23,8 +23,11 @@ struct ActionStepExecutor {
             context.evaluateScript("__beginStep();")
             defer { context.evaluateScript("__endStep();") }
             runtime.scriptError = nil
-            try ActionRunner.limitExecution(context, seconds: runner.synchronousScriptTimeout)
+            let evaluationDeadline = ScriptExecutionDeadline()
+            runtime.legacyExecutionDeadline = evaluationDeadline
+            try ActionRunner.limitExecution(context, seconds: runner.synchronousScriptTimeout, deadline: evaluationDeadline)
             let evaluation = context.evaluateScript(step.values["script"] ?? step.values["source"] ?? "")
+            if evaluationDeadline.timedOut { throw ActionExecutionInterruption.timeout }
             if asynchronous, let evaluation, evaluation.isObject, evaluation.objectForKeyedSubscript("then")?.isObject == true {
                 context.setObject(evaluation, forKeyedSubscript: "__pendingResult" as NSString)
                 context.evaluateScript("{ let epoch=__stepEpoch; __pendingResult.catch(error => { if(epoch===__stepEpoch)__failure = String(error); }); }")
@@ -36,6 +39,7 @@ struct ActionStepExecutor {
                     try checkCancellation()
                     if context.objectForKeyedSubscript("__cancelled")?.toBool() == true { return false }
                     if let failure = context.objectForKeyedSubscript("__failure"), !failure.isNull, !failure.isUndefined { throw DraftlyError.message(failure.toString()) }
+                    if evaluationDeadline.timedOut { throw ActionExecutionInterruption.timeout }
                     if let scriptError = runtime.scriptError { throw DraftlyError.message(scriptError) }
                     guard Date() < deadline else { throw ActionExecutionInterruption.timeout }
                     context.evaluateScript("__drainTimers();")

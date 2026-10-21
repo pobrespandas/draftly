@@ -6,8 +6,9 @@ import Testing
 struct ActionLogImportTests {
     @Test(arguments: [0, 1, 2, 99], [false, true])
     func importedLevelControlsFinalHistoryWithoutChangingTheResult(level: Int, worker: Bool) async throws {
-        for ending in ["", "context.fail('Neutral error');", "context.cancel();"] {
+        for ending in ["", "context.fail('Neutral error');", "context.cancel();", "while (true) {}"] {
             let (library, editor, _, runner) = try makeAPIContext("Neutral source")
+            if ending.contains("while") { runner.synchronousScriptTimeout = 0.02 }
             let data = try JSONSerialization.data(withJSONObject: ["name": "Log policy",
                 "logLevel": level, "steps": [["type": "script", "data": ["script": ending]]]] as [String: Any])
             let imported = try #require(ActionImporter.decode(data).first)
@@ -18,9 +19,9 @@ struct ActionLogImportTests {
             #expect(action.presentation.logLevel == level)
             #expect(action.rawPayload == imported.rawPayload)
             let report = worker ? await runner.runAsync(action) : runner.runReport(action)
-            let expected = level != 0 && (level != 1 || ending.contains("fail"))
+            let expected = level != 0 && (level != 1 || ending.contains("fail") || ending.contains("while"))
             #expect(library.runs.count == (expected ? 1 : 0))
-            #expect(report.reason == (ending.isEmpty ? .success : ending.contains("cancel") ? .cancelled : .error))
+            #expect(report.reason == (ending.isEmpty ? .success : ending.contains("cancel") ? .cancelled : ending.contains("while") ? .timeout : .error))
             #expect(editor.content == "Neutral source")
         }
     }
