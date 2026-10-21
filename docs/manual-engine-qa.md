@@ -16,10 +16,13 @@ Copy a fresh local Draftly build to a new QA app bundle under `~/Applications`.
 Keep the installed Draftly app unchanged. For Debug updates, copy every file from
 Contents/MacOS, including Draftly.debug.dylib and __preview.dylib. Replacing only
 the launcher leaves old code. Compare each source and destination hash before
-signing. Preserve the isolated Info.plist. Verify the complete signed bundle.
+signing. Preserve the isolated identity and library in Info.plist. Remove
+`NSServices` before signing or registering any QA copy. QA copies must not add
+capture entries to the user Services menu. Verify the complete signed bundle.
 For later updates, use `scripts/refresh-engine-qa.py SOURCE_APP QA_APP --identity
 "Apple Development identity"`. It requires an existing isolated bundle and an
-absent QA process. It refreshes runtime files and resources, keeps Info.plist,
+absent QA process. It refreshes runtime files and resources, removes NSServices
+from the QA Info.plist, preserves its other values,
 checks copied hashes, signs, and verifies. Its process check normalizes executable
 paths, including /var and /private/var aliases. It rejects the habitual app and
 normal URL scheme.
@@ -31,6 +34,13 @@ Set these Info.plist values on the copy:
 - `DraftlyUITestingLibraryID`: a new UUID; retain it for the whole session
 - `DraftlyCallbackScheme`: `draftly-engine-qa`
 - `CFBundleURLTypes`: register only `draftly-engine-qa`
+- `NSServices`: remove the key from ordinary QA copies
+
+Test Services only in a dedicated manual session. If that session temporarily
+registers Services on a QA copy, remove NSServices after the check, sign again,
+and update its Launch Services registration. Keep the production declarations in
+Configuration/Info.plist. Do not change global Services preferences to hide a
+packaging defect.
 
 Build `scripts/qa-callback-helper.swift` as an AppKit executable in a separate
 `Draftly Callback Helper.app`. Use deployment target macOS 26 or later. Its bundle

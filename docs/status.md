@@ -25,6 +25,11 @@ retain historical results. Later results supersede earlier counts.
 
 ## Current verification
 
+Removed duplicate Services from the five installed QA copies. Finder now shows
+only the two ordinary Draftly capture entries and the two Drafts entries. QA
+refresh removes NSServices before signing;47 Python methods passed. The normal
+app declarations and all QA libraries remain unchanged.
+
 AppleScript.execute now preserves fatal interruption in the legacy bridge.
 Three red cases showed later edits and Archive before correction. Four specific
 methods now pass on both runners. Full sequential regression passed496 app and

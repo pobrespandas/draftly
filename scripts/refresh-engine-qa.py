@@ -48,6 +48,10 @@ def refresh(source, target, identity, run=subprocess.run):
                     if hashlib.sha256((target / "Contents" / relative).read_bytes()).hexdigest() != digest:
                         raise ValueError("The copied QA file differs: " + str(relative))
                     hashes[str(relative)] = digest
+    # QA must not publish duplicate capture entries in the user's Services menu.
+    if "NSServices" in info:
+        del info["NSServices"]
+        (target / "Contents/Info.plist").write_bytes(plistlib.dumps(info))
     run(["codesign", "--force", "--deep", "--sign", identity, str(target)], check=True)
     run(["codesign", "--verify", "--deep", "--strict", str(target)], check=True)
     return hashes

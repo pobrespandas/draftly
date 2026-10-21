@@ -7714,3 +7714,29 @@ image. The five-member AppleScript audit is not closed. Native date conversion
 and nested dates are missing; permission and Date argument contracts need review.
 Only execute receives a partial classification in this stage. Constructor and
 property evidence is available in the new suite for the next member review.
+
+
+### QA Services isolation — 21 October 2026
+
+The user found ten duplicate capture entries from five QA copies. Implemented:
+refresh-engine-qa.py now removes NSServices before signing. It preserves the
+other isolated plist values and keeps its process and identity checks. The
+production Configuration/Info.plist still declares both capture Services.
+Manual preparation now requires removal for all ordinary QA copies. A dedicated
+Services acceptance session must remove its temporary registration afterward.
+
+Automatically tested: a new packaging regression first failed because codesign
+received a QA bundle that still declared Services. The corrected case verifies
+removal before both signing calls and preservation of all other plist values.
+All47 Python methods passed. No Swift source changed; no Swift rebuild was needed.
+
+Verified in use: quit Engine QA and Theme QA with native Quit. Process inspection
+confirmed all five QA copies stopped. Removed only NSServices from Visual,
+Engine, Restore, Scale and Theme QA plists. Kept their identities, library IDs,
+URL schemes and other values. Signed each with the existing development identity
+and retained signature metadata. All five deep/strict signature checks passed.
+Updated only those Launch Services records and refreshed the Services cache.
+Finder > Services, with a neutral /tmp text file selected, then listed exactly
+Capture to Draftly, Capture to Draftly with Options, Capture to Drafts and
+Capture to Drafts with Options. No QA capture variant remained. No service was
+invoked, library changed or app removed. All QA apps remain stopped.

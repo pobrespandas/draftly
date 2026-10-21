@@ -43,6 +43,22 @@ class RefreshEngineQATests(unittest.TestCase):
         self.assertEqual((self.target / "Contents/MacOS/Draftly.debug.dylib").read_text(), "fresh Draftly.debug.dylib")
         self.assertEqual(plistlib.loads((self.target / "Contents/Info.plist").read_bytes()), self.info)
 
+    def test_refresh_removes_qa_services_before_signing(self):
+        self.info["NSServices"] = [{"NSMessage": "captureSelectionDirectly"}]
+        self.write_info()
+        calls = []
+
+        def run(args, **kwargs):
+            if args[0] == "codesign":
+                current = plistlib.loads((self.target / "Contents/Info.plist").read_bytes())
+                self.assertNotIn("NSServices", current)
+                self.assertEqual(current, {k: v for k, v in self.info.items() if k != "NSServices"})
+                calls.append(args)
+            return self.runner(args, **kwargs)
+
+        qa.refresh(self.source, self.target, "Test", run=run)
+        self.assertEqual(len(calls), 2)
+
     def test_rejects_habitual_identity_and_normal_scheme_before_writing(self):
         for key, value in [("CFBundleIdentifier", "com.andrestobelem.draftly"), ("CFBundleURLTypes", [{"CFBundleURLSchemes": ["draftly"]}])]:
             original = dict(self.info)
