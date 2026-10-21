@@ -60,7 +60,13 @@ and action-list option native checks remain pending. None is completed here.
 
 ## Stage results
 
-1. Sort writer: in progress.
+1. Sort writer: complete. Workspace.updateSortOptions owns the existing merge
+   operation. Both callers retain their original inputs. Characterization passed
+   before extraction: five editor methods and two bridge methods. After extraction,
+   eight app methods, four writer methods and 24 Core contract methods passed.
+   Parameterized cases cover malformed shapes, all sort keys and both directions.
+   Unsigned Xcode compilation and matrix structure passed. No native behavior or
+   stored format changed. No Computer Use was needed for the pure extraction.
 2. Inspector policy: pending.
 3. Test-only theme reader: pending.
 4. Preference fixtures: pending.

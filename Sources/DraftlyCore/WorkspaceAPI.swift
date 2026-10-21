@@ -1,6 +1,17 @@
 import Foundation
 
 public extension Workspace {
+    static func updateSortOptions(_ options: inout [String: Any], sort: NoteSort, ascending: Bool,
+                                  flaggedFirst: Bool? = nil, folder: NoteFolder) {
+        var sorts = options["_sorts"] as? [String: [String: Any]] ?? [:]
+        var entry = sorts[folder.rawValue] ?? [:]
+        entry["sort"] = sort == .title ? "name" : sort.rawValue
+        entry["descending"] = !ascending
+        if let flaggedFirst { entry["flagged"] = flaggedFirst }
+        sorts[folder.rawValue] = entry
+        options["_sorts"] = sorts
+    }
+
     var apiOptions: [String: Any] {
         guard let text = scriptMetadata?["api"], let data = text.data(using: .utf8) else { return [:] }
         return (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]

@@ -15,7 +15,7 @@ action scripts, Nerd Fonts, and the integrated Markdown preview.
 
 The user requested behavior-preserving refactoring before more feature work.
 See [the accepted diagnosis](refactoring-ui-2026-10-21.md) for four bounded stages,
-the validated baseline and preserved checkpoint. Functional Workspace defects
+the validated baseline and preserved checkpoint. The shared Workspace sort writer stage is complete. Functional Workspace defects
 and native acceptance remain separate. This does not close the Mac roadmap.
 
 ## Current delivery order — 21 October 2026

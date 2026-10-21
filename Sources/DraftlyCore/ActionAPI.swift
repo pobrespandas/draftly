@@ -90,11 +90,8 @@ public enum APIValues {
         result["showDate"] = options.showDate; result["showPreview"] = options.showPreview
         result["showTags"] = options.showTags; result["showLastAction"] = options.showLastAction
         result["showSearchPreview"] = options.previewSearchMatches
-        var sorts = result["_sorts"] as? [String: [String: Any]] ?? [:]
-        var sort = sorts[workspace.folder.rawValue] ?? [:]
-        sort["sort"] = workspace.sort == .title ? "name" : workspace.sort.rawValue
-        sort["descending"] = !workspace.ascending
-        sorts[workspace.folder.rawValue] = sort; result["_sorts"] = sorts
+        Workspace.updateSortOptions(&result, sort: workspace.sort, ascending: workspace.ascending,
+                                    folder: workspace.folder)
         return result
     }
     func decodeWorkspace(_ values: [String: Any]) throws -> Workspace {

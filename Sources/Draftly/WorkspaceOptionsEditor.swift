@@ -28,13 +28,8 @@ enum WorkspaceOptionsEditor {
 
     static func updateSortOptions(_ options: inout [String: Any], sort: NoteSort, ascending: Bool,
                                   flaggedFirst: Bool? = nil, folder: NoteFolder) {
-        var sorts = options["_sorts"] as? [String: [String: Any]] ?? [:]
-        var entry = sorts[folder.rawValue] ?? [:]
-        entry["sort"] = sort == .title ? "name" : sort.rawValue
-        entry["descending"] = !ascending
-        if let flaggedFirst { entry["flagged"] = flaggedFirst }
-        sorts[folder.rawValue] = entry
-        options["_sorts"] = sorts
+        Workspace.updateSortOptions(&options, sort: sort, ascending: ascending,
+                                    flaggedFirst: flaggedFirst, folder: folder)
     }
 
     static func setDate(_ value: Any, component: String, key: String,
