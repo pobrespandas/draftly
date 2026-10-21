@@ -2479,7 +2479,14 @@ void mmd_export_footnote_list_html(DString * out, const char * source, scratch_p
 			// Export footnote
 			pad(out, 2, scratch);
 
-			printf("<li id=\"fn:%d\">\n", i + 1);
+			int destination_id = i + 1;
+
+			if (scratch->extensions & EXT_RANDOM_FOOT) {
+				srand(scratch->random_seed_base + destination_id);
+				destination_id = rand() % 32000 + 1;
+			}
+
+			printf("<li id=\"fn:%d\">\n", destination_id);
 			scratch->padded = 6;
 
 			note = stack_peek_index(scratch->used_footnotes, i);
