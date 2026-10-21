@@ -41,7 +41,21 @@ remain separate cases. Similar names alone do not establish duplication.
 
 ## Background execution
 
-Run `swift test` for app and core tests. Run Python tool tests with
+Run `python3 scripts/run-swift-tests.py` for a complete app and core run. The
+runner compares discovered test identities with fresh xUnit results. It rejects
+missing, duplicate, failed, skipped, or unexpected results even if Swift exits0.
+Each target gets a fresh report. AppKit tests run serially because they share
+process-wide state and concurrent app reports remain unreliable. Core tests run
+concurrently. Tests still exercise their explicit concurrent tasks. The runner
+never retries a failure. Use `--concurrent-app` for the open diagnostic case.
+The inventory checks test methods; parameter cases depend on Swift Testing's
+reporter and do not have a separate discovery inventory.
+Use `--output-dir /tmp/draftly-tests` to retain logs and XML outside the repo.
+The default removes temporary files after success and keeps them after failure.
+Use direct `swift test --filter ...` for a
+focused check; a focused result does not accept the complete suite.
+
+Run Python tool tests with
 `python3 -m unittest discover -s scripts -p 'test_*.py'` in the configured runtime.
 Run `python3 scripts/audit-action-api.py --check` to check the matrix.
 

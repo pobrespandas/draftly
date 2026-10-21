@@ -25,6 +25,12 @@ retain historical results. Later results supersede earlier counts.
 
 ## Current verification
 
+The checked Swift runner now requires fresh xUnit results for every discovered
+method. A real run verified499 app methods and604 core methods by identity.
+Nine guard tests and all56 Python methods passed. App tests default to serial;
+core and explicit task-concurrency contracts remain concurrent. Concurrent app
+reporting is still unresolved. No production or QA bundle changed in this stage.
+
 Native HTML preview task cancel, owner close and production timeout passed on
 the current QA image. Completed writes stayed Inbox without tail/Archive; fresh
 responses remained isolated. An old scheduled timer did not finish or contaminate

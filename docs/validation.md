@@ -7982,3 +7982,44 @@ was used. The HTML unescape correction is in its own commit.
 
 Final tooling passed47 Python tests and matrix structure0. Strict engine/global
 remain18/4356 diagnostics. These counts do not establish compatibility.
+
+
+### Complete Swift result verification — 21 October 2026
+
+Investigated the concurrent app output anomaly without changing production. Two
+app-only concurrent repetitions with xUnit each produced499 complete identities
+and a final summary. Later full and app-only report attempts failed with
+Line2: Extra content at the end of the document and produced no XML. Core still
+reported604 passed in the full attempt. Excluding HTMLPreferencesTests did not
+resolve the report failure. No explicit test exit or application termination
+route was found. These observations do not prove a production or HTML-importer
+cause. The historical incomplete concurrent app runs remain unaccepted.
+
+Implemented: scripts/run-swift-tests.py discovers methods, runs each target with
+a fresh report, and verifies exact classname/method identities. A zero process
+exit is insufficient. Missing, duplicate, unexpected, failed, skipped, truncated
+and count-inconsistent reports fail. Root summary errors also fail. Old report
+files are removed before execution. New discovered targets are included.
+Default app execution is serial because AppKit fixtures share process-wide
+state. Core stays concurrent, and tests retain their explicit concurrent tasks.
+The script never retries. --concurrent-app exposes the unresolved diagnostic
+mode; it does not silently fall back. Parameter cases still rely on Swift
+Testing's report and do not have an independent discovery inventory.
+
+Automatically tested: nine Python methods exercise complete and incomplete
+reports, identity substitution with equal counts, duplicates, hidden failure/
+error/skip nodes, root errors, truncated XML, stale reports after a zero exit,
+new targets, explicit app mode and no retries. All56 Python methods passed.
+The real final runner compared all discovered identities against the fresh
+reports and printed Verified complete Swift results: DraftlyCoreTests604,
+DraftlyTests499. The app summary passed499 in86 suites; core passed604 in115.
+Both process handles terminated normally. The first guard attempts correctly
+failed rather than accepting the report errors. No production code changed;
+the preceding successful unsigned Xcode build remains its baseline.
+
+Verified in use: no Computer Use was needed for this test-tool change. QA apps
+and libraries were not changed. Matrix structure passed0; compatibility status
+is unchanged. README and testing instructions now use the checked runner.
+Reports/logs stay outside Git. Temporary success files are removed by default;
+failure files remain for diagnosis. This is a validation guard and an explicit
+execution workaround, not a claim that concurrent app-reporting is repaired.

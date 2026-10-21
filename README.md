@@ -116,7 +116,7 @@ The app owns its `draftly` URL scheme. It does not register the Drafts scheme.
 
 ```sh
 swift build
-swift test
+python3 scripts/run-swift-tests.py
 python3 scripts/generate-project.py
 ```
 
