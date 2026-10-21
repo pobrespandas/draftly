@@ -7817,3 +7817,33 @@ including the existing cancellation and timeout cases. A full concurrent run
 then passed498 app/599 core. This proves the fixture correction, not the exact
 cause of every earlier suspended test. No production source or visible UI changed.
 The preceding successful Xcode build remains the production code baseline.
+
+
+### Native AppleScript helper lifetime — 21 October 2026
+
+Verified in use on the signed Engine QA image recorded in the Date entry.
+Imported engine-applescript-lifetime-actions.json through File > Import. The
+action writes neutral text, starts a45-second AppleScript delay, catches a
+possible script error and attempts later edits plus Archive. It never targets
+another application or requests Automation access.
+
+Task Cancel: observed helper65858 with the exact private request directory
+BAEF84AE-27D9-432C-B3D3-D5AE8AE25996. Actions > Cancel Running Action ended
+the pending action. Process inspection confirmed that PID and directory absent.
+History recorded Cancelled06:44. Alpha stayed in Inbox with the completed write,
+without ERROR: AppleScript continued, the tail sentinel or Archive.
+
+Owner close: ran the action again and observed helper65912 with directory
+F1A2A8D6-B875-4FCC-9B71-DE104C74621B. Clicked the owner window close button
+while the helper was alive. The source window disappeared; the next observed
+window was Untitled. The exact helper and directory were absent. Selected Alpha
+again and verified both completed writes, no tail and no Archive. History
+recorded Cancelled06:45. A following QA AppleScript dates and recovery action
+recorded Success06:45. History is closed and no helper/action remains pending.
+
+Implemented: no new production change in this native check. Automatically
+tested: the preceding full concurrent498 app/599 core run covers this image's
+contracts and the test-only stream fix. No UI runs inside automatic tests.
+Production120s native timeout, Automation permission paths, and Date argument
+comparison remain pending. This acceptance does not close AppleScript.execute
+or any other native route.

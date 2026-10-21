@@ -1,0 +1,30 @@
+[
+  {
+    "uuid": "BBBF0034-0000-4000-8000-000000000001",
+    "name": "QA AppleScript pending helper",
+    "group": "AppleScript lifecycle QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText(editor.getText()+'\\nAppleScript completed write');draft.update();"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "try { AppleScript.create('on execute()\\ndelay 45\\nreturn \\\"late\\\"\\nend execute').execute('execute',[]); } catch(error) { console.log('Caught interrupted AppleScript'); } editor.setText('ERROR: AppleScript continued');"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "ERROR: AppleScript tail"
+        }
+      }
+    ]
+  }
+]

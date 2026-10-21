@@ -33,7 +33,7 @@ Message sending still requires an authorized recipient and content.
 | location | Injected tests only for the current async route | Neutral success or actual denied/unavailable result, authorization cancel, timeout, stopped updates and ignored late result |
 | speech | Injected silent tests only for the current async route | Neutral synthesis in a manual session, cancel/timeout/owner close, stopped audio and delegate cleanup |
 | transcription | Existing grant: task cancel in audio picker and after selecting synthetic silence; no later step, preserved text | Successful recognition on this adapter, permission request/denial, native timeout and late completion |
-| appleScript | Unicode success, intentional error, typing cancel, no remaining helper and later successful action; typed responses | Native timeout and authorized Automation permission request/denial/cancel |
+| appleScript | Unicode success, intentional error, typing cancel, typed responses; current-image task cancel and owner close removed exact helpers/temp folders, kept completed text without tail/Archive and allowed a following native action | Native timeout and authorized Automation permission request/denial/cancel |
 | dictation | Earlier 19 October positive/cancel checks predate this adapter | Current adapter success, user/task cancel, timeout, speech/microphone authorization and capture cleanup |
 
 Theme-file bookmark checks do not accept the action-host file route. Earlier

@@ -25,6 +25,11 @@ retain historical results. Later results supersede earlier counts.
 
 ## Current verification
 
+Current-image native AppleScript task cancel and owner close now passed. Exact
+helpers and temporary directories disappeared. Completed writes stayed in Inbox
+without tail/Archive; a following native action succeeded. Native timeout and
+Automation permission variants remain pending. Execute stays partial.
+
 Host cleanup test streams now finish when the action returns before the expected
 signal. A regression checks early failure and a following run on the same
 library. Focused tests and full concurrent498 app/599 core passed. Production
