@@ -16906,7 +16906,7 @@
       },
       "liveCheck": "docs/validation.md: Native action-list promise checks — 20 October 2026",
       "limitations": [
-        "Native Shortcuts success and production CPU/120-second queued timeout passed on image870884f2388974b4, including a separate queued target. Native discarded/intrinsic/returned rejection URL checks remain recorded. Remaining native rejection and cancellation entry variants are pending."
+        "Native UI and direct Intent discarded/intrinsic/returned/caught variants passed, with recovery and preserved failure effects. Earlier URL discarded/intrinsic/caught callbacks are documented. Direct returned-rejection URL callback acceptance still needs a linked check. Production wait timeout is recorded for UI and queued URL/Intent entries."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
@@ -16983,7 +16983,7 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Current Engine QA action-list checks passed for discarded, intrinsic, returned, and caught rejection, plus a production 120-second wait timeout. History confirmed errors; earlier text and Inbox state survived. Other entry-point and cancellation variants remain pending.",
+        "reason": "Direct Intent rejection variants now join UI variants and earlier URL discarded/intrinsic/caught checks. Direct returned-rejection URL callback acceptance remains pending. Other capability-specific cancellation checks belong to their separate contracts.",
         "evidence": "docs/validation.md",
         "additionalChecks": [
           {
@@ -17023,6 +17023,14 @@
             "entryPoint": "Restore QA action list",
             "result": "Async timer CPU loop remained pending while File menu opened at1700ms observation. Final History had one timeout Error. Error-only policy retained it; text, Inbox and tail exclusion passed. Production10-second CPU limit unchanged. This does not accept legacy native or all responsiveness variants.",
             "evidence": "docs/validation.md: Native timer CPU deadline and menu responsiveness — 20 October 2026"
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "785e0548ab98a23c6a0e865e90215b7e8a1534b2e27406581359249f825d2224",
+            "fixture": "scripts/fixtures/engine-promise-actions.json",
+            "entryPoint": "actual Shortcuts Run Draft Action",
+            "result": "Discarded, intrinsic and returned rejection each produced its exact Intent error and matching Error history. Returned text stayed in Inbox without tail/Archive. Caught rejection then completed and recorded Success. Shortcut fields restored.",
+            "evidence": "docs/validation.md: Native Intent promise rejection variants — 20 October 2026"
           }
         ]
       },
@@ -17050,6 +17058,12 @@
             "command": "swift test --filter ActionNotificationImportTests|ActionLogImportTests|EngineClosureContractTests|AsyncActionRunnerTests",
             "result": "Twenty methods passed. Imported notification and log codes0/1/2/99 check initial CPU and async timer CPU timeout on both routes, final reason and exact effect count. No native notification or window is used.",
             "evidence": "docs/validation.md: Imported policy CPU and timer deadlines — 20 October 2026"
+          },
+          {
+            "date": "2026-10-20",
+            "command": "swift test --filter EnginePromiseAcceptanceTests|UnhandledPromiseRuntimeTests|WorkerPromiseEpochTests",
+            "result": "Eight core methods in three suites passed, including discarded rejection classification and old-step rejection isolation.",
+            "evidence": "docs/validation.md: Native Intent promise rejection variants — 20 October 2026"
           }
         ]
       }

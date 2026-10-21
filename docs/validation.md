@@ -5352,3 +5352,31 @@ diagnostics before this queue evidence update; it is not a member count.
 After the queue update, the structural matrix check passes. Strict engine
 parity reports24 diagnostics for the remaining eight partial contracts. The
 queue contract has no remaining strict diagnostic. This does not close Mac.
+
+
+### Native Intent promise rejection variants — 20 October 2026
+
+Used the existing Draftly QA Engine — disposable shortcut in Shortcuts.
+Engine QA image785e0548ab98a23c6a0e865e90215b7e8a1534b2e27406581359249f825d2224
+handled the Intent. Changed only Action Name and Draft UUID, committed with
+Tab, and verified both visible values before running. Targeted the neutral
+batch fixture note A52FA8DB-A020-40D3-AF18-25654E97CCE7.
+
+Actual Run Draft Action returned the expected error alert for QA Discarded
+rejection, QA Intrinsic async rejection, and QA Returned rejection. History
+showed three corresponding Error rows. Selected the result in Engine QA: its
+full content was Returned rejection completed write, with no tail marker, and
+Inbox still held nine notes. Archive did not run. A later QA Caught rejection
+Intent completed successfully; Shortcuts displayed completion and History
+showed Success. The visible editor became Caught rejection completed.
+
+Restored the shortcut to QA Caught rejection and its prior UUID
+A386D93F-D3D8-49EB-8F7F-205612F74D93, committed with Tab, and verified the
+fields. No shortcut was deleted or sent externally. No screenshot is tracked.
+The focused promise/runtime/epoch run passed8 methods in3 core suites.
+
+This accepts the direct Intent rejection variants and recovery. The older
+discarded/intrinsic/caught URL callback checks are recorded in Discarded
+rejection correction. A direct returned-rejection URL callback check is not
+yet linked. Keep the promise contract partial until that specific gap closes.
+Other capability-specific cancellation checks remain in their own contracts.
