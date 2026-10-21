@@ -56,6 +56,7 @@ struct NativeEditor: NSViewRepresentable {
             text.indentation = indentation
             text.configureTouchBar(model: touchBarModel, showCustom: showCustomTouchBar)
             text.syntaxDefinition = syntaxDefinition
+            text.typewriterScrollingEnabled = session.typewriterScrollingEnabled
             text.horizontalMargin = max(0, horizontalMargin); text.verticalMargin = max(0, verticalMargin)
             text.maximumLineWidth = max(0, maximumWidth); text.updateTextInsets()
         }
@@ -326,13 +327,16 @@ final class DraftTextView: NSTextView {
     var horizontalMargin: CGFloat = 17
     var verticalMargin: CGFloat = 17
     var maximumLineWidth: CGFloat = 0
+    var typewriterScrollingEnabled = false
     override func setFrameSize(_ newSize: NSSize) {
         super.setFrameSize(newSize)
         updateTextInsets()
     }
     func updateTextInsets() {
         let width = enclosingScrollView?.contentSize.width ?? bounds.width
-        let inset = NSSize(width: EditorTextLayout.inset(width: width, margin: horizontalMargin, maximumWidth: maximumLineWidth), height: verticalMargin)
+        let viewportHeight = enclosingScrollView?.contentSize.height ?? 0
+        let vertical = typewriterScrollingEnabled ? max(verticalMargin, viewportHeight / 2) : verticalMargin
+        let inset = NSSize(width: EditorTextLayout.inset(width: width, margin: horizontalMargin, maximumWidth: maximumLineWidth), height: vertical)
         if textContainerInset != inset { textContainerInset = inset }
     }
 
