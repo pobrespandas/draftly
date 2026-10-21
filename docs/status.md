@@ -26,7 +26,10 @@ change. Built-in theme picker identity matches the resolver. Normal theme scope
 backgrounds are applied. Invalid paragraph preferences render safely. Typewriter
 centers short and empty documents without clearing selection or Undo. Specific
 regressions and previous-implementation failures are in the delivery record.
-Native checks for these changes remain pending.
+Native Workspace group/theme application, stale-name UUID resolution, explicit
+reference rejection and backup restoration passed in isolated QA. The focused
+results are in the delivery record. Other native boundary and Settings checks
+remain pending.
 The host has no Touch Bar. Do not treat headless construction as hardware
 acceptance. The habitual app is unchanged by this delivery. Do not install yet.
 The earlier [refactoring record](refactoring-editing-2026-10-21.md) retains the
