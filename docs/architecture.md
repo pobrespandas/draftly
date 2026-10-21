@@ -20,6 +20,12 @@ WindowModel retains its valid-object guard and silent encoding failure policy.
 The options editor retains recovery, validation and sorted serialization.
 The shared rule does not combine those different caller policies.
 
+## Configuration default boundary
+
+`ActionConfigurationField` owns raw key/type lookup and text-value selection.
+Import, runtime and prompt callers keep their own validation and conversion
+policies. The descriptor does not change imported values or confirmation state.
+
 ## Refactoring baseline
 
 The annotated tag `pre-refactor-2026-10-19` points to `2fba5bd`.

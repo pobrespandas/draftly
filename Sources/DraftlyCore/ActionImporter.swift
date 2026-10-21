@@ -65,9 +65,8 @@ public enum ActionImporter {
             action.sourceURL = source
             action.rawPayload = String(data: try JSONSerialization.data(withJSONObject: entry, options: [.sortedKeys]), encoding: .utf8)
             for step in steps where step.type == "configurationKey" {
-                let key = step.values["key"] ?? ""
-                let dataType = step.values["dataType"] ?? "string"
-                action.configuredValues[key] = step.values["defaultValue"] ?? step.values[dataType == "boolean" ? "defaultBoolValue" : dataType == "number" ? "defaultNumberValue" : dataType == "text" ? "defaultTextValue" : "defaultStringValue"] ?? ""
+                let field = ActionConfigurationField(step)
+                action.configuredValues[field.key] = field.textValue(configuredValues: [:])
             }
             return action
         }

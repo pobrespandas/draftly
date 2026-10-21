@@ -24,8 +24,9 @@ retain historical results. Later results supersede earlier counts.
 
 ## Current verification
 
-Four refactoring stages are validated: pure catalog rules, isolated bookmark
-preferences, shared test execution support and Workspace sort mutation.
+Five refactoring stages are validated: pure catalog rules, isolated bookmark
+preferences, shared test execution support, Workspace sort mutation and
+configuration default selection.
 See [stage results](refactoring-2026-10-21.md#stage-results) for current checks
 and [remaining risks](refactoring-2026-10-21.md#remaining-refactoring-and-risks)
 for the next refactoring work. Cloning remains paused.

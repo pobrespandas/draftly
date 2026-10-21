@@ -22,8 +22,8 @@ struct ActionInitialConfiguration {
         var fields: [Field] = []
         var required: Set<String> = []
         for step in steps where step.type == "configurationKey" && step.isEnabled != false {
-            let key = step.values["key"] ?? ""
-            let type = step.values["dataType"] ?? "string"
+            let definition = ActionConfigurationField(step)
+            let key = definition.key, type = definition.dataType
             guard !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 throw DraftlyError.message("The configured value key must not be empty.")
             }
@@ -57,8 +57,7 @@ struct ActionInitialConfiguration {
             if let description = values["description"], !description.isEmpty {
                 controls.append(["kind": "label", "label": description])
             }
-            let defaultKey = field.type == "boolean" ? "defaultBoolValue" : field.type == "number" ? "defaultNumberValue" : field.type == "text" ? "defaultTextValue" : "defaultStringValue"
-            let value = action.configuredValues[field.key] ?? values["defaultValue"] ?? values[defaultKey] ?? ""
+            let value = ActionConfigurationField(field.step).textValue(configuredValues: action.configuredValues)
             var control: [String: Any] = ["key": field.key, "label": values["name"] ?? field.key,
                 "kind": field.type == "boolean" ? "switch" : field.type == "text" ? "textView" : field.type == "number" ? "number" : "text",
                 "value": field.type == "boolean" ? ["true", "1"].contains(value) : value,

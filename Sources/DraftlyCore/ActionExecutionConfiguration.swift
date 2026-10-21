@@ -4,10 +4,9 @@ import Foundation
     private func configurationValues(_ action: DraftAction, steps: [ActionStep]) -> [String: Any] {
         var configured: [String: Any] = action.configuredValues
         for step in steps where step.type == "configurationKey" {
-            let key = step.values["key"] ?? ""
-            let dataType = step.values["dataType"] ?? "string"
-            let defaultKey = dataType == "boolean" ? "defaultBoolValue" : dataType == "number" ? "defaultNumberValue" : dataType == "text" ? "defaultTextValue" : "defaultStringValue"
-            let value = action.configuredValues[key] ?? step.values["defaultValue"] ?? step.values[defaultKey] ?? ""
+            let field = ActionConfigurationField(step)
+            let key = field.key, dataType = field.dataType
+            let value = field.textValue(configuredValues: action.configuredValues)
             configured[key] = value
             if dataType == "boolean" { configured[key] = value == "true" || value == "1" }
             if dataType == "number" { configured[key] = Double(value) ?? 0 }

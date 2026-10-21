@@ -195,16 +195,30 @@ The first attempt had a missing argument in the new test builder; that test
 compile error was corrected before this run. It was not a production failure.
 No native UI, permission or personal data path ran.
 
+### 5b. Shared configuration default selection
+
+Implemented: `ActionConfigurationField` owns the key, raw type and text-value
+selection shared by import, bootstrap and the initial prompt. Stored values
+still take precedence over generic defaults, then type-specific defaults.
+An empty stored value still takes precedence. Callers retain validation,
+coercion, confirmation, disabled-step and duplicate-key policies.
+
+Verified automatically: all 459 app and 508 core methods passed after the
+extraction. The 19 focused methods passed before it. Unsigned Xcode compilation
+and matrix structure passed. Strict engine output matches the same 18 baseline
+diagnostics. No model, bridge, stored format, original action fixture or API
+classification changed. No test was removed. No manual session was needed.
+
 ## Remaining refactoring and risks
 
-The first four stages are validated checkpoints, not a complete repository
-rewrite or Mac parity closure. Configuration defaults, auditor test indexing,
+The first five stages are validated checkpoints, not a complete repository
+rewrite or Mac parity closure. Auditor test indexing,
 benchmark ownership, native operation routing, editing transformations and
 execution/transaction ownership remain in the prioritized diagnosis.
 
-Next, characterize configuration-default differences at import, bootstrap and
-prompt boundaries before sharing their descriptor. Review auditor indexing
-as a separate scripts stage. Retain unique diagnostics and contract cases.
+Next, isolate auditor test indexing as a separate scripts stage. Retain its
+policy, exact diagnostics and contract cases. Compare cached source reads
+within one validation and fresh source reads in later validations.
 Keep transaction recovery and execution-lifetime changes separate and later,
 because they carry the highest behavior risk.
 

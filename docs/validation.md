@@ -6135,3 +6135,13 @@ values, other views, encoding policies and observer order remain unchanged.
 No public API, Note, record schema, bridge, original fixture or matrix changed.
 No test was removed and no visible UI, permission or sound check ran. Signed
 installation and client sync were not repeated. The cloning plan stays paused.
+
+
+### Refactoring configuration defaults — 21 October 2026
+
+Four new methods characterize default precedence at import, runtime and prompt
+boundaries. All 19 focused methods passed before extraction. The shared field
+descriptor retains caller-specific coercion, validation and confirmation.
+All 459 app and 508 core methods passed after extraction. Unsigned Xcode build
+and matrix structure passed. Strict engine output matches the 18 baseline
+diagnostics. No test or original fixture was removed. No native UI check ran.
