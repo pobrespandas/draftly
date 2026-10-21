@@ -88,7 +88,9 @@ boundaries. Remove an assertion only after its replacement coverage is named.
 
 Read the stable API matrix and the saved functional branch before resuming.
 The duplicate-name correction must be reviewed and merged independently; its
-native acceptance remains pending. Other Actions, engine, native integration,
+native acceptance remains pending. Review the saved code and tests separately
+from its old status and matrix edits. Reconcile that evidence with the current
+refactoring record instead of replacing current documentation with the WIP copy. Other Actions, engine, native integration,
 inspector, workspace, visual, data and sync work remains in the Mac roadmap.
 
 ## Stage results
@@ -112,3 +114,20 @@ Manual verification: not required for this pure extraction. No visible window,
 permission or sound check ran. Native parity acceptance did not change.
 
 Next stage: isolate bookmark test preferences through the existing file adapter.
+
+### 2. Isolated bookmark preferences
+
+Implemented: `NativeActionHost` passes its existing file preferences and test
+root through one computed file adapter. The default preferences remain
+`.standard`. Bookmark removal uses the same dependency. All other host
+dependencies and public scripting operations remain unchanged.
+
+Verified automatically: 455 app and 504 core methods passed. The existing
+bookmark integration method now uses a unique preferences suite and temporary
+files on both host routes. It checks resolution, read, write, export, removal,
+unrelated preference retention and retained input/output files. Test names
+remain unchanged. Unsigned Xcode compilation and matrix structure passed.
+No test was removed. No manual UI session was required.
+
+Next stage: share success-only execution dispatch in test support. Preserve
+all contract cases and leave report, cancellation and timing assertions explicit.

@@ -23,22 +23,42 @@ struct BookmarkPreferencesTests {
 
 @Suite("Bookmark file access") @MainActor
 struct BookmarkFileAccessTests {
-    @Test func savedBookmarkWorksInTheNativeFileAPIAndForgetKeepsFiles() throws {
+    @Test(arguments: [false, true])
+    func savedBookmarkWorksInTheNativeFileAPIAndForgetKeepsFiles(asynchronous: Bool) async throws {
         let name = "Bookmark-contract-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(name, isDirectory: true)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        defer {
-            BookmarkPreferences.forget(name)
-            try? FileManager.default.removeItem(at: folder)
-        }
+        defer { try? FileManager.default.removeItem(at: folder) }
         let text = "Neutral café 🐼\nSecond line"
         try text.write(to: folder.appendingPathComponent("input.txt"), atomically: true, encoding: .utf8)
-        UserDefaults.standard.set(try BookmarkPreferences.data(for: folder), forKey: "bookmark." + name)
+        defaults.set(try BookmarkPreferences.data(for: folder), forKey: "bookmark." + name)
+        defaults.set("Keep", forKey: "unrelated")
         let host = NativeActionHost()
-        #expect(try host.fileAPI(["storage": "bookmark", "bookmark": name, "operation": "readString", "path": "input.txt"]) as? String == text)
-        #expect(try host.fileAPI(["storage": "bookmark", "bookmark": name, "operation": "writeString", "path": "output.txt", "text": text]) as? Bool == true)
-        BookmarkPreferences.forget(name)
-        #expect(!BookmarkPreferences.names().contains(name))
+        host.fileDefaults = defaults
+        let libraryFolder = folder.appendingPathComponent("Library", isDirectory: true)
+        host.testFileRoot = libraryFolder
+        #expect(try host.libraryFolder() == libraryFolder)
+        let bookmarkPath = try #require(try await perform("bookmark", values: ["name": name], host: host, asynchronous: asynchronous) as? String)
+        #expect(URL(fileURLWithPath: bookmarkPath).resolvingSymlinksInPath() == folder.resolvingSymlinksInPath())
+        #expect(try await perform("fileAPI", values: ["storage": "bookmark", "bookmark": name, "operation": "readString", "path": "input.txt"], host: host, asynchronous: asynchronous) as? String == text)
+        #expect(try await perform("fileAPI", values: ["storage": "bookmark", "bookmark": name, "operation": "writeString", "path": "output.txt", "text": text], host: host, asynchronous: asynchronous) as? Bool == true)
+        #expect(try await perform("saveFile", values: ["bookmark": name, "name": "export.txt", "text": text], host: host, asynchronous: asynchronous) as? Bool == true)
+        #expect(try await perform("forgetBookmark", values: ["name": name], host: host, asynchronous: asynchronous) as? Bool == true)
+        #expect(!BookmarkPreferences.names(defaults: defaults).contains(name))
+        #expect(defaults.string(forKey: "unrelated") == "Keep")
+        #expect(try String(contentsOf: folder.appendingPathComponent("input.txt"), encoding: .utf8) == text)
         #expect(try String(contentsOf: folder.appendingPathComponent("output.txt"), encoding: .utf8) == text)
+        #expect(try String(contentsOf: folder.appendingPathComponent("export.txt"), encoding: .utf8) == text)
+    }
+
+    private func perform(_ operation: String, values: [String: Any], host: NativeActionHost, asynchronous: Bool) async throws -> Any? {
+        if asynchronous {
+            let payload = String(decoding: try JSONSerialization.data(withJSONObject: values), as: UTF8.self)
+            let response = try await host.performAsync(operation, payload: payload)
+            return (try JSONSerialization.jsonObject(with: Data(response.utf8)) as? [String: Any])?["value"]
+        }
+        return try host.perform(operation, values: values)
     }
 }

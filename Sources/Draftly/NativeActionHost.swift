@@ -13,6 +13,8 @@ final class NativeActionHost: ActionHost {
     var onActionPreview: ((ActionPreviewRequest) -> Void)?
     var dictationHandler: (([String: Any]) throws -> String)?
     var testFileRoot: URL?
+    var fileDefaults: UserDefaults = .standard
+    var fileAdapter: NativeFileAdapter { NativeFileAdapter(defaults: fileDefaults, testFileRoot: testFileRoot) }
     var onPreview: ((String) -> Void)?
     var onError: (String) -> Void = { _ in }
     private let previewAdapter = NativePreviewAdapter()
@@ -41,7 +43,7 @@ final class NativeActionHost: ActionHost {
         case "print": result = try await NativePrintRequest.run(values)
         case "arrangeText": result = try await arrangeTextAsync(values["text"] as? String ?? "")
         case "htmlPreview": result = try await interactivePreviewAsync(values)
-        case "saveFile", "bookmark", "fileAPI": result = try await NativeFileAdapter(testFileRoot: testFileRoot).performAsync(operation, values: values)
+        case "saveFile", "bookmark", "fileAPI": result = try await fileAdapter.performAsync(operation, values: values)
         case "composeMail", "composeMessage": result = try await NativeMessageAdapter().composeAsync(operation, values)
         case "callbackURL": result = try await ActionCallbackRouter.openAsync(values)
         case "shellScript": result = try await NativeAutomationAdapter().executeShellAsync(values)
@@ -62,13 +64,13 @@ final class NativeActionHost: ActionHost {
 
     func perform(_ operation: String, values: [String: Any]) throws -> Any? {
         if NativePromptAdapter.operations.contains(operation) { return try NativePromptAdapter().perform(operation, values: values) }
-        if NativeFileAdapter.operations.contains(operation) { return try NativeFileAdapter(testFileRoot: testFileRoot).perform(operation, values: values) }
+        if NativeFileAdapter.operations.contains(operation) { return try fileAdapter.perform(operation, values: values) }
         if NativePreviewAdapter.operations.contains(operation) { return try previewAdapter.perform(operation, values: values, host: self) }
         if NativeAutomationAdapter.operations.contains(operation) { return try NativeAutomationAdapter().perform(operation, values: values, host: self) }
         if NativeSystemAdapter.operations.contains(operation) { return try NativeSystemAdapter(events: events, reportError: onError).perform(operation, values: values) }
         return try performAPI(operation, values: values)
     }
-    func libraryFolder() throws -> URL { try NativeFileAdapter(testFileRoot: testFileRoot).libraryFolder() }
+    func libraryFolder() throws -> URL { try fileAdapter.libraryFolder() }
     func showHTML(_ html: String) { previewAdapter.showHTML(html, onPreview: onPreview) }
     func requestAccess(reminders: Bool) throws { try NativeSystemAdapter(events: events, reportError: onError).requestAccess(reminders: reminders) }
 }

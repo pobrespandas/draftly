@@ -13,7 +13,7 @@ import DraftlyCore
         case "recognizeDocument": return try recognizeDocument()
         case "fileAPI": return try fileAPI(values)
         case "bookmark": return try bookmarkRoot(values["name"] as? String ?? "").path
-        case "forgetBookmark": UserDefaults.standard.removeObject(forKey: "bookmark.\(values["name"] as? String ?? "")"); return true
+        case "forgetBookmark": BookmarkPreferences.forget(values["name"] as? String ?? "", defaults: fileDefaults); return true
         case "requireScript":
             var path = values["path"] as? String ?? ""
             if !path.hasSuffix(".js") { path += ".js" }
@@ -65,8 +65,8 @@ import DraftlyCore
         }
     }
 
-    func bookmarkRoot(_ name: String) throws -> URL { try NativeFileAdapter(testFileRoot: testFileRoot).bookmarkRoot(name) }
-    func fileAPI(_ values: [String: Any]) throws -> Any { try NativeFileAdapter(testFileRoot: testFileRoot).fileAPI(values) }
+    func bookmarkRoot(_ name: String) throws -> URL { try fileAdapter.bookmarkRoot(name) }
+    func fileAPI(_ values: [String: Any]) throws -> Any { try fileAdapter.fileAPI(values) }
     func executeShell(_ values: [String: Any]) throws -> [String: Any] { try NativeAutomationAdapter().executeShell(values) }
     func executeAppleScript(_ values: [String: Any]) throws -> Any { try NativeAutomationAdapter().executeAppleScript(values) }
     private func compose(_ operation: String, _ values: [String: Any]) throws -> [String: String] { try NativeMessageAdapter().compose(operation, values) }

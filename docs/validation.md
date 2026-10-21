@@ -6098,3 +6098,16 @@ unsigned Xcode build. The two new characterization methods run without I/O.
 The API matrix is unchanged and strict engine output matches the baseline.
 No test was removed. No native UI session was needed for this extraction.
 See refactoring-2026-10-21.md for the diagnosis and next stage.
+
+
+### Refactoring bookmark preference boundary — 21 October 2026
+
+NativeActionHost now forwards one file-preference dependency to all native
+file adapter paths. Production still uses standard preferences. The existing
+bookmark test uses an isolated suite and temporary files, with sync and async
+host variants. It retains bookmark resolution, read/write, forget and retained
+file coverage, and checks export and unrelated preferences.
+
+All 455 app and 504 core methods passed. The unsigned Xcode build and matrix
+structure passed. No public API, stored format or classification changed.
+No visible UI, permission or sound check ran. See the refactoring record.
