@@ -5207,3 +5207,27 @@ Full regression passed app449/core479 before the final absent-field test was
 added. The subsequent focused suite passed both methods and ten cases. The
 unsigned Xcode build passed. Native history/inspector checks and a specific
 imported timeout case remain pending. No installed app was updated.
+
+
+### Native imported log policy — 20 October 2026
+
+Updated only Restore QA after normal quit and confirmed process exit. Signature
+verification passed. Executable SHA256:
+294c9c874705d96762a31e881b9074eb2ebe0616666828c9909a2825d9978af5.
+Imported scripts/fixtures/action-log-policy-actions.json through File > Import
+after verifying the selected filename. The six actions have stable IDs, neutral
+scripts, and notificationType0. Selected the existing neutral batch note.
+
+Ran all six actions from the action list. Completion messages matched success,
+error, or cancellation. Execution History then showed exactly these new rows:
+QA Log1 Error/Error, QA Log2 Success/Success, QA Log2 Cancel/Cancelled. It
+showed no QA Log0 Error, QA Log0 Success, or QA Log1 Success entries. Existing
+history remained visible. The editor retained the neutral text and nine notes.
+
+Opened QA Log1 Error in the inspector. Log Level showed Errors and both
+notification switches were off. The picker offered None, Errors, All. Changed
+to None and pressed Cancel. Reopened the inspector: Errors remained selected.
+Cancelled again. This verifies imported policy, native history filtering, and
+editor cancellation. It does not verify saving a changed policy, restart after
+editing, an imported timeout, or actual notification banners. No screenshot
+or raw exported library is tracked. No personal library changed.

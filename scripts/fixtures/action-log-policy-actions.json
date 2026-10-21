@@ -1,0 +1,94 @@
+{
+  "actions": [
+    {
+      "uuid": "BBBF0002-0000-4000-8000-000000000001",
+      "name": "QA Log 0 Success",
+      "group": "Log policy QA",
+      "logLevel": 0,
+      "notificationType": 0,
+      "steps": [
+        {
+          "type": "script",
+          "data": {
+            "script": ""
+          }
+        }
+      ]
+    },
+    {
+      "uuid": "BBBF0002-0000-4000-8000-000000000002",
+      "name": "QA Log 0 Error",
+      "group": "Log policy QA",
+      "logLevel": 0,
+      "notificationType": 0,
+      "steps": [
+        {
+          "type": "script",
+          "data": {
+            "script": "context.fail('Neutral policy error');"
+          }
+        }
+      ]
+    },
+    {
+      "uuid": "BBBF0002-0000-4000-8000-000000000003",
+      "name": "QA Log 1 Success",
+      "group": "Log policy QA",
+      "logLevel": 1,
+      "notificationType": 0,
+      "steps": [
+        {
+          "type": "script",
+          "data": {
+            "script": ""
+          }
+        }
+      ]
+    },
+    {
+      "uuid": "BBBF0002-0000-4000-8000-000000000004",
+      "name": "QA Log 1 Error",
+      "group": "Log policy QA",
+      "logLevel": 1,
+      "notificationType": 0,
+      "steps": [
+        {
+          "type": "script",
+          "data": {
+            "script": "context.fail('Neutral policy error');"
+          }
+        }
+      ]
+    },
+    {
+      "uuid": "BBBF0002-0000-4000-8000-000000000005",
+      "name": "QA Log 2 Success",
+      "group": "Log policy QA",
+      "logLevel": 2,
+      "notificationType": 0,
+      "steps": [
+        {
+          "type": "script",
+          "data": {
+            "script": ""
+          }
+        }
+      ]
+    },
+    {
+      "uuid": "BBBF0002-0000-4000-8000-000000000006",
+      "name": "QA Log 2 Cancel",
+      "group": "Log policy QA",
+      "logLevel": 2,
+      "notificationType": 0,
+      "steps": [
+        {
+          "type": "script",
+          "data": {
+            "script": "context.cancel();"
+          }
+        }
+      ]
+    }
+  ]
+}

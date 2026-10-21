@@ -1156,3 +1156,7 @@ error-only, or complete execution history. Optional persistence preserves old
 libraries and unknown integers. Both runners and the inspector use this
 setting. Automatic and build evidence is in validation; native checks remain
 pending. Other imported-option gaps remain open.
+
+Native log-policy follow-up: six neutral actions confirmed None, Errors, All
+history behavior. Inspector showed imported Errors and Cancel discarded a
+change to None. Save/restart, timeout, and notification delivery remain pending.
