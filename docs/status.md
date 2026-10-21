@@ -1453,3 +1453,31 @@ pending. ActionGroup.uuid stays partial. Next: verify neutral colliding groups
 in QA, check imported identities against existing groups, and record the
 native result. The earlier commit push failed DNS resolution; retry when
 GitHub is reachable. No global or core parity closure is claimed.
+
+
+### Native collision identity acceptance — 20 October 2026
+
+Updated Visual QA from the successful unsigned build. Executable SHA256:
+8393885e47da2ef0ef568a85da491c3c3f4f32d7ac1f67e7dc15d2df805d79dc.
+Imported action-group-collision-actions.json through File > Import. The fixture
+contains one action in B plus 16 As and another in question mark plus 15 As.
+The verification action checked distinct UUIDs, separate membership and one
+getAll entry per UUID. History showed Success. The neutral editor marker showed
+C95E49A1-6E4A-8EB1-B316-F1199A92BB18 and
+3F414141-4141-4141-4141-414141414141.
+
+Quit and reopened the exact QA bundle. Selected the existing neutral note and
+ran the same action again. It completed and returned the same two UUIDs.
+QA retains one neutral note, update-qa and its flag. No permission changed.
+No screenshot or raw log is tracked. The reproducible fixture is tracked.
+
+Added single-file and multi-file import cases against an existing collision
+owner. Both preserve its UUID and action membership, allocate a different UUID
+for the imported group, keep IDs on repeated import, and roll back injected
+write failures. The focused import regression passed 16 methods in two suites.
+This closes ActionGroup.uuid only. Broader group methods, installation formats
+and remaining included contracts still require their own acceptance.
+
+Commits 41d038a and 13bfeba reached origin/main after DNS recovered. Continue
+with the remaining ActionGroup contracts and the engine/native acceptance
+items. The complete Mac roadmap remains open.

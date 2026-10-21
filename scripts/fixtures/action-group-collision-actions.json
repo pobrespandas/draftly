@@ -1,0 +1,22 @@
+[
+  {
+    "uuid": "BBBF0003-0000-4000-8000-000000000009",
+    "name": "QA Collision verify",
+    "group": "BAAAAAAAAAAAAAAAA",
+    "notificationType": 0,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "function check(v,m){if(!v)throw new Error(m);}\nconst a=ActionGroup.find('BAAAAAAAAAAAAAAAA'),b=ActionGroup.find('?AAAAAAAAAAAAAAA');\ncheck(a && b && a.uuid!==b.uuid,'distinct colliding groups');\ncheck(a.actions.some(x=>x.name==='QA Collision verify'),'first membership');\ncheck(!a.actions.some(x=>x.name==='QA Collision member'),'no cross membership');\ncheck(b.actions.some(x=>x.name==='QA Collision member'),'second membership');\ncheck(ActionGroup.getAll().filter(x=>x.uuid===a.uuid).length===1,'unique first identity');\ncheck(ActionGroup.getAll().filter(x=>x.uuid===b.uuid).length===1,'unique second identity');\neditor.setText('Group collision passed café 🐼\\n'+a.uuid+'\\n'+b.uuid);draft.update();"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0003-0000-4000-8000-000000000010",
+    "name": "QA Collision member",
+    "group": "?AAAAAAAAAAAAAAA",
+    "steps": []
+  }
+]

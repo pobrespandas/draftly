@@ -95,6 +95,32 @@ struct ActionGroupPersistenceTests {
         #expect(Set(library.actionGroupIdentifiers.values).count == 2)
     }
 
+    @Test(arguments: [false, true]) func actionImportPreservesExistingCollisionOwner(multipleFiles: Bool) throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let existing = ActionGroupRecord(name: first)
+        try library.saveActionGroup(existing)
+        var a = DraftAction(name: "Existing", steps: []); a.group = first
+        var b = DraftAction(name: "Imported", steps: []); b.group = second
+        try library.saveActions([a])
+        let data = try JSONEncoder().encode([b])
+        let files = [LibraryFileImport.File(data: data, fileExtension: "json")]
+            + (multipleFiles ? [LibraryFileImport.File(data: Data("Neutral imported draft".utf8), fileExtension: "txt")] : [])
+        let before = try library.backupData()
+        library.beforeBatchCommit = { throw DraftlyError.message("Injected import failure") }
+        #expect(throws: (any Error).self) { try LibraryFileImport.apply(files, to: library) }
+        library.beforeBatchCommit = nil
+        #expect(try library.backupData() == before)
+        try LibraryFileImport.apply(files, to: library)
+        #expect(library.actionGroupIdentifiers[first] == existing.id)
+        #expect(library.actionGroupIdentifiers[second] != existing.id)
+        #expect(library.actions.first { $0.id == a.id }?.group == first)
+        #expect(library.actions.first { $0.id == b.id }?.group == second)
+        let ids = library.actionGroupIdentifiers
+        try LibraryFileImport.apply(files, to: library)
+        #expect(library.actionGroupIdentifiers == ids)
+        #expect(library.actions.count == 2)
+    }
+
     @Test func batchRejectsDuplicateIDsBeforeWritingAnyGroup() throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         try library.saveActionGroup(ActionGroupRecord(name: "Existing"))

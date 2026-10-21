@@ -6974,19 +6974,17 @@
             "test": "groupIdentificationCannotBeReassignedOrRetargetItsActions"
           },
           "liveCheck": null,
-          "compatibilityStatus": "partial",
+          "compatibilityStatus": "complete",
           "reviewDate": "2026-10-20",
           "implementationEvidence": {
-            "file": "Sources/DraftlyCore/Resources/Bridge.js",
-            "symbol": "ActionGroup.uuid"
+            "file": "Sources/DraftlyCore/LibraryStore.swift",
+            "symbol": "actionGroupIdentifiers / preserveCollidingGroupIdentities; Bridge.js ActionGroup.uuid"
           },
           "defaults": "Readonly getter has no arguments and exposes its catalog value.",
-          "result": "Stored group name/UUID are returned and cannot be reassigned; rename and backup/restore preserve UUID and member identity.",
+          "result": "Returns the unique stored group UUID. Readonly assignment does not change it. Rename, backup, reopen and collision-safe creation preserve existing identities.",
           "errors": "The reference defines no getter error. Reflect.set rejects readonly replacement and preserves the original value.",
-          "limitations": [
-            "Collision-safe allocation, atomic persistence, scripting and workspace resolution pass automatic regression tests. Native collision creation and import verification remain pending; the legacy identifier helper remains unchanged for compatibility."
-          ],
-          "evidenceLevel": "Readonly, rename, restore, reopen and collision identity checks pass automatically. Native collision acceptance is pending.",
+          "limitations": [],
+          "evidenceLevel": "Specific readonly, stable identity and collision contracts pass both scripting runners and native import/restart acceptance.",
           "automatedVerification": {
             "status": "passed",
             "date": "2026-10-20",
@@ -7020,9 +7018,9 @@
             "normal": {
               "test": {
                 "suite": "ActionCatalogReadOnlyContractTests",
-                "test": "groupIdentificationCannotBeReassignedOrRetargetItsActions"
+                "test": "collidingImplicitGroupsExposeTheirStoredIdentities"
               },
-              "assertion": "Stored group name/UUID are returned and cannot be reassigned; rename and backup/restore preserve UUID and member identity."
+              "assertion": "Both scripting runners return distinct persisted UUIDs for colliding names and preserve each group membership. Rename/restore and reopen are covered separately."
             },
             "defaults": {
               "notApplicable": "The getter has no parameters or selectable default."
@@ -7036,8 +7034,7 @@
             }
           },
           "nativeVerification": {
-            "status": "pending",
-            "reason": "Earlier native readonly/value assertions passed. Collision-safe allocation and persistence require acceptance with the updated QA binary.",
+            "status": "passed",
             "additionalChecks": [
               {
                 "status": "passed",
@@ -7046,8 +7043,18 @@
                 "executableSHA256": "9db58717ac543a171d3bd0fbf90e6525e364f5bfc63a247dae90a4c3a52ba420",
                 "evidence": "docs/validation.md: Native action catalog identity acceptance — 20 October 2026",
                 "result": "Known native action UUID/name, both separator values, group identity and readonly rejection passed; History Success and exact neutral marker displayed."
+              },
+              {
+                "status": "passed",
+                "date": "2026-10-20",
+                "fixture": "scripts/fixtures/action-group-collision-actions.json",
+                "executableSHA256": "8393885e47da2ef0ef568a85da491c3c3f4f32d7ac1f67e7dc15d2df805d79dc",
+                "evidence": "docs/validation.md: Native collision identity acceptance — 20 October 2026",
+                "result": "Imported distinct colliding groups, verified membership and getAll uniqueness. History Success. Restart and repeat returned identical UUIDs."
               }
-            ]
+            ],
+            "date": "2026-10-20",
+            "evidence": "docs/validation.md: Native collision identity acceptance — 20 October 2026"
           }
         },
         {
