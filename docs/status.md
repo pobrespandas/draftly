@@ -1608,3 +1608,12 @@ PCC. Actual QA checked both explicit unavailable responses and History Success.
 Both-mode negative tests passed. No setting or permission changed. Generation
 and its native cancellation remain blocked by readiness; this is not a passed
 cancellation check. Continue other engine and contract work independently.
+
+
+### Action.recent boundary coverage — 21 October 2026
+
+The specific saved-history case now covers both runners, date order, duplicate
+use, rename, deletion, unknown identities, legacy records and nonmutating reads.
+The method stays partial: recent use still depends on saved logs. Compare the
+omitted-log behavior in Drafts before changing recency persistence. The accepted
+find and installURL members do not close the remaining Action contracts.

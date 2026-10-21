@@ -6330,3 +6330,23 @@ It does not accept generation, generation cancellation, or the full task
 cancellation contract. Those native checks stay blocked until the system makes
 the relevant model available. Existing positive and other cancellation evidence
 remains separate. No screenshot or raw probe output is tracked.
+
+
+### Action.recent saved-history boundaries — 21 October 2026
+
+Reviewed the frozen reference. recent() returns recently used actions in reverse
+chronological order. It has no arguments and defines no error or count limit.
+Added a specific both-runner case with six fixed-date records inserted out of
+order. It checks an empty list, order, unique identities, current renamed names,
+deleted actions, unknown UUIDs without name fallback, legacy name-only records,
+repeat reads and unchanged backup data. Observer actions disable logging so the
+query does not add its own records. Eight focused methods in four suites passed.
+The existing broad catalog cases remain because they cover other contracts.
+No automatic test opens a window or uses a real library.
+
+Action.recent remains partial. ActionRunner.logExecution omits every run at
+logLevel 0 and non-error runs at level 1. recentActions reads only saved runs.
+That coupling means an unlogged use cannot enter the current recent list.
+The saved-history test does not approve this limitation. Compare actual Drafts
+behavior with omitted logs before deciding the separate persistence change.
+No production or public API change was made for this test.

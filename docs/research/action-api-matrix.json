@@ -6838,25 +6838,44 @@
           "contract": "Array of recently used actions in reverse chronological order.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "CatalogActionAPITests",
-            "test": "actionAndGroupQueriesKeepIdentityOrderAndInstallationData"
+            "suite": "ActionRecentContractTests",
+            "test": "savedHistoryReturnsUniqueCurrentActionsInReverseDateOrderWithoutMutation"
           },
           "liveCheck": null,
           "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-21",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Action.recent"
           },
-          "defaults": "Queries return an empty list or undefined for missing records. Factory defaults still need an exhaustive assertion set.",
-          "result": [
-            "recent(): Action[]"
-          ],
-          "errors": "Storage failures throw; missing lookups return undefined.",
+          "defaults": "The signature has no arguments or optional defaults. An empty saved history returns an empty array.",
+          "result": "Returns Action objects resolved from saved runs in reverse date order, once per current action UUID. Legacy runs without an action UUID resolve by name. Deleted actions and unknown UUIDs are omitted.",
+          "errors": "The archived reference defines no method-specific errors. Reading recent actions does not write storage.",
           "limitations": [
-            "Recent actions currently derive from saved ActionRun entries. Behavior when logLevel omits successful or all runs needs comparison with Drafts; log-independent recency is not accepted. Other ordering/deletion boundary cases remain pending."
+            "Recency currently derives from saved ActionRun entries. logLevel 0 suppresses all records; level 1 suppresses successful and cancelled runs. Behavior in Drafts with omitted logs still needs comparison before log-independent recency can be accepted."
           ],
-          "evidenceLevel": "Member-specific assertions. Native verification is separate."
+          "evidenceLevel": "Member-specific assertions. Native verification is separate.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionRecentContractTests",
+                "test": "savedHistoryReturnsUniqueCurrentActionsInReverseDateOrderWithoutMutation"
+              },
+              "assertion": "Both runners check an empty array, fixed-date reverse order independent of insertion order, repeated-use deduplication, current renamed identity, deleted entries, legacy name resolution, no name fallback for unknown UUIDs, repeat reads and unchanged backup data."
+            },
+            "defaults": {
+              "notApplicable": "The signature has no arguments or optional defaults."
+            },
+            "errors": {
+              "notApplicable": "The reference defines no method-specific failure contract. Missing history targets are covered in the normal case."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Action.recent saved-history boundaries — 21 October 2026",
+            "scope": "Specific saved-history boundaries passed on legacy and worker runners. This does not prove recency when the log policy suppresses a run."
+          }
         }
       ]
     },
