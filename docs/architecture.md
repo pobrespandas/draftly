@@ -12,6 +12,13 @@ ActionEditingCopy owns the temporary action, selected step and step operations.
 ActionEditor renders bindings and owns save, export, shortcut errors and dismissal.
 The editing copy does not persist data. Cancel discards it.
 
+## Installed theme command boundary
+
+InstalledThemeCommands coordinates library writes, local theme preferences and
+file bookmarks. It delegates to the existing preference and file-access types.
+Settings owns panels, confirmations, temporary edits and error presentation.
+Save and install precede selection. A later selection error retains prior effects.
+
 ## Action catalog boundary
 
 `ActionCatalog` is an internal value with actions and group records. It owns

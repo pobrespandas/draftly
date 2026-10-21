@@ -24,6 +24,7 @@ struct EditorLayoutPreferences: View {
     @State private var indentationSyntax = "Markdown"
     @AppStorage(EditorIndentationPreferences.key) private var indentation = "{}"
     private var themes: [EditorTheme] { library.themes }
+    private var themeCommands: InstalledThemeCommands { InstalledThemeCommands(library: library) }
     var body: some View {
         Section("Indentation") {
             Picker("Syntax", selection: $indentationSyntax) {
@@ -55,9 +56,7 @@ struct EditorLayoutPreferences: View {
         }
         .sheet(item: $editing) { value in
             ThemeSettingsView(theme: value, otherNames: themes.filter { $0.id != value.id && $0.type == "custom" }.map(\.name)) { theme in
-                try library.saveTheme(DraftsThemeImport.applyingEditorChanges(theme))
-                try EditorThemePreferences().set(reference: ["type": "custom", "uuid": theme.id.uuidString, "name": theme.name],
-                    dark: editingDark ?? theme.isDark, themes: library.themes)
+                try themeCommands.saveEditorTheme(theme, dark: editingDark)
             }
         }
     }
@@ -72,7 +71,7 @@ struct EditorLayoutPreferences: View {
             let parts = value.split(separator: ":", maxSplits: 1).map(String.init)
             guard parts.count == 2 else { return }
             let newReference = ["custom", "file"].contains(parts[0]) ? ["type": parts[0], "uuid": parts[1]] : ["type": "builtIn", "name": parts[1]]
-            do { try EditorThemePreferences().set(reference: newReference, dark: dark, themes: themes); error = nil }
+            do { try themeCommands.select(reference: newReference, dark: dark); error = nil }
             catch { self.error = error.localizedDescription }
         })
         return HStack {
@@ -83,15 +82,14 @@ struct EditorLayoutPreferences: View {
             if let current = themes.first(where: { $0.id == selectedID }) {
                 if current.type == "file" {
                     Button("Reload") {
-                        do { try EditorThemePreferences().set(reference: reference, dark: dark, themes: themes); error = nil }
+                        do { try themeCommands.select(reference: reference, dark: dark); error = nil }
                         catch { self.error = error.localizedDescription }
                     }
                     Button("Reselect…") { useThemeFile(replacing: current, dark: dark) }
                 } else { Button("Edit") { editingDark = dark; editing = current } }
                 Button("Delete") {
                     do {
-                        try library.deleteTheme(current.id)
-                        if current.type == "file" { UserDefaults.standard.removeObject(forKey: ThemeFileAccess.bookmarkKey(for: current.id)) }
+                        try themeCommands.delete(current)
                         error = nil
                     }
                     catch { self.error = error.localizedDescription }
@@ -120,9 +118,7 @@ struct EditorLayoutPreferences: View {
                 guard prepared.definition.name == originalName else { throw DraftlyError.message("The theme file changed. Select it again.") }
             }
             guard library.themes == before else { throw DraftlyError.message("The installed themes changed. Select the file again.") }
-            try ThemeFileAccess.install(prepared, in: library)
-            try EditorThemePreferences().set(reference: ["type": "file", "uuid": prepared.definition.id.uuidString],
-                dark: dark ?? prepared.definition.isDark, themes: library.themes)
+            try themeCommands.install(prepared, dark: dark)
             error = nil
         } catch { self.error = error.localizedDescription }
     }

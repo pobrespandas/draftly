@@ -59,6 +59,15 @@ No identity, signing, iCloud or installed-app replacement belongs to this work.
    across editing-copy, inspector-fields, catalog and import suites. Local Xcode
    compilation and matrix structure passed. Native bindings remain pending.
 
+2. Theme commands: implemented. InstalledThemeCommands owns the existing
+   save/select, install/select, reload/select and delete/bookmark sequences.
+   EditorLayoutPreferences retains dialogs, confirmation and temporary edits.
+   Eight new methods cover imported data, slots, save/install/delete failures,
+   retained effects after selection failure and bookmark ownership. All 23
+   affected methods passed across command, preference, file application and
+   import suites. Local Xcode compilation passed. Independent review found no
+   behavior change. Native theme bindings remain pending.
+
 Other stages are in progress. Record each stage only after its checks pass.
 Automatic checks stay headless and use temporary data. Run compilation and
 tests separately. Native checks use a separate manual session and neutral data.
