@@ -47,9 +47,10 @@ struct QAWindowInventory {
     private static let delegate = CallbackHelper()
     private var panel: NSWindow?
     private let targetField = NSTextField(string: "draftly://create?text=Cold%20launch%20QA%20%F0%9F%90%BC")
+    private let targetApp = NSPopUpButton()
     private let resultField = NSTextField(wrappingLabelWithString: "Open a neutral URL in the isolated QA app.")
     private let inventoryField = NSTextField(wrappingLabelWithString: "Window inventory is off. It does not activate or control the QA app.")
-    private lazy var inventoryToggle = NSButton(checkboxWithTitle: "Monitor QA windows (read only)", target: self, action: #selector(toggleInventory))
+    private lazy var inventoryToggle = NSButton(checkboxWithTitle: "Monitor Engine QA windows (read only)", target: self, action: #selector(toggleInventory))
     private lazy var refreshButton = NSButton(title: "Refresh window inventory", target: self, action: #selector(refreshInventory))
     private var inventoryTimer: Timer?
     private let replyField = NSTextField(wrappingLabelWithString: "No reply has been opened.")
@@ -72,20 +73,22 @@ struct QAWindowInventory {
         let appMenu = NSMenu(); appItem.submenu = appMenu
         appMenu.addItem(withTitle: "Quit QA Helper", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         NSApp.mainMenu = menu
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 620, height: 390),
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 620, height: 430),
                               styleMask: [.titled, .closable], backing: .buffered, defer: false)
         window.title = "Draftly Automation QA Helper"
         window.isReleasedWhenClosed = false
         resultField.maximumNumberOfLines = 3
         let stack = NSStackView(); stack.orientation = .vertical; stack.spacing = 12
         let button = NSButton(title: "Open in QA", target: self, action: #selector(openInQA))
+        targetApp.addItems(withTitles: ["Engine QA", "Visual QA"])
+        stack.addArrangedSubview(targetApp)
         stack.addArrangedSubview(targetField); stack.addArrangedSubview(button); stack.addArrangedSubview(resultField)
         let inventoryControls = NSStackView(views: [inventoryToggle, refreshButton]); inventoryControls.orientation = .horizontal
         refreshButton.isEnabled = false
         inventoryField.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
         stack.addArrangedSubview(inventoryControls); stack.addArrangedSubview(inventoryField)
         stack.addArrangedSubview(replyField)
-        stack.frame = NSRect(x: 20, y: 20, width: 580, height: 350)
+        stack.frame = NSRect(x: 20, y: 20, width: 580, height: 390)
         replyField.widthAnchor.constraint(equalToConstant: 580).isActive = true
         targetField.widthAnchor.constraint(equalToConstant: 580).isActive = true
         resultField.widthAnchor.constraint(equalToConstant: 580).isActive = true
@@ -128,10 +131,13 @@ struct QAWindowInventory {
         receivedCallbackCount = 0
         let requestID = UUID(); openRequestID = requestID
         resultField.stringValue = "Callbacks received: 0"
+        let visual = targetApp.indexOfSelectedItem == 1
+        let identifier = visual ? "com.andrestobelem.draftly.visual-close" : "com.andrestobelem.draftly.engine-qa"
+        let app = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(
+            visual ? "Applications/Draftly Visual QA.app" : "Applications/Draftly Engine QA.app")
         guard let url = URL(string: targetField.stringValue), url.scheme == "draftly",
               ["open", "create", "capture", "run", "runAction", "action", "x-callback-url"].contains(url.host ?? ""),
-              let app = NSWorkspace.shared.urlForApplication(toOpen: URL(string: "draftly-engine-qa://callback")!),
-              let bundle = Bundle(url: app), bundle.bundleIdentifier == "com.andrestobelem.draftly.engine-qa",
+              let bundle = Bundle(url: app), bundle.bundleIdentifier == identifier,
               bundle.object(forInfoDictionaryKey: "DraftlyUITesting") as? Bool == true else {
             resultField.stringValue = "The isolated QA app or URL is invalid."
             return

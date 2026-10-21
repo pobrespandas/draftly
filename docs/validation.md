@@ -5630,3 +5630,40 @@ not create or activate windows. Native two-window acceptance remains pending.
 
 The unsigned local Xcode build passed. Matrix structure check passed with
 zero errors. No installed QA app was replaced for this change.
+
+
+### Native duplicate-window URL owner selection — 20 October 2026
+
+Updated the stopped Visual QA app from the local build of 0b91f58. Kept its
+Info.plist, local library, and ad-hoc signing type. Signature verification
+passed. Executable SHA256:
+87fb326b8af993eef9e2450d5f6156b9807203f97c86a8a2c457a2c8624d24fd.
+Debug library SHA256:
+58c64335164f32d5233b44db496a77267a5a6abd200adc6a19bce09b11115302.
+No permission changed and CloudKit remained disabled.
+
+The manual callback helper now has an explicit Engine QA/Visual QA selector.
+It opens only the named installed app and checks the expected bundle identity
+and DraftlyUITesting flag. Engine QA remains the default. The read-only window
+monitor still targets Engine QA and its label now says so. Compiled the helper
+and passed its window-inventory self-test before replacing its stopped copy.
+
+Imported engine-window-owner-actions.json into Visual QA. Reused its single
+neutral draft, UUID 2CD5AB10-6A3A-4E79-A2AF-33A4E4AC41DB. Set its text to
+Alpha 🐼 Beta café Gamma and used Open in New Window. Both native windows
+displayed that same draft. Window IDs were library-AppWindow-1 and library-AppWindow-2.
+
+Selected Alpha in Window 1 while the duplicate had a different selection.
+Sent a run URL with the exact UUID through the helper's Visual QA target and
+confirmed Run Action. The helper received one success callback, selected=Alpha.
+Then activated Window 2 through the native Window menu, confirmed its window ID,
+and selected Gamma. The second URL run returned one success callback with
+selected=Gamma. Both windows displayed the final text
+Owner:Alpha 🐼 Beta café Owner:Gamma. No second note was created.
+
+This accepts visible same-draft URL ownership in both activation orders and
+content propagation between clean editors. It does not prove App Intent
+selection, minimized-window fallback, or a timed pending edit before autosave.
+The automated regression covers that preflight write boundary. Both QA windows
+remain open on the one neutral draft; the helper has no pending reply timer.
+No screenshot is tracked.

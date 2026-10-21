@@ -1,0 +1,16 @@
+[
+  {
+    "uuid": "BBBF0003-0000-4000-8000-000000000004",
+    "name": "QA Same draft window selection",
+    "group": "Native window QA",
+    "notificationType": 0,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "var selected=editor.getSelectedText();context.addSuccessParameter('selected',selected);editor.setSelectedText('Owner:'+selected);draft.update();"
+        }
+      }
+    ]
+  }
+]

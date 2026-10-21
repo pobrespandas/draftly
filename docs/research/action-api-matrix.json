@@ -18572,7 +18572,7 @@
         "result": "Real QA cold-launch Run awaited delayed success and returned its success parameters. URL failure and cancellation returned matching callbacks. Development-signed QA App Intent through Shortcuts returned success, delayed failure, and cancellation messages. Timeout, busy, concurrent-entry, and window-close variants remain pending."
       },
       "limitations": [
-        "Linked native checks cover UI/URL/Intent queued failure/cancel and production queued timeout, URL/Intent owner-close, and mixed Intent/URL library exclusion. Same-draft multiwindow owner selection and remaining capability-specific entry variants remain unverified."
+        "Native UI/URL/Intent queue and exclusion checks remain recorded. Same-draft URL owner selection passed with both visible windows active in turn. Same-draft App Intent owner selection and remaining capability-specific entry variants remain unverified."
       ],
       "defaults": "A window model permits one pending or running action request at a time. It reserves execution before starting its Task. A repeated request is ignored rather than queued. The default is limited here to window scheduling; automation uses its separate save and target checks.",
       "result": "Successful batches process every captured draft and leave the last open. Automation saves pending visible edits before loading its target; final reports supply the result used by callbacks and Intents.",
@@ -18760,6 +18760,14 @@
             "fixture": "scripts/fixtures/engine-queue-actions.json",
             "evidence": "docs/validation.md: Current-image native queued Intent timeout — 20 October 2026",
             "result": "Actual Intent kept Stop through110.268s and showed the production timeout error at134.674s observation. Retained source/child Inbox writes, last-child editor and Error history passed. Initial edited/cancelled run is excluded; shortcut fields were restored."
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "87fb326b8af993eef9e2450d5f6156b9807203f97c86a8a2c457a2c8624d24fd",
+            "fixture": "scripts/fixtures/engine-window-owner-actions.json",
+            "entryPoint": "Visual QA run URLs with two windows on the same UUID",
+            "result": "Window1 selected Alpha; URL returned one success callback selected=Alpha. Activated confirmed Window2 and selected Gamma; second URL returned one success callback selected=Gamma. Both windows displayed Owner:Alpha 🐼 Beta café Owner:Gamma. App Intent same-draft ownership and other capability variants remain pending.",
+            "evidence": "docs/validation.md: Native duplicate-window URL owner selection — 20 October 2026"
           }
         ]
       },
