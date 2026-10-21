@@ -40,7 +40,9 @@ The shared print operation now renders on MainActor. A headless PDF regression
 and two real Save as PDF runs passed, with the action continuing after Save.
 Native task cancellation and the print panel Cancel button each closed the panel,
 recorded Cancelled and preserved completed text without the tail or Archive.
-A following action succeeded. Owner close, timeout and large rendering stay open.
+A following action succeeded. The unchanged production120s timeout also closed
+the panel and recorded Error without tail or Archive. Owner close and large
+rendering stay open.
 
 The six partial engine records point to the finite
 [native engine checklist](research/engine-native-checklist.md). It separates

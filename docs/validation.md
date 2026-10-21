@@ -7662,3 +7662,24 @@ Automatically tested: no new production calculation or contract changed, so
 the previous headless print regression and full suite remain the code baseline.
 This manual check does not replace timeout, owner-close, format/margin or large
 rendering acceptance. Those checks remain pending. No raw capture is tracked.
+
+
+### Native print production timeout — 21 October 2026
+
+Verified in use: ran QA Print pending operation on the same signed Theme QA
+image as the cancellation checks. The native panel remained open at79 and110
+seconds after observation. At128 seconds it had closed. History recorded Error
+at06:25 with The action operation timed out before it completed. The production
+120-second limit was not changed. The completed write remained in Inbox without
+the tail sentinel or Archive. This does not isolate which equal host/print
+deadline won. A following shell recovery recorded Success at06:27.
+
+The owner-close attempt is not accepted. File > Close was disabled during the
+print sheet. Close All did not produce a confirmed owner closure; the Window
+menu still listed Alpha. The second run later recorded Cancelled at06:26 after
+menu/Escape interaction. Its exact cause was not isolated. Do not label this an
+owner-close success. QA is back on Alpha with history closed and no print panel.
+
+Automatically tested: the15 NativePrintRequestTests passed headlessly on this
+source. No production implementation changed for the native timeout check.
+Owner-close and long-rendering acceptance remain pending.
