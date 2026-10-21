@@ -179,12 +179,13 @@ private struct ActionStepInspector: View {
                     if !DraftAction.supportedSteps.contains(step.type) {
                         Label("Unsupported step · preserved on export", systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.orange)
                     }
-                    ForEach(step.values.keys.filter { !["data", "parameters", "values", "uuid", "isEnabled", "platforms"].contains($0) }.sorted(), id: \.self) { key in
+                    ForEach(ActionStepInspectorFields.fields(for: step)) { field in
+                        let key = field.key
                         VStack(alignment: .leading, spacing: 6) {
                             HStack {
                                 Text(key).font(.system(size: 12, weight: .medium))
                                 Spacer()
-                                if ["template", "script", "source"].contains(key) {
+                                if field.allowsTagInsertion {
                                     Menu("Insert Tag") {
                                         ForEach(["draft", "title", "body", "selection", "date", "tags", "uuid"], id: \.self) { tag in
                                             Button("[[" + tag + "]]") { step.values[key, default: ""] += "[[" + tag + "]]" }
@@ -192,9 +193,9 @@ private struct ActionStepInspector: View {
                                     }.font(.caption).fixedSize()
                                 }
                             }
-                            if ["template", "script", "source"].contains(key) {
+                            if field.isMultiline {
                                 TextEditor(text: Binding(get: { step.values[key] ?? "" }, set: { step.values[key] = $0 }))
-                                    .font(.system(size: 12, design: .monospaced)).frame(minHeight: key == "script" || key == "source" ? 360 : 180).border(.quaternary)
+                                    .font(.system(size: 12, design: .monospaced)).frame(minHeight: field.minHeight).border(.quaternary)
                             } else {
                                 TextField(key, text: Binding(get: { step.values[key] ?? "" }, set: { step.values[key] = $0 })).textFieldStyle(.roundedBorder)
                             }

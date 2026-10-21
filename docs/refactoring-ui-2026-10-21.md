@@ -67,7 +67,13 @@ and action-list option native checks remain pending. None is completed here.
    Parameterized cases cover malformed shapes, all sort keys and both directions.
    Unsigned Xcode compilation and matrix structure passed. No native behavior or
    stored format changed. No Computer Use was needed for the pure extraction.
-2. Inspector policy: pending.
+2. Inspector policy: complete. Pure ActionStepInspectorFields descriptors own
+   field exclusion, order, multiline/tag policy and height. The existing view
+   retains its bindings and layout. Four headless methods cover empty, mixed,
+   unknown and unchanged step data, including nil/true/false enabled values.
+   All five imported-action preservation methods also passed. Unsigned Xcode
+   compilation passed after project generation registered the new app source.
+   No new field, option, editor behavior or native acceptance is claimed.
 3. Test-only theme reader: pending.
 4. Preference fixtures: pending.
 
