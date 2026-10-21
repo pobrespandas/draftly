@@ -118,6 +118,32 @@ struct ScriptHTTPLocalServerTests {
                 Comment(rawValue: fixture.runner.message ?? ""))
     }
 
+    @Test(arguments: [false, true])
+    @MainActor
+    func actualXMLRPCParametersRoundTripEmptyAndNestedValues(worker: Bool) async throws {
+        let server = try LoopbackHTTPServer(); defer { server.stop() }
+        let fixture = try ScriptTestFixture(content: "Neutral XML-RPC", host: APIContractHost())
+        let action = ScriptTestAction.make("""
+        const endpoint='\(server.url("/xml-echo"))';
+        const empty=XMLRPC.request(endpoint,'example.empty',[]);
+        check(empty instanceof XMLRPCResponse && empty.success && empty.statusCode===200,'empty response succeeds');
+        check(Array.isArray(empty.params) && empty.params.length===0,'empty response parameters');
+        check(empty.error===undefined && empty.faultCode===undefined,'empty success has no error fields');
+        const input=['café 🐼 <&',false,true,-42,1.25,{'key café 🐼':['  whitespace  ',[],{},null]}];
+        const result=XMLRPC.request(endpoint,'example.echo',input);
+        check(result.success && result.statusCode===200,'nested response succeeds');
+        check(JSON.stringify(result.params)===JSON.stringify(input),'request and response preserve value types and contents');
+        check(result.error===undefined && result.faultCode===undefined,'nested success has no error fields');
+        result.params[5]['key café 🐼'][0]='changed';
+        check(input[5]['key café 🐼'][0]==='  whitespace  ','response is detached from request');
+        check(empty.params.length===0,'responses have separate arrays');
+        """, name: "XML-RPC parameter round trip")
+        #expect(await ActionTestExecution.succeeds(action, runner: fixture.runner, worker: worker),
+                Comment(rawValue: fixture.runner.message ?? ""))
+        #expect(try server.event()["path"] as? String == "/xml-echo")
+        #expect(try server.event()["path"] as? String == "/xml-echo")
+    }
+
     @Test(arguments: [false, true], [-42, 0, 42])
     @MainActor
     func actualXMLRPCFaultKeepsTypedFields(worker: Bool, code: Int) async throws {

@@ -13335,6 +13335,10 @@
             {
               "suite": "XMLRPCTests",
               "test": "emptyAndNestedCompositeValuesKeepTheirTypesAndWhitespace"
+            },
+            {
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualXMLRPCParametersRoundTripEmptyAndNestedValues"
             }
           ],
           "automatedVerification": {
@@ -13647,6 +13651,10 @@
             {
               "suite": "XMLRPCTests",
               "test": "malformedValuesDoNotDiscardPartsAndReportSuccess"
+            },
+            {
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualXMLRPCParametersRoundTripEmptyAndNestedValues"
             }
           ],
           "contractCases": {

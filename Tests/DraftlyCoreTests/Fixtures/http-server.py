@@ -2,6 +2,7 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import socket
+import xml.etree.ElementTree as ET
 from urllib.parse import parse_qs, urlsplit
 
 
@@ -51,6 +52,11 @@ class Handler(BaseHTTPRequestHandler):
                    'café &amp; mañana</string></value></param></params></methodResponse>')
             data = xml.encode(encoding)
             content_type = "text/xml" if target.path.endswith("-no-charset") else "text/xml; charset=" + encoding
+        elif target.path == "/xml-echo":
+            request = ET.fromstring(body)
+            response = ET.Element("methodResponse")
+            response.append(request.find("params"))
+            data, content_type = ET.tostring(response, encoding="utf-8"), "text/xml"
         elif target.path in ("/xml-fault", "/xml-malformed-fault"):
             code = int(parse_qs(target.query).get("code", ["42"])[0])
             xml = ('<methodResponse><fault><value><struct>'

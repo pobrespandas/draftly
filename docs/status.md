@@ -2093,3 +2093,10 @@ It checked Unicode, charsets, headers, fault codes and transport/parser failures
 without changing editor text. See validation for the exact cases. Date/binary
 mapping and undocumented response policies still require Drafts comparison.
 No production change or new compatibility classification was made.
+
+
+### XML-RPC parameter transport — 21 October 2026
+
+Empty and nested parameter round trips now have specific real HTTP tests on
+both engines and a successful installed-QA check. Values and response identity
+remain intact. Date/binary and undefined input policies remain pending.

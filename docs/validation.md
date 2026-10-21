@@ -8497,3 +8497,33 @@ Automatically tested: all 11 methods in ScriptHTTPLocalServerTests passed with
 their parameterized legacy and worker cases. Matrix structure has zero errors.
 No production code changed, so this stage did not require a new app build. The
 previous successful build identifies the installed binary used above.
+
+
+### XML-RPC parameter transport acceptance — 21 October 2026
+
+Implemented: added a neutral XML echo endpoint to the existing loopback fixture.
+It parses the actual methodCall and returns its params in a methodResponse.
+No production behavior or frozen reference changed. The specific JavaScript
+case runs on both engines. Empty parameters return a typed successful response,
+HTTP 200, an empty array, and no error or faultCode. A second request preserves
+Unicode, XML metacharacters, Boolean values, a negative integer, a fractional
+number, nested arrays and records, null, empty containers and string whitespace.
+Mutating the reply does not change the input or the earlier empty response.
+Both real POST requests are observed by the fixture.
+
+Automatically tested: all 12 ScriptHTTPLocalServerTests methods passed, including
+both runner cases for the new contract. This extends the parser-only composite
+tests with actual request serialization, HTTP transport and JavaScript reply
+conversion. Matrix structure passed. No production code changed; no new app
+build was required.
+
+Verified in use: imported the added QA XMLRPC parameter round trip action.
+Configured the neutral server at ephemeral port 63900. Execution History showed
+Success at 08:26. The server observed two POST requests to /xml-echo. The action
+verified editor text unchanged. Closed History and stopped the exact server.
+The installed binary is the same signed image recorded in the preceding check.
+No permission, remote destination or personal data was used.
+
+XMLRPC.request and XMLRPCResponse.params remain partial. This does not establish
+Date/binary mapping, duplicate struct-name policy or undocumented invalid-input
+behavior in Drafts. No compatibility classification was promoted.

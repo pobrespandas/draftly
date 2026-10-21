@@ -24,5 +24,31 @@
         }
       }
     ]
+  },
+  {
+    "uuid": "BBBF0043-0000-4000-8000-000000000002",
+    "name": "QA XMLRPC parameter round trip",
+    "group": "Transport contract QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "configurationKey",
+        "data": {
+          "key": "baseURL",
+          "name": "Neutral loopback URL",
+          "description": "Start Tests/DraftlyCoreTests/Fixtures/http-server.py. Enter http://127.0.0.1:PORT.",
+          "dataType": "string",
+          "defaultStringValue": "",
+          "requiresInitialConfiguration": "true"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "function check(value,message){if(!value)throw new Error(message);}\nconst base=context.configuredValues.baseURL;\ncheck(/^http:\\/\\/127\\.0\\.0\\.1:[0-9]+$/.test(base),'Use the neutral loopback server');\nconst original=editor.getText();\nconst empty=XMLRPC.request(base+'/xml-echo','example.empty',[]);\ncheck(empty instanceof XMLRPCResponse && empty.success && empty.statusCode===200,'Empty success');\ncheck(Array.isArray(empty.params) && empty.params.length===0 && empty.error===undefined && empty.faultCode===undefined,'Empty fields');\nconst input=['café 🐼 <&',false,true,-42,1.25,{'key café 🐼':['  whitespace  ',[],{},null]}];\nconst result=XMLRPC.request(base+'/xml-echo','example.echo',input);\ncheck(result.success && result.statusCode===200 && JSON.stringify(result.params)===JSON.stringify(input),'Nested round trip');\ncheck(result.error===undefined && result.faultCode===undefined,'Nested fields');\nresult.params[5]['key café 🐼'][0]='changed';\ncheck(input[5]['key café 🐼'][0]==='  whitespace  ' && empty.params.length===0,'Independent values');\ncheck(editor.getText()===original,'Source text unchanged');\ncontext.addSuccessParameter('xmlrpc','Empty and nested parameter round trips passed');"
+        }
+      }
+    ]
   }
 ]
