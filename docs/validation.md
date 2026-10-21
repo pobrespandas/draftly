@@ -5091,3 +5091,25 @@ without execution. The editor stayed blank. Raw backups remain in /tmp.
 This accepts the native same-library round trip and picker behavior. An empty-
 library native restore, grouped/mixed separator import variants, and Drafts
 appearance comparison remain pending. The engine contract stays partial.
+
+
+### Native empty-library backup restoration — 20 October 2026
+
+Created a separate signed Draftly Restore QA app from the existing Engine QA
+build. Bundle ID: com.andrestobelem.draftly.restore-qa. Local library ID:
+906AE94F-B222-48F0-A83D-B2F6AF2E0E65. CloudKit is disabled. Its URL scheme
+is draftly-restore-qa. First launch showed zero drafts and a blank editor.
+
+Imported the exact prior neutral QA backup through File > Import. The app
+reported Import complete and nine drafts. Exported the rebuilt library through
+File > Export Full Backup. Comparison by identity passed for every collection
+and field:9 notes,71 revisions,65 actions,64 runs. All revision note IDs resolve
+to restored notes. Separator identity, metadata, empty steps, Order0, raw payload,
+and unknown null/false/Unicode fields match the source. Other collections are
+empty in this fixture; this run does not verify nonempty workspace, group,
+syntax, or theme restoration. No action ran and no personal library changed.
+Raw backups remain in /tmp.
+
+This closes the native empty-store reconstruction check for the separator
+fixture and its populated collections. Reference appearance and grouped/mixed
+separator variants remain pending. The engine contract stays partial.

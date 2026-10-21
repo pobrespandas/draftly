@@ -17749,7 +17749,7 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Native list, bar, menu, order, restart, search and picker exclusion, and same-library backup round trip passed. Empty-library native restoration, grouped/mixed variants, and Drafts appearance comparison remain pending."
+        "Native list, bar, menu, order, restart, search and picker exclusion, same-library round trip, and empty-library backup reconstruction passed. Grouped/mixed separator variants and Drafts appearance comparison remain pending."
       ],
       "defaults": "Absent or false backingIsSeparator produces a normal action with isSeparator false. True marks an imported separator. The original payload remains available, including unknown fields.",
       "result": "A saved imported separator is found by Action.find with isSeparator true. A separator can retain an empty steps list without losing its API identity.",
@@ -17810,7 +17810,7 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Picker exclusion and same-library full backup round trip passed. Empty-library native restoration, grouped/mixed import variants, and Drafts appearance comparison remain pending.",
+        "reason": "Picker exclusion, same-library round trip, and empty-library reconstruction passed. Grouped/mixed separator variants and Drafts appearance comparison remain pending.",
         "evidence": "docs/validation.md",
         "additionalChecks": [
           {
@@ -17827,6 +17827,12 @@
             "entryPoint": "File export/import full backup",
             "result": "Same-library native backup round trip preserved all records by identity and every separator field, including raw unknown data. Restored execution picker still excluded B. Empty-library native restore is not covered.",
             "evidence": "docs/validation.md: Native separator backup round trip — 20 October 2026"
+          },
+          {
+            "date": "2026-10-20",
+            "entryPoint": "empty Restore QA library via File Import and Export Full Backup",
+            "result": "Initial zero-draft native library reconstructed all populated backup collections and fields. Separator identity, metadata, order, steps and raw unknown fields match. Revision relationships resolve. Empty collections are not coverage for workspace/group/syntax/theme data.",
+            "evidence": "docs/validation.md: Native empty-library backup restoration — 20 October 2026"
           }
         ]
       },
