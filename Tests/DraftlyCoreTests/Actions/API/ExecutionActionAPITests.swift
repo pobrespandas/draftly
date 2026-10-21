@@ -16,18 +16,36 @@ struct ExecutionActionAPITests {
         }
     }
 
-    @Test func contextSuccessParametersAreExportedOnlyForSuccessfulRuns() throws {
+    @Test(arguments: [false, true])
+    func contextSuccessParametersAreExportedOnlyForSuccessfulRuns(worker: Bool) async throws {
         let (_, _, _, runner) = try makeAPIContext()
-        #expect(runner.run(makeAPIAction("context.addSuccessParameter('result','café + 🐼');context.addSuccessParameter('result','replaced');")))
-        #expect(runner.successParameters == ["result": "replaced"])
-        #expect(runner.run(makeAPIAction("check(Object.keys(context.successParameters).length===0,'fresh run');")))
+        let success = makeAPIAction(#"""
+        check(context.addSuccessParameter('result','café + 🐼 &?%')===undefined,'void return');
+        check(context.successParameters.result==='café + 🐼 &?%','raw value');
+        context.addSuccessParameter('result','replaced');
+        context.addSuccessParameter('','');
+        for(const key of ['__proto__','constructor','toString']) {
+            check(context.addSuccessParameter(key,'café + 🐼 &?%')===undefined,'reserved key return');
+        }
+        """#)
+        #expect(await ActionTestExecution.succeeds(success, runner: runner, worker: worker),
+                Comment(rawValue: runner.message ?? ""))
+        #expect(runner.successParameters == ["result": "replaced", "": "",
+            "__proto__": "café + 🐼 &?%", "constructor": "café + 🐼 &?%", "toString": "café + 🐼 &?%"])
+        #expect(await ActionTestExecution.succeeds(makeAPIAction("check(Object.keys(context.successParameters).length===0,'fresh run');"),
+                                                 runner: runner, worker: worker))
         #expect(runner.successParameters.isEmpty)
-        #expect(!runner.run(makeAPIAction("context.addSuccessParameter('result','secret');context.cancel();")))
-        #expect(runner.successParameters.isEmpty)
-        #expect(!runner.run(makeAPIAction("context.addSuccessParameter('result','secret');throw new Error('stop');")))
-        #expect(runner.successParameters.isEmpty)
-        #expect(!runner.run(makeAPIAction("context.addSuccessParameter('key',42);")))
-        #expect(runner.message?.contains("must be strings") == true)
+        for ending in ["context.cancel();", "context.fail('Neutral failure');", "throw new Error('stop');"] {
+            let stopped = makeAPIAction("context.addSuccessParameter('result','secret');" + ending)
+            #expect(!(await ActionTestExecution.succeeds(stopped, runner: runner, worker: worker)))
+            #expect(runner.successParameters.isEmpty)
+        }
+        for arguments in ["42,'value'", "'key',42"] {
+            #expect(!(await ActionTestExecution.succeeds(makeAPIAction("context.addSuccessParameter(\(arguments));"),
+                                                        runner: runner, worker: worker)))
+            #expect(runner.message?.contains("must be strings") == true)
+            #expect(runner.successParameters.isEmpty)
+        }
     }
 
     @Test func finalResultChoosesAndEncodesOnlyItsOwnCallback() throws {

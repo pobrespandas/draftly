@@ -1637,3 +1637,11 @@ ran. The async callback adapter now starts its absolute deadline before opening
 the destination and rejects overdue deliveries. Focused tests passed without
 opening a URL or window. Full regression passed 468 app and512 core methods;
 unsigned Xcode compilation passed. Native OS delivery of this boundary and the other engine acceptance items stay pending.
+
+
+### Context.addSuccessParameter accepted — 21 October 2026
+
+Both-runner member-specific boundaries and the existing actual callback delivery
+record now complete this contract. The extension reuses the existing test and
+adds no duplicate suite. Other Context members and the six partial engine
+contracts remain open. No new native run is claimed while the Mac is locked.

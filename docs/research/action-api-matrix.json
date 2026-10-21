@@ -8425,27 +8425,54 @@
             "addSuccessParameter(name: string, value: string): void"
           ],
           "contract": "Used only when calling a Drafts action from another app via x-callback-url with a /runAction URL. Any parameters set via this method will be included as query args when calling the provided x-success parameter. As an example, the below: context.addSuccessParameter(\"a\", \"1\");context.addSuccessParameter(\"b\", \"2\"); Copy Would result in the parameters ?a=1&b=2 being added to the x-success callback.",
-          "implementation": "reviewed-partial",
+          "implementation": "reviewed-complete",
           "automatedTest": {
             "suite": "ExecutionActionAPITests",
             "test": "contextSuccessParametersAreExportedOnlyForSuccessfulRuns"
           },
           "liveCheck": null,
-          "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-19",
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Context.addSuccessParameter"
           },
-          "defaults": "Fresh run: no cancellation, failure, or success parameters. Omitted cancel text adds no log text; omitted fail text uses Action failed.",
-          "result": [
-            "addSuccessParameter(name: string, value: string): void"
-          ],
-          "errors": "addSuccessParameter requires strings. fail and cancel stop later steps after the current script.",
-          "limitations": [
-            "Native callback delivery needs an acceptance check."
-          ],
-          "evidenceLevel": "Member-specific assertions. Native verification is separate."
+          "defaults": "Both name and value are required strings. No optional arguments or defaults are defined.",
+          "result": "Returns undefined. Named values enter the final success callback without pre-encoding. Repeated names replace prior values. Failed or cancelled executions export no success parameters.",
+          "errors": "Non-string names or values fail with Success parameters must be strings. Error and cancellation clear the final success-parameter dictionary.",
+          "limitations": [],
+          "evidenceLevel": "Member-specific assertions. Native verification is separate.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ExecutionActionAPITests",
+                "test": "contextSuccessParametersAreExportedOnlyForSuccessfulRuns"
+              },
+              "assertion": "Both runners verify undefined return, raw Unicode and reserved characters, empty names and values, prototype-named keys in the final report, repeated replacement, fresh execution state and exclusion after cancel/fail/throw."
+            },
+            "defaults": {
+              "notApplicable": "The archived signature requires name and value and defines no optional arguments."
+            },
+            "errors": {
+              "test": {
+                "suite": "ExecutionActionAPITests",
+                "test": "contextSuccessParametersAreExportedOnlyForSuccessfulRuns"
+              },
+              "assertion": "Numeric name and numeric value each fail with an explicit strings-required error and export no parameters."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Context success parameter member acceptance — 21 October 2026",
+            "scope": "Existing specific test expanded without a duplicate suite. Passed both runners and the full468app/512core regression."
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-20",
+            "evidence": "docs/validation.md: Native final callback merge and late response — 20 October 2026",
+            "scope": "Actual external URL action delivered one success callback with a replaced position query and retained Unicode parameter. Linked error/cancel/timeout cases suppressed success parameters. This native record covers delivery; return and input boundaries have separate automatic assertions."
+          }
         },
         {
           "member": "cancel",

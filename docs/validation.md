@@ -6411,3 +6411,25 @@ compilation passed. Matrix structure has zero errors.
 Native OS delivery for this new boundary is pending while the Mac is locked.
 Previously recorded native callbacks remain evidence only for their exact cases.
 The host request lifetime contract remains partial for its other native checks.
+
+
+### Context success parameter member acceptance — 21 October 2026
+
+Expanded the existing contextSuccessParametersAreExportedOnlyForSuccessfulRuns
+method rather than adding a duplicate suite. Both legacy and worker routes now
+check undefined return, raw Unicode and reserved characters, empty names and
+values, repeated-key replacement and names __proto__, constructor and toString
+in the final report. A new execution starts empty. Cancel, fail and a thrown
+error export no success parameters. Numeric names and numeric values each fail
+with the explicit strings-required error. No production code changed for this
+member. The focused run passed and the full468app/512core regression includes
+both cases. Unsigned Xcode compilation passed after the callback adapter change.
+
+The existing Native final callback merge and late response record supplies
+actual external URL delivery: one matching success callback, parameter replacement
+and Unicode, with separate non-success and late-response checks. Return and
+argument boundaries are automatic evidence; they do not claim another native
+run while the Mac is locked. The archived method signature has required string
+name and value and no optional defaults. Context.addSuccessParameter is complete
+for that contract. Context.fail notification behavior and other Context members
+remain separate and partial.
