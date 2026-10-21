@@ -6,6 +6,24 @@ import DraftlyCore
 
 @Suite("Editor paragraph layout") @MainActor
 struct EditorSpacingTests {
+    @Test(arguments: [Double.nan, .infinity, -.infinity, -3])
+    func invalidParagraphPreferencesRemainSafeInTheSettingsView(_ stored: Double) throws {
+        _ = NSApplication.shared
+        let preferences = try TestPreferences(prefix: "EditorSpacingInvalid-")
+        defer { preferences.close() }
+        preferences.defaults.set(stored, forKey: EditorParagraphLayout.paragraphSpacingKey)
+        let view = NSHostingView(rootView: EditorSpacingPreferences(fontName: "System", fontSize: 17,
+            legacyLineSpacing: 2).defaultAppStorage(preferences.defaults))
+        let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 500, height: 200),
+            styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = view
+        defer { window.contentView = nil }
+        view.layoutSubtreeIfNeeded()
+        #expect(EditorParagraphLayout.resolvedParagraphSpacing(stored) == 0)
+        #expect(EditorParagraphLayout.style(lineHeightMultiple: 0, paragraphSpacing: stored,
+            legacyLineSpacing: 2).paragraphSpacing == 0)
+    }
+
     @Test func unsetMultiplierKeepsLegacyAdditiveSpacingAndSafeParagraphDefault() {
         for stored in [0.0, -1, Double.nan, .infinity] {
             let style = EditorParagraphLayout.style(lineHeightMultiple: stored,

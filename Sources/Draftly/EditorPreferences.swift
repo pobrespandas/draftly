@@ -15,6 +15,10 @@ enum EditorParagraphLayout {
     static let lineHeightKey = "editor.lineHeightMultiple"
     static let paragraphSpacingKey = "editor.paragraphSpacing"
 
+    static func resolvedParagraphSpacing(_ stored: Double) -> Double {
+        stored.isFinite ? max(0, stored) : 0
+    }
+
     static func style(lineHeightMultiple: Double, paragraphSpacing: Double,
                       legacyLineSpacing: Double) -> NSParagraphStyle {
         let style = NSMutableParagraphStyle()
@@ -23,7 +27,7 @@ enum EditorParagraphLayout {
         } else {
             style.lineSpacing = legacyLineSpacing
         }
-        style.paragraphSpacing = paragraphSpacing.isFinite ? max(0, paragraphSpacing) : 0
+        style.paragraphSpacing = resolvedParagraphSpacing(paragraphSpacing)
         return style
     }
 
@@ -56,8 +60,11 @@ struct EditorSpacingPreferences: View {
         }
         HStack {
             Text("Paragraph spacing")
-            Slider(value: $paragraphSpacing, in: 0...40, step: 1)
-            Text("\(Int(paragraphSpacing)) pt").monospacedDigit()
+            Slider(value: Binding(
+                get: { EditorParagraphLayout.resolvedParagraphSpacing(paragraphSpacing) },
+                set: { paragraphSpacing = $0 }
+            ), in: 0...40, step: 1)
+            Text("\(EditorParagraphLayout.resolvedParagraphSpacing(paragraphSpacing), format: .number.precision(.fractionLength(0))) pt").monospacedDigit()
         }
     }
 }
