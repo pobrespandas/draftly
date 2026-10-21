@@ -1,0 +1,44 @@
+[
+  {
+    "uuid": "BBBF0021-0000-4000-8000-000000000001",
+    "name": "QA Context fail enabled",
+    "group": "Context fail QA",
+    "notificationType": 1,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "context.fail('Neutral context.fail café 🐼');"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "ERROR: fail tail executed"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0021-0000-4000-8000-000000000002",
+    "name": "QA Context fail muted",
+    "group": "Context fail QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "context.fail('Neutral context.fail café 🐼');"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "ERROR: fail tail executed"
+        }
+      }
+    ]
+  }
+]

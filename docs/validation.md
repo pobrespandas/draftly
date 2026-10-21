@@ -6908,3 +6908,18 @@ separate manual session. No whole engine or Mac closure is claimed.
 Matrix structure has zero errors. Strict engine/global gates retain 18/4,589
 diagnostics. Context.callbackResponses has no strict diagnostic. Its completion
 does not accept other native capabilities or the remaining Mac deliveries.
+
+
+### Context.fail native result checks — 21 October 2026
+
+Imported context-fail-actions.json into isolated Engine QA. The two actions
+use the same Unicode failure and a later insertion sentinel. Only the imported
+notification policy differs: muted or errors enabled. History recorded Error
+at 03:20 and 03:29 with Neutral context.fail café 🐼. The muted run showed the
+in-app error. Both runs kept the existing source text and two-note library.
+The later insertion did not run. Closed History after reading the records.
+
+No permission or system setting changed. Visible OS notification delivery was
+not established. Context.fail stays partial for that presentation acceptance.
+A request sent by the host is not evidence of a visible system notification.
+This record accepts native result and text preservation only.

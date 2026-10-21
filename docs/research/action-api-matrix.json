@@ -8817,7 +8817,14 @@
           },
           "nativeVerification": {
             "status": "pending",
-            "reason": "No specific visible Context.fail notification has been verified. Host request tests do not prove OS delivery or the original notification policy."
+            "reason": "QA muted and enabled actions both recorded Error and preserved the source text. Muted showed the in-app error. Visible OS notification delivery and its presentation policy remain unverified.",
+            "additionalChecks": [
+              {
+                "date": "2026-10-21",
+                "evidence": "docs/validation.md: Context.fail native result checks — 21 October 2026",
+                "scope": "Neutral imported policy variants; exact Unicode error, no later insertion, unchanged note, native History."
+              }
+            ]
           }
         }
       ]
