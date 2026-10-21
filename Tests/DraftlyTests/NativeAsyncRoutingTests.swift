@@ -4,12 +4,14 @@ import Testing
 
 @Suite("Native asynchronous routing policies") @MainActor
 struct NativeAsyncRoutingTests {
-    private let supported = [
-        "confirmAction", "alert", "prompt", "selectPrompt",
-        "callbackURL", "shellScript", "shortcut", "eventAPI", "reminder", "event",
-        "location", "speak", "transcribe", "modelModes", "modelRespond", "appleScript",
-        "dictate", "htmlPreview", "saveFile", "bookmark", "fileAPI", "composeMail",
-        "composeMessage", "print", "arrangeText", "share", "shareFile", "shareURL"
+    private let supported: [(operation: String, route: NativeAsyncRoute)] = [
+        ("confirmAction", .prompt), ("alert", .prompt), ("prompt", .prompt), ("selectPrompt", .prompt),
+        ("callbackURL", .callback), ("shellScript", .shell), ("shortcut", .shortcut), ("eventAPI", .eventAPI),
+        ("reminder", .event), ("event", .event), ("location", .location), ("speak", .speech),
+        ("transcribe", .transcription), ("modelModes", .model), ("modelRespond", .model), ("appleScript", .appleScript),
+        ("dictate", .dictation), ("htmlPreview", .htmlPreview), ("saveFile", .file), ("bookmark", .file),
+        ("fileAPI", .file), ("composeMail", .message), ("composeMessage", .message), ("print", .printing),
+        ("arrangeText", .arrangement), ("share", .sharing), ("shareFile", .sharing), ("shareURL", .sharing)
     ]
 
     private let fallback = [
@@ -20,8 +22,9 @@ struct NativeAsyncRoutingTests {
     @Test func asyncSupportIncludesTheCurrentPromptAndNativeOperationInventory() {
         let host = NativeActionHost()
         #expect(NativePromptAdapter.operations == ["confirmAction", "alert", "prompt", "selectPrompt"])
-        for operation in supported {
+        for (operation, route) in supported {
             #expect(host.supportsAsync(operation), Comment(rawValue: operation))
+            #expect(NativeAsyncRoute.resolve(operation) == route, Comment(rawValue: operation))
         }
     }
 
@@ -40,7 +43,7 @@ struct NativeAsyncRoutingTests {
         let host = NativeActionHost()
         host.fileDefaults = defaults
         host.testFileRoot = FileManager.default.temporaryDirectory.appendingPathComponent(suite)
-        for operation in supported + fallback {
+        for operation in supported.map({ $0.operation }) + fallback {
             for payload in ["[", "[]"] {
                 do {
                     _ = try await host.performAsync(operation, payload: payload)

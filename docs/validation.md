@@ -6169,3 +6169,14 @@ The line-up text no-op remains a separately recorded functional defect.
 All 466 app and 508 core methods passed, including three native-routing
 characterizations against the original host. Unsigned Xcode compilation and
 matrix structure passed. No visible UI, permission or sound check ran.
+
+
+### Refactoring native asynchronous routing — 21 October 2026
+
+The shared classifier retains the original 28 operation names and handler
+families. Three characterization methods passed before extraction. Afterward,
+the focused routing/bookmark/prompt run passed 10 methods. All 467 app and
+508 core methods passed, including original-code window-submission cases.
+Unsigned Xcode compilation and matrix structure passed. Payload rejection
+occurs before native effects; fallback, model envelope and prompt inventory
+remain unchanged. No capability, permission or visible-window check ran.

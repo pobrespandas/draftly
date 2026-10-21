@@ -40,6 +40,13 @@ storage access. EditorActionBar supplies the safe selection and applies the
 result before focus and save effects. Markdown marker rules and current line
 behavior remain unchanged; syntax parity is a separate functional concern.
 
+## Native asynchronous route boundary
+
+`NativeAsyncRoute` classifies support and dispatch for NativeActionHost.
+NativePromptAdapter retains its own operation inventory. Classification does
+not invoke capabilities. A missing asynchronous route retains synchronous
+fallback; it does not mean that a direct asynchronous call must fail.
+
 ## Refactoring baseline
 
 The annotated tag `pre-refactor-2026-10-19` points to `2fba5bd`.

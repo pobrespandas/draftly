@@ -298,6 +298,21 @@ all these names. Tests use isolated preferences and an unused temporary root.
 Existing bookmark coverage retains the successful asynchronous fallback path.
 No capability, window or permission flow ran. No production routing changed.
 
+### 8b. Shared native asynchronous route classification
+
+Implemented: `NativeAsyncRoute` classifies support and handler dispatch in one
+place. The 28-name test inventory also checks all handler families. Models
+retain priority and their direct response envelope. Prompt names still come
+from NativePromptAdapter. Other handlers, payload validation, dictation
+injection, cleanup callbacks and the synchronous fallback are unchanged.
+
+Verified automatically: the focused routing, bookmark and prompt run passed
+10 methods. All 467 app and 508 core methods passed. This includes the new
+window-submission characterization, with original submission code. Unsigned
+Xcode compilation and matrix structure passed. The existing generator includes
+the new app source. No capability or permission flow ran. No format, public
+API, engine transport, test name or matrix classification changed.
+
 ### 9a. Window-submission characterization
 
 The two existing test names remain for matrix references. Their cases now cover
@@ -312,7 +327,7 @@ No UI, native capability or permission flow ran. No production submission change
 
 ## Remaining refactoring and risks
 
-The first seven refactoring stages are validated checkpoints. They do not
+The first eight refactoring stages are validated checkpoints. They do not
 complete a repository rewrite or Mac parity. Independent review found no concrete
 regression in the production changes. The following work remains explicit:
 
@@ -324,9 +339,9 @@ regression in the production changes. The following work remains explicit:
 - The auditor still checks a function by path and name. It does not prove
   that the function belongs to the named suite. Changing that acceptance
   policy requires a separate functional change and specific tests.
-- Characterize native routing, pure editing transformations and execution
-  ownership before extraction. Shared syntax for marker navigation would
-  change behavior and must remain separate from refactoring.
+- Native route and editing calculations are now separate. Window submission
+  is characterized and awaits extraction. Shared syntax for marker navigation
+  would change behavior and remains a separate functional concern.
 - Keep transaction recovery and execution-lifetime changes separate. They
   have the highest behavior risk. Do not add a generic repository, executor
   or protocol hierarchy to hide the current differences.
