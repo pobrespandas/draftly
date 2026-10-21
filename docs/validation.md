@@ -5289,3 +5289,30 @@ after e458703. The matrix now links these specific tests as supporting evidence
 for initial and asynchronous deadline contracts. Native verification status
 remains unchanged. The last full run is app449/core480; this focused run covers
 the subsequent test-only edits.
+
+
+### Native timer CPU deadline and menu responsiveness — 20 October 2026
+
+Added a seventh stable-ID action to action-log-policy-actions.json. It starts
+an async timer with an endless loop, then has an insertText sentinel and
+Archive disposition. NotificationType0 prevents native banners and sounds.
+LogLevel1 records the failure. Imported the fixture into the unchanged Restore
+QA image294c9c874705d96762a31e881b9074eb2ebe0616666828c9909a2825d9978af5.
+This uses the async worker, not the legacy adapter corrected afterward.
+
+Selected the neutral batch note and ran QA Log1 Timer CPU Timeout. At918ms
+the action button was disabled. At1700ms the File menu was open and its items
+were readable. These are tool observation times. The production synchronous
+limit remained10 seconds; no preference or deadline was changed. Menu response
+therefore occurred before the expected limit while CPU work was pending.
+
+After completion, History contained exactly one matching Error row with the
+timeout message. The editor retained the exact neutral text, no tail sentinel
+appeared, and Inbox retained all nine notes. Archive did not run. Closed History.
+Escape did not reliably dismiss the native menu through the tool; after a fresh
+app state, the menu's exposed Cancel action closed it. The process stayed live.
+
+This accepts native timer CPU failure, error-only logging, preserved text and
+disposition, and opening a menu during worker CPU work. It does not measure
+precise timeout latency or verify legacy native execution, every UI control,
+or native notification banners. No screenshot or raw output is tracked.

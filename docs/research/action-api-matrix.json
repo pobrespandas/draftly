@@ -16869,7 +16869,17 @@
         "status": "passed",
         "date": "2026-10-20",
         "evidence": "docs/validation.md",
-        "scope": "Native URL and direct-list checks on their recorded builds retained prior text and Inbox without tail/Archive. Shortcuts on image870884f2388974b4 ran the CPU action with the production 10-second setting, displayed the timeout error, and History recorded Error. Automatic cases cover finite work, defaults, invalid limits, and smaller-limit selection."
+        "scope": "Native URL and direct-list checks on their recorded builds retained prior text and Inbox without tail/Archive. Shortcuts on image870884f2388974b4 ran the CPU action with the production 10-second setting, displayed the timeout error, and History recorded Error. Automatic cases cover finite work, defaults, invalid limits, and smaller-limit selection.",
+        "additionalChecks": [
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "294c9c874705d96762a31e881b9074eb2ebe0616666828c9909a2825d9978af5",
+            "fixture": "scripts/fixtures/action-log-policy-actions.json",
+            "entryPoint": "Restore QA action list",
+            "result": "Async timer CPU loop remained pending while File menu opened at1700ms observation. Final History had one timeout Error. Error-only policy retained it; text, Inbox and tail exclusion passed. Production10-second CPU limit unchanged. This does not accept legacy native or all responsiveness variants.",
+            "evidence": "docs/validation.md: Native timer CPU deadline and menu responsiveness — 20 October 2026"
+          }
+        ]
       },
       "automatedVerification": {
         "status": "passed",
@@ -17005,6 +17015,14 @@
             "fixture": "scripts/fixtures/engine-queue-actions.json",
             "evidence": "docs/validation.md: Current-image native queued Intent timeout — 20 October 2026",
             "result": "Actual Intent kept Stop through110.268s and showed the production timeout error at134.674s observation. Retained source/child Inbox writes, last-child editor and Error history passed. Initial edited/cancelled run is excluded; shortcut fields were restored."
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "294c9c874705d96762a31e881b9074eb2ebe0616666828c9909a2825d9978af5",
+            "fixture": "scripts/fixtures/action-log-policy-actions.json",
+            "entryPoint": "Restore QA action list",
+            "result": "Async timer CPU loop remained pending while File menu opened at1700ms observation. Final History had one timeout Error. Error-only policy retained it; text, Inbox and tail exclusion passed. Production10-second CPU limit unchanged. This does not accept legacy native or all responsiveness variants.",
+            "evidence": "docs/validation.md: Native timer CPU deadline and menu responsiveness — 20 October 2026"
           }
         ]
       },
@@ -18009,6 +18027,14 @@
             "fixture": "scripts/fixtures/engine-prompt-actions.json",
             "result": "Prompt cancellation discarded field edits and retained draft text; acceptance applied Unicode. SelectPrompt cancellation retained text; subtitle search and Return selected id two. History confirmed Cancelled/Success for both. Other fields, permission dialogs, and native interruption paths remain pending.",
             "evidence": "docs/validation.md: Native worker prompt boundaries — 20 October 2026"
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "294c9c874705d96762a31e881b9074eb2ebe0616666828c9909a2825d9978af5",
+            "fixture": "scripts/fixtures/action-log-policy-actions.json",
+            "entryPoint": "Restore QA action list",
+            "result": "Async timer CPU loop remained pending while File menu opened at1700ms observation. Final History had one timeout Error. Error-only policy retained it; text, Inbox and tail exclusion passed. Production10-second CPU limit unchanged. This does not accept legacy native or all responsiveness variants.",
+            "evidence": "docs/validation.md: Native timer CPU deadline and menu responsiveness — 20 October 2026"
           }
         ]
       },

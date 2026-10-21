@@ -89,6 +89,29 @@
           }
         }
       ]
+    },
+    {
+      "uuid": "BBBF0002-0000-4000-8000-000000000007",
+      "name": "QA Log 1 Timer CPU Timeout",
+      "group": "Log policy QA",
+      "logLevel": 1,
+      "notificationType": 0,
+      "disposition": 1,
+      "steps": [
+        {
+          "type": "script",
+          "data": {
+            "script": "setTimeout(() => { while (true) {} }, 0);",
+            "allowAsync": "true"
+          }
+        },
+        {
+          "type": "insertText",
+          "data": {
+            "template": "ERROR: timer deadline tail executed"
+          }
+        }
+      ]
     }
   ]
 }
