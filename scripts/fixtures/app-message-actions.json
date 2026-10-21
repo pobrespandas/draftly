@@ -1,0 +1,62 @@
+[
+  {
+    "uuid": "BBBF0022-0000-4000-8000-000000000001",
+    "name": "QA App message info",
+    "group": "App messages QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "var returned = app.displayInfoMessage('Neutral info café 🐼'); if (typeof returned !== 'undefined') throw new Error('Message return');"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0022-0000-4000-8000-000000000002",
+    "name": "QA App message success",
+    "group": "App messages QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "var returned = app.displaySuccessMessage('Neutral success café 🐼'); if (typeof returned !== 'undefined') throw new Error('Message return');"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0022-0000-4000-8000-000000000003",
+    "name": "QA App message warning",
+    "group": "App messages QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "var returned = app.displayWarningMessage('Neutral warning café 🐼'); if (typeof returned !== 'undefined') throw new Error('Message return');"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0022-0000-4000-8000-000000000004",
+    "name": "QA App message error",
+    "group": "App messages QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "var returned = app.displayErrorMessage('Neutral error café 🐼'); if (typeof returned !== 'undefined') throw new Error('Message return');"
+        }
+      }
+    ]
+  }
+]

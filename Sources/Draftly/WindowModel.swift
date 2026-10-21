@@ -71,6 +71,7 @@ final class WindowModel: ObservableObject {
     @Published var listOptions: DraftListOptions
     @Published var showRunLog = false
     @Published var status = ""
+    @Published var messageBanner: ActionMessageBanner?
     @Published var tagsText = ""
     @Published var hasUnsavedChanges = false
     @Published private var scratchNote: Note?
@@ -115,6 +116,10 @@ final class WindowModel: ObservableObject {
             return self.workspaceSnapshot(name: "Current")
         }
         runner.uiOperation = { [weak self] values in try self?.actionUIOperation(values) }
+        host.onMessage = { [weak self] message, severity in
+            guard let self else { throw DraftlyError.message("The action window is closed.") }
+            try self.showMessageBanner(message, severity: severity)
+        }
         host.models.onTool = { [weak runner] operation, json in
             guard let runner else { throw DraftlyError.message("The action window is closed.") }
             return try runner.performModelTool(operation, json: json)
@@ -322,6 +327,18 @@ final class WindowModel: ObservableObject {
     func run(_ action: DraftAction) {
         submitWindowAction { model in _ = await model.executeAction(action) }
     }
+    func showMessageBanner(_ message: String, severity: String) throws {
+        guard let kind = ActionMessageBanner.Severity(rawValue: severity) else {
+            throw DraftlyError.message("The message severity is invalid.")
+        }
+        let banner = ActionMessageBanner(message: message, severity: kind)
+        messageBanner = banner
+        Task { @MainActor [weak self] in
+            do { try await Task.sleep(for: .seconds(5)) } catch { return }
+            if self?.messageBanner?.id == banner.id { self?.messageBanner = nil }
+        }
+    }
+
     func submitWindowAction(body: @escaping @MainActor (WindowModel) async -> Void) {
         guard !actionPending, !runner.isRunning else { return }
         actionPending = true
@@ -357,7 +374,8 @@ final class WindowModel: ObservableObject {
         let report = await runner.runAsync(action)
         let outcome = ActionOutcome(report: report, draftID: editor.noteID)
         finishActionNavigation(action, report: report, snapshot: navigation)
-        status = runner.message ?? ""
+        let message = runner.message ?? ""
+        status = report.result.succeeded && messageBanner?.message == message ? "" : message
         tagsText = currentNote?.tags.joined(separator: ", ") ?? ""
         return outcome
     }

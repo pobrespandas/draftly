@@ -9,7 +9,7 @@ import DraftlyCore
 final class NativeActionHost: ActionHost {
     let events = EKEventStore()
     let models = NativeModelAPI()
-    var onMessage: ((String) -> Void)?
+    var onMessage: ((String, String) throws -> Void)?
     var onActionPreview: ((ActionPreviewRequest) -> Void)?
     var dictationHandler: (([String: Any]) throws -> String)?
     var testFileRoot: URL?

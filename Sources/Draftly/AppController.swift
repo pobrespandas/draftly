@@ -109,6 +109,12 @@ final class AppController: ObservableObject {
     func makeActionHost() -> NativeActionHost {
         let host = NativeActionHost()
         host.onError = { [weak self] in self?.library?.error = $0 }
+        host.onMessage = { [weak self] message, severity in
+            guard let model = self?.commandWindow else {
+                throw DraftlyError.message("Message banners require an open Draftly window.")
+            }
+            try model.showMessageBanner(message, severity: severity)
+        }
         return host
     }
 

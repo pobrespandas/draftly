@@ -45,6 +45,12 @@ struct LibraryView: View {
             panel(sidebar), panel(noteList), panel(editor), panel(actionPanel)
         ])
         .ignoresSafeArea(.container, edges: .top)
+        .overlay(alignment: .top) {
+            if let banner = model.messageBanner {
+                ActionMessageBannerView(banner: banner) { model.messageBanner = nil }
+                    .padding(.horizontal, 20).padding(.top, 80)
+            }
+        }
         .preferredColorScheme(preferredScheme)
         .frame(minWidth: 850, minHeight: 480)
         .background(WindowAccessor { window in

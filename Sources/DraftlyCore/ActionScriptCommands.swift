@@ -68,6 +68,10 @@ import Foundation
             if let uiOperation { _ = try uiOperation(["operation": "activate"]) }
             return nil
         case .message(let message): appendScriptLog(message); return true
+        case .displayMessage(let message, let severity):
+            _ = try platform("displayMessage", ["message": message, "severity": severity])
+            appendScriptLog(message)
+            return nil
         case .findAction(let name):
             return library.actions.first(where: { $0.name == name }).map(actionValue)
         case .queueAction(let id, let input):

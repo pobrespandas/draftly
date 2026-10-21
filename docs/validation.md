@@ -6923,3 +6923,44 @@ No permission or system setting changed. Visible OS notification delivery was
 not established. Context.fail stays partial for that presentation acceptance.
 A request sent by the host is not evidence of a visible system notification.
 This record accepts native result and text preservation only.
+
+
+### App message banners — 21 October 2026
+
+The four App display methods returned true and only logged their message.
+The new member-specific test first failed with 16 return-value issues across
+both runners. Each method now returns undefined and routes its exact message
+and severity to the owning window. A separate command preserves Context.cancel
+logging. The native host uses the existing window; it does not open a new one.
+A host without a presenter returns an explicit error.
+
+The window shows an info, success, warning or error banner. New messages replace
+the current banner. Close dismisses it. Expiry removes only the same banner
+identity. History keeps the existing message. The first native check exposed
+a duplicate bottom status notice. Successful matching status now stays empty.
+Unrelated status and later errors remain visible. Headless tests cover these
+boundaries without windows, permission requests, sound or personal data.
+
+The final Swift run passed 472 app methods and 546 core methods. All five
+original action scripts passed on both runners without changes. The unsigned
+Xcode build passed. These totals do not prove unrelated API contracts.
+
+Refreshed and development-signed Engine QA only after quit and process absence.
+The bundle and library identities stayed unchanged. Imported the neutral
+app-message-actions.json fixture. The final image showed all four messages
+with the matching symbols. Info was blue, success green, warning orange and
+error red. No duplicate bottom notice remained. History showed Success for
+all four at 03:57/03:58. Error severity did not fail its action. Verified expiry
+and manual close. Closed History. The two neutral notes and selected source
+text stayed unchanged. No permission or system setting changed.
+
+Final signed runtime hashes:
+
+```text
+Draftly: daf54d3f07079657d1d71039c1e7b8b48df0a21d31f4cdcc0d926176a07a985b
+Draftly.debug.dylib: 303d2d93531f1714f5afdc3759e680c85459635a15052e4a6ccdde2feb48c575
+```
+
+This accepts the four message contracts. Exact banner geometry and styling
+against Drafts remain part of the separate visual matrix. Context.fail OS
+notification delivery remains pending. No raw log or screenshot is tracked.

@@ -8024,10 +8024,71 @@
             "displayErrorMessage(message: string): void"
           ],
           "contract": "Show error banner notification with the message passed.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "AppMessageContractTests",
+            "test": "messageMethodsReturnVoidAndPreserveTheExactMessage"
+          },
+          "liveCheck": "Engine QA: four severity fixtures passed on 21 October 2026.",
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "defaults": "The message string is required. The reference defines no optional defaults. Empty strings and Unicode text are preserved.",
+          "result": "Returns undefined and shows a banner with the matching info, success, warning or error severity. Displaying an error message does not fail the action.",
+          "errors": "The reference defines no method-specific error. A native host without a message presenter fails explicitly. Invalid internal severity is rejected before replacing the visible banner.",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "App.displayErrorMessage"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "AppMessageContractTests",
+                "test": "messageMethodsReturnVoidAndPreserveTheExactMessage"
+              },
+              "assertion": "Both engines return undefined and send exactly one matching severity and exact message to the host. The stored log and source data remain correct."
+            },
+            "defaults": {
+              "test": {
+                "suite": "AppMessageContractTests",
+                "test": "messageMethodsReturnVoidAndPreserveTheExactMessage"
+              },
+              "assertion": "Required empty and Unicode strings retain their exact contents. The reference defines no optional argument default."
+            },
+            "errors": {
+              "notApplicable": "The reference defines no method-specific error. Native presenter absence and invalid internal severity are tested separately."
+            }
+          },
+          "supportingTests": [
+            {
+              "suite": "ActionMessageBannerTests",
+              "test": "nativeHostRoutesMessagesToItsWindowModel"
+            },
+            {
+              "suite": "ActionMessageBannerTests",
+              "test": "newMessagesReplaceIdentityAndInvalidSeverityPreservesTheCurrentBanner"
+            },
+            {
+              "suite": "ActionMessageBannerTests",
+              "test": "nativeHostWithoutAPresenterFailsExplicitly"
+            },
+            {
+              "suite": "ActionMessageBannerTests",
+              "test": "successfulMessageUsesOnlyTheBannerWhileOtherResultsKeepTheirStatus"
+            }
+          ],
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: App message banners — 21 October 2026",
+            "scope": "Member-specific both-engine cases and headless native host/window state tests."
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: App message banners — 21 October 2026",
+            "scope": "All four fixtures showed matching icons and message severity in Engine QA. Success records, dismissal, expiry and unchanged editor verified. Exact Drafts visual styling belongs to visual acceptance."
+          },
+          "limitations": []
         },
         {
           "member": "displayInfoMessage",
@@ -8039,10 +8100,71 @@
             "displayInfoMessage(message: string): void"
           ],
           "contract": "Show info banner notification with the message passed.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "AppMessageContractTests",
+            "test": "messageMethodsReturnVoidAndPreserveTheExactMessage"
+          },
+          "liveCheck": "Engine QA: four severity fixtures passed on 21 October 2026.",
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "defaults": "The message string is required. The reference defines no optional defaults. Empty strings and Unicode text are preserved.",
+          "result": "Returns undefined and shows a banner with the matching info, success, warning or error severity. Displaying an error message does not fail the action.",
+          "errors": "The reference defines no method-specific error. A native host without a message presenter fails explicitly. Invalid internal severity is rejected before replacing the visible banner.",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "App.displayInfoMessage"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "AppMessageContractTests",
+                "test": "messageMethodsReturnVoidAndPreserveTheExactMessage"
+              },
+              "assertion": "Both engines return undefined and send exactly one matching severity and exact message to the host. The stored log and source data remain correct."
+            },
+            "defaults": {
+              "test": {
+                "suite": "AppMessageContractTests",
+                "test": "messageMethodsReturnVoidAndPreserveTheExactMessage"
+              },
+              "assertion": "Required empty and Unicode strings retain their exact contents. The reference defines no optional argument default."
+            },
+            "errors": {
+              "notApplicable": "The reference defines no method-specific error. Native presenter absence and invalid internal severity are tested separately."
+            }
+          },
+          "supportingTests": [
+            {
+              "suite": "ActionMessageBannerTests",
+              "test": "nativeHostRoutesMessagesToItsWindowModel"
+            },
+            {
+              "suite": "ActionMessageBannerTests",
+              "test": "newMessagesReplaceIdentityAndInvalidSeverityPreservesTheCurrentBanner"
+            },
+            {
+              "suite": "ActionMessageBannerTests",
+              "test": "nativeHostWithoutAPresenterFailsExplicitly"
+            },
+            {
+              "suite": "ActionMessageBannerTests",
+              "test": "successfulMessageUsesOnlyTheBannerWhileOtherResultsKeepTheirStatus"
+            }
+          ],
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: App message banners — 21 October 2026",
+            "scope": "Member-specific both-engine cases and headless native host/window state tests."
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: App message banners — 21 October 2026",
+            "scope": "All four fixtures showed matching icons and message severity in Engine QA. Success records, dismissal, expiry and unchanged editor verified. Exact Drafts visual styling belongs to visual acceptance."
+          },
+          "limitations": []
         },
         {
           "member": "displaySuccessMessage",
@@ -8054,10 +8176,71 @@
             "displaySuccessMessage(message: string): void"
           ],
           "contract": "Show success banner notification with the message passed.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "AppMessageContractTests",
+            "test": "messageMethodsReturnVoidAndPreserveTheExactMessage"
+          },
+          "liveCheck": "Engine QA: four severity fixtures passed on 21 October 2026.",
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "defaults": "The message string is required. The reference defines no optional defaults. Empty strings and Unicode text are preserved.",
+          "result": "Returns undefined and shows a banner with the matching info, success, warning or error severity. Displaying an error message does not fail the action.",
+          "errors": "The reference defines no method-specific error. A native host without a message presenter fails explicitly. Invalid internal severity is rejected before replacing the visible banner.",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "App.displaySuccessMessage"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "AppMessageContractTests",
+                "test": "messageMethodsReturnVoidAndPreserveTheExactMessage"
+              },
+              "assertion": "Both engines return undefined and send exactly one matching severity and exact message to the host. The stored log and source data remain correct."
+            },
+            "defaults": {
+              "test": {
+                "suite": "AppMessageContractTests",
+                "test": "messageMethodsReturnVoidAndPreserveTheExactMessage"
+              },
+              "assertion": "Required empty and Unicode strings retain their exact contents. The reference defines no optional argument default."
+            },
+            "errors": {
+              "notApplicable": "The reference defines no method-specific error. Native presenter absence and invalid internal severity are tested separately."
+            }
+          },
+          "supportingTests": [
+            {
+              "suite": "ActionMessageBannerTests",
+              "test": "nativeHostRoutesMessagesToItsWindowModel"
+            },
+            {
+              "suite": "ActionMessageBannerTests",
+              "test": "newMessagesReplaceIdentityAndInvalidSeverityPreservesTheCurrentBanner"
+            },
+            {
+              "suite": "ActionMessageBannerTests",
+              "test": "nativeHostWithoutAPresenterFailsExplicitly"
+            },
+            {
+              "suite": "ActionMessageBannerTests",
+              "test": "successfulMessageUsesOnlyTheBannerWhileOtherResultsKeepTheirStatus"
+            }
+          ],
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: App message banners — 21 October 2026",
+            "scope": "Member-specific both-engine cases and headless native host/window state tests."
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: App message banners — 21 October 2026",
+            "scope": "All four fixtures showed matching icons and message severity in Engine QA. Success records, dismissal, expiry and unchanged editor verified. Exact Drafts visual styling belongs to visual acceptance."
+          },
+          "limitations": []
         },
         {
           "member": "displayWarningMessage",
@@ -8069,10 +8252,71 @@
             "displayWarningMessage(message: string): void"
           ],
           "contract": "Show warning banner notification with the message passed.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "AppMessageContractTests",
+            "test": "messageMethodsReturnVoidAndPreserveTheExactMessage"
+          },
+          "liveCheck": "Engine QA: four severity fixtures passed on 21 October 2026.",
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "defaults": "The message string is required. The reference defines no optional defaults. Empty strings and Unicode text are preserved.",
+          "result": "Returns undefined and shows a banner with the matching info, success, warning or error severity. Displaying an error message does not fail the action.",
+          "errors": "The reference defines no method-specific error. A native host without a message presenter fails explicitly. Invalid internal severity is rejected before replacing the visible banner.",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "App.displayWarningMessage"
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "AppMessageContractTests",
+                "test": "messageMethodsReturnVoidAndPreserveTheExactMessage"
+              },
+              "assertion": "Both engines return undefined and send exactly one matching severity and exact message to the host. The stored log and source data remain correct."
+            },
+            "defaults": {
+              "test": {
+                "suite": "AppMessageContractTests",
+                "test": "messageMethodsReturnVoidAndPreserveTheExactMessage"
+              },
+              "assertion": "Required empty and Unicode strings retain their exact contents. The reference defines no optional argument default."
+            },
+            "errors": {
+              "notApplicable": "The reference defines no method-specific error. Native presenter absence and invalid internal severity are tested separately."
+            }
+          },
+          "supportingTests": [
+            {
+              "suite": "ActionMessageBannerTests",
+              "test": "nativeHostRoutesMessagesToItsWindowModel"
+            },
+            {
+              "suite": "ActionMessageBannerTests",
+              "test": "newMessagesReplaceIdentityAndInvalidSeverityPreservesTheCurrentBanner"
+            },
+            {
+              "suite": "ActionMessageBannerTests",
+              "test": "nativeHostWithoutAPresenterFailsExplicitly"
+            },
+            {
+              "suite": "ActionMessageBannerTests",
+              "test": "successfulMessageUsesOnlyTheBannerWhileOtherResultsKeepTheirStatus"
+            }
+          ],
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: App message banners — 21 October 2026",
+            "scope": "Member-specific both-engine cases and headless native host/window state tests."
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: App message banners — 21 October 2026",
+            "scope": "All four fixtures showed matching icons and message severity in Engine QA. Success records, dismissal, expiry and unchanged editor verified. Exact Drafts visual styling belongs to visual acceptance."
+          },
+          "limitations": []
         },
         {
           "member": "isIdleDisabled",

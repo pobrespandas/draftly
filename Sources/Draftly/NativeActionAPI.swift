@@ -6,6 +6,10 @@ import DraftlyCore
 @MainActor extension NativeActionHost {
     func performAPI(_ operation: String, values: [String: Any]) throws -> Any? {
         switch operation {
+        case "displayMessage":
+            guard let onMessage else { throw DraftlyError.message("Message banners require an open Draftly window.") }
+            try onMessage(values["message"] as? String ?? "", values["severity"] as? String ?? "info")
+            return nil
         case "arrangeText": return arrangeText(values["text"] as? String ?? "")
         case "dictate": return try dictationHandler?(values) ?? transcribe(values, dictate: true)
         case "transcribe": return try transcribe(values, dictate: false)

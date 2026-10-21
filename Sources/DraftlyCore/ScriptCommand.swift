@@ -85,6 +85,7 @@ enum ScriptCommand {
     case setTemplateTag(String, value: String)
     case activate
     case message(String)
+    case displayMessage(String, severity: String)
     case findAction(String?)
     case queueAction(id: String?, note: ScriptNoteInput)
     case findWorkspace(String?)
@@ -113,6 +114,7 @@ enum ScriptCommand {
         case "setTemplateTag": self = .setTemplateTag(values["key"] as? String ?? "", value: values["value"] as? String ?? "")
         case "activate": self = .activate
         case "message": self = .message(values["message"] as? String ?? "")
+        case "displayMessage": self = .displayMessage(values["message"] as? String ?? "", severity: values["severity"] as? String ?? "info")
         case "findAction": self = .findAction(values["name"] as? String)
         case "queueAction":
             let action = values["action"] as? [String: Any] ?? [:]

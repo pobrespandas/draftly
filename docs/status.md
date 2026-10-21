@@ -25,6 +25,13 @@ retain historical results. Later results supersede earlier counts.
 
 ## Current verification
 
+The four App display-message methods now return void and show severity banners
+in the owning window. Both-engine and headless routing tests pass. Native QA
+verified all four messages, close, expiry, history and text preservation.
+Context.fail native result checks passed, but visible OS notification delivery
+remains pending. See the latest records in validation.md.
+
+
 Nine refactoring stages are validated: pure catalog rules, isolated bookmark
 preferences, shared test execution support, Workspace sort mutation,
 configuration default selection, auditor source indexing and pure editing-bar
