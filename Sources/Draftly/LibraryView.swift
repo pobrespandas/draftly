@@ -67,9 +67,6 @@ struct LibraryView: View {
             Button("OK") { library.error = nil }
         } message: { Text(library.error ?? "") }
         .onChange(of: typewriter) { _, enabled in model.editor.typewriterScrollingEnabled = enabled }
-        .onChange(of: model.listOptions) { _, options in
-            if model.selectedWorkspace == nil, let data = try? JSONEncoder().encode(options) { UserDefaults.standard.set(data, forKey: "list.options") }
-        }
         .onChange(of: model.selectedDraftIDs) { _, ids in if ids.count == 1 { model.select(ids.first, focusEditor: false) } }
         .onChange(of: model.editor.noteID) { _, id in
             restoredDraftID = id?.uuidString ?? ""

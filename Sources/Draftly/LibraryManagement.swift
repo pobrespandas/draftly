@@ -85,7 +85,9 @@ struct LibraryManagementView: View {
         }.frame(width: 720, height: 520).onAppear { selectedGroup = library.groupNames.first ?? "General" }
             .sheet(item: $action) { value in ActionEditor(action: value, library: library) }
             .sheet(item: $group) { value in GroupSettingsView(group: value, previousName: oldGroupName, library: library) }
-            .sheet(item: $workspace) { value in WorkspaceSettingsView(workspace: value, library: library) }
+            .sheet(item: $workspace) { value in
+                WorkspaceSettingsView(workspace: value, library: library, defaultListOptions: model.dependencies.preferences.listOptions)
+            }
     }
     private func reorderActions(_ actions: [DraftAction], index: Int, offset: Int) {
         var values = actions; values.swapAt(index, index + offset)
@@ -142,9 +144,10 @@ private struct GroupSettingsView: View {
 private struct WorkspaceSettingsView: View {
     @State var workspace: Workspace
     @ObservedObject var library: LibraryStore
+    let defaultListOptions: DraftListOptions
     @Environment(\.dismiss) private var dismiss
     @State private var error: String?
-    private var list: Binding<DraftListOptions> { Binding(get: { workspace.listOptions ?? DraftListOptions() }, set: { workspace.listOptions = $0 }) }
+    private var list: Binding<DraftListOptions> { Binding(get: { workspace.listOptions ?? defaultListOptions }, set: { workspace.listOptions = $0 }) }
     var body: some View {
         Form {
             TextField("Name", text: $workspace.name)

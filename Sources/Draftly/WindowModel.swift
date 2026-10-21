@@ -75,7 +75,12 @@ final class WindowModel: ObservableObject {
     @Published var showActionImporter = false
     @Published var showWorkspaceEditor = false
     @Published var showLibraryManagement = false
-    @Published var listOptions: DraftListOptions
+    @Published var listOptions: DraftListOptions {
+        didSet {
+            guard !usesWorkspaceListOptions, !loadingLocalListOptions, oldValue != listOptions else { return }
+            dependencies.preferences.saveListOptions(listOptions)
+        }
+    }
     @Published var showRunLog = false
     @Published var status = ""
     @Published var messageBanner: ActionMessageBanner?
@@ -98,6 +103,9 @@ final class WindowModel: ObservableObject {
     private var inactiveSince: Date?
     private var idleActivity: NSObjectProtocol?
     private var restoringWorkspaceSort = false
+    private var usesWorkspaceListOptions = false
+    private var loadingLocalListOptions = false
+    private var listPreferencesSubscription: AnyCancellable?
 
     func openCommandPalette(initialQuery: String = "") {
         paletteQuery = initialQuery
@@ -115,6 +123,10 @@ final class WindowModel: ObservableObject {
         self.saveDraft = saveDraft ?? { try library.saveNote($0) }
         self.onAccessDraft = onAccessDraft
         runner = ActionRunner(library: library, editor: editor, host: host)
+        listPreferencesSubscription = NotificationCenter.default.publisher(
+            for: UserDefaults.didChangeNotification, object: dependencies.preferences.defaults)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.reloadLocalListOptions() }
         editorSelectionSubscription = editor.$noteID.removeDuplicates().sink { [weak self] id in
             self?.selectedDraftIDs = Set(id.map { [$0] } ?? [])
         }
@@ -349,6 +361,7 @@ final class WindowModel: ObservableObject {
         restoringWorkspaceSort = true
         defer { restoringWorkspaceSort = wasRestoringSort }
         cachedThemePresentation = nil
+        usesWorkspaceListOptions = true
         listOptions = workspace.listOptions ?? dependencies.preferences.listOptions
         workspaceScriptMetadata = workspace.scriptMetadata
         folder = workspace.folder; query = workspace.query
@@ -494,7 +507,21 @@ final class WindowModel: ObservableObject {
         if let tagPresence { parts.append(tagPresence ? "tagged" : "untagged") }
         return parts.isEmpty ? "No tag filters active" : parts.joined(separator: ", ")
     }
-    func clearFilters() { workspaceScriptMetadata = nil; listOptions = dependencies.preferences.listOptions; query = ""; tag = nil; excludedTags = []; matchAnyTag = false; tagQuery = ""; tagPresence = nil; selectedWorkspace = nil }
+    private func reloadLocalListOptions() {
+        guard !usesWorkspaceListOptions else { return }
+        let options = dependencies.preferences.listOptions
+        guard options != listOptions else { return }
+        loadingLocalListOptions = true
+        defer { loadingLocalListOptions = false }
+        listOptions = options
+    }
+
+    func clearFilters() {
+        workspaceScriptMetadata = nil
+        usesWorkspaceListOptions = false
+        reloadLocalListOptions()
+        query = ""; tag = nil; excludedTags = []; matchAnyTag = false; tagQuery = ""; tagPresence = nil; selectedWorkspace = nil
+    }
     @discardableResult func capture(_ content: String) -> Bool {
         guard create() else { return false }
         editor.content = content; contentChanged()

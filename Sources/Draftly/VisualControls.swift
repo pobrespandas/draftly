@@ -371,4 +371,18 @@ enum DraftListDefaults {
         if defaults.object(forKey: "list.showDate") != nil { options.showDate = defaults.bool(forKey: "list.showDate") }
         return options
     }
+
+    static func save(_ options: DraftListOptions, defaults: UserDefaults = .standard) {
+        guard let encoded = try? JSONEncoder().encode(options),
+              let known = (try? JSONSerialization.jsonObject(with: encoded)) as? [String: Any] else { return }
+        var values = defaults.data(forKey: "list.options")
+            .flatMap { (try? JSONSerialization.jsonObject(with: $0)) as? [String: Any] } ?? [:]
+        values.merge(known) { _, new in new }
+        guard let data = try? JSONSerialization.data(withJSONObject: values, options: [.sortedKeys]) else { return }
+        defaults.set(data, forKey: "list.options")
+        defaults.set(options.showPreview, forKey: "list.showPreview")
+        defaults.set(options.previewLines, forKey: "list.previewLines")
+        defaults.set(options.showTags, forKey: "list.showTags")
+        defaults.set(options.showDate, forKey: "list.showDate")
+    }
 }

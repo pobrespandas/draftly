@@ -6,25 +6,21 @@ struct DraftListPanel: View {
     @ObservedObject var model: WindowModel
     @ObservedObject var library: LibraryStore
     @Binding var selection: Set<UUID>
-    @AppStorage("list.showPreview") private var storedPreview = true
-    @AppStorage("list.previewLines") private var storedLines = 2
-    @AppStorage("list.showTags") private var storedTags = true
-    @AppStorage("list.showDate") private var storedDate = true
     private var showPreview: Bool {
-        get { model.selectedWorkspace == nil ? storedPreview : model.listOptions.showPreview }
-        nonmutating set { model.listOptions.showPreview = newValue; if model.selectedWorkspace == nil { storedPreview = newValue } }
+        get { model.listOptions.showPreview }
+        nonmutating set { model.listOptions.showPreview = newValue }
     }
     private var previewLines: Int {
-        get { model.selectedWorkspace == nil ? storedLines : model.listOptions.previewLines }
-        nonmutating set { model.listOptions.previewLines = newValue; if model.selectedWorkspace == nil { storedLines = newValue } }
+        get { model.listOptions.previewLines }
+        nonmutating set { model.listOptions.previewLines = newValue }
     }
     private var showTags: Bool {
-        get { model.selectedWorkspace == nil ? storedTags : model.listOptions.showTags }
-        nonmutating set { model.listOptions.showTags = newValue; if model.selectedWorkspace == nil { storedTags = newValue } }
+        get { model.listOptions.showTags }
+        nonmutating set { model.listOptions.showTags = newValue }
     }
     private var showDate: Bool {
-        get { model.selectedWorkspace == nil ? storedDate : model.listOptions.showDate }
-        nonmutating set { model.listOptions.showDate = newValue; if model.selectedWorkspace == nil { storedDate = newValue } }
+        get { model.listOptions.showDate }
+        nonmutating set { model.listOptions.showDate = newValue }
     }
     var body: some View {
         VStack(spacing: 0) {

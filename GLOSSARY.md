@@ -54,8 +54,14 @@ A label attached to a draft for classification and filtering. A draft can have m
 A draft's archive and trash status. A flag is a separate marker.
 
 **Workspace**:
-A saved draft view, other filters, and a sort order. A draft can appear in more than one workspace.
+A draft view definition with filters, a sort order, and presentation options. It can be saved or applied directly.
 _Avoid_: Folder, container
+
+**Applied workspace**:
+The workspace definition currently used by a window. It can differ from its saved definition and from local list settings.
+
+**Local list settings**:
+The draft list display and search options chosen on this Mac for use without an applied workspace.
 
 **Draft view**:
 A named selection of drafts based on their organization state or flag. Inbox, Archive, Trash, All, and Flagged are draft views.

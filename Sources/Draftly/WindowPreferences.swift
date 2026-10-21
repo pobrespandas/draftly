@@ -9,4 +9,5 @@ struct WindowPreferences {
     var prefersAdvancedFind: Bool { defaults.bool(forKey: GeneralPreferences.advancedFindKey) }
     var actionMoveNavigation: ActionMoveNavigation { .resolved(defaults.string(forKey: ActionMoveNavigation.preferenceKey)) }
     var listOptions: DraftListOptions { DraftListDefaults.load(defaults: defaults) }
+    func saveListOptions(_ options: DraftListOptions) { DraftListDefaults.save(options, defaults: defaults) }
 }
