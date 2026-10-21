@@ -5131,3 +5131,25 @@ including eight container cases and two native future-field cases. Automatic
 tests do not open a window. Native grouped/mixed separator presentation still
 needs its own check. No additional full regression or Xcode build was required
 for this test-only change; the last full run remains app449/core476.
+
+
+### Native mixed separator container — 20 October 2026
+
+Added scripts/fixtures/engine-mixed-separator-actions.json with stable IDs.
+The actions wrapper mixes native normal/separator records with foreign normal/
+separator records. All steps are empty. Unknown native and foreign data remain
+in the fixture. Imported it through File > Import in Restore QA and observed
+Import complete. Nine notes and the blank editor remained unchanged.
+
+The execution picker showed A Native normal and D Foreign normal. It omitted
+B Native separator and C Foreign separator. Cancelled without execution.
+Opened the Mixed separator QA group. Native and foreign separators appeared
+as labels with lines; A and D appeared as action buttons. Display order was
+A,C,D,B: B explicitly has Order1; the other entries default to Order0. This
+does not accept source-array order as a sorting contract. A focus change
+interrupted the first cancel attempt; a fresh full state located Cancel and
+confirmed the dialog closed. No action ran. No screenshot is stored.
+
+This accepts the mixed actions wrapper and named-group presentation. A separate
+exported action-group container format and exact Drafts appearance comparison
+are not established by this check. The contract stays partial.

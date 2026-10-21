@@ -1,0 +1,82 @@
+{
+  "actions": [
+    {
+      "afterSuccess": "none",
+      "configuredValues": {},
+      "group": "Mixed separator QA",
+      "id": "BBBF0001-0000-4000-8000-000000000001",
+      "name": "A Native normal",
+      "options": {
+        "addTags": [],
+        "confirmBeforeRun": false,
+        "description": "",
+        "notifyOnError": false,
+        "notifyOnSuccess": false,
+        "order": 0,
+        "removeTags": [],
+        "section": "",
+        "showInBar": true,
+        "showInList": true,
+        "showInSearch": true
+      },
+      "rawPayload": "{\"group\":\"Engine separator QA\",\"name\":\"A Before section\",\"steps\":[{\"data\":{\"script\":\"context.addSuccessParameter('position','before');\"},\"type\":\"script\"}]}",
+      "shortcut": "",
+      "steps": [],
+      "symbol": "bolt",
+      "unknownNative": {
+        "keep": [
+          null,
+          false,
+          "café 🐼"
+        ]
+      }
+    },
+    {
+      "afterSuccess": "none",
+      "configuredValues": {},
+      "group": "Mixed separator QA",
+      "id": "BBBF0001-0000-4000-8000-000000000002",
+      "name": "B Native separator",
+      "options": {
+        "addTags": [],
+        "confirmBeforeRun": false,
+        "description": "",
+        "notifyOnError": false,
+        "notifyOnSuccess": false,
+        "order": 1,
+        "removeTags": [],
+        "section": "",
+        "showInBar": true,
+        "showInList": true,
+        "showInSearch": true
+      },
+      "rawPayload": "{\"backingIsSeparator\":true,\"group\":\"Engine separator QA\",\"name\":\"B Neutral section\",\"steps\":[],\"unknown\":{\"keep\":[null,false,\"café 🐼\"]}}",
+      "scriptMetadata": {
+        "isSeparator": "true"
+      },
+      "shortcut": "",
+      "steps": [],
+      "symbol": "bolt"
+    },
+    {
+      "uuid": "BBBF0001-0000-4000-8000-000000000003",
+      "name": "C Foreign separator",
+      "group": "Mixed separator QA",
+      "backingIsSeparator": true,
+      "steps": [],
+      "unknownForeign": {
+        "keep": [
+          null,
+          false,
+          "日本語 🐼"
+        ]
+      }
+    },
+    {
+      "uuid": "BBBF0001-0000-4000-8000-000000000004",
+      "name": "D Foreign normal",
+      "group": "Mixed separator QA",
+      "steps": []
+    }
+  ]
+}

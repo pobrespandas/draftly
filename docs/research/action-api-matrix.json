@@ -17749,7 +17749,7 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Native list, bar, menu, order, restart, search and picker exclusion, same-library round trip, and empty-library backup reconstruction passed. Grouped/mixed separator variants and Drafts appearance comparison remain pending."
+        "Native list, bar, menu, order, restart, search/picker exclusion, backups, and mixed wrapper named-group presentation passed. Separate exported action-group container format and exact Drafts appearance remain unverified."
       ],
       "defaults": "Absent or false backingIsSeparator produces a normal action with isSeparator false. True marks an imported separator. The original payload remains available, including unknown fields.",
       "result": "A saved imported separator is found by Action.find with isSeparator true. A separator can retain an empty steps list without losing its API identity.",
@@ -17810,7 +17810,7 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Picker exclusion, same-library round trip, and empty-library reconstruction passed. Grouped/mixed separator variants and Drafts appearance comparison remain pending.",
+        "reason": "Native picker, backups, and mixed wrapper named-group presentation passed. Separate exported action-group container format and exact Drafts appearance remain unverified.",
         "evidence": "docs/validation.md",
         "additionalChecks": [
           {
@@ -17833,6 +17833,13 @@
             "entryPoint": "empty Restore QA library via File Import and Export Full Backup",
             "result": "Initial zero-draft native library reconstructed all populated backup collections and fields. Separator identity, metadata, order, steps and raw unknown fields match. Revision relationships resolve. Empty collections are not coverage for workspace/group/syntax/theme data.",
             "evidence": "docs/validation.md: Native empty-library backup restoration — 20 October 2026"
+          },
+          {
+            "date": "2026-10-20",
+            "fixture": "scripts/fixtures/engine-mixed-separator-actions.json",
+            "entryPoint": "Restore QA native File Import, execution picker and named action group",
+            "result": "Mixed wrapper imported native and foreign normal actions and separators. Picker exposed only normal A/D. Group showed both separators as labels with lines, with declared order respected. No action executed. Separate exported action-group container format is not covered.",
+            "evidence": "docs/validation.md: Native mixed separator container — 20 October 2026"
           }
         ]
       },
