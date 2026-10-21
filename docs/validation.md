@@ -5057,3 +5057,18 @@ in about 1.62 seconds. Command-Up selected the previous note; it did not prove
 a jump to the first row. No content changed. Ordinary scroll and selection
 have native evidence; the whole-list jump and isolated latency remain open.
 Do not report the earlier AX setter timeout as general scrolling failure.
+
+
+### Native separator execution picker — 20 October 2026
+
+Used the existing isolated Engine QA app and nine-note library. Opened Run
+Action from the neutral batch note context menu and cancelled. Imported
+scripts/fixtures/engine-separator-actions.json through File > Import after
+confirming its exact selected filename. The app reported Import complete.
+
+Reopened Run Action and expanded its native popup. Engine separator QA showed
+A Before section and C After section. B Neutral section was absent. Cancelled
+the popup and dialog without running an action. The editor stayed blank and
+the list still showed nine drafts. This accepts executable-picker exclusion
+only. Backup restoration and reference appearance remain pending. The engine
+contract stays partial. No source code or installed app changed in this check.
