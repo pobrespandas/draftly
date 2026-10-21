@@ -1,0 +1,22 @@
+[
+  {
+    "uuid": "BBBF0003-0000-4000-8000-000000000003",
+    "name": "QA EventKit task cancellation",
+    "group": "Native cancellation QA",
+    "notificationType": 0,
+    "steps": [
+      {
+        "type": "event",
+        "data": {
+          "template": "Draftly QA cancellation — neutral"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "ERROR EventKit returned after cancellation"
+        }
+      }
+    ]
+  }
+]

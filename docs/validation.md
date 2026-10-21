@@ -5540,3 +5540,12 @@ host interruption/cleanup suites. Fake-driver tests do not request permissions
 or open windows. Native EventKit cancellation remains pending; onDevice model
 generation cancellation remains blocked by availability. No screenshot or WAV
 is tracked. The QA app remains on its one neutral note.
+
+
+### Prepared EventKit cancellation fixture — 20 October 2026
+
+Added scripts/fixtures/engine-eventkit-cancel-actions.json for a manual check
+of task cancellation during event creation. The second step inserts an ERROR
+marker if execution continues. JSON parsing and the fixture structure passed.
+The native check has not run. It must not save an event. Calendar permission
+and dialog cancellation remain pending; this fixture does not prove acceptance.
