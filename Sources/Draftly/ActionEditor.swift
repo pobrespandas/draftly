@@ -106,6 +106,7 @@ struct ActionEditor: View {
                             Image(systemName: DraftAction.supportedSteps.contains(step.type) ? "square.stack.3d.up" : "exclamationmark.triangle").foregroundStyle(.secondary)
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(step.type).font(.system(size: 12, weight: .medium))
+                                if step.isEnabled == false { Text("Disabled").font(.caption2).foregroundStyle(.secondary) }
                                 if let template = step.values["template"] { Text(template).font(.caption2).foregroundStyle(.secondary).lineLimit(2) }
                             }
                         }.padding(.vertical, 5).tag(step.id)
@@ -171,6 +172,10 @@ private struct ActionStepInspector: View {
             Divider()
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
+                    Toggle("Enabled", isOn: Binding(
+                        get: { step.isEnabled != false },
+                        set: { step.isEnabled = $0 }
+                    ))
                     if !DraftAction.supportedSteps.contains(step.type) {
                         Label("Unsupported step · preserved on export", systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.orange)
                     }

@@ -1,0 +1,23 @@
+[
+  {
+    "uuid": "BBBF0046-0000-4000-8000-000000000001",
+    "name": "QA Inspector enabled step",
+    "group": "Inspector QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "uuid": "BBBF0046-0000-4000-8000-000000000002",
+        "type": "script",
+        "isEnabled": false,
+        "platforms": 3,
+        "fixtureOption": {
+          "neutral": "retained"
+        },
+        "data": {
+          "script": "console.log('Enabled step ran café 🐼');"
+        }
+      }
+    ]
+  }
+]

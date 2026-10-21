@@ -11,6 +11,17 @@ sections below retain their original scope and dates.
 Keep the identity Draftly, `Note`, existing identities and libraries, original
 action scripts, Nerd Fonts, and the integrated Markdown preview.
 
+## Current delivery order — 21 October 2026
+
+The user now prioritizes inspector, Workspaces, Settings and personalization.
+Then close the visual comparison and capture/search flows. Keep outstanding
+engine and API checks open; do not substitute these deliveries for them.
+
+The action step inspector now exposes Enabled through the existing isEnabled
+field and marks disabled rows. It edits the temporary action copy. Imported
+platform values remain preserved but are not evaluated by the engine. Their
+semantics and editor are pending. The wider inspector delivery stays open.
+
 ## Latest correction — local scene draft reference, 21 October 2026
 
 Implemented: each LibraryView stores its current draft UUID in local SceneStorage.

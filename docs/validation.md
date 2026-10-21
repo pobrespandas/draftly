@@ -8554,3 +8554,59 @@ transport runs remain scoped to their observed scripts, not catalog isolation.
 
 All 57 Python tooling methods passed. Matrix structure has zero errors and
 git diff --check passed. No Swift source changed; no new app build was needed.
+
+
+### Arrangement attempt and priority change — 21 October 2026
+
+Attempted native navigation while QA Arrange pending operation was waiting.
+The footer Arrange control opens a direct line-operation menu, not the awaited
+Arrange dialog. Closed that menu, then ran the existing pending-operation action.
+The real Arrange dialog displayed First, Second café 🐼 and Third. Window-menu
+selection failed with elementHasNoFrame. Later AX reads showed a stale Window
+menu and screenshots were unavailable. Finder still responded. A process sample
+showed the main thread waiting for events; it did not prove an application hang.
+The user reported closing the menu. Resetting the CUA connection did not recover
+it. Normal Command-Q and reopening QA restored access. No force quit was used.
+
+The neutral Alpha draft had then moved to Archive with the fixture's continuation
+and tail text. A user cancellation returns the original text by contract and can
+continue this fixture; task cancellation is different. The attempted interaction
+therefore does not accept navigation or owner-close behavior. Restored Alpha's
+observed 325-character content and returned it to Inbox through the native UI.
+All five neutral drafts are again visible. Its modification date and revisions
+reflect this test and restoration; no historical metadata rollback is claimed.
+The full checked baseline passed 624 core and 524 app methods. The user then
+prioritized inspector, Workspaces, Settings and personalization, followed by
+visual comparison, capture and search. Arrangement acceptance stays pending.
+
+
+### Action inspector step enablement — 21 October 2026
+
+Implemented: expose Enabled in ActionStepInspector. An omitted isEnabled displays
+as enabled, as both engines already require. The toggle writes the typed field
+on the temporary action copy. Disabled step rows show Disabled. No execution,
+serialization or backup rule changed. Imported platform settings remain preserved
+but currently have no execution filter. Do not expose a working platform editor
+until that rule is defined and implemented.
+
+Added inspector-step-options-actions.json with a disabled neutral logging script,
+an explicit unique identity and retained extra fields. The existing manual UUID
+check passes. Existing disabled-step and imported-field tests cover execution
+and storage; no test that only mirrors the binding was added.
+
+Unsigned Xcode compilation passed. Quit QA normally, refreshed all code and
+resources with the guarded updater, then signed and verified. QA Services remain
+absent. Signed executable SHA256:
+20019fe43794f3ac81644ddcfbac0e74d9df07cac48bd4d617fb80152699581b.
+Signed debug dylib SHA256:
+4939b63cbab8dcbbeea7de418af0c616c0d27ba4a15321d703810b586d979454.
+
+Native import and Inspector QA action-list presence were observed. Context menus
+opened but CUA lost them before Edit could be invoked. Native toggle, Save,
+Cancel, reopen and execution differences are pending. No successful run is
+credited to that unconfirmed click. Alpha retains its restored text. No full
+inspector, Workspace, Settings or visual parity closure is claimed.
+
+Final checked regression after the inspector change passed all 624 core and
+524 app methods. Matrix structure has zero errors. The test runner verified
+complete method identities; these totals do not establish contract parity.
