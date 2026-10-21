@@ -29,7 +29,7 @@ struct LibraryManagementView: View {
                                     Text(name).font(.headline); Spacer()
                                     Button("Edit") {
                                         oldGroupName = name
-                                        group = library.actionGroups.first { $0.name == name } ?? ActionGroupRecord(name: name)
+                                        group = library.actionGroupRecord(named: name)
                                     }
                                     Button("↑") { reorderGroups(name, offset: -1) }.disabled(index == 0)
                                     Button("↓") { reorderGroups(name, offset: 1) }.disabled(index + 1 == library.groupNames.count)
@@ -103,7 +103,7 @@ struct LibraryManagementView: View {
         names.swapAt(index, index + offset)
         model.perform {
             let records = names.enumerated().map { order, name in
-                var record = library.actionGroups.first { $0.name == name } ?? ActionGroupRecord(name: name)
+                var record = library.actionGroupRecord(named: name)
                 record.order = order; return record
             }
             try library.saveActionGroups(records)
@@ -129,7 +129,7 @@ private struct GroupSettingsView: View {
                         var value = group; value.name = value.name.trimmingCharacters(in: .whitespacesAndNewlines)
                         if previousName == nil {
                             guard !library.groupNames.contains(value.name) else { throw DraftlyError.message("Use a unique group name.") }
-                            value.id = ActionGroupRecord.identifier(for: value.name)
+                            value.id = library.actionGroupRecord(named: value.name).id
                         }
                         try library.saveActionGroup(value, replacing: previousName); dismiss()
                     } catch { self.error = error.localizedDescription }

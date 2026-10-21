@@ -1432,3 +1432,24 @@ ActionGroup.uuid remains partial. Remaining work: persist collision-safe IDs
 when action saves create only implicit groups; unify scripting, workspace and
 UI identity consumers; cover deletion, rollback, import and restore collisions.
 Do not infer complete group identity acceptance from these save tests.
+
+
+### Implicit group identity persistence — 20 October 2026
+
+Collision groups created by action saves now receive stored IDs in the same
+transaction. Existing implicit IDs take priority. Ordinary noncolliding groups
+stay implicit. Deleted records are excluded from pending decoding. Scripting,
+workspace resolution, settings and group management use the shared allocator.
+
+The full regression passed 454 app methods and 496 core methods. A later
+focused run also passed the legacy backup and group removal case. Unsigned
+Xcode compilation passed. Structural matrix validation passed before the
+evidence update. Tests cover both creation orders, stored identity, deletion,
+restore, reopen, failed batch, both scripting runners and workspace UUID
+lookup. No automatic test opens a window.
+
+Native collision creation and import acceptance with the new binary remain
+pending. ActionGroup.uuid stays partial. Next: verify neutral colliding groups
+in QA, check imported identities against existing groups, and record the
+native result. The earlier commit push failed DNS resolution; retry when
+GitHub is reachable. No global or core parity closure is claimed.

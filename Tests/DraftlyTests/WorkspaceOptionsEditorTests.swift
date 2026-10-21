@@ -5,6 +5,24 @@ import Testing
 
 @Suite("Workspace option editing") @MainActor
 struct WorkspaceOptionsEditorTests {
+    @Test func collidingGroupUUIDsResolveToTheirOwnNames() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let names = ["B" + String(repeating: "A", count: 16), "?" + String(repeating: "A", count: 15)]
+        try library.saveActions(names.map { name in
+            var action = DraftAction(name: name, steps: []); action.group = name; return action
+        })
+        for name in names {
+            var workspace = Workspace(name: "Collision reference")
+            let id = library.actionGroupRecord(named: name).id.uuidString
+            try WorkspaceOptionsEditor.setReference(["uuid": id], key: "loadActionListGroup", in: &workspace)
+            let resolved = try WorkspacePresentationResolver.resolve(workspace,
+                groupNames: library.groupNames, groups: library.actionGroups, themes: [])
+            let reference = try #require(resolved.apiOptions["loadActionListGroup"] as? [String: Any])
+            #expect(reference["name"] as? String == name)
+            #expect(reference["uuid"] as? String == id)
+        }
+    }
+
     @Test func folderSortChangesEffectiveOrderAndPreservesOtherFoldersAndUnknownFields() throws {
         var workspace = Workspace(name: "Order")
         workspace.scriptMetadata = ["future": "keep", "api": #"{"unknown":{"value":42},"_sorts":{"archive":{"sort":"created","descending":false},"inbox":{"sort":"modified","future":true}}}"#]

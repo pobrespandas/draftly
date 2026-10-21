@@ -12,7 +12,7 @@ struct WorkspacePresentationSettings: View {
     }
     private var groups: [Choice] {
         library.groupNames.map { name in
-            let id = library.actionGroups.first { $0.name == name }?.id ?? ActionGroupRecord.identifier(for: name)
+            let id = library.actionGroupRecord(named: name).id
             return Choice(id: id.uuidString, title: name, value: ["name": name, "uuid": id.uuidString])
         }
     }

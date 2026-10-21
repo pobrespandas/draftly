@@ -234,7 +234,7 @@ public enum APIValues {
         return components.string!
     }
     private func stableGroupID(_ name: String) -> String {
-        (library.actionGroups.first(where: { $0.name == name })?.id ?? ActionGroupRecord.identifier(for: name)).uuidString
+        library.actionGroupRecord(named: name).id.uuidString
     }
 }
 

@@ -75,7 +75,7 @@ final class LibraryRecordPersistence {
     }
 
     func decode<T: Decodable>(_ kind: String, _ type: T.Type) throws -> [T] {
-        try records.values.filter { $0.value(forKey: "kind") as? String == kind }.map { object in
+        try records.values.filter { !$0.isDeleted && $0.value(forKey: "kind") as? String == kind }.map { object in
             guard let string = object.value(forKey: "payload") as? String, let data = string.data(using: .utf8) else {
                 throw DraftlyError.message("Cannot read a stored \(kind) record. Restore a backup before changing the library.")
             }

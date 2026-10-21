@@ -79,7 +79,30 @@ public final class LibraryStore: ObservableObject {
     private func persist<T: Encodable>(_ item: T, id: UUID, kind: String) throws {
         try persistence.persist(item, id: id, kind: kind)
     }
-    private func commit() throws { try persistence.commit { try reload() } }
+    private func commit() throws {
+        do {
+            try preserveCollidingGroupIdentities()
+            try persistence.commit { try reload() }
+        } catch { container.viewContext.rollback(); try? reload(); throw error }
+    }
+
+    private func preserveCollidingGroupIdentities() throws {
+        let pendingGroups = try persistence.decode("actionGroup", ActionGroupRecord.self)
+        let pendingActions = try persistence.decode("action", DraftAction.self)
+        let names = Set(pendingGroups.map(\.name) + pendingActions.map(\.group))
+        let affected = ActionGroupIdentity.collisionNames(names: Array(names), records: pendingGroups)
+            .union(ActionGroupIdentity.collisionNames(names: groupNames, records: actionGroups))
+        guard !affected.isEmpty else { return }
+        let ids = ActionGroupIdentity.identifiers(names: Array(names), records: pendingGroups,
+            preferred: actionGroupIdentifiers)
+        let storedNames = Set(pendingGroups.map(\.name))
+        for name in names.intersection(affected).subtracting(storedNames).sorted() {
+            var record = ActionGroupRecord(name: name)
+            record.id = ids[name]!
+            record.order = groupNames.firstIndex(of: name) ?? groupNames.count
+            try persist(record, id: record.id, kind: "actionGroup")
+        }
+    }
 
     var beforeBatchCommit: (() throws -> Void)?
 
@@ -179,6 +202,18 @@ public final class LibraryStore: ObservableObject {
         let known = actionGroups.map(\.name).filter { seen.insert($0).inserted }
         return known + Set(actions.map(\.group)).subtracting(known).sorted()
     }
+    public var actionGroupIdentifiers: [String: UUID] {
+        ActionGroupIdentity.identifiers(names: groupNames, records: actionGroups)
+    }
+
+    public func actionGroupRecord(named name: String) -> ActionGroupRecord {
+        if let record = actionGroups.first(where: { $0.name == name }) { return record }
+        var record = ActionGroupRecord(name: name)
+        record.id = ActionGroupIdentity.identifiers(names: groupNames + [name], records: actionGroups,
+            preferred: actionGroupIdentifiers)[name]!
+        return record
+    }
+
     public func orderedActions(on surface: ActionSurface? = nil) -> [DraftAction] {
         let names = groupNames
         let preferred = ["Copy", "Share", "Add to Reminders", "Add Calendar Event", "Save to File", "Markdown Preview"]

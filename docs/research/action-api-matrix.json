@@ -6984,9 +6984,9 @@
           "result": "Stored group name/UUID are returned and cannot be reassigned; rename and backup/restore preserve UUID and member identity.",
           "errors": "The reference defines no getter error. Reflect.set rejects readonly replacement and preserves the original value.",
           "limitations": [
-            "The current ActionGroupRecord identifier maps B plus16As and question mark plus15As to the same UUID. A source-extracted Swift probe reproduced this without library writes. Collision-safe creation must preserve stored/implicit identities before this member can close."
+            "Collision-safe allocation, atomic persistence, scripting and workspace resolution pass automatic regression tests. Native collision creation and import verification remain pending; the legacy identifier helper remains unchanged for compatibility."
           ],
-          "evidenceLevel": "Readonly and identity restoration checks pass; uniqueness is contradicted by a legacy identifier collision.",
+          "evidenceLevel": "Readonly, rename, restore, reopen and collision identity checks pass automatically. Native collision acceptance is pending.",
           "automatedVerification": {
             "status": "passed",
             "date": "2026-10-20",
@@ -7001,6 +7001,18 @@
                 ],
                 "result": "Reflect.set rejects property replacement on both runners; original identity, installation URL and group ownership remain. configuredValues contents still share mutable context state. No native UI acceptance inferred.",
                 "evidence": "docs/validation.md: Read-only action catalog properties — 20 October 2026"
+              },
+              {
+                "date": "2026-10-20",
+                "suite": "ActionGroupPersistenceTests / ActionCatalogReadOnlyContractTests / WorkspaceOptionsEditorTests",
+                "tests": [
+                  "implicitGroupsKeepIDsThroughDeletionAndRestore",
+                  "legacyImplicitCollisionBackupAndGroupRemovalKeepSurvivingIdentity",
+                  "collidingImplicitGroupsExposeTheirStoredIdentities",
+                  "collidingGroupUUIDsResolveToTheirOwnNames"
+                ],
+                "result": "Stored and implicit collision groups keep distinct IDs, membership, backup and reopen state. Both scripting runners and workspace UUID lookup agree. Failed batch leaves no allocation.",
+                "evidence": "docs/validation.md: Implicit group identity persistence — 20 October 2026"
               }
             ]
           },
@@ -7025,7 +7037,7 @@
           },
           "nativeVerification": {
             "status": "pending",
-            "reason": "Readonly/value native assertions passed, but identifier uniqueness remains unresolved due to the reproduced legacy collision.",
+            "reason": "Earlier native readonly/value assertions passed. Collision-safe allocation and persistence require acceptance with the updated QA binary.",
             "additionalChecks": [
               {
                 "status": "passed",

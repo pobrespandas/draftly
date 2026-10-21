@@ -5,6 +5,28 @@ import Testing
 @Suite("Action catalog read-only contracts") @MainActor
 struct ActionCatalogReadOnlyContractTests {
     @Test(arguments: [false, true])
+    func collidingImplicitGroupsExposeTheirStoredIdentities(worker: Bool) async throws {
+        let (library, _, _, runner) = try makeAPIContext()
+        let first = "B" + String(repeating: "A", count: 16)
+        let second = "?" + String(repeating: "A", count: 15)
+        var a = DraftAction(name: "Collision A", steps: []); a.group = first
+        var b = DraftAction(name: "Collision B", steps: []); b.group = second
+        try library.saveActions([a, b])
+        let firstID = library.actionGroupRecord(named: first).id.uuidString
+        let secondID = library.actionGroupRecord(named: second).id.uuidString
+        let source = makeAPIAction("""
+        const a=ActionGroup.find('\(first)'), b=ActionGroup.find('\(second)');
+        check(a.uuid==='\(firstID)' && b.uuid==='\(secondID)' && a.uuid!==b.uuid,'distinct persisted identities');
+        check(a.actions.some(x=>x.name==='Collision A') && !a.actions.some(x=>x.name==='Collision B'),'first membership');
+        check(b.actions.some(x=>x.name==='Collision B') && !b.actions.some(x=>x.name==='Collision A'),'second membership');
+        """)
+        let succeeded: Bool
+        if worker { succeeded = await runner.runAsync(source).result.succeeded }
+        else { succeeded = runner.run(source) }
+        #expect(succeeded, Comment(rawValue: runner.message ?? ""))
+    }
+
+    @Test(arguments: [false, true])
     func actionIdentificationAndConfigurationCannotBeReassigned(worker: Bool) async throws {
         let (library, _, _, runner) = try makeAPIContext()
         var source = makeAPIAction(#"""
