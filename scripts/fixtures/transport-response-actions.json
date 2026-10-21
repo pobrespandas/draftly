@@ -1,0 +1,28 @@
+[
+  {
+    "uuid": "BBBF0043-0000-4000-8000-000000000001",
+    "name": "QA HTTP XMLRPC response contracts",
+    "group": "Transport contract QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "configurationKey",
+        "data": {
+          "key": "baseURL",
+          "name": "Neutral loopback URL",
+          "description": "Start Tests/DraftlyCoreTests/Fixtures/http-server.py. Enter http://127.0.0.1:PORT.",
+          "dataType": "string",
+          "defaultStringValue": "",
+          "requiresInitialConfiguration": "true"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "function check(value, message) { if (!value) throw new Error(message); }\nconst base = context.configuredValues.baseURL;\ncheck(/^http:\\/\\/127\\.0\\.0\\.1:[0-9]+$/.test(base), 'Use the neutral loopback server');\nconst original = editor.getText();\nconst http = HTTP.create();\nhttp.timeout = 5;\nconst json = http.request({url:base+'/json',method:'GET'});\ncheck(json instanceof HTTPResponse && json.success && json.statusCode===200,'HTTP success');\ncheck(json.responseData.text==='café 🐼' && JSON.parse(json.responseText).text==='café 🐼','HTTP Unicode');\ncheck(Object.keys(json.headers).some(k=>k.toLowerCase()==='x-neutral' && json.headers[k]==='yes'),'HTTP headers');\ncheck(json.error===undefined && json.otherData===undefined,'Absent HTTP optional fields');\nconst latin = http.request({url:base+'/latin1',method:'GET'});\ncheck(latin.success && latin.responseText==='café','HTTP charset');\nconst failure = http.request({url:base+'/error',method:'GET'});\ncheck(!failure.success && failure.statusCode===503 && failure.responseText==='Unavailable café 🐼','HTTP non-success');\nconst disconnected = http.request({url:base+'/disconnect',method:'GET'});\ncheck(!disconnected.success && disconnected.statusCode===0 && typeof disconnected.error==='string','HTTP transport error');\nfor (const path of ['/xml-latin1','/xml-utf16','/xml-utf16le-no-charset','/xml-utf16be-no-charset']) {\n const result = XMLRPC.request(base+path,'example.echo',[]);\n check(result instanceof XMLRPCResponse && result.success && result.statusCode===200,'XML-RPC success '+path);\n check(result.params.length===1 && result.params[0]==='café & mañana','XML-RPC encoding '+path);\n check(result.error===undefined && result.faultCode===undefined,'Absent XML-RPC error fields');\n}\nfor (const code of [-42,0,42]) {\n const fault = XMLRPC.request(base+'/xml-fault?code='+code,'example.fault',[]);\n check(!fault.success && fault.statusCode===200 && fault.faultCode===code,'XML-RPC fault code');\n check(fault.error==='Denied café 🐼' && fault.params.length===0,'XML-RPC fault fields');\n}\nfor (const [path,status] of [['/xml-malformed-array',200],['/xml-http-failure',503],['/bodyless',204],['/disconnect',0]]) {\n const result = XMLRPC.request(base+path,'example.invalid',[]);\n check(!result.success && result.statusCode===status,'XML-RPC failure status '+path);\n check(typeof result.error==='string' && result.error.length>0 && result.faultCode===undefined && result.params.length===0,'XML-RPC failure fields '+path);\n}\ncheck(editor.getText()===original,'Source text unchanged');\ncontext.addSuccessParameter('loopback','HTTP and XML-RPC response checks passed');"
+        }
+      }
+    ]
+  }
+]

@@ -8462,3 +8462,38 @@ relaunch from that path was attempted or accepted. No system setting was changed
 no force quit was used and no normal Quit is credited as keep-windows acceptance.
 Closed both target tabs with Command-W. QA ends on Alpha with one tab/five drafts,
 no pending action or dialog. Native full scene restoration remains pending.
+
+
+### Native HTTP and XML-RPC responses — 21 October 2026
+
+Implemented: added transport-response-actions.json as a repeatable neutral QA
+fixture. Its initial configuration requires an ephemeral loopback URL. It rejects
+other hosts. No production source, reference or contract classification changed.
+Start Tests/DraftlyCoreTests/Fixtures/http-server.py and enter its printed port.
+Stop that server after the action completes. Use a new port on each repetition.
+
+Verified in use: imported and ran the fixture in the signed Engine QA image
+recorded in the previous scene restoration check. The local server used port
+63016. Execution History showed Success at 08:23. HTTP checks covered typed
+responses, Unicode JSON and text, returned headers, absent optional fields,
+Latin-1 text, HTTP 503 and a recoverable disconnect. XML-RPC checks covered
+Latin-1, UTF-16, and UTF-16 LE/BE without an HTTP charset. Fault codes -42, 0
+and 42 kept their exact numeric value and Unicode error text. Malformed arrays,
+HTTP 503, empty HTTP 204 and disconnect returned failure without invented fault
+codes or success parameters. The server observed the corresponding requests.
+URLSession retried the disconnected HTTP GET; this is not an extra action run.
+The action checked that editor text remained unchanged. Alpha retained its five
+neutral drafts and existing text. Closed History. Stopped the exact server
+session after completion; no server or action remains pending.
+
+This is native installed-app acceptance, not a comparison with Drafts. It does
+not define the missing Date/binary mapping, otherData triggers, unfollowed 3xx
+success policy, or exact Drafts error wording. Those partial contracts remain
+partial. Constructor acceptance remains the existing automatic evidence; this
+fixture does not exercise constructors directly. No permission, personal data,
+remote destination, screenshot or raw log is required.
+
+Automatically tested: all 11 methods in ScriptHTTPLocalServerTests passed with
+their parameterized legacy and worker cases. Matrix structure has zero errors.
+No production code changed, so this stage did not require a new app build. The
+previous successful build identifies the installed binary used above.

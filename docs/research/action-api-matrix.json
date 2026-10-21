@@ -12451,7 +12451,7 @@
             "suite": "ScriptHTTPLocalServerTests",
             "test": "actualScriptingRequestsReturnHTTPResponseAndUseClientOptions"
           },
-          "liveCheck": null,
+          "liveCheck": "docs/validation.md: Native HTTP and XML-RPC responses — 21 October 2026",
           "compatibilityStatus": "complete",
           "reviewDate": "2026-10-21",
           "implementationEvidence": {
@@ -12672,7 +12672,7 @@
             "suite": "ScriptHTTPLocalServerTests",
             "test": "actualErrorsDoNotFabricateParsedData"
           },
-          "liveCheck": null,
+          "liveCheck": "docs/validation.md: Native HTTP and XML-RPC responses — 21 October 2026",
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-21",
           "implementationEvidence": {
@@ -12749,7 +12749,7 @@
             "suite": "ScriptHTTPLocalServerTests",
             "test": "actualBodylessResponsesPreserveMetadata"
           },
-          "liveCheck": null,
+          "liveCheck": "docs/validation.md: Native HTTP and XML-RPC responses — 21 October 2026",
           "compatibilityStatus": "complete",
           "reviewDate": "2026-10-21",
           "implementationEvidence": {
@@ -12816,7 +12816,7 @@
             "suite": "ScriptHTTPLocalServerTests",
             "test": "actualScriptingRequestsReturnHTTPResponseAndUseClientOptions"
           },
-          "liveCheck": null,
+          "liveCheck": "docs/validation.md: Native HTTP and XML-RPC responses — 21 October 2026",
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-21",
           "implementationEvidence": {
@@ -12879,7 +12879,7 @@
             "suite": "HTTPResponseContractTests",
             "test": "JSONArraysAndFragmentsRemainTyped"
           },
-          "liveCheck": null,
+          "liveCheck": "docs/validation.md: Native HTTP and XML-RPC responses — 21 October 2026",
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-21",
           "implementationEvidence": {
@@ -12956,7 +12956,7 @@
             "suite": "HTTPResponseContractTests",
             "test": "responseTextUsesTheDeclaredCharset"
           },
-          "liveCheck": null,
+          "liveCheck": "docs/validation.md: Native HTTP and XML-RPC responses — 21 October 2026",
           "compatibilityStatus": "complete",
           "reviewDate": "2026-10-21",
           "implementationEvidence": {
@@ -13031,7 +13031,7 @@
             "suite": "ScriptHTTPLocalServerTests",
             "test": "redirectOptionControlsActualDestination"
           },
-          "liveCheck": null,
+          "liveCheck": "docs/validation.md: Native HTTP and XML-RPC responses — 21 October 2026",
           "compatibilityStatus": "complete",
           "reviewDate": "2026-10-21",
           "implementationEvidence": {
@@ -13106,7 +13106,7 @@
             "suite": "ScriptHTTPLocalServerTests",
             "test": "redirectOptionControlsActualDestination"
           },
-          "liveCheck": null,
+          "liveCheck": "docs/validation.md: Native HTTP and XML-RPC responses — 21 October 2026",
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-21",
           "implementationEvidence": {
@@ -13250,7 +13250,7 @@
             "suite": "XMLRPCAsyncTests",
             "test": "requestAndReplyUseTheSharedXMLContract"
           },
-          "liveCheck": null,
+          "liveCheck": "docs/validation.md: Native HTTP and XML-RPC responses — 21 October 2026",
           "compatibilityStatus": "partial",
           "automatedTestHistory": [
             "XMLRPCTests; ActionAPITests.xmlrpcTransportFailureIsAnExplicitResponse"
@@ -13463,7 +13463,7 @@
             "suite": "ScriptHTTPLocalServerTests",
             "test": "actualXMLRPCFaultKeepsTypedFields"
           },
-          "liveCheck": null,
+          "liveCheck": "docs/validation.md: Native HTTP and XML-RPC responses — 21 October 2026",
           "compatibilityStatus": "complete",
           "reviewDate": "2026-10-21",
           "implementationEvidence": {
@@ -13540,7 +13540,7 @@
             "suite": "ScriptHTTPLocalServerTests",
             "test": "actualXMLRPCFaultKeepsTypedFields"
           },
-          "liveCheck": null,
+          "liveCheck": "docs/validation.md: Native HTTP and XML-RPC responses — 21 October 2026",
           "compatibilityStatus": "complete",
           "reviewDate": "2026-10-21",
           "implementationEvidence": {
@@ -13617,7 +13617,7 @@
             "suite": "XMLRPCTests",
             "test": "emptyAndNestedCompositeValuesKeepTheirTypesAndWhitespace"
           },
-          "liveCheck": null,
+          "liveCheck": "docs/validation.md: Native HTTP and XML-RPC responses — 21 October 2026",
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-21",
           "implementationEvidence": {
@@ -13698,7 +13698,7 @@
             "suite": "ScriptHTTPLocalServerTests",
             "test": "actualXMLRPCMalformedOrFailedResponsesDoNotReportSuccess"
           },
-          "liveCheck": null,
+          "liveCheck": "docs/validation.md: Native HTTP and XML-RPC responses — 21 October 2026",
           "compatibilityStatus": "complete",
           "reviewDate": "2026-10-21",
           "implementationEvidence": {
@@ -13775,7 +13775,7 @@
             "suite": "ScriptHTTPLocalServerTests",
             "test": "actualXMLRPCFaultKeepsTypedFields"
           },
-          "liveCheck": null,
+          "liveCheck": "docs/validation.md: Native HTTP and XML-RPC responses — 21 October 2026",
           "compatibilityStatus": "complete",
           "reviewDate": "2026-10-21",
           "implementationEvidence": {

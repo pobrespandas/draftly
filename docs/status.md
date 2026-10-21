@@ -2084,3 +2084,12 @@ in this object. Engine permission/capability variants remain separate.
 Full regression passed 468 app and 545 core methods. The unsigned Xcode build
 and all 41 Python tooling tests passed. QA now has the validated HTTP/XML-RPC
 runtime too; the manual acceptance here covers callbacks.
+
+
+### Native transport response check — 21 October 2026
+
+The installed Engine QA app passed the neutral HTTP/XML-RPC response fixture.
+It checked Unicode, charsets, headers, fault codes and transport/parser failures
+without changing editor text. See validation for the exact cases. Date/binary
+mapping and undocumented response policies still require Drafts comparison.
+No production change or new compatibility classification was made.
