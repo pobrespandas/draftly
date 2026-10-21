@@ -7178,3 +7178,55 @@ Matrix structure has zero errors. Strict engine/global acceptance retains
 18/4534 diagnostics. These counts do not measure compatibility. Theme value
 members have specific tests; catalog/install and App selection native gaps
 remain classified as partial.
+
+### Theme installation links — 21 October 2026
+
+Implemented: Theme.installURL now calls a host operation. A custom link carries
+the complete EditorThemeDefinition, including UUID, colors, unknown fields and
+original Drafts source. UUID lookup takes precedence over a detached name.
+Name-only custom references remain valid when no UUID is supplied. Built-in
+links use the shared catalog and do not create a library definition. Legacy
+built-in name-only links remain readable. File links fail explicitly.
+
+A shared codec validates both sides. It rejects malformed identities, invalid
+colors/names, unsupported addresses, duplicate parameters and conflicting
+payloads. The application receiver uses this codec before storage. Identical
+imports require no write. Replacing a name match requires confirmation and
+keeps its destination UUID. An incoming UUID/name that identifies two distinct
+destination themes fails before confirmation. Cancel leaves storage unchanged.
+The receiver checks the captured theme collection after confirmation; a change
+during the alert cannot be overwritten by the stale incoming definition.
+
+Automatically tested: seven core methods and five headless app methods passed.
+Both scripting engines produce stable readonly URL strings. Tests cover Unicode,
+quotes, query characters, unknown/source fields, exact built-ins, legacy names,
+missing definitions, strict UUID resolution, invalid/file types, persistence,
+backup recovery, cancellation, confirmed replacement, identity collision,
+commit rollback and a library change during confirmation. No test opens an
+alert, requests a permission or accesses personal data.
+
+Full regression passed 489 app methods and 565 core methods, including the five
+unchanged original action scripts. All 46 Python tests and the unsigned Xcode
+build passed. Matrix structure has zero errors. Strict engine acceptance still
+has 18 diagnostics. Global acceptance remains open; its current output is
+recorded below. Test totals are not a compatibility score.
+
+Native verification remains pending. QA still returns a closed-native-pipe
+error when Computer Use binds to it. The previous request to close its Settings
+window has no response yet. The QA binary still contains the preceding theme
+selection change; the new installation build has not been installed in QA.
+Do not treat the headless receiver tests as acceptance of the native alert or
+external dispatch. QA registers only draftly-engine-qa; ApplicationURLRouter
+currently accepts only draftly. Resolve that isolated transport boundary before
+opening an external theme link in QA. Do not dispatch a test link to the
+habitual app by accident.
+
+File themes remain a real implementation gap. The dated guide check confirms
+that developer mode uses external JSON files in the Themes library folder.
+See [developer mode](https://docs.getdrafts.com/extending/development) and the
+[theme format](https://docs.getdrafts.com/docs/extending/development/theme-format).
+These are 21 October follow-up references, not replacements for the archived
+19 October scripting baseline. Do not classify file support as unavailable on
+macOS merely because Draftly has not implemented it.
+
+Current global result: Matrix check: 4529 errors.

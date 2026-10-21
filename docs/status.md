@@ -30,7 +30,9 @@ return typed values. Settings and window rendering share those references.
 Both-engine and headless tests passed. Native QA rendered the custom dark
 editor and preserved text/selection. Settings, light rendering, restart and
 cross-window native checks remain pending after a Computer Use connection
-failure. File themes and Theme.installURL remain partial. The six Theme
+failure. Theme.installURL now transports full custom definitions and has a cancelable
+receiver. Specific link, identity, rollback and backup tests passed. Native
+installation and file themes remain partial. The six Theme
 members were added as a dated supplement; the baseline stays unchanged.
 
 

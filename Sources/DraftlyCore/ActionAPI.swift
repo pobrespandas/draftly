@@ -203,6 +203,23 @@ public enum APIValues {
                 let change = try syntax.taskChange(in: values["text"] as? String ?? "", task: values["task"] as? [String: Any] ?? [:], operation: values["operation"] as? String ?? "")
                 return ["range": [change.0.location, change.0.length], "text": change.1]
             } catch SyntaxTaskError.invalidSnapshot { return ["changed": false] }
+        case "themeInstallURL":
+            let name = values["name"] as? String ?? ""
+            switch values["type"] as? String {
+            case "builtIn": return try ThemeInstallation.builtIn(name).url.absoluteString
+            case "custom":
+                let theme: EditorThemeDefinition?
+                if let rawID = values["uuid"] {
+                    guard let raw = rawID as? String, let id = UUID(uuidString: raw) else {
+                        throw DraftlyError.message("The theme ID is invalid.")
+                    }
+                    theme = library.themes.first { $0.id == id }
+                } else { theme = library.themes.first { $0.name == name } }
+                guard let theme else { throw DraftlyError.message("The theme is not installed.") }
+                return try ThemeInstallation.custom(theme).url.absoluteString
+            case "file": throw DraftlyError.message("File theme installation is not implemented.")
+            default: throw DraftlyError.message("The theme type is invalid.")
+            }
         case "themes":
             return ThemeCatalog.values(in: library)
         case "device": return ["systemName": "macOS", "model": "Mac", "systemVersion": ProcessInfo.processInfo.operatingSystemVersionString] as [String: Any]

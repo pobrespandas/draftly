@@ -19410,25 +19410,98 @@
             "installURL: string"
           ],
           "contract": "URL which can be used to install this Theme in another installation of Drafts. Useful for sharing and backups.",
-          "implementation": "partial-name-only-url",
-          "automatedTest": null,
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "ThemeInstallURLContractTests",
+            "test": "customLinksPreserveDefinitionsAndResolveIdentityBeforeDetachedName"
+          },
           "liveCheck": null,
           "reviewDate": "2026-10-21",
           "implementationEvidence": {
-            "file": "Sources/DraftlyCore/Resources/Bridge.js",
-            "symbol": "Theme.installURL"
+            "file": "Sources/DraftlyCore/ThemeInstallation.swift",
+            "symbol": "ThemeInstallation.url"
           },
           "compatibilityStatus": "partial",
-          "defaults": "The reference specifies no configurable defaults.",
-          "result": "The current bridge returns a draftly name-only theme URL.",
-          "errors": "No theme URL receiver currently validates or installs this URL.",
+          "defaults": "A built-in reference produces a typed name link. A saved custom reference resolves by UUID first, or exact name only when UUID is absent. This uses the deliberate Draftly URL scheme.",
+          "result": "A readonly, stable installation URL string. Custom links carry the complete current definition, identity, colors, unknown fields and original Drafts source. Generating the URL does not edit the definition.",
+          "errors": "Unknown type, missing definition, invalid or missing UUID and unsupported file themes throw explicitly. The decoder rejects malformed payloads, invalid names/colors, duplicate or conflicting query parameters and unsupported addresses before saving.",
           "nativeVerification": {
             "status": "pending",
-            "reason": "Theme installation is not implemented."
+            "reason": "The external URL receiver and replacement/cancellation alert require a separate manual QA session. QA AX is still inaccessible after opening Settings."
           },
           "limitations": [
-            "The name-only URL cannot transfer a theme definition and has no receiving route. Installation and contract tests remain open."
-          ]
+            "File themes remain unimplemented. Native external URL routing and replacement/cancellation acceptance remain pending. Draftly uses its own scheme and preserves destination identity on confirmed name replacement."
+          ],
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ThemeInstallURLContractTests",
+                "test": "customLinksPreserveDefinitionsAndResolveIdentityBeforeDetachedName"
+              },
+              "assertion": "Both engines produce stable readonly strings. Unicode/quotes/percent/query characters and unknown fields round-trip through the common decoder; UUID wins over a detached name edit."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ThemeInstallURLContractTests",
+                "test": "builtinAndLegacyCustomReferencesHaveExplicitErrorsAndNoSideEffects"
+              },
+              "assertion": "Name-only custom references resolve an installed exact name; built-in links use the shared catalog."
+            },
+            "errors": {
+              "test": {
+                "suite": "ThemeInstallURLContractTests",
+                "test": "builtinAndLegacyCustomReferencesHaveExplicitErrorsAndNoSideEffects"
+              },
+              "assertion": "Missing/invalid UUIDs never fall back to the supplied name. Unknown/file types and missing names fail without changing the source."
+            }
+          },
+          "supportingTests": [
+            {
+              "suite": "ThemeInstallationTests",
+              "test": "customLinkPreservesIdentityColorsUnicodeAndUnknownSourceWithoutChangingItsValue"
+            },
+            {
+              "suite": "ThemeInstallationTests",
+              "test": "builtInLinksAreTypedAndLegacyNameOnlyLinksResolveExactly"
+            },
+            {
+              "suite": "ThemeInstallationTests",
+              "test": "malformedAddressOrQueryCannotSelectOrImportATheme"
+            },
+            {
+              "suite": "ThemeInstallationTests",
+              "test": "customPayloadRequiresNativeIdentityFieldsAndValidColorsBeforeInstallation"
+            },
+            {
+              "suite": "ThemeInstallationTests",
+              "test": "fileThemesFailExplicitlyInsteadOfEmittingANameOnlySuccess"
+            },
+            {
+              "suite": "URLThemeInstallationTests",
+              "test": "roundTripPreservesUnknownFieldsAndDoesNotSelectTheTheme"
+            },
+            {
+              "suite": "URLThemeInstallationTests",
+              "test": "cancellationAndConfirmedNameReplacementKeepExistingIdentity"
+            },
+            {
+              "suite": "URLThemeInstallationTests",
+              "test": "conflictingIdentityOrCommitFailureCannotPartiallyReplaceThemes"
+            },
+            {
+              "suite": "URLThemeInstallationTests",
+              "test": "aChangeDuringConfirmationCannotBeOverwritten"
+            },
+            {
+              "suite": "URLThemeInstallationTests",
+              "test": "malformedLinksAndMissingLibraryFailBeforeConfirmation"
+            }
+          ],
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Theme installation links — 21 October 2026"
+          }
         },
         {
           "member": "name",

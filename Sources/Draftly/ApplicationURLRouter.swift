@@ -25,6 +25,18 @@ struct ApplicationURLRouter {
         case "action":
             do { try Self.installActions(url, library: library); show() }
             catch { library?.error = error.localizedDescription }
+        case "theme":
+            do {
+                let installed = try Self.installTheme(url, library: library) { existing in
+                    let alert = NSAlert()
+                    alert.messageText = "Replace theme “\(existing.name)”?"
+                    alert.informativeText = "Replace keeps the existing theme identity."
+                    alert.addButton(withTitle: "Replace"); alert.addButton(withTitle: "Cancel")
+                    alert.buttons.last?.keyEquivalent = "\u{1b}"
+                    return alert.runModal() == .alertFirstButtonReturn
+                }
+                if installed { show() }
+            } catch { library?.error = error.localizedDescription }
         case "syntax":
             do {
                 if let data = parameter("data") {
@@ -83,6 +95,31 @@ struct ApplicationURLRouter {
         default: break
         }
     }
+    static func installTheme(_ url: URL, library: LibraryStore?,
+                             confirmReplacement: (EditorThemeDefinition) -> Bool) throws -> Bool {
+        guard let library else { throw DraftlyError.message("The library is unavailable.") }
+        switch try ThemeInstallation(url: url) {
+        case .builtIn: return true
+        case .custom(var incoming):
+            let identityMatch = library.themes.first { $0.id == incoming.id }
+            let nameMatch = library.themes.first { $0.name == incoming.name }
+            if let identityMatch, let nameMatch, identityMatch.id != nameMatch.id {
+                throw DraftlyError.message("The theme name belongs to a different installed theme.")
+            }
+            if let existing = identityMatch ?? nameMatch {
+                incoming.id = existing.id
+                if incoming == existing { return true }
+                let beforeConfirmation = library.themes
+                guard confirmReplacement(existing) else { return false }
+                guard library.themes == beforeConfirmation else {
+                    throw DraftlyError.message("The installed themes changed. Open the link again to review the replacement.")
+                }
+            }
+            try library.saveTheme(incoming)
+            return true
+        }
+    }
+
     static func installActions(_ url: URL, library: LibraryStore?) throws {
         guard let library else { throw DraftlyError.message("The library is unavailable.") }
         try LibraryFileImport.apply(ActionImporter.installationData(url), fileExtension: "json", to: library)

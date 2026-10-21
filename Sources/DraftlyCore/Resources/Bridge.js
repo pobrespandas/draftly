@@ -25,7 +25,7 @@ class Theme {
     constructor(name = 'Default', type = 'builtIn') { this.name = name; this.type = type; }
     static find(type, name) { return Theme.getAll().find(s => s.type === type && s.name === name); }
     static getAll() { return __call('themes').map(s => Object.assign(new Theme(), s)); }
-    get installURL() { return 'draftly://theme?name=' + encodeURIComponent(this.name); }
+    get installURL() { return __call('themeInstallURL',{name:this.name,type:this.type,uuid:this.uuid}); }
 }
 class Task { constructor(value = {}) { Object.assign(this,value);Object.freeze(this); } }
 function __syntaxAnalysis(text,syntax) { return __call('syntaxAnalysis',{text,syntax}); }
