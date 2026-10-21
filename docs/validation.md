@@ -6985,3 +6985,20 @@ cleanup, task cancellation, owner-window close or every automation entry.
 The existing headless NativeSharingRequestTests cover controlled driver
 completion, cancellation and late callbacks separately. No production code
 changed for this check. The full 7047474 Swift run already passed those tests.
+
+
+### Supplemental Share inventory — 21 October 2026
+
+The approved utility scope includes Share, but the required object list and
+frozen archive omitted it. The old global gate could not detect that omission.
+Share is now required. Its public reference was captured as a dated supplement
+with its URL and SHA256. The original 19 October baseline date, archived pages,
+member evidence and Drafts version stay unchanged.
+
+The new --supplement OBJECT path fetches only the selected object. It keeps
+other objects, steps, engine records and unknown metadata. Changed reference
+contracts retain their evidence but require review. Four auditor regression
+cases cover required inventory, preservation, invalidation and invalid input.
+The Share page adds a constructor and three static methods. They start without
+compatibility acceptance. A larger inventory does not reduce the remaining
+work. This supplement does not establish Theme or other omitted utility scope.

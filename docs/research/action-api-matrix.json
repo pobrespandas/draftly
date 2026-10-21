@@ -18892,6 +18892,76 @@
           }
         }
       ]
+    },
+    {
+      "object": "Share",
+      "url": "https://scripting.getdrafts.com/classes/Share",
+      "sha256": "7a1ed21998857605b1e9efbde6ac1ac64b8e2f6058e7b511ab8b0305bfc8b47f",
+      "snapshotDate": "2026-10-21T07:13:30.064843+00:00",
+      "referenceArchive": {
+        "path": "docs/research/action-api-reference/2026-10-21/Share.7a1ed21998857605b1e9efbde6ac1ac64b8e2f6058e7b511ab8b0305bfc8b47f.html.gz",
+        "sha256": "7a1ed21998857605b1e9efbde6ac1ac64b8e2f6058e7b511ab8b0305bfc8b47f",
+        "url": "https://scripting.getdrafts.com/classes/Share",
+        "capturedAt": "2026-10-21T07:13:30.064843+00:00"
+      },
+      "members": [
+        {
+          "member": "constructor",
+          "anchor": "constructor",
+          "kind": "constructor",
+          "static": false,
+          "readonly": false,
+          "signatures": [
+            "new Share(): Share"
+          ],
+          "contract": "",
+          "implementation": "not-audited",
+          "automatedTest": null,
+          "liveCheck": null
+        },
+        {
+          "member": "shareAsFile",
+          "anchor": "shareasfile",
+          "kind": "method",
+          "static": true,
+          "readonly": false,
+          "signatures": [
+            "shareAsFile(filename: string, text: string): boolean"
+          ],
+          "contract": "Open system share sheet to share the content as a file, with the specified file name (with e). Returns true if share was completed by user amd false if input was invalid or user cancelled share. Drafts will create a temporary file for the purposes of the share and send it to the share sheet. The temporary file will be deleted after. Useful, for example, to create a text file and share to Mail, and it will be shared as an attachment to the email",
+          "implementation": "not-audited",
+          "automatedTest": null,
+          "liveCheck": null
+        },
+        {
+          "member": "shareAsText",
+          "anchor": "shareastext",
+          "kind": "method",
+          "static": true,
+          "readonly": false,
+          "signatures": [
+            "shareAsText(text: string): boolean"
+          ],
+          "contract": "Open system share sheet to share the string provided as text. Returns true if share was completed by user, false if input was invalid or user cancelled the share.",
+          "implementation": "not-audited",
+          "automatedTest": null,
+          "liveCheck": null
+        },
+        {
+          "member": "shareAsURL",
+          "anchor": "shareasurl",
+          "kind": "method",
+          "static": true,
+          "readonly": false,
+          "signatures": [
+            "shareAsURL(url: string): boolean"
+          ],
+          "contract": "Open system share sheet to share the url provided as a URL object. Returns true if share was completed by user and false if input was invalid or user cancelled share.",
+          "implementation": "not-audited",
+          "automatedTest": null,
+          "liveCheck": null
+        }
+      ]
     }
   ],
   "installedDraftsVersion": "54.1.1",
@@ -21637,5 +21707,16 @@
     "sha256": "a45f33703dcfc35f4efaa79acefde768a125357b913e11e20a4ff009a4a17ff3",
     "url": "https://docs.getdrafts.com/docs/extending/development/syntax-format",
     "capturedAt": "2026-10-19T17:31:37.415549+00:00"
-  }
+  },
+  "supplementalReferences": [
+    {
+      "object": "Share",
+      "referenceArchive": {
+        "path": "docs/research/action-api-reference/2026-10-21/Share.7a1ed21998857605b1e9efbde6ac1ac64b8e2f6058e7b511ab8b0305bfc8b47f.html.gz",
+        "sha256": "7a1ed21998857605b1e9efbde6ac1ac64b8e2f6058e7b511ab8b0305bfc8b47f",
+        "url": "https://scripting.getdrafts.com/classes/Share",
+        "capturedAt": "2026-10-21T07:13:30.064843+00:00"
+      }
+    }
+  ]
 }

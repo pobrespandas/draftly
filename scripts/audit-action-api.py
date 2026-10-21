@@ -2,6 +2,7 @@
 """Record reference contracts. Keep compatibility evidence on refresh."""
 import argparse
 import concurrent.futures
+import copy
 import datetime
 import hashlib
 import gzip
@@ -19,7 +20,7 @@ _test_reference_spec.loader.exec_module(_test_reference_module)
 SwiftTestReferences = _test_reference_module.SwiftTestReferences
 
 ROOT = Path(__file__).resolve().parent.parent
-OBJECTS = "Draft Editor Workspace Action ActionGroup ActionLog App Context Prompt SelectPrompt Tag Syntax Version Window Device HTTP HTTPResponse XMLRPC XMLRPCResponse FileManager Bookmark Credential HTML HTMLPreview HTMLToMarkdown MultiMarkdown GitHubMarkdown MustacheTemplate Shortcut AppleScript ShellScript Mail Message Calendar Event Reminder ReminderList Speech Location ModelSession Script URL CallbackURL Base64 QueryDate Task SelectPromptItem navigationMarker linkedItem".split()
+OBJECTS = "Draft Editor Workspace Action ActionGroup ActionLog App Context Prompt SelectPrompt Tag Syntax Version Window Device HTTP HTTPResponse XMLRPC XMLRPCResponse FileManager Bookmark Credential HTML HTMLPreview HTMLToMarkdown MultiMarkdown GitHubMarkdown MustacheTemplate Shortcut AppleScript ShellScript Mail Message Calendar Event Reminder ReminderList Speech Location ModelSession Script URL CallbackURL Base64 QueryDate Task SelectPromptItem navigationMarker linkedItem Share".split()
 REFERENCE_FIELDS = {"member", "anchor", "kind", "static", "readonly", "signatures", "contract", "referenceRemoved", "referenceChanged"}
 CORE_OBJECTS = set("Draft Editor Workspace QueryDate Task navigationMarker linkedItem Syntax Version ActionLog Prompt SelectPrompt SelectPromptItem".split())
 CORE_STEPS = {"createDraft", "configureWindow", "prompt"}
@@ -144,6 +145,28 @@ def merge_evidence(objects, previous):
             if anchor not in current_anchors and (not member.get("member") or member_key(member) not in current_keys):
                 obj["members"].append(dict(member, referenceRemoved=True))
     return objects
+
+
+def supplement_reference(previous, reference):
+    """Update one reference. Keep the baseline date and all other evidence."""
+    name = reference.get("object")
+    if name not in OBJECTS:
+        raise ValueError("The supplemental object is outside the inventory.")
+    if reference.get("fetchError") or not reference.get("members") or not reference.get("referenceArchive"):
+        raise ValueError("The supplemental reference is incomplete.")
+    result = copy.deepcopy(previous)
+    updated = merge_evidence([copy.deepcopy(reference)], result)[0]
+    objects = result.setdefault("objects", [])
+    for index, existing in enumerate(objects):
+        if existing.get("object") == name:
+            objects[index] = updated
+            break
+    else:
+        objects.append(updated)
+    result.setdefault("supplementalReferences", []).append({
+        "object": name, "referenceArchive": copy.deepcopy(reference["referenceArchive"])
+    })
+    return result
 
 
 def parity_errors(entry, label, approved_exclusions, *, test_references=None):
@@ -322,11 +345,24 @@ if __name__ == "__main__":
     parser.add_argument("--require-closure", action="store_true", help="Require a classification for every member.")
     parser.add_argument("--require-parity", action="store_true", help="Require complete contracts, archived references, and native evidence.")
     parser.add_argument("--scope", choices=["all", "core", "engine"], default="all", help="Select the contract acceptance scope.")
+    parser.add_argument("--supplement", choices=OBJECTS, help="Fetch one reference. Keep the baseline date and other references.")
     args = parser.parse_args()
+    if args.supplement and (args.check or args.require_closure or args.require_parity):
+        parser.error("A supplemental update cannot run with validation flags.")
     if (args.require_closure or args.require_parity) and not args.check:
         parser.error("Closure and parity checks require --check.")
     target = ROOT / "docs/research/action-api-matrix.json"
     previous = json.loads(target.read_text()) if target.exists() else {}
+    if args.supplement:
+        if not previous.get("referenceDate"):
+            parser.error("A supplemental update requires an existing reference baseline.")
+        try:
+            result = supplement_reference(previous, snapshot(args.supplement))
+        except ValueError as error:
+            parser.error(str(error))
+        target.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n")
+        print("Recorded supplemental reference: " + args.supplement + ". Baseline date retained.")
+        raise SystemExit(0)
     if args.check:
         errors = validate_matrix(previous, args.require_closure, args.require_parity, args.scope)
         for error in errors:

@@ -9,6 +9,61 @@ spec.loader.exec_module(audit)
 
 
 class ReferenceTests(unittest.TestCase):
+    def test_share_is_required_by_global_parity_scope(self):
+        self.assertIn("Share", audit.OBJECTS)
+        errors = audit.validate_matrix({}, require_parity=True)
+        self.assertIn("Missing scope object: Share", errors)
+        self.assertNotIn("Missing scope object: Share",
+                         audit.validate_matrix({}, require_parity=True, scope="core"))
+
+    def test_supplement_keeps_baseline_other_objects_and_unknown_evidence(self):
+        import copy
+        previous = {"referenceDate": "2026-10-19T12:00:00Z", "custom": {"keep": [1]},
+                    "engineContracts": [{"manual": "retained"}], "stepReferences": [{"hash": "old"}],
+                    "objects": [{"object": "Draft", "members": [{"member": "find", "manual": "keep"}]},
+                                {"object": "FutureObject", "members": [{"manual": "unknown"}]}]}
+        original = copy.deepcopy(previous)
+        reference = {"object": "Share", "snapshotDate": "2026-10-21T12:00:00Z",
+                     "referenceArchive": {"path": "2026-10-21/Share.html.gz", "sha256": "new", "capturedAt": "2026-10-21T12:00:00Z"},
+                     "members": [{"anchor": "shareastext", "member": "shareAsText", "kind": "method", "static": True}]}
+        result = audit.supplement_reference(previous, reference)
+        self.assertEqual(previous, original)
+        self.assertEqual(result["referenceDate"], original["referenceDate"])
+        self.assertEqual(result["objects"][:-1], original["objects"])
+        for key in ["custom", "engineContracts", "stepReferences"]:
+            self.assertEqual(result[key], original[key])
+        self.assertEqual(result["objects"][-1], reference)
+        self.assertEqual(result["supplementalReferences"], [{"object": "Share", "referenceArchive": reference["referenceArchive"]}])
+        result["custom"]["keep"].append(2)
+        result["objects"][0]["members"][0]["manual"] = "changed"
+        self.assertEqual(previous, original)
+
+    def test_supplement_retains_member_evidence_and_marks_changed_contract(self):
+        previous = {"referenceDate": "2026-10-19", "objects": [{"object": "Share", "members": [
+            {"anchor": "shareastext", "member": "shareAsText", "kind": "method", "static": True,
+             "signatures": ["old signature"], "liveCheck": {"manual": "retained"}, "compatibilityStatus": "complete"}]}]}
+        reference = {"object": "Share", "referenceArchive": {"sha256": "new"}, "members": [
+            {"anchor": "shareastext", "member": "shareAsText", "kind": "method", "static": True,
+             "signatures": ["changed signature"]}]}
+        result = audit.supplement_reference(previous, reference)
+        self.assertEqual(len(result["objects"]), 1)
+        member = result["objects"][0]["members"][0]
+        self.assertEqual(member["liveCheck"], {"manual": "retained"})
+        self.assertEqual(member["compatibilityStatus"], "complete")
+        self.assertTrue(member["reviewRequired"])
+        self.assertTrue(member["referenceChanged"])
+        self.assertEqual(result["referenceDate"], "2026-10-19")
+
+    def test_invalid_supplement_does_not_replace_existing_inventory(self):
+        previous = {"referenceDate": "2026-10-19", "objects": [{"object": "Draft", "members": []}]}
+        for reference in [{"object": "Share", "fetchError": "offline"},
+                          {"object": "Share", "members": [], "referenceArchive": {"sha256": "new"}},
+                          {"object": "OutsideScope", "members": [{"anchor": "x"}], "referenceArchive": {"sha256": "new"}}]:
+            with self.subTest(reference=reference):
+                with self.assertRaises(ValueError):
+                    audit.supplement_reference(previous, reference)
+                self.assertEqual(previous["objects"], [{"object": "Draft", "members": []}])
+
     def test_strict_complete_evidence_rejects_only_referenced_known_or_disabled_tests(self):
         import tempfile
         from unittest.mock import patch
