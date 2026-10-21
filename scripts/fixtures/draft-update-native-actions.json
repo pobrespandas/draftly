@@ -1,0 +1,15 @@
+[
+  {
+    "uuid": "BBBF0003-0000-4000-8000-000000000006",
+    "name": "QA Draft update native",
+    "notificationType": 0,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "const cached=Draft.find(draft.uuid),selection=editor.getSelectedRange(),source=editor.getText();draft.content=source+'\\nUpdated café 🐼';draft.addTag('update-qa');draft.flagType=2;if(draft.update()!==undefined)throw new Error('update must return void');if(editor.getText()!==draft.content||cached.content!==draft.content||cached!==Draft.find(draft.uuid))throw new Error('update references diverged');if(JSON.stringify(editor.getSelectedRange())!==JSON.stringify(selection))throw new Error('update changed selection');"
+        }
+      }
+    ]
+  }
+]

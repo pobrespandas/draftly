@@ -1333,3 +1333,12 @@ The production 120-second host/callback wait returned one final error before a
 change target text, or emit a second result. See validation.md for observation
 times and build identity. Six app and three core focused callback tests passed.
 Permission and capability lifetime checks remain pending; the contract is partial.
+
+
+### Draft.update member acceptance — 20 October 2026
+
+Native direct draft mutation/update preserved selected café, immediate text,
+shared references, tags and flag. Command-Z/Redo restored the expected text
+and selection; the second window showed the final state. Together with the
+named normal/storage-error cases on both runners, this closes Draft.update
+for the archived contract. The wider API and engine remain incomplete.

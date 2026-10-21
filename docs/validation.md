@@ -5756,3 +5756,28 @@ or the precise app-handler delivery timestamp. It does not accept all native
 permission or capability lifetimes. Focused ActionCallbackRouterTests passed
 6 app methods and CallbackResponseContractTests passed 3 core methods. These use
 injected URL openers and do not control visible windows. No screenshot is tracked.
+
+
+### Native Draft.update selection and Undo — 20 October 2026
+
+Imported draft-update-native-actions.json into Visual QA image
+87fb326b8af993eef9e2450d5f6156b9807203f97c86a8a2c457a2c8624d24fd,
+with debug library 58c64335164f32d5233b44db496a77267a5a6abd200adc6a19bce09b11115302.
+Used its single neutral draft in Window 1; both windows were already open.
+Selected café in Owner:Alpha 🐼 Beta café Owner:Gamma. The action appended
+a new line Updated café 🐼 through draft.content and update(), added update-qa
+and flagType 2, and asserted void return, immediate editor content, shared
+find identity, and unchanged UTF-16 selection. It completed successfully.
+The native editor displayed the new line with café still selected. The tag
+appeared in the sidebar and tag control; the flag icon became filled.
+
+Command-Z removed only the appended line. Command-Shift-Z restored it. The
+café selection remained after both operations. History recorded Success.
+After closing History, activated the confirmed Window 2; it displayed the
+same final content and metadata. No permission changed or private text was used.
+
+This fills the recorded native acceptance for Draft.update. Normal and exact
+storage-error tests on both runners remain the automated contract evidence.
+The failure test also checks a later independent save and backup restoration.
+Draft.update is complete for its archived contract; this does not close Draft,
+Editor, the engine, or all native error paths. No screenshot is tracked.
