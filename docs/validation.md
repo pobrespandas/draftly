@@ -8023,3 +8023,32 @@ is unchanged. README and testing instructions now use the checked runner.
 Reports/logs stay outside Git. Temporary success files are removed by default;
 failure files remain for diagnosis. This is a validation guard and an explicit
 execution workaround, not a claim that concurrent app-reporting is repaired.
+
+
+### Native arrangement lifetime — 21 October 2026
+
+Verified in use on the Engine QA HTML image recorded above, before the URL
+component update. Imported engine-arrangement-lifetime-actions.json. The pending
+action saves neutral text, calls editor.arrange with explicit text, catches a
+possible error and attempts later text plus Archive. No source production code
+changed for this route check.
+
+Task Cancel: observed Arrange lines with First, Second café 🐼 and Third.
+Actions > Cancel Running Action closed the native dialog. History recorded
+Cancelled07:13. The completed write remained Inbox without the sentinel or
+Archive. Production timeout: the same arrangement dialog stayed open at92.4
+seconds and was closed at134.9 seconds after initial observation. History
+recorded Error07:15 with The action operation timed out before it completed.
+The120-second limit was unchanged; these observations do not measure exact
+teardown latency. Completed text stayed Inbox without tail/Archive.
+
+A following QA Arrange recovery opened a new dialog. Done returned the exact
+neutral text and History recorded Success07:16. The editor retained only its
+completed writes. History is closed and no arrangement remains pending.
+Owner-close, stale navigation and entry-specific URL/Intent checks remain open.
+No permission, external target or personal content was used.
+
+Automatically tested: the checked499-method app report includes all three
+NativeArrangementRequestTests: accepted Unicode text, exact original text on
+user Cancel, and rejection of an accepted result after task cancellation. The
+UI acceptance above does not infer these cases from a global test total.

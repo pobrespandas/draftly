@@ -25,6 +25,10 @@ retain historical results. Later results supersede earlier counts.
 
 ## Current verification
 
+Native explicit-text Arrange task cancel and production timeout now close the
+dialog and preserve completed writes without later edits or Archive. A following
+Done result passed. Owner-close and stale-navigation checks remain open.
+
 The checked Swift runner now requires fresh xUnit results for every discovered
 method. A real run verified499 app methods and604 core methods by identity.
 Nine guard tests and all56 Python methods passed. App tests default to serial;

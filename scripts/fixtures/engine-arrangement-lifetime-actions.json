@@ -1,0 +1,73 @@
+[
+  {
+    "uuid": "BBBF0038-0000-4000-8000-000000000001",
+    "name": "QA Arrange pending operation",
+    "group": "Arrangement lifecycle QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText(editor.getText()+'\\nArrange completed write');draft.update();"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "try { editor.arrange('First\\nSecond café 🐼\\nThird'); } catch(error) { console.log('Caught arrange interruption'); } editor.setText('ERROR: arrange continued');"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "ERROR: arrange tail"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0038-0000-4000-8000-000000000002",
+    "name": "QA Arrange production timeout",
+    "group": "Arrangement lifecycle QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText(editor.getText()+'\\nArrange timeout completed write');draft.update();"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "try { editor.arrange('First\\nSecond café 🐼\\nThird'); } catch(error) { console.log('Caught arrange interruption'); } editor.setText('ERROR: arrange continued');"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "ERROR: arrange tail"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0038-0000-4000-8000-000000000003",
+    "name": "QA Arrange recovery",
+    "group": "Arrangement lifecycle QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "const result=editor.arrange('First\\nSecond café 🐼\\nThird');if(result!=='First\\nSecond café 🐼\\nThird')throw Error('Unexpected arranged text');console.log('Arrange recovery passed café 🐼');"
+        }
+      }
+    ]
+  }
+]
