@@ -1353,3 +1353,12 @@ for these members remains separate. No native UI check was inferred.
 
 The unsigned local Xcode build and matrix structure check passed. Installed
 QA apps still use their previously recorded builds.
+
+
+### Action catalog readonly correction — 20 October 2026
+
+Action and ActionGroup now enforce the archived readonly identification
+properties. Action configuration keeps its shared mutable contents while
+rejecting property replacement. Both runners passed explicit reassignment
+checks and full regression passed 453 app/484 core methods. Included-action
+configuration precedence and other member acceptance remain pending.

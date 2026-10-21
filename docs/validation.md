@@ -5805,3 +5805,25 @@ accepted. Existing native checks do not validate this new build's return value.
 
 The unsigned local Xcode build and matrix structure check passed. Installed
 QA apps still use their previously recorded builds.
+
+
+### Read-only action catalog properties — 20 October 2026
+
+The archived Action and ActionGroup properties were marked readonly but their
+constructors copied writable fields. Reflect.set could change an action's
+identity, name, separator state, or configuration reference. Renaming a group
+could also retarget its dynamic actions query. The new named cases failed
+on both runners before the correction.
+
+Action now defines uuid/name/isSeparator/configuredValues as non-writable
+own properties. ActionGroup does the same for uuid/name. Configuration is
+injected at construction and shares the context.configuredValues reference.
+Its contents remain mutable; this change does not deep-freeze the dictionary
+or settle included-action configuration precedence. Installation URLs and
+group action queries keep the original identity after rejected assignments.
+
+ActionCatalogReadOnlyContractTests passed both cases on both runners. The
+agent's catalog/configuration/inclusion regression passed 29 methods; the
+coordinator full run passed 453 app/484 core methods. These are automatic
+contracts, not native inspector acceptance. Members retain partial status
+for the other unresolved parts of their contracts. No window opened.

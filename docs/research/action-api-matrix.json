@@ -6434,7 +6434,7 @@
           },
           "liveCheck": null,
           "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Action.configuredValues"
@@ -6448,7 +6448,24 @@
             "Not every documented default and error path has a member-specific assertion.",
             "Action.find returns stored string values. Typed values need a separate review."
           ],
-          "evidenceLevel": "Member-specific assertions. Native verification is separate."
+          "evidenceLevel": "Member-specific assertions. Native verification is separate.",
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-20",
+            "evidence": "docs/validation.md",
+            "scope": "Specific read-only contract coverage; other member checks remain separate.",
+            "additionalRuns": [
+              {
+                "date": "2026-10-20",
+                "suite": "ActionCatalogReadOnlyContractTests",
+                "tests": [
+                  "actionIdentificationAndConfigurationCannotBeReassigned"
+                ],
+                "result": "Reflect.set rejects property replacement on both runners; original identity, installation URL and group ownership remain. configuredValues contents still share mutable context state. No native UI acceptance inferred.",
+                "evidence": "docs/validation.md: Read-only action catalog properties — 20 October 2026"
+              }
+            ]
+          }
         },
         {
           "member": "installURL",
@@ -6499,7 +6516,7 @@
           },
           "liveCheck": null,
           "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Action.isSeparator"
@@ -6512,7 +6529,24 @@
           "limitations": [
             "Not every documented default and error path has a member-specific assertion."
           ],
-          "evidenceLevel": "Member-specific assertions. Native verification is separate."
+          "evidenceLevel": "Member-specific assertions. Native verification is separate.",
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-20",
+            "evidence": "docs/validation.md",
+            "scope": "Specific read-only contract coverage; other member checks remain separate.",
+            "additionalRuns": [
+              {
+                "date": "2026-10-20",
+                "suite": "ActionCatalogReadOnlyContractTests",
+                "tests": [
+                  "actionIdentificationAndConfigurationCannotBeReassigned"
+                ],
+                "result": "Reflect.set rejects property replacement on both runners; original identity, installation URL and group ownership remain. configuredValues contents still share mutable context state. No native UI acceptance inferred.",
+                "evidence": "docs/validation.md: Read-only action catalog properties — 20 October 2026"
+              }
+            ]
+          }
         },
         {
           "member": "name",
@@ -6531,7 +6565,7 @@
           },
           "liveCheck": null,
           "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Action.name"
@@ -6544,7 +6578,24 @@
           "limitations": [
             "Not every documented default and error path has a member-specific assertion."
           ],
-          "evidenceLevel": "Member-specific assertions. Native verification is separate."
+          "evidenceLevel": "Member-specific assertions. Native verification is separate.",
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-20",
+            "evidence": "docs/validation.md",
+            "scope": "Specific read-only contract coverage; other member checks remain separate.",
+            "additionalRuns": [
+              {
+                "date": "2026-10-20",
+                "suite": "ActionCatalogReadOnlyContractTests",
+                "tests": [
+                  "actionIdentificationAndConfigurationCannotBeReassigned"
+                ],
+                "result": "Reflect.set rejects property replacement on both runners; original identity, installation URL and group ownership remain. configuredValues contents still share mutable context state. No native UI acceptance inferred.",
+                "evidence": "docs/validation.md: Read-only action catalog properties — 20 October 2026"
+              }
+            ]
+          }
         },
         {
           "member": "uuid",
@@ -6563,7 +6614,7 @@
           },
           "liveCheck": null,
           "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Action.uuid"
@@ -6576,7 +6627,24 @@
           "limitations": [
             "Not every documented default and error path has a member-specific assertion."
           ],
-          "evidenceLevel": "Member-specific assertions. Native verification is separate."
+          "evidenceLevel": "Member-specific assertions. Native verification is separate.",
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-20",
+            "evidence": "docs/validation.md",
+            "scope": "Specific read-only contract coverage; other member checks remain separate.",
+            "additionalRuns": [
+              {
+                "date": "2026-10-20",
+                "suite": "ActionCatalogReadOnlyContractTests",
+                "tests": [
+                  "actionIdentificationAndConfigurationCannotBeReassigned"
+                ],
+                "result": "Reflect.set rejects property replacement on both runners; original identity, installation URL and group ownership remain. configuredValues contents still share mutable context state. No native UI acceptance inferred.",
+                "evidence": "docs/validation.md: Read-only action catalog properties — 20 October 2026"
+              }
+            ]
+          }
         },
         {
           "member": "find",
@@ -6737,7 +6805,7 @@
           },
           "liveCheck": null,
           "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "ActionGroup.name"
@@ -6750,7 +6818,24 @@
           "limitations": [
             "Not every documented default and error path has a member-specific assertion."
           ],
-          "evidenceLevel": "Member-specific assertions. Native verification is separate."
+          "evidenceLevel": "Member-specific assertions. Native verification is separate.",
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-20",
+            "evidence": "docs/validation.md",
+            "scope": "Specific read-only contract coverage; other member checks remain separate.",
+            "additionalRuns": [
+              {
+                "date": "2026-10-20",
+                "suite": "ActionCatalogReadOnlyContractTests",
+                "tests": [
+                  "groupIdentificationCannotBeReassignedOrRetargetItsActions"
+                ],
+                "result": "Reflect.set rejects property replacement on both runners; original identity, installation URL and group ownership remain. configuredValues contents still share mutable context state. No native UI acceptance inferred.",
+                "evidence": "docs/validation.md: Read-only action catalog properties — 20 October 2026"
+              }
+            ]
+          }
         },
         {
           "member": "uuid",
@@ -6769,7 +6854,7 @@
           },
           "liveCheck": null,
           "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "ActionGroup.uuid"
@@ -6782,7 +6867,24 @@
           "limitations": [
             "Not every documented default and error path has a member-specific assertion."
           ],
-          "evidenceLevel": "Member-specific assertions. Native verification is separate."
+          "evidenceLevel": "Member-specific assertions. Native verification is separate.",
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-20",
+            "evidence": "docs/validation.md",
+            "scope": "Specific read-only contract coverage; other member checks remain separate.",
+            "additionalRuns": [
+              {
+                "date": "2026-10-20",
+                "suite": "ActionCatalogReadOnlyContractTests",
+                "tests": [
+                  "groupIdentificationCannotBeReassignedOrRetargetItsActions"
+                ],
+                "result": "Reflect.set rejects property replacement on both runners; original identity, installation URL and group ownership remain. configuredValues contents still share mutable context state. No native UI acceptance inferred.",
+                "evidence": "docs/validation.md: Read-only action catalog properties — 20 October 2026"
+              }
+            ]
+          }
         },
         {
           "member": "find",

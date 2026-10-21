@@ -126,13 +126,23 @@ class ActionLog {
     delete() { __call('deleteLog',{uuid:this.uuid}); }
 }
 class Action {
-    constructor(v = {}) { Object.assign(this,v); }
+    constructor(v = {}) {
+        Object.assign(this,v);
+        for(const key of ['uuid','name','isSeparator','configuredValues']) {
+            Object.defineProperty(this,key,{value:v[key],writable:false,enumerable:true,configurable:false});
+        }
+    }
     static find(name) { let v = __call('findAction',{name}); return v ? new Action(v) : undefined; }
     static recent() { return __call('recentActions').map(v => new Action(v)); }
     get installURL() { return __call('actionInstallURL',{uuid:this.uuid}); }
 }
 class ActionGroup {
-    constructor(v = {}) { Object.assign(this,v); }
+    constructor(v = {}) {
+        Object.assign(this,v);
+        for(const key of ['uuid','name']) {
+            Object.defineProperty(this,key,{value:v[key],writable:false,enumerable:true,configurable:false});
+        }
+    }
     static find(name) { return ActionGroup.getAll().find(g => g.name === name); }
     static getAll() { return __call('actionGroups').map(v => new ActionGroup(v)); }
     get actions() { return __call('groupActions',{name:this.name}).map(v => new Action(v)); }

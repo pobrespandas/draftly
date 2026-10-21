@@ -22,7 +22,7 @@ import Foundation
 
     func bootstrapSource(_ action: DraftAction, note: Note, steps: [ActionStep]) throws -> String {
         let configured = configurationValues(action, steps: steps)
-        return "var draft=new Draft(\(try json(noteValue(note))));var action=new Action(\(try json(actionValue(action))));context.configuredValues=\(try json(configured));action.configuredValues=context.configuredValues;"
+        return "var draft=new Draft(\(try json(noteValue(note))));context.configuredValues=\(try json(configured));var action=new Action({...\(try json(actionValue(action))),configuredValues:context.configuredValues});"
     }
 
     func applySuccessEffects(_ action: DraftAction, noteID: UUID) throws {
