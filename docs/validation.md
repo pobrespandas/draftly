@@ -7321,3 +7321,81 @@ exists but has not been forced deterministically in tests. Automatic discovery
 from the developer-mode Themes folder is not implemented. The selected-file
 workflow does not replace that remaining contract. Do not declare file-theme
 parity complete from these tests.
+
+
+### Development-folder themes and native acceptance — 21 October 2026
+
+Implemented: Settings can select a local development folder. Refresh runs at
+launch, app activation or Reload Folder. It reads direct `.json` and
+`.draftsTheme` files. Hidden items, directories, symlinks and aliases are skipped.
+All files are parsed before one library save. Local bookmarks and the enabled
+preference change only after that save succeeds. Refresh preserves registered
+source identities, including when two source names exchange. Missing sources
+remain registered. Disabling refresh keeps registered file themes usable.
+This is a selected-folder workflow, not automatic standard-folder discovery or
+a filesystem watcher. Validation covers each read, not later external edits.
+
+Automatically tested: ThemeDevelopmentFolderTests covers direct discovery,
+stable identity, name exchange, invalid later input, storage failure, conflicting
+sources, duplicate names, disabled/missing/corrupt access, and backup exclusion.
+ThemeDevelopmentRefreshTests checks controller refresh with pending editor
+text, selection, focus, stored content and last valid rendering. The first
+focused run found that a missing source bookmark stopped an empty refresh.
+The scanner now skips only missing-file errors when matching prior sources.
+The unchanged regression passes; other bookmark errors remain explicit.
+Full regression passed 494 app and 580 core methods, including the five
+unchanged original scripts. All 46 Python tests and the unsigned Xcode build
+passed. Automatic tests opened no windows or permission prompts.
+
+Verified in use with Computer Use: a fresh development-signed isolated app was
+installed at `/Users/andrestobelem/Applications/Draftly Theme QA.app`.
+Bundle: `com.andrestobelem.draftly.theme-qa`. Scheme: `draftly-theme-qa`.
+Library: `12934D88-007D-404E-B05F-BFAC257A5EB2`. CloudKit was off.
+Team: NM92LU2KKV. Executable SHA-256:
+`42172c0ec0d388e0ac09c58502181f611d1a01bc7c363cf5f5a42f535144ebf6`.
+Debug image SHA-256:
+`efd5032cc9ddc180a9474b9e28f96366ca99fcfc12caef792b1cae2fcef8b6cb`.
+The previous Engine QA app was left intact. Its native-pipe failure was not
+counted as acceptance. The fresh app first ran in `/tmp`; OS URL opening failed
+there. Clean quit, relocation to Applications and Launch Services registration
+resolved that packaging issue. Only the later receiver results count below.
+
+| Manual case | Observed result |
+| --- | --- |
+| Configure custom pair | Typed getters passed; dark editor rendered 162839 |
+| Select custom light | Editor rendered FFF3D6 |
+| Quit and restart | Configured custom slots survived; light/dark selection passed |
+| External installation | Receiver stored D0EEDD with expected UUID and unknown fields |
+| Replacement Cancel | Existing D0EEDD, UUID and unknown fields remained |
+| Replacement Replace | EED0DD replaced colors and kept UUID and unknown fields |
+| Identical reimport | No replacement alert; main editor remained open |
+| Choose development folder | Native picker selected two sources; Settings reported Loaded 2 theme files |
+| Select discovered light file | Typed file option appeared; action resolved its name; editor rendered DAF0E6 |
+| Edit source and Reload Folder | Editor rendered E8D9F2; text and selected café remained |
+| Add invalid JSON and reload | Settings showed filename and invalid-JSON error; last valid rendering, text and selection remained |
+| Remove invalid input from scan | Renamed neutral input to an unsupported extension; Reload Folder reported 2 loaded files |
+| Undo/Redo after Settings | Redo restored prior t edit; Undo restored café; subsequent theme reload kept café selected |
+
+Reproduce with the neutral `app-select-draft-notes.json`, `app-theme-backup.json`
+and `app-theme-actions.json` fixtures. For external links, use
+`theme-installation-actions.json` with its QA scheme changed to the isolated
+app scheme. Verify receiver state with the fixture action after each alert.
+Copy `scripts/fixtures/theme-development-folder` outside the repo, select that
+copy in Settings, and choose its file theme. Change day.json background from
+DAF0E6 to E8D9F2 and reload. Add an invalid JSON file for the failure case.
+These two source fixtures use native JSON; they do not establish native
+acceptance of the official Drafts source format. Automated format tests cover
+that parser separately. CUA accented typing produced t rather than the intended
+replacement; only the actual observed t/café Undo sequence is recorded.
+
+Still pending: native cross-window refresh, file-specific Reload/Reselect,
+moved/stale bookmark and sandbox permission lifetime, folder refresh after
+restart, portable file snapshot transfer and comparison with Drafts. Registered
+metadata can remain after source loss. Same-library custom snapshot import
+cannot overwrite an existing file UUID. Theme contracts and full Mac acceptance
+remain open. The Settings maximum-width placeholder wraps awkwardly; retain it
+for the visual pass. Raw screenshots and logs remain outside Git.
+
+Matrix structure passed with zero errors. Strict engine/global checks retain
+18/4529 unresolved diagnostics. These checks remain open; the theme work does
+not close the motor or the full Mac roadmap.

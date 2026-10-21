@@ -1,0 +1,14 @@
+{
+  "id": "BBBF0027-0000-4000-8000-000000000011",
+  "name": "Folder day café 🐼",
+  "foreground": "202020",
+  "background": "DAF0E6",
+  "heading": "007AFF",
+  "isDark": false,
+  "future": {
+    "keep": [
+      "café 🐼",
+      false
+    ]
+  }
+}

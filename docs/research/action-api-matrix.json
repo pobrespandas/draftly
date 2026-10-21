@@ -8474,7 +8474,7 @@
             "suite": "AppThemeContractTests",
             "test": "scriptingPersistsTypedThemesAcrossWindowsAndKeepsEditorUndo"
           },
-          "liveCheck": "Signed Engine QA accepted the pair and rendered the dark custom theme. Native Settings observation failed; further checks remain pending.",
+          "liveCheck": "docs/validation.md: Development-folder themes and native acceptance — 21 October 2026",
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-21",
           "defaults": "The device-local slot resolves the previous custom theme by exact name for its matching mode. Without a configured or matching legacy value it returns the Dark or Light built-in Theme. No historical preference is invented.",
@@ -8504,6 +8504,10 @@
             {
               "suite": "FileThemeApplicationTests",
               "test": "fileReferencesReloadForAppAndWorkspaceWithoutEditingTheDraft"
+            },
+            {
+              "suite": "ThemeDevelopmentRefreshTests",
+              "test": "controllerRefreshUsesLocalFolderAndPreservesEditorAndStoredDraft"
             }
           ],
           "contractCases": {
@@ -8537,11 +8541,11 @@
           "nativeVerification": {
             "status": "pending",
             "date": "2026-10-21",
-            "evidence": "docs/validation.md: Configured App themes — 21 October 2026",
-            "scope": "Assignment returned typed configured slots and rendered the custom dark editor in signed Engine QA. Settings, light rendering, restart and cross-window refresh remain pending after a Computer Use native-pipe failure."
+            "evidence": "docs/validation.md: Development-folder themes and native acceptance — 21 October 2026",
+            "scope": "Signed isolated QA passed custom light/dark rendering, configured slot persistence after restart, Settings consistency, file selection from a chosen development folder, manual reload and invalid-folder recovery. Text, selection and Undo/Redo remained intact. Cross-window refresh, moved-file reselection and permission lifetime remain pending."
           },
           "limitations": [
-            "Native light rendering, Settings consistency, restart, cross-window refresh and file selection/reselection remain pending. Developer-folder discovery is not implemented. Broader App.themeMode behavior has a separate contract."
+            "Native cross-window refresh, moved-file reselection and sandbox permission lifetime remain pending. Chosen-folder discovery runs at launch, activation or manual reload; automatic standard-folder discovery and continuous watching are not implemented. Broader App.themeMode behavior has a separate contract."
           ]
         },
         {
@@ -8559,7 +8563,7 @@
             "suite": "AppThemeContractTests",
             "test": "scriptingPersistsTypedThemesAcrossWindowsAndKeepsEditorUndo"
           },
-          "liveCheck": "Signed Engine QA accepted the pair and rendered the dark custom theme. Native Settings observation failed; further checks remain pending.",
+          "liveCheck": "docs/validation.md: Development-folder themes and native acceptance — 21 October 2026",
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-21",
           "defaults": "The device-local slot resolves the previous custom theme by exact name for its matching mode. Without a configured or matching legacy value it returns the Dark or Light built-in Theme. No historical preference is invented.",
@@ -8589,6 +8593,10 @@
             {
               "suite": "FileThemeApplicationTests",
               "test": "fileReferencesReloadForAppAndWorkspaceWithoutEditingTheDraft"
+            },
+            {
+              "suite": "ThemeDevelopmentRefreshTests",
+              "test": "controllerRefreshUsesLocalFolderAndPreservesEditorAndStoredDraft"
             }
           ],
           "contractCases": {
@@ -8622,11 +8630,11 @@
           "nativeVerification": {
             "status": "pending",
             "date": "2026-10-21",
-            "evidence": "docs/validation.md: Configured App themes — 21 October 2026",
-            "scope": "Assignment returned typed configured slots and rendered the custom dark editor in signed Engine QA. Settings, light rendering, restart and cross-window refresh remain pending after a Computer Use native-pipe failure."
+            "evidence": "docs/validation.md: Development-folder themes and native acceptance — 21 October 2026",
+            "scope": "Signed isolated QA passed custom light/dark rendering, configured slot persistence after restart, Settings consistency, file selection from a chosen development folder, manual reload and invalid-folder recovery. Text, selection and Undo/Redo remained intact. Cross-window refresh, moved-file reselection and permission lifetime remain pending."
           },
           "limitations": [
-            "Native light rendering, Settings consistency, restart, cross-window refresh and file selection/reselection remain pending. Developer-folder discovery is not implemented. Broader App.themeMode behavior has a separate contract."
+            "Native cross-window refresh, moved-file reselection and sandbox permission lifetime remain pending. Chosen-folder discovery runs at launch, activation or manual reload; automatic standard-folder discovery and continuous watching are not implemented. Broader App.themeMode behavior has a separate contract."
           ]
         },
         {
@@ -19423,7 +19431,7 @@
             "suite": "ThemeInstallURLContractTests",
             "test": "customLinksPreserveDefinitionsAndResolveIdentityBeforeDetachedName"
           },
-          "liveCheck": null,
+          "liveCheck": "docs/validation.md: Development-folder themes and native acceptance — 21 October 2026",
           "reviewDate": "2026-10-21",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/ThemeInstallation.swift",
@@ -19435,10 +19443,12 @@
           "errors": "Unknown type, missing definition, invalid UUID, cross-type identity mismatch and unreadable file themes throw explicitly. The decoder rejects direct file-reference links and malformed custom payloads before saving.",
           "nativeVerification": {
             "status": "pending",
-            "reason": "The external URL receiver and replacement/cancellation alert require a separate manual QA session. QA AX is still inaccessible after opening Settings."
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Development-folder themes and native acceptance — 21 October 2026",
+            "scope": "Signed QA external routing passed new installation, replacement Cancel and Replace, unchanged UUID and unknown fields, and identical reimport without an alert. Portable file snapshot transfer and comparison with Drafts remain pending."
           },
           "limitations": [
-            "Native external URL routing and replacement/cancellation acceptance remain pending. A portable custom snapshot with the same UUID as an installed file theme is rejected instead of changing that file reference; import-as-custom identity behavior needs comparison."
+            "A portable custom snapshot with the same UUID as an installed file theme is rejected instead of changing that file reference. Import-as-custom identity behavior and portable file snapshot transfer need native comparison."
           ],
           "contractCases": {
             "normal": {
@@ -19684,7 +19694,7 @@
             "suite": "ThemeCatalogContractTests",
             "test": "headlessCatalogFindsStoredThemesByExactNameAndType"
           },
-          "liveCheck": null,
+          "liveCheck": "docs/validation.md: Development-folder themes and native acceptance — 21 October 2026",
           "reviewDate": "2026-10-21",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
@@ -19719,10 +19729,12 @@
           },
           "nativeVerification": {
             "status": "pending",
-            "reason": "Native file-theme discovery and comparison remain pending."
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Development-folder themes and native acceptance — 21 October 2026",
+            "scope": "Settings listed both discovered file definitions. A script resolved the configured file Theme and rendered its source. Full catalog comparison with Drafts remains pending."
           },
           "limitations": [
-            "Automatic developer-folder discovery is not implemented. Registered file metadata remains listed after a backup restore; applying or exporting it requires local reselection. Native catalog comparison remains pending."
+            "Chosen-folder discovery validates direct supported files on launch, activation or manual reload. Automatic standard-folder discovery and continuous watching are not implemented. Missing sources and restored metadata stay listed; applying or exporting requires valid local access. Full native catalog comparison remains pending."
           ],
           "supportingTests": [
             {
@@ -19732,6 +19744,22 @@
             {
               "suite": "FileThemeScriptContractTests",
               "test": "inaccessibleFileStopsTheActionAndDoesNotApplySuccessEffects"
+            },
+            {
+              "suite": "ThemeDevelopmentFolderTests",
+              "test": "discoveryIsDirectTypedAndStableWithoutImportingUnsafeChildren"
+            },
+            {
+              "suite": "ThemeDevelopmentFolderTests",
+              "test": "exchangingNamesPreservesEachSourceIdentityAndUpdatesBothSnapshots"
+            },
+            {
+              "suite": "ThemeDevelopmentFolderTests",
+              "test": "malformedLaterFileAndCommitFailureKeepEveryRecordAndPreference"
+            },
+            {
+              "suite": "ThemeDevelopmentFolderTests",
+              "test": "backupExcludesFolderAccessAndAbsentSourcesAreRetainedWithoutAWrite"
             }
           ]
         },
@@ -19750,7 +19778,7 @@
             "suite": "ThemeCatalogContractTests",
             "test": "headlessCatalogFindsStoredThemesByExactNameAndType"
           },
-          "liveCheck": null,
+          "liveCheck": "docs/validation.md: Development-folder themes and native acceptance — 21 October 2026",
           "reviewDate": "2026-10-21",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
@@ -19785,10 +19813,12 @@
           },
           "nativeVerification": {
             "status": "pending",
-            "reason": "Native file-theme discovery and comparison remain pending."
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Development-folder themes and native acceptance — 21 October 2026",
+            "scope": "Settings listed both discovered file definitions. A script resolved the configured file Theme and rendered its source. Full catalog comparison with Drafts remains pending."
           },
           "limitations": [
-            "Automatic developer-folder discovery is not implemented. Registered file metadata remains listed after a backup restore; applying or exporting it requires local reselection. Native catalog comparison remains pending."
+            "Chosen-folder discovery validates direct supported files on launch, activation or manual reload. Automatic standard-folder discovery and continuous watching are not implemented. Missing sources and restored metadata stay listed; applying or exporting requires valid local access. Full native catalog comparison remains pending."
           ],
           "supportingTests": [
             {
@@ -19798,6 +19828,22 @@
             {
               "suite": "FileThemeScriptContractTests",
               "test": "inaccessibleFileStopsTheActionAndDoesNotApplySuccessEffects"
+            },
+            {
+              "suite": "ThemeDevelopmentFolderTests",
+              "test": "discoveryIsDirectTypedAndStableWithoutImportingUnsafeChildren"
+            },
+            {
+              "suite": "ThemeDevelopmentFolderTests",
+              "test": "exchangingNamesPreservesEachSourceIdentityAndUpdatesBothSnapshots"
+            },
+            {
+              "suite": "ThemeDevelopmentFolderTests",
+              "test": "malformedLaterFileAndCommitFailureKeepEveryRecordAndPreference"
+            },
+            {
+              "suite": "ThemeDevelopmentFolderTests",
+              "test": "backupExcludesFolderAccessAndAbsentSourcesAreRetainedWithoutAWrite"
             }
           ]
         }

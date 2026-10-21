@@ -18,14 +18,30 @@ public enum ThemeFileAccess {
     }
 
     public static func install(_ prepared: Prepared, in library: LibraryStore, defaults: UserDefaults = .standard) throws {
-        guard prepared.definition.type == "file" else {
-            throw DraftlyError.message("The file theme has an invalid type.")
+        try install([prepared], in: library, defaults: defaults)
+    }
+
+    public static func install(_ prepared: [Prepared], in library: LibraryStore, defaults: UserDefaults = .standard) throws {
+        for file in prepared {
+            guard file.definition.type == "file" else { throw DraftlyError.message("The file theme has an invalid type.") }
+            if let existing = library.themes.first(where: { $0.id == file.definition.id }), existing.type != "file" {
+                throw DraftlyError.message("The theme identity belongs to a different theme type.")
+            }
         }
-        if let existing = library.themes.first(where: { $0.id == prepared.definition.id }), existing.type != "file" {
-            throw DraftlyError.message("The theme identity belongs to a different theme type.")
+        let definitions = prepared.map(\.definition)
+        guard Set(definitions.map(\.id)).count == definitions.count,
+              Set(definitions.map(\.name)).count == definitions.count else {
+            throw DraftlyError.message("The file themes contain duplicate names or identities.")
         }
-        try library.saveTheme(prepared.definition)
-        defaults.set(prepared.bookmark, forKey: bookmarkKey(for: prepared.definition.id))
+        let changed = definitions.filter { definition in !library.themes.contains(definition) }
+        if !changed.isEmpty { try library.saveThemes(changed) }
+        for file in prepared { defaults.set(file.bookmark, forKey: bookmarkKey(for: file.definition.id)) }
+    }
+
+    public static func registeredURL(for id: UUID, defaults: UserDefaults = .standard) throws -> URL? {
+        guard let bookmark = defaults.data(forKey: bookmarkKey(for: id)) else { return nil }
+        var stale = false
+        return try URL(resolvingBookmarkData: bookmark, options: [.withSecurityScope, .withoutUI], relativeTo: nil, bookmarkDataIsStale: &stale)
     }
 
     public static func read(_ definition: EditorThemeDefinition, defaults: UserDefaults = .standard) throws -> EditorThemeDefinition {

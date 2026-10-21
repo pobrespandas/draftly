@@ -25,25 +25,26 @@ retain historical results. Later results supersede earlier counts.
 
 ## Current verification
 
-Selected file themes now use validated source snapshots and local bookmarks.
-Settings can select, reload and reselect a file. Actions, App and Workspace use
-its exact type and UUID. Specific tests cover source changes, local access,
-rollback, backup recovery and native Undo/Redo. Developer-folder discovery and
-manual file/permission checks remain pending. See the latest validation entry.
+Selected-file themes now support a chosen development folder. Direct supported
+files are validated together and saved in one library operation. Source identity
+survives reload and name changes. Launch, activation and manual reload refresh
+the folder. Local bookmarks stay outside backups. Invalid files preserve the
+previous records and rendering. Automatic standard-folder discovery and
+continuous watching remain pending.
 
+Signed isolated QA passed custom light/dark rendering, configured slots after
+restart, Settings consistency, folder selection, file rendering, changed-source
+reload, invalid-file recovery and native Undo/Redo. External theme URLs passed
+installation, Cancel, Replace, identity/unknown-field checks and identical
+reimport without an alert. Native cross-window refresh, moved-file reselection,
+permission lifetime and remaining Drafts comparisons stay pending. The earlier
+QA native-pipe and temporary-app URL registration failures are retained in the
+validation history. Theme contracts remain partial.
 
-App light/dark theme assignments now persist local identity references and
-return typed values. Settings and window rendering share those references.
-Both-engine and headless tests passed. Native QA rendered the custom dark
-editor and preserved text/selection. Settings, light rendering, restart and
-cross-window native checks remain pending after a Computer Use connection
-failure. Theme.installURL now transports full custom definitions and has a cancelable
-receiver. Specific link, identity, rollback and backup tests passed. Native
-installation and file themes remain partial. The router now accepts the
-configured QA scheme through the same decoder; headless tests pass. The QA
-binary and manual URL checks still need an update after Settings recovery. The six Theme
-members were added as a dated supplement; the baseline stays unchanged.
-
+Full regression passed 494 app and 580 core methods, 46 Python tests and the
+unsigned Xcode build. These totals do not establish parity. See the latest
+validation entry and individual matrix evidence. The six Theme members are a
+dated supplement; the archived baseline remains unchanged.
 
 app.selectDraft now applies Workspace filters, sort, initial editable query
 and row options. Specific tests and native QA selection/cancellation checks

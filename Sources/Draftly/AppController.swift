@@ -103,9 +103,16 @@ final class AppController: ObservableObject {
             do { try LocalThemeMigration.run(in: store) }
             catch { store.error = "Theme migration failed: " + error.localizedDescription }
             library = store
+            refreshThemeDevelopmentFolder()
             startupError = nil
         } catch { startupError = error.localizedDescription }
     }
+    func refreshThemeDevelopmentFolder(defaults: UserDefaults = .standard) {
+        guard let library else { return }
+        do { _ = try ThemeDevelopmentFolder.refresh(in: library, defaults: defaults) }
+        catch { library.error = error.localizedDescription }
+    }
+
     func makeActionHost() -> NativeActionHost {
         let host = NativeActionHost()
         host.onError = { [weak self] in self?.library?.error = $0 }

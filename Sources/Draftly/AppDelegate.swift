@@ -50,6 +50,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         for url in urls where !receiveCallback(url) { handle(url) }
     }
 
+    func applicationDidBecomeActive(_ notification: Notification) {
+        AppController.shared.refreshThemeDevelopmentFolder()
+    }
+
     func reloadGlobalShortcuts() {
         globalHotKeys?.reload(configuration: UserDefaults.standard.string(forKey: CommandShortcuts.storageKey) ?? "{}",
                              actions: AppController.shared.library?.actions ?? [])

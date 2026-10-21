@@ -100,6 +100,9 @@ A theme definition saved in the library for use without its original external fi
 **File theme**:
 A theme definition maintained in an external file. It is distinct from an imported custom theme.
 
+**Theme development folder**:
+A folder of external theme definitions used while creating and editing themes.
+
 **Configured theme**:
 The theme chosen on this Mac for light or dark appearance. A workspace can specify a different theme for its window.
 

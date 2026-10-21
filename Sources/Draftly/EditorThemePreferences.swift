@@ -3,7 +3,7 @@ import DraftlyCore
 
 @MainActor struct EditorThemePreferences {
     static let key = "editor.themeReferences"
-    static let revisionKey = "editor.themeRevision"
+    static let revisionKey = ThemeCatalog.revisionKey
     let defaults: UserDefaults
     init(defaults: UserDefaults = .standard) { self.defaults = defaults }
 
@@ -47,6 +47,6 @@ import DraftlyCore
         }
         let data = try JSONSerialization.data(withJSONObject: values, options: [.sortedKeys])
         defaults.set(data, forKey: Self.key)
-        defaults.set(defaults.integer(forKey: Self.revisionKey) &+ 1, forKey: Self.revisionKey)
+        ThemeCatalog.advanceLocalRevision(defaults: defaults)
     }
 }

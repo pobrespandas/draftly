@@ -1,0 +1,14 @@
+{
+  "id": "BBBF0027-0000-4000-8000-000000000012",
+  "name": "Folder night",
+  "foreground": "E1E2E3",
+  "background": "172F31",
+  "heading": "007AFF",
+  "isDark": true,
+  "future": {
+    "keep": [
+      "café 🐼",
+      false
+    ]
+  }
+}

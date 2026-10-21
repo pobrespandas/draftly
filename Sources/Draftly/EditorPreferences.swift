@@ -50,6 +50,7 @@ struct EditorLayoutPreferences: View {
                 Button("Import Theme…") { importTheme() }
                 Button("Use Theme File…") { useThemeFile() }
             }
+            ThemeDevelopmentFolderSettings(library: library)
             if let error { Text(error).foregroundStyle(.red) }
         }
         .sheet(item: $editing) { value in
