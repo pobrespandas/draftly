@@ -16967,6 +16967,13 @@
             "entryPoint": "action list",
             "result": "Returned rejection and native async timeout recorded errors. Timeout started near 09:53:20 UTC and history reported it at local 06:55. Earlier writes remained in Inbox, later insertions and archive did not run. A caught-rejection action succeeded after timeout.",
             "evidence": "docs/validation.md: Native returned rejection and wait timeout — 20 October 2026"
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "1b8988d3183ec0675c0e5d3125665b1c22b3e155a9b82124b3a8039db45e5d20",
+            "fixture": "scripts/fixtures/engine-queue-actions.json",
+            "evidence": "docs/validation.md: Current-image native queued URL timeout — 20 October 2026",
+            "result": "Production-configured120-second pending child returned one URL error callback with no root success parameter. Callback count zero at57.243s and one at135.644s are observation times. Retained source/child Inbox writes, last-child editor, and Error history passed."
           }
         ]
       },
@@ -17321,7 +17328,7 @@
       },
       "liveCheck": null,
       "limitations": [
-        "UI/URL/Intent queued failure and cancellation plus URL/Intent owner-close during a pending child passed. Earlier separate-target production timeout passed through Shortcuts. Current-image production queued timeout through each applicable entry remains pending."
+        "UI/URL/Intent queued failure/cancellation and URL/Intent owner-close passed. Current-image URL production queued timeout passed. Current-image UI and Intent production queued timeout checks remain pending."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
@@ -17402,7 +17409,7 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "UI/URL/Intent queued failure and cancellation plus URL/Intent owner-close during a pending child passed. Earlier separate-target production timeout passed through Shortcuts. Current-image production queued timeout through each applicable entry remains pending.",
+        "reason": "UI/URL/Intent queued failure/cancellation and URL/Intent owner-close passed. Current-image URL production queued timeout passed. Current-image UI and Intent production queued timeout checks remain pending.",
         "evidence": "docs/validation.md",
         "additionalChecks": [
           {
@@ -17439,6 +17446,13 @@
             "fixture": "scripts/fixtures/engine-queue-actions.json",
             "evidence": "docs/validation.md: Native queued Intent owner-close cancellation — 20 October 2026",
             "result": "Opened the exact source by UUID, committed shortcut UUID with Tab, observed the owner follow the pending child, then closed it. Shortcuts reported cancellation; reopened Inbox retained writes and history recorded Cancelled. Initial non-owner run was stopped and excluded."
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "1b8988d3183ec0675c0e5d3125665b1c22b3e155a9b82124b3a8039db45e5d20",
+            "fixture": "scripts/fixtures/engine-queue-actions.json",
+            "evidence": "docs/validation.md: Current-image native queued URL timeout — 20 October 2026",
+            "result": "Production-configured120-second pending child returned one URL error callback with no root success parameter. Callback count zero at57.243s and one at135.644s are observation times. Retained source/child Inbox writes, last-child editor, and Error history passed."
           }
         ]
       },
@@ -17539,6 +17553,13 @@
             "fixture": "scripts/fixtures/engine-queue-actions.json",
             "evidence": "docs/validation.md: Native URL queued interruption callbacks — 20 October 2026",
             "result": "External URL failure and cancellation each returned one matching callback with no root success parameters. Retained source and child writes stayed in Inbox; no sentinel ran."
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "1b8988d3183ec0675c0e5d3125665b1c22b3e155a9b82124b3a8039db45e5d20",
+            "fixture": "scripts/fixtures/engine-queue-actions.json",
+            "evidence": "docs/validation.md: Current-image native queued URL timeout — 20 October 2026",
+            "result": "Production-configured120-second pending child returned one URL error callback with no root success parameter. Callback count zero at57.243s and one at135.644s are observation times. Retained source/child Inbox writes, last-child editor, and Error history passed."
           }
         ]
       },
@@ -18441,6 +18462,13 @@
             "fixture": "scripts/fixtures/engine-queue-actions.json",
             "evidence": "docs/validation.md: Native queued Intent owner-close cancellation — 20 October 2026",
             "result": "Opened the exact source by UUID, committed shortcut UUID with Tab, observed the owner follow the pending child, then closed it. Shortcuts reported cancellation; reopened Inbox retained writes and history recorded Cancelled. Initial non-owner run was stopped and excluded."
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "1b8988d3183ec0675c0e5d3125665b1c22b3e155a9b82124b3a8039db45e5d20",
+            "fixture": "scripts/fixtures/engine-queue-actions.json",
+            "evidence": "docs/validation.md: Current-image native queued URL timeout — 20 October 2026",
+            "result": "Production-configured120-second pending child returned one URL error callback with no root success parameter. Callback count zero at57.243s and one at135.644s are observation times. Retained source/child Inbox writes, last-child editor, and Error history passed."
           }
         ]
       },

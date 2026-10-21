@@ -4656,3 +4656,26 @@ No production code, build, fixture, or tests changed. Latest full regression
 remains app447/core471. Matrix structure passes. Current-image production
 queued timeout entry combinations and other native capabilities stay pending.
 No screenshot or raw log is tracked.
+
+
+### Current-image native queued URL timeout — 20 October 2026
+
+Used isolated QA image1b8988d3183ec067 and the pending multi-draft root from
+engine-queue-actions.json. Opened the source by UUID, reset the neutral target,
+and ran through the local helper with all three callback URLs. No test timeout
+setting was applied. ActionRunner retains its production scriptTimeout of120.
+
+The child wrote Queue timeout completed write — café 🐼 and remained pending.
+Cancel Running Action was enabled while other actions were disabled. At the
+57.243-second observation, callback count was zero. At135.644 seconds, the
+helper showed exactly one error callback with case=queue-production-timeout
+and the timeout message. No root success parameter was present. These times
+are observation times, not an exact measurement of deadline delivery.
+
+The native error alert showed the same timeout. After dismissal, source and
+child writes remained in Inbox, the editor stayed on the child, and no later
+sentinel text appeared. History recorded the root as Error with the timeout
+message. This closes the current-image queued URL timeout check. Current-image
+UI and Intent queued timeout checks remain pending. No production code, build,
+fixture, or tests changed. Last full regression remains app447/core471.
+No screenshot or raw log is tracked.

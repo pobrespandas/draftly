@@ -1053,3 +1053,9 @@ Native queued Intent owner-close now passes with the exact source opened by
 UUID and visible ownership confirmed. An initial non-owner run was stopped
 separately and is not counted as owner-close acceptance. Retained writes and
 Cancelled history passed. Current-image queued timeout combinations remain.
+
+
+Current-image queued URL production timeout passed: one matching error callback,
+retained Inbox writes, last-child editor, and no later queue work. Observation
+times bracket the result; exact deadline delivery was not measured. UI/Intent
+queued timeout checks on the current image remain pending.
