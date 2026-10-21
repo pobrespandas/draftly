@@ -5316,3 +5316,39 @@ This accepts native timer CPU failure, error-only logging, preserved text and
 disposition, and opening a menu during worker CPU work. It does not measure
 precise timeout latency or verify legacy native execution, every UI control,
 or native notification banners. No screenshot or raw output is tracked.
+
+
+### Native UI queued production timeout — 20 October 2026
+
+Used Restore QA image294c9c874705d96762a31e881b9074eb2ebe0616666828c9909a2825d9978af5.
+Created two new neutral drafts, Queue target neutral and Queue source neutral.
+Filtered the Imported action list to QA Queue multi-draft pending root. Ran
+that action from the list. The editor followed the child to its separate draft
+and showed Queue timeout completed write — café 🐼. No text was edited and no
+window was closed during execution. The library has11 notes after this check.
+
+The action remained disabled/pending at41199ms and107067ms observations. It
+was enabled/final at130517ms. These are observation times around the unchanged
+production120-second limit, not a precise timeout-duration measurement. History
+showed a new root Error with the timeout message. The editor stayed on the child.
+
+Exported the result through the native backup command. Compared against the
+prior nine-note backup: exactly two new note IDs have exact contents Queue
+source retained and Queue timeout completed write — café 🐼. Both remain in
+Inbox with no trash date or ERROR sentinel. Exactly one new root history row
+has Error status, the timeout message, and the new source note ID. Raw backup
+stays in /tmp. No personal library changed.
+
+The focused regression passed5 app methods and25 core methods. The auditor's
+25 Python tests passed. This closes the last named native gap in queue
+cancellation; that contract is complete. Other engine contracts remain partial.
+Reconciled stale native summaries for common entry points, callback selection,
+and host lifetime against their already recorded checks. No unrelated contract
+was promoted. The full API inventory is562 members:104 complete,157 partial,
+296 unclassified,3 unavailable,2 excluded. These are inventory counts, not a
+compatibility percentage. The earlier global strict check reported4913 field
+diagnostics before this queue evidence update; it is not a member count.
+
+After the queue update, the structural matrix check passes. Strict engine
+parity reports24 diagnostics for the remaining eight partial contracts. The
+queue contract has no remaining strict diagnostic. This does not close Mac.

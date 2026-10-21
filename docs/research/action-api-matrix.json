@@ -17376,15 +17376,13 @@
     },
     {
       "contract": "queue cancellation",
-      "compatibilityStatus": "partial",
+      "compatibilityStatus": "complete",
       "automatedTest": {
         "suite": "AsyncActionRunnerTests",
         "test": "includedStepsShareContextAndQueueStopsAfterCancellation"
       },
-      "liveCheck": null,
-      "limitations": [
-        "UI/URL/Intent queued failure/cancellation and URL/Intent owner-close passed. Current-image URL and Intent production queued timeout passed. Current-image UI production queued timeout remains pending."
-      ],
+      "liveCheck": "docs/validation.md: Native UI queued production timeout — 20 October 2026",
+      "limitations": [],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
         "test": "cancellingAnActionStopsItsQueue"
@@ -17468,8 +17466,7 @@
         }
       ],
       "nativeVerification": {
-        "status": "pending",
-        "reason": "UI/URL/Intent queued failure/cancellation and URL/Intent owner-close passed. Current-image URL and Intent production queued timeout passed. Current-image UI production queued timeout remains pending.",
+        "status": "passed",
         "evidence": "docs/validation.md",
         "additionalChecks": [
           {
@@ -17520,8 +17517,18 @@
             "fixture": "scripts/fixtures/engine-queue-actions.json",
             "evidence": "docs/validation.md: Current-image native queued Intent timeout — 20 October 2026",
             "result": "Actual Intent kept Stop through110.268s and showed the production timeout error at134.674s observation. Retained source/child Inbox writes, last-child editor and Error history passed. Initial edited/cancelled run is excluded; shortcut fields were restored."
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "294c9c874705d96762a31e881b9074eb2ebe0616666828c9909a2825d9978af5",
+            "fixture": "scripts/fixtures/engine-queue-actions.json",
+            "entryPoint": "Restore QA action list",
+            "result": "UI queued root followed child to a separate draft. It remained pending at107067ms and finished before130517ms observation. Export confirmed exact source/child Inbox text, no sentinel, and one root timeout Error linked to source. No editing or close interrupted the run.",
+            "evidence": "docs/validation.md: Native UI queued production timeout — 20 October 2026"
           }
-        ]
+        ],
+        "date": "2026-10-20",
+        "scope": "Recorded UI/URL/Intent failure and cancellation, URL/Intent owner-close and production queued timeout are joined by native UI production queued timeout. Completed source/child effects survive; later work is excluded. Other capability and multiwindow entry variants belong to their separate contracts."
       },
       "automatedVerification": {
         "status": "passed",
@@ -17558,6 +17565,12 @@
             "command": "swift test --filter AutomationActionExecutionTests",
             "result": "Five methods passed; visible typing covers direct and queued targets. The owned editor follows the child, typing cancels, target saves User text, source stays Stored, and later queued sentinel does not replace the result.",
             "evidence": "docs/validation.md: Editing during a pending queued action — 20 October 2026"
+          },
+          {
+            "date": "2026-10-20",
+            "command": "swift test --filter QueueAcceptanceTests|EngineBoundaryContractTests|AsyncActionRunnerTests|AutomationActionExecutionTests",
+            "result": "Five app methods and25 core methods passed, including queued current-version loading, completed effects, correct callback choice,100-action limit, and typing interruption.",
+            "evidence": "docs/validation.md: Native UI queued production timeout — 20 October 2026"
           }
         ]
       }
@@ -17571,8 +17584,7 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Native current-image URL busy callback and owner success passed in both mixed Intent/URL directions. Production URL timeout evidence is recorded separately. Remaining current-image cancellation/error and late callback variants remain pending.",
-        "Recorded native success/error/cancel callbacks used an older QA executable; repeat applicable variants on the current build."
+        "Linked native URL checks cover busy, owner success, queued failure/cancel, and production queued timeout. Direct-root terminal and late-final-callback variants still need an explicit acceptance cross-check; old blanket statements that all error/cancel checks are missing are superseded."
       ],
       "defaults": "No callback URL is produced if the matching x-success, x-cancel, or x-error parameter is absent or lacks a scheme. Success parameters default to an empty map.",
       "result": "Success selects x-success and merges its final parameters once. Cancellation selects x-cancel without success parameters. Failure selects x-error and adds errorMessage. Existing unrelated query items remain.",
@@ -17618,7 +17630,7 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Recorded native success/error/cancel callbacks used an older QA executable; repeat applicable variants on the current build.",
+        "reason": "Native queued URL failure/cancel and timeout each produced one correct callback without root success parameters. Busy and owner success are recorded. Direct-root and late-final-callback acceptance remains incomplete.",
         "additionalChecks": [
           {
             "date": "2026-10-20",
@@ -18187,7 +18199,7 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Real native callback timeout, successful Shortcut execution, and remaining permission/capability lifetime variants remain pending on the current build.",
+        "reason": "Prompt/select acceptance, delayed callback after cancellation, and expired/fresh overlapping callbacks have linked evidence. Real callback timeout, successful Shortcut host execution, and remaining capability/permission lifetime variants remain pending.",
         "additionalChecks": [
           {
             "date": "2026-10-20",
@@ -18404,8 +18416,7 @@
         "result": "Real QA cold-launch Run awaited delayed success and returned its success parameters. URL failure and cancellation returned matching callbacks. Development-signed QA App Intent through Shortcuts returned success, delayed failure, and cancellation messages. Timeout, busy, concurrent-entry, and window-close variants remain pending."
       },
       "limitations": [
-        "Native Shortcuts now verifies success, CPU timeout, production queued timeout on another draft, and busy with a URL owner. Reverse Intent-owner/URL-busy also passed. Native cancellation, source-close, and remaining capability/entry variants still require acceptance.",
-        "Current-build native multiwindow concurrency, timeout, busy, and remaining App Intent variants remain pending. Earlier QA passed cold URL and Intent success/error/cancel only."
+        "Linked native checks cover UI/URL/Intent queued failure/cancel and production queued timeout, URL/Intent owner-close, and mixed Intent/URL library exclusion. Same-draft multiwindow owner selection and remaining capability-specific entry variants remain unverified."
       ],
       "defaults": "A window model permits one pending or running action request at a time. It reserves execution before starting its Task. A repeated request is ignored rather than queued. The default is limited here to window scheduling; automation uses its separate save and target checks.",
       "result": "Successful batches process every captured draft and leave the last open. Automation saves pending visible edits before loading its target; final reports supply the result used by callbacks and Intents.",
@@ -18520,7 +18531,7 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Current-build native multiwindow concurrency, timeout, busy, and remaining App Intent variants remain pending. Earlier QA passed cold URL and Intent success/error/cancel only.",
+        "reason": "UI queued production timeout now joins linked queued failure/cancel, URL/Intent owner-close, mixed-entry busy, and URL/Intent timeout checks. Same-draft multiwindow ownership and remaining native capability paths remain pending.",
         "additionalChecks": [
           {
             "date": "2026-10-20",

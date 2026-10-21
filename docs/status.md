@@ -1160,3 +1160,10 @@ pending. Other imported-option gaps remain open.
 Native log-policy follow-up: six neutral actions confirmed None, Errors, All
 history behavior. Inspector showed imported Errors and Cancel discarded a
 change to None. Save/restart, timeout, and notification delivery remain pending.
+
+
+Engine queue acceptance —20 October2026: queue cancellation is now complete.
+Native UI production timeout passed after the earlier URL/Intent timeout and
+interruption checks. Exact retained data and one root error were confirmed by
+native export. Strict engine parity still has24 diagnostics across eight other
+partial contracts. Full validation and remaining limitations are in the matrix.
