@@ -11,7 +11,7 @@ Workspace sort, list preference ownership and shortcut/font fixes are committed.
 The measured pass aligns five list titles, row pitch and editor text at
 1200 by 800 points against Drafts. New reference captures at 1033 by 734 and
 850 by 600 points are valid at 2x. Right toolbar alignment is still being refined.
-The latest checked complete run passed 646 Core and 616 app methods. Python: 68.
+The latest checked complete run passed 646 Core and 617 app methods. Python: 68.
 Local Debug passed. An initial new Spotlight test found unstable payload order;
 its identity-order correction passed focused and complete checks. Prior engine
 timing fragility remains documented, without retries or deadline changes.
