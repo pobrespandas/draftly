@@ -167,8 +167,8 @@ final class AppController: ObservableObject {
     }
 
     func capture(content: String = "") {
-        guard library != nil else { return }
-        captureController.show(content: content)
+        guard captureController.receive(content) else { return }
+        captureController.show()
     }
     func openDraftWindow(_ id: UUID?, tab: Bool, origin: NSWindow?, timeout: TimeInterval = 120) async throws -> Bool {
         guard let library, let openDraftLibrary else { return false }

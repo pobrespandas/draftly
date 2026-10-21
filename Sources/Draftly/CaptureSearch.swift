@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 import DraftlyCore
 
@@ -25,8 +26,30 @@ final class CaptureBuffer: ObservableObject {
 }
 
 @MainActor
+final class CaptureDestinations: ObservableObject {
+    @Published private(set) var notes: [Note] = []
+    @Published var target: UUID?
+    private var library: LibraryStore?
+    private var subscription: AnyCancellable?
+
+    func bind(_ library: LibraryStore?) {
+        guard self.library !== library else { return }
+        subscription = nil
+        self.library = library
+        guard let library else { update([]); return }
+        subscription = library.$notes.sink { [weak self] in self?.update($0) }
+    }
+
+    private func update(_ notes: [Note]) {
+        self.notes = notes.filter { $0.trashedAt == nil }.sorted { $0.modifiedAt > $1.modifiedAt }
+        if let target, !self.notes.contains(where: { $0.id == target }) { self.target = nil }
+    }
+}
+
+@MainActor
 final class CaptureController {
     let buffer: CaptureBuffer
+    let destinations = CaptureDestinations()
     private let libraryProvider: () -> LibraryStore?
     private let windowProvider: () -> [WindowModel]
     private var panel: NSPanel?
@@ -48,14 +71,22 @@ final class CaptureController {
             throw error
         }
     }
-    func show(content: String = "") {
+    @discardableResult func receive(_ content: String) -> Bool {
         buffer.receive(content)
+        guard libraryProvider() != nil else {
+            buffer.error = "The library is unavailable."
+            return false
+        }
+        return true
+    }
+    func show() {
+        destinations.bind(libraryProvider())
         if panel == nil {
             let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 580, height: 360), styleMask: [.titled, .closable, .resizable, .utilityWindow], backing: .buffered, defer: false)
             panel.title = "Capture"; panel.identifier = NSUserInterfaceItemIdentifier("draftly.capture")
             panel.isReleasedWhenClosed = false; panel.isFloatingPanel = true
             panel.hidesOnDeactivate = false; panel.minSize = NSSize(width: 420, height: 280)
-            panel.contentView = NSHostingView(rootView: CaptureView(buffer: buffer, library: libraryProvider(), save: { [weak self] target in self?.save(to: target) ?? false }))
+            panel.contentView = NSHostingView(rootView: CaptureView(buffer: buffer, destinations: destinations, save: { [weak self] target in self?.save(to: target) ?? false }))
             panel.center(); self.panel = panel
         }
         NSApp.activate(ignoringOtherApps: true)
@@ -69,6 +100,7 @@ final class CaptureController {
                 let windows = windowProvider().filter { $0.library === library && $0.editor.noteID == target }
                 let selections = windows.map { ($0, $0.editor.selection) }
                 for model in windows {
+                    model.synchronizeStoredEditor(library.notes)
                     guard model.flush() else { throw DraftlyError.message("Save the destination draft before adding text.") }
                 }
                 guard var note = library.notes.first(where: { $0.id == target && $0.trashedAt == nil }) else {
@@ -90,17 +122,16 @@ final class CaptureController {
 
 private struct CaptureView: View {
     @ObservedObject var buffer: CaptureBuffer
-    let library: LibraryStore?
-    @State private var target: UUID?
+    @ObservedObject var destinations: CaptureDestinations
     let save: (UUID?) -> Bool
     var body: some View {
         VStack(spacing: 0) {
             CaptureTextEditor(text: $buffer.text).padding(12).accessibilityLabel("Capture Text")
             Divider()
             HStack {
-                Picker("Save to", selection: $target) {
+                Picker("Save to", selection: $destinations.target) {
                     Text("New Draft").tag(UUID?.none)
-                    ForEach((library?.notes ?? []).filter { $0.trashedAt == nil }.sorted { $0.modifiedAt > $1.modifiedAt }) { note in
+                    ForEach(destinations.notes) { note in
                         Text(note.title).tag(Optional(note.id))
                     }
                 }.frame(maxWidth: 300)
@@ -110,7 +141,7 @@ private struct CaptureView: View {
                     alert.addButton(withTitle: "Discard"); alert.addButton(withTitle: "Cancel")
                     if alert.runModal() == .alertFirstButtonReturn { buffer.discard() }
                 }.disabled(buffer.text.isEmpty)
-                Button(target == nil ? "Save Draft" : "Append") { _ = save(target) }
+                Button(destinations.target == nil ? "Save Draft" : "Append") { _ = save(destinations.target) }
                     .keyboardShortcut(.return, modifiers: .command).disabled(buffer.text.isEmpty)
             }.padding(12)
             if let error = buffer.error { Text(error).font(.caption).foregroundStyle(.red).padding([.horizontal, .bottom], 12) }

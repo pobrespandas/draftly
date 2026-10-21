@@ -146,6 +146,114 @@ struct CaptureControllerTests {
         }
     }
 
+    @Test(arguments: [false, true])
+    func appendDoesNotLetACleanDuplicateOverwritePendingOwnerText(ownerFirst: Bool) throws {
+        try withBuffer { buffer, _ in
+            let library = try LibraryStore(inMemory: true, seed: false)
+            let note = try library.createNote(content: "Stored café 🐼")
+            let owner = WindowModel(library: library), duplicate = WindowModel(library: library)
+            owner.select(note.id); duplicate.select(note.id)
+            owner.editor.content = "Pending café 🐼"; owner.contentChanged()
+            owner.editor.selection = NSRange(location: 8, length: 4)
+            duplicate.editor.selection = NSRange(location: 0, length: 6)
+            let ownerFocus = owner.editor.focusToken, duplicateFocus = duplicate.editor.focusToken
+            let controller = CaptureController(buffer: buffer, libraryProvider: { library },
+                windowProvider: { ownerFirst ? [owner, duplicate] : [duplicate, owner] })
+            buffer.text = "Incoming 🦊\nSecond line"
+
+            #expect(controller.save(to: note.id))
+
+            let expected = "Pending café 🐼\n\nIncoming 🦊\nSecond line"
+            #expect(library.notes.first { $0.id == note.id }?.content == expected)
+            #expect(owner.editor.content == expected && duplicate.editor.content == expected)
+            #expect(owner.editor.selection == NSRange(location: 8, length: 4))
+            #expect(duplicate.editor.selection == NSRange(location: 0, length: 6))
+            #expect(owner.editor.focusToken == ownerFocus && duplicate.editor.focusToken == duplicateFocus)
+            #expect(buffer.text.isEmpty && owner.flush() && duplicate.flush())
+            #expect(library.notes.first { $0.id == note.id }?.content == expected)
+        }
+    }
+
+    @Test func appCaptureWithoutALibraryRetainsIncomingTextUntilStorageRecovers() throws {
+        try withBuffer { buffer, defaults in
+            let library = try LibraryStore(inMemory: true, seed: false)
+            let app = AppController(library: library, recentDrafts: RecentDraftStore(defaults: defaults))
+            app.captureController = CaptureController(buffer: buffer,
+                libraryProvider: { [weak app] in app?.library })
+            app.library = nil
+            buffer.text = "Earlier capture"
+
+            app.capture(content: "Incoming café 🐼\nSecond line")
+
+            let expected = "Earlier capture\n\nIncoming café 🐼\nSecond line"
+            #expect(buffer.text == expected)
+            #expect(CaptureBuffer(defaults: defaults).text == expected)
+            #expect(buffer.error == "The library is unavailable.")
+            app.library = library
+            #expect(app.captureController.save(to: nil))
+            #expect(library.notes.map(\.content) == [expected])
+            #expect(buffer.text.isEmpty && buffer.error == nil)
+        }
+    }
+
+    @Test func retryingReceiptWithoutNewTextDoesNotDuplicateThePendingDelivery() throws {
+        try withBuffer { buffer, defaults in
+            var library: LibraryStore?
+            let controller = CaptureController(buffer: buffer, libraryProvider: { library })
+            buffer.text = "Earlier capture"
+            #expect(!controller.receive("Incoming café 🐼"))
+            let expected = "Earlier capture\n\nIncoming café 🐼"
+            #expect(!controller.receive(""))
+            #expect(buffer.text == expected && CaptureBuffer(defaults: defaults).text == expected)
+            library = try LibraryStore(inMemory: true, seed: false)
+            #expect(controller.receive(""))
+            #expect(buffer.text == expected)
+            #expect(controller.save(to: nil))
+            #expect(library?.notes.map(\.content) == [expected])
+            #expect(buffer.text.isEmpty && buffer.error == nil)
+        }
+    }
+
+    @Test func destinationsObserveNewRenamedAndTrashedDraftsWithoutReplacingAValidTarget() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        var target = try library.createNote(content: "Target café 🐼")
+        let destinations = CaptureDestinations()
+        destinations.bind(library)
+        destinations.target = target.id
+
+        let added = try library.createNote(content: "Added while capturing")
+        #expect(Set(destinations.notes.map(\.id)) == [target.id, added.id])
+        #expect(destinations.target == target.id)
+
+        target.content = "Renamed 🦊"; try library.saveNote(target)
+        #expect(destinations.notes.first { $0.id == target.id }?.title == "Renamed 🦊")
+        #expect(destinations.target == target.id)
+
+        target.trashedAt = Date(); try library.saveNote(target)
+        #expect(destinations.notes.map(\.id) == [added.id])
+        #expect(destinations.target == nil)
+    }
+
+    @Test func rebindingDestinationsKeepsAnAvailableTargetAndStopsObservingTheOldLibrary() throws {
+        let originalLibrary = try LibraryStore(inMemory: true, seed: false)
+        let target = try originalLibrary.createNote(content: "Original target")
+        let replacementLibrary = try LibraryStore(inMemory: true, seed: false)
+        var replacement = target; replacement.content = "Replacement café 🐼"
+        try replacementLibrary.saveNote(replacement)
+        let storedReplacement = try #require(replacementLibrary.notes.first)
+        let destinations = CaptureDestinations()
+        destinations.bind(originalLibrary)
+        destinations.target = target.id
+
+        destinations.bind(replacementLibrary)
+        #expect(destinations.notes == [storedReplacement] && destinations.target == target.id)
+        _ = try originalLibrary.createNote(content: "Old library only")
+        #expect(destinations.notes == [storedReplacement] && destinations.target == target.id)
+
+        destinations.bind(nil)
+        #expect(destinations.notes.isEmpty && destinations.target == nil)
+    }
+
     @Test func appendKeepsNativeUndoRedoAndTheEarlierEditHistory() throws {
         try withBuffer { buffer, _ in
             let library = try LibraryStore(inMemory: true, seed: false)
