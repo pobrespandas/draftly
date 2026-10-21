@@ -6202,4 +6202,6 @@ passed and its text expectation failed once, as expected. No functional fix
 was added. The red reproducer is not in main and was not pushed. After return
 to main, all four editing-bar methods/40 cases passed. Main retains the full
 467 app/508 core pass, 41 Python tests and unsigned build from stage 9.
-No source, fixture, format or matrix changed during branch preservation.
+No production source, fixture, format or matrix changed during branch
+preservation. The final checkout audit confirmed that main has no red reproducer
+and both WIP branches remain local. Main and the reference tag match origin.
