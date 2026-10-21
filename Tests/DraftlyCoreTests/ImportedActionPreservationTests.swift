@@ -97,10 +97,14 @@ struct ImportedActionPreservationTests {
         #expect(editor.content == "Keep")
     }
 
-    @Test(arguments: [false, true], [false, true])
-    func containersPreserveNativeEntriesAndForeignStepData(wrapped: Bool, mixed: Bool) throws {
+    @Test(arguments: [(false, false, false), (false, false, true),
+                      (false, true, false), (false, true, true),
+                      (true, false, false), (true, false, true),
+                      (true, true, false), (true, true, true)])
+    func containersPreserveNativeEntriesAndForeignStepData(wrapped: Bool, mixed: Bool, nativeSeparator: Bool) throws {
         var native = DraftAction(name: "Native café 🐼", steps: [ActionStep("futureStep", ["value": "Keep"])])
         native.steps[0].isEnabled = false
+        if nativeSeparator { native.scriptMetadata = ["isSeparator": "true"] }
         native.shortcut = "k"
         native.shortcutModifiers = ["command", "shift"]
         native.options = ActionPresentation()
@@ -115,12 +119,26 @@ struct ImportedActionPreservationTests {
         let foreign: JSONValue = .object(["name": .string("Foreign"), "uuid": .string(foreignID.uuidString),
             "steps": .array([.object(["type": .string("script"),
                 "data": .object(["script": .string("context.addSuccessParameter('foreign','kept');")])])])])
-        let entries: JSONValue = .array(mixed ? [foreign, nativeJSON] : [nativeJSON])
+        let separatorID = UUID()
+        let separator: JSONValue = .object(["name": .string("Foreign section"),
+            "uuid": .string(separatorID.uuidString), "backingIsSeparator": .bool(true),
+            "steps": .array([]), "unknown": .array([.null, .bool(false), .string("café 🐼")])])
+        let entries: JSONValue = .array(mixed ? [foreign, separator, nativeJSON] : [nativeJSON])
         let input: JSONValue = wrapped ? .object(["actions": entries]) : entries
         let decoded = try ActionImporter.decode(JSONEncoder().encode(input), source: "fixture://new")
-        #expect(decoded.count == (mixed ? 2 : 1))
+        #expect(decoded.count == (mixed ? 3 : 1))
         #expect(decoded.last == native)
+        #expect(decoded.last?.isSeparator == nativeSeparator)
+        let library = try LibraryStore(inMemory: true, seed: false)
+        try library.saveActions(decoded)
+        let restored = try LibraryStore(inMemory: true, seed: false)
+        try restored.restore(library.backupData())
+        #expect(Dictionary(uniqueKeysWithValues: restored.actions.map { ($0.id, $0) }) ==
+                Dictionary(uniqueKeysWithValues: decoded.map { ($0.id, $0) }))
         if mixed {
+            #expect(decoded[1].id == separatorID && decoded[1].isSeparator)
+            let payload = try #require(decoded[1].rawPayload)
+            #expect(try JSONDecoder().decode(JSONValue.self, from: Data(payload.utf8)) == separator)
             #expect(decoded.first?.id == foreignID)
             #expect(decoded.first?.steps.first?.values["script"] == "context.addSuccessParameter('foreign','kept');")
         }

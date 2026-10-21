@@ -5113,3 +5113,21 @@ Raw backups remain in /tmp.
 This closes the native empty-store reconstruction check for the separator
 fixture and its populated collections. Reference appearance and grouped/mixed
 separator variants remain pending. The engine contract stays partial.
+
+
+### Separator container preservation cases — 20 October 2026
+
+Expanded the existing containersPreserveNativeEntriesAndForeignStepData test.
+It now covers eight cases: array or actions wrapper, native-only or mixed
+foreign/native entries, and a normal or separator native entry. Mixed input
+also contains a foreign separator with a fixed captured identity and unknown
+null/false/Unicode data. Assertions check source order, exact native data,
+separator identity, raw foreign payload, and equality of every action after
+backup restoration into an empty memory store. Disabled unknown native steps
+and options remain intact. No production code changed.
+
+The focused ImportedActionPreservationTests run passed all five methods,
+including eight container cases and two native future-field cases. Automatic
+tests do not open a window. Native grouped/mixed separator presentation still
+needs its own check. No additional full regression or Xcode build was required
+for this test-only change; the last full run remains app449/core476.

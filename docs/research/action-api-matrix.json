@@ -17860,6 +17860,12 @@
             "command": "swift test",
             "result": "Passed: 388 app tests and 361 core tests. Specific supporting cases listed in this record ran.",
             "evidence": "docs/validation.md"
+          },
+          {
+            "date": "2026-10-20",
+            "command": "swift test --filter ImportedActionPreservationTests",
+            "result": "Five methods passed. Existing container test expanded to eight cases, including native and foreign separators, exact native preservation, unknown fields and full action equality after empty-store backup restoration.",
+            "evidence": "docs/validation.md: Separator container preservation cases — 20 October 2026"
           }
         ]
       }
