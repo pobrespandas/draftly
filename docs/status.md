@@ -1173,3 +1173,8 @@ Promise acceptance —20 October2026: promise rejection and asynchronous timeout
 is complete for its named contracts. Direct returned-rejection URL now has one
 correct error callback and retained Inbox text. Strict engine parity remains
 open with21 diagnostics across seven other partial contracts.
+
+
+Final callback acceptance —20 October2026: final callback selection is complete
+for the named cases. Native merge and delayed-response checks passed. Strict
+engine parity remains open with18 diagnostics across six partial contracts.

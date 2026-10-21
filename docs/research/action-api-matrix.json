@@ -17598,15 +17598,13 @@
     },
     {
       "contract": "final callback selection",
-      "compatibilityStatus": "partial",
+      "compatibilityStatus": "complete",
       "automatedTest": {
         "suite": "ExecutionActionAPITests",
         "test": "finalResultChoosesAndEncodesOnlyItsOwnCallback"
       },
-      "liveCheck": null,
-      "limitations": [
-        "Linked native URL checks cover busy, owner success, queued failure/cancel, and production queued timeout. Direct-root terminal and late-final-callback variants still need an explicit acceptance cross-check; old blanket statements that all error/cancel checks are missing are superseded."
-      ],
+      "liveCheck": "docs/validation.md: Native final callback merge and late response — 20 October 2026",
+      "limitations": [],
       "defaults": "No callback URL is produced if the matching x-success, x-cancel, or x-error parameter is absent or lacks a scheme. Success parameters default to an empty map.",
       "result": "Success selects x-success and merges its final parameters once. Cancellation selects x-cancel without success parameters. Failure selects x-error and adds errorMessage. Existing unrelated query items remain.",
       "errors": "Invalid or relative callback targets return nil. Failure and cancellation cannot leak success parameters.",
@@ -17650,8 +17648,7 @@
         }
       ],
       "nativeVerification": {
-        "status": "pending",
-        "reason": "Native queued URL failure/cancel and timeout each produced one correct callback without root success parameters. Busy and owner success are recorded. Direct-root and late-final-callback acceptance remains incomplete.",
+        "status": "passed",
         "additionalChecks": [
           {
             "date": "2026-10-20",
@@ -17674,8 +17671,21 @@
             "entryPoint": "external run URL via isolated local helper",
             "result": "Returned rejection produced one identified error callback with exact message and no discard success parameter. Text stayed exact in Inbox with no tail/Archive; History Error and callback count one remained after inspection.",
             "evidence": "docs/validation.md: Native returned promise URL callback — 20 October 2026"
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "785e0548ab98a23c6a0e865e90215b7e8a1534b2e27406581359249f825d2224",
+            "fixtures": [
+              "scripts/fixtures/engine-separator-actions.json",
+              "scripts/fixtures/engine-native-actions.json"
+            ],
+            "result": "Success preserved Unicode and replaced two position items with one final value. Final late-verified run returned one cancel at1977ms; at14829ms helper confirmed delayed native open and still one cancel, distinct editor text remained and History was Cancelled. First completed control and identical-baseline retry are not tail-exclusion evidence.",
+            "evidence": "docs/validation.md: Native final callback merge and late response — 20 October 2026"
           }
-        ]
+        ],
+        "date": "2026-10-20",
+        "evidence": "docs/validation.md",
+        "scope": "Native success replaced duplicate keys and retained Unicode. Direct error, queued cancel/timeout, and busy checks select the correct final callback. Final cancellation stayed at one callback after a delayed native response; distinct text and Cancelled history remained intact. Capability-specific host lifetimes and entry variants remain in separate contracts."
       },
       "automatedVerification": {
         "status": "passed",
@@ -17689,6 +17699,12 @@
             "command": "swift test --filter AutomationTimeoutBoundaryTests|AutomationEditorContextTests",
             "result": "Passed nine methods. The new case uses an actual worker timeout and checks automation report and result mappings, not system App Intent delivery.",
             "evidence": "docs/validation.md"
+          },
+          {
+            "date": "2026-10-20",
+            "command": "swift test --filter ExecutionActionAPITests|ActionExecutionSessionTests|AutomationTimeoutBoundaryTests",
+            "result": "One app method and27 core methods passed, including callback destination/encoding/defaults, success-parameter exclusion and finalization identity.",
+            "evidence": "docs/validation.md: Native final callback merge and late response — 20 October 2026"
           }
         ]
       }

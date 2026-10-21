@@ -5410,3 +5410,38 @@ focused promise/runtime/epoch run passed8 methods. No screenshot is tracked.
 Structural matrix check passes. Strict engine parity now reports21 diagnostics
 for seven remaining partial contracts. The promise contract has no strict
 diagnostic. This closes that contract only, not the engine or Mac plan.
+
+
+### Native final callback merge and late response — 20 October 2026
+
+Used Engine QA image785e0548ab98a23c6a0e865e90215b7e8a1534b2e27406581359249f825d2224
+and the local helper. External URL A Before section completed with one success
+callback. Its target originally contained two position query items. The final
+callback had exactly one position=before and retained existing=café 🐼 +.
+No action source was changed.
+
+For QA Native late, the first attempt completed successfully before the next
+cancel click. Its callback and Success history are controls, not cancellation
+evidence. A batched retry cancelled and produced one x-cancel; its baseline
+text already equalled the tail marker, so it cannot prove tail exclusion.
+
+Prepared distinct Caught rejection completed text with the caught control.
+Sent a new identified run URL and confirmed the prompt named that target.
+Cancelled through the enabled Actions menu in one observed sequence. At1977ms
+the helper showed exactly one final-late-verified cancel callback. At14829ms
+it still showed one cancel, while Replies opened had increased to5 and its
+8-second delayed native open reported success. The editor still contained
+Caught rejection completed, rather than Must not replace edited text. Inbox
+retained nine notes; History showed Cancelled for the final attempt. The native
+open result is an observation of OS delivery, not an exact app-handler timestamp.
+
+The focused regression passed1 app timeout-boundary method and27 core methods
+in execution API/session suites. Together with linked error, queued timeout,
+and busy acceptance, this closes final callback selection for its named cases:
+correct destination, one final callback, parameter replacement/Unicode, no
+success leakage, and no second finalization after a late response. Remaining
+capability/entry contracts stay separate. No screenshot or raw output is tracked.
+
+Structural matrix check passes. Strict engine parity now reports18 diagnostics
+across six other partial contracts. Final callback selection has no remaining
+strict diagnostic. The engine and full Mac goal remain open.
