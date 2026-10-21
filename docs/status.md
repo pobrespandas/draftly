@@ -1065,3 +1065,9 @@ Current-image queued Intent production timeout now passes: Shortcuts waited
 for final error, retained Inbox writes and last-child editor passed, and no
 later queue work appeared. An earlier interrupted run is not counted. The
 current-image UI queued timeout remains pending.
+
+
+The UI timeout attempt ended in cancellation after the editor changed to Q;
+it is not accepted as timeout. Added queued-target coverage to the existing
+owned-editor typing cancellation test. Full regression passed app447/core471.
+The native UI production timeout check remains pending.

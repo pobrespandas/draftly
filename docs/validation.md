@@ -4702,3 +4702,25 @@ Restored the shortcut action and UUID through paste and Tab. This closes the
 current-image queued Intent timeout check. The UI entry remains pending.
 No production code, build, fixture, or tests changed. Last full regression
 remains app447/core471. No screenshot or raw log is tracked.
+
+
+### Editing during a pending queued action — 20 October 2026
+
+Attempted the current-image UI production timeout with the pending multi-draft
+root. The child first showed its expected retained text. At54.514 seconds,
+Cancel Running Action was disabled and the window title was Q. History showed
+Cancelled. The source of this edit is unknown. This is not timeout acceptance.
+Did not overwrite Q or restart the native test. UI timeout acceptance remains
+pending; earlier URL and Intent timeout acceptance stays separate.
+
+Extended the existing visibleTypingCancelsAutomationAndRetainsTheNewText test
+with direct and queued cases. Both use the owned WindowModel path without a
+visible window. The queued case waits for the saved child readiness signal,
+checks that the editor loaded the child, then types. It asserts cancellation,
+saved user text, preserved source text, and no replacement by later steps or
+the later queued sentinel. No new duplicate test setup was added.
+
+Automatic: all five automation safety methods passed, including both typing
+cases. The47 queue/boundary/runner/API methods passed separately. Full regression
+passed app447/core471. Matrix structure passes. No production code or build
+changed. No raw logs or screenshots are tracked.

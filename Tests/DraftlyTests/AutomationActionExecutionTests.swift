@@ -77,18 +77,32 @@ struct AutomationActionExecutionTests {
         #expect(model.editor.content == "Pending")
     }
 
-    @Test func visibleTypingCancelsAutomationAndRetainsTheNewText() async throws {
+    @Test(arguments: [false, true])
+    func visibleTypingCancelsAutomationAndRetainsTheNewText(queued: Bool) async throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let note = try library.createNote(content: "Stored")
+        let target = queued ? try library.createNote(content: "Queued target") : note
         let model = WindowModel(library: library); model.select(note.id)
-        let task = try await startAndWaitForAction(library, id: note.id) {
-            try await AutomationActionExecution.run(delayedAction(), noteID: note.id, library: library, models: [model], host: model.host)
+        let action: DraftAction
+        if queued {
+            let child = delayedAction()
+            try library.saveAction(child)
+            let later = DraftAction(name: "Later queued sentinel", steps: [ActionStep("insertText", ["template": "Stale queue"])])
+            try library.saveAction(later)
+            action = DraftAction(name: "Queue owner", steps: [ActionStep("script", ["script":
+                "app.queueAction(Action.find('Delayed automation'),Draft.find('\(target.id.uuidString)'));app.queueAction(Action.find('Later queued sentinel'),draft);"])])
+        } else { action = delayedAction() }
+        let task = try await startAndWaitForAction(library, id: target.id) {
+            try await AutomationActionExecution.run(action, noteID: note.id, library: library, models: [model], host: model.host,
+                resolveModel: { models, _ in models.first })
         }
+        #expect(model.editor.noteID == target.id)
         model.editor.content = "User text"; model.contentChanged()
         let output = try await task.value
         #expect(output.report.reason == .cancelled)
         #expect(model.editor.content == "User text")
-        #expect(library.notes.first { $0.id == note.id }?.content == "User text")
+        #expect(library.notes.first { $0.id == target.id }?.content == "User text")
+        if queued { #expect(library.notes.first { $0.id == note.id }?.content == "Stored") }
     }
 
     @Test func externalStoredTextCancelsAutomationWithoutAnOpenWindow() async throws {

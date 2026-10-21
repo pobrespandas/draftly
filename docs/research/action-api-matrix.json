@@ -17412,6 +17412,11 @@
         {
           "suite": "QueueAcceptanceTests",
           "test": "queuedInterruptionOnAnotherDraftKeepsEffectsAndStopsTheQueue"
+        },
+        {
+          "suite": "AutomationActionExecutionTests",
+          "test": "visibleTypingCancelsAutomationAndRetainsTheNewText",
+          "file": "Tests/DraftlyTests/AutomationActionExecutionTests.swift"
         }
       ],
       "nativeVerification": {
@@ -17499,6 +17504,12 @@
             "date": "2026-10-20",
             "command": "swift test --filter QueueAcceptanceTests",
             "result": "Five methods passed, including four legacy/async error/cancel cases on another draft. The cases retain completed text and clipboard effects, keep originals, suppress archive and later queue work, select the correct callback, clear success parameters, and keep one root history entry."
+          },
+          {
+            "date": "2026-10-20",
+            "command": "swift test --filter AutomationActionExecutionTests",
+            "result": "Five methods passed; visible typing covers direct and queued targets. The owned editor follows the child, typing cancels, target saves User text, source stays Stored, and later queued sentinel does not replace the result.",
+            "evidence": "docs/validation.md: Editing during a pending queued action — 20 October 2026"
           }
         ]
       }
