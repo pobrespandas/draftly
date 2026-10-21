@@ -19,6 +19,9 @@ team and existing CloudKit container. The signed Release is installed at
 Read [the migration record](bundle-identity-2026-10-21.md) for separate automated,
 native and pending results. The previous UI refactoring stage is complete.
 This delivery does not close any remaining cloning contracts.
+Read [the QA cleanup record](qa-cleanup-2026-10-21.md) before recreating old
+installations. Six QA apps were moved to Trash and 22 obsolete build directories
+were removed. Fixtures, data, profiles and verified legacy package archives remain.
 
 ## Previous work — UI boundary refactoring
 
