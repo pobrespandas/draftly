@@ -2119,3 +2119,13 @@ Corrected a transport fixture UUID that collided with the Window tab action.
 A headless check now rejects duplicate explicit IDs across manual action-array
 fixtures. Restored the QA catalog without deleting notes or action history.
 This corrects test setup only. Production contracts remain unchanged.
+
+
+### Action list preferences — 21 October 2026
+
+Action-list options now expose Search, Action Log, group-bar visibility and
+keyboard-shortcut labels. Visibility preferences are local. Shortcut formatting
+shares normalization with validation; imported conflicts remain intact. Checked
+626 core/524 app methods and unsigned compilation pass. Native interaction and
+restart acceptance remain pending because CUA lost the QA menu. The reference
+filter modes and full inspector/Settings delivery are still open.

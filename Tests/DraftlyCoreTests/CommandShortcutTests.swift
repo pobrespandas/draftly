@@ -4,6 +4,24 @@ import Testing
 
 @Suite("Command shortcut configuration")
 struct CommandShortcutTests {
+    @Test func actionLabelsUseNormalizedModifiersInMacOrder() {
+        #expect(ActionShortcut(key: " K ", modifiers: nil).displayLabel == "⌥⌘K")
+        #expect(ActionShortcut(key: "é", modifiers: [" SHIFT ", "command", "OPTION", "control", "shift"]).displayLabel == "⌃⌥⇧⌘É")
+        #expect(ActionShortcut(key: "7", modifiers: []).displayLabel == "7")
+    }
+
+    @Test func invalidImportedShortcutsAreNotDisplayedAsWorkingBindings() {
+        for shortcut in [ActionShortcut(key: " ", modifiers: nil),
+                         ActionShortcut(key: "many", modifiers: ["command"]),
+                         ActionShortcut(key: "k", modifiers: ["unsupported"])] {
+            #expect(shortcut.displayLabel == nil)
+        }
+        var action = DraftAction(name: "Imported conflict", steps: [])
+        action.shortcut = "K"; action.shortcutModifiers = ["command"]
+        #expect(ActionShortcut(action).displayLabel == "⌘K")
+        #expect(action.shortcut == "K" && action.shortcutModifiers == ["command"])
+    }
+
     @Test func configuredCommandsAndActionsUseTheSameConflictRules() throws {
         let data = try JSONEncoder().encode(["Quick Search": CommandBinding(key: "k", modifiers: ["shift", "command"])])
         let configuration = String(decoding: data, as: UTF8.self)

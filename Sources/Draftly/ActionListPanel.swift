@@ -3,6 +3,8 @@ import AppKit
 import DraftlyCore
 
 struct ActionListPanel: View {
+    @AppStorage("actions.showGroupBar") private var showGroupBar = true
+    @AppStorage("actions.showKeyboardShortcuts") private var showKeyboardShortcuts = false
     @ObservedObject var model: WindowModel
     @ObservedObject var library: LibraryStore
     private var groups: [String] { library.groupNames }
@@ -29,11 +31,16 @@ struct ActionListPanel: View {
                 }
                 Spacer(minLength: 4)
                 HStack(spacing: MainWindowStyle.utilityTrailingSpacing) {
-                Button { model.showActionSearch.toggle(); model.actionSearchFocus = UUID(); if !model.showActionSearch { model.actionQuery = "" } } label: { PanelIcon(symbol: model.showActionSearch ? "magnifyingglass.circle.fill" : "magnifyingglass.circle") }.help("Search Actions")
+                Button { toggleSearch() } label: { PanelIcon(symbol: model.showActionSearch ? "magnifyingglass.circle.fill" : "magnifyingglass.circle") }.help("Search Actions")
                 Button { model.showRunLog = true } label: { PanelIcon(symbol: "clock.arrow.circlepath") }.help("Action Log")
                 PanelMenu(symbol: "ellipsis.circle", help: "Action List Options", items: [
+                    PanelMenuItem(title: "Action Log") { model.showRunLog = true },
+                    PanelMenuItem(title: "Search", isOn: model.showActionSearch) { toggleSearch() },
+                    PanelMenuItem(title: "Action Group Bar", isOn: showGroupBar) { showGroupBar.toggle() },
+                    PanelMenuItem(title: "Show Keyboard Shortcuts", isOn: showKeyboardShortcuts) { showKeyboardShortcuts.toggle() },
+                    .separator,
                     PanelMenuItem(title: "Import from Directory…") { model.showActionImporter = true },
-                    PanelMenuItem(title: "Execution History…") { model.showRunLog = true }
+                    PanelMenuItem(title: "Manage Groups…") { model.showLibraryManagement = true }
                 ]).frame(width: 28, height: 28)
                 }
             }.buttonStyle(.plain).foregroundStyle(.secondary).padding(.horizontal, MainWindowStyle.utilityInset).frame(height: MainWindowStyle.utilityHeight)
@@ -70,6 +77,9 @@ struct ActionListPanel: View {
                                                 .font(.system(size: 18, weight: .regular)).frame(width: 21).foregroundStyle(actionColor(action))
                                             Text(action.name).font(.system(size: MainWindowStyle.actionTitleSize)).lineLimit(1)
                                             Spacer(minLength: 0)
+                                            if showKeyboardShortcuts, let label = ActionShortcut(action).displayLabel {
+                                                Text(label).font(.caption).foregroundStyle(.secondary).fixedSize()
+                                            }
                                         }.padding(.horizontal, 20).frame(height: 28).contentShape(Rectangle())
                                     }.buttonStyle(ActionRowButtonStyle()).disabled(!model.canRunActions)
                                 }
@@ -83,19 +93,26 @@ struct ActionListPanel: View {
                     }.padding(.top, 10)
                 }
             }
-            Divider()
-            ScrollView(.horizontal) {
-                HStack(spacing: 20) {
-                    ForEach(Array(groups.enumerated()), id: \.element) { index, group in
-                        Button { model.actionGroup = group } label: {
-                            Image(systemName: library.actionGroups.first(where: { $0.name == group })?.symbol ?? "arrow.up.right.square")
-                                .font(.system(size: 18)).foregroundStyle(model.actionGroup == group ? Color.blue : .secondary)
-                        }.buttonStyle(.plain).help(group).accessibilityLabel(group)
-                    }
-                }.padding(.horizontal, 16).frame(height: 60)
-            }.scrollIndicators(.hidden)
+            if showGroupBar {
+                Divider()
+                ScrollView(.horizontal) {
+                    HStack(spacing: 20) {
+                        ForEach(Array(groups.enumerated()), id: \.element) { index, group in
+                            Button { model.actionGroup = group } label: {
+                                Image(systemName: library.actionGroups.first(where: { $0.name == group })?.symbol ?? "arrow.up.right.square")
+                                    .font(.system(size: 18)).foregroundStyle(model.actionGroup == group ? Color.blue : .secondary)
+                            }.buttonStyle(.plain).help(group).accessibilityLabel(group)
+                        }
+                    }.padding(.horizontal, 16).frame(height: 60)
+                }.scrollIndicators(.hidden)
+            }
         }.background(Color(nsColor: .textBackgroundColor))
         .onChange(of: library.actions) { _, _ in if !groups.contains(model.actionGroup), model.actionGroup != "All Actions" { model.actionGroup = groups.first ?? "General" } }
+    }
+    private func toggleSearch() {
+        model.showActionSearch.toggle()
+        model.actionSearchFocus = UUID()
+        if !model.showActionSearch { model.actionQuery = "" }
     }
     private func actionColor(_ action: DraftAction) -> Color {
         if !action.unsupportedSteps.isEmpty { return .orange }

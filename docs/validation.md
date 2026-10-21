@@ -8610,3 +8610,49 @@ inspector, Workspace, Settings or visual parity closure is claimed.
 Final checked regression after the inspector change passed all 624 core and
 524 app methods. Matrix structure has zero errors. The test runner verified
 complete method identities; these totals do not establish contract parity.
+
+
+### Action list options — 21 October 2026
+
+Compared the installed Drafts action-list options menu. It contains Action Log,
+Search, Action Group Bar, Show Keyboard Shortcuts and three action filters. All
+were disabled because that reset Drafts library has no action groups. The group
+manager independently confirmed an empty catalog. No reference groups were
+installed, and no Drafts preference was changed. This inspection establishes
+menu labels, not enabled behavior or a full visual comparison.
+
+Implemented: Draftly now exposes Action Log, Search, Action Group Bar and Show
+Keyboard Shortcuts in its action-list options. Search shares its button handler
+and clears the query when hidden. The group-bar preference hides the footer and
+its divider. The shortcut preference shows valid action bindings in each list
+row. Both preferences are local AppStorage values. Group symbols, selection,
+order, library formats and backups remain unchanged. Import and group management
+remain available. The three reference action-filter modes remain pending.
+
+Shortcut labels share the normalizer and supported modifier set with conflict
+validation. Labels use control, option, shift and command glyphs in that order.
+Missing modifier metadata retains the existing Option-Command default. Invalid
+imported bindings produce no misleading label. Existing imported values and
+conflicts are retained. A valid but conflicting shortcut still has its label.
+
+Automatically tested: two specific cases cover normalized/default modifiers,
+fixed glyph order, duplicate modifiers, Unicode keys, no modifiers and invalid
+imported values. All four CommandShortcutTests methods passed. The final checked
+regression passed all 626 core and 524 app methods. Unsigned Xcode compilation,
+matrix structure and git diff --check passed. No automatic test opened a window.
+
+Updated and signed the isolated QA app after normal Quit. Executable SHA256:
+2d8ce425c576b8d5fe9666d783bc664273c91ccb092ae9e5fe775a1cda01bed9.
+Debug dylib SHA256:
+a24f1403da3440340266359fc30a7345183e240eaf2890cc61d06911269ad7d2.
+The guarded updater verified signatures and retained Services isolation. QA
+opened and its action panel appeared. CUA lost the options menu with a user-change
+guard before a selection. Native toggle, persistence after restart, shortcut
+row layout and enabled comparison with Drafts remain pending. Existing Enabled
+inspector Save/Cancel acceptance is also pending. No parity closure is claimed.
+
+Independent Workspace review found three source-level gaps: effective per-folder
+sort differs from sort labels, absent list options use different editor/window
+fallbacks, and unsaved Workspace display options are bypassed by list getters.
+Reproduce them with focused tests before correcting production code. Keep those
+functional corrections separate from this action-list preference change.
