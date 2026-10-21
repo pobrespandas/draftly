@@ -11,6 +11,13 @@ sections below retain their original scope and dates.
 Keep the identity Draftly, `Note`, existing identities and libraries, original
 action scripts, Nerd Fonts, and the integrated Markdown preview.
 
+## Current work — UI boundary refactoring
+
+The user requested behavior-preserving refactoring before more feature work.
+See [the accepted diagnosis](refactoring-ui-2026-10-21.md) for four bounded stages,
+the validated baseline and preserved checkpoint. Functional Workspace defects
+and native acceptance remain separate. This does not close the Mac roadmap.
+
 ## Current delivery order — 21 October 2026
 
 The user now prioritizes inspector, Workspaces, Settings and personalization.

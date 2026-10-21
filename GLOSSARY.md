@@ -121,6 +121,9 @@ Action configuration that the user has accepted. A default alone is not confirma
 A named sequence of steps that performs work with a draft.
 _Avoid_: Script (for the whole action)
 
+**Action editing copy**:
+A temporary copy of an action. Its changes become part of the saved action only when the user saves them.
+
 **Action step**:
 One operation in an action's ordered sequence. A step can be enabled or disabled.
 
