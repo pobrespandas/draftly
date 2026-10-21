@@ -31,6 +31,20 @@ struct DraftRowPresentationTests {
         #expect(coordinator.tableView(table, rowActionsForRow: 0, edge: .trailing).isEmpty)
     }
 
+    @Test func hostedRowSizeComesFromTheTableInsteadOfItsContent() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let model = WindowModel(library: library)
+        let view = NativeDraftTable(model: model, library: library, selection: .constant([]),
+                                   showPreview: true, previewLines: 2, showTags: true, showDate: true)
+        let coordinator = view.makeCoordinator()
+        coordinator.notes = [Note(content: "Title\n" + String(repeating: "Preview ", count: 100))]
+        let table = NSTableView(frame: NSRect(x: 0, y: 0, width: 300, height: 200))
+        let cell = try #require(coordinator.tableView(table, viewFor: nil, row: 0))
+        let host = try #require(cell.subviews.first)
+        #expect(host.intrinsicContentSize.width == NSView.noIntrinsicMetric)
+        #expect(host.intrinsicContentSize.height == NSView.noIntrinsicMetric)
+    }
+
     @Test func paragraphsUseSeparatorsWithoutChangingTheDraft() {
         let note = Note(content: "Title\n\n First paragraph 🐼\n\nSecond café\n")
         #expect(DraftRowPresentation.preview(note) == "First paragraph 🐼 • Second café")

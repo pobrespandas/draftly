@@ -4993,3 +4993,32 @@ also timed out. This is not a crash or completed scale acceptance. Do not
 restart solely because observation timed out. Inspect this process again and
 investigate the long-scroll layout before accepting scale performance. Raw
 samples remain in /tmp. No screenshot or raw evidence is tracked.
+
+
+### Table-owned hosting size — 20 October 2026
+
+The long-scroll process was still live near one CPU core after three minutes.
+The sample includes table cell creation, hosting root updates, layout, and
+display work. It does not prove a single cause. No restart was attempted.
+
+Implemented: row hosting views use an empty sizingOptions set. The table
+delegate and the existing four edge constraints own row dimensions. SwiftUI
+content no longer contributes minimum, ideal, or maximum sizing constraints.
+Apple documents these options at:
+https://developer.apple.com/documentation/swiftui/nshostingsizingoptions
+
+Automatic: an offscreen hosted-cell regression failed both intrinsic-size
+assertions before the change and passes afterward. Full regression passes
+app449/core476. Native long-scroll acceptance remains pending. This is a
+layout correction supported by a regression, not proof that the observed
+timeout is fixed. The installed Scale QA process still uses the prior build.
+
+Native follow-up: the prior process recovered and showed rows 9994–9999 with
+scrollbar value 1. It then quit normally. The new unsigned Xcode build passed.
+Updated and verified the separate Scale QA signature. Executable SHA256:
+fc64e7153b2480ce6d3a3089549b11f6b4bb500b2c7e27f7a6635ba0ae43b275.
+Relaunch showed 10,000 drafts. Setting its scrollbar from 0 to 1 again exceeded
+the 30-second Computer Use limit. The sizing correction therefore does not
+resolve the long-jump acceptance. Keep that issue open and inspect repeated
+cell creation, scrolling animation, and layout before making another change.
+No note was edited. The running process must be rechecked before replacement.

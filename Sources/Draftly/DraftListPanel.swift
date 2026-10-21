@@ -250,6 +250,8 @@ private final class DraftHostingCell: NSTableCellView {
     init(identifier: NSUserInterfaceItemIdentifier) {
         super.init(frame: .zero)
         self.identifier = identifier
+        // The table owns row dimensions. Content must not add sizing constraints.
+        host.sizingOptions = []
         host.translatesAutoresizingMaskIntoConstraints = false
         addSubview(host)
         NSLayoutConstraint.activate([
