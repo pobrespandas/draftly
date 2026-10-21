@@ -157,7 +157,7 @@ import Foundation
             if request.operation == "requireScript" { result = try platform("requireScript", values) }
             else { result = try dispatch(request.operation, values: values) }
             try checkCancellation()
-            return try json(["value": result ?? NSNull()])
+            return try json(request.operation == "appleScript" ? AppleScriptValueTransport.encode(result ?? NSNull()) : ["value": result ?? NSNull()])
         } catch {
             if let interruption = error as? ActionExecutionInterruption {
                 return (try? json(["error": error.localizedDescription, "termination": interruption == .timeout ? "timeout" : "cancelled"])) ?? "{}"

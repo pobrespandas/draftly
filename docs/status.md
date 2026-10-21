@@ -25,6 +25,13 @@ retain historical results. Later results supersede earlier counts.
 
 ## Current verification
 
+AppleScript results now preserve Date objects, including nested lists/records,
+through the helper, both bridges and native steps. Specific headless tests and
+two native QA actions passed. Four construction/property members are complete;
+execute stays partial for its remaining argument/permission/interruption checks.
+Full sequential regression passed498 app/598 core and unsigned Xcode. The
+concurrent-suite stall remains open. Strict engine/global remain18/4412.
+
 Removed duplicate Services from the five installed QA copies. Finder now shows
 only the two ordinary Draftly capture entries and the two Drafts entries. QA
 refresh removes NSServices before signing;47 Python methods passed. The normal

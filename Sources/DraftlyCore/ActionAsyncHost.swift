@@ -46,6 +46,7 @@ import Foundation
             throw DraftlyError.message("The native operation returned an invalid response.")
         }
         if let error = envelope["error"] as? String { throw DraftlyError.message(error) }
+        if operation == "appleScript" { return try AppleScriptValueTransport.decode(envelope) }
         return envelope["value"] is NSNull ? nil : envelope["value"]
     }
 
@@ -92,7 +93,7 @@ import Foundation
             return true
         case "runAppleScript":
             let result = try await nativeValue("appleScript", ["source": step.values["script"] ?? step.values["source"] ?? "", "subroutine": "execute", "arguments": [noteValue(current)]])
-            evaluate("context.appleScriptResponses.push(\(try json(result ?? NSNull())));")
+            evaluate("context.appleScriptResponses.push(__appleScriptValue(\(try json(AppleScriptValueTransport.encode(result ?? NSNull())))));")
             return true
         case "speak":
             let value = try await nativeValue("speak", ["text": rendered, "settings": ["autoStart": step.values["autoStart"] != "false", "autoClose": step.values["autoClose"] != "false"]])

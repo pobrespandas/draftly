@@ -76,6 +76,51 @@ struct AppleScriptContractTests {
         #expect(host.calls.count == 3 && f.editor.content == "Keep")
     }
 
+    @Test(arguments: [false, true])
+    func returnedDatesKeepTheirTypeAtRootAndInsideRecords(worker: Bool) async throws {
+        let host = AppleScriptContractHost()
+        host.replies = [.value(Date(timeIntervalSince1970: 0)),
+                        .value(["a/b~": [Date(timeIntervalSince1970: -1234.5),
+                                           ["0": Date(timeIntervalSince1970: 1234.5)]] as [Any],
+                                "text": "2020-01-02T03:04:05Z",
+                                "appleScriptDatePaths": ["/value"], "value": 7]),
+                        .value(["__proto__": Date(timeIntervalSince1970: 0)])]
+        let f = try ScriptTestFixture(content: "Keep", host: host)
+        let action = makeAPIAction("""
+        const apple=AppleScript.create('neutral');
+        check(apple.execute('root',[])&&apple.lastResult instanceof Date,'root Date result');
+        check(apple.lastResult.getTime()===0,'epoch date');
+        check(apple.execute('nested',[]),'nested dates succeed');
+        const result=apple.lastResult;
+        check(result['a/b~'][0] instanceof Date&&result['a/b~'][0].getTime()===-1234500,'negative nested date');
+        check(result['a/b~'][1]['0'] instanceof Date&&result['a/b~'][1]['0'].getTime()===1234500,'numeric key date');
+        check(typeof result.text==='string'&&result.text==='2020-01-02T03:04:05Z','date-like strings unchanged');
+        check(result.value===7&&result.appleScriptDatePaths[0]==='/value','ordinary metadata-like fields preserved');
+        check(context.appleScriptResponses[0] instanceof Date&&context.appleScriptResponses[1]===result,'typed response collection');
+        check(apple.execute('prototype',[]),'prototype key succeeds');
+        check(Object.hasOwn(apple.lastResult,'__proto__')&&apple.lastResult.__proto__ instanceof Date,'own prototype key preserved');
+        check(Object.getPrototypeOf(apple.lastResult)===Object.prototype,'object prototype unchanged');
+        """)
+        #expect(await ActionTestExecution.succeeds(action, runner: f.runner, worker: worker),
+                Comment(rawValue: f.runner.message ?? ""))
+        #expect(f.editor.content == "Keep")
+    }
+
+    @Test(arguments: [false, true])
+    func nativeStepDatesReachTheSharedResponseCollection(worker: Bool) async throws {
+        let host = AppleScriptContractHost()
+        host.replies = [.value(["stamp": Date(timeIntervalSince1970: 0)])]
+        let f = try ScriptTestFixture(content: "Keep", host: host)
+        var action = makeAPIAction("""
+        const result=context.appleScriptResponses[0];
+        check(result.stamp instanceof Date&&result.stamp.getTime()===0,'native step Date');
+        """)
+        action.steps.insert(ActionStep("runAppleScript", ["script": "return neutral"]), at: 0)
+        #expect(await ActionTestExecution.succeeds(action, runner: f.runner, worker: worker),
+                Comment(rawValue: f.runner.message ?? ""))
+        #expect(f.editor.content == "Keep")
+    }
+
     @Test(arguments: [false, true], ["timeout", "cancelled", "cancellationError"])
     func controlErrorsDoNotBecomeAnOrdinaryFailureBoolean(worker: Bool, interruption: String) async throws {
         let host = AppleScriptContractHost()

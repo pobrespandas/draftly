@@ -24,6 +24,32 @@ struct NativeAppleScriptProcessTests {
         return try #require(JSONSerialization.jsonObject(with: Data(contentsOf: output)) as? [String: Any])
     }
 
+    @Test func dateDescriptorsRemainDatesAtRootAndInNestedValues() throws {
+        let before = Date()
+        let root = try NativeAutomationAdapter().executeAppleScript(["source": "return current date"])
+        let stamp = try #require(root as? Date)
+        #expect(stamp >= before.addingTimeInterval(-1) && stamp <= Date().addingTimeInterval(1))
+        let nested = try NativeAutomationAdapter().executeAppleScript([
+            "source": "set stamp to current date\nreturn {stamp, {nested:stamp, text:\"2020-01-02T03:04:05Z\"}}"
+        ])
+        let list = try #require(nested as? [Any])
+        let record = try #require(list[1] as? [String: Any])
+        #expect(list[0] is Date && record["nested"] is Date)
+        #expect(record["text"] as? String == "2020-01-02T03:04:05Z")
+    }
+
+    @Test func helperJSONPreservesNativeDatesWithoutConvertingDateLikeText() throws {
+        let envelope = try helperResult(["source": "set stamp to current date\nreturn {stamp, {nested:stamp, text:\"2020-01-02T03:04:05Z\"}}"])
+        #expect(envelope["appleScriptDatePaths"] as? [String] == ["/0", "/1/nested"])
+        let values = try #require(AppleScriptValueTransport.decode(envelope) as? [Any])
+        let first = try #require(values[0] as? Date)
+        let record = try #require(values[1] as? [String: Any])
+        #expect(record["nested"] as? Date == first)
+        #expect(record["text"] as? String == "2020-01-02T03:04:05Z")
+        let root = try AppleScriptValueTransport.decode(helperResult(["source": "return current date"]))
+        #expect(root is Date)
+    }
+
     @Test func neutralSubroutineArgumentsAndDescriptorValuesMatchLegacy() throws {
         let argument: [String: Any] = ["text": "café 🐼\nquoted \"text\"", "values": [true, 3.5, NSNull(), []] as [Any], "nested": ["number": 7]]
         let values: [String: Any] = ["source": "on execute(payload)\nreturn payload\nend execute", "subroutine": "execute", "arguments": [argument]]

@@ -28,7 +28,8 @@ final class ActionScriptRuntime {
             do {
                 let values = (try? JSONSerialization.jsonObject(with: Data(text.utf8))) as? [String: Any] ?? [:]
                 let result = try dispatch(operation, values)
-                let data = try JSONSerialization.data(withJSONObject: ["value": result ?? NSNull()], options: [.fragmentsAllowed])
+                let envelope = operation == "appleScript" ? try AppleScriptValueTransport.encode(result ?? NSNull()) : ["value": result ?? NSNull()]
+                let data = try JSONSerialization.data(withJSONObject: envelope, options: [.fragmentsAllowed])
                 return String(decoding: data, as: UTF8.self)
             } catch {
                 var response: [String: Any] = ["error": error.localizedDescription]

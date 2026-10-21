@@ -55,7 +55,8 @@ final class NativeActionHost: ActionHost {
             else { result = try await NativeDictationRequest.run(values) }
         case nil: result = try perform(operation, values: values)
         }
-        return String(decoding: try JSONSerialization.data(withJSONObject: ["value": result ?? NSNull()]), as: UTF8.self)
+        let envelope = operation == "appleScript" ? try AppleScriptValueTransport.encode(result ?? NSNull()) : ["value": result ?? NSNull()]
+        return String(decoding: try JSONSerialization.data(withJSONObject: envelope), as: UTF8.self)
     }
 
     func perform(_ operation: String, values: [String: Any]) throws -> Any? {

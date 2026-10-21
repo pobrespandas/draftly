@@ -1,0 +1,38 @@
+[
+  {
+    "uuid": "BBBF0033-0000-4000-8000-000000000001",
+    "name": "QA AppleScript dates and recovery",
+    "group": "AppleScript member QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "function check(value,message){if(!value)throw Error(message);}\nconst first=new AppleScript(\"on rootValue()\\nreturn current date\\nend rootValue\\non nestedValue()\\nset stamp to current date\\nreturn {stamp, {nested:stamp, text:\\\"2020-01-02T03:04:05Z\\\", appleScriptDatePaths:{\\\"ordinary\\\"}, value:7}}\\nend nestedValue\\non failValue()\\nerror \\\"Neutral AppleScript failure\\\" number 7\\nend failValue\\non recoverValue()\\nreturn \\\"Recovered café 🐼\\\"\\nend recoverValue\"),second=AppleScript.create(\"on rootValue()\\nreturn current date\\nend rootValue\\non nestedValue()\\nset stamp to current date\\nreturn {stamp, {nested:stamp, text:\\\"2020-01-02T03:04:05Z\\\", appleScriptDatePaths:{\\\"ordinary\\\"}, value:7}}\\nend nestedValue\\non failValue()\\nerror \\\"Neutral AppleScript failure\\\" number 7\\nend failValue\\non recoverValue()\\nreturn \\\"Recovered café 🐼\\\"\\nend recoverValue\");\ncheck(first.lastError===undefined&&first.lastResult===undefined,'initial fields');\nconst before=Date.now();\ncheck(first.execute('rootValue',[])&&first.lastResult instanceof Date,'root date');\ncheck(first.lastResult.getTime()>=before-2000&&first.lastResult.getTime()<=Date.now()+1000,'native date instant');\ncheck(first.execute('nestedValue',[]),'nested execution');\nconst values=first.lastResult;\ncheck(values[0] instanceof Date&&values[1].nested instanceof Date,'nested dates');\ncheck(values[0].getTime()===values[1].nested.getTime(),'same native instant');\ncheck(values[1].text==='2020-01-02T03:04:05Z'&&typeof values[1].text==='string','date-like text');\ncheck(values[1].value===7&&values[1].appleScriptDatePaths[0]==='ordinary','ordinary record keys');\ncheck(second.lastResult===undefined,'independent values');\ncheck(second.execute('failValue',[])===false&&second.lastError.includes('Neutral AppleScript failure'),'ordinary failure');\ncheck(second.execute('recoverValue',[])&&second.lastError===undefined&&second.lastResult==='Recovered café 🐼','recovery');\ncheck(context.appleScriptResponses[0] instanceof Date&&context.appleScriptResponses[1]===values,'response collection dates');\nconsole.log('Native AppleScript dates, values and recovery passed café 🐼');"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0033-0000-4000-8000-000000000002",
+    "name": "QA AppleScript step dates",
+    "group": "AppleScript member QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "runAppleScript",
+        "data": {
+          "script": "on execute(payload)\nreturn {stamp:current date, text:\"Neutral café 🐼\"}\nend execute"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "const r=context.appleScriptResponses[0];if(!(r.stamp instanceof Date)||r.text!=='Neutral café 🐼')throw Error('Step date missing');console.log('Native AppleScript step Date passed');"
+        }
+      }
+    ]
+  }
+]

@@ -7,7 +7,21 @@ function __call(op, value) {
         if (result.termination) error.__draftlyTermination = result.termination;
         throw error;
     }
-    return result.value;
+    return op === 'appleScript' ? __appleScriptValue(result) : result.value;
+}
+function __appleScriptValue(envelope) {
+    const paths = new Set(envelope.appleScriptDatePaths || []);
+    function restore(value, path) {
+        if (paths.has(path)) return new Date(value);
+        if (value !== null && typeof value === 'object') {
+            for (const key of Object.keys(value)) {
+                const child = path + '/' + key.replace(/~/g, '~0').replace(/\//g, '~1');
+                Object.defineProperty(value, key, {value:restore(value[key], child), writable:true, enumerable:true, configurable:true});
+            }
+        }
+        return value;
+    }
+    return restore(envelope.value, '');
 }
 function __date(value) { return value == null ? undefined : new Date(value); }
 function __define(target, name, get, set) { Object.defineProperty(target, name, {get, set, configurable:true}); }

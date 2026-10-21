@@ -17,7 +17,7 @@ import DraftlyCore
                 guard let values = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
                     throw DraftlyError.message("The AppleScript helper request must be an object.")
                 }
-                envelope = ["value": try NativeAppleScriptDescriptor.execute(values)]
+                envelope = try AppleScriptValueTransport.encode(NativeAppleScriptDescriptor.execute(values))
             } catch { envelope = ["error": error.localizedDescription] }
             try JSONSerialization.data(withJSONObject: envelope).write(to: output, options: .atomic)
             return 0
@@ -50,8 +50,7 @@ import DraftlyCore
             throw DraftlyError.message("The AppleScript helper returned an invalid response.")
         }
         if let message = envelope["error"] as? String { throw DraftlyError.message(message) }
-        guard let value = envelope["value"] else { throw DraftlyError.message("The AppleScript helper returned an invalid response.") }
-        return value
+        return try AppleScriptValueTransport.decode(envelope)
     }
 }
 
@@ -115,6 +114,9 @@ import DraftlyCore
                 }
             }
             return record
+        case typeLongDateTime:
+            guard let date = value.dateValue else { throw DraftlyError.message("The AppleScript date could not be converted.") }
+            return date
         case typeBoolean, typeTrue, typeFalse: return value.booleanValue
         case typeSInt16, typeSInt32, typeSInt64, typeIEEE32BitFloatingPoint, typeIEEE64BitFloatingPoint: return value.doubleValue
         case typeNull: return NSNull()

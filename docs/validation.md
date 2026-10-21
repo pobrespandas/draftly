@@ -7740,3 +7740,56 @@ Finder > Services, with a neutral /tmp text file selected, then listed exactly
 Capture to Draftly, Capture to Draftly with Options, Capture to Drafts and
 Capture to Drafts with Options. No QA capture variant remained. No service was
 invoked, library changed or app removed. All QA apps remain stopped.
+
+
+### AppleScript date and member contracts — 21 October 2026
+
+Implemented: native typeLongDateTime descriptors now use dateValue and return
+Foundation Date. A shared AppleScriptValueTransport codec stores milliseconds
+and escaped JSON Pointer paths outside the returned value. JSON records keep
+their own keys without marker collisions. The helper, native host, legacy bridge,
+worker bridge and first-party step path preserve this metadata. JavaScript
+reconstructs Date values only for AppleScript responses. Date-like strings remain
+strings. No JavaScript object crosses executors. Library formats did not change.
+
+The initial native regression returned String instead of Date. The core Date
+fixture also exposed a Foundation JSONSerialization NSException before the
+transport correction. The first integration attempt then failed the worker root
+Date assertion: ActionScriptWorker unwrapped the reply and dropped its metadata.
+It now decodes typed values before the runtime serializes the response. Original
+assertions were retained. No crash or failed attempt counts as acceptance.
+
+Automatically tested: six codec methods cover root/nested/negative/fractional
+dates, escaped and numeric keys, normal JSON, marker-like records and invalid
+metadata/values. Both-runner member tests cover root/nested Date, own __proto__
+keys without prototype changes, normal records and date-like text. Both first-
+party step paths preserve dates in context.appleScriptResponses. Actual neutral
+NSAppleScript tests check descriptor types and the helper JSON round trip. They
+use no UI, permissions or target applications. Full sequential regression passed
+498 app and598 core methods. Unsigned Xcode passed. Original five scripts did not
+change. The earlier concurrent-suite stall remains unresolved; this run does not
+claim to repair it.
+
+Verified in use: refreshed the stopped Engine QA with all runtime files through
+the guarded script. Copied hashes and development signature verified. Its
+identity, library and isolated callback scheme were retained; NSServices remains
+absent. Final executable/debug SHA256:
+50012515f21522bca0ca21be40ef16e2d13c3c39ac2894d99991a8be10b9fad4 /
+c0b6343fab2e087f33d81d4234f190ae71560cb11f7d31cfa6661e6d6daf57d0.
+
+Imported scripts/fixtures/apple-script-member-actions.json through File > Import.
+QA AppleScript dates and recovery returned actual root/nested Date objects,
+retained ordinary records/text, checked independent objects, handled an intentional
+error and recovered with cleared lastError. QA AppleScript step dates verified
+the native step response collection. History recorded both Success at06:39.
+The selected neutral Alpha content stayed unchanged. History is closed and no
+action remains pending. No external message or permission was involved.
+
+Current Apple dateValue documentation and the installed Foundation header confirm
+its date/coercion contract. This implementation lookup does not change the frozen
+Drafts reference: https://developer.apple.com/documentation/foundation/nsappleeventdescriptor/datevalue.
+Constructor, create, lastError and lastResult now have specific complete records.
+Execute stays partial: Date argument behavior, native permission-denied and
+corrected-image interruption acceptance remain open. No binary or undocumented
+post-failure result contract is claimed. Structure validation passed0; strict
+engine/global still reports18/4412 diagnostics, not a compatibility percentage.

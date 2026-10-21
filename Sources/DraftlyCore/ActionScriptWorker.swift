@@ -164,6 +164,7 @@ final class ActionScriptWorker: @unchecked Sendable {
                 let response = try JSONSerialization.jsonObject(with: Data(self.request(operation, payload).utf8)) as? [String: Any] ?? [:]
                 try self.readHostInterruption(response)
                 if let error = response["error"] as? String { throw ScriptWorkerFailure(message: error) }
+                if operation == "appleScript" { return try AppleScriptValueTransport.decode(response) }
                 return response["value"] is NSNull ? nil : response["value"]
             }, requireSource: { [weak self] path in
                 guard let self else { throw ScriptWorkerFailure(message: "The action was closed.") }

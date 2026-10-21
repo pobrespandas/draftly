@@ -15186,10 +15186,48 @@
             "new AppleScript(script: string): AppleScript"
           ],
           "contract": "Create new instance.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "AppleScriptContractTests",
+            "test": "constructorsCreateIndependentObjectsWithoutExecuting"
+          },
+          "liveCheck": "docs/validation.md: AppleScript date and member contracts — 21 October 2026",
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "AppleScript.constructor"
+          },
+          "defaults": "No default source is documented.",
+          "result": "A distinct AppleScript instance that retains its source without executing the host.",
+          "errors": "No construction error is documented.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "AppleScriptContractTests",
+                "test": "constructorsCreateIndependentObjectsWithoutExecuting"
+              },
+              "assertion": "A distinct AppleScript instance that retains its source without executing the host."
+            },
+            "defaults": {
+              "notApplicable": "The source argument is required by the archived signature."
+            },
+            "errors": {
+              "notApplicable": "No construction failure is defined for the required string source."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: AppleScript date and member contracts — 21 October 2026"
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: AppleScript date and member contracts — 21 October 2026",
+            "scope": "QA AppleScript dates and recovery checked initial optional values, independent objects, ordinary error/recovery and typed root/nested results; step dates also passed."
+          },
+          "limitations": []
         },
         {
           "member": "lastError",
@@ -15201,10 +15239,56 @@
             "lastError?: string"
           ],
           "contract": "If a function fails, this property will contain the last error as a string message, otherwise it will be undefined.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "AppleScriptContractTests",
+            "test": "ordinaryFailureReturnsFalseAndLaterSuccessClearsLastError"
+          },
+          "liveCheck": "docs/validation.md: AppleScript date and member contracts — 21 October 2026",
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "AppleScript.lastError"
+          },
+          "defaults": "The optional property starts undefined.",
+          "result": "Undefined initially and after success; the latest ordinary execution error message after failure. Assignment remains supported.",
+          "errors": "Ordinary execution failures update lastError; control errors terminate the action. No undocumented post-failure lastResult value is asserted.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "AppleScriptContractTests",
+                "test": "ordinaryFailureReturnsFalseAndLaterSuccessClearsLastError"
+              },
+              "assertion": "Undefined initially and after success; the latest ordinary execution error message after failure. Assignment remains supported."
+            },
+            "defaults": {
+              "test": {
+                "suite": "AppleScriptContractTests",
+                "test": "constructorsCreateIndependentObjectsWithoutExecuting"
+              },
+              "assertion": "The optional property starts undefined."
+            },
+            "errors": {
+              "test": {
+                "suite": "AppleScriptContractTests",
+                "test": "ordinaryFailureReturnsFalseAndLaterSuccessClearsLastError"
+              },
+              "assertion": "Ordinary execution failures update lastError; control errors terminate the action. No undocumented post-failure lastResult value is asserted."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: AppleScript date and member contracts — 21 October 2026"
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: AppleScript date and member contracts — 21 October 2026",
+            "scope": "QA AppleScript dates and recovery checked initial optional values, independent objects, ordinary error/recovery and typed root/nested results; step dates also passed."
+          },
+          "limitations": []
         },
         {
           "member": "lastResult",
@@ -15216,10 +15300,70 @@
             "lastResult?: object"
           ],
           "contract": "If a the AppleScript subroutine called returns a value and it can be converted to a JavaScript object, it will be stored here. Most basic data types (string, date, numbers), as well as list and records containing those data types, can be returned.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "AppleScriptContractTests",
+            "test": "returnedDatesKeepTheirTypeAtRootAndInsideRecords"
+          },
+          "liveCheck": "docs/validation.md: AppleScript date and member contracts — 21 October 2026",
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "AppleScript.lastResult"
+          },
+          "defaults": "The optional property starts undefined.",
+          "result": "Undefined initially; successful results retain strings, numbers, booleans, null, lists, records and Date objects. Nested dates preserve their instant. Assignment and independent instances remain supported.",
+          "errors": "Ordinary execution failures update lastError; control errors terminate the action. No undocumented post-failure lastResult value is asserted.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "AppleScriptContractTests",
+                "test": "returnedDatesKeepTheirTypeAtRootAndInsideRecords"
+              },
+              "assertion": "Undefined initially; successful results retain strings, numbers, booleans, null, lists, records and Date objects. Nested dates preserve their instant. Assignment and independent instances remain supported."
+            },
+            "defaults": {
+              "test": {
+                "suite": "AppleScriptContractTests",
+                "test": "constructorsCreateIndependentObjectsWithoutExecuting"
+              },
+              "assertion": "The optional property starts undefined."
+            },
+            "errors": {
+              "test": {
+                "suite": "AppleScriptContractTests",
+                "test": "ordinaryFailureReturnsFalseAndLaterSuccessClearsLastError"
+              },
+              "assertion": "Ordinary execution failures update lastError; control errors terminate the action. No undocumented post-failure lastResult value is asserted."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: AppleScript date and member contracts — 21 October 2026"
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: AppleScript date and member contracts — 21 October 2026",
+            "scope": "QA AppleScript dates and recovery checked initial optional values, independent objects, ordinary error/recovery and typed root/nested results; step dates also passed."
+          },
+          "limitations": [],
+          "supportingTests": [
+            {
+              "suite": "AppleScriptContractTests",
+              "test": "executeForwardsSourceSubroutineAndStructuredArguments"
+            },
+            {
+              "suite": "NativeAppleScriptProcessTests",
+              "test": "helperJSONPreservesNativeDatesWithoutConvertingDateLikeText"
+            },
+            {
+              "suite": "AppleScriptValueTransportTests",
+              "test": "nestedDatesUseEscapedPointersWithoutRecordTagCollisions"
+            }
+          ]
         },
         {
           "member": "execute",
@@ -15236,7 +15380,7 @@
             "suite": "AppleScriptContractTests",
             "test": "executeForwardsSourceSubroutineAndStructuredArguments"
           },
-          "liveCheck": null,
+          "liveCheck": "docs/validation.md: AppleScript date and member contracts — 21 October 2026",
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-21",
           "implementationEvidence": {
@@ -15269,6 +15413,14 @@
             {
               "suite": "AppleScriptContractTests",
               "test": "controlErrorsDoNotBecomeAnOrdinaryFailureBoolean"
+            },
+            {
+              "suite": "AppleScriptContractTests",
+              "test": "returnedDatesKeepTheirTypeAtRootAndInsideRecords"
+            },
+            {
+              "suite": "AppleScriptContractTests",
+              "test": "nativeStepDatesReachTheSharedResponseCollection"
             }
           ],
           "automatedVerification": {
@@ -15277,12 +15429,13 @@
             "evidence": "docs/validation.md: AppleScript interruption integrity — 21 October 2026"
           },
           "nativeVerification": {
-            "status": "pending",
+            "status": "passed",
             "date": "2026-10-21",
-            "scope": "This change has headless host evidence only. Native interruption on the corrected image is not accepted."
+            "evidence": "docs/validation.md: AppleScript date and member contracts — 21 October 2026",
+            "scope": "Native constructor, execute, ordinary failure/recovery, root/nested Date results and first-party step response collection passed in refreshed Engine QA. Permission-denied and corrected-image interruption variants remain pending."
           },
           "limitations": [
-            "Native AppleScript date conversion, including nested dates, remains missing. Date argument semantics and native permission-denied variants still need review. This result does not close AppleScript compatibility."
+            "Date results now preserve their types, including nested lists and records. Date arguments still cross the existing JSON string conversion; their precise reference behavior requires comparison. Native permission-denied and corrected-image interruption acceptance remain pending. Omitted arguments are an existing extension; legacy interruption reports retain their generic reason."
           ]
         },
         {
@@ -15295,10 +15448,48 @@
             "create(script: string): AppleScript"
           ],
           "contract": "Convenience method to create an AppleScript object.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "AppleScriptContractTests",
+            "test": "constructorsCreateIndependentObjectsWithoutExecuting"
+          },
+          "liveCheck": "docs/validation.md: AppleScript date and member contracts — 21 October 2026",
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "AppleScript.create"
+          },
+          "defaults": "No default source is documented.",
+          "result": "A distinct typed AppleScript instance that retains its source without executing the host.",
+          "errors": "No construction error is documented.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "AppleScriptContractTests",
+                "test": "constructorsCreateIndependentObjectsWithoutExecuting"
+              },
+              "assertion": "A distinct typed AppleScript instance that retains its source without executing the host."
+            },
+            "defaults": {
+              "notApplicable": "The source argument is required by the archived signature."
+            },
+            "errors": {
+              "notApplicable": "No construction failure is defined for the required string source."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: AppleScript date and member contracts — 21 October 2026"
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: AppleScript date and member contracts — 21 October 2026",
+            "scope": "QA AppleScript dates and recovery checked initial optional values, independent objects, ordinary error/recovery and typed root/nested results; step dates also passed."
+          },
+          "limitations": []
         }
       ]
     },

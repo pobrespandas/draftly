@@ -102,7 +102,7 @@ struct ActionStepExecutor {
             }
         case "runAppleScript":
             let result = try platform("appleScript", ["source": step.values["script"] ?? step.values["source"] ?? "", "subroutine": "execute", "arguments": [noteValue(current)]])
-            evaluate("context.appleScriptResponses.push(\(try json(result ?? NSNull())));")
+            evaluate("context.appleScriptResponses.push(__appleScriptValue(\(try json(AppleScriptValueTransport.encode(result ?? NSNull())))));")
         case "htmlpreview":
             let html = rendered.range(of: "<[^>]+>", options: .regularExpression) == nil ? MarkdownRenderer.page(try MarkdownPreferences.render(rendered, defaults: runner.markdownDefaults)) : rendered
             let result = try platform("htmlPreview", ["html": html, "hideInterface": step.values["hideInterface"] == "true"])
