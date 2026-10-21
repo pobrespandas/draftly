@@ -9,7 +9,7 @@ struct NativeHostInterruptionTests {
         let f = try ScriptTestFixture(content: "Keep", host: InterruptedNativeHost(timeout: timeout, operation: operation))
         let call = ["bookmark": "Bookmark.findOrCreate('Neutral')", "share": "Share.shareAsText('Neutral')",
                     "shareFile": "Share.shareAsFile('Neutral.txt','Neutral')", "shareURL": "Share.shareAsURL('https://example.invalid')"][operation]!
-        var action = ScriptTestAction.make("try{\(call);}catch(e){};try{editor.setText('Late');}catch(e){};try{app.setClipboard('Late');}catch(e){};", name: "Native interruption")
+        var action = ScriptTestAction.make("try{\(call);}catch(e){};try{editor.setText('Late');}catch(e){};try{app.setClipboard('Late');}catch(e){};context.addSuccessParameter('late','must not publish');", name: "Native interruption")
         action.steps.append(ActionStep("insertText", ["template": "Later step"]))
         action.afterSuccess = "archive"
         let report = await f.runner.runAsync(action)

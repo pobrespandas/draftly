@@ -7033,3 +7033,15 @@ The source note stayed unchanged. No service was chosen or content sent.
 The complete automatic run passed 476 app and 553 core methods, including
 the five unchanged original actions. The unsigned Xcode build passed. These
 results also include the independent draft-selector changes recorded below.
+
+
+### Interrupted sharing success parameters — 21 October 2026
+
+Strengthened the existing caught-host interruption test. After the native
+interruption, the script now adds an explicit late success parameter. The
+final timeout or cancellation report still publishes no success parameters.
+The same test checks blocked editor/clipboard writes, later steps and archive
+effects. All four routes pass with cancellation and timeout: Bookmark, text
+sharing, file sharing and URL sharing. No duplicate test suite was added.
+The complete run passed 477 app and 556 core methods. This is controlled host
+evidence. It does not replace native service-completion acceptance.
