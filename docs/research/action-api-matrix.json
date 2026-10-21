@@ -11869,10 +11869,48 @@
             "new XMLRPC(): XMLRPC"
           ],
           "contract": "",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "reviewed-complete",
+          "automatedTest": {
+            "suite": "ScriptHTTPLocalServerTests",
+            "test": "actualXMLRPCResponsePreservesTheDecodedHTTPCharset"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "XMLRPC"
+          },
+          "defaults": "The no-argument constructor has no documented options or instance defaults.",
+          "result": "Returns an XMLRPC instance. request remains a static method.",
+          "errors": "The frozen no-argument constructor defines no error result.",
+          "limitations": [],
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualXMLRPCResponsePreservesTheDecodedHTTPCharset"
+              },
+              "assertion": "Both engines construct an XMLRPC instance before performing actual static requests."
+            },
+            "defaults": {
+              "notApplicable": "The constructor has no arguments or configurable instance values in the frozen contract."
+            },
+            "errors": {
+              "notApplicable": "The frozen constructor defines no error result."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: XML-RPC response member acceptance — 21 October 2026",
+            "scope": "Both engines assert new XMLRPC() instanceof XMLRPC. The request contract remains separately partial."
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "The constructor creates a JavaScript object with no native dialog or permission. Both actual JavaScriptCore engines exercise the expression."
+          },
+          "evidenceLevel": "Specific constructor assertion; not an acceptance of the static request method."
         },
         {
           "member": "request",
@@ -11903,7 +11941,7 @@
           "result": "XMLRPCResponse with success, HTTP status, decoded parameters, or explicit failure/fault fields.",
           "errors": "Transport envelope failures throw to the script. HTTP failures remain response values. Runner cancellation and timeout interrupt later script work.",
           "limitations": [
-            "Real loopback checks cover Unicode/CDATA, faults, malformed payloads, request wire format, declared HTTP charsets, and XML declaration/BOM detection without an HTTP charset. Native app automation, JavaScript date/binary mapping, complete XML grammar, unknown HTTP charsets and remaining invalid inputs are not accepted.",
+            "Real loopback checks cover both JavaScript engines, typed success/fault metadata, malformed arrays/records/faults, HTTP failures, disconnect, declared charsets and declaration/BOM encoding detection. JavaScript date/binary mapping, duplicate record-name tolerance, complete XML grammar, unknown HTTP charsets and remaining invalid inputs are not accepted.",
             "Task cancellation closes the tested pending loopback TCP connection and returns an error envelope. This does not accept native UI cancellation or every network condition."
           ],
           "supportingTests": [
@@ -11958,6 +11996,22 @@
             {
               "suite": "ScriptHTTPLocalServerTests",
               "test": "responseBytesRequireAnOptInAndStayOutsideThePublicValue"
+            },
+            {
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualXMLRPCMalformedOrFailedResponsesDoNotReportSuccess"
+            },
+            {
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualXMLRPCFaultKeepsTypedFields"
+            },
+            {
+              "suite": "XMLRPCTests",
+              "test": "malformedValuesDoNotDiscardPartsAndReportSuccess"
+            },
+            {
+              "suite": "XMLRPCTests",
+              "test": "emptyAndNestedCompositeValuesKeepTheirTypesAndWhitespace"
             }
           ],
           "automatedVerification": {
@@ -11965,6 +12019,29 @@
             "date": "2026-10-21",
             "evidence": "docs/validation.md: XML-RPC original response bytes — 21 October 2026",
             "scope": "Eight actual no-charset cases failed first across both engines. Latin-1, UTF-16 BOM, and UTF-16LE/BE declaration cases now pass. Internal metadata isolation, old decoded-text transports, empty body, malformed base64 and HTTP failure guards passed. This does not accept the remaining limitations."
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualXMLRPCResponsePreservesTheDecodedHTTPCharset"
+              },
+              "assertion": "Both engines perform real static XML-RPC calls and receive XMLRPCResponse objects with exact Unicode parameters across the tested HTTP/XML encodings."
+            },
+            "defaults": {
+              "notApplicable": "The frozen signature requires URL, method name and parameter array; it defines no optional defaults. Invalid-input fallback policy remains outside accepted evidence."
+            },
+            "errors": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualXMLRPCMalformedOrFailedResponsesDoNotReportSuccess"
+              },
+              "assertion": "Real malformed payloads, faults, HTTP failures, empty replies and disconnect produce explicit response errors. Task interruption has separate cancellation/timeout tests."
+            }
+          },
+          "nativeVerification": {
+            "status": "pending",
+            "reason": "Ordinary real loopback transport is tested on both engines. Original Drafts Date/binary mapping and other unresolved request policies still need comparison; no full request acceptance is claimed."
           }
         }
       ]
@@ -11991,10 +12068,62 @@
             "new XMLRPCResponse(): XMLRPCResponse"
           ],
           "contract": "",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "reviewed-complete",
+          "automatedTest": {
+            "suite": "ScriptHTTPLocalServerTests",
+            "test": "actualXMLRPCResponsePreservesTheDecodedHTTPCharset"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "XMLRPCResponse"
+          },
+          "defaults": "The frozen constructor defines no initial field values. Draftly starts with false success, status 0, an empty params array, and absent error/faultCode.",
+          "result": "Returns a new XMLRPCResponse instance. Each constructor call has its own params array.",
+          "errors": "The no-argument constructor has no documented error result.",
+          "limitations": [],
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualXMLRPCResponsePreservesTheDecodedHTTPCharset"
+              },
+              "assertion": "Both engines instantiate XMLRPCResponse, check its type and fields, mutate one local params array and verify another instance remains empty."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualXMLRPCResponsePreservesTheDecodedHTTPCharset"
+              },
+              "assertion": "The frozen constructor defines no initial field values. Draftly starts with false success, status 0, an empty params array, and absent error/faultCode."
+            },
+            "errors": {
+              "notApplicable": "The frozen no-argument constructor defines no error result."
+            }
+          },
+          "supportingTests": [
+            {
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualXMLRPCFaultKeepsTypedFields"
+            },
+            {
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualXMLRPCMalformedOrFailedResponsesDoNotReportSuccess"
+            }
+          ],
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: XML-RPC response member acceptance — 21 October 2026",
+            "scope": "Both engines instantiate XMLRPCResponse, check its type and fields, mutate one local params array and verify another instance remains empty. This is member-specific evidence; params date/binary mapping and the broader request contract remain separate."
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This field/constructor contract has no native dialog or permission. Tests use actual URLSession loopback responses and the JavaScriptCore class on both engines. This is automatic integration, not a manual Computer Use claim."
+          },
+          "evidenceLevel": "Specific object and actual server response assertions, independently of unresolved parameter type mappings."
         },
         {
           "member": "error",
@@ -12006,34 +12135,72 @@
             "error?: string"
           ],
           "contract": "If an error occurred, a description of the type of error.",
-          "implementation": "shared-XML-response-parser",
+          "implementation": "reviewed-complete",
           "automatedTest": {
-            "suite": "XMLRPCTests",
-            "test": "cdataUsesTheParserEncodingAndPreservesFaultMessages"
+            "suite": "ScriptHTTPLocalServerTests",
+            "test": "actualXMLRPCFaultKeepsTypedFields"
           },
           "liveCheck": null,
-          "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-20",
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/XMLRPC.swift",
-            "symbol": "response"
+            "symbol": "response / responseValue"
           },
-          "defaults": "Returned responses contain params. The error field is optional and describes a failure.",
-          "errors": "Malformed XML and XML-RPC faults return failure values. Complete invalid-response grammar is not accepted.",
-          "result": "Failure description, including decoded fault text.",
-          "limitations": [
-            "A real loopback HTTP server passes Unicode/CDATA reply, fault, malformed payload, and request wire checks. Native app automation, JavaScript date/binary mapping, complete XML grammar, transport character sets, and remaining invalid inputs are not accepted."
-          ],
+          "defaults": "A successful response has no error property. The reference defines no exact fallback error wording.",
+          "errors": "The field reports the error without throwing by itself. Malformed XML does not fabricate success parameters.",
+          "result": "A failure description. A valid fault preserves the exact Unicode faultString; transport, HTTP and malformed responses provide a nonempty description.",
+          "limitations": [],
           "supportingTests": [
             {
-              "suite": "XMLRPCTests",
-              "test": "ambiguousResponseStructuresDoNotReportSuccess"
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualXMLRPCResponsePreservesTheDecodedHTTPCharset"
             },
             {
-              "suite": "XMLRPCLocalServerTests",
-              "test": "realHTTPPreservesXMLBodyUnicodeFaultsAndInvalidResponseErrors"
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualXMLRPCMalformedOrFailedResponsesDoNotReportSuccess"
             }
-          ]
+          ],
+          "automatedTestHistory": [
+            {
+              "suite": "XMLRPCTests",
+              "test": "cdataUsesTheParserEncodingAndPreservesFaultMessages"
+            }
+          ],
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualXMLRPCFaultKeepsTypedFields"
+              },
+              "assertion": "Both engines preserve Denied café 🐼 for negative, zero and positive fault codes. Real malformed responses, HTTP 503/204 and disconnect return a nonempty error."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualXMLRPCResponsePreservesTheDecodedHTTPCharset"
+              },
+              "assertion": "A successful response has no error property. The reference defines no exact fallback error wording."
+            },
+            "errors": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualXMLRPCMalformedOrFailedResponsesDoNotReportSuccess"
+              },
+              "assertion": "The field reports the error without throwing by itself. Malformed XML does not fabricate success parameters."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: XML-RPC response member acceptance — 21 October 2026",
+            "scope": "Both engines preserve Denied café 🐼 for negative, zero and positive fault codes. Real malformed responses, HTTP 503/204 and disconnect return a nonempty error. This is member-specific evidence; params date/binary mapping and the broader request contract remain separate."
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This field/constructor contract has no native dialog or permission. Tests use actual URLSession loopback responses and the JavaScriptCore class on both engines. This is automatic integration, not a manual Computer Use claim."
+          },
+          "evidenceLevel": "Specific object and actual server response assertions, independently of unresolved parameter type mappings."
         },
         {
           "member": "faultCode",
@@ -12045,34 +12212,72 @@
             "faultCode?: number"
           ],
           "contract": "If the XML-RPC interface returned an error, the error code will be here.",
-          "implementation": "validated-XML-response-fields",
+          "implementation": "reviewed-complete",
           "automatedTest": {
-            "suite": "XMLRPCAsyncTests",
-            "test": "faultsHTTPFailuresAndInvalidEnvelopesRemainExplicit"
+            "suite": "ScriptHTTPLocalServerTests",
+            "test": "actualXMLRPCFaultKeepsTypedFields"
           },
           "liveCheck": null,
-          "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-20",
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/XMLRPC.swift",
-            "symbol": "response / responseValue"
+            "symbol": "response"
           },
-          "defaults": "Response fields come from the HTTP result. faultCode is optional and is emitted only for a valid fault.",
-          "result": "A numeric XML-RPC fault code, including negative codes.",
-          "errors": "Missing or incorrectly typed fault fields produce an explicit failure description without a fabricated fault code.",
-          "limitations": [
-            "Native app acceptance, full XML grammar, and other untested server variants remain pending."
-          ],
+          "defaults": "Absent on construction, valid success, malformed fault, HTTP failure and transport failure.",
+          "result": "The numeric faultCode of a valid XML-RPC fault, including negative, zero and positive values.",
+          "errors": "Invalid fault-code types produce a response error without an invented code.",
+          "limitations": [],
           "supportingTests": [
             {
-              "suite": "XMLRPCTests",
-              "test": "invalidFaultFieldsAreNotPublishedAsValidFaultCodes"
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualXMLRPCResponsePreservesTheDecodedHTTPCharset"
             },
             {
-              "suite": "XMLRPCLocalServerTests",
-              "test": "realHTTPPreservesXMLBodyUnicodeFaultsAndInvalidResponseErrors"
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualXMLRPCMalformedOrFailedResponsesDoNotReportSuccess"
             }
-          ]
+          ],
+          "automatedTestHistory": [
+            {
+              "suite": "XMLRPCAsyncTests",
+              "test": "faultsHTTPFailuresAndInvalidEnvelopesRemainExplicit"
+            }
+          ],
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualXMLRPCFaultKeepsTypedFields"
+              },
+              "assertion": "Both engines check the exact numeric codes -42, 0 and 42. A malformed fault and other failures have undefined faultCode."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualXMLRPCResponsePreservesTheDecodedHTTPCharset"
+              },
+              "assertion": "Absent on construction, valid success, malformed fault, HTTP failure and transport failure."
+            },
+            "errors": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualXMLRPCMalformedOrFailedResponsesDoNotReportSuccess"
+              },
+              "assertion": "Invalid fault-code types produce a response error without an invented code."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: XML-RPC response member acceptance — 21 October 2026",
+            "scope": "Both engines check the exact numeric codes -42, 0 and 42. A malformed fault and other failures have undefined faultCode. This is member-specific evidence; params date/binary mapping and the broader request contract remain separate."
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This field/constructor contract has no native dialog or permission. Tests use actual URLSession loopback responses and the JavaScriptCore class on both engines. This is automatic integration, not a manual Computer Use claim."
+          },
+          "evidenceLevel": "Specific object and actual server response assertions, independently of unresolved parameter type mappings."
         },
         {
           "member": "params",
@@ -12087,31 +12292,73 @@
           "implementation": "shared-XML-response-parser",
           "automatedTest": {
             "suite": "XMLRPCTests",
-            "test": "mixedCDATAAndTextKeepUnicodeInStringsValuesAndMemberNames"
+            "test": "emptyAndNestedCompositeValuesKeepTheirTypesAndWhitespace"
           },
           "liveCheck": null,
           "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-20",
+          "reviewDate": "2026-10-21",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/XMLRPC.swift",
             "symbol": "response"
           },
-          "defaults": "Returned responses contain params. The error field is optional and describes a failure.",
-          "errors": "Malformed XML and XML-RPC faults return failure values. Complete invalid-response grammar is not accepted.",
-          "result": "Decoded parameter array.",
+          "defaults": "Constructed responses start with an independent empty array. The frozen constructor defines no initial field values.",
+          "errors": "Tested malformed container/scalar structures return an error and empty success parameters.",
+          "result": "An array of decoded parameters. Current scalar and nested record/list types have specific coverage. Date and base64 response text remains text; that JavaScript mapping is not accepted as Drafts parity.",
           "limitations": [
-            "A real loopback HTTP server passes Unicode/CDATA reply, fault, malformed payload, and request wire checks. Native app automation, JavaScript date/binary mapping, complete XML grammar, transport character sets, and remaining invalid inputs are not accepted."
+            "The frozen reference does not define JavaScript Date, ArrayBuffer, typed-array or binary-wrapper mappings. Current JSON request conversions and date/base64 response strings need Drafts comparison.",
+            "Duplicate record-name tolerance, complete grammar and remaining invalid-value policy are not accepted. Existing i8, nil and multiple-parameter support is preserved."
           ],
           "supportingTests": [
             {
-              "suite": "XMLRPCTests",
-              "test": "ambiguousResponseStructuresDoNotReportSuccess"
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualXMLRPCResponsePreservesTheDecodedHTTPCharset"
             },
             {
-              "suite": "XMLRPCLocalServerTests",
-              "test": "realHTTPPreservesXMLBodyUnicodeFaultsAndInvalidResponseErrors"
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualXMLRPCFaultKeepsTypedFields"
+            },
+            {
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualXMLRPCMalformedOrFailedResponsesDoNotReportSuccess"
+            },
+            {
+              "suite": "XMLRPCTests",
+              "test": "malformedValuesDoNotDiscardPartsAndReportSuccess"
             }
-          ]
+          ],
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "XMLRPCTests",
+                "test": "emptyAndNestedCompositeValuesKeepTheirTypesAndWhitespace"
+              },
+              "assertion": "Valid empty and nested records/arrays preserve Unicode key text, untyped string whitespace, Boolean false and nil. Real script responses separately check Unicode string parameters."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualXMLRPCResponsePreservesTheDecodedHTTPCharset"
+              },
+              "assertion": "Constructed response instances have independent empty arrays. The constructor reference does not prescribe those initial values."
+            },
+            "errors": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualXMLRPCMalformedOrFailedResponsesDoNotReportSuccess"
+              },
+              "assertion": "Faults and malformed or failed real requests return empty success parameter arrays. Unknown Date/binary result representation remains pending."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: XML-RPC response member acceptance — 21 October 2026",
+            "scope": "Specific common scalar/container cases and actual failure arrays pass. Date/binary representations and complete input/response policies remain partial."
+          },
+          "nativeVerification": {
+            "status": "pending",
+            "reason": "The archived description does not define Date/binary JavaScript result representations. These require original Drafts comparison before params can be accepted."
+          }
         },
         {
           "member": "statusCode",
@@ -12123,34 +12370,72 @@
             "statusCode: number"
           ],
           "contract": "The HTTP status code (like 200, 301, etc.) returned. This will be 200 if communication with the XML-RPC endpoint was successful, even if a fault occurred processing the request. Be sure to use the success property and faultCode to check for errors.",
-          "implementation": "validated-XML-response-fields",
+          "implementation": "reviewed-complete",
           "automatedTest": {
-            "suite": "XMLRPCAsyncTests",
-            "test": "faultsHTTPFailuresAndInvalidEnvelopesRemainExplicit"
+            "suite": "ScriptHTTPLocalServerTests",
+            "test": "actualXMLRPCMalformedOrFailedResponsesDoNotReportSuccess"
           },
           "liveCheck": null,
-          "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-20",
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/XMLRPC.swift",
             "symbol": "response / responseValue"
           },
-          "defaults": "Response fields come from the HTTP result. faultCode is optional and is emitted only for a valid fault.",
-          "result": "The HTTP status, including 200 for a valid fault and 503 for the tested HTTP failure.",
-          "errors": "Missing or incorrectly typed fault fields produce an explicit failure description without a fabricated fault code.",
-          "limitations": [
-            "Native app acceptance, full XML grammar, and other untested server variants remain pending."
-          ],
+          "defaults": "Draftly uses status 0 before a response exists and after the tested transport disconnect. The constructor reference defines no initial value.",
+          "result": "The HTTP status. A valid fault or malformed XML can retain HTTP 200 even when success is false.",
+          "errors": "The actual HTTP status remains separate from XML-RPC fault/error values.",
+          "limitations": [],
           "supportingTests": [
             {
-              "suite": "XMLRPCTests",
-              "test": "invalidFaultFieldsAreNotPublishedAsValidFaultCodes"
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualXMLRPCResponsePreservesTheDecodedHTTPCharset"
             },
             {
-              "suite": "XMLRPCLocalServerTests",
-              "test": "realHTTPPreservesXMLBodyUnicodeFaultsAndInvalidResponseErrors"
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualXMLRPCFaultKeepsTypedFields"
             }
-          ]
+          ],
+          "automatedTestHistory": [
+            {
+              "suite": "XMLRPCAsyncTests",
+              "test": "faultsHTTPFailuresAndInvalidEnvelopesRemainExplicit"
+            }
+          ],
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualXMLRPCMalformedOrFailedResponsesDoNotReportSuccess"
+              },
+              "assertion": "Both engines retain 200 for faults and malformed XML, 503 for an HTTP failure, 204 for an empty response and 0 for a transport disconnect."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualXMLRPCResponsePreservesTheDecodedHTTPCharset"
+              },
+              "assertion": "Draftly uses status 0 before a response exists and after the tested transport disconnect. The constructor reference defines no initial value."
+            },
+            "errors": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualXMLRPCMalformedOrFailedResponsesDoNotReportSuccess"
+              },
+              "assertion": "The actual HTTP status remains separate from XML-RPC fault/error values."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: XML-RPC response member acceptance — 21 October 2026",
+            "scope": "Both engines retain 200 for faults and malformed XML, 503 for an HTTP failure, 204 for an empty response and 0 for a transport disconnect. This is member-specific evidence; params date/binary mapping and the broader request contract remain separate."
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This field/constructor contract has no native dialog or permission. Tests use actual URLSession loopback responses and the JavaScriptCore class on both engines. This is automatic integration, not a manual Computer Use claim."
+          },
+          "evidenceLevel": "Specific object and actual server response assertions, independently of unresolved parameter type mappings."
         },
         {
           "member": "success",
@@ -12162,34 +12447,72 @@
             "success: boolean"
           ],
           "contract": "whether the request was completed successfully. This value will be true if both the HTTP status code is 200 and no fault code was returned from the API.",
-          "implementation": "validated-XML-response-fields",
+          "implementation": "reviewed-complete",
           "automatedTest": {
-            "suite": "XMLRPCAsyncTests",
-            "test": "faultsHTTPFailuresAndInvalidEnvelopesRemainExplicit"
+            "suite": "ScriptHTTPLocalServerTests",
+            "test": "actualXMLRPCFaultKeepsTypedFields"
           },
           "liveCheck": null,
-          "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-20",
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/XMLRPC.swift",
             "symbol": "response / responseValue"
           },
-          "defaults": "Response fields come from the HTTP result. faultCode is optional and is emitted only for a valid fault.",
-          "result": "False for HTTP failures, faults, and tested malformed responses; true for the tested 200 response.",
-          "errors": "Missing or incorrectly typed fault fields produce an explicit failure description without a fabricated fault code.",
-          "limitations": [
-            "Native app acceptance, full XML grammar, and other untested server variants remain pending."
-          ],
+          "defaults": "Constructed responses start false. The response contract requires HTTP 200 and no XML-RPC fault for success.",
+          "result": "True for the valid HTTP 200 result; false for faults, malformed XML, HTTP failure and transport failure.",
+          "errors": "A zero fault code still means failure. Invalid response structure cannot become a successful parsed result.",
+          "limitations": [],
           "supportingTests": [
             {
-              "suite": "XMLRPCTests",
-              "test": "invalidFaultFieldsAreNotPublishedAsValidFaultCodes"
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualXMLRPCResponsePreservesTheDecodedHTTPCharset"
             },
             {
-              "suite": "XMLRPCLocalServerTests",
-              "test": "realHTTPPreservesXMLBodyUnicodeFaultsAndInvalidResponseErrors"
+              "suite": "ScriptHTTPLocalServerTests",
+              "test": "actualXMLRPCMalformedOrFailedResponsesDoNotReportSuccess"
             }
-          ]
+          ],
+          "automatedTestHistory": [
+            {
+              "suite": "XMLRPCAsyncTests",
+              "test": "faultsHTTPFailuresAndInvalidEnvelopesRemainExplicit"
+            }
+          ],
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualXMLRPCFaultKeepsTypedFields"
+              },
+              "assertion": "Both engines check valid 200 success and false results for codes -42/0/42, malformed XML/faults, HTTP 503/204 and transport disconnect."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualXMLRPCResponsePreservesTheDecodedHTTPCharset"
+              },
+              "assertion": "Constructed responses start false. The response contract requires HTTP 200 and no XML-RPC fault for success."
+            },
+            "errors": {
+              "test": {
+                "suite": "ScriptHTTPLocalServerTests",
+                "test": "actualXMLRPCMalformedOrFailedResponsesDoNotReportSuccess"
+              },
+              "assertion": "A zero fault code still means failure. Invalid response structure cannot become a successful parsed result."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: XML-RPC response member acceptance — 21 October 2026",
+            "scope": "Both engines check valid 200 success and false results for codes -42/0/42, malformed XML/faults, HTTP 503/204 and transport disconnect. This is member-specific evidence; params date/binary mapping and the broader request contract remain separate."
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This field/constructor contract has no native dialog or permission. Tests use actual URLSession loopback responses and the JavaScriptCore class on both engines. This is automatic integration, not a manual Computer Use claim."
+          },
+          "evidenceLevel": "Specific object and actual server response assertions, independently of unresolved parameter type mappings."
         }
       ]
     },

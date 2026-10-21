@@ -6803,3 +6803,48 @@ family then passed. The later focused XML-RPC and loopback run passed 28 methods
 including separately recorded metadata cases. The full regression and unsigned
 build results follow with that acceptance record. Automatic tests use neutral
 data and no app windows, permissions, sound or personal information.
+
+
+### XML-RPC response member acceptance — 21 October 2026
+
+Reviewed the frozen XMLRPC and XMLRPCResponse member signatures. Extended the
+neutral loopback server and the existing actual JavaScript test on both engines.
+The constructor checks create XMLRPC and XMLRPCResponse instances, inspect
+initial fields and prove that separate response instances have separate params
+arrays. Initial values are recorded as Draftly behavior; the archived
+constructors do not define those defaults.
+
+Actual success responses have status 200, true success, the exact Unicode
+parameter and no error or faultCode. Actual XML faults preserve codes -42, 0
+and 42 as numbers and the exact Denied café 🐼 text. Every fault has false
+success, empty params and HTTP 200. Code zero is not mistaken for success.
+
+Separate actual requests return malformed arrays, records and fault fields,
+an HTTP 503 with a valid XML body, an empty HTTP 204 and an abrupt disconnect.
+Both engines preserve their respective 200, 503, 204 and 0 status values.
+All have false success, a nonempty error, no fabricated faultCode and empty
+success params. This tests field conversion through real URLSession requests
+and the public JavaScript objects, not only an injected Swift parser result.
+No exact undocumented parser error wording is assigned to Drafts.
+
+These specific cases accept XMLRPC.constructor and XMLRPCResponse.constructor,
+error, faultCode, statusCode and success. They need no native dialog or hardware.
+This is automatic integration evidence, not a new Computer Use check. It does
+not accept date/binary mappings, full XML tolerance or native cancellation.
+XMLRPCResponse.params and XMLRPC.request remain partial. The frozen descriptions
+do not define JavaScript Date, typed-array, ArrayBuffer or binary-wrapper
+conversions. The normal JSON bridge currently converts Date to a string and
+typed arrays to objects; response date/base64 values remain strings. A complete
+mapping requires comparison rather than a newly invented representation.
+
+The focused family passed 28 methods. Full regression passed 468 app and
+543 core methods. All 41 Python tooling tests and unsigned Xcode compilation
+passed. No test opens a window, asks for permission, plays sound or reads
+personal data. No raw log or screenshot is tracked. The source correction and
+this wider member acceptance have separate commits.
+
+Matrix structure has zero errors. Strict engine/global gates retain 18/4,595
+diagnostics. XMLRPC.request and XMLRPCResponse.params retain incomplete status,
+comparison and limitation diagnostics. Their known normal/default/error cases
+are now recorded explicitly. No accepted metadata member has a strict diagnostic.
+These counts are not a compatibility percentage.

@@ -51,6 +51,26 @@ class Handler(BaseHTTPRequestHandler):
                    'café &amp; mañana</string></value></param></params></methodResponse>')
             data = xml.encode(encoding)
             content_type = "text/xml" if target.path.endswith("-no-charset") else "text/xml; charset=" + encoding
+        elif target.path in ("/xml-fault", "/xml-malformed-fault"):
+            code = int(parse_qs(target.query).get("code", ["42"])[0])
+            xml = ('<methodResponse><fault><value><struct>'
+                   '<member><name>faultCode</name><value><int>' + str(code) + '</int></value></member>'
+                   '<member><name>faultString</name><value><string>Denied café 🐼</string></value></member>'
+                   '</struct></value></fault></methodResponse>')
+            if target.path == "/xml-malformed-fault":
+                xml = xml.replace("<int>", "<string>").replace("</int>", "</string>")
+            data, content_type = xml.encode("utf-8"), "text/xml"
+        elif target.path in ("/xml-malformed-array", "/xml-malformed-struct", "/xml-http-failure"):
+            value = {
+                "/xml-malformed-array": "<array><unexpected/></array>",
+                "/xml-malformed-struct": "<struct><unexpected><name>key</name><value>discarded</value></unexpected></struct>",
+                "/xml-http-failure": "<string>HTTP failure body</string>"
+            }[target.path]
+            data = ('<methodResponse><params><param><value>' + value
+                    + '</value></param></params></methodResponse>').encode("utf-8")
+            content_type = "text/xml"
+            if target.path == "/xml-http-failure":
+                status = 503
         elif target.path == "/latin1":
             data = "café".encode("iso-8859-1")
             content_type = "text/plain; charset=iso-8859-1"

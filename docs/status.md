@@ -1751,3 +1751,19 @@ empty and Unicode messages, one exact log, and the fake notification payload.
 The focused run passed 30 methods. The member remains partial: visible native
 notification and presentation-policy behavior still need acceptance. The current
 Action failed default is characterized without assigning it to the reference.
+
+
+### XML-RPC structures and metadata — 21 October 2026
+
+The parser now rejects malformed value shapes that previously lost content and
+reported success. Empty and nested valid records/arrays, string whitespace and
+existing extensions remain supported. Duplicate-name tolerance is unchanged.
+See validation for the supplemental protocol reference and the failed regression.
+
+Real loopback JavaScript checks on both engines accept XMLRPC.constructor and
+XMLRPCResponse.constructor, error, faultCode, statusCode and success. Tests cover
+success, negative/zero/positive faults, malformed payloads, HTTP failure and
+disconnect. params and request remain partial for Date/binary mapping, complete
+grammar, unknown charsets and other unresolved policies. Native engine acceptance
+is separate. Full regression passed 468 app and 543 core methods; all 41 Python
+tooling tests and the unsigned Xcode build passed.

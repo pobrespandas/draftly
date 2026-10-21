@@ -103,11 +103,53 @@ struct ScriptHTTPLocalServerTests {
         let server = try LoopbackHTTPServer(); defer { server.stop() }
         let fixture = try ScriptTestFixture(content: "Neutral XML-RPC", host: APIContractHost())
         let action = ScriptTestAction.make("""
+        check(new XMLRPC() instanceof XMLRPC,'XML-RPC constructor');
+        const initial=new XMLRPCResponse();
+        check(initial instanceof XMLRPCResponse && initial.success===false && initial.statusCode===0,'response constructor status');
+        check(Array.isArray(initial.params) && initial.params.length===0 && initial.error===undefined && initial.faultCode===undefined,'response constructor fields');
+        initial.params.push('Local mutation');
+        check(new XMLRPCResponse().params.length===0,'independent response instances');
         const r=XMLRPC.request('\(server.url(path))','example.echo',[]);
         check(r instanceof XMLRPCResponse && r.success && r.statusCode===200,'typed XML-RPC response');
         check(r.params.length===1 && r.params[0]==='café & mañana','HTTP and XML encodings agree');
-        check(r.error===undefined,'no fabricated parse error');
+        check(r.error===undefined && r.faultCode===undefined,'no fabricated error or fault');
         """, name: "Encoded XML-RPC")
+        #expect(await ActionTestExecution.succeeds(action, runner: fixture.runner, worker: worker),
+                Comment(rawValue: fixture.runner.message ?? ""))
+    }
+
+    @Test(arguments: [false, true], [-42, 0, 42])
+    @MainActor
+    func actualXMLRPCFaultKeepsTypedFields(worker: Bool, code: Int) async throws {
+        let server = try LoopbackHTTPServer(); defer { server.stop() }
+        let fixture = try ScriptTestFixture(content: "Neutral XML-RPC", host: APIContractHost())
+        let action = ScriptTestAction.make("""
+        const r=XMLRPC.request('\(server.url("/xml-fault?code=\(code)"))','example.fault',[]);
+        check(r instanceof XMLRPCResponse && r.success===false && r.statusCode===200,'HTTP success with XML fault');
+        check(typeof r.faultCode==='number' && r.faultCode===\(code),'fault code type and sign');
+        check(r.error==='Denied café 🐼','fault message');
+        check(Array.isArray(r.params) && r.params.length===0,'no success parameters on a fault');
+        """, name: "XML-RPC fault")
+        #expect(await ActionTestExecution.succeeds(action, runner: fixture.runner, worker: worker),
+                Comment(rawValue: fixture.runner.message ?? ""))
+    }
+
+    @Test(arguments: [false, true], [
+        "/xml-malformed-array", "/xml-malformed-struct", "/xml-malformed-fault",
+        "/xml-http-failure", "/bodyless", "/disconnect"
+    ])
+    @MainActor
+    func actualXMLRPCMalformedOrFailedResponsesDoNotReportSuccess(worker: Bool, path: String) async throws {
+        let server = try LoopbackHTTPServer(); defer { server.stop() }
+        let fixture = try ScriptTestFixture(content: "Neutral XML-RPC", host: APIContractHost())
+        let status = ["/xml-http-failure": 503, "/bodyless": 204, "/disconnect": 0][path] ?? 200
+        let action = ScriptTestAction.make("""
+        const r=XMLRPC.request('\(server.url(path))','example.invalid',[]);
+        check(r instanceof XMLRPCResponse && r.success===false && r.statusCode===\(status),'failed response preserves HTTP status');
+        check(typeof r.error==='string' && r.error.length>0,'explicit response error');
+        check(r.faultCode===undefined,'no invented fault code');
+        check(Array.isArray(r.params) && r.params.length===0,'no fabricated success parameters');
+        """, name: "XML-RPC invalid response")
         #expect(await ActionTestExecution.succeeds(action, runner: fixture.runner, worker: worker),
                 Comment(rawValue: fixture.runner.message ?? ""))
     }
