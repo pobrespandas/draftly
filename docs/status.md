@@ -2100,3 +2100,11 @@ No production change or new compatibility classification was made.
 Empty and nested parameter round trips now have specific real HTTP tests on
 both engines and a successful installed-QA check. Values and response identity
 remain intact. Date/binary and undefined input policies remain pending.
+
+
+### Manual fixture identities — 21 October 2026
+
+Corrected a transport fixture UUID that collided with the Window tab action.
+A headless check now rejects duplicate explicit IDs across manual action-array
+fixtures. Restored the QA catalog without deleting notes or action history.
+This corrects test setup only. Production contracts remain unchanged.

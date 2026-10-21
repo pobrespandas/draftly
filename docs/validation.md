@@ -8527,3 +8527,30 @@ No permission, remote destination or personal data was used.
 XMLRPC.request and XMLRPCResponse.params remain partial. This does not establish
 Date/binary mapping, duplicate struct-name policy or undocumented invalid-input
 behavior in Drafts. No compatibility classification was promoted.
+
+
+### Manual fixture identity correction — 21 October 2026
+
+Found a fixture defect before continuing native route acceptance. The new HTTP
+response action reused BBBF0043-0000-4000-8000-000000000001 from the existing
+Window tab action. Import replaced that QA action. The earlier transport checks
+did run, but the imported catalog did not preserve both fixtures. Production
+lookup and import behavior did not cause the defect.
+
+Corrected both transport fixture IDs to the unused BBBF0045 namespace. Added a
+headless check of explicit UUIDs in manual *actions.json array fixtures. It fails
+with the original collision and passes after correction. It does not assert
+uniqueness for backup or installation envelopes, which can intentionally reuse
+identities. No application source or library format changed.
+
+Verified in use: imported the original Window tab fixture again. Renamed the
+old second transport action to QA XMLRPC parameter round trip — previous identity
+through its inspector, then imported both corrected transport actions. The list
+showed the two current transport names and the retained previous-identity action.
+The command palette separately showed QA Window confirmed target tabs in Window
+contract QA. No action was executed in this catalog repair. No action history,
+note or preference was deleted. Closed the palette. The earlier successful
+transport runs remain scoped to their observed scripts, not catalog isolation.
+
+All 57 Python tooling methods passed. Matrix structure has zero errors and
+git diff --check passed. No Swift source changed; no new app build was needed.

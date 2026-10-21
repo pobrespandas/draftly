@@ -1,6 +1,6 @@
 [
   {
-    "uuid": "BBBF0043-0000-4000-8000-000000000001",
+    "uuid": "BBBF0045-0000-4000-8000-000000000001",
     "name": "QA HTTP XMLRPC response contracts",
     "group": "Transport contract QA",
     "notificationType": 0,
@@ -26,7 +26,7 @@
     ]
   },
   {
-    "uuid": "BBBF0043-0000-4000-8000-000000000002",
+    "uuid": "BBBF0045-0000-4000-8000-000000000002",
     "name": "QA XMLRPC parameter round trip",
     "group": "Transport contract QA",
     "notificationType": 0,
