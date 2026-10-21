@@ -65,6 +65,48 @@ struct HTMLPreferencesTests {
         #expect(view.string == "Before XX after")
     }
 
+    @Test(arguments: ["*", "-"])
+    func savedListMarkSurvivesReopeningAndControlsUnicodePaste(mark: String) throws {
+        let preferences = try TestPreferences(prefix: "Draftly-HTMLListMark-")
+        defer { preferences.close() }
+        preferences.defaults.set(mark, forKey: "html.ulItemMark")
+        preferences.defaults.set(true, forKey: HTMLPreferences.pasteKey)
+        let reopened = try #require(UserDefaults(suiteName: preferences.name))
+        #expect(reopened.persistentDomain(forName: preferences.name)?["html.ulItemMark"] as? String == mark)
+
+        let pasteboard = NSPasteboard.withUniqueName()
+        defer { pasteboard.releaseGlobally() }
+        let html = "<ul><li>Café 🐼</li></ul>"
+        pasteboard.setString(html, forType: .html)
+        let changeCount = pasteboard.changeCount
+        let view = DraftTextView(frame: NSRect(x: 0, y: 0, width: 300, height: 200))
+        view.isRichText = false
+        view.allowsUndo = true
+        let window = OffscreenTestWindow(contentRect: view.frame, styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = view
+        window.makeFirstResponder(view)
+        let original = "Before 🦊 XX after"
+        view.string = original
+        let selection = (original as NSString).range(of: "XX")
+        view.setSelectedRange(selection)
+        let undo = try #require(view.undoManager)
+        defer { undo.removeAllActions(); window.contentView = nil }
+        undo.groupsByEvent = false
+        undo.beginUndoGrouping()
+        #expect(try view.pasteHTML(from: pasteboard, defaults: reopened))
+        undo.endUndoGrouping()
+        let converted = mark + " Café 🐼"
+        let expected = original.replacingOccurrences(of: "XX", with: converted)
+        #expect(view.string == expected)
+        #expect(view.selectedRange() == NSRange(location: selection.location + (converted as NSString).length, length: 0))
+        #expect(pasteboard.changeCount == changeCount)
+        #expect(pasteboard.string(forType: .html) == html)
+        undo.undo()
+        #expect(view.string == original)
+        undo.redo()
+        #expect(view.string == expected)
+    }
+
     @Test func entityDecodingPreservesUnicodeAndWhitespaceWithoutLoadingHTML() throws {
         let host = NativeActionHost()
         for text in ["", "Café 🐼", "one\n\ntwo", " \t\n", "<img src='https://example.com/private'>"] {
