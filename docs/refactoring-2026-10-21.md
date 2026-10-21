@@ -268,6 +268,15 @@ as current behavior, not accepted Drafts parity. The next extraction must
 retain them. A test-only parameter visibility compile error was corrected
 before the successful focused run. There was no production algorithm failure.
 
+### 8a. Native routing characterization
+
+Three methods passed against the original native host. They retain the exact
+28 supported names, prompt inventory, unsupported/fallback names and case
+sensitivity. Invalid JSON and non-object payloads fail before any handler for
+all these names. Tests use isolated preferences and an unused temporary root.
+Existing bookmark coverage retains the successful asynchronous fallback path.
+No capability, window or permission flow ran. No production routing changed.
+
 ## Remaining refactoring and risks
 
 These six stages close this bounded refactoring pass. They do not complete a
