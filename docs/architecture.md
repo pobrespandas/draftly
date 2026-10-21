@@ -47,6 +47,14 @@ NativePromptAdapter retains its own operation inventory. Classification does
 not invoke capabilities. A missing asynchronous route retains synchronous
 fallback; it does not mean that a direct asynchronous call must fail.
 
+## Window-submission boundary
+
+`WindowModel.submitWindowAction` owns reservation and the stored task for
+single and batch launches. Callers pass a body that receives the model; they
+do not capture it before startup. Direct async entry points keep their caller
+lifetime. Execution sessions, source-window observers, worker waits and native
+continuations retain separate owners because their cleanup contracts differ.
+
 ## Refactoring baseline
 
 The annotated tag `pre-refactor-2026-10-19` points to `2fba5bd`.

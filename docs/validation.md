@@ -6180,3 +6180,15 @@ the focused routing/bookmark/prompt run passed 10 methods. All 467 app and
 Unsigned Xcode compilation and matrix structure passed. Payload rejection
 occurs before native effects; fallback, model envelope and prompt inventory
 remain unchanged. No capability, permission or visible-window check ran.
+
+
+### Refactoring window submission — 21 October 2026
+
+Three methods with eight cases passed before extraction, covering mixed single
+and batch launches, prestart cancellation, weak-owner release and task cleanup.
+The focused after-run passed eight methods, including editor-interruption
+coverage. All 467 app and 508 core methods passed. Unsigned Xcode compilation
+and all 41 bundled-Python tests passed. Matrix structure passed. Strict engine
+and global output and exit codes match the original 18/4,841 diagnostics byte
+for byte. Independent review found no concrete regression in stages 7–9.
+No visible window, permission, sound or native acceptance check ran.

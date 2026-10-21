@@ -24,14 +24,13 @@ retain historical results. Later results supersede earlier counts.
 
 ## Current verification
 
-Eight refactoring stages are validated: pure catalog rules, isolated bookmark
+Nine refactoring stages are validated: pure catalog rules, isolated bookmark
 preferences, shared test execution support, Workspace sort mutation,
 configuration default selection, auditor source indexing and pure editing-bar
-text calculations, plus shared native asynchronous routing. Window-submission
-characterization also passed.
+text calculations, native asynchronous routing and window-submission ownership.
 See [stage results](refactoring-2026-10-21.md#stage-results) for current checks
 and [remaining risks](refactoring-2026-10-21.md#remaining-refactoring-and-risks)
-for the next refactoring work. Cloning remains paused.
+for retained boundaries and separate functional work. Cloning remains paused.
 
 The refactoring base is `a415883`, tagged `pre-refactor-2026-10-21`.
 Swift baseline: 455 app methods and 502 core methods passed. Matrix structure

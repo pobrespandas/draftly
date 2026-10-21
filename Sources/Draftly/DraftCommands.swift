@@ -122,13 +122,7 @@ extension WindowModel {
         runAction(actions[picker.indexOfSelectedItem], on: ids)
     }
     func runAction(_ action: DraftAction, on ids: [UUID]) {
-        guard !actionPending, !runner.isRunning else { return }
-        actionPending = true
-        actionTask = Task { [weak self] in
-            guard let self else { return }
-            defer { self.actionPending = false; self.actionTask = nil }
-            await self.executeActionBatch(action, on: ids)
-        }
+        submitWindowAction { model in await model.executeActionBatch(action, on: ids) }
     }
     func runActionAsync(_ action: DraftAction, on ids: [UUID]) async {
         guard !actionPending, !runner.isRunning else { return }

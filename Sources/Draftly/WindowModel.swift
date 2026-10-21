@@ -320,12 +320,15 @@ final class WindowModel: ObservableObject {
 
     }
     func run(_ action: DraftAction) {
+        submitWindowAction { model in _ = await model.executeAction(action) }
+    }
+    func submitWindowAction(body: @escaping @MainActor (WindowModel) async -> Void) {
         guard !actionPending, !runner.isRunning else { return }
         actionPending = true
         actionTask = Task { [weak self] in
             guard let self else { return }
             defer { self.actionPending = false; self.actionTask = nil }
-            _ = await self.executeAction(action)
+            await body(self)
         }
     }
     struct ActionOutcome {

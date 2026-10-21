@@ -325,9 +325,24 @@ startup, final cleanup and execution counts. They await the actual task instead
 of polling with sleeps. Preferences are isolated and records remain in memory.
 No UI, native capability or permission flow ran. No production submission changed.
 
+### 9b. Shared window submission
+
+Implemented: `WindowModel.submitWindowAction` owns the immediate pending-state
+guard, weak task capture and deferred task/pending release for single and batch
+launches. Callers receive the model as an argument. Execution bodies,
+caller-awaited entries, cancellation and all other lifetime owners are unchanged.
+
+Verified automatically: all three characterization methods/eight cases passed
+before extraction. Afterward, the focused run passed eight methods including
+five editor-interruption cases. All 467 app and 508 core methods passed.
+Unsigned Xcode compilation and all 41 bundled-Python tests passed. Matrix
+structure passed; strict engine/global output and exit codes match the original
+18/4,841 diagnostics byte for byte. Independent review found no concrete
+regression in stages 7–9. No manual session was required.
+
 ## Remaining refactoring and risks
 
-The first eight refactoring stages are validated checkpoints. They do not
+All nine refactoring stages are validated checkpoints. They do not
 complete a repository rewrite or Mac parity. Independent review found no concrete
 regression in the production changes. The following work remains explicit:
 
@@ -339,14 +354,20 @@ regression in the production changes. The following work remains explicit:
 - The auditor still checks a function by path and name. It does not prove
   that the function belongs to the named suite. Changing that acceptance
   policy requires a separate functional change and specific tests.
-- Native route and editing calculations are now separate. Window submission
-  is characterized and awaits extraction. Shared syntax for marker navigation
-  would change behavior and remains a separate functional concern.
-- Keep transaction recovery and execution-lifetime changes separate. They
-  have the highest behavior risk. Do not add a generic repository, executor
-  or protocol hierarchy to hide the current differences.
+- Native route, editing calculations and window submission now have separate
+  owners. Shared syntax for marker navigation would change behavior and remains
+  a separate functional concern. The line-up defect remains outside main.
+- Keep transaction recovery policies separate. Preparation rollback,
+  normalization and saved-data reload are different failure boundaries.
+  Implicit-group materialization also differs between collision preservation
+  and explicit-group saves. A generic transaction rewrite is not justified.
+- Keep the execution session, source-window observer, worker condition,
+  native-operation continuation and callback-token router separate. They own
+  different resources and cleanup orders. Similar finish guards are not one
+  shared contract. Busy-before-save and authoritative library reservation
+  also protect different invariants. Engine contract changes remain paused.
 
-Final checks: 459 app methods, 508 core methods, 41 Python tests and unsigned
+Final checks: 467 app methods, 508 core methods, 41 Python tests and unsigned
 Xcode compilation passed. No named test was removed. Automatic checks did not
 open, activate or move visible windows, request permissions, play sounds or
 use personal data. No manual Computer Use session ran. Signed installation,
