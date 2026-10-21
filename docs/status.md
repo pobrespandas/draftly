@@ -1708,3 +1708,13 @@ unfollowed-redirect success policy and unspecified otherData population.
 Do not infer their parity from successful HTTP requests. Current native QA
 predates this charset change. Continue the unresolved reference comparisons
 and other engine capability contracts before closing the wider delivery.
+
+
+### XML-RPC decoded text corrected — 21 October 2026
+
+A regression reproduced double decoding after HTTP charset conversion. XMLRPC
+now keeps its UTF-8 conversion and the leading XML declaration consistent.
+Actual Latin-1 and UTF-16 loopback requests passed on both scripting runners.
+Malformed XML still fails explicitly. Full regression passed 468 app and 535
+core methods; unsigned Xcode build passed. XML-RPC remains partial for its
+other recorded contracts, including encoding detection without an HTTP charset.

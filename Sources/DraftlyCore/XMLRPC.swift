@@ -11,7 +11,11 @@ public enum ScriptXMLRPC {
         guard value["success"] as? Bool == true else {
             return ["success": false, "statusCode": value["statusCode"] ?? 0, "params": [], "error": value["error"] ?? "The XML-RPC HTTP request failed."]
         }
-        return response(Data((value["responseText"] as? String ?? "").utf8), statusCode: value["statusCode"] as? Int ?? 0)
+        // HTTP already decoded the bytes. Keep the declaration consistent with the new UTF-8 data.
+        let text = (value["responseText"] as? String ?? "").replacingOccurrences(
+            of: #"^(\uFEFF?<\?xml\s+[^?]*?\bencoding\s*=\s*)(["'])[^"']*\2"#,
+            with: "$1\"UTF-8\"", options: .regularExpression)
+        return response(Data(text.utf8), statusCode: value["statusCode"] as? Int ?? 0)
     }
 
     static func requestSerialized(_ payload: String,

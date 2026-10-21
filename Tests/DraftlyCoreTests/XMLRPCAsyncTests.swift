@@ -22,6 +22,34 @@ struct XMLRPCAsyncTests {
         return try #require((decoded as? [String: Any])?["value"] as? [String: Any])
     }
 
+    @Test(arguments: ["ISO-8859-1", "UTF-16"])
+    func decodedHTTPTextDoesNotReuseItsOriginalByteEncoding(_ encoding: String) async throws {
+        let xml = """
+        <?xml version="1.0" encoding="\(encoding)"?>
+        <methodResponse><params><param><value><string>café &amp; mañana</string></value></param></params></methodResponse>
+        """
+        let transportReply = String(decoding: try JSONSerialization.data(withJSONObject: [
+            "value": ["success": true, "statusCode": 200, "responseText": xml]
+        ]), as: UTF8.self)
+        let payload = #"{"url":"https://fixture.invalid/rpc","methodName":"echo","params":[]}"#
+        let reply = await ScriptXMLRPC.requestSerialized(payload) { _ in transportReply }
+        let result = try value(reply)
+        #expect(result["success"] as? Bool == true)
+        #expect(result["statusCode"] as? Int == 200)
+        #expect(result["params"] as? [String] == ["café & mañana"])
+        #expect(result["error"] == nil)
+
+        let malformed = xml.replacingOccurrences(of: "</string>", with: "</int>")
+        let malformedReply = String(decoding: try JSONSerialization.data(withJSONObject: [
+            "value": ["success": true, "statusCode": 200, "responseText": malformed]
+        ]), as: UTF8.self)
+        let failure = try value(await ScriptXMLRPC.requestSerialized(payload) { _ in malformedReply })
+        #expect(failure["success"] as? Bool == false)
+        #expect(failure["statusCode"] as? Int == 200)
+        #expect((failure["params"] as? [Any])?.isEmpty == true)
+        #expect(!(failure["error"] as? String ?? "").isEmpty)
+    }
+
     @Test func requestAndReplyUseTheSharedXMLContract() async throws {
         let transport: @Sendable (String) async -> String = { payload in
             #expect(!xmlRPCIsMainThread())

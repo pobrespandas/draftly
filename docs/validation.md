@@ -6630,3 +6630,28 @@ The final tooling run passed all 41 Python tests. Matrix structure has zero
 errors. The strict engine gate still reports 18 diagnostics. The global gate
 reports 4,670. Its HTTPResponse diagnostics refer only to the four explicitly
 partial members. These diagnostic totals do not measure compatibility.
+
+
+### XML-RPC decoded HTTP charset boundary — 21 October 2026
+
+The new serialized-transport regression failed before the fix. Latin-1 text
+café became cafÃ©. A UTF-16 declaration caused a parse failure. HTTP had already
+decoded the response, but XMLRPC re-encoded that text as UTF-8 and retained the
+old XML byte-encoding declaration. XMLParser then interpreted the new bytes
+using the old encoding.
+
+XMLRPC now changes only the leading XML declaration encoding to UTF-8 when
+it converts decoded HTTP text to UTF-8 data. The public raw-byte parser keeps
+its existing encoding behavior. The malformed closing-tag controls still fail
+explicitly. No public API, library format or action script changed.
+
+Both scripting runners also passed actual loopback requests for Latin-1 and
+UTF-16 XML with matching HTTP charsets. The responses retain typed status,
+exact café & mañana text and no parse error. The server and data are neutral.
+No app window, permission, external service or personal data is used.
+
+The focused XML-RPC, loopback and Context run passed 23 methods. The full run
+passed 468 app and 535 core methods. Unsigned Xcode compilation passed. Context
+acceptance is recorded separately. This fixes the decoded-text boundary; it
+does not close date/binary mapping, complete grammar, XML encoding detection
+without an HTTP charset, invalid inputs or the full XML-RPC contract.

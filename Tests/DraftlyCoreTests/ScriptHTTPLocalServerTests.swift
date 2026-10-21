@@ -94,6 +94,21 @@ struct ScriptHTTPLocalServerTests {
         #expect(headers.first { $0.key.lowercased() == "set-cookie" }?.value == "neutral=fixture")
     }
 
+    @Test(arguments: [false, true], ["/xml-latin1", "/xml-utf16"])
+    @MainActor
+    func actualXMLRPCResponsePreservesTheDecodedHTTPCharset(worker: Bool, path: String) async throws {
+        let server = try LoopbackHTTPServer(); defer { server.stop() }
+        let fixture = try ScriptTestFixture(content: "Neutral XML-RPC", host: APIContractHost())
+        let action = ScriptTestAction.make("""
+        const r=XMLRPC.request('\(server.url(path))','example.echo',[]);
+        check(r instanceof XMLRPCResponse && r.success && r.statusCode===200,'typed XML-RPC response');
+        check(r.params.length===1 && r.params[0]==='café & mañana','HTTP and XML encodings agree');
+        check(r.error===undefined,'no fabricated parse error');
+        """, name: "Encoded XML-RPC")
+        #expect(await ActionTestExecution.succeeds(action, runner: fixture.runner, worker: worker),
+                Comment(rawValue: fixture.runner.message ?? ""))
+    }
+
     @Test(arguments: ["cancel", "timeout"])
     func interruptedRequestClosesTheActualConnection(_ interruption: String) async throws {
         let server = try LoopbackHTTPServer(); defer { server.stop() }
