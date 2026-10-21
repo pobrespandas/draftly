@@ -10,13 +10,14 @@ final class WindowModel: ObservableObject {
     let runner: ActionRunner
     @Published var folder: NoteFolder = .inbox {
         didSet {
-            guard !restoringWorkspaceSort, oldValue != folder, let metadata = workspaceScriptMetadata else { return }
-            var workspace = Workspace(name: "Current"); workspace.scriptMetadata = metadata
-            if let (newSort, newAscending, _) = workspace.scriptSort(for: folder) {
-                restoringWorkspaceSort = true
-                defer { restoringWorkspaceSort = false }
-                sort = newSort; ascending = newAscending
-            }
+            guard !restoringWorkspaceSort, oldValue != folder else { return }
+            var workspace = Workspace(name: "Current"); workspace.scriptMetadata = workspaceScriptMetadata
+            let viewSort = workspace.scriptSort(for: folder)
+            guard let newSort = viewSort?.0 ?? appliedWorkspaceSortFallback?.sort,
+                  let newAscending = viewSort?.1 ?? appliedWorkspaceSortFallback?.ascending else { return }
+            restoringWorkspaceSort = true
+            defer { restoringWorkspaceSort = false }
+            sort = newSort; ascending = newAscending
         }
     }
     var cachedThemePresentation: (key: WindowThemePresentation.Key, value: WindowThemePresentation)?
@@ -103,6 +104,7 @@ final class WindowModel: ObservableObject {
     private var inactiveSince: Date?
     private var idleActivity: NSObjectProtocol?
     private var restoringWorkspaceSort = false
+    private var appliedWorkspaceSortFallback: (sort: NoteSort, ascending: Bool)?
     private var usesWorkspaceListOptions = false
     private var loadingLocalListOptions = false
     private var listPreferencesSubscription: AnyCancellable?
@@ -329,8 +331,12 @@ final class WindowModel: ObservableObject {
     }
 
     private func updateWorkspaceSort() {
-        guard !restoringWorkspaceSort, let raw = workspaceScriptMetadata?["api"], let data = raw.data(using: .utf8),
-              var values = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else { return }
+        guard !restoringWorkspaceSort else { return }
+        guard let raw = workspaceScriptMetadata?["api"], let data = raw.data(using: .utf8),
+              var values = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
+            if appliedWorkspaceSortFallback != nil { appliedWorkspaceSortFallback = (sort, ascending) }
+            return
+        }
         WorkspaceOptionsEditor.updateSortOptions(&values, sort: sort, ascending: ascending, folder: folder)
         if let encoded = try? JSONSerialization.data(withJSONObject: values) { workspaceScriptMetadata?["api"] = String(decoding: encoded, as: UTF8.self) }
     }
@@ -363,6 +369,7 @@ final class WindowModel: ObservableObject {
         cachedThemePresentation = nil
         usesWorkspaceListOptions = true
         listOptions = workspace.listOptions ?? dependencies.preferences.listOptions
+        appliedWorkspaceSortFallback = (workspace.sort, workspace.ascending)
         workspaceScriptMetadata = workspace.scriptMetadata
         folder = workspace.folder; query = workspace.query
         sort = effectiveSort?.0 ?? workspace.sort
@@ -517,6 +524,7 @@ final class WindowModel: ObservableObject {
     }
 
     func clearFilters() {
+        appliedWorkspaceSortFallback = nil
         workspaceScriptMetadata = nil
         usesWorkspaceListOptions = false
         reloadLocalListOptions()

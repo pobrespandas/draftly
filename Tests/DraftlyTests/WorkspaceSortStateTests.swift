@@ -6,6 +6,109 @@ import Testing
 
 @Suite("Workspace sort writer state") @MainActor
 struct WorkspaceSortStateTests {
+    @Test(arguments: ["archive", "all", "flagged", "trash"], [false, true])
+    func missingViewOrdersUseTheAppliedDefinitionsTopLevelFallback(folderName: String, saved: Bool) throws {
+        let target = try #require(NoteFolder(rawValue: folderName))
+        try withModel { model in
+            let date = Date(timeIntervalSince1970: 1_600_000_000)
+            let alpha = Note(content: "Alpha", tags: ["fallback-contract"], flag: target == .flagged ? 1 : 0,
+                             isArchived: target == .archive, trashedAt: target == .trash ? date : nil,
+                             modifiedAt: date.addingTimeInterval(1))
+            let zulu = Note(content: "Zulu", tags: ["fallback-contract"], flag: target == .flagged ? 1 : 0,
+                            isArchived: target == .archive, trashedAt: target == .trash ? date : nil,
+                            modifiedAt: date.addingTimeInterval(2))
+            for note in [alpha, zulu] { try model.library.saveNote(note, preserveDates: true) }
+            let current = try model.library.createNote(content: "Keep 🐼 café")
+            model.select(current.id)
+            model.editor.selection = NSRange(location: 5, length: 2)
+            let focus = model.editor.focusToken
+            var workspace = Workspace(name: "Missing view order")
+            workspace.tags = ["fallback-contract"]
+            workspace.sort = .modified; workspace.ascending = false
+            workspace.scriptMetadata = ["future": "Outer", "api": try encode([
+                "future": "Keep", "_sorts": ["inbox": ["sort": "name", "descending": false]]
+            ])]
+            if saved { try model.library.saveWorkspace(workspace) }
+            try model.applyScriptWorkspace(workspace)
+            #expect(model.sort == .title && model.ascending)
+            let originalMetadata = model.workspaceScriptMetadata
+
+            model.folder = target
+
+            var query = workspace; query.folder = target
+            #expect(model.sort == .modified && !model.ascending)
+            #expect(model.visibleNotes.map(\.id) == [zulu.id, alpha.id])
+            #expect(model.visibleNotes.map(\.id) == query.filter(model.library.notes).map(\.id))
+            #expect(model.workspaceScriptMetadata == originalMetadata)
+            #expect(model.workspaceSnapshot(name: "Current").scriptSort(for: target) == nil)
+            model.folder = .inbox
+            #expect(model.sort == .title && model.ascending)
+            #expect(model.workspaceScriptMetadata == originalMetadata)
+            #expect(model.editor.noteID == current.id && model.editor.content == current.content)
+            #expect(model.editor.selection == NSRange(location: 5, length: 2) && model.editor.focusToken == focus)
+        }
+    }
+
+    @Test func editingAMissingViewOrderAddsOnlyItsOverrideAndKeepsOtherViewsFallback() throws {
+        try withModel { model in
+            var workspace = Workspace(name: "New view override")
+            workspace.sort = .modified; workspace.ascending = false
+            workspace.scriptMetadata = ["future": "Outer", "api": try encode([
+                "future": "Keep", "_sorts": ["inbox": ["sort": "name", "descending": false, "future": true]]
+            ])]
+            try model.applyScriptWorkspace(workspace)
+            model.folder = .archive
+            #expect(model.sort == .modified && !model.ascending)
+            model.sort = .created
+            model.ascending = true
+
+            model.folder = .all
+            #expect(model.sort == .modified && !model.ascending)
+            model.folder = .archive
+            #expect(model.sort == .created && model.ascending)
+            model.folder = .inbox
+            #expect(model.sort == .title && model.ascending)
+            let options = model.workspaceSnapshot(name: "Current").apiOptions
+            let sorts = try #require(options["_sorts"] as? [String: [String: Any]])
+            #expect(sorts.count == 2 && sorts["all"] == nil)
+            #expect(sorts["archive"]?["sort"] as? String == "created")
+            #expect(sorts["archive"]?["descending"] as? Bool == false)
+            #expect(sorts["inbox"]?["future"] as? Bool == true)
+            #expect(options["future"] as? String == "Keep" && model.workspaceScriptMetadata?["future"] == "Outer")
+        }
+    }
+
+    @Test func clearingAnAppliedWorkspaceKeepsLocalNavigationFreeOfItsFallback() throws {
+        try withModel { model in
+            var workspace = Workspace(name: "Clear fallback")
+            workspace.sort = .created; workspace.ascending = false
+            workspace.scriptMetadata = ["api": try encode(["_sorts": ["inbox": ["sort": "name", "descending": false]]])]
+            try model.applyScriptWorkspace(workspace)
+            model.clearFilters()
+            model.folder = .archive
+            #expect(model.sort == .title && model.ascending)
+            model.sort = .accessed; model.ascending = false
+            model.folder = .inbox
+            #expect(model.sort == .accessed && !model.ascending)
+            #expect(model.workspaceScriptMetadata == nil)
+        }
+    }
+
+    @Test func topLevelOnlyWorkspaceSortEditsRemainGlobalWithoutCreatingMetadata() throws {
+        try withModel { model in
+            var workspace = Workspace(name: "Legacy top-level order")
+            workspace.sort = .created; workspace.ascending = true
+            try model.applyScriptWorkspace(workspace)
+            model.sort = .title; model.ascending = false
+            model.folder = .archive
+            #expect(model.sort == .title && !model.ascending)
+            model.folder = .inbox
+            #expect(model.sort == .title && !model.ascending)
+            #expect(model.workspaceScriptMetadata == nil)
+            #expect(model.workspaceSnapshot(name: "Current").sort == .title)
+        }
+    }
+
     @Test(arguments: ["inbox", "archive"], [false, true])
     func applyingWorkspaceUsesTheInitialViewsEffectiveOrderWithoutChangingEditor(folderName: String, saved: Bool) throws {
         let folder = try #require(NoteFolder(rawValue: folderName))
