@@ -6,6 +6,13 @@ Cloning is paused. The [21 October refactoring record](refactoring-2026-10-21.md
 owns the current diagnosis, reference tag and stage results. The sections below
 record earlier work and its original acceptance scope.
 
+## Action catalog boundary
+
+`ActionCatalog` is an internal value with actions and group records. It owns
+group membership, identity lookup, visibility and presentation order without
+persistence or UI dependencies. `LibraryStore` delegates its existing catalog
+methods. Storage reload order remains separate.
+
 ## Refactoring baseline
 
 The annotated tag `pre-refactor-2026-10-19` points to `2fba5bd`.

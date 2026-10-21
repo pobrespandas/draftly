@@ -6083,3 +6083,18 @@ All ActionGroup members now have recorded acceptance; this does not close
 Actions, the engine, other APIs, inspector, sync or the Mac roadmap. Next:
 review Action.installURL and find with specific boundary cases, then resume
 the remaining configuredValues/recent and engine acceptance work.
+
+
+### Refactoring baseline and pure catalog — 21 October 2026
+
+Stable tag pre-refactor-2026-10-21 points to a415883. Functional duplicate-name
+lookup work is saved separately at `35a790c` on agent/wip-action-lookup-2026-10-21.
+Cloning is paused. The stable base passed 455 app and 502 core methods. The
+system Python lacked Pillow; the bundled Python passed all 38 script tests.
+Matrix structure passed; strict engine acceptance had 18 existing diagnostics.
+
+The pure ActionCatalog extraction passed 455 app and 504 core methods and the
+unsigned Xcode build. The two new characterization methods run without I/O.
+The API matrix is unchanged and strict engine output matches the baseline.
+No test was removed. No native UI session was needed for this extraction.
+See refactoring-2026-10-21.md for the diagnosis and next stage.

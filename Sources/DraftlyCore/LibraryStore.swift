@@ -197,33 +197,19 @@ public final class LibraryStore: ObservableObject {
             try beforeBatchCommit?(); try commit()
         } catch { container.viewContext.rollback(); try? reload(); throw error }
     }
-    public var groupNames: [String] {
-        var seen = Set<String>()
-        let known = actionGroups.map(\.name).filter { seen.insert($0).inserted }
-        return known + Set(actions.map(\.group)).subtracting(known).sorted()
-    }
-    public var actionGroupIdentifiers: [String: UUID] {
-        ActionGroupIdentity.identifiers(names: groupNames, records: actionGroups)
+    private var actionCatalog: ActionCatalog {
+        ActionCatalog(actions: actions, groups: actionGroups)
     }
 
+    public var groupNames: [String] { actionCatalog.groupNames }
+    public var actionGroupIdentifiers: [String: UUID] { actionCatalog.groupIdentifiers }
+
     public func actionGroupRecord(named name: String) -> ActionGroupRecord {
-        if let record = actionGroups.first(where: { $0.name == name }) { return record }
-        var record = ActionGroupRecord(name: name)
-        record.id = ActionGroupIdentity.identifiers(names: groupNames + [name], records: actionGroups,
-            preferred: actionGroupIdentifiers)[name]!
-        return record
+        actionCatalog.groupRecord(named: name)
     }
 
     public func orderedActions(on surface: ActionSurface? = nil) -> [DraftAction] {
-        let names = groupNames
-        let preferred = ["Copy", "Share", "Add to Reminders", "Add Calendar Event", "Save to File", "Markdown Preview"]
-        return actions.filter { action in surface.map { action.appears(on: $0) } ?? true }.sorted { a, b in
-            let ga = names.firstIndex(of: a.group) ?? Int.max, gb = names.firstIndex(of: b.group) ?? Int.max
-            if ga != gb { return ga < gb }
-            let x = a.options?.order ?? preferred.firstIndex(of: a.name) ?? 100
-            let y = b.options?.order ?? preferred.firstIndex(of: b.name) ?? 100
-            return x == y ? (a.name == b.name ? a.id.uuidString < b.id.uuidString : a.name.localizedStandardCompare(b.name) == .orderedAscending) : x < y
-        }
+        actionCatalog.orderedActions(on: surface)
     }
     public func saveActionGroup(_ group: ActionGroupRecord, replacing previousName: String? = nil) throws {
         var group = group

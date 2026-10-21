@@ -90,3 +90,25 @@ Read the stable API matrix and the saved functional branch before resuming.
 The duplicate-name correction must be reviewed and merged independently; its
 native acceptance remains pending. Other Actions, engine, native integration,
 inspector, workspace, visual, data and sync work remains in the Mac roadmap.
+
+## Stage results
+
+### 1. Pure action catalog
+
+Implemented: internal immutable `ActionCatalog` owns available groups, group
+identity lookup, visibility and presentation order. `LibraryStore` retains its
+public methods and delegates to a fresh snapshot. There is no cache, protocol
+or I/O in the catalog. Storage reload, transactions and the known duplicate
+`Action.find` defect are unchanged.
+
+Verified automatically: 455 app and 504 core methods passed. Two new pure
+characterization methods cover supplied group order, first stored group,
+implicit names, preferred positions, localized numeric names, UUID ties and
+surface visibility. Existing persistence, restore, scripting and presentation
+tests remain. Unsigned Xcode compilation passed. Matrix classifications are
+unchanged; strict engine output matches all 18 baseline diagnostics exactly.
+
+Manual verification: not required for this pure extraction. No visible window,
+permission or sound check ran. Native parity acceptance did not change.
+
+Next stage: isolate bookmark test preferences through the existing file adapter.
