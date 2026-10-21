@@ -5022,3 +5022,20 @@ the 30-second Computer Use limit. The sizing correction therefore does not
 resolve the long-jump acceptance. Keep that issue open and inspect repeated
 cell creation, scrolling animation, and layout before making another change.
 No note was edited. The running process must be rechecked before replacement.
+
+
+### Long-scroll diagnostic follow-up — 20 October 2026
+
+Rechecked the same Scale QA process, PID 68297. It remained live near one CPU
+core for more than two minutes. A second one-second sample includes native
+accessibility attribute requests leading into NSHostingView accessibility
+children and SwiftUI graph updates, in addition to layout and display work.
+A new Computer Use app observation timed out. No process was restarted.
+
+The samples do not isolate scroll cost from accessibility inspection cost.
+The next native check must separate the input operation from the observation.
+After this process recovers, use keyboard navigation and a screenshot before
+a full accessibility read. Compare ordinary scrolling with the scrollbar AX
+value setter. Do not classify a scrollbar setter timeout alone as a measured
+user scroll latency. Long-scroll acceptance remains pending. Raw samples stay
+in /tmp. No production change follows from this diagnostic alone.
