@@ -4679,3 +4679,26 @@ message. This closes the current-image queued URL timeout check. Current-image
 UI and Intent queued timeout checks remain pending. No production code, build,
 fixture, or tests changed. Last full regression remains app447/core471.
 No screenshot or raw log is tracked.
+
+
+### Current-image native queued Intent timeout — 20 October 2026
+
+Used isolated QA image1b8988d3183ec067 and the disposable Engine shortcut.
+The first run cancelled early and the editor showed an added question mark.
+The cause of that edit is unknown. That run is not timeout acceptance.
+Confirmed its terminal result before preparing another run.
+
+Reset the neutral target, opened the source by UUID, and ran again without
+editing shortcut fields. Shortcuts showed Stop, and the visible owner followed
+the pending child. Stop remained at the56.427 and110.268-second observations.
+At134.674 seconds, Shortcuts showed The action operation timed out before it
+completed. These are observation times, not exact deadline delivery times.
+No timeout override was applied; the production limit remains120 seconds.
+
+After dismissal, source and target writes remained in Inbox. The target editor
+kept Queue timeout completed write — café 🐼, without later sentinel text.
+History recorded the latest pending root as Error with the timeout message.
+Restored the shortcut action and UUID through paste and Tab. This closes the
+current-image queued Intent timeout check. The UI entry remains pending.
+No production code, build, fixture, or tests changed. Last full regression
+remains app447/core471. No screenshot or raw log is tracked.

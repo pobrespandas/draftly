@@ -1059,3 +1059,9 @@ Current-image queued URL production timeout passed: one matching error callback,
 retained Inbox writes, last-child editor, and no later queue work. Observation
 times bracket the result; exact deadline delivery was not measured. UI/Intent
 queued timeout checks on the current image remain pending.
+
+
+Current-image queued Intent production timeout now passes: Shortcuts waited
+for final error, retained Inbox writes and last-child editor passed, and no
+later queue work appeared. An earlier interrupted run is not counted. The
+current-image UI queued timeout remains pending.

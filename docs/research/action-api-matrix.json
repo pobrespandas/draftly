@@ -16974,6 +16974,13 @@
             "fixture": "scripts/fixtures/engine-queue-actions.json",
             "evidence": "docs/validation.md: Current-image native queued URL timeout — 20 October 2026",
             "result": "Production-configured120-second pending child returned one URL error callback with no root success parameter. Callback count zero at57.243s and one at135.644s are observation times. Retained source/child Inbox writes, last-child editor, and Error history passed."
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "1b8988d3183ec0675c0e5d3125665b1c22b3e155a9b82124b3a8039db45e5d20",
+            "fixture": "scripts/fixtures/engine-queue-actions.json",
+            "evidence": "docs/validation.md: Current-image native queued Intent timeout — 20 October 2026",
+            "result": "Actual Intent kept Stop through110.268s and showed the production timeout error at134.674s observation. Retained source/child Inbox writes, last-child editor and Error history passed. Initial edited/cancelled run is excluded; shortcut fields were restored."
           }
         ]
       },
@@ -17328,7 +17335,7 @@
       },
       "liveCheck": null,
       "limitations": [
-        "UI/URL/Intent queued failure/cancellation and URL/Intent owner-close passed. Current-image URL production queued timeout passed. Current-image UI and Intent production queued timeout checks remain pending."
+        "UI/URL/Intent queued failure/cancellation and URL/Intent owner-close passed. Current-image URL and Intent production queued timeout passed. Current-image UI production queued timeout remains pending."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
@@ -17409,7 +17416,7 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "UI/URL/Intent queued failure/cancellation and URL/Intent owner-close passed. Current-image URL production queued timeout passed. Current-image UI and Intent production queued timeout checks remain pending.",
+        "reason": "UI/URL/Intent queued failure/cancellation and URL/Intent owner-close passed. Current-image URL and Intent production queued timeout passed. Current-image UI production queued timeout remains pending.",
         "evidence": "docs/validation.md",
         "additionalChecks": [
           {
@@ -17453,6 +17460,13 @@
             "fixture": "scripts/fixtures/engine-queue-actions.json",
             "evidence": "docs/validation.md: Current-image native queued URL timeout — 20 October 2026",
             "result": "Production-configured120-second pending child returned one URL error callback with no root success parameter. Callback count zero at57.243s and one at135.644s are observation times. Retained source/child Inbox writes, last-child editor, and Error history passed."
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "1b8988d3183ec0675c0e5d3125665b1c22b3e155a9b82124b3a8039db45e5d20",
+            "fixture": "scripts/fixtures/engine-queue-actions.json",
+            "evidence": "docs/validation.md: Current-image native queued Intent timeout — 20 October 2026",
+            "result": "Actual Intent kept Stop through110.268s and showed the production timeout error at134.674s observation. Retained source/child Inbox writes, last-child editor and Error history passed. Initial edited/cancelled run is excluded; shortcut fields were restored."
           }
         ]
       },
@@ -18469,6 +18483,13 @@
             "fixture": "scripts/fixtures/engine-queue-actions.json",
             "evidence": "docs/validation.md: Current-image native queued URL timeout — 20 October 2026",
             "result": "Production-configured120-second pending child returned one URL error callback with no root success parameter. Callback count zero at57.243s and one at135.644s are observation times. Retained source/child Inbox writes, last-child editor, and Error history passed."
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "1b8988d3183ec0675c0e5d3125665b1c22b3e155a9b82124b3a8039db45e5d20",
+            "fixture": "scripts/fixtures/engine-queue-actions.json",
+            "evidence": "docs/validation.md: Current-image native queued Intent timeout — 20 October 2026",
+            "result": "Actual Intent kept Stop through110.268s and showed the production timeout error at134.674s observation. Retained source/child Inbox writes, last-child editor and Error history passed. Initial edited/cancelled run is excluded; shortcut fields were restored."
           }
         ]
       },
