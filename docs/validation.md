@@ -5576,3 +5576,31 @@ with injected hosts. It does not open windows or request real permissions.
 Native permission-request cancellation and successful Calendar saving remain
 outside this check. Actual model generation cancellation remains blocked by
 current system availability. The task cancellation contract remains partial.
+
+
+### Native awaited Shortcut responses — 20 October 2026
+
+Inspected the existing Draftly QA Output — disposable shortcut. It contains
+Wait 5 seconds, Text Native shortcut output café 🐼, and Stop and Output.
+A direct editor run completed with that exact output. No shortcut was edited
+or deleted. Then ran the existing QA Shortcut waited script and waited step
+actions from Engine QA's Actions menu. Executable SHA256:
+785e0548ab98a23c6a0e865e90215b7e8a1534b2e27406581359249f825d2224.
+
+The actions completed with measured fixture times 5238 ms and 5199 ms. Their
+assertions checked the exact Unicode result, one callbackResponses entry,
+and shortcut_result template tag. History showed Success for both actions.
+The earlier native timeout remains part of the record; this run proves the
+success path now worked with the existing shortcut, not why it stalled before.
+
+A separate QA Shortcut callback control run recorded Cancelled. During that
+run, a new draft with text So appeared without an agent edit. Its origin and
+the cancellation trigger were not established. Do not use that run as callback
+success or cancellation acceptance. The new draft was left unchanged. Engine
+QA now has 10 drafts and no pending action. History was closed. The scratch draft
+retains the exact text Shortcut waited step finished in 5199 ms café 🐼.
+
+NativeProcessExecutorTests and ShortcutLaunchTests passed 15 tests. These use
+local process fixtures; they do not open windows or invoke real Shortcuts.
+Real native callback timeout and other permission/capability variants remain
+pending. No screenshot or raw process log is tracked.
