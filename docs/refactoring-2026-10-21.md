@@ -149,3 +149,16 @@ The broad catalog integration test remains because its recent-action identity,
 ordered installation and configured-value assertions have distinct coverage.
 No manual UI session was required. Next: characterize Workspace sort writers
 before moving their shared dictionary mutation.
+
+### 4a. Workspace sort characterization
+
+Before production changes, four new methods covered 15 sort-state cases.
+The window retains missing/invalid/non-object metadata unchanged. Valid edits
+preserve outer and unknown fields, other folders and existing flagged values.
+Folder observers restore the saved sort and direction. The options editor
+keeps its different recovery policy and sorted JSON encoding.
+
+All 19 methods in the four relevant workspace suites passed on the original
+writers. Tests use in-memory data and isolated preferences, without windows.
+Next: move only shared dictionary mutation to WorkspaceOptionsEditor. Keep
+parsing, encoding and error policy at each caller.
