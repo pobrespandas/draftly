@@ -11963,10 +11963,44 @@
             "currentWorkspace: Workspace"
           ],
           "contract": "Returns a workspace object configured like the workspace currently loaded in the draft list of the window. Useful when creating logic which reacts contextually to the workspace loaded.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-window-access-contract-tests",
+          "automatedTest": {
+            "suite": "WindowWorkspaceAccessTests",
+            "test": "currentWorkspaceReturnsDetachedTypedSnapshotsWithoutSavingOrApplying"
+          },
+          "liveCheck": "21 October QA Window selected rows: typed Inbox snapshot with empty query; changing the returned query did not alter a subsequent read. Success08:03.",
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Window.currentWorkspace"
+          },
+          "defaults": "Each read uses the current host snapshot. Mutating the result neither saves nor applies it.",
+          "result": "A new typed Workspace with the current identity, folder, query, tags, list options and independent sort configuration.",
+          "errors": "Reading does not invoke storage or application. Snapshot serialization errors propagate; dedicated invalid-snapshot injection remains pending.",
+          "limitations": [
+            "These access tests do not accept every Workspace evaluator, theme, group or native application contract. Native default/explicit application from this Window access remains pending."
+          ],
+          "evidenceLevel": "Both runner paths check exact Window access rather than crediting only the global app alias.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "WindowWorkspaceAccessTests",
+                "test": "currentWorkspaceReturnsDetachedTypedSnapshotsWithoutSavingOrApplying"
+              },
+              "assertion": "Two reads have independent configuration. Changing the first query and sort does not change the second query results, host state, stored Workspaces or editor."
+            },
+            "defaults": {
+              "test": {
+                "suite": "WindowWorkspaceAccessTests",
+                "test": "currentWorkspaceReturnsDetachedTypedSnapshotsWithoutSavingOrApplying"
+              },
+              "assertion": "Two reads have independent configuration. Changing the first query and sort does not change the second query results, host state, stored Workspaces or editor."
+            },
+            "errors": {
+              "pending": "Dedicated malformed snapshot serialization failure test remains pending."
+            }
+          }
         },
         {
           "member": "applyWorkspace",
@@ -11978,27 +12012,48 @@
             "applyWorkspace(workspace?: Workspace): boolean"
           ],
           "contract": "Apply the Workspace as if it was selected in draft list. Calling this function with no arguments will clear filters and apply the default workspace.",
-          "implementation": "reviewed-partial",
+          "implementation": "implemented-with-window-access-contract-tests",
           "automatedTest": {
-            "suite": "WorkspaceActionAPITests",
-            "test": "workspaceApplicationReturnsTheHostResultAndDefaultsWhenOmitted"
+            "suite": "WindowWorkspaceAccessTests",
+            "test": "applyWorkspaceForwardsDefaultAndExplicitValuesWithBooleanResults"
           },
           "liveCheck": null,
           "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-21",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Window.applyWorkspace"
           },
-          "defaults": "Omitting the workspace applies the default workspace.",
-          "result": [
-            "applyWorkspace(workspace?: Workspace): boolean"
-          ],
-          "errors": "Missing window handler and invalid workspace fields throw.",
+          "defaults": "Omitting the argument creates and applies the configured default Workspace.",
+          "result": "Boolean true after the explicit or default Workspace reaches the application callback. This access suite does not accept all native evaluator behavior.",
+          "errors": "Workspace application failure propagates and stops subsequent script edits without saving a Workspace.",
           "limitations": [
-            "Native workspace transitions need a full acceptance pass."
+            "These access tests do not accept every Workspace evaluator, theme, group or native application contract. Native default/explicit application from this Window access remains pending."
           ],
-          "evidenceLevel": "Member-specific assertions. Native verification is separate."
+          "evidenceLevel": "Both runner paths check exact Window access rather than crediting only the global app alias.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "WindowWorkspaceAccessTests",
+                "test": "applyWorkspaceForwardsDefaultAndExplicitValuesWithBooleanResults"
+              },
+              "assertion": "Default and explicit folder/query/tag/list values reach the application callback and return true, without saving a Workspace or changing source content."
+            },
+            "defaults": {
+              "test": {
+                "suite": "WindowWorkspaceAccessTests",
+                "test": "applyWorkspaceForwardsDefaultAndExplicitValuesWithBooleanResults"
+              },
+              "assertion": "The no-argument Window method forwards the configured default."
+            },
+            "errors": {
+              "test": {
+                "suite": "WindowWorkspaceAccessTests",
+                "test": "applyWorkspaceHostFailureStopsFollowingScriptWithoutSavingOrEditing"
+              },
+              "assertion": "Host failure preserves source content and does not create a saved Workspace."
+            }
+          }
         }
       ]
     },

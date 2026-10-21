@@ -8385,3 +8385,31 @@ it passed or attribute a regression without a baseline comparison. Selected
 Alpha again. Final state: one Alpha tab, five drafts, no pending action/dialog.
 Selection comparison with Drafts and external selected-reference updates remain
 pending. Raw screenshots and logs stay outside Git.
+
+
+### Window Workspace access contracts — 21 October 2026
+
+Implemented: no additional production change. A separate test-only commit adds
+WindowWorkspaceAccessTests instead of crediting the global app alias for every
+Window member. Three methods run on both the legacy and worker paths.
+
+The getter returns typed detached snapshots with exact identity, folder, query,
+tags, exclusions, presentation and matching mode. Changing the first snapshot's
+query and public archive-sort configuration does not change the next snapshot's
+query result order. Tests use stored neutral notes and query results rather than
+inspecting private JavaScript sort fields. Reads neither save nor apply.
+
+The apply method forwards configured defaults when omitted, and exact explicit
+folder/query/tags/exclusions/display options when supplied. Both calls return
+true. An injected application failure stops the later editor write and does not
+save a Workspace. This is access coverage, not acceptance of every evaluator,
+group, theme, storage or native-window effect. Getter serialization failure is
+still pending. No generic application failure is credited as a getter test.
+
+Automatically tested: all three methods were included in the checked623core/
+520app run recorded above. Unsigned Xcode build passed. Matrix structure0 and
+strict global4106. These counts do not measure compatibility.
+Verified in use: window-selection-actions.json also read an Inbox Workspace
+with empty query, changed the detached query and read the unchanged real query.
+History Success08:03 on the same signed selection image. No native apply was
+added by this review. Native application and full Workspace closure stay open.

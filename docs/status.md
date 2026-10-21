@@ -11,6 +11,20 @@ sections below retain their original scope and dates.
 Keep the identity Draftly, `Note`, existing identities and libraries, original
 action scripts, Nerd Fonts, and the integrated Markdown preview.
 
+## Latest access audit — Window Workspaces, 21 October 2026
+
+Implemented: no additional production change. The exact Window getter and apply
+access now have their own evidence. Three both-runner tests cover typed detached
+snapshots, query-based sort independence, default/explicit forwarding, Boolean
+results and host failure before later edits. They do not accept every Workspace
+rule. The complete run is 623 core and 520 app methods. Matrix structure0;
+strict global4106 remains open, not a percentage.
+
+Verified in use: the selection fixture read a typed Inbox snapshot, changed its
+query locally and observed an unchanged query on the next read. Success08:03.
+No new native apply was performed. Native application from this access, malformed
+snapshot errors and wider Workspace parity remain pending.
+
 ## Latest correction — real Window list selection, 21 October 2026
 
 Implemented: WindowModel owns selectedDraftIDs. The native table and scripting
