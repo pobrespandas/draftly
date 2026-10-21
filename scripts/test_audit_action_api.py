@@ -163,6 +163,74 @@ class ReferenceTests(unittest.TestCase):
 
 
 
+class TestReferenceCacheTests(unittest.TestCase):
+    def engine_matrix(self):
+        reference = {"suite": "Fixture", "test": "accepted"}
+        entry = {"compatibilityStatus": "complete", "defaults": "No defaults.", "result": "Value",
+                 "errors": "No errors.", "implementationEvidence": {"file": "Fixture.swift"},
+                 "automatedTest": reference, "reviewDate": "2026-10-21",
+                 "contractCases": {"normal": {"test": reference, "assertion": "The value matches."},
+                                   "defaults": {"notApplicable": "No arguments."},
+                                   "errors": {"notApplicable": "No throwing path."}},
+                 "supportingTests": [reference],
+                 "nativeVerification": {"status": "not-required", "reason": "Synthetic test."}}
+        return {"engineContracts": [dict(entry, contract=name) for name in sorted(audit.REQUIRED_ENGINE_CONTRACTS)]}
+
+    def test_one_validation_reads_each_source_once_for_all_references(self):
+        import tempfile
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "Tests").mkdir()
+            source = root / "Tests/Fixture.swift"
+            source.write_text('@Suite struct Fixture { @Test func accepted() {} }')
+            reads = []
+            original = Path.read_text
+
+            def read_text(path, *args, **kwargs):
+                reads.append(path)
+                return original(path, *args, **kwargs)
+
+            with patch.object(audit, "ROOT", root), patch.object(Path, "read_text", read_text):
+                self.assertEqual(audit.validate_matrix(self.engine_matrix(), require_parity=True, scope="engine"), [])
+            self.assertEqual(reads, [source.resolve()])
+
+    def test_next_validation_reads_changed_source(self):
+        import tempfile
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "Tests").mkdir()
+            source = root / "Tests/Fixture.swift"
+            source.write_text('@Suite struct Fixture { @Test func accepted() {} }')
+            with patch.object(audit, "ROOT", root):
+                self.assertEqual(audit.validate_matrix(self.engine_matrix(), require_parity=True, scope="engine"), [])
+                source.write_text('@Suite struct Fixture { @Test func accepted() { withKnownIssue { } } }')
+                errors = audit.validate_matrix(self.engine_matrix(), require_parity=True, scope="engine")
+                self.assertTrue(any(error.endswith("Fixture.accepted contains withKnownIssue") for error in errors))
+
+    def test_wrappers_and_direct_parity_calls_use_the_current_root(self):
+        import tempfile
+        from unittest.mock import patch
+        reference = {"suite": "Fixture", "test": "accepted"}
+        with tempfile.TemporaryDirectory() as directory:
+            roots = [Path(directory) / name for name in ["first", "second"]]
+            for root, body in zip(roots, ["", "withKnownIssue { }"]):
+                (root / "Tests").mkdir(parents=True)
+                (root / "Tests/Fixture.swift").write_text('@Suite struct Fixture { @Test func accepted() { ' + body + ' } }')
+            with patch.object(audit, "ROOT", roots[0]):
+                self.assertTrue(audit.valid_test_reference(reference))
+                self.assertIsNone(audit.test_reference_issue(reference))
+                self.assertEqual(audit.test_reference_paths(reference), [(roots[0] / "Tests/Fixture.swift").resolve()])
+                self.assertEqual(audit.parity_errors(self.engine_matrix()["engineContracts"][0], "fixture", set()), [])
+            with patch.object(audit, "ROOT", roots[1]):
+                self.assertTrue(audit.valid_test_reference(reference))
+                self.assertEqual(audit.test_reference_issue(reference), "Fixture.accepted contains withKnownIssue")
+                self.assertEqual(audit.test_reference_paths(reference), [(roots[1] / "Tests/Fixture.swift").resolve()])
+                self.assertIn("Unaccepted contract test: fixture: Fixture.accepted contains withKnownIssue",
+                              audit.parity_errors(self.engine_matrix()["engineContracts"][0], "fixture", set()))
+
+
 class StrictParityTests(unittest.TestCase):
     def test_additional_test_alias_is_validated_and_bad_collections_do_not_crash(self):
         for field in ["supportingTests", "additionalAutomatedTests"]:

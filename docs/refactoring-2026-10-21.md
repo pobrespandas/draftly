@@ -58,7 +58,7 @@ owns member acceptance. Refactoring must not change its classifications.
 | Medium | Text transformations in `EditorActionBar` combine UTF-16 rules with focus and save effects. Marker navigation also has its own Markdown rule. | Characterize transformations, then separate pure edits from UI effects. | Medium. Connecting shared syntax rules would be a separate functional correction. |
 | Later | Transaction recovery and group normalization span `LibraryStore` and `LibraryRecordPersistence`. Legacy and worker orchestration also repeat decisions. | Extract small pure decisions first. Keep transaction and execution boundaries until their differences are characterized. | High. Avoid a generic repository or executor rewrite. |
 
-## Small implementation stages
+## Initial small implementation stages
 
 1. Preserve the functional work and establish the baseline. Correct current
    documentation without deleting history.
@@ -209,18 +209,53 @@ and matrix structure passed. Strict engine output matches the same 18 baseline
 diagnostics. No model, bridge, stored format, original action fixture or API
 classification changed. No test was removed. No manual session was needed.
 
+### 6. Auditor test-reference index
+
+Implemented: `SwiftTestReferences` owns Swift source masking, test paths,
+method lookup and disabled/known-issue scanning. Each matrix validation has
+one source cache. Direct calls and compatibility wrappers use a fresh index
+and the current root. CLI loading does not depend on the working directory.
+Acceptance policy, archives, traversal order and diagnostics remain separate.
+
+Verified automatically: all 41 bundled-Python tests passed. The three new
+cases check one read per validation, changed source in the next validation,
+and isolation between roots. The repeated-reference fixture read its Swift
+source 154 times before extraction and once afterward. All existing cases
+remain. Direct CLI and importlib loading passed from another directory.
+
+Matrix structure passed with zero errors. Engine and global strict output
+and exit codes match the saved baselines byte for byte: exit 1, with 18 and
+4,841 diagnostics. These are existing acceptance gaps, not new regressions.
+The reference archive and matrix are unchanged. The last production build
+and Swift suite are from stage 5; this stage changes Python only. No manual
+session was needed.
+
 ## Remaining refactoring and risks
 
-The first five stages are validated checkpoints, not a complete repository
-rewrite or Mac parity closure. Auditor test indexing,
-benchmark ownership, native operation routing, editing transformations and
-execution/transaction ownership remain in the prioritized diagnosis.
+These six stages close this bounded refactoring pass. They do not complete a
+repository rewrite or Mac parity. Independent review found no concrete
+regression in the production changes. The following work remains explicit:
 
-Next, isolate auditor test indexing as a separate scripts stage. Retain its
-policy, exact diagnostics and contract cases. Compare cached source reads
-within one validation and fresh source reads in later validations.
-Keep transaction recovery and execution-lifetime changes separate and later,
-because they carry the highest behavior risk.
+- Keep the Python tokenizer diagnostic and production statistics tests. The
+  script exposes callback, overlap, empty-range and order diagnostics. Its
+  timer includes Python callbacks and excludes Swift character counting.
+  Replacing it with the production initializer would change the measurement.
+  A later production benchmark must use a separate measurement label.
+- The auditor still checks a function by path and name. It does not prove
+  that the function belongs to the named suite. Changing that acceptance
+  policy requires a separate functional change and specific tests.
+- Characterize native routing, pure editing transformations and execution
+  ownership before extraction. Shared syntax for marker navigation would
+  change behavior and must remain separate from refactoring.
+- Keep transaction recovery and execution-lifetime changes separate. They
+  have the highest behavior risk. Do not add a generic repository, executor
+  or protocol hierarchy to hide the current differences.
+
+Final checks: 459 app methods, 508 core methods, 41 Python tests and unsigned
+Xcode compilation passed. No named test was removed. Automatic checks did not
+open, activate or move visible windows, request permissions, play sounds or
+use personal data. No manual Computer Use session ran. Signed installation,
+permissions, native parity and connected-client sync were not revalidated.
 
 Cloning remains paused. The saved functional branch still requires its own
 review and native acceptance. Its correction has not entered main.

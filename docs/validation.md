@@ -6145,3 +6145,17 @@ descriptor retains caller-specific coercion, validation and confirmation.
 All 459 app and 508 core methods passed after extraction. Unsigned Xcode build
 and matrix structure passed. Strict engine output matches the 18 baseline
 diagnostics. No test or original fixture was removed. No native UI check ran.
+
+
+### Refactoring auditor reference index — 21 October 2026
+
+The source-reference index is separate from evidence policy and CLI handling.
+All 41 bundled-Python tests passed. Three new cases cover per-validation reuse,
+changed source between validations and isolated roots. The repeated-reference
+fixture reads one source once, compared with 154 reads before extraction.
+Direct CLI and importlib loading work from another directory. Matrix structure
+passed. Strict engine and global output and exit codes match the baselines
+byte for byte: exit 1, 18 engine and 4,841 global diagnostics. No reference,
+classification or policy changed. No existing test was removed. Swift production
+is unchanged from the stage 5 build: 459 app and 508 core methods passed.
+No UI or permission check ran. Cloning remains paused.

@@ -6,10 +6,17 @@ import datetime
 import hashlib
 import gzip
 import html
+import importlib.util
 import json
 from pathlib import Path
 import re
 import urllib.request
+
+_test_reference_spec = importlib.util.spec_from_file_location(
+    "draftly_swift_test_references", Path(__file__).with_name("swift_test_references.py"))
+_test_reference_module = importlib.util.module_from_spec(_test_reference_spec)
+_test_reference_spec.loader.exec_module(_test_reference_module)
+SwiftTestReferences = _test_reference_module.SwiftTestReferences
 
 ROOT = Path(__file__).resolve().parent.parent
 OBJECTS = "Draft Editor Workspace Action ActionGroup ActionLog App Context Prompt SelectPrompt Tag Syntax Version Window Device HTTP HTTPResponse XMLRPC XMLRPCResponse FileManager Bookmark Credential HTML HTMLPreview HTMLToMarkdown MultiMarkdown GitHubMarkdown MustacheTemplate Shortcut AppleScript ShellScript Mail Message Calendar Event Reminder ReminderList Speech Location ModelSession Script URL CallbackURL Base64 QueryDate Task SelectPromptItem navigationMarker linkedItem".split()
@@ -139,7 +146,9 @@ def merge_evidence(objects, previous):
     return objects
 
 
-def parity_errors(entry, label, approved_exclusions):
+def parity_errors(entry, label, approved_exclusions, *, test_references=None):
+    if test_references is None:
+        test_references = SwiftTestReferences(ROOT)
     errors = []
     if any(entry.get(field) for field in ("referenceChanged", "reviewRequired", "referenceRemoved")):
         errors.append("Parity reference review required: " + label)
@@ -150,7 +159,7 @@ def parity_errors(entry, label, approved_exclusions):
         return errors
     if status == "unavailable":
         evidence = entry.get("availabilityEvidence")
-        if not isinstance(evidence, dict) or not all(evidence.get(field) for field in ("date", "platform", "reason", "evidence")) or not valid_test_reference(entry.get("automatedTest")):
+        if not isinstance(evidence, dict) or not all(evidence.get(field) for field in ("date", "platform", "reason", "evidence")) or not test_references.valid(entry.get("automatedTest")):
             errors.append("Missing unavailable-capability evidence: " + label)
         return errors
     if status != "complete":
@@ -158,13 +167,13 @@ def parity_errors(entry, label, approved_exclusions):
     for field in ("defaults", "result", "errors", "automatedTest", "implementationEvidence", "reviewDate"):
         if not entry.get(field):
             errors.append("Missing parity " + field + ": " + label)
-    if not valid_test_reference(entry.get("automatedTest")):
+    if not test_references.valid(entry.get("automatedTest")):
         errors.append("Invalid contract test reference: " + label)
     cases = entry.get("contractCases", {})
     for topic in ("normal", "defaults", "errors"):
         case = cases.get(topic) if isinstance(cases, dict) else None
         if not isinstance(case, dict) or not (
-            case.get("assertion") and valid_test_reference(case.get("test"))
+            case.get("assertion") and test_references.valid(case.get("test"))
             or topic != "normal" and case.get("notApplicable")
         ):
             errors.append("Missing contract case " + topic + ": " + label)
@@ -187,74 +196,29 @@ def parity_errors(entry, label, approved_exclusions):
             else:
                 references.extend(supporting)
         for reference in references:
-            if reference is not None and not valid_test_reference(reference):
+            if reference is not None and not test_references.valid(reference):
                 errors.append("Invalid contract test reference: " + label + ": " + str(reference))
                 continue
-            issue = test_reference_issue(reference)
+            issue = test_references.issue(reference)
             if issue:
                 errors.append("Unaccepted contract test: " + label + ": " + issue)
     return errors
 
 
 def swift_code_mask(source):
-    # Remove comments and strings. Keep offsets for function boundaries.
-    pattern = r'/\*[\s\S]*?\*/|//[^\n]*|(?P<raw>\#+)?"""[\s\S]*?"""(?P=raw)?|(?P<quote>\#+)?"(?:\\.|[^"\\])*"(?P=quote)?'
-    return re.sub(pattern, lambda match: re.sub(r"[^\n]", " ", match.group()), source)
+    return _test_reference_module.swift_code_mask(source)
 
 
 def test_reference_issue(value):
-    if not valid_test_reference(value):
-        return None
-    pattern = r"\bfunc\s+" + re.escape(value["test"]) + r"\s*\("
-    for path in test_reference_paths(value):
-        code = swift_code_mask(path.read_text())
-        for match in re.finditer(pattern, code):
-            start = code.find("{", match.end())
-            if start < 0:
-                continue
-            depth, end = 1, start + 1
-            while end < len(code) and depth:
-                depth += (code[end] == "{") - (code[end] == "}")
-                end += 1
-            for suite in re.finditer(r"@Suite\b([\s\S]*?)\b(?:struct|class|enum)\s+\w+[^\{]*\{", code):
-                if not re.search(r"\.disabled\b", suite.group(1)):
-                    continue
-                suite_depth, suite_end = 1, suite.end()
-                while suite_end < len(code) and suite_depth:
-                    suite_depth += (code[suite_end] == "{") - (code[suite_end] == "}")
-                    suite_end += 1
-                if suite.end() <= match.start() < suite_end:
-                    return value["suite"] + "." + value["test"] + " belongs to a disabled suite"
-            annotation = code.rfind("@Test", 0, match.start())
-            prefix = code[annotation:match.start()] if annotation >= 0 else ""
-            if re.search(r"\.disabled\b", prefix) and "func " not in prefix:
-                return value["suite"] + "." + value["test"] + " is disabled"
-            if re.search(r"\bwithKnownIssue\s*(?:\(|\{)", code[start:end]):
-                return value["suite"] + "." + value["test"] + " contains withKnownIssue"
-    return None
+    return SwiftTestReferences(ROOT).issue(value)
 
 
 def valid_test_reference(value):
-    if not isinstance(value, dict) or not all(isinstance(value.get(field), str) and value[field] for field in ("suite", "test")):
-        return False
-    pattern = r"\bfunc\s+" + re.escape(value["test"]) + r"\s*\("
-    return any(re.search(pattern, swift_code_mask(path.read_text())) for path in test_reference_paths(value))
+    return SwiftTestReferences(ROOT).valid(value)
 
 
 def test_reference_paths(value):
-    tests = (ROOT / "Tests").resolve()
-    if "file" in value:
-        filename = value["file"]
-        if not isinstance(filename, str) or not filename:
-            return []
-        relative = Path(filename)
-        if relative.is_absolute() or ".." in relative.parts:
-            return []
-        path = (ROOT / relative).resolve()
-        if not path.is_relative_to(tests) or path.suffix != ".swift" or not path.is_file():
-            return []
-        return [path]
-    return list(tests.rglob(value["suite"] + ".swift"))
+    return SwiftTestReferences(ROOT).paths(value)
 
 
 def validate_archive(archive, root=ROOT):
@@ -270,6 +234,7 @@ def validate_archive(archive, root=ROOT):
 
 
 def validate_matrix(matrix, require_closure=False, require_parity=False, scope="all"):
+    test_references = SwiftTestReferences(ROOT)
     if scope == "engine":
         matrix = dict(matrix, objects=[], stepReferences=[])
     elif scope == "core":
@@ -308,7 +273,7 @@ def validate_matrix(matrix, require_closure=False, require_parity=False, scope="
             if status in {"partial", "absent", "excluded", "unavailable"} and not member.get("limitations"):
                 errors.append(f"Missing limitation: {label}")
             if require_parity:
-                errors.extend(parity_errors(member, label, APPROVED_EXCLUSIONS))
+                errors.extend(parity_errors(member, label, APPROVED_EXCLUSIONS, test_references=test_references))
     seen_steps = set()
     for reference in matrix.get("stepReferences", []):
         if require_parity and reference.get("fetchError"):
@@ -323,7 +288,7 @@ def validate_matrix(matrix, require_closure=False, require_parity=False, scope="
             if step.get("compatibilityStatus") != "complete" and not step.get("limitations"):
                 errors.append(f"Missing step limitation: {name}")
             if require_parity:
-                errors.extend(parity_errors(step, "step:" + name, APPROVED_EXCLUSIONS))
+                errors.extend(parity_errors(step, "step:" + name, APPROVED_EXCLUSIONS, test_references=test_references))
                 if not validate_archive(step.get("referenceArchive")):
                     errors.append("Missing or invalid step reference archive: " + name)
     if require_parity:
@@ -344,7 +309,7 @@ def validate_matrix(matrix, require_closure=False, require_parity=False, scope="
             if name in seen_contracts:
                 errors.append("Duplicate engine contract: " + name)
             seen_contracts.add(name)
-            errors.extend(parity_errors(entry, "engine:" + name, APPROVED_EXCLUSIONS))
+            errors.extend(parity_errors(entry, "engine:" + name, APPROVED_EXCLUSIONS, test_references=test_references))
         if scope != "core":
             for name in sorted(REQUIRED_ENGINE_CONTRACTS - seen_contracts):
                 errors.append("Missing engine contract: " + name)

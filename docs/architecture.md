@@ -26,6 +26,13 @@ The shared rule does not combine those different caller policies.
 Import, runtime and prompt callers keep their own validation and conversion
 policies. The descriptor does not change imported values or confirmation state.
 
+## Auditor reference boundary
+
+`SwiftTestReferences` owns Swift source lookup and issue scanning for one
+validation. The auditor owns evidence policy, reference archives and CLI
+handling. A source cache ends with its validation. Compatibility wrappers
+use the current root and do not share cached source across calls.
+
 ## Refactoring baseline
 
 The annotated tag `pre-refactor-2026-10-19` points to `2fba5bd`.
