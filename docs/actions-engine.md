@@ -31,7 +31,9 @@ JavaScript uses the existing JavaScriptCore execution limit. Cancellation of CPU
 work is bounded by that limit; it does not interrupt arbitrary instructions.
 
 HTTP has an async URLSession transport for the new bridge. Its legacy adapter
-retains the existing interface. Other native capability adapters still contain
+retains the existing interface. Request timeouts default to 60 seconds and accept
+positive finite values without an HTTP-specific maximum. Action and host request
+deadlines still apply independently. Other native capability adapters still contain
 synchronous waits. Their cancellation and permission acceptance is not closed.
 
 Included steps use the same JavaScript context. Selected action UUIDs survive

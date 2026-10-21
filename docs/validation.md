@@ -6449,3 +6449,19 @@ stored action format. The focused builder and loopback checks passed. Full
 regression passed 468 app and522 core methods. The server uses only a temporary
 loopback port and neutral values; no app window or permission prompt opens.
 The broader HTTP contract tests and their remaining limits are recorded below.
+
+
+### HTTP timeout range correction — 21 October 2026
+
+The archived HTTP.timeout contract defines seconds and a 60-second default.
+It defines no 600-second maximum. The previous builder silently clamped valid
+values to 0.01...600. Changed the existing 900-second assertion to retain900 and
+added cases for 0.001, 2.5 and 3600 seconds. The regression failed before the fix.
+
+The builder now preserves positive finite durations. Zero, negative, NaN and
+infinite values fail explicitly instead of being silently replaced. The default
+remains 60 seconds. This removes only the HTTP-specific clamp; action execution
+and host request deadlines remain unchanged. The new unit case and the focused
+17-method HTTP run passed. The real loopback timeout test also confirms that an
+expired request closes its connection. No 900-second wait is needed to verify
+that a 900-second request setting is preserved. Full regression follows below.

@@ -37,7 +37,11 @@ final class ScriptHTTP: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
         guard let url = components.url else { throw DraftlyError.message("The request URL is invalid.") }
         var request = URLRequest(url: url)
         request.httpMethod = values["method"] as? String ?? "GET"
-        request.timeoutInterval = min(600, max(0.01, values["timeout"] as? Double ?? 60))
+        let timeout = values["timeout"] as? Double ?? 60
+        guard timeout.isFinite, timeout > 0 else {
+            throw DraftlyError.message("The HTTP timeout must be positive and finite.")
+        }
+        request.timeoutInterval = timeout
         for (key, value) in values["headers"] as? [String: String] ?? [:] {
             request.setValue(value, forHTTPHeaderField: key)
         }

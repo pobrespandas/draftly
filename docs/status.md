@@ -1654,3 +1654,11 @@ values retain their original meaning. A real loopback server reproduced the
 failure on both transport routes and confirmed the correction. The specific
 builder regression also passed. HTTP timeout limits and remaining response
 contracts require separate acceptance; this correction does not close HTTP.
+
+
+### HTTP timeout range corrected — 21 October 2026
+
+Positive finite HTTP timeouts now retain their value, including values above
+600 seconds. Invalid durations fail explicitly. The default remains 60 seconds;
+engine deadlines stay unchanged. A specific regression failed first and passed
+after correction. Broader HTTP evidence and classification follow separately.

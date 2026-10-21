@@ -21,7 +21,7 @@ struct ScriptHTTPTests {
             "data": ["text": "one+two"], "encoding": "form", "timeout": 900.0
         ])
         #expect(request.httpMethod == "POST")
-        #expect(request.timeoutInterval == 600)
+        #expect(request.timeoutInterval == 900)
         #expect(request.value(forHTTPHeaderField: "Authorization") == "Basic dXNlcjpwYXNz")
         #expect(request.value(forHTTPHeaderField: "Content-Type") == "application/x-www-form-urlencoded")
         #expect(String(data: try #require(request.httpBody), encoding: .utf8) == "text=one%2Btwo")
@@ -29,6 +29,19 @@ struct ScriptHTTPTests {
         let query = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems)
         #expect(query.contains(URLQueryItem(name: "existing", value: "yes")))
         #expect(query.contains(URLQueryItem(name: "q", value: "🐼 café")))
+    }
+
+    @Test func timeoutRetainsPositiveFiniteValuesAndRejectsInvalidDurations() throws {
+        #expect(try ScriptHTTP.makeRequest(["url": "https://fixture.invalid/"]).timeoutInterval == 60)
+        for seconds in [0.001, 2.5, 900, 3600] {
+            let request = try ScriptHTTP.makeRequest(["url": "https://fixture.invalid/", "timeout": seconds])
+            #expect(request.timeoutInterval == seconds)
+        }
+        for seconds in [0, -1, Double.nan, Double.infinity, -Double.infinity] {
+            #expect(throws: (any Error).self) {
+                try ScriptHTTP.makeRequest(["url": "https://fixture.invalid/", "timeout": seconds])
+            }
+        }
     }
 
     @Test func queryParametersPreservePlusAndExistingEncodedQuery() throws {
