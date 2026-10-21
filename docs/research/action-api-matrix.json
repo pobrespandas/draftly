@@ -13845,10 +13845,42 @@
             "new HTMLPreview(): HTMLPreview"
           ],
           "contract": "Create new instance.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "HTMLPreviewContractTests",
+            "test": "constructorAndFactoryCreateIndependentInstancesWithoutPresentation"
+          },
+          "liveCheck": "Factory and show exercised by engine-html-lifetime-actions.json. See docs/validation.md, Native HTML preview lifetime — 21 October 2026. This entry adds no new native run.",
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "HTMLPreview.constructor"
+          },
+          "evidenceLevel": "Member assertions run through both the legacy runner and serial worker. Native request lifecycle tests are separate from presentation checks.",
+          "defaults": "New instances have hideInterface=false. Construction does not present a preview.",
+          "result": "A new independent HTMLPreview instance.",
+          "errors": "No host work occurs during construction.",
+          "limitations": [],
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "HTMLPreviewContractTests",
+                "test": "constructorAndFactoryCreateIndependentInstancesWithoutPresentation"
+              },
+              "assertion": "A new independent HTMLPreview instance."
+            },
+            "defaults": {
+              "test": {
+                "suite": "HTMLPreviewContractTests",
+                "test": "constructorAndFactoryCreateIndependentInstancesWithoutPresentation"
+              },
+              "assertion": "Both constructors produce separate objects with hideInterface=false and no presentation."
+            },
+            "errors": {
+              "notApplicable": "Construction makes no host request and the documented constructor takes no arguments."
+            }
+          }
         },
         {
           "member": "hideInterface",
@@ -13860,10 +13892,48 @@
             "hideInterface: boolean"
           ],
           "contract": "Hides the toolbars and Cancel / Continue buttons in the preview window. For use only when combined with JavaScript flow control in the HTML preview. See docs for details.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "HTMLPreviewContractTests",
+            "test": "hideInterfaceForwardsEachInstancesCurrentValue"
+          },
+          "liveCheck": "Factory and show exercised by engine-html-lifetime-actions.json. See docs/validation.md, Native HTML preview lifetime — 21 October 2026. This entry adds no new native run.",
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "HTMLPreview.hideInterface"
+          },
+          "evidenceLevel": "Member assertions run through both the legacy runner and serial worker. Native request lifecycle tests are separate from presentation checks.",
+          "defaults": "New instances have hideInterface=false. Construction does not present a preview.",
+          "result": "A writable per-instance Boolean forwarded on each show call.",
+          "errors": "Presentation errors propagate from show; setting this property does not present a preview.",
+          "limitations": [
+            "The native view conditionally omits Cancel/Continue controls. A dedicated visual check of hidden toolbars against Drafts remains pending."
+          ],
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "HTMLPreviewContractTests",
+                "test": "hideInterfaceForwardsEachInstancesCurrentValue"
+              },
+              "assertion": "A writable per-instance Boolean forwarded on each show call."
+            },
+            "defaults": {
+              "test": {
+                "suite": "HTMLPreviewContractTests",
+                "test": "constructorAndFactoryCreateIndependentInstancesWithoutPresentation"
+              },
+              "assertion": "Both constructors produce separate objects with hideInterface=false and no presentation."
+            },
+            "errors": {
+              "test": {
+                "suite": "HTMLPreviewContractTests",
+                "test": "presentationFailureStopsTheActionBeforeFollowingScriptEffects"
+              },
+              "assertion": "Host presentation errors fail the action and preserve the source editor content."
+            }
+          }
         },
         {
           "member": "show",
@@ -13875,10 +13945,48 @@
             "show(html: string): boolean"
           ],
           "contract": "Open HTML Preview window displaying the HTML string passed.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "HTMLPreviewContractTests",
+            "test": "showReturnsContinueOrCancelAndReplacesReturnedContextValues"
+          },
+          "liveCheck": "Factory and show exercised by engine-html-lifetime-actions.json. See docs/validation.md, Native HTML preview lifetime — 21 October 2026. This entry adds no new native run.",
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "HTMLPreview.show"
+          },
+          "evidenceLevel": "Member assertions run through both the legacy runner and serial worker. Native request lifecycle tests are separate from presentation checks.",
+          "defaults": "The supplied HTML string is forwarded unchanged. The current instance controls hideInterface.",
+          "result": "Boolean true for Continue and false for Cancel. Returned values replace context.previewValues, including an empty result.",
+          "errors": "Presentation failure stops the action before subsequent script effects. Native request cancellation and timeout clean up once and reject late completion.",
+          "limitations": [
+            "Native lifetime checks cover cancel, owner close, production timeout and fresh response isolation. Actual delivery of an old WebKit timer after handler removal is not proven. Capability-specific URL and App Intent checks remain pending."
+          ],
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "HTMLPreviewContractTests",
+                "test": "showReturnsContinueOrCancelAndReplacesReturnedContextValues"
+              },
+              "assertion": "Boolean true for Continue and false for Cancel. Returned values replace context.previewValues, including an empty result."
+            },
+            "defaults": {
+              "test": {
+                "suite": "HTMLPreviewContractTests",
+                "test": "constructorAndFactoryCreateIndependentInstancesWithoutPresentation"
+              },
+              "assertion": "Both constructors produce separate objects with hideInterface=false and no presentation."
+            },
+            "errors": {
+              "test": {
+                "suite": "HTMLPreviewContractTests",
+                "test": "presentationFailureStopsTheActionBeforeFollowingScriptEffects"
+              },
+              "assertion": "Host presentation errors fail the action and preserve the source editor content."
+            }
+          }
         },
         {
           "member": "create",
@@ -13890,10 +13998,42 @@
             "create(): HTMLPreview"
           ],
           "contract": "Create new instance.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "HTMLPreviewContractTests",
+            "test": "constructorAndFactoryCreateIndependentInstancesWithoutPresentation"
+          },
+          "liveCheck": "Factory and show exercised by engine-html-lifetime-actions.json. See docs/validation.md, Native HTML preview lifetime — 21 October 2026. This entry adds no new native run.",
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "HTMLPreview.create"
+          },
+          "evidenceLevel": "Member assertions run through both the legacy runner and serial worker. Native request lifecycle tests are separate from presentation checks.",
+          "defaults": "New instances have hideInterface=false. Construction does not present a preview.",
+          "result": "A new independent HTMLPreview instance.",
+          "errors": "No host work occurs during construction.",
+          "limitations": [],
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "HTMLPreviewContractTests",
+                "test": "constructorAndFactoryCreateIndependentInstancesWithoutPresentation"
+              },
+              "assertion": "A new independent HTMLPreview instance."
+            },
+            "defaults": {
+              "test": {
+                "suite": "HTMLPreviewContractTests",
+                "test": "constructorAndFactoryCreateIndependentInstancesWithoutPresentation"
+              },
+              "assertion": "Both constructors produce separate objects with hideInterface=false and no presentation."
+            },
+            "errors": {
+              "notApplicable": "Construction makes no host request and the documented constructor takes no arguments."
+            }
+          }
         }
       ]
     },

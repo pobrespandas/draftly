@@ -8097,3 +8097,28 @@ commit and refers to its preceding executable.
 
 Final tooling passed56 Python tests and matrix structure0. Strict engine/global
 remain18/4314 diagnostics. Those totals are not a compatibility percentage.
+
+
+### HTMLPreview member contracts — 21 October 2026
+
+Implemented: no production change. Reviewed all four members against the frozen
+HTMLPreview reference. Added HTMLPreviewContractTests with four identified tests,
+each run through both runner paths. Constructor and create return independent
+typed instances with no host presentation. The writable hideInterface value is
+per instance and is forwarded on every show call. Exact HTML includes empty and
+Unicode strings. Continue returns true, Cancel returns false, and empty returned
+values remove previous context values. A presentation error stops the script
+before its following editor mutation. Source text stays unchanged.
+
+Automatically tested: the targeted four-method suite passed. The checked full
+runner then verified all 613 core and 499 app method identities, with no missing
+or duplicate reports. Swift compiled the added test source. Matrix structure
+passed with zero errors. Strict engine/global gates remain 18/4274 diagnostics.
+No production build or QA refresh was needed because production did not change.
+
+Verified in use: no new native session. Preserve the earlier Native HTML preview
+lifetime record, including its stated limits. The new fake-host member tests do
+not prove WebKit presentation. Constructor and factory are complete for their
+construction contracts. hideInterface and show remain partial for hidden-toolbar
+comparison, actual stale WebKit delivery and capability-specific URL/Intent
+acceptance. No reference content, original scripts or personal data changed.

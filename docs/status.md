@@ -11,6 +11,24 @@ sections below retain their original scope and dates.
 Keep the identity Draftly, `Note`, existing identities and libraries, original
 action scripts, Nerd Fonts, and the integrated Markdown preview.
 
+## Latest contract review — HTMLPreview, 21 October 2026
+
+Implemented: no production change. The four archived HTMLPreview members now
+have individual contract records. Constructor and create are complete for their
+argument-free construction contract. hideInterface and show remain partial.
+
+Automatically tested: four new member tests run through the legacy runner and
+serial worker. They check independent instances, default and changed visibility,
+exact HTML, Continue/Cancel Boolean results, returned context values, and
+presentation failure before subsequent editor changes. The checked runner
+verified 613 core methods and 499 app methods. Matrix structure passed.
+
+Verified in use: retain the earlier native preview lifetime checks. This review
+does not add a native run. Hidden-toolbar comparison, actual stale WebKit message
+delivery and entry-specific URL/Intent checks remain pending. Strict engine and
+global gates still fail with 18 and 4274 diagnostics. These are not percentages.
+Continue with Window member contracts and native file-panel lifetime checks.
+
 ## How to read this status
 
 - **Implemented** means the code exists. It does not imply complete parity.
