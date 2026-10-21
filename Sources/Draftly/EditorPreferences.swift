@@ -76,8 +76,7 @@ struct EditorLayoutPreferences: View {
         })
         return HStack {
             Picker(dark ? "Dark Theme" : "Light Theme", selection: selection) {
-                ForEach(ThemeCatalog.builtInNames, id: \.self) { Text($0).tag("builtIn:" + $0) }
-                ForEach(themes) { Text($0.name + ($0.type == "file" ? " (File)" : "")).tag($0.type + ":" + $0.id.uuidString) }
+                ForEach(ThemePickerOptions.values(themes: themes)) { Text($0.title).tag($0.editorTag) }
             }
             if let current = themes.first(where: { $0.id == selectedID }) {
                 if current.type == "file" {

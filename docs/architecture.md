@@ -19,6 +19,13 @@ file bookmarks. It delegates to the existing preference and file-access types.
 Settings owns panels, confirmations, temporary edits and error presentation.
 Save and install precede selection. A later selection error retains prior effects.
 
+## Theme picker boundary
+
+ThemePickerOptions supplies ordered labels, identities and references without
+persistence or UI effects. Editor Settings uses type-prefixed tags. Workspace
+Settings keeps name or UUID tags. Resolution and missing references stay with
+existing consumers. Picker tags are not a new storage format.
+
 ## Action catalog boundary
 
 `ActionCatalog` is an internal value with actions and group records. It owns

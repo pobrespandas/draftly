@@ -17,10 +17,9 @@ struct WorkspacePresentationSettings: View {
         }
     }
     private var themes: [Choice] {
-        let custom = library.themes
-        return ThemeCatalog.builtInNames.map { Choice(id: $0, title: $0, value: ["name": $0]) }
-            + custom.map { Choice(id: $0.id.uuidString, title: $0.name + ($0.type == "file" ? " (File)" : ""),
-                value: ["name": $0.name, "uuid": $0.id.uuidString, "type": $0.type]) }
+        ThemePickerOptions.values(themes: library.themes).map {
+            Choice(id: $0.id, title: $0.title, value: $0.reference)
+        }
     }
     var body: some View {
         Section("Action Groups") {

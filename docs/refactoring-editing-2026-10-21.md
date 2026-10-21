@@ -68,7 +68,14 @@ No identity, signing, iCloud or installed-app replacement belongs to this work.
    import suites. Local Xcode compilation passed. Independent review found no
    behavior change. Native theme bindings remain pending.
 
-Other stages are in progress. Record each stage only after its checks pass.
+3. Theme options: implemented. ThemePickerOptions supplies ordered labels,
+   identity and references to both views. Editor tags and Workspace tags remain
+   distinct. Three new methods cover exact representations, Unicode, homonyms,
+   file labels and rename-stable identity. All 16 affected methods passed across
+   picker, preference and Workspace suites. Local Xcode compilation passed.
+   Independent review found no behavior change. Native picker checks are pending.
+
+The test fixture and native checks are still in progress.
 Automatic checks stay headless and use temporary data. Run compilation and
 tests separately. Native checks use a separate manual session and neutral data.
 Keep raw captures, logs and generated QA packages outside Git.
