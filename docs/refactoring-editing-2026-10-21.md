@@ -82,7 +82,55 @@ No identity, signing, iCloud or installed-app replacement belongs to this work.
    separate. No tests were removed. All 21 affected editor/Undo methods passed
    across five suites. Local Xcode compilation passed.
 
-Full integration and the manual inspector/theme session remain pending.
+## Integrated automatic results
+
+The checked runner verified 630 core and 557 app methods. All 1,169 baseline
+method identities remain. Eighteen characterization methods were added; none
+was deleted or renamed. All 67 Python tests passed. Matrix structure has zero
+errors. The final local Xcode build passed. No build overlapped a Swift test run.
+The pre-existing deadline test passed in this integration run. Its earlier
+failure remains recorded above; this delivery does not change engine timing.
+
+Core models, storage, backup definitions, scripting, original action fixtures,
+capability code, signing configuration and identifiers have no diff from the
+reference. The Xcode project only registers the three new internal app sources.
+The matrix and compatibility classifications are unchanged. Passing test totals
+do not prove Drafts parity.
+
+## Manual results
+
+Computer Use ran after automatic tests finished. It used a fresh temporary app,
+preferences domain and local library. The package published no Services or URL
+schemes. CloudKit and global capture shortcuts were disabled for that session.
+The habitual signed installation was neither opened by this check nor replaced.
+
+Verified in use:
+
+- Actions: add a clipboard step with its current default, edit its text, move it
+  before the script step, delete it and observe the first remaining selection.
+  Cancel leaves no new action. Save and reopen preserve name, script and disabled
+  state. Rename and toggle followed by Cancel preserve the saved values.
+- Themes: cancel a new theme and confirm its absence. Save a custom theme and
+  reopen its color. Cancel an edit and confirm the prior name and color. Rename
+  and save while keeping selection. Install and select a neutral file theme,
+  then invoke Reload without an error. Built-ins precede installed themes;
+  only file themes have the existing File suffix.
+- Workspaces: show the same labels plus No Override. Select a file theme, save,
+  and reopen with that selection. Cancel a rename and retain the saved name.
+  The first batched select/name/save gesture did not retain the theme; it is not
+  credited. Explicit select, observe, save and reopen passed. No production
+  defect was established from the batched gesture.
+- Editor: neutral Unicode text remains after organization and theme changes.
+  Undo removes the typed tail; Redo restores it. No personal data was used.
+
+Storage failures and partial effects have automatic characterization. They were
+not induced in the manual session. This is a refactoring regression check, not
+new acceptance of the full inspector, native integrations or Drafts parity.
+
+QA quit normally. Its exact registration was retired. Its package, exported
+preferences, file fixture and closed library were moved together to recoverable
+Trash under DraftlyRefactorQA-95wjducz. No QA installation or process remains.
+No screenshots or raw logs were added to Git.
 Automatic checks stay headless and use temporary data. Run compilation and
 tests separately. Native checks use a separate manual session and neutral data.
 Keep raw captures, logs and generated QA packages outside Git.
@@ -95,3 +143,19 @@ and a local build accept integration. Native inspector and theme checks remain
 separate from automatic results. This delivery does not close Draftly parity.
 Resume the retained inspector, Workspace, Settings and personalization backlog
 only when feature work resumes.
+
+## Final outcome and resume point
+
+All four accepted changes are complete. No new regression was observed in the
+checks above. Each implementation stage has a scoped commit and validated push:
+d5b1b3f (editing copy), 548576c (theme commands), ae9573b (theme options), and
+d368d48 (test fixture). The reference tag is published. The final documentation
+commit records integration and manual results. Existing WIP branches remain.
+
+Cloning remains paused. When requested, resume the Workspace per-view sort-state
+mismatch: visible rows use Workspace.scriptSort while model labels can start
+from top-level sort fields. Reproduce it in WorkspaceSortStateTests and fix it
+in a separate functional commit. Then address list defaults and unsaved Workspace
+presentation, followed by pending inspector, Settings and personalization work.
+Keep the earlier engine/API, native acceptance, identity-permission and cloud
+follow-ups. This stage does not close the Draftly Mac roadmap.

@@ -2,10 +2,15 @@
 
 Updated: 21 October 2026.
 
-Draftly works as a local Mac app. Mac parity is not complete. Cloning is paused
-for behavior-preserving inspector and personalization refactoring. Read the
-[current record](refactoring-editing-2026-10-21.md) for the diagnosis, reference
-tag, baseline and stage results. Earlier refactoring passes are closed.
+Draftly works as a local Mac app. Mac parity is not complete. The inspector and
+personalization refactoring stage is complete. Cloning remains paused until the
+user resumes feature work. Read the [current record](refactoring-editing-2026-10-21.md)
+for the reference tag, diagnosis, checks and resume point. All four extractions
+passed: editing copy, theme commands, theme options and the editor/Undo fixture.
+Final results: 630 core methods, 557 app methods, 67 Python tests, local build
+and matrix structure. Separate manual QA checked bindings, Save, Cancel, theme
+references and Undo/Redo. The installed app was not replaced. Earlier refactoring
+passes are also closed.
 Historical sections below retain their original scope and dates.
 Keep the identity Draftly, `Note`, existing identities and libraries, original
 action scripts, Nerd Fonts, and the integrated Markdown preview.

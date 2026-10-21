@@ -1,9 +1,9 @@
 # Draftly architecture
 
-## Current refactoring phase
+## Latest refactoring stage
 
 Cloning is paused. The [editing refactoring record](refactoring-editing-2026-10-21.md)
-owns the current diagnosis, reference tag and stage results. The sections below
+records the completed stage, reference tag, checks and resume point. The sections below
 record earlier work and its original acceptance scope.
 
 ## Action editing boundary
