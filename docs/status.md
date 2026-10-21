@@ -11,6 +11,26 @@ sections below retain their original scope and dates.
 Keep the identity Draftly, `Note`, existing identities and libraries, original
 action scripts, Nerd Fonts, and the integrated Markdown preview.
 
+## Latest correction — real Window list selection, 21 October 2026
+
+Implemented: WindowModel owns selectedDraftIDs. The native table and scripting
+read the same selection. selectedDrafts returns visible selected rows in list
+order, without replacing the current editor draft. Empty selection stays empty.
+Editor identity changes update selection immediately; reloading the same draft
+does not collapse a multiple selection.
+
+Automatically tested: three both-runner model contracts failed before connection
+and passed after it. A fourth test checks editor identity updates. Full working-
+tree run verified 623 core and 520 app methods, including the separate Workspace
+access suite. Unsigned Xcode build and matrix structure passed.
+
+Verified in use: Zulu and Excluded selected while Alpha stayed open; scripting
+received both in visible order. Empty selection returned no drafts while Alpha
+remained open. Success08:03/08:04. No content or flags changed. Restart check
+showed Untitled with one tab after quitting with three; it did not exercise
+restoration of prior scene IDs and does not accept restoration. Data remained.
+Continue native scene restoration and the remaining Window contracts.
+
 ## Latest correction — confirmed tab opening, 21 October 2026
 
 Implemented: a typed library scene carries a unique opening request. The worker

@@ -11910,10 +11910,48 @@
             "selectedDrafts: Draft[]"
           ],
           "contract": "Array of the drafts currently selected by the user in the draft list. Can be iterated to create custom actions which operate on the selection.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-native-list-selection",
+          "automatedTest": {
+            "suite": "WindowSelectedDraftsTests",
+            "test": "selectionUsesVisibleOrderWithoutReplacingTheOpenDraft"
+          },
+          "liveCheck": "21 October Engine QA: Zulu/Excluded selected while Alpha remained open; visible order, typed shared identity and independent arrays passed. Empty rows returned empty array with Alpha retained. Success08:03/08:04.",
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/Draftly/WindowModel.swift",
+            "symbol": "selectedDraftIDs / runner.selectedDrafts"
+          },
+          "defaults": "Empty list selection returns an empty array even when the editor has a current draft. Visible selected rows are returned in list order.",
+          "result": "A fresh array of typed Draft references. Draft identity is shared with Draft.find in the execution; changing the returned array does not change the list selection.",
+          "errors": "Reading selection does not write data. Stale IDs and rows excluded from the current list do not appear.",
+          "evidenceLevel": "Both runner paths plus native multi-selection and empty-selection checks. The model owns the selection used by both the table binding and scripting.",
+          "limitations": [
+            "Comparison with Drafts selection behavior and external modifications of selected Draft references during the same execution remain pending."
+          ],
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "WindowSelectedDraftsTests",
+                "test": "selectionUsesVisibleOrderWithoutReplacingTheOpenDraft"
+              },
+              "assertion": "Selected Alpha/Gamma appear in visible order while Beta remains the editor draft; shared Draft.find identity and independent arrays."
+            },
+            "defaults": {
+              "test": {
+                "suite": "WindowSelectedDraftsTests",
+                "test": "emptySelectionDoesNotFallBackToTheCurrentDraft"
+              },
+              "assertion": "An open editor does not synthesize a selected row."
+            },
+            "errors": {
+              "test": {
+                "suite": "WindowSelectedDraftsTests",
+                "test": "filteredOutRowsAreNotReportedAsSelected"
+              },
+              "assertion": "IDs outside the visible list are omitted without changing query or editor."
+            }
+          }
         },
         {
           "member": "currentWorkspace",

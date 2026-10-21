@@ -1,0 +1,32 @@
+[
+  {
+    "uuid": "BBBF0044-0000-4000-8000-000000000001",
+    "name": "QA Window selected rows",
+    "group": "Window contract QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "function check(v,m){if(!v)throw Error(m);}\nconst selected=app.currentWindow.selectedDrafts;\ncheck(selected.length===2,'two selected rows');\ncheck(selected[0].title==='Picker QA: Zulu'&&selected[1].title==='Picker QA: Excluded','visible row order');\ncheck(selected.every(d=>d instanceof Draft),'typed rows');\ncheck(selected[0]===Draft.find(selected[0].uuid),'shared identity');\nselected.pop();\ncheck(app.currentWindow.selectedDrafts.length===2,'independent array');\ncheck(draft.title==='Picker QA: Alpha'&&editor.getText().startsWith('Picker QA: Alpha'),'current draft stays Alpha');\nconsole.log('Two selected rows; Alpha editor preserved');\nconst workspace=app.currentWindow.currentWorkspace;\ncheck(workspace instanceof Workspace&&workspace.loadFolder==='inbox','typed current workspace');\ncheck(workspace.queryString==='','current list query');workspace.queryString='Detached only';\ncheck(app.currentWindow.currentWorkspace.queryString==='','snapshot does not apply');\nconsole.log('Current workspace snapshot detached');"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0044-0000-4000-8000-000000000002",
+    "name": "QA Window empty row selection",
+    "group": "Window contract QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "if(app.currentWindow.selectedDrafts.length!==0)throw Error('Expected no selected rows');\nif(draft.title!=='Picker QA: Alpha')throw Error('Current draft changed');\nconsole.log('Empty list selection; Alpha editor preserved');"
+        }
+      }
+    ]
+  }
+]

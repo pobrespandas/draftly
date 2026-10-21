@@ -18,6 +18,7 @@ final class WindowModel: ObservableObject {
     var cachedThemePresentation: (key: WindowThemePresentation.Key, value: WindowThemePresentation)?
     @Published var mergeRequest: MergeRequest?
     @Published var query = ""
+    @Published var selectedDraftIDs: Set<UUID> = []
     @Published var selectedTags: Set<String> = []
     @Published var excludedTags: Set<String> = []
     @Published var matchAnyTag = false
@@ -85,6 +86,7 @@ final class WindowModel: ObservableObject {
     @Published var actionPending = false
     @Published private(set) var libraryActionBusy = false
     private var actionExecutionSubscription: AnyCancellable?
+    private var editorSelectionSubscription: AnyCancellable?
     var actionTask: Task<Void, Never>?
     let arrangementSession = WindowArrangementSession()
     private let saveDraft: (Note) throws -> Void
@@ -108,6 +110,13 @@ final class WindowModel: ObservableObject {
         self.saveDraft = saveDraft ?? { try library.saveNote($0) }
         self.onAccessDraft = onAccessDraft
         runner = ActionRunner(library: library, editor: editor, host: host)
+        editorSelectionSubscription = editor.$noteID.removeDuplicates().sink { [weak self] id in
+            self?.selectedDraftIDs = Set(id.map { [$0] } ?? [])
+        }
+        runner.selectedDrafts = { [weak self] in
+            guard let self else { return [] }
+            return self.visibleNotes.filter { self.selectedDraftIDs.contains($0.id) }
+        }
         runner.readTheme = { try ThemeFileAccess.read($0, defaults: dependencies.preferences.defaults) }
         actionExecutionSubscription = ActionRunner.executionBusyPublisher(in: library).sink { [weak self] in
             self?.libraryActionBusy = $0

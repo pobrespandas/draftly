@@ -8340,3 +8340,48 @@ deliberately slow native creation, cancellation/timeout during scene creation,
 source closure before creation, concurrent native opens, native restoration,
 legacy-runner native opening or capability-specific URL/Intent variants. Those
 remain explicit in the Window member record. No complete Window parity claim.
+
+
+### Window list selection connection — 21 October 2026
+
+Implemented: Window.selectedDrafts previously had no WindowModel selection hook.
+The runner fell back to its current draft. Native list selection lived only in
+LibraryView state. WindowModel now owns the IDs used by the native table binding
+and the runner callback. The callback filters the current visible rows in list
+order. Empty selection does not synthesize the editor draft. An editor identity
+subscription updates IDs immediately; duplicate identity emissions do not
+collapse multiple selection. Existing UI navigation behavior remains.
+
+Automatically tested: WindowSelectedDraftsTests adds three both-runner contracts
+for visible order, typed/shared Draft identity, independent returned arrays,
+current editor preservation, empty selection, stale IDs and filtered-out rows.
+The initial test draft referenced a helper in the other test target and did not
+compile. Replaced it with a small suite-local builder. The compiled red run then
+failed all three contracts on both runners. The selection connection passed the
+same assertions. A fourth test covers immediate editor identity updates and
+same-draft loads. Full working-tree run verified 623 core and 520 app identities;
+it also includes the separate new WindowWorkspaceAccessTests suite. Unsigned
+Xcode build passed. No new production file or format was added.
+
+Verified in use: signed Engine QA refreshed after native Quit and absence guard;
+NSServices0. Executable SHA256:
+b17f3470cd6e853bf07160ee8d48cebc3700a40845cc47369ef3fb903c075c28.
+Debug dylib SHA256:
+869286ee3568fb807a28117c3301fd50e8810c8374b2a91aa11a2bbac12b0a65.
+Imported window-selection-actions.json. Command-click selected Zulu and Excluded
+while Alpha remained in the editor. The fixture checked both titles in visible
+order, Draft instances, shared Draft.find identity and array independence.
+History Success08:03. Selected Alpha, then Command-click removed its selection.
+No rows remained selected. The empty-selection fixture passed with Alpha still
+open; History Success08:04. No text or organization data changed. The fixture
+also checked a detached current Workspace snapshot, recorded separately.
+
+Repeated the tab success fixture and observed three tabs. Quit and relaunched
+QA. The observed window was Untitled with one tab; all five stored drafts were
+present. No prior scene request ID was observed being restored. This does not
+accept native restoration and does not establish whether the cause is system
+reopening policy, scene restoration or app selection persistence. Do not claim
+it passed or attribute a regression without a baseline comparison. Selected
+Alpha again. Final state: one Alpha tab, five drafts, no pending action/dialog.
+Selection comparison with Drafts and external selected-reference updates remain
+pending. Raw screenshots and logs stay outside Git.

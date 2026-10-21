@@ -6,7 +6,6 @@ struct LibraryView: View {
     @StateObject private var model: WindowModel
     @ObservedObject private var hub: AppController
     private let requestID: UUID?
-    @State private var selection: Set<UUID> = []
     @State private var showTagSearch = false
     @AppStorage("editor.fontName") private var fontName = "System"
     @AppStorage("editor.fontSize") private var fontSize = 17.0
@@ -70,9 +69,8 @@ struct LibraryView: View {
         .onChange(of: model.listOptions) { _, options in
             if model.selectedWorkspace == nil, let data = try? JSONEncoder().encode(options) { UserDefaults.standard.set(data, forKey: "list.options") }
         }
-        .onChange(of: selection) { _, ids in if ids.count == 1 { model.select(ids.first, focusEditor: false) } }
+        .onChange(of: model.selectedDraftIDs) { _, ids in if ids.count == 1 { model.select(ids.first, focusEditor: false) } }
         .onChange(of: model.editor.noteID) { _, id in
-            selection = id.map { [$0] } ?? []
             hub.draftSelectionDidChange(id, for: model)
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.willResignActiveNotification)) { _ in model.applicationResigned() }
@@ -104,7 +102,6 @@ struct LibraryView: View {
                 _ = hub.consumePendingDraft(for: model)
                 if hub.pendingNoteID == nil && model.editor.noteID == nil { model.create() }
             }
-            if let id = model.editor.noteID { selection = [id] }
         }
     }
 
@@ -120,7 +117,7 @@ struct LibraryView: View {
     private var sidebar: some View { DraftFiltersPanel(model: model, showTagSearch: $showTagSearch) }
 
     private var noteList: some View {
-        DraftListPanel(model: model, library: library, selection: $selection)
+        DraftListPanel(model: model, library: library, selection: $model.selectedDraftIDs)
     }
 
     private var editor: some View {
