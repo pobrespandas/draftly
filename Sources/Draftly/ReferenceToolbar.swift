@@ -10,12 +10,13 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
     private var refreshPending = false
     private var actionsVisible: Bool?
     private var floating: Bool?
+    private(set) var floatingButton: NSButton?
     private var items: [NSToolbarItem.Identifier: NSToolbarItem] = [:]
     // Anchor draft commands to their panels. Let trailing space absorb window width.
     static let defaultItemIdentifiers: [NSToolbarItem.Identifier] = (
         ["filters", NSToolbarItem.Identifier.sidebarTrackingSeparator.rawValue, "drafts"]
         + [NSToolbarItem.Identifier.flexibleSpace.rawValue]
-        + ["last", "NSToolbarSpaceItem", "navigate", "draftEditorTrackingSeparator", "capture", "flag", "tags", "folders", "NSToolbarSpaceItem", "share", "NSToolbarFlexibleSpaceItem", "search", "actions", "float"]
+        + ["last", "NSToolbarSpaceItem", "navigate", "draftEditorTrackingSeparator", "capture", "flag", "tags", "NSToolbarSpaceItem", "inbox", "archive", "trash", "NSToolbarSpaceItem", "share", "NSToolbarFlexibleSpaceItem", "palette", "quickSearch", "NSToolbarSpaceItem", "actions"]
     ).map { NSToolbarItem.Identifier($0) }
     init(model: WindowModel, window: NSWindow, splitView: NSSplitView) {
         self.model = model
@@ -27,6 +28,24 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
         toolbar.autosavesConfiguration = false
         window.titleVisibility = .hidden; window.toolbarStyle = .unified
         window.toolbar = toolbar
+        let accessory = NSTitlebarAccessoryViewController()
+        accessory.layoutAttribute = .right
+        accessory.view = NSView(frame: NSRect(x: 0, y: 0, width: 32, height: 32))
+        let button = NSButton(image: Self.floatToggleImage(isFloating: model.isFloating)!,
+                              target: self, action: #selector(floatPressed(_:)))
+        button.isBordered = false
+        button.toolTip = "Float on Top"
+        button.setAccessibilityLabel("Float on Top")
+        button.translatesAutoresizingMaskIntoConstraints = false
+        accessory.view.addSubview(button)
+        NSLayoutConstraint.activate([
+            button.widthAnchor.constraint(equalToConstant: 24),
+            button.heightAnchor.constraint(equalToConstant: 24),
+            button.centerXAnchor.constraint(equalTo: accessory.view.leadingAnchor, constant: 11),
+            button.centerYAnchor.constraint(equalTo: accessory.view.centerYAnchor)
+        ])
+        floatingButton = button
+        window.addTitlebarAccessoryViewController(accessory)
         for publisher in [model.objectWillChange, model.editor.objectWillChange, model.library.objectWillChange] {
             publisher.sink { [weak self] _ in self?.scheduleRefresh() }.store(in: &subscriptions)
         }
@@ -46,8 +65,6 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
         case "navigate": item = group(identifier, symbols: ["chevron.up", "chevron.down"], labels: ["Previous Draft", "Next Draft"])
         case "capture": item = group(identifier, symbols: ["plus", "mic"], labels: ["New Draft", "Dictate Text"])
         case "flag": item = group(identifier, symbols: ["flag", "chevron.down"], labels: ["Flag", "Flag Color"])
-        case "folders": item = group(identifier, symbols: ["tray.and.arrow.down", "archivebox", "trash"], labels: ["Move to Inbox", "Archive", "Trash"])
-        case "search": item = group(identifier, symbols: ["sparkle.magnifyingglass", "magnifyingglass"], labels: ["Command Palette", "Quick Search"])
         default:
             let description: (String, String)
             switch identifier.rawValue {
@@ -56,6 +73,11 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
             case "last": description = ("chevron.left", "Last Draft")
             case "tags": description = ("tag.fill", "Toggle Tags")
             case "share": description = ("square.and.arrow.up", "Share")
+            case "inbox": description = ("tray.and.arrow.down", "Move to Inbox")
+            case "archive": description = ("archivebox", "Archive")
+            case "trash": description = ("trash", "Trash")
+            case "palette": description = ("sparkle.magnifyingglass", "Command Palette")
+            case "quickSearch": description = ("magnifyingglass", "Quick Search")
             case "actions": description = ("sidebar.right", "Toggle Actions")
             case "float": description = ("square.on.square", "Float on Top")
             default: return nil
@@ -66,15 +88,12 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
             if identifier.rawValue == "filters" || identifier.rawValue == "drafts" {
                 item.image = Self.panelToggleImage(filters: identifier.rawValue == "filters")
             }
-            if identifier.rawValue == "float" {
-                item.image = Self.floatToggleImage(isFloating: model?.isFloating ?? false)
-                item.image?.size = NSSize(width: 12, height: 12)
-            }
             if identifier.rawValue == "actions" {
                 item.image = Self.actionsToggleImage(isVisible: model?.showActions ?? false)
             }
             item.isBordered = identifier.rawValue != "float"
-            item.target = self; item.action = #selector(pressed(_:))
+            item.target = self
+            item.action = #selector(pressed(_:))
         }
         item.autovalidates = false
         items[identifier] = item
@@ -88,11 +107,9 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
         return image
     }
     static func actionsToggleImage(isVisible: Bool) -> NSImage? {
-        guard let symbol = NSImage(systemSymbolName: "sidebar.right", accessibilityDescription: nil) else { return nil }
-        let image = NSImage(size: symbol.size, flipped: false) { rect in
-            symbol.draw(in: rect)
-            (isVisible ? NSColor.labelColor : NSColor.secondaryLabelColor).setFill()
-            rect.fill(using: .sourceIn)
+        let image = NSImage(size: NSSize(width: 18, height: 14), flipped: false) { _ in
+            (isVisible ? NSColor.labelColor : NSColor.secondaryLabelColor).setStroke()
+            drawPanelOutline(dividerX: 12)
             return true
         }
         image.isTemplate = false
@@ -102,18 +119,23 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
     private static func panelToggleImage(filters: Bool) -> NSImage {
         let image = NSImage(size: NSSize(width: 18, height: 14), flipped: false) { _ in
             NSColor.labelColor.setStroke()
-            let outline = NSBezierPath(roundedRect: NSRect(x: 0.75, y: 0.75, width: 16.5, height: 12.5), xRadius: 1.5, yRadius: 1.5)
-            outline.lineWidth = 1.3; outline.stroke()
-            let divider = NSBezierPath()
-            divider.move(to: NSPoint(x: 6, y: 1)); divider.line(to: NSPoint(x: 6, y: 13))
+            drawPanelOutline(dividerX: 6)
             if filters {
+                let divider = NSBezierPath()
                 divider.move(to: NSPoint(x: 3.3, y: 3)); divider.line(to: NSPoint(x: 3.3, y: 11))
+                divider.lineWidth = 1.1; divider.stroke()
             }
-            divider.lineWidth = 1.1; divider.stroke()
             return true
         }
         image.isTemplate = true
         return image
+    }
+    private static func drawPanelOutline(dividerX: CGFloat) {
+        let outline = NSBezierPath(roundedRect: NSRect(x: 0.75, y: 0.75, width: 16.5, height: 12.5), xRadius: 1.5, yRadius: 1.5)
+        outline.lineWidth = 1.3; outline.stroke()
+        let divider = NSBezierPath()
+        divider.move(to: NSPoint(x: dividerX, y: 1)); divider.line(to: NSPoint(x: dividerX, y: 13))
+        divider.lineWidth = 1.1; divider.stroke()
     }
     private func group(_ identifier: NSToolbarItem.Identifier, symbols: [String], labels: [String]) -> NSToolbarItemGroup {
         let images = symbols.map { NSImage(systemSymbolName: $0, accessibilityDescription: nil)! }
@@ -140,8 +162,8 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
             item.image = Self.actionsToggleImage(isVisible: model.showActions)
             actionsVisible = model.showActions
         }
-        if floating != model.isFloating, let item = items[NSToolbarItem.Identifier("float")] {
-            item.image = Self.floatToggleImage(isFloating: model.isFloating)
+        if floating != model.isFloating {
+            floatingButton?.image = Self.floatToggleImage(isFloating: model.isFloating)
             floating = model.isFloating
         }
         let title = model.currentNote?.title ?? "Draftly"
@@ -150,14 +172,13 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
         if let group = items[NSToolbarItem.Identifier("navigate")] as? NSToolbarItemGroup {
             for item in group.subitems { setEnabled(!model.visibleNotes.isEmpty, for: item) }
         }
-        if let group = items[NSToolbarItem.Identifier("folders")] as? NSToolbarItemGroup {
-            let note = model.currentNote
-            let saved = model.library.notes.contains { $0.id == note?.id }
-            setEnabled(saved && (note?.isArchived == true || note?.trashedAt != nil), for: group.subitems[0])
-            setEnabled(saved && note?.isArchived == false, for: group.subitems[1])
-            setEnabled(saved && note?.trashedAt == nil, for: group.subitems[2])
-        }
+        let note = model.currentNote
+        let saved = model.library.notes.contains { $0.id == note?.id }
+        setEnabled(saved && (note?.isArchived == true || note?.trashedAt != nil), for: items[.init("inbox")])
+        setEnabled(saved && note?.isArchived == false, for: items[.init("archive")])
+        setEnabled(saved && note?.trashedAt == nil, for: items[.init("trash")])
     }
+    @objc private func floatPressed(_ sender: NSButton) { model?.toggleFloat() }
     @objc private func pressed(_ sender: NSToolbarItem) {
         guard let model else { return }
         switch sender.itemIdentifier.rawValue {
@@ -168,6 +189,15 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
         case "share": model.perform { _ = try model.host.perform("share", values: ["text": model.editor.content]) }
         case "actions": model.showActions.toggle()
         case "float": model.toggleFloat()
+        case "palette": model.openCommandPalette()
+        case "quickSearch": model.openQuickSearch("")
+        case "inbox", "archive", "trash":
+            guard let note = model.currentNote else { return }
+            model.change([note.id]) { note in
+                if sender.itemIdentifier.rawValue == "inbox" { note.isArchived = false; note.trashedAt = nil }
+                else if sender.itemIdentifier.rawValue == "archive" { note.isArchived = true }
+                else { note.trashedAt = Date() }
+            }
         default: break
         }
     }
@@ -182,16 +212,6 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
         case "flag":
             if index == 0, let note = model.currentNote { model.change([note.id]) { $0.flag = $0.flag == 0 ? 1 : 0 } }
             else { showFlagMenu() }
-        case "folders":
-            guard let note = model.currentNote else { return }
-            model.change([note.id]) { note in
-                if index == 0 { note.isArchived = false; note.trashedAt = nil }
-                else if index == 1 { note.isArchived = true }
-                else { note.trashedAt = Date() }
-            }
-        case "search":
-            if index == 0 { model.openCommandPalette() }
-            else { model.openQuickSearch("") }
         default: break
         }
     }

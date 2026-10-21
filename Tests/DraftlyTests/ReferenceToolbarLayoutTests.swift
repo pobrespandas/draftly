@@ -6,6 +6,48 @@ import DraftlyCore
 
 @Suite("Reference toolbar layout") @MainActor
 struct ReferenceToolbarLayoutTests {
+    @Test func separateSearchItemsKeepTheirDistinctRoutesAndFolderItemsKeepTheirCommands() async throws {
+        _ = NSApplication.shared
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Neutral toolbar draft")
+        let model = WindowModel(library: library)
+        model.select(note.id, focusEditor: false)
+        var searches: [String] = []
+        model.openQuickSearch = { searches.append($0) }
+        let split = NSSplitView()
+        for _ in 0..<4 { split.addArrangedSubview(NSView()) }
+        let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 1200, height: 800),
+            styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+        let toolbar = ReferenceToolbar(model: model, window: window, splitView: split)
+        defer { withExtendedLifetime(toolbar) {} }
+        func item(_ id: String) throws -> NSToolbarItem {
+            try #require(window.toolbar?.items.first { $0.itemIdentifier.rawValue == id })
+        }
+        func invoke(_ id: String) throws {
+            let item = try item(id)
+            #expect(!(item is NSToolbarItemGroup))
+            #expect(item.isEnabled)
+            #expect(NSApp.sendAction(try #require(item.action), to: item.target, from: item))
+        }
+        try invoke("palette")
+        #expect(model.showPalette && searches.isEmpty)
+        model.showPalette = false
+        try invoke("quickSearch")
+        #expect(searches == [""] && !model.showPalette)
+        #expect(try !item("inbox").isEnabled)
+        try invoke("archive")
+        await TestMainQueue.drain()
+        #expect(library.notes.first?.isArchived == true)
+        #expect(try !item("archive").isEnabled)
+        try invoke("inbox")
+        await TestMainQueue.drain()
+        #expect(library.notes.first?.isArchived == false)
+        try invoke("trash")
+        await TestMainQueue.drain()
+        #expect(library.notes.first?.trashedAt != nil)
+        #expect(try !item("trash").isEnabled)
+    }
+
     @Test func trackingSeparatorsUseBothPanelBoundariesOnTheSameNativeSplit() throws {
         _ = NSApplication.shared
         let model = WindowModel(library: try LibraryStore(inMemory: true, seed: false))
@@ -62,20 +104,24 @@ struct ReferenceToolbarLayoutTests {
         defer { window.contentViewController = nil }
         let toolbar = ReferenceToolbar(model: model, window: window, splitView: controller.splitView)
         defer { withExtendedLifetime(toolbar) {} }
-        let item = try #require(window.toolbar?.items.first { $0.itemIdentifier.rawValue == "float" })
-        let off = try #require(item.image)
-        model.toggleFloat()
+        let button = try #require(toolbar.floatingButton)
+        #expect(window.titlebarAccessoryViewControllers.contains { $0.view === button.superview && $0.layoutAttribute == .right })
+        #expect(window.toolbar?.items.contains { $0.itemIdentifier.rawValue == "float" } == false)
+        let off = try #require(button.image)
+        #expect(button.toolTip == "Float on Top")
+        _ = NSApp.sendAction(try #require(button.action), to: button.target, from: button)
         await TestMainQueue.drain()
-        let on = try #require(item.image)
+        let on = try #require(button.image)
+        #expect(model.isFloating)
         #expect(on !== off)
         #expect(on.tiffRepresentation != off.tiffRepresentation)
         #expect(on.size == off.size)
         model.editor.selection = NSRange(location: 0, length: 0)
         await TestMainQueue.drain()
-        #expect(item.image === on)
+        #expect(button.image === on)
         model.toggleFloat()
         await TestMainQueue.drain()
-        #expect(item.image?.tiffRepresentation == off.tiffRepresentation)
+        #expect(button.image?.tiffRepresentation == off.tiffRepresentation)
     }
 
     @Test(arguments: [NSAppearance.Name.aqua, .darkAqua])
