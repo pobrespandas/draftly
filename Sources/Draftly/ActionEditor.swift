@@ -3,97 +3,101 @@ import AppKit
 import DraftlyCore
 
 struct ActionEditor: View {
-    @State var action: DraftAction
+    @State private var editingCopy: ActionEditingCopy
     @ObservedObject var library: LibraryStore
     @Environment(\.dismiss) private var dismiss
     @State private var error: String?
-    @State private var selectedStep: UUID?
-    private var shortcutConflict: String? { ActionShortcut.conflict(for: action, in: library.actions) }
+    init(action: DraftAction, library: LibraryStore) {
+        _editingCopy = State(initialValue: ActionEditingCopy(action: action))
+        self.library = library
+    }
+
+    private var shortcutConflict: String? { ActionShortcut.conflict(for: editingCopy.action, in: library.actions) }
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("Edit Action: " + action.name).font(.headline)
+                Text("Edit Action: " + editingCopy.action.name).font(.headline)
                 Spacer()
                 Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
-                Button("Save") { save() }.keyboardShortcut(.defaultAction).disabled(action.name.trimmingCharacters(in: .whitespaces).isEmpty || shortcutConflict != nil)
+                Button("Save") { save() }.keyboardShortcut(.defaultAction).disabled(editingCopy.action.name.trimmingCharacters(in: .whitespaces).isEmpty || shortcutConflict != nil)
             }.padding(16)
             Divider()
             HSplitView {
                 Form {
                     Section("Action") {
-                        TextField("Name", text: $action.name)
-                        TextField("Group", text: $action.group)
-                        TextField("Description", text: $action.presentation.description, axis: .vertical).lineLimit(2...4)
-                        TextField("SF Symbol", text: $action.symbol)
-                        Picker("Color", selection: Binding(get: { action.presentation.tintColor ?? "" },
-                            set: { action.presentation.tintColor = $0.isEmpty ? nil : $0 })) {
+                        TextField("Name", text: $editingCopy.action.name)
+                        TextField("Group", text: $editingCopy.action.group)
+                        TextField("Description", text: $editingCopy.action.presentation.description, axis: .vertical).lineLimit(2...4)
+                        TextField("SF Symbol", text: $editingCopy.action.symbol)
+                        Picker("Color", selection: Binding(get: { editingCopy.action.presentation.tintColor ?? "" },
+                            set: { editingCopy.action.presentation.tintColor = $0.isEmpty ? nil : $0 })) {
                             Text("Default").tag("")
                             ForEach(ActionTint.names, id: \.self) { Text($0.capitalized).tag($0) }
-                            if let name = action.presentation.tintColor, !ActionTint.names.contains(name) {
+                            if let name = editingCopy.action.presentation.tintColor, !ActionTint.names.contains(name) {
                                 Text(name).tag(name)
                             }
                         }
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 6)) {
                             ForEach(["bolt", "doc.on.doc", "square.and.arrow.up", "folder", "checklist", "calendar", "envelope", "message", "terminal", "globe", "wand.and.stars", "pencil"], id: \.self) { symbol in
-                                Button { action.symbol = symbol } label: { Image(systemName: symbol).frame(width: 24, height: 24).foregroundStyle(action.symbol == symbol ? Color.accentColor : .secondary) }.buttonStyle(.plain).help(symbol)
+                                Button { editingCopy.action.symbol = symbol } label: { Image(systemName: symbol).frame(width: 24, height: 24).foregroundStyle(editingCopy.action.symbol == symbol ? Color.accentColor : .secondary) }.buttonStyle(.plain).help(symbol)
                             }
                         }
-                        TextField("Section", text: $action.presentation.section)
-                        Stepper("Order: \(action.presentation.order)", value: $action.presentation.order)
+                        TextField("Section", text: $editingCopy.action.presentation.section)
+                        Stepper("Order: \(editingCopy.action.presentation.order)", value: $editingCopy.action.presentation.order)
                     }
                     Section("Editing Bar") {
-                        TextField("Label", text: Binding(get: { action.presentation.barLabel ?? "" },
-                            set: { action.presentation.barLabel = $0 }))
-                        Toggle("Show Icon", isOn: Binding(get: { action.presentation.barUsesIcon ?? true },
-                            set: { action.presentation.barUsesIcon = $0 }))
+                        TextField("Label", text: Binding(get: { editingCopy.action.presentation.barLabel ?? "" },
+                            set: { editingCopy.action.presentation.barLabel = $0 }))
+                        Toggle("Show Icon", isOn: Binding(get: { editingCopy.action.presentation.barUsesIcon ?? true },
+                            set: { editingCopy.action.presentation.barUsesIcon = $0 }))
                     }
                     Section("Visibility") {
-                        Toggle("Action List", isOn: $action.presentation.showInList)
-                        Toggle("Editing Bar", isOn: $action.presentation.showInBar)
-                        Toggle("Command Palette", isOn: $action.presentation.showInSearch)
+                        Toggle("Action List", isOn: $editingCopy.action.presentation.showInList)
+                        Toggle("Editing Bar", isOn: $editingCopy.action.presentation.showInBar)
+                        Toggle("Command Palette", isOn: $editingCopy.action.presentation.showInSearch)
                     }
                     Section("Execution") {
-                        Toggle("Confirm Before Run", isOn: $action.presentation.confirmBeforeRun)
-                        Toggle("Notify on Success", isOn: $action.presentation.notifyOnSuccess)
-                        Toggle("Notify on Error", isOn: $action.presentation.notifyOnError)
-                        Picker("Log Level", selection: Binding(get: { action.presentation.logLevel ?? 2 },
-                            set: { action.presentation.logLevel = $0 })) {
+                        Toggle("Confirm Before Run", isOn: $editingCopy.action.presentation.confirmBeforeRun)
+                        Toggle("Notify on Success", isOn: $editingCopy.action.presentation.notifyOnSuccess)
+                        Toggle("Notify on Error", isOn: $editingCopy.action.presentation.notifyOnError)
+                        Picker("Log Level", selection: Binding(get: { editingCopy.action.presentation.logLevel ?? 2 },
+                            set: { editingCopy.action.presentation.logLevel = $0 })) {
                             Text("None").tag(0)
                             Text("Errors").tag(1)
                             Text("All").tag(2)
-                            if let level = action.presentation.logLevel, !(0...2).contains(level) {
+                            if let level = editingCopy.action.presentation.logLevel, !(0...2).contains(level) {
                                 Text("Unknown (\(level))").tag(level)
                             }
                         }
                     }
                     Section("Keyboard Shortcut") {
-                        TextField("Key", text: $action.shortcut)
+                        TextField("Key", text: $editingCopy.action.shortcut)
                         ForEach(["command", "option", "control", "shift"], id: \.self) { modifier in
-                            Toggle(modifier.capitalized, isOn: Binding(get: { (action.shortcutModifiers ?? ["command", "option"]).contains(modifier) }, set: { enabled in
-                                var values = action.shortcutModifiers ?? ["command", "option"]
-                                values.removeAll { $0 == modifier }; if enabled { values.append(modifier) }; action.shortcutModifiers = values
+                            Toggle(modifier.capitalized, isOn: Binding(get: { (editingCopy.action.shortcutModifiers ?? ["command", "option"]).contains(modifier) }, set: { enabled in
+                                var values = editingCopy.action.shortcutModifiers ?? ["command", "option"]
+                                values.removeAll { $0 == modifier }; if enabled { values.append(modifier) }; editingCopy.action.shortcutModifiers = values
                             }))
                         }
                     }
                     if let shortcutConflict { Text(shortcutConflict).foregroundStyle(.red).font(.caption) }
                     Section("After Success") {
-                        Picker("Move", selection: $action.afterSuccess) {
+                        Picker("Move", selection: $editingCopy.action.afterSuccess) {
                             Text("Keep Draft").tag("none"); Text("Archive").tag("archive"); Text("Trash").tag("trash")
                         }
                     }
                     Section("After-success Tags and Flag") {
-                        TextField("Add tags", text: Binding(get: { action.presentation.addTags.joined(separator: ", ") }, set: { action.presentation.addTags = TagRules.normalize($0.components(separatedBy: ",")) }))
-                        TextField("Remove tags", text: Binding(get: { action.presentation.removeTags.joined(separator: ", ") }, set: { action.presentation.removeTags = TagRules.normalize($0.components(separatedBy: ",")) }))
-                        Picker("Flag", selection: $action.presentation.flagAfterSuccess) {
+                        TextField("Add tags", text: Binding(get: { editingCopy.action.presentation.addTags.joined(separator: ", ") }, set: { editingCopy.action.presentation.addTags = TagRules.normalize($0.components(separatedBy: ",")) }))
+                        TextField("Remove tags", text: Binding(get: { editingCopy.action.presentation.removeTags.joined(separator: ", ") }, set: { editingCopy.action.presentation.removeTags = TagRules.normalize($0.components(separatedBy: ",")) }))
+                        Picker("Flag", selection: $editingCopy.action.presentation.flagAfterSuccess) {
                             Text("Keep Current").tag(Int?.none)
                             Text("Clear Flag").tag(Optional(0))
                             ForEach(1...7, id: \.self) { value in Text(flagName(value)).tag(Optional(value)) }
                         }
                     }
-                    if !action.configuredValues.isEmpty {
+                    if !editingCopy.action.configuredValues.isEmpty {
                         Section("Configuration") {
-                            ForEach(action.configuredValues.keys.sorted(), id: \.self) { key in
-                                TextField(key, text: Binding(get: { action.configuredValues[key] ?? "" }, set: { action.configuredValues[key] = $0 }))
+                            ForEach(editingCopy.action.configuredValues.keys.sorted(), id: \.self) { key in
+                                TextField(key, text: Binding(get: { editingCopy.action.configuredValues[key] ?? "" }, set: { editingCopy.action.configuredValues[key] = $0 }))
                             }
                         }
                     }
@@ -101,7 +105,7 @@ struct ActionEditor: View {
                 VStack(spacing: 0) {
                     HStack { Text("Steps").font(.headline); Spacer() }.padding(14)
                     Divider()
-                    List(action.steps, selection: $selectedStep) { step in
+                    List(editingCopy.action.steps, selection: $editingCopy.selectedStep) { step in
                         HStack {
                             Image(systemName: DraftAction.supportedSteps.contains(step.type) ? "square.stack.3d.up" : "exclamationmark.triangle").foregroundStyle(.secondary)
                             VStack(alignment: .leading, spacing: 4) {
@@ -115,19 +119,19 @@ struct ActionEditor: View {
                     HStack {
                         Menu {
                             ForEach(DraftAction.supportedSteps.sorted().filter { $0 != "configurationKey" }, id: \.self) { type in
-                                Button(type) { let step = ActionStep(type, defaults(type)); action.steps.append(step); selectedStep = step.id }
+                                Button(type) { editingCopy.addStep(type) }
                             }
                         } label: { Image(systemName: "plus") }.menuStyle(.borderlessButton).frame(width: 24)
                         Spacer()
-                        Button { if let id = selectedStep { move(id, offset: -1) } } label: { Image(systemName: "arrow.up") }
-                        Button { if let id = selectedStep { move(id, offset: 1) } } label: { Image(systemName: "arrow.down") }
+                        Button { editingCopy.moveSelectedStep(offset: -1) } label: { Image(systemName: "arrow.up") }
+                        Button { editingCopy.moveSelectedStep(offset: 1) } label: { Image(systemName: "arrow.down") }
                         Button {
-                            if let id = selectedStep { action.steps.removeAll { $0.id == id }; selectedStep = action.steps.first?.id }
-                        } label: { Image(systemName: "trash") }.disabled(selectedStep == nil)
+                            editingCopy.removeSelectedStep()
+                        } label: { Image(systemName: "trash") }.disabled(editingCopy.selectedStep == nil)
                     }.buttonStyle(.borderless).padding(12)
                 }.frame(minWidth: 180, idealWidth: 210, maxWidth: 260)
-                if let index = action.steps.firstIndex(where: { $0.id == selectedStep }) {
-                    ActionStepInspector(step: $action.steps[index]).frame(minWidth: 320, maxWidth: .infinity)
+                if let index = editingCopy.action.steps.firstIndex(where: { $0.id == editingCopy.selectedStep }) {
+                    ActionStepInspector(step: $editingCopy.action.steps[index]).frame(minWidth: 320, maxWidth: .infinity)
                 } else {
                     ContentUnavailableView("Select a step", systemImage: "square.stack.3d.up").frame(minWidth: 320, maxWidth: .infinity)
                 }
@@ -139,27 +143,13 @@ struct ActionEditor: View {
                 if let error { Text(error).font(.caption).foregroundStyle(.red) }
                 else { Text("Unknown steps stay in the exported action.").font(.caption).foregroundStyle(.secondary) }
             }.padding(14)
-        }.frame(width: 1000, height: 700).onAppear { selectedStep = action.steps.first?.id }
+        }.frame(width: 1000, height: 700).onAppear { editingCopy.selectFirstStep() }
     }
-    private func defaults(_ type: String) -> [String: String] {
-        switch type {
-        case "script": ["script": "// Write JavaScript here.\n", "allowAsync": "false"]
-        case "runAppleScript": ["source": "return \"Hello\""]
-        case "url", "callbackUrl": ["url": "https://example.com"]
-        case "runShortcut", "includeAction": ["name": "", "template": "[[draft]]"]
-        case "file": ["name": "[[safe_title]].md", "template": "[[draft]]"]
-        default: ["template": "[[draft]]"]
-        }
-    }
-    private func move(_ id: UUID, offset: Int) {
-        guard let index = action.steps.firstIndex(where: { $0.id == id }), action.steps.indices.contains(index + offset) else { return }
-        action.steps.swapAt(index, index + offset)
-    }
-    private func save() { guard shortcutConflict == nil else { return }; do { try library.saveAction(action); dismiss() } catch { self.error = error.localizedDescription } }
+    private func save() { guard shortcutConflict == nil else { return }; do { try library.saveAction(editingCopy.action); dismiss() } catch { self.error = error.localizedDescription } }
     private func export() {
-        let panel = NSSavePanel(); panel.nameFieldStringValue = action.name + ".json"
+        let panel = NSSavePanel(); panel.nameFieldStringValue = editingCopy.action.name + ".json"
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        do { let encoder = JSONEncoder(); encoder.outputFormatting = [.prettyPrinted, .sortedKeys]; try encoder.encode(action).write(to: url, options: .atomic) }
+        do { let encoder = JSONEncoder(); encoder.outputFormatting = [.prettyPrinted, .sortedKeys]; try encoder.encode(editingCopy.action).write(to: url, options: .atomic) }
         catch { self.error = error.localizedDescription }
     }
 }

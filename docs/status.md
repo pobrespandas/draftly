@@ -2,12 +2,11 @@
 
 Updated: 21 October 2026.
 
-Draftly works as a local Mac app. Mac parity is not complete. The cloning plan
-resumed after the user requested completion of the cloning stages. The nine-stage
-refactoring pass is closed. Current work follows the motor-first roadmap.
-Read [the refactoring record](refactoring-2026-10-21.md) for the reference tag,
-saved functional branch, diagnosis, baseline and stage results. Historical
-sections below retain their original scope and dates.
+Draftly works as a local Mac app. Mac parity is not complete. Cloning is paused
+for behavior-preserving inspector and personalization refactoring. Read the
+[current record](refactoring-editing-2026-10-21.md) for the diagnosis, reference
+tag, baseline and stage results. Earlier refactoring passes are closed.
+Historical sections below retain their original scope and dates.
 Keep the identity Draftly, `Note`, existing identities and libraries, original
 action scripts, Nerd Fonts, and the integrated Markdown preview.
 

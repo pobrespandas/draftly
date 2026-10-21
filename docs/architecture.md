@@ -2,9 +2,15 @@
 
 ## Current refactoring phase
 
-Cloning is paused. The [21 October refactoring record](refactoring-2026-10-21.md)
+Cloning is paused. The [editing refactoring record](refactoring-editing-2026-10-21.md)
 owns the current diagnosis, reference tag and stage results. The sections below
 record earlier work and its original acceptance scope.
+
+## Action editing boundary
+
+ActionEditingCopy owns the temporary action, selected step and step operations.
+ActionEditor renders bindings and owns save, export, shortcut errors and dismissal.
+The editing copy does not persist data. Cancel discards it.
 
 ## Action catalog boundary
 
@@ -15,7 +21,8 @@ methods. Storage reload order remains separate.
 
 ## Workspace sort writer boundary
 
-`WorkspaceOptionsEditor.updateSortOptions` owns the common sort-field mutation.
+`Workspace.updateSortOptions` in Core owns the common sort-field mutation.
+WorkspaceOptionsEditor and the scripting bridge keep their caller policies.
 WindowModel retains its valid-object guard and silent encoding failure policy.
 The options editor retains recovery, validation and sorted serialization.
 The shared rule does not combine those different caller policies.
