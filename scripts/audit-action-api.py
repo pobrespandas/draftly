@@ -20,7 +20,7 @@ _test_reference_spec.loader.exec_module(_test_reference_module)
 SwiftTestReferences = _test_reference_module.SwiftTestReferences
 
 ROOT = Path(__file__).resolve().parent.parent
-OBJECTS = "Draft Editor Workspace Action ActionGroup ActionLog App Context Prompt SelectPrompt Tag Syntax Version Window Device HTTP HTTPResponse XMLRPC XMLRPCResponse FileManager Bookmark Credential HTML HTMLPreview HTMLToMarkdown MultiMarkdown GitHubMarkdown MustacheTemplate Shortcut AppleScript ShellScript Mail Message Calendar Event Reminder ReminderList Speech Location ModelSession Script URL CallbackURL Base64 QueryDate Task SelectPromptItem navigationMarker linkedItem Share".split()
+OBJECTS = "Draft Editor Workspace Action ActionGroup ActionLog App Context Prompt SelectPrompt Tag Syntax Version Window Device HTTP HTTPResponse XMLRPC XMLRPCResponse FileManager Bookmark Credential HTML HTMLPreview HTMLToMarkdown MultiMarkdown GitHubMarkdown MustacheTemplate Shortcut AppleScript ShellScript Mail Message Calendar Event Reminder ReminderList Speech Location ModelSession Script URL CallbackURL Base64 QueryDate Task SelectPromptItem navigationMarker linkedItem Share Theme".split()
 REFERENCE_FIELDS = {"member", "anchor", "kind", "static", "readonly", "signatures", "contract", "referenceRemoved", "referenceChanged"}
 CORE_OBJECTS = set("Draft Editor Workspace QueryDate Task navigationMarker linkedItem Syntax Version ActionLog Prompt SelectPrompt SelectPromptItem".split())
 CORE_STEPS = {"createDraft", "configureWindow", "prompt"}

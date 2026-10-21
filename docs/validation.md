@@ -7106,3 +7106,75 @@ Draftly.debug.dylib: a444ecab3aa9532d60dc7bcada549f3233237a71a45ae6c341aba1f5445
 Matrix structure has zero errors after this update. Strict engine/global
 controls still report 18/4538 diagnostics. The newly required Share inventory
 adds real open contracts. These diagnostics are not a compatibility score.
+
+### Configured App themes — 21 October 2026
+
+Implemented: app.darkTheme and app.lightTheme no longer validate and discard
+assignments. They return typed Theme values and save a device-local reference
+for each appearance. Custom references resolve UUID before name. Renames follow
+the saved identity. A missing custom definition falls back to its built-in
+slot without erasing the reference. Reinstalling that identity restores it.
+Workspace themes override the window presentation without changing this pair.
+The shared resolver rejects missing identities before changing the window.
+
+Settings now uses the same pair, with Light Theme and Dark Theme selectors.
+The previous editor.theme choice remains readable. The first explicit pair
+write keeps the matching legacy slot. Themes stay in the library; selections
+stay local. Selecting a theme does not change app.themeMode. File themes are
+not implemented and fail explicitly. Their absence is not an accepted macOS
+platform exclusion.
+
+The catalog now includes saved custom themes without requiring a UI host.
+Built-in names have one source. The Theme reference was missing from the
+required inventory. A dated 21 October supplement adds its six members and
+archived URL/hash. It does not replace the frozen 19 October baseline.
+Theme.installURL remains partial: its name-only URL cannot transfer a definition
+and has no receiving route. File-theme discovery also remains open.
+
+Automatically tested: both runners assign and read typed Themes through the
+real WindowModel adapter. Tests preserve text, selection, persisted content,
+and native Undo/Redo without opening windows. Separate models share the local
+pair. Custom renames follow UUID. Workspace overrides do not change the pair;
+a built-in reference with an unrelated UUID cannot select a custom theme.
+Preference tests cover legacy slots, separate device domains, missing and
+restored identities, unknown fields, and atomic rejection of invalid values.
+Catalog tests cover exact Unicode/type lookup, detached writable values,
+constructor identity, independent arrays and library isolation.
+
+The first preference test exposed an Objective-C exception when serializing a
+non-JSON field. Validation now rejects it before serialization or any write.
+The first combined Undo test also counted a separate selection edit as a text
+edit. The final test edits the selected text and records the selection before
+the theme assignment. Existing editor Undo tests pass unchanged.
+
+Final full regression: 484 app methods and 558 core methods passed, including
+the five unchanged original action scripts. All 46 Python tests and the
+unsigned Xcode build passed. Automatic tests presented no windows or prompts.
+
+Verified in use: refreshed and signed isolated Engine QA. Imported the neutral
+app-theme-backup.json definitions and app-theme-actions.json actions. The first
+fixture used external action fields inside a native backup; import rejected
+it with a missing-data error. The fixtures now keep those formats separate.
+Both final imports completed. QA Configure theme pair returned typed configured
+slots, preserved source text/selection and showed Configured theme pair passed.
+The editor visibly changed to the custom dark blue background #162839.
+
+Pending native acceptance: opening Settings with Command-comma caused Computer
+Use to report a closed native pipe. QA remained running. Rebinding and resetting
+the tool did not recover its AX state; Finder remained readable. Settings
+selection, light rendering, restart and cross-window refresh are not accepted.
+A user request to close the QA Settings window is pending. No system permission
+or personal preference changed. QA still has five neutral drafts. No action
+was waiting when Settings was opened.
+
+Signed QA runtime hashes:
+
+```text
+Draftly: e5b0928db77cbfb34d5cff7a5bd160c77805386701db9f32586c818ff0705281
+Draftly.debug.dylib: f20f029a8985540ecc453f07fb02189866290c45c2d7252c9ee5df52b3e8ea03
+```
+
+Matrix structure has zero errors. Strict engine/global acceptance retains
+18/4534 diagnostics. These counts do not measure compatibility. Theme value
+members have specific tests; catalog/install and App selection native gaps
+remain classified as partial.

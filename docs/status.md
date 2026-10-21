@@ -25,6 +25,15 @@ retain historical results. Later results supersede earlier counts.
 
 ## Current verification
 
+App light/dark theme assignments now persist local identity references and
+return typed values. Settings and window rendering share those references.
+Both-engine and headless tests passed. Native QA rendered the custom dark
+editor and preserved text/selection. Settings, light rendering, restart and
+cross-window native checks remain pending after a Computer Use connection
+failure. File themes and Theme.installURL remain partial. The six Theme
+members were added as a dated supplement; the baseline stays unchanged.
+
+
 app.selectDraft now applies Workspace filters, sort, initial editable query
 and row options. Specific tests and native QA selection/cancellation checks
 passed, including a corrected Escape wait. Share has a dated reference

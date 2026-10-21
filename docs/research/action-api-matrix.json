@@ -8469,10 +8469,76 @@
             "darkTheme: Theme"
           ],
           "contract": "The current dark mode theme.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "AppThemeContractTests",
+            "test": "scriptingPersistsTypedThemesAcrossWindowsAndKeepsEditorUndo"
+          },
+          "liveCheck": "Signed Engine QA accepted the pair and rendered the dark custom theme. Native Settings observation failed; further checks remain pending.",
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "defaults": "The device-local slot resolves the previous custom theme by exact name for its matching mode. Without a configured or matching legacy value it returns the Dark or Light built-in Theme. No historical preference is invented.",
+          "result": "A typed Theme for the configured device-local slot. Assignment stores a validated identity reference. Renames follow custom UUIDs. Workspace preferences override window rendering without changing this configured pair.",
+          "errors": "Missing, invalid and unsupported file references throw before preferences change. Non-JSON reference fields fail before serialization. A missing stored custom definition falls back to the slot built-in without deleting the stored reference.",
+          "implementationEvidence": {
+            "file": "Sources/Draftly/WindowThemePresentation.swift",
+            "symbol": "WindowModel.setConfiguredThemeReference"
+          },
+          "supportingTests": [
+            {
+              "suite": "AppThemeContractTests",
+              "test": "workspaceOverridesRenderingWithoutChangingTheConfiguredPair"
+            },
+            {
+              "suite": "EditorThemePreferencesTests",
+              "test": "invalidReferencesAndUnserializableFieldsLeavePreferencesUntouched"
+            },
+            {
+              "suite": "EditorThemePreferencesTests",
+              "test": "renamedDeletedAndRestoredThemesKeepTheirStoredIdentity"
+            },
+            {
+              "suite": "EditorThemePreferencesTests",
+              "test": "localPairSeedsTheLegacySlotAndDoesNotChangeModeOrOtherDevices"
+            }
+          ],
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "AppThemeContractTests",
+                "test": "scriptingPersistsTypedThemesAcrossWindowsAndKeepsEditorUndo"
+              },
+              "assertion": "Both engines assign custom and built-in typed Themes. Separate window models share local references. UUID rename follows the current definition. Text, selection, storage and native Undo/Redo remain coherent."
+            },
+            "defaults": {
+              "test": {
+                "suite": "EditorThemePreferencesTests",
+                "test": "localPairSeedsTheLegacySlotAndDoesNotChangeModeOrOtherDevices"
+              },
+              "assertion": "Unconfigured slots use mode built-ins or the matching legacy custom choice. The first write keeps the opposite legacy slot. Different defaults domains remain isolated."
+            },
+            "errors": {
+              "test": {
+                "suite": "EditorThemePreferencesTests",
+                "test": "invalidReferencesAndUnserializableFieldsLeavePreferencesUntouched"
+              },
+              "assertion": "Invalid identity, file references and non-JSON fields leave the previous preference Data unchanged."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Configured App themes — 21 October 2026"
+          },
+          "nativeVerification": {
+            "status": "pending",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Configured App themes — 21 October 2026",
+            "scope": "Assignment returned typed configured slots and rendered the custom dark editor in signed Engine QA. Settings, light rendering, restart and cross-window refresh remain pending after a Computer Use native-pipe failure."
+          },
+          "limitations": [
+            "File themes are not implemented. Native light rendering, Settings consistency, restart and cross-window refresh remain pending. Broader App.themeMode behavior has a separate contract."
+          ]
         },
         {
           "member": "lightTheme",
@@ -8484,10 +8550,76 @@
             "lightTheme: Theme"
           ],
           "contract": "The current light mode theme.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "AppThemeContractTests",
+            "test": "scriptingPersistsTypedThemesAcrossWindowsAndKeepsEditorUndo"
+          },
+          "liveCheck": "Signed Engine QA accepted the pair and rendered the dark custom theme. Native Settings observation failed; further checks remain pending.",
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-21",
+          "defaults": "The device-local slot resolves the previous custom theme by exact name for its matching mode. Without a configured or matching legacy value it returns the Dark or Light built-in Theme. No historical preference is invented.",
+          "result": "A typed Theme for the configured device-local slot. Assignment stores a validated identity reference. Renames follow custom UUIDs. Workspace preferences override window rendering without changing this configured pair.",
+          "errors": "Missing, invalid and unsupported file references throw before preferences change. Non-JSON reference fields fail before serialization. A missing stored custom definition falls back to the slot built-in without deleting the stored reference.",
+          "implementationEvidence": {
+            "file": "Sources/Draftly/WindowThemePresentation.swift",
+            "symbol": "WindowModel.setConfiguredThemeReference"
+          },
+          "supportingTests": [
+            {
+              "suite": "AppThemeContractTests",
+              "test": "workspaceOverridesRenderingWithoutChangingTheConfiguredPair"
+            },
+            {
+              "suite": "EditorThemePreferencesTests",
+              "test": "invalidReferencesAndUnserializableFieldsLeavePreferencesUntouched"
+            },
+            {
+              "suite": "EditorThemePreferencesTests",
+              "test": "renamedDeletedAndRestoredThemesKeepTheirStoredIdentity"
+            },
+            {
+              "suite": "EditorThemePreferencesTests",
+              "test": "localPairSeedsTheLegacySlotAndDoesNotChangeModeOrOtherDevices"
+            }
+          ],
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "AppThemeContractTests",
+                "test": "scriptingPersistsTypedThemesAcrossWindowsAndKeepsEditorUndo"
+              },
+              "assertion": "Both engines assign custom and built-in typed Themes. Separate window models share local references. UUID rename follows the current definition. Text, selection, storage and native Undo/Redo remain coherent."
+            },
+            "defaults": {
+              "test": {
+                "suite": "EditorThemePreferencesTests",
+                "test": "localPairSeedsTheLegacySlotAndDoesNotChangeModeOrOtherDevices"
+              },
+              "assertion": "Unconfigured slots use mode built-ins or the matching legacy custom choice. The first write keeps the opposite legacy slot. Different defaults domains remain isolated."
+            },
+            "errors": {
+              "test": {
+                "suite": "EditorThemePreferencesTests",
+                "test": "invalidReferencesAndUnserializableFieldsLeavePreferencesUntouched"
+              },
+              "assertion": "Invalid identity, file references and non-JSON fields leave the previous preference Data unchanged."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Configured App themes — 21 October 2026"
+          },
+          "nativeVerification": {
+            "status": "pending",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Configured App themes — 21 October 2026",
+            "scope": "Assignment returned typed configured slots and rendered the custom dark editor in signed Engine QA. Settings, light rendering, restart and cross-window refresh remain pending after a Computer Use native-pipe failure."
+          },
+          "limitations": [
+            "File themes are not implemented. Native light rendering, Settings consistency, restart and cross-window refresh remain pending. Broader App.themeMode behavior has a separate contract."
+          ]
         },
         {
           "member": "themeMode",
@@ -19255,6 +19387,312 @@
           ]
         }
       ]
+    },
+    {
+      "object": "Theme",
+      "url": "https://scripting.getdrafts.com/classes/Theme",
+      "sha256": "64cf47354fb3cb1ed859a7e9fa18f443554364101a64bd49a6622942b22fbf4d",
+      "snapshotDate": "2026-10-21T07:48:45.732860+00:00",
+      "referenceArchive": {
+        "path": "docs/research/action-api-reference/2026-10-21/Theme.64cf47354fb3cb1ed859a7e9fa18f443554364101a64bd49a6622942b22fbf4d.html.gz",
+        "sha256": "64cf47354fb3cb1ed859a7e9fa18f443554364101a64bd49a6622942b22fbf4d",
+        "url": "https://scripting.getdrafts.com/classes/Theme",
+        "capturedAt": "2026-10-21T07:48:45.732860+00:00"
+      },
+      "members": [
+        {
+          "member": "installURL",
+          "anchor": "installurl",
+          "kind": "property",
+          "static": false,
+          "readonly": true,
+          "signatures": [
+            "installURL: string"
+          ],
+          "contract": "URL which can be used to install this Theme in another installation of Drafts. Useful for sharing and backups.",
+          "implementation": "partial-name-only-url",
+          "automatedTest": null,
+          "liveCheck": null,
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Theme.installURL"
+          },
+          "compatibilityStatus": "partial",
+          "defaults": "The reference specifies no configurable defaults.",
+          "result": "The current bridge returns a draftly name-only theme URL.",
+          "errors": "No theme URL receiver currently validates or installs this URL.",
+          "nativeVerification": {
+            "status": "pending",
+            "reason": "Theme installation is not implemented."
+          },
+          "limitations": [
+            "The name-only URL cannot transfer a theme definition and has no receiving route. Installation and contract tests remain open."
+          ]
+        },
+        {
+          "member": "name",
+          "anchor": "name",
+          "kind": "property",
+          "static": false,
+          "readonly": false,
+          "signatures": [
+            "name: string"
+          ],
+          "contract": "The name of the theme definition.",
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "ThemeCatalogContractTests",
+            "test": "headlessCatalogFindsStoredThemesByExactNameAndType"
+          },
+          "liveCheck": null,
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Theme.name"
+          },
+          "compatibilityStatus": "complete",
+          "defaults": "The reference does not specify initial field values. Draftly supplies Default and builtIn; these values are not asserted as Drafts defaults.",
+          "result": "A writable string name on the detached Theme value. Changing it does not rename a saved definition.",
+          "errors": "No errors are documented for this value member.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ThemeCatalogContractTests",
+                "test": "headlessCatalogFindsStoredThemesByExactNameAndType"
+              },
+              "assertion": "Typed distinct values expose writable name and type fields. Catalog values are detached from stored definitions."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ThemeCatalogContractTests",
+                "test": "constructorsAndEmptyLibrariesDoNotShareCustomCatalogEntries"
+              },
+              "assertion": "Construction exposes string fields without assuming undocumented Drafts default strings."
+            },
+            "errors": {
+              "notApplicable": "No error outcome is documented for this value member."
+            }
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This member is a JavaScript value contract. It does not present UI or use native capabilities."
+          },
+          "limitations": []
+        },
+        {
+          "member": "type",
+          "anchor": "type",
+          "kind": "property",
+          "static": false,
+          "readonly": false,
+          "signatures": [
+            "type: themeType"
+          ],
+          "contract": "The type (builtIn, custom, file) of the theme definition.",
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "ThemeCatalogContractTests",
+            "test": "headlessCatalogFindsStoredThemesByExactNameAndType"
+          },
+          "liveCheck": null,
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Theme.type"
+          },
+          "compatibilityStatus": "complete",
+          "defaults": "The reference does not specify initial field values. Draftly supplies Default and builtIn; these values are not asserted as Drafts defaults.",
+          "result": "A writable type on the detached Theme value. The documented types are builtIn, custom and file.",
+          "errors": "No errors are documented for this value member.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ThemeCatalogContractTests",
+                "test": "headlessCatalogFindsStoredThemesByExactNameAndType"
+              },
+              "assertion": "Typed distinct values expose writable name and type fields. Catalog values are detached from stored definitions."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ThemeCatalogContractTests",
+                "test": "constructorsAndEmptyLibrariesDoNotShareCustomCatalogEntries"
+              },
+              "assertion": "Construction exposes string fields without assuming undocumented Drafts default strings."
+            },
+            "errors": {
+              "notApplicable": "No error outcome is documented for this value member."
+            }
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This member is a JavaScript value contract. It does not present UI or use native capabilities."
+          },
+          "limitations": []
+        },
+        {
+          "member": "constructor",
+          "anchor": "constructor",
+          "kind": "constructor",
+          "static": false,
+          "readonly": false,
+          "signatures": [
+            "new Theme(): Theme"
+          ],
+          "contract": "",
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "ThemeCatalogContractTests",
+            "test": "constructorsAndEmptyLibrariesDoNotShareCustomCatalogEntries"
+          },
+          "liveCheck": null,
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Theme.constructor"
+          },
+          "compatibilityStatus": "complete",
+          "defaults": "The reference does not specify initial field values. Draftly supplies Default and builtIn; these values are not asserted as Drafts defaults.",
+          "result": "A distinct typed Theme object for each construction.",
+          "errors": "No errors are documented for this value member.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ThemeCatalogContractTests",
+                "test": "constructorsAndEmptyLibrariesDoNotShareCustomCatalogEntries"
+              },
+              "assertion": "Typed distinct values expose writable name and type fields. Catalog values are detached from stored definitions."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ThemeCatalogContractTests",
+                "test": "constructorsAndEmptyLibrariesDoNotShareCustomCatalogEntries"
+              },
+              "assertion": "Construction exposes string fields without assuming undocumented Drafts default strings."
+            },
+            "errors": {
+              "notApplicable": "No error outcome is documented for this value member."
+            }
+          },
+          "nativeVerification": {
+            "status": "not-required",
+            "reason": "This member is a JavaScript value contract. It does not present UI or use native capabilities."
+          },
+          "limitations": []
+        },
+        {
+          "member": "find",
+          "anchor": "find",
+          "kind": "method",
+          "static": true,
+          "readonly": false,
+          "signatures": [
+            "find(type: themeType, name: string): Theme | undefined"
+          ],
+          "contract": "Search for a theme definition matching the type and name passed and return it if found. Returns undefined if not found.",
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "ThemeCatalogContractTests",
+            "test": "headlessCatalogFindsStoredThemesByExactNameAndType"
+          },
+          "liveCheck": null,
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Theme.find"
+          },
+          "compatibilityStatus": "partial",
+          "defaults": "Arguments to find are required by the reference. getAll has no arguments.",
+          "result": "Exact type and name lookup returns a typed Theme or undefined. getAll returns an independent array of typed built-in and saved custom themes from the current library.",
+          "errors": "Missing names and unsupported file or unknown types produce no match. The lookup does not mutate stored definitions.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ThemeCatalogContractTests",
+                "test": "headlessCatalogFindsStoredThemesByExactNameAndType"
+              },
+              "assertion": "Both engines find exact Unicode names, separate built-in/custom names and return fresh typed arrays."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ThemeCatalogContractTests",
+                "test": "constructorsAndEmptyLibrariesDoNotShareCustomCatalogEntries"
+              },
+              "assertion": "An empty current library contains built-ins only; custom values in another library do not leak."
+            },
+            "errors": {
+              "test": {
+                "suite": "ThemeCatalogContractTests",
+                "test": "headlessCatalogFindsStoredThemesByExactNameAndType"
+              },
+              "assertion": "Missing names, case/space/prefix mismatches and other types return undefined."
+            }
+          },
+          "nativeVerification": {
+            "status": "pending",
+            "reason": "Native file-theme discovery and comparison remain pending."
+          },
+          "limitations": [
+            "File-theme discovery is not implemented. Draftly built-in names are not a measured Drafts catalog."
+          ]
+        },
+        {
+          "member": "getAll",
+          "anchor": "getall",
+          "kind": "method",
+          "static": true,
+          "readonly": false,
+          "signatures": [
+            "getAll(): Theme[]"
+          ],
+          "contract": "Get list of all available themees.",
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "ThemeCatalogContractTests",
+            "test": "headlessCatalogFindsStoredThemesByExactNameAndType"
+          },
+          "liveCheck": null,
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "Theme.getAll"
+          },
+          "compatibilityStatus": "partial",
+          "defaults": "Arguments to find are required by the reference. getAll has no arguments.",
+          "result": "Exact type and name lookup returns a typed Theme or undefined. getAll returns an independent array of typed built-in and saved custom themes from the current library.",
+          "errors": "Missing names and unsupported file or unknown types produce no match. The lookup does not mutate stored definitions.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ThemeCatalogContractTests",
+                "test": "headlessCatalogFindsStoredThemesByExactNameAndType"
+              },
+              "assertion": "Both engines find exact Unicode names, separate built-in/custom names and return fresh typed arrays."
+            },
+            "defaults": {
+              "test": {
+                "suite": "ThemeCatalogContractTests",
+                "test": "constructorsAndEmptyLibrariesDoNotShareCustomCatalogEntries"
+              },
+              "assertion": "An empty current library contains built-ins only; custom values in another library do not leak."
+            },
+            "errors": {
+              "test": {
+                "suite": "ThemeCatalogContractTests",
+                "test": "headlessCatalogFindsStoredThemesByExactNameAndType"
+              },
+              "assertion": "Missing names, case/space/prefix mismatches and other types return undefined."
+            }
+          },
+          "nativeVerification": {
+            "status": "pending",
+            "reason": "Native file-theme discovery and comparison remain pending."
+          },
+          "limitations": [
+            "File-theme discovery is not implemented. Draftly built-in names are not a measured Drafts catalog."
+          ]
+        }
+      ]
     }
   ],
   "installedDraftsVersion": "54.1.1",
@@ -22009,6 +22447,15 @@
         "sha256": "7a1ed21998857605b1e9efbde6ac1ac64b8e2f6058e7b511ab8b0305bfc8b47f",
         "url": "https://scripting.getdrafts.com/classes/Share",
         "capturedAt": "2026-10-21T07:13:30.064843+00:00"
+      }
+    },
+    {
+      "object": "Theme",
+      "referenceArchive": {
+        "path": "docs/research/action-api-reference/2026-10-21/Theme.64cf47354fb3cb1ed859a7e9fa18f443554364101a64bd49a6622942b22fbf4d.html.gz",
+        "sha256": "64cf47354fb3cb1ed859a7e9fa18f443554364101a64bd49a6622942b22fbf4d",
+        "url": "https://scripting.getdrafts.com/classes/Theme",
+        "capturedAt": "2026-10-21T07:48:45.732860+00:00"
       }
     }
   ]

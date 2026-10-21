@@ -9,6 +9,12 @@ spec.loader.exec_module(audit)
 
 
 class ReferenceTests(unittest.TestCase):
+    def test_theme_is_required_by_global_parity_scope(self):
+        self.assertIn("Theme", audit.OBJECTS)
+        self.assertIn("Missing scope object: Theme", audit.validate_matrix({}, require_parity=True))
+        self.assertNotIn("Missing scope object: Theme",
+                         audit.validate_matrix({}, require_parity=True, scope="core"))
+
     def test_share_is_required_by_global_parity_scope(self):
         self.assertIn("Share", audit.OBJECTS)
         errors = audit.validate_matrix({}, require_parity=True)
