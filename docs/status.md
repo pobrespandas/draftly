@@ -11,8 +11,8 @@ Workspace sort, list preference ownership and shortcut/font fixes are committed.
 The measured pass aligns five list titles, row pitch and editor text at
 1200 by 800 points against Drafts. New reference captures at 1033 by 734 and
 850 by 600 points are valid at 2x. Right toolbar alignment is still being refined.
-The latest checked complete run passed 646 Core and 617 app methods. Python: 68.
-Local Debug passed. An initial new Spotlight test found unstable payload order;
+The latest checked complete run passed 646 Core and 626 app methods. Python: 68.
+Local Debug and signed Release passed. An initial new Spotlight test found unstable payload order;
 its identity-order correction passed focused and complete checks. Prior engine
 timing fragility remains documented, without retries or deadline changes.
 
@@ -21,6 +21,12 @@ editor line-height/paragraph spacing and custom Touch Bar support. Specific
 Markdown, HTML and bookmark contracts now have separate tests. Native Workspace
 lifecycle checks passed for the two named QA definitions. Spotlight result
 opening, native Settings persistence and the remaining visual matrix stay open.
+Workspace application now rejects malformed presentation references before any
+change. Built-in theme picker identity matches the resolver. Normal theme scope
+backgrounds are applied. Invalid paragraph preferences render safely. Typewriter
+centers short and empty documents without clearing selection or Undo. Specific
+regressions and previous-implementation failures are in the delivery record.
+Native checks for these changes remain pending.
 The host has no Touch Bar. Do not treat headless construction as hardware
 acceptance. The habitual app is unchanged by this delivery. Do not install yet.
 The earlier [refactoring record](refactoring-editing-2026-10-21.md) retains the
