@@ -36,8 +36,11 @@ Signed isolated QA passed custom light/dark rendering, configured slots after
 restart, Settings consistency, folder selection, file rendering, changed-source
 reload, invalid-file recovery and native Undo/Redo. External theme URLs passed
 installation, Cancel, Replace, identity/unknown-field checks and identical
-reimport without an alert. Native cross-window refresh, moved-file reselection,
-permission lifetime and remaining Drafts comparisons stay pending. The earlier
+reimport without an alert. Native file-specific reload, moved-source following,
+reselection with stable UUID,
+cross-window refresh and folder discovery after restart also passed. Forced stale
+bookmarks, sandbox permissions and remaining Drafts comparisons stay pending.
+The earlier
 QA native-pipe and temporary-app URL registration failures are retained in the
 validation history. Theme contracts remain partial.
 

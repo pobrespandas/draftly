@@ -7399,3 +7399,45 @@ for the visual pass. Raw screenshots and logs remain outside Git.
 Matrix structure passed with zero errors. Strict engine/global checks retain
 18/4529 unresolved diagnostics. These checks remain open; the theme work does
 not close the motor or the full Mac roadmap.
+
+
+### Native file-theme lifecycle — 21 October 2026
+
+Verified in use on the same signed Theme QA build and isolated library recorded
+above. This session changed neutral source copies only. Production source and
+runtime images did not change. Full regression and build results above remain
+the latest code validation; they were not rerun for this manual record.
+
+| Case | Observed result |
+| --- | --- |
+| File Reload with folder refresh off | Changing day.json to D6E5F5 and clicking the slot Reload changed the editor; café selection remained |
+| Move source, then File Reload | Moved the original to `/tmp/Draftly Theme Moved/day.json`, changed it to F4E2C5, and Reload followed the bookmark and rendered the new color |
+| Inspect configured/catalog identity | Neutral action found the same file Theme by name and UUID, and checked the portable payload UUID; UUID EE96C215-E109-4001-B12A-89C4D620855B, source F4E2C5 |
+| Reselect a different source | Selected `/tmp/Draftly Theme Reselected/day.json` with the same theme name and E1F0D5; rendered color changed and the inspection action returned the same UUID |
+| Cross-window refresh | Opened Zulu in an independent window, set both windows to light, changed the reselected source to CCDDEE and clicked File Reload; Zulu and the original Alpha window both rendered the new color |
+| Editor preservation across windows | Alpha retained its text and selected café after returning through Window menu; Zulu retained its own draft |
+| Launch discovery | Enabled refresh, quit, confirmed process absence, then added a new QA Launch discovered source to the chosen folder; after relaunch the file theme appeared in Settings without a manual reload |
+| Local access after restart | Configured file slot survived; inspection action read CCDDEE with the same UUID after relaunch |
+
+Reproduction action: `scripts/fixtures/file-theme-actions.json`. Import it in
+isolated QA and select a neutral light file theme. The action checks typed file
+lookup and portable source identity without editing the draft. Keep before and
+after UUID results when testing Reselect. It does not compare with Drafts.
+
+A native Reselect cancellation check was interrupted by Computer Use focus-change
+errors. Its last observed window was Settings. It is not accepted. The older
+user response about closing Engine QA Settings arrived after the fresh Theme
+QA app was already working; it did not establish any additional result.
+
+The moved bookmark worked, but its stale flag was not observed. A forced stale
+bookmark check remains pending. `codesign -d --entitlements -` shows no
+entitlements on this QA signature; the production entitlement file also has no
+app-sandbox key. Successful local access after restart therefore does not prove
+sandbox permission lifetime. Native portable file-snapshot transfer, official
+source-format UI acceptance, full Theme catalog comparison and same-library
+snapshot identity comparison remain pending. Do not mark full theme parity
+from these local lifecycle checks. No screenshots or raw logs were added.
+
+The system Python tooling run could not import Pillow and did not count as a
+complete run. Repeating with the bundled runtime passed all 46 Python tests.
+The matrix structure check passed. Production code was unchanged in this session.

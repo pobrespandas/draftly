@@ -8474,7 +8474,7 @@
             "suite": "AppThemeContractTests",
             "test": "scriptingPersistsTypedThemesAcrossWindowsAndKeepsEditorUndo"
           },
-          "liveCheck": "docs/validation.md: Development-folder themes and native acceptance — 21 October 2026",
+          "liveCheck": "docs/validation.md: Native file-theme lifecycle — 21 October 2026",
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-21",
           "defaults": "The device-local slot resolves the previous custom theme by exact name for its matching mode. Without a configured or matching legacy value it returns the Dark or Light built-in Theme. No historical preference is invented.",
@@ -8541,11 +8541,11 @@
           "nativeVerification": {
             "status": "pending",
             "date": "2026-10-21",
-            "evidence": "docs/validation.md: Development-folder themes and native acceptance — 21 October 2026",
-            "scope": "Signed isolated QA passed custom light/dark rendering, configured slot persistence after restart, Settings consistency, file selection from a chosen development folder, manual reload and invalid-folder recovery. Text, selection and Undo/Redo remained intact. Cross-window refresh, moved-file reselection and permission lifetime remain pending."
+            "evidence": "docs/validation.md: Native file-theme lifecycle — 21 October 2026",
+            "scope": "Signed isolated QA passed custom light/dark rendering, configured slots after restart, Settings consistency, light-slot file selection, folder and file-specific reload, moved-source following, reselection with stable UUID, cross-window rendering refresh and launch discovery. Editor text, selection and Undo/Redo checks passed. Forced stale bookmarks and sandbox access are not proved."
           },
           "limitations": [
-            "Native cross-window refresh, moved-file reselection and sandbox permission lifetime remain pending. Chosen-folder discovery runs at launch, activation or manual reload; automatic standard-folder discovery and continuous watching are not implemented. Broader App.themeMode behavior has a separate contract."
+            "Forced stale-bookmark and sandbox permission behavior remain unverified. The QA signature has no app-sandbox entitlement, so successful local access after restart is not sandbox acceptance. Reselect cancellation was interrupted and is not accepted. Chosen-folder discovery runs at launch, activation or manual reload; automatic standard-folder discovery and continuous watching are not implemented. Broader App.themeMode behavior has a separate contract."
           ]
         },
         {
@@ -8563,7 +8563,7 @@
             "suite": "AppThemeContractTests",
             "test": "scriptingPersistsTypedThemesAcrossWindowsAndKeepsEditorUndo"
           },
-          "liveCheck": "docs/validation.md: Development-folder themes and native acceptance — 21 October 2026",
+          "liveCheck": "docs/validation.md: Native file-theme lifecycle — 21 October 2026",
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-21",
           "defaults": "The device-local slot resolves the previous custom theme by exact name for its matching mode. Without a configured or matching legacy value it returns the Dark or Light built-in Theme. No historical preference is invented.",
@@ -8630,11 +8630,11 @@
           "nativeVerification": {
             "status": "pending",
             "date": "2026-10-21",
-            "evidence": "docs/validation.md: Development-folder themes and native acceptance — 21 October 2026",
-            "scope": "Signed isolated QA passed custom light/dark rendering, configured slot persistence after restart, Settings consistency, file selection from a chosen development folder, manual reload and invalid-folder recovery. Text, selection and Undo/Redo remained intact. Cross-window refresh, moved-file reselection and permission lifetime remain pending."
+            "evidence": "docs/validation.md: Native file-theme lifecycle — 21 October 2026",
+            "scope": "Signed isolated QA passed custom light/dark rendering, configured slots after restart, Settings consistency, light-slot file selection, folder and file-specific reload, moved-source following, reselection with stable UUID, cross-window rendering refresh and launch discovery. Editor text, selection and Undo/Redo checks passed. Forced stale bookmarks and sandbox access are not proved."
           },
           "limitations": [
-            "Native cross-window refresh, moved-file reselection and sandbox permission lifetime remain pending. Chosen-folder discovery runs at launch, activation or manual reload; automatic standard-folder discovery and continuous watching are not implemented. Broader App.themeMode behavior has a separate contract."
+            "Forced stale-bookmark and sandbox permission behavior remain unverified. The QA signature has no app-sandbox entitlement, so successful local access after restart is not sandbox acceptance. Reselect cancellation was interrupted and is not accepted. Chosen-folder discovery runs at launch, activation or manual reload; automatic standard-folder discovery and continuous watching are not implemented. Broader App.themeMode behavior has a separate contract."
           ]
         },
         {
@@ -19694,7 +19694,7 @@
             "suite": "ThemeCatalogContractTests",
             "test": "headlessCatalogFindsStoredThemesByExactNameAndType"
           },
-          "liveCheck": "docs/validation.md: Development-folder themes and native acceptance — 21 October 2026",
+          "liveCheck": "docs/validation.md: Native file-theme lifecycle — 21 October 2026",
           "reviewDate": "2026-10-21",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
@@ -19730,8 +19730,8 @@
           "nativeVerification": {
             "status": "pending",
             "date": "2026-10-21",
-            "evidence": "docs/validation.md: Development-folder themes and native acceptance — 21 October 2026",
-            "scope": "Settings listed both discovered file definitions. A script resolved the configured file Theme and rendered its source. Full catalog comparison with Drafts remains pending."
+            "evidence": "docs/validation.md: Native file-theme lifecycle — 21 October 2026",
+            "scope": "Settings listed discovered file definitions, including a source added while QA was stopped and loaded on relaunch. A script checked configured/catalog UUID agreement and current portable source before and after reselection. Full catalog comparison with Drafts remains pending."
           },
           "limitations": [
             "Chosen-folder discovery validates direct supported files on launch, activation or manual reload. Automatic standard-folder discovery and continuous watching are not implemented. Missing sources and restored metadata stay listed; applying or exporting requires valid local access. Full native catalog comparison remains pending."
@@ -19778,7 +19778,7 @@
             "suite": "ThemeCatalogContractTests",
             "test": "headlessCatalogFindsStoredThemesByExactNameAndType"
           },
-          "liveCheck": "docs/validation.md: Development-folder themes and native acceptance — 21 October 2026",
+          "liveCheck": "docs/validation.md: Native file-theme lifecycle — 21 October 2026",
           "reviewDate": "2026-10-21",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
@@ -19814,8 +19814,8 @@
           "nativeVerification": {
             "status": "pending",
             "date": "2026-10-21",
-            "evidence": "docs/validation.md: Development-folder themes and native acceptance — 21 October 2026",
-            "scope": "Settings listed both discovered file definitions. A script resolved the configured file Theme and rendered its source. Full catalog comparison with Drafts remains pending."
+            "evidence": "docs/validation.md: Native file-theme lifecycle — 21 October 2026",
+            "scope": "Settings listed discovered file definitions, including a source added while QA was stopped and loaded on relaunch. A script checked configured/catalog UUID agreement and current portable source before and after reselection. Full catalog comparison with Drafts remains pending."
           },
           "limitations": [
             "Chosen-folder discovery validates direct supported files on launch, activation or manual reload. Automatic standard-folder discovery and continuous watching are not implemented. Missing sources and restored metadata stay listed; applying or exporting requires valid local access. Full native catalog comparison remains pending."

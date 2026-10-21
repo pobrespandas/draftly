@@ -1,0 +1,17 @@
+[
+  {
+    "uuid": "BBBF0028-0000-4000-8000-000000000001",
+    "name": "QA Inspect configured file theme",
+    "group": "File theme QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "const t=app.lightTheme;\nif(!(t instanceof Theme)||t.type!=='file')throw Error('Select the neutral light file theme first');\nconst found=Theme.find('file',t.name);\nif(!found||found.uuid!==t.uuid)throw Error('Configured/catalog identity mismatch');\nconst payload=JSON.parse(decodeURIComponent(t.installURL.split('data=')[1]));\nif(payload.id.toUpperCase()!==t.uuid.toUpperCase())throw Error('Portable source identity mismatch');\napp.displayInfoMessage(t.uuid+'; source '+payload.background);"
+        }
+      }
+    ]
+  }
+]
