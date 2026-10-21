@@ -6192,3 +6192,14 @@ and all 41 bundled-Python tests passed. Matrix structure passed. Strict engine
 and global output and exit codes match the original 18/4,841 diagnostics byte
 for byte. Independent review found no concrete regression in stages 7–9.
 No visible window, permission, sound or native acceptance check ran.
+
+
+### Isolated line-up regression — 21 October 2026
+
+Local branch agent/wip-editor-line-up-2026-10-21 at 3af40f2 contains only
+EditorActionBarEditingTests.lineUpMovesTheSelectedUnicodeBlock. Its build
+passed and its text expectation failed once, as expected. No functional fix
+was added. The red reproducer is not in main and was not pushed. After return
+to main, all four editing-bar methods/40 cases passed. Main retains the full
+467 app/508 core pass, 41 Python tests and unsigned build from stage 9.
+No source, fixture, format or matrix changed during branch preservation.

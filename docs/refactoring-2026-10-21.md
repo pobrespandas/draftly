@@ -23,6 +23,15 @@ fixture has not run. Keep the correction separate from refactoring commits.
 The stable base still has the known defect. A green base suite does not prove
 that duplicate-name lookup is correct.
 
+A second local WIP branch, `agent/wip-editor-line-up-2026-10-21`, now saves
+commit `3af40f2`. It contains only the regression
+`EditorActionBarEditingTests.lineUpMovesTheSelectedUnicodeBlock`. Compilation
+passed and its text expectation failed once, as intended. There is no fix in
+that commit. The failing test is not in main and the branch was not pushed.
+After return to main, all four editing-bar methods and 40 cases passed again.
+Review this reproducer and the existing current-behavior cases together when
+making the separate line-up correction.
+
 No test, build, or push process was active at the start of this phase. Engine,
 Scale, Restore and Visual QA apps and the callback helper were running. They
 remain available for a separate manual session.
@@ -88,7 +97,8 @@ boundaries. Remove an assertion only after its replacement coverage is named.
 
 Read the stable API matrix and the saved functional branch before resuming.
 The duplicate-name correction must be reviewed and merged independently; its
-native acceptance remains pending. Review the saved code and tests separately
+native acceptance remains pending. The separate line-up reproducer also needs
+a functional correction; it is intentionally red on its local branch. Review the saved code and tests separately
 from its old status and matrix edits. Reconcile that evidence with the current
 refactoring record instead of replacing current documentation with the WIP copy. Other Actions, engine, native integration,
 inspector, workspace, visual, data and sync work remains in the Mac roadmap.
@@ -344,7 +354,8 @@ regression in stages 7–9. No manual session was required.
 
 All nine refactoring stages are validated checkpoints. They do not
 complete a repository rewrite or Mac parity. Independent review found no concrete
-regression in the production changes. The following work remains explicit:
+regression in the production changes. No extraction remains half-finished.
+The retained boundaries and separate functional work below remain explicit:
 
 - Keep the Python tokenizer diagnostic and production statistics tests. The
   script exposes callback, overlap, empty-range and order diagnostics. Its
@@ -373,5 +384,24 @@ open, activate or move visible windows, request permissions, play sounds or
 use personal data. No manual Computer Use session ran. Signed installation,
 permissions, native parity and connected-client sync were not revalidated.
 
-Cloning remains paused. The saved functional branch still requires its own
-review and native acceptance. Its correction has not entered main.
+Cloning remains paused. Both WIP branches remain local and separate. The
+Action.find correction still needs review and native acceptance. The line-up
+branch is a failing reproducer, not a correction. Neither entered main.
+
+## Final checkpoint
+
+The continuation implemented stages 7–9 after the first six validated stages.
+All code and tests were reviewed with assigned subagents. The original
+reference tag is retained. Note, record persistence, bridge resources, original
+action fixtures and the API matrix have no diff from that reference.
+
+Validated main production checkpoint: `57219e2`. The full suite passed 467 app
+and 508 core methods. All 41 Python tests and the unsigned Xcode build passed.
+After the isolated red reproduction, main was restored and the editing-bar
+suite passed all four methods/40 cases again. Strict outputs retain the same
+18 engine and 4,841 global diagnostics and exit codes. These are not parity
+acceptance or new failures. No manual or signed acceptance was repeated.
+
+To resume cloning, first review the two separate functional commits and the
+current API matrix. Then use docs/status.md for the remaining Mac contracts.
+The full Draftly plan remains open; this refactoring does not close it.

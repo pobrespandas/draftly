@@ -43,6 +43,10 @@ The functional `Action.find` duplicate-name correction is saved separately in
 native acceptance is pending. It is not in the refactoring base. Other Mac
 contracts remain pending. The API matrix owns current member classifications;
 test totals are not a compatibility percentage.
+The new line-up text no-op has a separate local reproducer at `3af40f2` on
+`agent/wip-editor-line-up-2026-10-21`. That test is intentionally failing;
+there is no correction in it and it is not in main. See the refactoring record
+before applying either functional WIP.
 
 ## Architecture refactoring completed 19 October 2026
 
