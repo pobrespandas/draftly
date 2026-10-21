@@ -18,9 +18,12 @@ when their allowed operations, failures, or callback order differ.
 `TestPreferences` creates a unique preferences domain. Each test calls `close()`
 in `defer` to remove that domain.
 
-`TestUndoTextView` supplies the same Undo manager to three app test suites.
-Each suite retains its own editor setup and grouping rules.
-Do not combine fixtures when the setup is part of the behavior under test.
+`TestUndoTextView` supplies a stable Undo manager to offscreen editor tests.
+`ScriptUndoEditorFixture` connects that text view, coordinator and script callbacks
+for AppThemeContractTests and AutomationEditorContextTests. Both consumers call
+`close()` in defer to disconnect callbacks and remove Undo actions. Each caller
+keeps its font, content and change callback. Other suites retain their own setup
+and grouping rules. Do not combine fixtures when setup is part of the contract.
 
 ## Duplicate cases removed
 

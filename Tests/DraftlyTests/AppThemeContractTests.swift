@@ -25,12 +25,9 @@ struct AppThemeContractTests {
         let model = WindowModel(library: library, dependencies: dependencies)
         let note = try library.createNote(content: "Original 🐼"); model.select(note.id)
         let native = NativeEditor(session: model.editor, fontName: "System", fontSize: 17, lineSpacing: 2, markdown: false, onChange: {})
-        let coordinator = NativeEditor.Coordinator(native), text = TestUndoTextView(frame: .zero)
-        text.string = note.content; coordinator.textView = text; text.manager.groupsByEvent = false
-        model.editor.synchronizeScriptEdit = {
-            text.manager.beginUndoGrouping(); coordinator.synchronizeScriptEdit(); text.manager.endUndoGrouping()
-        }
-        model.editor.performUndo = { redo in if redo { text.manager.redo() } else { text.manager.undo() } }
+        let editorFixture = ScriptUndoEditorFixture(native, content: note.content)
+        defer { editorFixture.close() }
+        let text = editorFixture.text
         for async in [false, true] {
             model.editor.selection = NSRange(location: 0, length: 8)
             text.setSelectedRange(model.editor.selection)

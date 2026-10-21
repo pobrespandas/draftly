@@ -37,16 +37,9 @@ struct AutomationEditorContextTests {
         let native = NativeEditor(session: model.editor, fontName: "System", fontSize: 17, lineSpacing: 2, markdown: false, onChange: { [weak model] in
             model?.contentChanged(); _ = model?.flush()
         })
-        let coordinator = NativeEditor.Coordinator(native), text = TestUndoTextView(frame: .zero)
-        text.string = target.content; coordinator.textView = text; text.manager.groupsByEvent = false
-        model.editor.synchronizeScriptEdit = {
-            text.manager.beginUndoGrouping(); coordinator.synchronizeScriptEdit(); text.manager.endUndoGrouping()
-        }
-        model.editor.performUndo = { redo in if redo { text.manager.redo() } else { text.manager.undo() } }
-        defer {
-            model.editor.synchronizeScriptEdit = nil; model.editor.performUndo = nil
-            coordinator.textView = nil; text.manager.removeAllActions()
-        }
+        let editorFixture = ScriptUndoEditorFixture(native, content: target.content)
+        defer { editorFixture.close() }
+        let text = editorFixture.text
         let fallback = UnusedAutomationContextHost()
         let action = DraftAction(name: "Actual editor context", steps: [ActionStep("script", ["script": """
         function check(value,label){if(!value)throw new Error(label);}

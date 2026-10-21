@@ -75,7 +75,14 @@ No identity, signing, iCloud or installed-app replacement belongs to this work.
    picker, preference and Workspace suites. Local Xcode compilation passed.
    Independent review found no behavior change. Native picker checks are pending.
 
-The test fixture and native checks are still in progress.
+4. Offscreen editor fixture: implemented. ScriptUndoEditorFixture owns the
+   shared connection and explicit disconnection for only AppThemeContractTests
+   and AutomationEditorContextTests. Fonts, callbacks, content, test names and
+   assertions stay in their consumers. Conditional grouping variants remain
+   separate. No tests were removed. All 21 affected editor/Undo methods passed
+   across five suites. Local Xcode compilation passed.
+
+Full integration and the manual inspector/theme session remain pending.
 Automatic checks stay headless and use temporary data. Run compilation and
 tests separately. Native checks use a separate manual session and neutral data.
 Keep raw captures, logs and generated QA packages outside Git.
