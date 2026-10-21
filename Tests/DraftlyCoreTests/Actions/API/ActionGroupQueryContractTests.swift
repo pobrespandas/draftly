@@ -15,13 +15,13 @@ struct ActionGroupQueryContractTests {
             check(ActionGroup.find(name)===undefined,'absent exact name '+name);
         check(ActionGroup.find('Café 🐼').uuid===group.uuid,'stable repeat lookup');
         """#)
-        #expect(await execute(source, runner: runner, worker: worker), Comment(rawValue: runner.message ?? ""))
+        #expect(await ActionTestExecution.succeeds(source, runner: runner, worker: worker), Comment(rawValue: runner.message ?? ""))
     }
 
     @Test(arguments: [false, true])
     func getAllIncludesEmptyAndImplicitGroupsWithoutExposingMutableStorage(worker: Bool) async throws {
         let (library, _, _, runner) = try makeAPIContext()
-        #expect(await execute(makeAPIAction("check(Array.isArray(ActionGroup.getAll()) && ActionGroup.getAll().length===0,'empty catalog');"), runner: runner, worker: worker))
+        #expect(await ActionTestExecution.succeeds(makeAPIAction("check(Array.isArray(ActionGroup.getAll()) && ActionGroup.getAll().length===0,'empty catalog');"), runner: runner, worker: worker))
         try library.saveActionGroup(ActionGroupRecord(name: "Empty"))
         var member = DraftAction(name: "Member", steps: []); member.group = "Implicit"
         try library.saveActions([member])
@@ -33,7 +33,7 @@ struct ActionGroupQueryContractTests {
         groups.pop();groups.push(new ActionGroup({name:'Local'}));
         check(ActionGroup.getAll().length===2 && !ActionGroup.find('Local'),'array edits are local');
         """#)
-        #expect(await execute(source, runner: runner, worker: worker), Comment(rawValue: runner.message ?? ""))
+        #expect(await ActionTestExecution.succeeds(source, runner: runner, worker: worker), Comment(rawValue: runner.message ?? ""))
     }
 
     @Test(arguments: [false, true])
@@ -61,11 +61,6 @@ struct ActionGroupQueryContractTests {
         check(group.actions.length===3,'returned array does not mutate storage');
         check(!group.actions.some(x=>x.name==='Other'),'other group excluded');
         """#)
-        #expect(await execute(source, runner: runner, worker: worker), Comment(rawValue: runner.message ?? ""))
-    }
-
-    private func execute(_ action: DraftAction, runner: ActionRunner, worker: Bool) async -> Bool {
-        if worker { return await runner.runAsync(action).result.succeeded }
-        return runner.run(action)
+        #expect(await ActionTestExecution.succeeds(source, runner: runner, worker: worker), Comment(rawValue: runner.message ?? ""))
     }
 }

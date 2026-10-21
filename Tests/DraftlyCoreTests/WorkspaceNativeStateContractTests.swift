@@ -19,9 +19,7 @@ struct WorkspaceNativeStateContractTests {
         preferences.defaults.set(original.id.uuidString, forKey: WorkspaceDefaults.key)
         runner.defaultWorkspace = { WorkspaceDefaults.make(in: library, defaults: preferences.defaults) }
         let action = makeAPIAction("const w=Workspace.create();w.name='Default copy';w.update();")
-        let succeeded: Bool
-        if worker { succeeded = await runner.runAsync(action).result.succeeded }
-        else { succeeded = runner.run(action) }
+        let succeeded = await ActionTestExecution.succeeds(action, runner: runner, worker: worker)
         #expect(succeeded, Comment(rawValue: runner.message ?? ""))
         let copy = try #require(library.workspaces.first { $0.name == "Default copy" })
         #expect(copy.id != original.id && copy.order == nil)
@@ -44,9 +42,7 @@ struct WorkspaceNativeStateContractTests {
             check(failed,'reject malformed native state');
         }
         """#)
-        let succeeded: Bool
-        if worker { succeeded = await runner.runAsync(action).result.succeeded }
-        else { succeeded = runner.run(action) }
+        let succeeded = await ActionTestExecution.succeeds(action, runner: runner, worker: worker)
         #expect(succeeded, Comment(rawValue: runner.message ?? ""))
         #expect(library.workspaces == [original])
     }
@@ -67,9 +63,7 @@ struct WorkspaceNativeStateContractTests {
         const w=app.currentWorkspace;w.name='Changed snapshot';w.queryString='Changed query';
         w.showPreview=false;w.showDate=false;w.update();app.applyWorkspace(w);
         """#)
-        let succeeded: Bool
-        if worker { succeeded = await runner.runAsync(action).result.succeeded }
-        else { succeeded = runner.run(action) }
+        let succeeded = await ActionTestExecution.succeeds(action, runner: runner, worker: worker)
         #expect(succeeded, Comment(rawValue: runner.message ?? ""))
         let saved = try #require(library.workspaces.first { $0.id == snapshot.id })
         var expected = options; expected.showPreview = false; expected.showDate = false
@@ -106,9 +100,7 @@ struct WorkspaceNativeStateContractTests {
         check(app.applyWorkspace(w)===true,'apply result');
         app.setClipboard(w.installURL);
         """#)
-        let succeeded: Bool
-        if worker { succeeded = await runner.runAsync(action).result.succeeded }
-        else { succeeded = runner.run(action) }
+        let succeeded = await ActionTestExecution.succeeds(action, runner: runner, worker: worker)
         #expect(succeeded, Comment(rawValue: runner.message ?? ""))
         let saved = try #require(library.workspaces.first { $0.id == original.id })
         let installed = try WorkspaceInstallation.decode(#require(URL(string: host.clipboard)))

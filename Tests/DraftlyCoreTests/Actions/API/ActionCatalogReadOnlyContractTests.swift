@@ -20,9 +20,7 @@ struct ActionCatalogReadOnlyContractTests {
         check(a.actions.some(x=>x.name==='Collision A') && !a.actions.some(x=>x.name==='Collision B'),'first membership');
         check(b.actions.some(x=>x.name==='Collision B') && !b.actions.some(x=>x.name==='Collision A'),'second membership');
         """)
-        let succeeded: Bool
-        if worker { succeeded = await runner.runAsync(source).result.succeeded }
-        else { succeeded = runner.run(source) }
+        let succeeded = await ActionTestExecution.succeeds(source, runner: runner, worker: worker)
         #expect(succeeded, Comment(rawValue: runner.message ?? ""))
     }
 
@@ -52,9 +50,7 @@ struct ActionCatalogReadOnlyContractTests {
         var separator = DraftAction(name: "Readonly separator", steps: [])
         separator.scriptMetadata = ["isSeparator": "true"]
         try library.saveAction(separator)
-        let succeeded: Bool
-        if worker { succeeded = await runner.runAsync(source).result.succeeded }
-        else { succeeded = runner.run(source) }
+        let succeeded = await ActionTestExecution.succeeds(source, runner: runner, worker: worker)
         #expect(succeeded, Comment(rawValue: runner.message ?? ""))
         #expect(library.actions.first { $0.id == source.id } == source)
     }
@@ -76,9 +72,7 @@ struct ActionCatalogReadOnlyContractTests {
         check(group.actions.length===1 && group.actions[0].name==='Group member','actions keep their owner');
         check(group.installURL.startsWith('draftly://action?'),'group installation remains available');
         """#)
-        let succeeded: Bool
-        if worker { succeeded = await runner.runAsync(source).result.succeeded }
-        else { succeeded = runner.run(source) }
+        let succeeded = await ActionTestExecution.succeeds(source, runner: runner, worker: worker)
         #expect(succeeded, Comment(rawValue: runner.message ?? ""))
         #expect(library.actions.first { $0.id == member.id } == member)
         var group = ActionGroupRecord(name: "Readonly group")
@@ -96,9 +90,7 @@ struct ActionCatalogReadOnlyContractTests {
         check(group.name==='Renamed group' && group.uuid==='\(originalID.uuidString)','identity survives rename and backup');
         check(group.actions[0].uuid==='\(member.id.uuidString)','member identity survives rename');
         """)
-        let restoredSuccess: Bool
-        if worker { restoredSuccess = await restoredRunner.runAsync(query).result.succeeded }
-        else { restoredSuccess = restoredRunner.run(query) }
+        let restoredSuccess = await ActionTestExecution.succeeds(query, runner: restoredRunner, worker: worker)
         #expect(restoredSuccess, Comment(rawValue: restoredRunner.message ?? ""))
     }
 }

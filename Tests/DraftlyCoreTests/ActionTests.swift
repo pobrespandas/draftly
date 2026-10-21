@@ -35,7 +35,7 @@ struct ActionTests {
         let host = TestHost(); let runner = ActionRunner(library: library, editor: editor, host: host)
         let action = try fixture("1VL")
         #expect(action.configuredValues["templateTag"] == "template")
-        #expect(await execute(runner, action, asynchronous: asynchronous), Comment(rawValue: runner.message ?? ""))
+        #expect(await ActionTestExecution.succeeds(action, runner: runner, worker: asynchronous), Comment(rawValue: runner.message ?? ""))
         #expect(editor.content.hasPrefix("Notes for "))
         #expect(editor.selectedText == "<|name>")
         #expect(library.notes.first { $0.id == editor.noteID }?.tags == ["work"])
@@ -46,7 +46,7 @@ struct ActionTests {
         let source = try library.createNote(content: "Milk\nEggs")
         let editor = EditorSession(); editor.load(source)
         let host = TestHost(); let runner = ActionRunner(library: library, editor: editor, host: host)
-        #expect(await execute(runner, try fixture("1Ga"), asynchronous: asynchronous), Comment(rawValue: runner.message ?? ""))
+        #expect(await ActionTestExecution.succeeds(try fixture("1Ga"), runner: runner, worker: asynchronous), Comment(rawValue: runner.message ?? ""))
         #expect(library.notes.first { $0.id == list.id }?.content == "# Shopping\n- [ ] Milk\n- [ ] Eggs")
         #expect(library.notes.first { $0.id == source.id }?.isArchived == true)
     }
@@ -59,7 +59,7 @@ struct ActionTests {
         let action = try fixture("1Bg")
         #expect(action.shortcut == "t")
         #expect(action.shortcutModifiers == ["option", "shift"])
-        #expect(await execute(runner, action, asynchronous: asynchronous), Comment(rawValue: runner.message ?? ""))
+        #expect(await ActionTestExecution.succeeds(action, runner: runner, worker: asynchronous), Comment(rawValue: runner.message ?? ""))
         #expect(editor.content == "HELLO world")
         #expect(editor.selection == NSRange(location: 5, length: 0))
     }
@@ -67,7 +67,7 @@ struct ActionTests {
         let library = try LibraryStore(inMemory: true, seed: false)
         let editor = EditorSession(); editor.load(try library.createNote(content: "# Heading\n**Bold**"))
         let host = TestHost(); let runner = ActionRunner(library: library, editor: editor, host: host)
-        #expect(await execute(runner, try fixture("1DM"), asynchronous: asynchronous), Comment(rawValue: runner.message ?? ""))
+        #expect(await ActionTestExecution.succeeds(try fixture("1DM"), runner: runner, worker: asynchronous), Comment(rawValue: runner.message ?? ""))
         let call = try #require(host.calls.first { $0.0 == "htmlToClipboard" })
         #expect((call.1["html"] as? String)?.contains("<strong>Bold</strong>") == true)
     }
@@ -75,17 +75,12 @@ struct ActionTests {
         let library = try LibraryStore(inMemory: true, seed: false)
         let editor = EditorSession(); editor.load(try library.createNote(content: "# Meeting\nBody", tags: ["work"]))
         let host = TestHost(); let runner = ActionRunner(library: library, editor: editor, host: host)
-        #expect(await execute(runner, try fixture("1qn"), asynchronous: asynchronous), Comment(rawValue: runner.message ?? ""))
+        #expect(await ActionTestExecution.succeeds(try fixture("1qn"), runner: runner, worker: asynchronous), Comment(rawValue: runner.message ?? ""))
         let call = try #require(host.calls.first { $0.0 == "saveFile" })
         #expect(call.1["name"] as? String == "Meeting.md")
         #expect(call.1["bookmark"] as? String == "Obsidian Vault")
         #expect(call.1["text"] as? String == "# Meeting\nBody\n\nwork\n")
     }
-    private func execute(_ runner: ActionRunner, _ action: DraftAction, asynchronous: Bool) async -> Bool {
-        if asynchronous { return await runner.runAsync(action).result.succeeded }
-        return runner.run(action)
-    }
-
     @Test func htmlPreviewStepUsesConfiguredMarkdownAndPreservesExplicitHTML() throws {
         let preferences = try TestPreferences(prefix: "Draftly-HTMLPreview-Step")
         defer { preferences.close() }

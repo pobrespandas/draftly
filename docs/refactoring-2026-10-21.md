@@ -131,3 +131,21 @@ No test was removed. No manual UI session was required.
 
 Next stage: share success-only execution dispatch in test support. Preserve
 all contract cases and leave report, cancellation and timing assertions explicit.
+
+### 3. Shared success-only test execution
+
+Implemented: `ActionTestExecution` owns the legacy/worker success dispatch in
+test support. Seventeen call sites use it. Two duplicate local helpers were
+removed. Full reports, timing, cancellation and transport tests remain explicit.
+
+Verified automatically: all 455 app and 504 core methods passed. The four
+changed suites retain all 25 named methods, including both routes in 15
+parameterized methods. All 79 expectations and 19 requirements remain. No
+fixture, script or test method was removed. The five original action fixtures
+are unchanged. Matrix structure passed and strict engine diagnostics match
+the baseline exactly. Production is unchanged from the stage 2 Xcode build.
+
+The broad catalog integration test remains because its recent-action identity,
+ordered installation and configured-value assertions have distinct coverage.
+No manual UI session was required. Next: characterize Workspace sort writers
+before moving their shared dictionary mutation.

@@ -6111,3 +6111,12 @@ file coverage, and checks export and unrelated preferences.
 All 455 app and 504 core methods passed. The unsigned Xcode build and matrix
 structure passed. No public API, stored format or classification changed.
 No visible UI, permission or sound check ran. See the refactoring record.
+
+
+### Refactoring test execution support — 21 October 2026
+
+A success-only test helper replaced 17 repeated legacy/worker dispatch sites.
+All 25 named tests in the four changed suites remain, with 79 expectations
+and 19 requirements. All 455 app and 504 core methods passed. Matrix structure
+passed; the 18 strict engine diagnostics match the baseline exactly. Original
+action fixtures and production code are unchanged in this stage.
