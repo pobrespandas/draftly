@@ -28,6 +28,7 @@ struct SpotlightPreferencesTests {
         let actualIDs = Set(snapshots.last?.map(\.id) ?? [])
         let expectedIDs = Set([note.id, archived.id])
         #expect(actualIDs == expectedIDs)
+        #expect(snapshots.last?.map(\.id.uuidString) == expectedIDs.map(\.uuidString).sorted())
         let indexed = try #require(snapshots.last?.first { $0.id == note.id })
         #expect(indexed.title == "Café 🐼" && indexed.content == note.content && indexed.tags == ["neutral"])
         #expect(indexed.createdAt == note.createdAt && indexed.modifiedAt == note.modifiedAt)

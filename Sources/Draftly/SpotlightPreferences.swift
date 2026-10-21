@@ -68,6 +68,7 @@ final class SpotlightPreferences: ObservableObject {
     func attach(to library: LibraryStore) {
         subscription = library.$notes.map { notes in
             notes.filter { $0.trashedAt == nil }.map(SpotlightDraft.init)
+                .sorted { $0.id.uuidString < $1.id.uuidString }
         }.removeDuplicates().sink { [weak self] drafts in
             guard let self else { return }
             self.drafts = drafts
