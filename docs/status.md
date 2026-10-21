@@ -32,7 +32,9 @@ editor and preserved text/selection. Settings, light rendering, restart and
 cross-window native checks remain pending after a Computer Use connection
 failure. Theme.installURL now transports full custom definitions and has a cancelable
 receiver. Specific link, identity, rollback and backup tests passed. Native
-installation and file themes remain partial. The six Theme
+installation and file themes remain partial. The router now accepts the
+configured QA scheme through the same decoder; headless tests pass. The QA
+binary and manual URL checks still need an update after Settings recovery. The six Theme
 members were added as a dated supplement; the baseline stays unchanged.
 
 

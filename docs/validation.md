@@ -7230,3 +7230,34 @@ These are 21 October follow-up references, not replacements for the archived
 macOS merely because Draftly has not implemented it.
 
 Current global result: Matrix check: 4529 errors.
+
+### Configured application URL scheme — 21 October 2026
+
+Implemented: the application router now accepts its configured scheme as well
+as the canonical draftly scheme. It normalizes that outer scheme at the
+application boundary. The domain codecs still receive canonical links.
+Recognized callbacks are consumed before normalization. The production default
+is unchanged. Engine QA can now dispatch to draftly-engine-qa without opening
+the habitual app. Other unconfigured schemes are rejected.
+
+Automatically tested: 17 focused methods passed. The new cases preserve the
+encoded query, path, Unicode and nested callback destinations. They reject
+unconfigured schemes and pass an isolated theme URL through the real codec
+and receiver. Existing ordered delivery and callback-consumption tests remain
+unchanged. Full regression passed 491 app and 565 core methods. The unsigned
+Xcode build passed. Python remains at the preceding 46-test passing run;
+this change does not edit scripts. Matrix structure has zero errors.
+
+Prepared, not executed: theme-installation-actions.json contains neutral
+Engine QA-only dispatch and verification actions. Import app-theme-backup.json
+first. Run Install, then Verify. Run Replace and choose Cancel; Verify must
+still report D0EEDD. Run Replace and confirm; Verify must report EED0DD. Repeat
+Identical must not show a replacement alert. The verification checks the saved
+UUID and unknown payload fields. A dispatch action message does not prove that
+the receiver finished. Check the receiver and source text separately.
+
+Native QA is still running its preceding build. Computer Use cannot bind to
+its Settings window. The request to close that window remains pending. Refresh
+all QA runtime images after a clean quit before testing this transport change.
+The new source resolves the transport issue recorded in Theme installation
+links above; it does not supply missing native acceptance.

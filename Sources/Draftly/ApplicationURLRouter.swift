@@ -11,7 +11,7 @@ struct ApplicationURLRouter {
 
     func handle(_ url: URL) {
         if ActionCallbackRouter.receive(url) { return }
-        guard url.scheme == "draftly" else { return }
+        guard let url = Self.applicationURL(url, registeredScheme: ActionCallbackRouter.callbackScheme) else { return }
         let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
         func parameter(_ name: String) -> String? { items.first { $0.name == name }?.value }
         let endpoint = url.host == "x-callback-url" ? String(url.path.dropFirst()) : url.host
@@ -95,6 +95,14 @@ struct ApplicationURLRouter {
         default: break
         }
     }
+    static func applicationURL(_ url: URL, registeredScheme: String) -> URL? {
+        if url.scheme == "draftly" { return url }
+        guard !registeredScheme.isEmpty, url.scheme == registeredScheme,
+              var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
+        components.scheme = "draftly"
+        return components.url
+    }
+
     static func installTheme(_ url: URL, library: LibraryStore?,
                              confirmReplacement: (EditorThemeDefinition) -> Bool) throws -> Bool {
         guard let library else { throw DraftlyError.message("The library is unavailable.") }

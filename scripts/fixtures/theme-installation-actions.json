@@ -1,0 +1,62 @@
+[
+  {
+    "uuid": "BBBF0026-0000-4000-8000-000000000001",
+    "name": "QA Install new theme URL",
+    "group": "Theme installation QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "const source=Theme.find('custom','QA Theme day');if(!source)throw Error('Import app-theme-backup.json first');\nconst link=source.installURL;const payload=JSON.parse(decodeURIComponent(link.slice(link.indexOf('data=')+5)));\npayload.id='BBBF0026-0000-4000-8000-000000000021';payload.name='QA Installed theme café 🐼';payload.background='D0EEDD';payload.future={keep:['café 🐼',false]};app.openURL('draftly-engine-qa://theme?type=custom&data='+encodeURIComponent(JSON.stringify(payload)));app.displayInfoMessage('New theme link dispatched; verify receiver separately');"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0026-0000-4000-8000-000000000002",
+    "name": "QA Replace theme URL",
+    "group": "Theme installation QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "const source=Theme.find('custom','QA Theme day');if(!source)throw Error('Import app-theme-backup.json first');\nconst link=source.installURL;const payload=JSON.parse(decodeURIComponent(link.slice(link.indexOf('data=')+5)));\npayload.id='BBBF0026-0000-4000-8000-000000000021';payload.name='QA Installed theme café 🐼';payload.background='EED0DD';payload.future={keep:['café 🐼',false]};app.openURL('draftly-engine-qa://theme?type=custom&data='+encodeURIComponent(JSON.stringify(payload)));app.displayInfoMessage('Replacement requested; choose Replace or Cancel');"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0026-0000-4000-8000-000000000003",
+    "name": "QA Verify installed theme",
+    "group": "Theme installation QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "const t=Theme.find('custom','QA Installed theme café 🐼');if(!t||t.uuid!=='BBBF0026-0000-4000-8000-000000000021')throw Error('Installed identity missing');const link=t.installURL;const payload=JSON.parse(decodeURIComponent(link.slice(link.indexOf('data=')+5)));if(!payload.future||payload.future.keep[0]!=='café 🐼')throw Error('Unknown fields missing');app.displayInfoMessage('Installed background: '+payload.background+'; identity and unknown fields passed');"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0026-0000-4000-8000-000000000004",
+    "name": "QA Repeat identical theme URL",
+    "group": "Theme installation QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "const t=Theme.find('custom','QA Installed theme café 🐼');if(!t)throw Error('Install the neutral fixture first');app.openURL(t.installURL.replace(/^draftly:/,'draftly-engine-qa:'));app.displayInfoMessage('Identical link dispatched; no replacement alert expected');"
+        }
+      }
+    ]
+  }
+]
