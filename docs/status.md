@@ -1342,3 +1342,14 @@ shared references, tags and flag. Command-Z/Redo restored the expected text
 and selection; the second window showed the final state. Together with the
 named normal/storage-error cases on both runners, this closes Draft.update
 for the archived contract. The wider API and engine remain incomplete.
+
+
+### Editor void return correction — 20 October 2026
+
+undo, redo, showFind, showArrange, and showDictate now discard host values
+and return undefined as documented. Both runners passed the specific return
+assertions; full regression passed 450 app/482 core methods. Other acceptance
+for these members remains separate. No native UI check was inferred.
+
+The unsigned local Xcode build and matrix structure check passed. Installed
+QA apps still use their previously recorded builds.

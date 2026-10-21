@@ -5781,3 +5781,27 @@ storage-error tests on both runners remain the automated contract evidence.
 The failure test also checks a later independent save and backup restoration.
 Draft.update is complete for its archived contract; this does not close Draft,
 Editor, the engine, or all native error paths. No screenshot is tracked.
+
+
+### Editor void return contracts — 20 October 2026
+
+The archived Editor signatures declare void for undo, redo, showFind,
+showArrange, and showDictate. Their shared bridge wrapper returned the host
+value, so a host response of true escaped into scripting. The existing
+interface test failed on both legacy and worker routes at showFind.
+
+The bridge now discards the host result for these five methods. It still
+synchronizes the draft after Undo/Redo and forwards all arguments. Methods
+arrange, dictate, scanDocument, and transcribe keep their documented results.
+The interface test now runs on both routes and asserts void returns, including
+activation and draft navigation, while retaining string-return checks.
+No real dictation, scanning, arrangement dialog, or permission is invoked.
+
+The agent's focused Editor/persistence run passed 23 methods. The coordinator
+full run passed 450 app and 482 core methods after integration. The test count
+is regression evidence, not a compatibility percentage. These five members
+remain partial where their other defaults, errors, or native paths are not
+accepted. Existing native checks do not validate this new build's return value.
+
+The unsigned local Xcode build and matrix structure check passed. Installed
+QA apps still use their previously recorded builds.

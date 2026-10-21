@@ -3348,11 +3348,9 @@
             "test": "scriptEditsUndoImmediatelyAndRestoreSelection"
           },
           "liveCheck": "2026-10-19: Core acceptance action from the native Actions menu; Unicode edit, undo, redo, tags and workspace applied in DraftlyCoreQA.",
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "redo(): void"
-          ],
+          "result": "Returns undefined (void), regardless of the native host result. Host side effects and arguments remain unchanged.",
           "errors": "Host and storage errors throw JavaScript errors.",
           "limitations": [
             "The recorded regression test does not cover every documented default and error. The member contract is not closed."
@@ -3362,6 +3360,23 @@
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Editor.redo"
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-20",
+            "evidence": "docs/validation.md",
+            "scope": "Specific return-value regression, not full member acceptance.",
+            "additionalRuns": [
+              {
+                "date": "2026-10-20",
+                "suite": "EditorActionAPITests",
+                "tests": [
+                  "editorInterfaceMembersDelegateWithoutLosingArguments"
+                ],
+                "result": "Legacy and worker assertions failed before the correction and passed after it. Tests check undefined for void methods, forwarded arguments, and preserved string returns for input/arrangement methods. Full regression 450 app/482 core methods passed.",
+                "evidence": "docs/validation.md: Editor void return contracts — 20 October 2026"
+              }
+            ]
           }
         },
         {
@@ -3477,11 +3492,9 @@
             "test": "editorInterfaceMembersDelegateWithoutLosingArguments"
           },
           "liveCheck": null,
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "showArrange(): void"
-          ],
+          "result": "Returns undefined (void), regardless of the native host result. Host side effects and arguments remain unchanged.",
           "errors": "Host and storage errors throw JavaScript errors.",
           "limitations": [
             "The recorded regression test does not cover every documented default and error. The member contract is not closed."
@@ -3491,6 +3504,23 @@
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Editor.showArrange"
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-20",
+            "evidence": "docs/validation.md",
+            "scope": "Specific return-value regression, not full member acceptance.",
+            "additionalRuns": [
+              {
+                "date": "2026-10-20",
+                "suite": "EditorActionAPITests",
+                "tests": [
+                  "editorInterfaceMembersDelegateWithoutLosingArguments"
+                ],
+                "result": "Legacy and worker assertions failed before the correction and passed after it. Tests check undefined for void methods, forwarded arguments, and preserved string returns for input/arrangement methods. Full regression 450 app/482 core methods passed.",
+                "evidence": "docs/validation.md: Editor void return contracts — 20 October 2026"
+              }
+            ]
           }
         },
         {
@@ -3509,11 +3539,9 @@
             "test": "editorInterfaceMembersDelegateWithoutLosingArguments"
           },
           "liveCheck": null,
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "showDictate(): void"
-          ],
+          "result": "Returns undefined (void), regardless of the native host result. Host side effects and arguments remain unchanged.",
           "errors": "Host and storage errors throw JavaScript errors.",
           "limitations": [
             "The recorded regression test does not cover every documented default and error. The member contract is not closed."
@@ -3524,7 +3552,24 @@
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Editor.showDictate"
           },
-          "nativeProgress": "2026-10-19: The isolated Core QA app opened Dictation. Done inserted recognized speech into the selected UTF-16 range. Native Undo restored the exact source. A second session was cancelled; content and selection remained unchanged. Permission-denied and language-unavailable native cases remain open."
+          "nativeProgress": "2026-10-19: The isolated Core QA app opened Dictation. Done inserted recognized speech into the selected UTF-16 range. Native Undo restored the exact source. A second session was cancelled; content and selection remained unchanged. Permission-denied and language-unavailable native cases remain open.",
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-20",
+            "evidence": "docs/validation.md",
+            "scope": "Specific return-value regression, not full member acceptance.",
+            "additionalRuns": [
+              {
+                "date": "2026-10-20",
+                "suite": "EditorActionAPITests",
+                "tests": [
+                  "editorInterfaceMembersDelegateWithoutLosingArguments"
+                ],
+                "result": "Legacy and worker assertions failed before the correction and passed after it. Tests check undefined for void methods, forwarded arguments, and preserved string returns for input/arrangement methods. Full regression 450 app/482 core methods passed.",
+                "evidence": "docs/validation.md: Editor void return contracts — 20 October 2026"
+              }
+            ]
+          }
         },
         {
           "member": "showFind",
@@ -3542,11 +3587,9 @@
             "test": "editorInterfaceMembersDelegateWithoutLosingArguments"
           },
           "liveCheck": null,
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "showFind(preferAdvancedFind?: boolean, initialQuery?: string): void"
-          ],
+          "result": "Returns undefined (void), regardless of the native host result. Host side effects and arguments remain unchanged.",
           "errors": "Host and storage errors throw JavaScript errors.",
           "limitations": [
             "The recorded regression test does not cover every documented default and error. The member contract is not closed.",
@@ -3576,6 +3619,23 @@
               }
             ],
             "nativeVerification": "Temporary QA library: search café, one match, replace with té, close, Undo restores café."
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-20",
+            "evidence": "docs/validation.md",
+            "scope": "Specific return-value regression, not full member acceptance.",
+            "additionalRuns": [
+              {
+                "date": "2026-10-20",
+                "suite": "EditorActionAPITests",
+                "tests": [
+                  "editorInterfaceMembersDelegateWithoutLosingArguments"
+                ],
+                "result": "Legacy and worker assertions failed before the correction and passed after it. Tests check undefined for void methods, forwarded arguments, and preserved string returns for input/arrangement methods. Full regression 450 app/482 core methods passed.",
+                "evidence": "docs/validation.md: Editor void return contracts — 20 October 2026"
+              }
+            ]
           }
         },
         {
@@ -3632,11 +3692,9 @@
             "test": "scriptEditsUndoImmediatelyAndRestoreSelection"
           },
           "liveCheck": "2026-10-19: Core acceptance action from the native Actions menu; Unicode edit, undo, redo, tags and workspace applied in DraftlyCoreQA.",
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
-          "result": [
-            "undo(): void"
-          ],
+          "result": "Returns undefined (void), regardless of the native host result. Host side effects and arguments remain unchanged.",
           "errors": "Host and storage errors throw JavaScript errors.",
           "limitations": [
             "The recorded regression test does not cover every documented default and error. The member contract is not closed."
@@ -3646,6 +3704,23 @@
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Editor.undo"
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-20",
+            "evidence": "docs/validation.md",
+            "scope": "Specific return-value regression, not full member acceptance.",
+            "additionalRuns": [
+              {
+                "date": "2026-10-20",
+                "suite": "EditorActionAPITests",
+                "tests": [
+                  "editorInterfaceMembersDelegateWithoutLosingArguments"
+                ],
+                "result": "Legacy and worker assertions failed before the correction and passed after it. Tests check undefined for void methods, forwarded arguments, and preserved string returns for input/arrangement methods. Full regression 450 app/482 core methods passed.",
+                "evidence": "docs/validation.md: Editor void return contracts — 20 October 2026"
+              }
+            ]
           }
         },
         {

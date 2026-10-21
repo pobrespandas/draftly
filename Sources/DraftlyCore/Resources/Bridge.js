@@ -232,7 +232,7 @@ for(let name of ['undo','redo','showFind','arrange','showArrange','dictate','sho
     if(navigation)__rememberSelection();
     let result=__call('ui',{operation:name,args});
     if(name==='undo'||name==='redo')__syncEditorDraft();
-    if(navigation)return;
+    if(navigation||['undo','redo','showFind','showArrange','showDictate'].includes(name))return;
     return result;
 };
 for(let name of ['isActive','linkModeEnabled','pinningEnabled','focusModeEnabled','typewriterScrollingEnabled']) __define(editor,name,()=>__call('ui',{operation:'get',key:name}),value=>__call('ui',{operation:'set',key:name,value}));

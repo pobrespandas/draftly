@@ -198,7 +198,8 @@ struct EditorActionAPITests {
         #expect(editor.content == original)
     }
 
-    @Test func editorInterfaceMembersDelegateWithoutLosingArguments() throws {
+    @Test(arguments: [false, true])
+    func editorInterfaceMembersDelegateWithoutLosingArguments(worker: Bool) async throws {
         let (_, _, _, runner) = try makeAPIContext()
         var state: [String: Any] = ["isActive":true,"preferredTabString":"\t"]
         var calls: [[String: Any]] = []
@@ -210,17 +211,24 @@ struct EditorActionAPITests {
             if ["arrange","dictate","scanDocument","transcribe"].contains(values["operation"] as? String ?? "") { return "Returned" }
             return true
         }
-        #expect(runner.run(makeAPIAction(#"""
+        let action = makeAPIAction(#"""
         check(editor.isActive && editor.preferredTabString==='\t','read-only UI properties');
         for(let key of ['linkModeEnabled','pinningEnabled','focusModeEnabled','typewriterScrollingEnabled']){
             editor[key]=true;check(editor[key]===true,key);
         }
-        editor.activate();editor.deactivate();editor.showFind(true,'café');editor.showArrange();editor.showDictate();
-        editor.nextDraft();editor.previousDraft();editor.undo();editor.redo();
+        check(editor.activate()===undefined && editor.deactivate()===undefined,'activation returns void');
+        check(editor.showFind(true,'café')===undefined,'showFind returns void');
+        for(const name of ['showArrange','showDictate','nextDraft','previousDraft','undo','redo']) {
+            check(editor[name]()===undefined,name+' returns void');
+        }
         check(editor.arrange('Text')==='Returned','arrange return');
         check(editor.dictate('es-AR')==='Returned','dictation return');
         check(editor.scanDocument()==='Returned' && editor.transcribe()==='Returned','input returns');
-        """#)), Comment(rawValue: runner.message ?? ""))
+        """#)
+        let succeeded: Bool
+        if worker { succeeded = await runner.runAsync(action).result.succeeded }
+        else { succeeded = runner.run(action) }
+        #expect(succeeded, Comment(rawValue: runner.message ?? ""))
         #expect(calls.contains { $0["operation"] as? String == "showFind" && ($0["args"] as? [Any])?.last as? String == "café" })
         #expect(calls.contains { $0["operation"] as? String == "dictate" && ($0["args"] as? [String]) == ["es-AR"] })
     }
