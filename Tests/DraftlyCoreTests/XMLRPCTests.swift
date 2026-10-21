@@ -48,6 +48,10 @@ struct XMLRPCTests {
     }
 
     @Test(arguments: [
+        "<methodResponse>discarded<params/></methodResponse>",
+        "<methodResponse><params>discarded<param><value>kept</value></param></params></methodResponse>",
+        "<methodResponse><params><param>discarded<value>kept</value></param></params></methodResponse>",
+        "<methodResponse><params><param><value>discarded<string>kept</string></value></param></params></methodResponse>",
         "<methodResponse><params/><params/></methodResponse>",
         "<methodResponse><fault/><params/></methodResponse>",
         "<methodResponse><unexpected/><params/></methodResponse>",
@@ -62,6 +66,7 @@ struct XMLRPCTests {
     }
 
     @Test(arguments: [
+        "<member><name>faultCode</name><value><int>42</int></value></member><member><name>faultString</name><value>Denied</value></member><member><name>discarded</name><value>extra</value></member>",
         "<member><name>faultString</name><value><string>Missing code</string></value></member>",
         "<member><name>faultCode</name><value><string>42</string></value></member><member><name>faultString</name><value><string>Wrong code type</string></value></member>",
         "<member><name>faultCode</name><value><int>42</int></value></member>",
@@ -73,6 +78,53 @@ struct XMLRPCTests {
         #expect(result["success"] as? Bool == false)
         #expect(result["faultCode"] == nil)
         #expect(!(result["error"] as? String ?? "").isEmpty)
+    }
+
+    @Test(arguments: [
+        "<array/>", "<array><unexpected/></array>",
+        "<array><data/><data/></array>", "<array><data><unexpected/></data></array>",
+        "<array><data>discarded</data></array>",
+        "<struct><unexpected><name>key</name><value>kept</value></unexpected></struct>",
+        "<struct><member><name>first</name><name>discarded</name><value>kept</value></member></struct>",
+        "<struct><member><name>key</name><value>first</value><value>discarded</value></member></struct>",
+        "<struct><member><name><string>discarded</string></name><value>kept</value></member></struct>",
+        "<struct>discarded</struct>",
+        "<string><string>discarded</string></string>",
+        "<int><string>discarded</string></int>",
+        "<dateTime.iso8601><string>discarded</string></dateTime.iso8601>",
+        "<base64><string>discarded</string></base64>",
+        "<nil>discarded</nil>"
+    ])
+    func malformedValuesDoNotDiscardPartsAndReportSuccess(_ value: String) {
+        let xml = "<methodResponse><params><param><value>" + value + "</value></param></params></methodResponse>"
+        let result = ScriptXMLRPC.response(Data(xml.utf8), statusCode: 200)
+        #expect(result["success"] as? Bool == false)
+        #expect(result["statusCode"] as? Int == 200)
+        #expect((result["params"] as? [Any])?.isEmpty == true)
+        #expect(!(result["error"] as? String ?? "").isEmpty)
+    }
+
+    @Test func emptyAndNestedCompositeValuesKeepTheirTypesAndWhitespace() throws {
+        let xml = """
+        <methodResponse><params><param><value><struct>
+          <member><name>empty array</name><value><array><data/></array></value></member>
+          <member><name>empty record</name><value><struct/></value></member>
+          <member><name>nested</name><value><array><data>
+            <value><struct><member><name>café 🐼</name><value>  keep whitespace  </value></member></struct></value>
+            <value><boolean>0</boolean></value><value><nil/></value>
+          </data></array></value></member>
+        </struct></value></param></params></methodResponse>
+        """
+        let result = ScriptXMLRPC.response(Data(xml.utf8), statusCode: 200)
+        #expect(result["success"] as? Bool == true)
+        let params = try #require(result["params"] as? [[String: Any]])
+        let value = try #require(params.first)
+        #expect((value["empty array"] as? [Any])?.isEmpty == true)
+        #expect((value["empty record"] as? [String: Any])?.isEmpty == true)
+        let nested = try #require(value["nested"] as? [Any])
+        try #require(nested.count == 3)
+        #expect((nested[0] as? [String: String])?["café 🐼"] == "  keep whitespace  ")
+        #expect(nested[1] as? Bool == false && nested[2] is NSNull)
     }
 
     @Test func faultsAndMalformedResponsesNeverReportSuccess() {

@@ -61,12 +61,12 @@ public enum ScriptXMLRPC {
         do {
             let tree = Tree()
             let parser = XMLParser(data: data); parser.shouldResolveExternalEntities = false; parser.delegate = tree
-            guard parser.parse(), let root = tree.root, root.name == "methodResponse" else {
+            guard parser.parse(), let root = tree.root, root.name == "methodResponse", root.hasOnlyWhitespace else {
                 throw DraftlyError.message("The XML-RPC response is invalid.")
             }
             guard root.children.count == 1,
                   let payload = root.children.first,
-                  ["params", "fault"].contains(payload.name) else {
+                  ["params", "fault"].contains(payload.name), payload.hasOnlyWhitespace else {
                 throw DraftlyError.message("The XML-RPC response must contain either parameters or a fault.")
             }
             if payload.name == "fault" {
@@ -74,7 +74,7 @@ public enum ScriptXMLRPC {
             }
             if let fault = root.children.first(where: { $0.name == "fault" })?.children.first,
                let values = try decode(fault) as? [String: Any] {
-                guard let code = values["faultCode"] as? Int64,
+                guard values.count == 2, let code = values["faultCode"] as? Int64,
                       let message = values["faultString"] as? String else {
                     throw DraftlyError.message("The XML-RPC fault fields are invalid.")
                 }
@@ -82,7 +82,7 @@ public enum ScriptXMLRPC {
             }
             guard let params = root.children.first(where: { $0.name == "params" }) else { throw DraftlyError.message("The XML-RPC response has no parameters.") }
             let values = try params.children.map { node -> Any in
-                guard node.name == "param", node.children.count == 1, let value = node.children.first, value.name == "value" else { throw DraftlyError.message("An XML-RPC parameter is invalid.") }
+                guard node.name == "param", node.hasOnlyWhitespace, node.children.count == 1, let value = node.children.first, value.name == "value" else { throw DraftlyError.message("An XML-RPC parameter is invalid.") }
                 return try decode(value)
             }
             return ["success": statusCode == 200, "statusCode": statusCode, "params": values]
@@ -112,6 +112,10 @@ public enum ScriptXMLRPC {
     private static func decode(_ node: Node) throws -> Any {
         guard node.name == "value", node.children.count <= 1 else { throw DraftlyError.message("An XML-RPC value is invalid.") }
         guard let child = node.children.first else { return node.text }
+        guard node.hasOnlyWhitespace else { throw DraftlyError.message("An XML-RPC value has mixed content.") }
+        if !["array", "struct"].contains(child.name), !child.children.isEmpty {
+            throw DraftlyError.message("An XML-RPC scalar contains nested elements.")
+        }
         switch child.name {
         case "string", "dateTime.iso8601", "base64": return child.text
         case "int", "i4", "i8":
@@ -120,12 +124,24 @@ public enum ScriptXMLRPC {
             guard let value = Double(child.text.trimmingCharacters(in: .whitespacesAndNewlines)), value.isFinite else { throw DraftlyError.message("An XML-RPC number is invalid.") }; return value
         case "boolean":
             guard ["0", "1"].contains(child.text) else { throw DraftlyError.message("An XML-RPC boolean is invalid.") }; return child.text == "1"
-        case "nil": return NSNull()
-        case "array": return try (child.children.first(where: { $0.name == "data" })?.children ?? []).map(decode)
+        case "nil":
+            guard child.hasOnlyWhitespace else { throw DraftlyError.message("An XML-RPC nil value contains text.") }
+            return NSNull()
+        case "array":
+            guard child.hasOnlyWhitespace, child.children.count == 1,
+                  let data = child.children.first, data.name == "data", data.hasOnlyWhitespace else {
+                throw DraftlyError.message("An XML-RPC array must contain one data element.")
+            }
+            return try data.children.map(decode)
         case "struct":
+            guard child.hasOnlyWhitespace else { throw DraftlyError.message("An XML-RPC struct contains text.") }
             var values: [String: Any] = [:]
             for member in child.children {
-                guard let name = member.children.first(where: { $0.name == "name" }), let value = member.children.first(where: { $0.name == "value" }) else { throw DraftlyError.message("An XML-RPC member is invalid.") }
+                guard member.name == "member", member.hasOnlyWhitespace, member.children.count == 2,
+                      let name = member.children.first(where: { $0.name == "name" }), name.children.isEmpty,
+                      let value = member.children.first(where: { $0.name == "value" }) else {
+                    throw DraftlyError.message("An XML-RPC member must contain one name and one value.")
+                }
                 values[name.text] = try decode(value)
             }
             return values
@@ -136,6 +152,7 @@ public enum ScriptXMLRPC {
         let name: String
         var text = ""
         var children: [Node] = []
+        var hasOnlyWhitespace: Bool { text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
         init(_ name: String) { self.name = name }
     }
     private final class Tree: NSObject, XMLParserDelegate {

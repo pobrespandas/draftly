@@ -6774,3 +6774,32 @@ unchanged after the successful unsigned build and 41-test tooling run above.
 Matrix structure has zero errors. Strict engine/global gates retain 18/4,649
 diagnostics. The remaining Context.fail diagnostics refer to incomplete native
 acceptance and its recorded limit. These counts do not measure compatibility.
+
+
+### XML-RPC value structure correction — 21 October 2026
+
+Consulted the supplemental [XML-RPC protocol specification](https://xmlrpc.com/spec.md)
+on 21 October. The archived Drafts reference and hashes stay unchanged. The
+protocol requires one data element in an array, one name and one value in a
+member, and scalar content without nested elements. Fault records have only
+faultCode and faultString. These rules identify malformed data independently
+of undocumented JavaScript date or binary mappings.
+
+New tests failed before the correction. The parser had accepted malformed arrays
+and records, nested scalar elements and extra text, then discarded part of the
+response. It now validates those structures before returning values. Nonempty
+nil text and extra fault fields also fail explicitly. Errors retain HTTP status
+and empty success parameters. Untyped string whitespace, empty arrays with data,
+empty records, Unicode, Boolean false and the existing nil extension remain valid.
+
+Kept existing i8, nil and multiple-response-parameter support. Duplicate record
+names retain their previous behavior; the reference does not settle that policy.
+A candidate duplicate-name rejection was removed from the new tests before
+implementation. No new Date, binary or duplicate-name representation is invented.
+No public API, stored format, action script or backup changes.
+
+The first focused grammar checks reproduced discarded content; the corrected
+family then passed. The later focused XML-RPC and loopback run passed 28 methods,
+including separately recorded metadata cases. The full regression and unsigned
+build results follow with that acceptance record. Automatic tests use neutral
+data and no app windows, permissions, sound or personal information.
