@@ -80,7 +80,12 @@ and action-list option native checks remain pending. None is completed here.
    the original helper, including malformed/type cases. After relocation all
    48 affected methods in four suites passed headlessly. Unsigned Xcode
    compilation and matrix structure passed. No production theme behavior changed.
-4. Preference fixtures: pending.
+4. Preference fixtures: complete. App-test TestPreferences owns the isolated
+   suite name, defaults object and explicit cleanup. The three assigned files
+   retain exact prefixes, preference injection and reopened-suite checks. All
+   16 methods in the four affected suites passed with no parallel app execution.
+   Function names, Test annotations and all 66 expectation lines are unchanged.
+   Unsigned Xcode compilation passed. Complete final validation is in progress.
 
 ## Closure requirements
 

@@ -4,16 +4,15 @@ import DraftlyCore
 @testable import Draftly
 
 @MainActor struct ActionMoveNavigationTests {
-    private func setup(_ preference: ActionMoveNavigation = .createNew) throws -> (LibraryStore, WindowModel, UserDefaults, String) {
-        let domain = "Draftly.ActionMoveNavigation." + UUID().uuidString
-        let defaults = try #require(UserDefaults(suiteName: domain))
-        defaults.set(preference.rawValue, forKey: ActionMoveNavigation.preferenceKey)
+    private func setup(_ preference: ActionMoveNavigation = .createNew) throws -> (LibraryStore, WindowModel, TestPreferences) {
+        let preferences = try TestPreferences(prefix: "Draftly.ActionMoveNavigation.")
+        preferences.defaults.set(preference.rawValue, forKey: ActionMoveNavigation.preferenceKey)
         let library = try LibraryStore(inMemory: true, seed: false)
         var dependencies = WindowDependencies()
-        dependencies.preferences = WindowPreferences(defaults: defaults)
+        dependencies.preferences = WindowPreferences(defaults: preferences.defaults)
         let model = WindowModel(library: library, dependencies: dependencies)
         model.sort = .title; model.ascending = true
-        return (library, model, defaults, domain)
+        return (library, model, preferences)
     }
     private func action(_ destination: String, script: String = "void 0;") -> DraftAction {
         var action = DraftAction(name: "Neutral move", steps: [ActionStep("script", ["script": script])])
@@ -22,8 +21,8 @@ import DraftlyCore
     }
 
     @Test func successfulMoveCreatesOnlyAnUnsavedScratchAndPreservesOutcome() async throws {
-        let (library, model, defaults, domain) = try setup()
-        defer { defaults.removePersistentDomain(forName: domain) }
+        let (library, model, preferences) = try setup()
+        defer { preferences.close() }
         let original = try library.createNote(content: "Neutral café 🐼")
         model.select(original.id)
         let outcome = await model.runActionOutcome(action("archive"))
@@ -37,8 +36,8 @@ import DraftlyCore
     }
 
     @Test func nextUsesVisibleOrderThenPreviousAndFallsBackToScratch() async throws {
-        let (library, model, defaults, domain) = try setup(.openNext)
-        defer { defaults.removePersistentDomain(forName: domain) }
+        let (library, model, preferences) = try setup(.openNext)
+        defer { preferences.close() }
         let a = try library.createNote(content: "A"), b = try library.createNote(content: "B"), c = try library.createNote(content: "C")
         model.select(b.id)
         #expect((await model.runAsync(action("trash")))?.reason == .success)
@@ -53,8 +52,8 @@ import DraftlyCore
 
     @Test(arguments: ["context.fail('Neutral failure');", "context.cancel();"])
     func unsuccessfulActionsDoNotNavigate(script: String) async throws {
-        let (library, model, defaults, domain) = try setup()
-        defer { defaults.removePersistentDomain(forName: domain) }
+        let (library, model, preferences) = try setup()
+        defer { preferences.close() }
         let original = try library.createNote(content: "Neutral")
         model.select(original.id)
         let report = await model.runAsync(action("archive", script: script))
@@ -64,8 +63,8 @@ import DraftlyCore
     }
 
     @Test func scriptChosenEditorAndAnUnchangedDestinationArePreserved() async throws {
-        let (library, model, defaults, domain) = try setup()
-        defer { defaults.removePersistentDomain(forName: domain) }
+        let (library, model, preferences) = try setup()
+        defer { preferences.close() }
         let original = try library.createNote(content: "Original"), target = try library.createNote(content: "Chosen")
         model.select(original.id)
         let report = await model.runAsync(action("archive", script: "editor.load(Draft.find('\(target.id.uuidString)'))"))
@@ -77,8 +76,8 @@ import DraftlyCore
     }
 
     @Test func automationReturnsProcessedIdentityAndSingleContextCommandUsesPreference() async throws {
-        let (library, model, defaults, domain) = try setup()
-        defer { defaults.removePersistentDomain(forName: domain) }
+        let (library, model, preferences) = try setup()
+        defer { preferences.close() }
         let first = try library.createNote(content: "First")
         model.select(first.id)
         let output = try await AutomationActionExecution.run(action("archive"), noteID: first.id,
@@ -93,8 +92,8 @@ import DraftlyCore
     }
 
     @Test func multipleTargetsKeepTheAgreedLastProcessedDraft() async throws {
-        let (library, model, defaults, domain) = try setup()
-        defer { defaults.removePersistentDomain(forName: domain) }
+        let (library, model, preferences) = try setup()
+        defer { preferences.close() }
         let a = try library.createNote(content: "A"), b = try library.createNote(content: "B")
         await model.runActionAsync(action("archive"), on: [a.id, b.id])
         #expect(model.editor.noteID == b.id)
@@ -103,8 +102,8 @@ import DraftlyCore
 
     @Test func failedPendingSaveAndTimeoutDoNotMoveTheEditor() async throws {
         enum Failure: Error { case save }
-        let (library, model, defaults, domain) = try setup()
-        defer { defaults.removePersistentDomain(forName: domain) }
+        let (library, model, preferences) = try setup()
+        defer { preferences.close() }
         let original = try library.createNote(content: "Stored")
         let failing = WindowModel(library: library, dependencies: model.dependencies, saveDraft: { _ in throw Failure.save })
         failing.select(original.id)

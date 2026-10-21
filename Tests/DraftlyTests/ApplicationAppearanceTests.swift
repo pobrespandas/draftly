@@ -21,22 +21,22 @@ struct ApplicationAppearanceTests {
 @Suite("General preferences")
 struct GeneralPreferencesTests {
     @Test func launchWindowDefaultAndStoredChoiceAreLocal() throws {
-        let name = "Draftly-LaunchPreferences-\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: name))
-        defer { defaults.removePersistentDomain(forName: name) }
+        let preferences = try TestPreferences(prefix: "Draftly-LaunchPreferences-")
+        defer { preferences.close() }
+        let defaults = preferences.defaults
         #expect(GeneralPreferences.showMainWindowAtLaunch(defaults: defaults))
         defaults.set(false, forKey: GeneralPreferences.showMainWindowAtLaunchKey)
         #expect(!GeneralPreferences.showMainWindowAtLaunch(defaults: defaults))
-        let reopened = try #require(UserDefaults(suiteName: name))
+        let reopened = try #require(UserDefaults(suiteName: preferences.name))
         #expect(!GeneralPreferences.showMainWindowAtLaunch(defaults: reopened))
         defaults.set(true, forKey: GeneralPreferences.showMainWindowAtLaunchKey)
         #expect(GeneralPreferences.showMainWindowAtLaunch(defaults: defaults))
     }
 
     @Test func menuBarVisibilityKeepsTheExistingDefaultAndStoredChoice() throws {
-        let name = "Draftly-GeneralPreferences-\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: name))
-        defer { defaults.removePersistentDomain(forName: name) }
+        let preferences = try TestPreferences(prefix: "Draftly-GeneralPreferences-")
+        defer { preferences.close() }
+        let defaults = preferences.defaults
         #expect(GeneralPreferences.showInMenuBar(defaults: defaults))
         defaults.set(false, forKey: GeneralPreferences.showInMenuBarKey)
         #expect(!GeneralPreferences.showInMenuBar(defaults: defaults))

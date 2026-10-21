@@ -90,12 +90,11 @@ struct WorkspaceSortStateTests {
     }
 
     private func withModel(_ body: (WindowModel) throws -> Void) throws {
-        let name = "Draftly-WorkspaceSortState-\(UUID())"
-        let defaults = try #require(UserDefaults(suiteName: name))
-        defer { defaults.removePersistentDomain(forName: name) }
+        let preferences = try TestPreferences(prefix: "Draftly-WorkspaceSortState-")
+        defer { preferences.close() }
         let library = try LibraryStore(inMemory: true, seed: false)
         var dependencies = WindowDependencies()
-        dependencies.preferences = WindowPreferences(defaults: defaults)
+        dependencies.preferences = WindowPreferences(defaults: preferences.defaults)
         try body(WindowModel(library: library, dependencies: dependencies))
     }
 }
