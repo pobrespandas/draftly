@@ -36,9 +36,17 @@ struct ShortcutPreferences: View {
         return ActionShortcut.conflict(for: action, in: app.library?.actions ?? [], commands: CommandShortcuts.bindings(configuration: configuration).filter { $0.0 != selected })
     }
     var body: some View {
+        let recordingCommand = selected
         Section("Keyboard Shortcuts") {
             Picker("Command", selection: $selected) { ForEach(CommandShortcuts.editable.filter { !GlobalShortcuts.names.contains($0) }, id: \.self) { Text($0).tag($0) } }
                 .onChange(of: selected) { _, _ in load() }
+            ShortcutCaptureButton(binding: CommandBinding(key: key, modifiers: modifiers)) { binding in
+                guard selected == recordingCommand else { return }
+                key = binding.key
+                modifiers = binding.modifiers
+            }
+            .id(recordingCommand)
+            .frame(width: 180, height: 26)
             TextField("Key", text: $key)
             HStack {
                 ForEach(["command", "option", "control", "shift"], id: \.self) { name in

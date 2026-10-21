@@ -56,7 +56,24 @@ struct GlobalShortcutPreferences: View {
     }
 }
 
-private struct ShortcutCaptureButton: NSViewRepresentable {
+enum ShortcutRecordingInput {
+    enum Decision: Equatable {
+        case cancel, ignore
+        case record(CommandBinding)
+    }
+
+    static func decision(keyCode: UInt16, characters: String?, flags: NSEvent.ModifierFlags) -> Decision {
+        if keyCode == 53 { return .cancel }
+        if keyCode == 51 || keyCode == 117 { return .record(CommandBinding(key: "", modifiers: [])) }
+        guard let key = characters?.lowercased(), key.count == 1,
+              key.unicodeScalars.allSatisfy({ !CharacterSet.controlCharacters.contains($0) }) else { return .ignore }
+        let modifiers = [(NSEvent.ModifierFlags.command, "command"), (.control, "control"), (.option, "option"), (.shift, "shift")]
+            .compactMap { flags.contains($0.0) ? $0.1 : nil }
+        return .record(CommandBinding(key: key, modifiers: modifiers, keyCode: UInt32(keyCode)))
+    }
+}
+
+struct ShortcutCaptureButton: NSViewRepresentable {
     var binding: CommandBinding
     var record: (CommandBinding) -> Void
 
@@ -72,7 +89,10 @@ private struct ShortcutCaptureButton: NSViewRepresentable {
         context.coordinator.binding = binding
         if context.coordinator.monitor == nil { button.title = Self.title(binding) }
     }
-    static func dismantleNSView(_ button: NSButton, coordinator: Coordinator) { coordinator.stop() }
+    static func dismantleNSView(_ button: NSButton, coordinator: Coordinator) {
+        coordinator.stop()
+        coordinator.record = nil
+    }
 
     static func title(_ binding: CommandBinding) -> String {
         guard !binding.key.isEmpty else { return "Record Shortcut" }
@@ -101,19 +121,18 @@ private struct ShortcutCaptureButton: NSViewRepresentable {
             button?.title = "Type shortcut…"
             monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
                 let handled = MainActor.assumeIsolated {
-                    guard let self, event.window === self.button?.window else { return false }
-                    if event.keyCode == 53 { self.stop(); return true }
-                    if event.keyCode == 51 || event.keyCode == 117 {
-                        self.stop(); self.record?(CommandBinding(key: "", modifiers: [])); return true
+                    guard let self, self.monitor != nil, Self.active === self,
+                          event.window === self.button?.window else { return false }
+                    switch ShortcutRecordingInput.decision(keyCode: event.keyCode,
+                        characters: event.charactersIgnoringModifiers, flags: event.modifierFlags) {
+                    case .cancel:
+                        self.stop()
+                    case .ignore:
+                        break
+                    case .record(let binding):
+                        self.stop()
+                        self.record?(binding)
                     }
-                    guard let key = event.charactersIgnoringModifiers?.lowercased(), key.count == 1,
-                          key.unicodeScalars.allSatisfy({ !CharacterSet.controlCharacters.contains($0) }) else { return true }
-                    var modifiers: [String] = []
-                    for (flag, name): (NSEvent.ModifierFlags, String) in [(.command, "command"), (.control, "control"), (.option, "option"), (.shift, "shift")] {
-                        if event.modifierFlags.contains(flag) { modifiers.append(name) }
-                    }
-                    self.stop()
-                    self.record?(CommandBinding(key: key, modifiers: modifiers, keyCode: UInt32(event.keyCode)))
                     return true
                 }
                 return handled ? nil : event

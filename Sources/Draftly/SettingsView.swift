@@ -2,6 +2,31 @@ import SwiftUI
 import AppKit
 import DraftlyCore
 
+enum EditorFontOptions {
+    struct Choice: Identifiable, Equatable, Sendable {
+        let title: String
+        let postScriptName: String
+        var id: String { postScriptName }
+    }
+
+    static let common: [Choice] = [
+        Choice(title: "System", postScriptName: "System"),
+        Choice(title: "SF Mono", postScriptName: "SFMono-Regular"),
+        Choice(title: "Menlo", postScriptName: "Menlo-Regular"),
+        Choice(title: "Helvetica Neue", postScriptName: "HelveticaNeue")
+    ]
+
+    static func additional(nerdFonts: [Choice], selected: String) -> [Choice] {
+        var seen = Set(common.map(\.postScriptName))
+        var result = nerdFonts.filter { seen.insert($0.postScriptName).inserted }
+        if seen.insert(selected).inserted {
+            result.append(Choice(title: selected.isEmpty ? "Configured Font (empty name)" : selected,
+                                 postScriptName: selected))
+        }
+        return result
+    }
+}
+
 struct SettingsView: View {
     @ObservedObject var controller: AppController
     @StateObject private var loginItem = LoginItemPreferences()
@@ -25,6 +50,11 @@ struct SettingsView: View {
                       let postScriptName = regular[0] as? String else { return nil }
                 return (family, postScriptName)
             }
+    }
+    private var additionalFontOptions: [EditorFontOptions.Choice] {
+        EditorFontOptions.additional(nerdFonts: nerdFontOptions.map {
+            EditorFontOptions.Choice(title: $0.family, postScriptName: $0.postScriptName)
+        }, selected: fontName)
     }
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -57,14 +87,13 @@ struct SettingsView: View {
         Form {
             Section("Editor") {
                 Picker("Font", selection: $fontName) {
-                    Text("System").tag("System")
-                    Text("SF Mono").tag("SFMono-Regular")
-                    Text("Menlo").tag("Menlo-Regular")
-                    Text("Helvetica Neue").tag("HelveticaNeue")
-                    if !nerdFontOptions.isEmpty {
+                    ForEach(EditorFontOptions.common) { option in
+                        Text(option.title).tag(option.postScriptName)
+                    }
+                    if !additionalFontOptions.isEmpty {
                         Divider()
-                        ForEach(nerdFontOptions, id: \.postScriptName) { option in
-                            Text(option.family).tag(option.postScriptName)
+                        ForEach(additionalFontOptions) { option in
+                            Text(option.title).tag(option.postScriptName)
                         }
                     }
                 }
