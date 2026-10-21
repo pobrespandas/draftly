@@ -1,0 +1,31 @@
+[
+  {
+    "uuid": "BBBF0032-0000-4000-8000-000000000001",
+    "name": "QA Print pending operation",
+    "group": "Print lifecycle QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText(editor.getText()+'\\nPrint completed write');draft.update();"
+        }
+      },
+      {
+        "type": "print",
+        "data": {
+          "template": "Print interruption QA\nNeutral café 🐼",
+          "printFormat": "Text"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "ERROR: print continued"
+        }
+      }
+    ]
+  }
+]

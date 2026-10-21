@@ -7641,3 +7641,24 @@ No unrelated native route is accepted by these ShellScript checks.
 Final tooling passed all 46 Python tests. Matrix structure passed with zero
 errors. Strict engine/global acceptance remains open with 18/4470 diagnostics.
 Member-specific evidence, not these totals, determines compatibility status.
+
+
+### Native print cancellation — 21 October 2026
+
+Implemented: no production change in this check. The neutral fixture
+`scripts/fixtures/engine-print-lifetime-actions.json` writes text before printing,
+has a visible tail sentinel, and uses Archive only after success. It permits
+reproduction of cancellation without a physical printer or private data.
+
+Verified in use: the current signed Theme QA image recorded in the preceding
+print entry opened the native one-page panel. Actions > Cancel Running Action
+closed it and recorded Cancelled at 06:19. A second run used the native panel
+Cancel button and recorded Cancelled at 06:21. Both retained the completed
+write in Inbox, without ERROR: print continued or Archive. A following
+QA Shell lifetime recovery run recorded Success at 06:22. History is closed.
+No print job or PDF was submitted during these cancellation checks.
+
+Automatically tested: no new production calculation or contract changed, so
+the previous headless print regression and full suite remain the code baseline.
+This manual check does not replace timeout, owner-close, format/margin or large
+rendering acceptance. Those checks remain pending. No raw capture is tracked.
