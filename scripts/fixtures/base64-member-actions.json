@@ -1,0 +1,17 @@
+[
+  {
+    "uuid": "BBBF0035-0000-4000-8000-000000000001",
+    "name": "QA Base64 member contracts",
+    "group": "Utility member QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "function check(value,message){if(!value)throw Error(message);}\nconst before=editor.getText();\nconst plain='café 🐼';\ncheck(Base64.encode('foobar')==='Zm9vYmFy','standard encode');\ncheck(Base64.encode(plain)==='Y2Fmw6kg8J+QvA==','UTF8 encode');\ncheck(Base64.encode('')==='','empty encode');\ncheck(Base64.decode('Zm9vYmFy')==='foobar','standard decode');\ncheck(Base64.decode('Y2Fmw6kg8J+QvA==')===plain,'UTF8 decode');\ncheck(Base64.decode('')==='','empty decode');\ncheck(editor.getText()===before,'editor preserved');\nconsole.log('Base64 encode/decode contracts passed café 🐼');"
+        }
+      }
+    ]
+  }
+]

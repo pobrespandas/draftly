@@ -25,6 +25,11 @@ retain historical results. Later results supersede earlier counts.
 
 ## Current verification
 
+Base64 encode/decode now have specific contract records. Independent UTF-8 and
+standard vectors pass both runners; native QA checked values and unchanged text.
+Full concurrent498 app/601 core passed. No production implementation changed.
+Undocumented malformed-input behavior has no parity claim.
+
 AppleScript production timeout now passed on the signed QA image. The helper
 and private directory were removed, completed text stayed in Inbox without
 tail/Archive, and a following native action succeeded. Permission variants and

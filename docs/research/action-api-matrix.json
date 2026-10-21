@@ -17857,10 +17857,48 @@
             "decode(data: string): string"
           ],
           "contract": "Base64 decode a string.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "Base64ContractTests",
+            "test": "decodeMatchesStandardAndUTF8VectorsWithoutChangingTheSource"
+          },
+          "liveCheck": "docs/validation.md: Base64 member contracts — 21 October 2026",
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/ActionScriptCommands.swift",
+            "symbol": "base64Decode"
+          },
+          "defaults": "The data string is required. No default value is documented.",
+          "result": "The decoded UTF-8 string for valid Base64 text. Empty text returns an empty string.",
+          "errors": "No error behavior is documented. Malformed input, padding variations, whitespace and invalid UTF-8 have no acceptance claim.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "Base64ContractTests",
+                "test": "decodeMatchesStandardAndUTF8VectorsWithoutChangingTheSource"
+              },
+              "assertion": "Both runners match independent standard/UTF-8 vectors, preserve input/editor content, and return strings, including empty, CRLF/LF and NUL cases."
+            },
+            "defaults": {
+              "notApplicable": "The reference requires the data argument and documents no default."
+            },
+            "errors": {
+              "notApplicable": "The archived reference documents no error outcome or malformed-input policy."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Base64 member contracts — 21 October 2026"
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Base64 member contracts — 21 October 2026",
+            "scope": "QA Base64 member contracts checked known standard and Unicode encode/decode values, empty inputs and unchanged editor. History recorded Success06:50."
+          },
+          "limitations": []
         },
         {
           "member": "encode",
@@ -17872,10 +17910,48 @@
             "encode(data: string): string"
           ],
           "contract": "Base64 encode a string.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "implemented-with-member-contract-tests",
+          "automatedTest": {
+            "suite": "Base64ContractTests",
+            "test": "encodeMatchesStandardAndUTF8VectorsWithoutChangingTheSource"
+          },
+          "liveCheck": "docs/validation.md: Base64 member contracts — 21 October 2026",
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/ActionScriptCommands.swift",
+            "symbol": "base64Encode"
+          },
+          "defaults": "The data string is required. No default value is documented.",
+          "result": "A standard Base64 string for the UTF-8 bytes of the required input string.",
+          "errors": "No error behavior is documented. Malformed input, padding variations, whitespace and invalid UTF-8 have no acceptance claim.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "Base64ContractTests",
+                "test": "encodeMatchesStandardAndUTF8VectorsWithoutChangingTheSource"
+              },
+              "assertion": "Both runners match independent standard/UTF-8 vectors, preserve input/editor content, and return strings, including empty, CRLF/LF and NUL cases."
+            },
+            "defaults": {
+              "notApplicable": "The reference requires the data argument and documents no default."
+            },
+            "errors": {
+              "notApplicable": "The archived reference documents no error outcome or malformed-input policy."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Base64 member contracts — 21 October 2026"
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Base64 member contracts — 21 October 2026",
+            "scope": "QA Base64 member contracts checked known standard and Unicode encode/decode values, empty inputs and unchanged editor. History recorded Success06:50."
+          },
+          "limitations": []
         }
       ]
     },

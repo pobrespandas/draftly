@@ -7876,3 +7876,30 @@ own pending checks.
 Automatically tested: the concurrent suite with the accompanying utility tests
 passed498 app/601 core methods. No production code changed after the preceding
 successful unsigned build. No automatic test opens a visible window.
+
+
+### Base64 member contracts — 21 October 2026
+
+Reviewed the archived19 October Base64 page and retained its URL/hash. It defines
+only static encode(data:string):string and decode(data:string):string. No default
+argument, malformed data policy, padding/whitespace rule or invalid UTF-8 result
+is specified. No guessed error policy was added to production or acceptance.
+
+Implemented: existing Foundation UTF-8/Base64 commands already satisfy the
+documented valid-string contracts. No production source changed. Automatically
+tested: two member-specific methods each run on both engines. Independent known
+vectors cover f through foobar, empty strings, café/emoji, CRLF/LF and embedded
+NUL. Assertions check exact values and string returns, unchanged source and
+editor/storage, and no native-host call. The focused suite passed. Full
+concurrent regression passed498 app/601 core. The preceding successful Xcode
+build remains the production code baseline. No automatic test opens a window.
+
+Verified in use: imported scripts/fixtures/base64-member-actions.json through
+File > Import in current signed Engine QA. QA Base64 member contracts checked
+standard/Unicode/empty encode and decode results without changing the editor.
+History recorded Success06:50. No permission, clipboard or external service was
+used. Both members now have specific complete records for their documented
+contracts. This does not define behavior for undocumented malformed data.
+
+Final tooling: Python47 and matrix structure0 passed. Strict engine/global
+remain open with18/4388 diagnostics. Totals are not a parity percentage.
