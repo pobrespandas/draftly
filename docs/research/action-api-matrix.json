@@ -17321,7 +17321,7 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Separate-target UI, URL, and actual Intent failure/cancellation passed. Earlier separate-target production timeout passed through Shortcuts. Native asynchronous queued interruption with window closure and current-image production timeout through each applicable entry remain pending."
+        "Separate-target UI/URL/Intent failure and cancellation passed. URL owner-close during a pending queued child also passed. Queued Intent owner-close and current-image production timeout through each applicable entry remain pending."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
@@ -17402,7 +17402,7 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Separate-target UI, URL, and actual Intent failure/cancellation passed. Earlier separate-target production timeout passed through Shortcuts. Native asynchronous queued interruption with window closure and current-image production timeout through each applicable entry remain pending.",
+        "reason": "Separate-target UI/URL/Intent failure and cancellation passed. URL owner-close during a pending queued child also passed. Queued Intent owner-close and current-image production timeout through each applicable entry remain pending.",
         "evidence": "docs/validation.md",
         "additionalChecks": [
           {
@@ -17425,6 +17425,13 @@
             "fixture": "scripts/fixtures/engine-queue-actions.json",
             "evidence": "docs/validation.md: Native App Intent queued interruptions — 20 October 2026",
             "result": "Actual Shortcuts Run Draft Action returned Neutral queued failure and the root cancellation message. Root history recorded Error/Cancelled. Separate drafts retained their text in Inbox; no later sentinel appeared. Shortcut parameters were restored."
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "1b8988d3183ec0675c0e5d3125665b1c22b3e155a9b82124b3a8039db45e5d20",
+            "fixture": "scripts/fixtures/engine-queue-actions.json",
+            "evidence": "docs/validation.md: Native queued URL owner-close cancellation — 20 October 2026",
+            "result": "After the child wrote to another draft and waited, closing the owner produced one cancel callback. Reopened Inbox retained source and target text; root history was Cancelled and no sentinel appeared."
           }
         ]
       },
@@ -18181,6 +18188,13 @@
             "executableSHA256": "99a067dd93e833bb4cd2a2912ac6596b8150ada162af5c5ee21b3799a102a841",
             "fixture": "scripts/fixtures/engine-callback-overlap-actions.json",
             "result": "Started expired reply(delay8,value expired), cancelled, and started fresh reply(delay10,value fresh) in a batched UI sequence. Helper showed second pending, then first successful native open/value expired, then second successful native open/value fresh. Fresh action asserted one response with value fresh and wrote Fresh callback isolated café 🐼. History showed expired Cancelled and fresh Success. Native open observations do not measure the precise app-handler delivery time."
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "1b8988d3183ec0675c0e5d3125665b1c22b3e155a9b82124b3a8039db45e5d20",
+            "fixture": "scripts/fixtures/engine-queue-actions.json",
+            "evidence": "docs/validation.md: Native queued URL owner-close cancellation — 20 October 2026",
+            "result": "After the child wrote to another draft and waited, closing the owner produced one cancel callback. Reopened Inbox retained source and target text; root history was Cancelled and no sentinel appeared."
           }
         ]
       },
@@ -18399,6 +18413,13 @@
             "fixture": "scripts/fixtures/engine-queue-actions.json",
             "evidence": "docs/validation.md: Native App Intent queued interruptions — 20 October 2026",
             "result": "Actual Shortcuts Run Draft Action returned Neutral queued failure and the root cancellation message. Root history recorded Error/Cancelled. Separate drafts retained their text in Inbox; no later sentinel appeared. Shortcut parameters were restored."
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "1b8988d3183ec0675c0e5d3125665b1c22b3e155a9b82124b3a8039db45e5d20",
+            "fixture": "scripts/fixtures/engine-queue-actions.json",
+            "evidence": "docs/validation.md: Native queued URL owner-close cancellation — 20 October 2026",
+            "result": "After the child wrote to another draft and waited, closing the owner produced one cancel callback. Reopened Inbox retained source and target text; root history was Cancelled and no sentinel appeared."
           }
         ]
       },

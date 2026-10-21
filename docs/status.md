@@ -1042,3 +1042,8 @@ Actual App Intent queued failure/cancellation now propagate the child result
 through Shortcuts, retain completed writes in Inbox, and stop later work.
 The QA shortcut parameters were restored. Remaining asynchronous interruption,
 window-lifetime, and current-image timeout combinations stay pending.
+
+
+Native URL owner-close cancellation now passes while a queued child waits on
+a different draft: one cancel callback, retained Inbox writes, no later work.
+Queued Intent owner-close and remaining timeout combinations stay pending.

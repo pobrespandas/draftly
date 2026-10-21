@@ -4606,3 +4606,26 @@ perform calls. It does not verify every asynchronous queued interruption,
 window-lifetime combination, or current-image production timeout entry.
 No production code, build, or test changed. Last full regression remains
 app447/core471. No screenshot or raw export is tracked.
+
+
+### Native queued URL owner-close cancellation — 20 October 2026
+
+Added QA Queue multi-draft pending root to engine-queue-actions.json. It queues
+the existing asynchronous timeout child on the neutral target and a sentinel
+on the source. Used isolated QA image1b8988d3183ec067. Opened the root through
+the local helper's draftly://run URL and confirmed Run Action.
+
+Observed Queue timeout completed write — café 🐼 in the target editor with action
+buttons disabled. Closed the visible owner using its close button while the
+child was pending. The helper showed exactly one callback with
+case=queue-owner-close and result=cancel. After reopening QA, both retained
+target text and Queue source retained were visible in Inbox. No later-work
+sentinel appeared. History recorded the pending root as Cancelled. A later
+helper observation still showed the same single callback.
+
+This covers a URL-owned window closing after the queue loads another draft.
+It does not cover queued Intent owner-close or all multiwindow combinations.
+Automatic: nine editor-context/owner-observer methods and five queue methods
+passed without visible windows. Matrix structure passes. No production code
+or build changed. Last full regression remains app447/core471. No screenshots
+or raw logs are tracked.
