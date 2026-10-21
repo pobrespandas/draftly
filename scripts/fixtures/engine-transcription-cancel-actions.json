@@ -1,0 +1,16 @@
+[
+  {
+    "uuid": "BBBF0003-0000-4000-8000-000000000002",
+    "name": "QA Transcription task cancellation",
+    "group": "Native cancellation QA",
+    "notificationType": 0,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "var text=editor.transcribe();editor.setText('ERROR transcription returned after cancellation: '+text);draft.update();"
+        }
+      }
+    ]
+  }
+]

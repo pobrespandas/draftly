@@ -18107,6 +18107,14 @@
             "fixture": "scripts/fixtures/engine-apple-model-cancel-actions.json",
             "result": "Real onDevice availability was false. respond returned undefined and explicit unavailable lastError; no generation remained pending. No fake backend, model download or preference change. Actual generation cancellation is blocked by current system availability, not accepted. PCC is unchecked.",
             "evidence": "docs/validation.md: Native on-device model unavailability — 20 October 2026"
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "fc4f02d4d2ea7dbb9eb65f523e3ae7d75154ab2990d0ec66bf89c5b3c91e6e55",
+            "fixture": "scripts/fixtures/engine-transcription-cancel-actions.json",
+            "entryPoint": "Visual QA Actions Cancel Running Action",
+            "result": "With the existing speech grant, task cancellation closed the audio picker and preserved neutral text. A second run accepted synthetic silence, remained pending after picker closure, then task cancellation preserved text and recorded Cancelled. No ERROR tail, microphone or private audio. Successful recognition is not covered.",
+            "evidence": "docs/validation.md: Native transcription task cancellation — 20 October 2026"
           }
         ]
       },
@@ -18294,6 +18302,14 @@
             "fixture": "scripts/fixtures/engine-apple-model-cancel-actions.json",
             "result": "Real onDevice availability was false. respond returned undefined and explicit unavailable lastError; no generation remained pending. No fake backend, model download or preference change. Actual generation cancellation is blocked by current system availability, not accepted. PCC is unchecked.",
             "evidence": "docs/validation.md: Native on-device model unavailability — 20 October 2026"
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "fc4f02d4d2ea7dbb9eb65f523e3ae7d75154ab2990d0ec66bf89c5b3c91e6e55",
+            "fixture": "scripts/fixtures/engine-transcription-cancel-actions.json",
+            "entryPoint": "Visual QA Actions Cancel Running Action",
+            "result": "With the existing speech grant, task cancellation closed the audio picker and preserved neutral text. A second run accepted synthetic silence, remained pending after picker closure, then task cancellation preserved text and recorded Cancelled. No ERROR tail, microphone or private audio. Successful recognition is not covered.",
+            "evidence": "docs/validation.md: Native transcription task cancellation — 20 October 2026"
           }
         ]
       },
@@ -18337,7 +18353,7 @@
         "result": "Temporary local QA app: panel use during delayed action, exact native Undo, window-close cancellation recorded in Execution History, and typing cancels while preserving user text. Other entry points remain pending."
       },
       "limitations": [
-        "Native task-owned Prompt/SelectPrompt cancellation and keyboard recovery passed. Transcription and EventKit cancellation remain pending. Actual onDevice model generation cancellation is blocked because the real system reports that mode unavailable; the explicit unavailable response passed. PCC is unchecked."
+        "Native task-owned Prompt/SelectPrompt cancellation and keyboard recovery passed. Transcription cancellation passed during file selection and recognition using an existing grant. EventKit cancellation remains pending. Actual onDevice model generation cancellation is blocked by real system unavailability; explicit unavailable response passed. PCC is unchecked."
       ],
       "defaults": "A new session starts with cancellationRequested false. Runner.cancel and cancellation of the task running runAsync both request termination. CPU-bound cancellation is bounded by the JavaScript evaluation limit.",
       "result": "Cancelled idle scripts stop before subsequent steps, return reason cancelled with no success parameters, and retain effects already completed. Host cleanup completes before the final report releases the library.",
@@ -18393,7 +18409,7 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Prompt/select cancellation passed. Transcription/EventKit cancellation remain pending. Real onDevice unavailable response passed; generation cancellation remains blocked by current mode availability. PCC is unchecked.",
+        "reason": "Prompt/select and transcription task cancellation passed. Native EventKit cancellation remains pending. OnDevice generation cancellation is blocked by current unavailability; PCC is unchecked.",
         "additionalChecks": [
           {
             "date": "2026-10-20",
@@ -18449,6 +18465,14 @@
             "fixture": "scripts/fixtures/engine-apple-model-cancel-actions.json",
             "result": "Real onDevice availability was false. respond returned undefined and explicit unavailable lastError; no generation remained pending. No fake backend, model download or preference change. Actual generation cancellation is blocked by current system availability, not accepted. PCC is unchecked.",
             "evidence": "docs/validation.md: Native on-device model unavailability — 20 October 2026"
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "fc4f02d4d2ea7dbb9eb65f523e3ae7d75154ab2990d0ec66bf89c5b3c91e6e55",
+            "fixture": "scripts/fixtures/engine-transcription-cancel-actions.json",
+            "entryPoint": "Visual QA Actions Cancel Running Action",
+            "result": "With the existing speech grant, task cancellation closed the audio picker and preserved neutral text. A second run accepted synthetic silence, remained pending after picker closure, then task cancellation preserved text and recorded Cancelled. No ERROR tail, microphone or private audio. Successful recognition is not covered.",
+            "evidence": "docs/validation.md: Native transcription task cancellation — 20 October 2026"
           }
         ]
       },

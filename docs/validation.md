@@ -5500,3 +5500,43 @@ PCC remains unchecked. The focused injected-backend model suite passed7 app
 methods, including cleanup, deadline, overlap, cancellation and tool lifetime.
 No automated test opens a window or requests the real model. No screenshot is
 tracked. The other native capability work can continue independently.
+
+
+### Native transcription task cancellation — 20 October 2026
+
+Read System Settings privacy pages without changing controls. Speech access
+was enabled for Draftly Visual QA, DraftlyCoreQA, and Drafts. The Calendar page
+showed a Draftly entry with no access; that label does not establish Engine QA's
+authorization state. No Calendar grant was added. Visual QA's bundle identity
+is com.andrestobelem.draftly.visual-close, with local library
+6f947773-92ee-4bd9-a0ae-3e06b5c9377f and CloudKit disabled.
+
+Updated the existing stopped Visual QA app with the full current built MacOS,
+Resources, and Frameworks directories. Kept Info.plist and its ad-hoc signing
+type; signature verification passed. Executable SHA256:
+fc4f02d4d2ea7dbb9eb65f523e3ae7d75154ab2990d0ec66bf89c5b3c91e6e55.
+The installed path was selected explicitly because old build products share
+its bundle ID. Initial launch showed zero drafts. Created one neutral note and
+imported engine-transcription-cancel-actions.json. No new permission prompt
+appeared. The action opened the audio picker using its existing speech grant.
+
+Cancelled the owning task through Actions > Cancel Running Action while the
+picker was open. The picker closed; exact neutral Unicode text remained.
+History recorded Cancelled. No file was selected for this first check.
+
+For recognition-phase cancellation, generated a120-second mono16kHz16-bit PCM
+WAV of zeros in /tmp. No microphone, voice, personal file, or playback was used.
+SHA256:4395f2569b32c91407f267c835a96159b9d03c7a2303907ee10d716713ae1e0a.
+Selected that exact file. At1237ms observation the picker had closed and the
+action remained pending; Cancel Running Action was enabled. Cancelled it.
+The draft still contained Transcription cancellation neutral café 🐼, with no
+ERROR tail. History showed a second Cancelled row. This accepts cancellation
+during selection and recognition, not recognition accuracy or successful text
+transcription. The speech service may process the synthetic silence under the
+existing grant. No private audio was supplied.
+
+Focused regression passed12 app transcription methods and3 core methods across
+host interruption/cleanup suites. Fake-driver tests do not request permissions
+or open windows. Native EventKit cancellation remains pending; onDevice model
+generation cancellation remains blocked by availability. No screenshot or WAV
+is tracked. The QA app remains on its one neutral note.
