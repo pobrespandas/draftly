@@ -257,9 +257,10 @@ struct DraftMetadataContractTests {
         #expect(f.library.notes.first?.flag == 7)
     }
 
-    @Test func draftUpdateReturnsVoidAndSynchronizesStoredEditorAndCachedValues() throws {
+    @Test(arguments: [false, true])
+    func draftUpdateReturnsVoidAndSynchronizesStoredEditorAndCachedValues(worker: Bool) async throws {
         let f = try DraftMetadataFixture()
-        #expect(f.run(#"""
+        let action = f.action(#"""
         const cached=Draft.find(draft.uuid),id=draft.uuid;
         check(cached===draft && editor.draft===draft,'initial shared identity');
         draft.content='Updated 🐼\nBody';draft.addTag('persisted');draft.flagType=2;
@@ -267,12 +268,17 @@ struct DraftMetadataContractTests {
         check(editor.getText()===draft.content && cached.content===draft.content,'immediate editor content');
         check(Draft.find(id)===cached && Draft.queryByTitle('Updated 🐼')[0]===cached,'identity after update');
         check(draft.modifiedAt instanceof Date && draft.hasTag('persisted'),'updated metadata');
-        """#), Comment(rawValue: f.runner.message ?? ""))
+        """#)
+        let result: ActionExecutionResult
+        if worker { result = await f.runner.runAsync(action).result }
+        else { result = f.runner.runResult(action) }
+        #expect(result.succeeded, Comment(rawValue: f.runner.message ?? ""))
         let saved = try #require(f.library.notes.first { $0.id == f.editor.noteID })
         #expect(saved.content == "Updated 🐼\nBody" && saved.tags == ["persisted"] && saved.flag == 2)
     }
 
-    @Test func draftUpdateStorageFailureThrowsAndPreservesStoredEditorAndVersions() throws {
+    @Test(arguments: [false, true])
+    func draftUpdateStorageFailureThrowsAndPreservesStoredEditorAndVersions(worker: Bool) async throws {
         let f = try DraftMetadataFixture()
         let library = f.library
         var armedSnapshot: [Note] = [], armedVersions: [Revision] = []
@@ -283,10 +289,21 @@ struct DraftMetadataContractTests {
         defer { library.beforeBatchCommit = nil }
         let original = f.editor.content
         let action = f.action("app.setClipboard('arm');draft.content='Must not persist';draft.addTag('unsaved');draft.update();throw new Error('later statement ran');")
-        #expect(f.runner.runResult(action) == .failure("Error: Metadata storage failure"))
+        let result: ActionExecutionResult
+        if worker { result = await f.runner.runAsync(action).result }
+        else { result = f.runner.runResult(action) }
+        #expect(result == .failure("Error: Metadata storage failure"))
         #expect(library.notes == armedSnapshot)
         #expect(library.revisions == armedVersions)
         #expect(f.editor.content == original)
+        library.beforeBatchCommit = nil
+        try library.saveNote(Note(content: "Independent later commit"), preserveRevision: false)
+        let restored = try LibraryStore(inMemory: true, seed: false)
+        try restored.restore(library.backupData())
+        let id = try #require(f.editor.noteID)
+        #expect(restored.notes.first { $0.id == id } == armedSnapshot.first { $0.id == id })
+        #expect(restored.revisions == armedVersions)
+        #expect(!restored.notes.contains { $0.content == "Must not persist" })
     }
 
     @Test(arguments: [false, true])

@@ -5689,3 +5689,18 @@ The focused run passed 4 core methods across this suite and SyntaxActionAPITests
 plus 9 app methods in AutomationEditorContextTests. The new method expanded to
 both runners. No window, permission prompt, or private URL was used. These
 assertions do not establish native Drafts parity or all URL contracts.
+
+
+### Draft update worker and rollback coverage — 20 October 2026
+
+Refactored the two existing Draft.update contract tests to run on legacy and
+worker execution. They check the void return, shared identity, immediate
+editor-model updates, content, tags, flags, and exact storage-error result.
+The storage-error case now performs an independent later commit and restores
+a backup. It verifies that rejected text and revisions do not reappear.
+No duplicate test methods or production changes were added.
+
+The coordinator's focused run passed 48 methods across DraftMetadataContractTests,
+WorkspaceDateBoundaryContractTests, and WorkspaceFilterContractTests. The two
+update methods each passed both runner variants. These are in-memory checks;
+native selection and Undo acceptance remain pending. No window opened.

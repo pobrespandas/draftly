@@ -1698,10 +1698,10 @@
             "test": "draftUpdateReturnsVoidAndSynchronizesStoredEditorAndCachedValues"
           },
           "liveCheck": null,
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-20",
           "defaults": "The method has no arguments. Pending changes are not persisted until update.",
           "result": "Update returns undefined, persists changed content, tags and flag, and synchronizes editor and cached query/find references.",
-          "errors": "A storage failure produces the exact Error: Metadata storage failure result, preserves stored notes, revisions and editor content, and does not execute the later statement.",
+          "errors": "A storage failure produces Error: Metadata storage failure, preserves stored notes, revisions and editor content, and stops the later statement. A later independent commit and backup/restore do not recover rejected text or revisions.",
           "limitations": [
             "Verify the immediate native editor update and selection/Undo coherence in a reproducible live action. The automatic test proves stored and editor-model values; the UI acceptance remains separate."
           ],
@@ -1727,12 +1727,18 @@
                 "suite": "DraftMetadataContractTests",
                 "test": "draftUpdateStorageFailureThrowsAndPreservesStoredEditorAndVersions"
               },
-              "assertion": "A storage failure produces the exact Error: Metadata storage failure result, preserves stored notes, revisions and editor content, and does not execute the later statement."
+              "assertion": "A storage failure produces Error: Metadata storage failure, preserves stored notes, revisions and editor content, and stops the later statement. A later independent commit and backup/restore do not recover rejected text or revisions."
             }
           },
           "nativeVerification": {
             "status": "pending",
             "reason": "Verify the immediate native editor update and selection/Undo coherence in a reproducible live action. The automatic test proves stored and editor-model values; the UI acceptance remains separate."
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-20",
+            "evidence": "docs/validation.md: Draft update worker and rollback coverage — 20 October 2026",
+            "scope": "The two named normal and storage-error cases passed on legacy and worker runners. This does not establish native Undo or selection acceptance."
           }
         },
         {
