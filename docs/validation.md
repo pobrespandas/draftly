@@ -5153,3 +5153,30 @@ confirmed the dialog closed. No action ran. No screenshot is stored.
 This accepts the mixed actions wrapper and named-group presentation. A separate
 exported action-group container format and exact Drafts appearance comparison
 are not established by this check. The contract stays partial.
+
+
+### Foreign notification option mapping — 20 October 2026
+
+Supplemental reference, separate from the frozen scripting archive:
+https://tools.getdrafts.com/wizards/mail
+Fetched20 October2026. HTML SHA256:
+06f20696b5dcbd707b98fd81568add2ed0c0975f943e9fd3ebc2af84cb2c92bd.
+Its notificationType selector maps0 to None,1 to Error, and2 to Info. The
+current official action guide describes none, errors-only, and all outcomes:
+https://docs.getdrafts.com/docs/actions/editing-actions#notification
+The frozen19 October scripting reference contains no notificationType member.
+This source does not establish visibility, flags, group, or platform codes.
+
+Implemented: foreign notificationType1 enables error notification;2 enables
+success and error;0 disables both. Absent or unknown values keep the existing
+quiet defaults. Full raw payload remains intact, including unknown values.
+Native Draftly typed options remain unchanged.
+
+Automatic: the new tests failed30 assertions before the fix. They now pass
+all four codes on both legacy and async routes, checking exact host-call count
+for success, error, and cancellation after native export/reimport. They also
+check all five original fixtures and the absent-field default. Cancellation
+never notifies. The fake host emits no native notifications or sounds. Full
+regression passed app449/core478. The original scripts remain unchanged.
+Native banner/inspector checks and timeout-specific import policy acceptance
+remain pending. No new installed build is claimed.

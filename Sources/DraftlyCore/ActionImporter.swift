@@ -55,6 +55,10 @@ public enum ActionImporter {
             presentation.barLabel = entry["shortName"] as? String
             presentation.barUsesIcon = entry["keyUseIcon"] as? Bool
             presentation.confirmBeforeRun = entry["shouldConfirm"] as? Bool ?? false
+            if let notification = entry["notificationType"] as? Int {
+                presentation.notifyOnSuccess = notification == 2
+                presentation.notifyOnError = notification == 1 || notification == 2
+            }
             presentation.addTags = TagRules.normalize(entry["assignTags"] as? [String] ?? [])
             action.options = presentation
             action.sourceURL = source

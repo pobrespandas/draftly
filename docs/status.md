@@ -1142,3 +1142,10 @@ reference and observable Drafts behavior before mapping values. Native Draftly
 options use their typed persisted fields; this gap concerns foreign import.
 Unknown numeric values must survive any later mapping. This audit does not
 change the original scripts or claim completion of these imported options.
+
+
+Notification import follow-up —20 October2026: notificationType0/1/2 now maps
+to none/error/all, using the supplemental official wizard reference recorded
+in validation. Original-fixture and both-runner tests pass. Raw unknown values
+remain intact. Native notification delivery is still pending. Other foreign
+option gaps in the preceding table remain open.
