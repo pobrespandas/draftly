@@ -5,6 +5,19 @@ import Testing
 
 @Suite("Spotlight preferences") @MainActor
 struct SpotlightPreferencesTests {
+    @Test func nativeItemsKeepAppActivityIdentityWithoutClaimingAFileURL() throws {
+        let note = Note(content: "# Café 🐼\nNeutral searchable body", tags: ["neutral"])
+        let item = try #require(SpotlightPreferences.searchableItems([SpotlightDraft(note)], domain: "neutral.qa").first)
+        #expect(item.uniqueIdentifier == note.id.uuidString && item.domainIdentifier == "neutral.qa")
+        #expect(item.attributeSet.title == note.title && item.attributeSet.textContent == note.content)
+        #expect(item.attributeSet.contentDescription == note.content && item.attributeSet.keywords == note.tags)
+        #expect(item.attributeSet.contentCreationDate == note.createdAt)
+        #expect(item.attributeSet.contentModificationDate == note.modifiedAt)
+        #expect(item.attributeSet.contentURL == nil && item.expirationDate == .distantFuture)
+        #expect(SpotlightPreferences.draftID(activityType: CSSearchableItemActionType,
+            userInfo: [CSSearchableItemActivityIdentifier: item.uniqueIdentifier]) == note.id)
+    }
+
     @Test func optInIndexesSavedUnicodeDraftsAndRemovesTrashWithoutChangingNotes() async throws {
         let preferences = try TestPreferences(prefix: "SpotlightContracts-")
         defer { preferences.close() }

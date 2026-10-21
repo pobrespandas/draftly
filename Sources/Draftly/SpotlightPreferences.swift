@@ -38,23 +38,26 @@ final class SpotlightPreferences: ObservableObject {
         let domain = (Bundle.main.bundleIdentifier ?? ApplicationIdentityMigration.identifier) + ".drafts"
         self.init(defaults: defaults, isAvailable: CSSearchableIndex.isIndexingAvailable(), replace: { drafts in
             try await index.deleteSearchableItems(withDomainIdentifiers: [domain])
-            let items = drafts.map { draft in
-                let attributes = CSSearchableItemAttributeSet(contentType: .plainText)
-                attributes.title = draft.title
-                attributes.contentDescription = draft.content
-                attributes.textContent = draft.content
-                attributes.keywords = draft.tags
-                attributes.contentCreationDate = draft.createdAt
-                attributes.contentModificationDate = draft.modifiedAt
-                attributes.contentURL = URL(string: "draftly://open?uuid=" + draft.id.uuidString)
-                let item = CSSearchableItem(uniqueIdentifier: draft.id.uuidString, domainIdentifier: domain, attributeSet: attributes)
-                item.expirationDate = .distantFuture
-                return item
-            }
+            let items = Self.searchableItems(drafts, domain: domain)
             if !items.isEmpty { try await index.indexSearchableItems(items) }
         }, clear: {
             try await index.deleteSearchableItems(withDomainIdentifiers: [domain])
         })
+    }
+
+    static func searchableItems(_ drafts: [SpotlightDraft], domain: String) -> [CSSearchableItem] {
+        drafts.map { draft in
+            let attributes = CSSearchableItemAttributeSet(contentType: .plainText)
+            attributes.title = draft.title
+            attributes.contentDescription = draft.content
+            attributes.textContent = draft.content
+            attributes.keywords = draft.tags
+            attributes.contentCreationDate = draft.createdAt
+            attributes.contentModificationDate = draft.modifiedAt
+            let item = CSSearchableItem(uniqueIdentifier: draft.id.uuidString, domainIdentifier: domain, attributeSet: attributes)
+            item.expirationDate = .distantFuture
+            return item
+        }
     }
 
     init(defaults: UserDefaults, isAvailable: Bool,
