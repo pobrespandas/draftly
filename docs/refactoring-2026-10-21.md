@@ -181,6 +181,20 @@ fixtures and API matrix are unchanged from the reference tag. No test was
 deleted. No manual Computer Use session was required by these four stages.
 The signed build and connected-client sync acceptance were not repeated.
 
+### 5a. Configuration default characterization
+
+Four new methods characterize import, both execution routes and initial
+configuration controls. A shared table covers eleven default selections.
+Tests also retain disabled import fields, last duplicate keys, native decode
+bypass, stored empty/false/zero values, exact boolean spelling, invalid-number
+fallback and numeric prompt text. Existing confirmation and cancellation
+cases remain separate.
+
+Before production changes, all 19 methods in the four relevant suites passed.
+The first attempt had a missing argument in the new test builder; that test
+compile error was corrected before this run. It was not a production failure.
+No native UI, permission or personal data path ran.
+
 ## Remaining refactoring and risks
 
 The first four stages are validated checkpoints, not a complete repository
