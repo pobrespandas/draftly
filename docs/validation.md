@@ -5445,3 +5445,29 @@ capability/entry contracts stay separate. No screenshot or raw output is tracked
 Structural matrix check passes. Strict engine parity now reports18 diagnostics
 across six other partial contracts. Final callback selection has no remaining
 strict diagnostic. The engine and full Mac goal remain open.
+
+
+### Native task cancellation during prompts — 20 October 2026
+
+Used Engine QA image785e0548ab98a23c6a0e865e90215b7e8a1534b2e27406581359249f825d2224
+on the selected neutral fixture. Ran QA Async prompt keyboard from Actions.
+Changed its field, opened Actions while the prompt remained pending, observed
+Cancel Running Action enabled, and selected it. The prompt closed. The editor
+retained Caught rejection completed and the action reported cancellation.
+WindowModel.cancelActions cancels both the owning task and runner; this is not
+just the prompt's own Cancel button.
+
+Repeated with QA Async selection keyboard. Searched Second and observed the
+filtered Two Second row. Cancelled the running action from Actions. Selection
+was not applied and the draft stayed unchanged. A separate prompt Escape check
+also discarded edited text. Reopened SelectPrompt: search was empty and both
+choices were present. Searched Second and pressed Return; the editor became
+Selected: two. History showed three matching Cancelled outcomes followed by
+SelectPrompt Success. Closed History. No OS permission or external data was used.
+
+Focused regression passed6 app prompt methods and4 core methods across host
+interruption, cleanup, and defaults suites. Automated tests use fake presenters
+and do not open windows. Native evidence accepts task-owned prompt cleanup,
+keyboard cancellation, fresh selection state and recovery. It does not accept
+transcription, EventKit, Apple model cancellation, or OS permission dialogs.
+Those engine contracts remain partial. No screenshot is tracked.

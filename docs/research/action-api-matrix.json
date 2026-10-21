@@ -18001,7 +18001,7 @@
       },
       "limitations": [
         "Worker queue affinity now has dispatch preconditions and a scalar lifecycle probe. Actual suspended-host/timer and cancellation cases verify the owner queue and non-main thread through explicit runtime close/release. This does not assert JavaScriptCore GC destructor timing.",
-        "Current-build native menu cancellation during CPU passed. Native permission/dialog acceptance remains pending on the ownership-assertion build. Recent Shortcuts deadline and overlap checks used the prior image870884f2388974b4."
+        "Native CPU/menu response and task-owned Prompt/SelectPrompt cleanup passed. Native OS permission flows and remaining capability-specific lifetime variants remain pending; no JavaScriptCore GC destructor timing claim is made."
       ],
       "defaults": "The async runner creates a serial worker and a fresh runtime for a root execution. Its bridge carries JSON strings with execution and step identity. The legacy synchronous runner stays on MainActor.",
       "result": "JavaScriptCore evaluation remains on the worker while library/editor/UI operations run on MainActor. Awaiting script completion does not spin a RunLoop.",
@@ -18057,7 +18057,7 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Current QA passed CPU-loop panel responsiveness and menu cancellation, with history and subsequent-run checks. Native permission/dialog and other worker lifetime variants remain pending. Earlier Shortcuts checks used a prior executable.",
+        "reason": "CPU/menu response, prompt/select acceptance and task cancellation, keyboard recovery and subsequent runs have native evidence. OS permission flows and remaining capability-specific worker lifetime variants remain pending.",
         "additionalChecks": [
           {
             "date": "2026-10-20",
@@ -18092,6 +18092,14 @@
             "entryPoint": "Restore QA action list",
             "result": "Async timer CPU loop remained pending while File menu opened at1700ms observation. Final History had one timeout Error. Error-only policy retained it; text, Inbox and tail exclusion passed. Production10-second CPU limit unchanged. This does not accept legacy native or all responsiveness variants.",
             "evidence": "docs/validation.md: Native timer CPU deadline and menu responsiveness — 20 October 2026"
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "785e0548ab98a23c6a0e865e90215b7e8a1534b2e27406581359249f825d2224",
+            "fixture": "scripts/fixtures/engine-prompt-actions.json",
+            "entryPoint": "Actions Cancel Running Action while Prompt/SelectPrompt are pending",
+            "result": "Task/runner cancellation closed edited Prompt and searched SelectPrompt without changing the draft. Escape separately cancelled Prompt. A fresh SelectPrompt reset search and accepted Two with Return; History showed corresponding Cancelled then Success. OS permission/capability paths remain outside this check.",
+            "evidence": "docs/validation.md: Native task cancellation during prompts — 20 October 2026"
           }
         ]
       },
@@ -18264,6 +18272,14 @@
             "executableSHA256": "99a067dd93e833bb4cd2a2912ac6596b8150ada162af5c5ee21b3799a102a841",
             "fixture": "scripts/fixtures/engine-callback-overlap-actions.json",
             "result": "Started expired reply(delay8,value expired), cancelled, and started fresh reply(delay10,value fresh) in a batched UI sequence. Helper showed second pending, then first successful native open/value expired, then second successful native open/value fresh. Fresh action asserted one response with value fresh and wrote Fresh callback isolated café 🐼. History showed expired Cancelled and fresh Success. Native open observations do not measure the precise app-handler delivery time."
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "785e0548ab98a23c6a0e865e90215b7e8a1534b2e27406581359249f825d2224",
+            "fixture": "scripts/fixtures/engine-prompt-actions.json",
+            "entryPoint": "Actions Cancel Running Action while Prompt/SelectPrompt are pending",
+            "result": "Task/runner cancellation closed edited Prompt and searched SelectPrompt without changing the draft. Escape separately cancelled Prompt. A fresh SelectPrompt reset search and accepted Two with Return; History showed corresponding Cancelled then Success. OS permission/capability paths remain outside this check.",
+            "evidence": "docs/validation.md: Native task cancellation during prompts — 20 October 2026"
           }
         ]
       },
@@ -18307,7 +18323,7 @@
         "result": "Temporary local QA app: panel use during delayed action, exact native Undo, window-close cancellation recorded in Execution History, and typing cancels while preserving user text. Other entry points remain pending."
       },
       "limitations": [
-        "Current native prompt keyboard, transcription, EventKit, and Apple model cancellation acceptance remain pending."
+        "Native task-owned Prompt/SelectPrompt cancellation and keyboard recovery passed. Transcription, EventKit, and Apple model task-cancellation acceptance remain pending."
       ],
       "defaults": "A new session starts with cancellationRequested false. Runner.cancel and cancellation of the task running runAsync both request termination. CPU-bound cancellation is bounded by the JavaScript evaluation limit.",
       "result": "Cancelled idle scripts stop before subsequent steps, return reason cancelled with no success parameters, and retain effects already completed. Host cleanup completes before the final report releases the library.",
@@ -18363,7 +18379,7 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Current native prompt keyboard, transcription, EventKit, and Apple model cancellation acceptance remain pending.",
+        "reason": "Prompt/select task cancellation, Escape, fresh search and Return recovery passed. Native transcription, EventKit and Apple model cancellation remain pending.",
         "additionalChecks": [
           {
             "date": "2026-10-20",
@@ -18404,6 +18420,14 @@
             "fixture": "scripts/fixtures/engine-queue-actions.json",
             "evidence": "docs/validation.md: Native queued Intent owner-close cancellation — 20 October 2026",
             "result": "Opened the exact source by UUID, committed shortcut UUID with Tab, observed the owner follow the pending child, then closed it. Shortcuts reported cancellation; reopened Inbox retained writes and history recorded Cancelled. Initial non-owner run was stopped and excluded."
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "785e0548ab98a23c6a0e865e90215b7e8a1534b2e27406581359249f825d2224",
+            "fixture": "scripts/fixtures/engine-prompt-actions.json",
+            "entryPoint": "Actions Cancel Running Action while Prompt/SelectPrompt are pending",
+            "result": "Task/runner cancellation closed edited Prompt and searched SelectPrompt without changing the draft. Escape separately cancelled Prompt. A fresh SelectPrompt reset search and accepted Two with Return; History showed corresponding Cancelled then Success. OS permission/capability paths remain outside this check.",
+            "evidence": "docs/validation.md: Native task cancellation during prompts — 20 October 2026"
           }
         ]
       },
