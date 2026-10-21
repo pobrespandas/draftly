@@ -7548,3 +7548,45 @@ Bundle/library/scheme remain the isolated Theme QA values recorded above.
 Full final regression passed496 app and586 core methods and the unsigned Xcode
 build. Five original action scripts remain unchanged. These counts do not close
 print format/margin variants, native task cancellation, timeout or owner close.
+
+
+### Literal shell arguments and Unicode composition — 21 October 2026
+
+Native QA found that an NFC café argument returned as decomposed cafe plus
+combining accent. JavaScript strict equality caught the difference. Swift String
+canonical equality in the old adapter test had hidden it. The installed SDK's
+NSTask.h documents that Process converts argument strings with
+fileSystemRepresentation. Source-file stderr kept NFC, so normalizing output
+would have hidden the argument defect and changed intentionally decomposed text.
+
+Implemented: both shell adapters now launch a private UTF-8 shell file that
+executes the original script with individually single-quoted literal arguments.
+Embedded apostrophes are escaped. The exec replaces the launcher, preserving the
+process identity and isolated group. The original script retains its shebang.
+NUL arguments fail explicitly instead of being truncated. The temporary folder
+contains the launcher and is removed through the existing cleanup boundary.
+This does not change general Process or Shortcut argument behavior.
+
+Automatically tested: the existing literal-argument test now runs both adapters
+and compares UTF-8 bytes. It includes NFC and NFD strings, quotes, whitespace,
+newlines, empty arguments and shell substitution syntax. It failed in both
+adapters before the fix and passed afterward. A second test rejects NUL before
+execution. Tests validate status and both streams; they do not normalize results.
+The full final regression/build recorded above includes these cases.
+
+Verified in use on the final signed QA image recorded above: QA Shell nonzero
+streams passed exact JavaScript stdout/stderr equality with exit7 returning
+false. The first fixture attempt had an escaped newline instead of a real
+shebang newline; it failed and is not acceptance. Fixing that fixture then
+exposed the actual NFC/NFD defect. The final fixture and implementation passed.
+QA Shell launch failure handled returned false and preserved the editor.
+Re-ran task cancellation after the exec change: parent58697 and sleep58698 shared
+PGID58697, then both disappeared and the exact temporary folder was removed.
+History showed Cancelled, followed by the Unicode recovery action Success.
+No tail or Archive occurred; only the completed neutral write remained in Inbox.
+
+Fixture: `scripts/fixtures/shell-member-actions.json`. No production permission,
+private content or external service was used. The earlier120-second native
+timeout/owner-close evidence predates this launcher change. Group behavior has
+headless regression coverage and the repeated native task-cancel case; native
+timeout/owner-close were not repeated on the final launcher image.

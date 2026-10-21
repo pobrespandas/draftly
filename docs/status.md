@@ -25,6 +25,10 @@ retain historical results. Later results supersede earlier counts.
 
 ## Current verification
 
+Shell arguments now retain their exact Unicode composition in both native
+adapters. Byte-level tests exposed and fixed the Foundation argument conversion.
+Native nonzero status/streams and process-group cancellation passed after the fix.
+
 Completed PDF printing exposed and fixed an AppKit worker/MainActor crash.
 The shared print operation now renders on MainActor. A headless PDF regression
 and two real Save as PDF runs passed, with the action continuing after Save.

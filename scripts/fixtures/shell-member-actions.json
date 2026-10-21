@@ -1,0 +1,32 @@
+[
+  {
+    "uuid": "BBBF0031-0000-4000-8000-000000000001",
+    "name": "QA Shell nonzero streams",
+    "group": "Shell member QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "const before=editor.getText();\nconst s=ShellScript.create(\"#!/bin/sh\\nprintf \\\"%s\\\" \\\"$1\\\"; printf \\\"warning café\\\\n\\\" >&2; exit 7\");\nif(s.execute(['literal café 🐼'])!==false)throw Error('Nonzero status was not false');\nif(s.standardOutput!=='literal café 🐼'||s.standardError!==\"warning café\\n\")throw Error('Incorrect native streams: '+JSON.stringify([s.standardOutput,s.standardError]));\nif(editor.getText()!==before)throw Error('Editor changed');\napp.displaySuccessMessage('Nonzero false; Unicode stdout/stderr passed');"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "BBBF0031-0000-4000-8000-000000000002",
+    "name": "QA Shell launch failure handled",
+    "group": "Shell member QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "const before=editor.getText();\nconst s=ShellScript.create('#!/draftly-qa/missing-interpreter\\n');\nif(s.execute([])!==false)throw Error('Launch failure was not false');\nif(editor.getText()!==before)throw Error('Editor changed');\ncontext.addSuccessParameter('launchHandled','false');\napp.displaySuccessMessage('Launch failure returned false; editor preserved');"
+        }
+      }
+    ]
+  }
+]

@@ -58,7 +58,8 @@ struct NativeAutomationAdapter {
         FileManager.default.createFile(atPath: out.path, contents: nil); FileManager.default.createFile(atPath: err.path, contents: nil)
         let output = try FileHandle(forWritingTo: out), errors = try FileHandle(forWritingTo: err)
         defer { try? output.close(); try? errors.close() }
-        let process = Process(); process.executableURL = file; process.arguments = values["arguments"] as? [String] ?? []
+        let process = Process()
+        process.executableURL = try shellLauncher(script: file, arguments: values["arguments"] as? [String] ?? [])
         process.standardOutput = output; process.standardError = errors; try process.run()
         let deadline = Date().addingTimeInterval(120)
         while process.isRunning && Date() < deadline { RunLoop.current.run(until: Date().addingTimeInterval(0.01)) }
@@ -79,12 +80,25 @@ struct NativeAutomationAdapter {
         let output = try FileHandle(forWritingTo: out), errors = try FileHandle(forWritingTo: err)
         defer { try? output.close(); try? errors.close() }
         let process = Process()
-        process.executableURL = file
-        process.arguments = values["arguments"] as? [String] ?? []
+        process.executableURL = try shellLauncher(script: file, arguments: values["arguments"] as? [String] ?? [])
         process.standardOutput = output; process.standardError = errors
         let status = try await NativeProcessExecutor.run(process, timeout: timeout)
         return ["status": Int(status), "stdout": (try? String(contentsOf: out, encoding: .utf8)) ?? "",
                 "stderr": (try? String(contentsOf: err, encoding: .utf8)) ?? ""]
+    }
+
+    private func shellLauncher(script: URL, arguments: [String]) throws -> URL {
+        guard arguments.allSatisfy({ !$0.contains("\0") }) else {
+            throw DraftlyError.message("Shell arguments cannot contain NUL.")
+        }
+        func quote(_ value: String) -> String { "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'" }
+        // Process converts arguments through fileSystemRepresentation, which changes Unicode composition.
+        // A quoted UTF-8 exec source keeps argument bytes and replaces the launcher in the same process group.
+        let source = "#!/bin/sh\nexec " + ([script.path] + arguments).map(quote).joined(separator: " ") + "\n"
+        let launcher = script.deletingLastPathComponent().appendingPathComponent("launch")
+        try source.write(to: launcher, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: launcher.path)
+        return launcher
     }
 
     func runShortcutAsync(name: String, input: String, waitForResponse: Bool = true,

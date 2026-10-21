@@ -7,14 +7,31 @@ import Darwin
 @Suite("Asynchronous native processes")
 @MainActor
 struct NativeProcessExecutorTests {
-    @Test func shellPreservesLiteralArgumentsStatusAndBothStreams() async throws {
-        let result = try await NativeAutomationAdapter().executeShellAsync([
-            "source": "printf '%s' \"$1\"; printf 'error 🐼' >&2; exit 7",
-            "arguments": ["$(not-a-command) café 🐼"]
-        ])
+    @Test(arguments: [false, true])
+    func shellPreservesLiteralArgumentsStatusAndBothStreams(worker: Bool) async throws {
+        let arguments = ["$(not-a-command) café 🐼", "cafe\u{301}", "a'b\"c", "two\nlines", "", "`not-a-command`"]
+        let values: [String: Any] = [
+            "source": "printf '%s\\n' \"$@\"; printf 'error 🐼' >&2; exit 7",
+            "arguments": arguments
+        ]
+        let result: [String: Any]
+        if worker { result = try await NativeAutomationAdapter().executeShellAsync(values) }
+        else { result = try NativeAutomationAdapter().executeShell(values) }
         #expect(result["status"] as? Int == 7)
-        #expect(result["stdout"] as? String == "$(not-a-command) café 🐼")
-        #expect(result["stderr"] as? String == "error 🐼")
+        let stdout = try #require(result["stdout"] as? String)
+        let stderr = try #require(result["stderr"] as? String)
+        #expect(Array(stdout.utf8) == Array((arguments.joined(separator: "\n") + "\n").utf8))
+        #expect(Array(stderr.utf8) == Array("error 🐼".utf8))
+    }
+
+    @Test(arguments: [false, true])
+    func shellRejectsNULInsteadOfTruncatingAnArgument(worker: Bool) async {
+        let values: [String: Any] = ["source": "exit 0", "arguments": ["before\0after"]]
+        do {
+            if worker { _ = try await NativeAutomationAdapter().executeShellAsync(values) }
+            else { _ = try NativeAutomationAdapter().executeShell(values) }
+            Issue.record("An argument with NUL was executed.")
+        } catch { #expect(error.localizedDescription == "Shell arguments cannot contain NUL.") }
     }
 
     @Test func largeOutputDoesNotFillAPipeAndBlockTermination() async throws {
