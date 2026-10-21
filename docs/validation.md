@@ -6261,3 +6261,42 @@ No action remains pending. No permission changed or personal note was edited.
 This accepts same-draft native App Intent owner selection in both activation
 orders. It does not close the remaining capability-specific entry variants.
 Production code did not change. The preceding full tests and build still apply.
+
+
+### Native Action.installURL roundtrip — 21 October 2026
+
+Reviewed the archived readonly installURL getter. It has no arguments, defaults
+or documented getter-specific errors. The implementation resolves the stored
+action by UUID and encodes its current fields. Draftly retains its own URL scheme.
+Recovered only the specific installation test from WIP 35a790c. It now uses the
+shared ActionTestExecution helper. No production behavior changed in this step.
+
+Automatic checks passed: five atomic URL installation methods, five catalog
+methods and the new getter method with both runner cases. The getter test checks
+Unicode and reserved characters, stable readonly values, no source mutation,
+complete action fields, disabled unknown steps, raw payload and unknown fields.
+Installation into another library and backup recovery retain the complete value.
+The preceding full suite and unsigned build apply to unchanged production code.
+
+Used the existing Engine QA executable with SHA256
+4664fdb9d438b13acb7b2f70256c19ff74e66e7f276be5608319f62d7a0d3188.
+Read the generated URL from the neutral lookup-result note. Pasted that exact
+observed URL into Actions > Import from Directory. Load showed QA Action lookup
+link with one script step. Save returned to the action list with one entry.
+
+Changed only that QA action's name to QA Temporary reinstall café 🐼 and its
+description to Neutral temporary replacement. Saved the changes. Loaded and
+saved the original generated URL again. The list showed one QA Action lookup
+link and no temporary entry. Its inspector showed the original name, empty
+description, Native installation QA group, bolt symbol and original options.
+Cancelled the inspector without further edits.
+
+Quit through the native app menu and confirmed that the QA process was absent.
+Relaunched the same bundle, selected the saved neutral note and ran the installed
+action. Its checker asserted UUID BBBF0003-0000-4000-8000-000000000015 and wrote
+Action lookup link passed café 🐼. History showed Success at 01:58 local time.
+Closed History. QA retains two neutral notes and no pending execution or dialog.
+No permissions changed. No personal data or screenshot is part of this check.
+
+This accepts Action.installURL only. It does not accept every imported option,
+external directory format, engine capability or full Mac delivery.

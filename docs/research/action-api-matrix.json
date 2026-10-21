@@ -6502,27 +6502,50 @@
             "installURL: string"
           ],
           "contract": "URL which can be used to install this Action in another installation of Drafts. Useful for sharing and backups.",
-          "implementation": "reviewed-partial",
+          "implementation": "reviewed-complete",
           "automatedTest": {
-            "suite": "CatalogActionAPITests",
-            "test": "actionAndGroupQueriesKeepIdentityOrderAndInstallationData"
+            "suite": "ActionInstallationContractTests",
+            "test": "installURLPreservesCompleteActionAndUnknownPayloadWithoutMutatingSource"
           },
           "liveCheck": null,
-          "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-19",
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "Action.installURL"
           },
-          "defaults": "Queries return an empty list or undefined for missing records. Factory defaults still need an exhaustive assertion set.",
-          "result": [
-            "installURL: string"
-          ],
-          "errors": "Storage failures throw; missing lookups return undefined.",
-          "limitations": [
-            "Not every documented default and error path has a member-specific assertion."
-          ],
-          "evidenceLevel": "Member-specific assertions. Native verification is separate."
+          "defaults": "Readonly getter. It takes no arguments and has no optional defaults.",
+          "result": "Returns a stable draftly://action?data= link for the current persisted action resolved by UUID. It preserves identity, configuration, presentation, steps and unknown fields. The Draftly scheme is a deliberate identity difference.",
+          "errors": "The archived reference defines no getter-specific errors. Installation validation and storage errors belong to the importer, not this getter.",
+          "limitations": [],
+          "evidenceLevel": "Member-specific assertions. Native verification is separate.",
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionInstallationContractTests",
+                "test": "installURLPreservesCompleteActionAndUnknownPayloadWithoutMutatingSource"
+              },
+              "assertion": "Both execution routes return a stable readonly URL without changing the source. Decoding, installation in another library and backup restore preserve the complete action, Unicode, unknown payload and a disabled unknown step."
+            },
+            "defaults": {
+              "notApplicable": "The readonly getter has no arguments or optional defaults."
+            },
+            "errors": {
+              "notApplicable": "The archived reference defines no getter-specific failure contract. Importer failures have separate atomic URL installation tests."
+            }
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Native Action.installURL roundtrip — 21 October 2026",
+            "scope": "Specific getter contract passed on legacy and worker routes. Five separate atomic URL installation methods and five catalog methods also passed."
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: Native Action.installURL roundtrip — 21 October 2026",
+            "scope": "Signed Engine QA loaded the generated link through the review dialog. Reinstall restored a temporarily changed neutral action by UUID without duplication. Native quit, confirmed process exit, relaunch and execution succeeded; History showed Success."
+          }
         },
         {
           "member": "isSeparator",

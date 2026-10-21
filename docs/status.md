@@ -1590,3 +1590,12 @@ validation for the specific native case. Next: remaining engine capability and
 lifetime variants. Six engine records remain partial.
 Line-up correction remains separate and pending. Do not close any full delivery
 based on this one accepted member or the global number of passing tests.
+
+
+### Action.installURL accepted — 21 October 2026
+
+The member-specific getter test passed on both routes. Actual QA URL review,
+save, replacement by identity, restart and execution passed. The neutral action
+returned its expected UUID and History Success. No production change was needed.
+See validation for exact fields and scope. Engine capability variants and the
+remaining API contracts stay open; no full delivery is closed by this result.
