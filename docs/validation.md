@@ -6236,3 +6236,28 @@ This accepts Action.find only. The six partial engine contracts and other API
 members remain open. No screenshot is tracked. AX state supplied functional
 observations; screenshot capture was unavailable and no visual parity is claimed.
 No permission changed, message was sent or personal note was edited.
+
+
+### Native duplicate-window App Intent owner selection — 21 October 2026
+
+Used the signed Engine QA executable from the preceding lookup check:
+4664fdb9d438b13acb7b2f70256c19ff74e66e7f276be5608319f62d7a0d3188.
+Imported engine-window-owner-actions.json. Created a neutral draft with text
+Alpha 🐼 Beta Gamma café and opened it in a second window. Both windows used
+UUID 79798870-16AE-49B0-A039-7FB0BDAE89D4. AX identifiers confirmed
+library-AppWindow-1 and library-AppWindow-2.
+
+Configured the existing Draftly QA Engine — disposable Shortcut to run
+QA Same draft window selection on that UUID. Selected Gamma in window 2,
+then ran the actual Run Draft Action Intent in Shortcuts. The result was
+Alpha 🐼 Beta Owner:Gamma café. Activated confirmed window 1, selected Alpha,
+and ran the Intent again. The result was Owner:Alpha 🐼 Beta Owner:Gamma café.
+Shortcuts changed from Stop to Run after each invocation. History displayed
+two Success rows at 01:52 local time.
+
+Restored the Shortcut to QA Caught rejection and its original draft UUID
+A386D93F-D3D8-49EB-8F7F-205612F74D93. Confirmed both fields and closed History.
+No action remains pending. No permission changed or personal note was edited.
+This accepts same-draft native App Intent owner selection in both activation
+orders. It does not close the remaining capability-specific entry variants.
+Production code did not change. The preceding full tests and build still apply.

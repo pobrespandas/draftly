@@ -1584,7 +1584,9 @@ passed before and after restart, with two Success records. Action.find now has
 member-specific complete evidence. Action.installURL is not accepted by that
 checker alone. See validation for the executable and exact native scope.
 
-Next: same-draft App Intent ownership with two windows, then the remaining
-engine capability/lifetime variants. Six engine records remain partial.
+Same-draft App Intent ownership with two windows passed on the signed QA image.
+Both activation orders used the selected text from the intended window. See
+validation for the specific native case. Next: remaining engine capability and
+lifetime variants. Six engine records remain partial.
 Line-up correction remains separate and pending. Do not close any full delivery
 based on this one accepted member or the global number of passing tests.

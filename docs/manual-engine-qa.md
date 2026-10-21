@@ -3,6 +3,13 @@
 Run these checks in a separate Computer Use session. Automated tests stay in the
 background. Use a local QA library and neutral text.
 
+## Latest owner-selection acceptance
+
+The 21 October 2026 check in docs/validation.md verifies actual App Intent
+ownership with two windows on the same draft. Both activation orders passed.
+Use engine-window-owner-actions.json and neutral text to repeat that case.
+This acceptance does not cover every native capability lifetime.
+
 ## Prepare the apps
 
 Copy a fresh local Draftly build to a new QA app bundle under `~/Applications`.

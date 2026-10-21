@@ -19098,7 +19098,7 @@
         "result": "Real QA cold-launch Run awaited delayed success and returned its success parameters. URL failure and cancellation returned matching callbacks. Development-signed QA App Intent through Shortcuts returned success, delayed failure, and cancellation messages. Timeout, busy, concurrent-entry, and window-close variants remain pending."
       },
       "limitations": [
-        "Native UI/URL/Intent queue and exclusion checks remain recorded. Same-draft URL owner selection passed with both visible windows active in turn. Same-draft App Intent owner selection and remaining capability-specific entry variants remain unverified."
+        "Native UI/URL/Intent queue and exclusion checks remain recorded. Same-draft URL and App Intent owner selection passed with both visible windows active in turn. Remaining capability-specific entry variants remain unverified."
       ],
       "defaults": "A window model permits one pending or running action request at a time. It reserves execution before starting its Task. A repeated request is ignored rather than queued. The default is limited here to window scheduling; automation uses its separate save and target checks.",
       "result": "Successful batches process every captured draft and leave the last open. Automation saves pending visible edits before loading its target; final reports supply the result used by callbacks and Intents.",
@@ -19213,7 +19213,7 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "UI queued production timeout now joins linked queued failure/cancel, URL/Intent owner-close, mixed-entry busy, and URL/Intent timeout checks. Same-draft multiwindow ownership and remaining native capability paths remain pending.",
+        "reason": "Same-draft URL and App Intent ownership passed with both visible windows active in turn. Remaining native capability paths still require separate checks.",
         "additionalChecks": [
           {
             "date": "2026-10-20",
@@ -19301,6 +19301,14 @@
             "fixture": "scripts/fixtures/engine-native-timeout-actions.json",
             "result": "Helper zero final callbacks at112976ms; one timeout error at126983ms before the scheduled130s reply. At138811ms helper recorded one successful late native open; result stayed one error through163971ms. Target text retained, no sentinel, one root Error history row. Host and callback limits both120s, so the winning timeout is not isolated.",
             "evidence": "docs/validation.md: Native callback timeout and late delivery — 20 October 2026"
+          },
+          {
+            "date": "2026-10-21",
+            "executableSHA256": "4664fdb9d438b13acb7b2f70256c19ff74e66e7f276be5608319f62d7a0d3188",
+            "fixture": "scripts/fixtures/engine-window-owner-actions.json",
+            "entryPoint": "Actual Shortcuts Run Draft Action with two windows on the same UUID",
+            "result": "Window2 selected Gamma; Intent replaced it with Owner:Gamma. Activated confirmed Window1 and selected Alpha; the next Intent replaced it with Owner:Alpha. Final text was Owner:Alpha 🐼 Beta Owner:Gamma café. Shortcuts returned to Run after each invocation. History displayed two Success rows. Original Shortcut parameters were restored.",
+            "evidence": "docs/validation.md: Native duplicate-window App Intent owner selection — 21 October 2026"
           }
         ]
       },
