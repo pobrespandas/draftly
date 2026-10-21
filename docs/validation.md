@@ -6570,3 +6570,21 @@ It does not reproduce an OS delivery at the exact deadline before the timeout
 task runs. The controlled-clock tests retain that boundary evidence. Permission
 and capability lifetime variants remain pending. No screenshot or raw log is
 tracked, and no complete engine or Mac acceptance is claimed.
+
+
+### Bounded loopback server cleanup — 21 October 2026
+
+The first full run after the response tests did not finish. A process sample
+showed one test in LoopbackHTTPServer.stop at Process.waitUntilExit. The server
+child was already absent. The app tests had passed; the unfinished core run
+is not accepted as a full pass. Terminated only that owned test helper.
+
+The fixture now installs its termination handler before launch. The handler
+signals a semaphore. Cleanup waits at most two seconds and records a test issue
+if the signal does not arrive. It no longer waits indefinitely for Foundation
+process bookkeeping. Requests still run on their existing executors. No window,
+permission or personal data is used. No production code changed in this fix.
+
+The focused response and loopback run passed 12 methods. A fresh full run
+passed 468 app and 530 core methods, including the response work recorded
+separately. The counts describe executed tests, not API parity.

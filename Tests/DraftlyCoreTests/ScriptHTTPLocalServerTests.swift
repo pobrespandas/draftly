@@ -114,6 +114,7 @@ struct ScriptHTTPLocalServerTests {
 private final class LoopbackHTTPServer {
     let process = Process()
     private let output = Pipe()
+    private let terminated = DispatchSemaphore(value: 0)
     private let port: Int
 
     init() throws {
@@ -122,6 +123,8 @@ private final class LoopbackHTTPServer {
         process.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
         process.arguments = ["-u", fixture.path]
         process.standardOutput = output; process.standardError = Pipe()
+        let terminated = terminated
+        process.terminationHandler = { _ in terminated.signal() }
         try process.run()
         try output.fileHandleForWriting.close()
         do { port = try #require(Int(String(decoding: Self.readLine(output.fileHandleForReading), as: UTF8.self))) }
@@ -145,7 +148,9 @@ private final class LoopbackHTTPServer {
 
     func stop() {
         if process.isRunning { process.terminate() }
-        process.waitUntilExit()
+        if terminated.wait(timeout: .now() + 2) == .timedOut {
+            Issue.record("The loopback server did not report termination within two seconds.")
+        }
         try? output.fileHandleForReading.close()
     }
 }
