@@ -4974,3 +4974,22 @@ reported 18 failed assertions for modified, created, and title ties. After the
 change, the full run passes app448/core476. No visible window opens.
 Native verification of this second correction remains pending. The installed
 Scale QA app still has only the earlier table-snapshot correction.
+
+
+### Native stable ordering and scale search — 20 October 2026
+
+The Xcode build passed. Updated and signed only Scale QA, with unchanged local
+library identity. Executable SHA256:
+069a7daee78411e49789160e1cc807f1d0c90ef4c9f3dc50438dafe793c2fe1f.
+The app showed 10,000 drafts. Rows Note 0 through Note 5 kept their positions
+after selecting Note 2 and Note 4. Searching for the quoted phrase Note 9999
+returned one row. Selecting it loaded the expected Unicode content. Clearing
+the query restored 10,000 rows and kept Note 9999 open. No content was edited.
+
+Setting the native vertical scrollbar to 1 then timed out. The same process
+remained live (PID 67145), near one CPU core. A one-second sample captured
+layout and display work on the main thread. A later Computer Use observation
+also timed out. This is not a crash or completed scale acceptance. Do not
+restart solely because observation timed out. Inspect this process again and
+investigate the long-scroll layout before accepting scale performance. Raw
+samples remain in /tmp. No screenshot or raw evidence is tracked.
