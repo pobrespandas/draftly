@@ -6834,25 +6834,48 @@
           "contract": "The actions contained in the action group.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "CatalogActionAPITests",
-            "test": "actionAndGroupQueriesKeepIdentityOrderAndInstallationData"
+            "suite": "ActionGroupQueryContractTests",
+            "test": "actionsIncludesHiddenDisabledAndSeparatorEntriesInStoredOrder"
           },
           "liveCheck": null,
-          "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-19",
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "ActionGroup.actions"
           },
-          "defaults": "Queries return an empty list or undefined for missing records. Factory defaults still need an exhaustive assertion set.",
-          "result": [
-            "actions: Action[]"
-          ],
-          "errors": "Storage failures throw; missing lookups return undefined.",
-          "limitations": [
-            "Not every documented default and error path has a member-specific assertion."
-          ],
-          "evidenceLevel": "Member-specific assertions. Native verification is separate."
+          "defaults": "No optional argument default is defined in the archived reference.",
+          "result": "Returns Action instances in stored order, including hidden entries, separators and actions with disabled steps. Empty group returns an empty array; foreign members are excluded. Readonly replacement and local array edits do not change storage.",
+          "errors": "The archived reference defines no throwing path. Missing lookup returns undefined; empty collections return an empty array.",
+          "limitations": [],
+          "evidenceLevel": "Specific member tests on both runners plus native installed catalog assertions.",
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: ActionGroup query contracts — 21 October 2026",
+            "scope": "Specific member assertions on legacy and worker runners."
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionGroupQueryContractTests",
+                "test": "actionsIncludesHiddenDisabledAndSeparatorEntriesInStoredOrder"
+              },
+              "assertion": "Returns Action instances in stored order, including hidden entries, separators and actions with disabled steps. Empty group returns an empty array; foreign members are excluded. Readonly replacement and local array edits do not change storage."
+            },
+            "defaults": {
+              "notApplicable": "The archived signature has no optional arguments."
+            },
+            "errors": {
+              "notApplicable": "The archived reference defines no throwing path; empty results have a dedicated normal assertion."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-20",
+            "evidence": "docs/validation.md: Native action catalog identity acceptance — 20 October 2026; Native collision identity acceptance — 20 October 2026",
+            "scope": "Installed group lookup, missing lookup, getAll identity and group membership were asserted by native fixtures. Automatic tests cover the additional empty, readonly and visibility boundaries."
+          }
         },
         {
           "member": "installURL",
@@ -6871,7 +6894,7 @@
           },
           "liveCheck": null,
           "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-19",
+          "reviewDate": "2026-10-21",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "ActionGroup.installURL"
@@ -6882,7 +6905,7 @@
           ],
           "errors": "Storage failures throw; missing lookups return undefined.",
           "limitations": [
-            "Not every documented default and error path has a member-specific assertion."
+            "groupInstallURL currently serializes only member actions. An empty group has no name or group metadata in that payload, so installing the link cannot restore it. Preserve the group record and its options through export and installation before closure."
           ],
           "evidenceLevel": "Member-specific assertions. Native verification is separate."
         },
@@ -7069,25 +7092,52 @@
           "contract": "Search for action group matching the name passed and return it if found. Returns undefined if not found.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "CatalogActionAPITests",
-            "test": "actionAndGroupQueriesKeepIdentityOrderAndInstallationData"
+            "suite": "ActionGroupQueryContractTests",
+            "test": "findUsesExactDisplayNameAndReturnsUndefinedWhenAbsent"
           },
           "liveCheck": null,
-          "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-19",
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "ActionGroup.find"
           },
-          "defaults": "Queries return an empty list or undefined for missing records. Factory defaults still need an exhaustive assertion set.",
-          "result": [
-            "find(name: string): ActionGroup | undefined"
-          ],
-          "errors": "Storage failures throw; missing lookups return undefined.",
-          "limitations": [
-            "Not every documented default and error path has a member-specific assertion."
-          ],
-          "evidenceLevel": "Member-specific assertions. Native verification is separate."
+          "defaults": "No optional argument default is defined in the archived reference.",
+          "result": "Finds an exact Unicode display name. Repeated lookup retains identity. Missing names and case, prefix or whitespace variants return undefined.",
+          "errors": "The archived reference defines no throwing path. Missing lookup returns undefined; empty collections return an empty array.",
+          "limitations": [],
+          "evidenceLevel": "Specific member tests on both runners plus native installed catalog assertions.",
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: ActionGroup query contracts — 21 October 2026",
+            "scope": "Specific member assertions on legacy and worker runners."
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionGroupQueryContractTests",
+                "test": "findUsesExactDisplayNameAndReturnsUndefinedWhenAbsent"
+              },
+              "assertion": "Finds an exact Unicode display name. Repeated lookup retains identity. Missing names and case, prefix or whitespace variants return undefined."
+            },
+            "defaults": {
+              "notApplicable": "The archived signature has no optional arguments."
+            },
+            "errors": {
+              "test": {
+                "suite": "ActionGroupQueryContractTests",
+                "test": "findUsesExactDisplayNameAndReturnsUndefinedWhenAbsent"
+              },
+              "assertion": "Missing exact names return undefined."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-20",
+            "evidence": "docs/validation.md: Native action catalog identity acceptance — 20 October 2026; Native collision identity acceptance — 20 October 2026",
+            "scope": "Installed group lookup, missing lookup, getAll identity and group membership were asserted by native fixtures. Automatic tests cover the additional empty, readonly and visibility boundaries."
+          }
         },
         {
           "member": "getAll",
@@ -7101,25 +7151,48 @@
           "contract": "Get list of all available action groups.",
           "implementation": "reviewed-partial",
           "automatedTest": {
-            "suite": "CatalogActionAPITests",
-            "test": "actionAndGroupQueriesKeepIdentityOrderAndInstallationData"
+            "suite": "ActionGroupQueryContractTests",
+            "test": "getAllIncludesEmptyAndImplicitGroupsWithoutExposingMutableStorage"
           },
           "liveCheck": null,
-          "compatibilityStatus": "partial",
-          "reviewDate": "2026-10-19",
+          "compatibilityStatus": "complete",
+          "reviewDate": "2026-10-21",
           "implementationEvidence": {
             "file": "Sources/DraftlyCore/Resources/Bridge.js",
             "symbol": "ActionGroup.getAll"
           },
-          "defaults": "Queries return an empty list or undefined for missing records. Factory defaults still need an exhaustive assertion set.",
-          "result": [
-            "getAll(): ActionGroup[]"
-          ],
-          "errors": "Storage failures throw; missing lookups return undefined.",
-          "limitations": [
-            "Not every documented default and error path has a member-specific assertion."
-          ],
-          "evidenceLevel": "Member-specific assertions. Native verification is separate."
+          "defaults": "No optional argument default is defined in the archived reference.",
+          "result": "Returns ActionGroup instances for empty and implicit groups exactly once. Empty catalog returns an empty array. Array edits do not modify the library.",
+          "errors": "The archived reference defines no throwing path. Missing lookup returns undefined; empty collections return an empty array.",
+          "limitations": [],
+          "evidenceLevel": "Specific member tests on both runners plus native installed catalog assertions.",
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-21",
+            "evidence": "docs/validation.md: ActionGroup query contracts — 21 October 2026",
+            "scope": "Specific member assertions on legacy and worker runners."
+          },
+          "contractCases": {
+            "normal": {
+              "test": {
+                "suite": "ActionGroupQueryContractTests",
+                "test": "getAllIncludesEmptyAndImplicitGroupsWithoutExposingMutableStorage"
+              },
+              "assertion": "Returns ActionGroup instances for empty and implicit groups exactly once. Empty catalog returns an empty array. Array edits do not modify the library."
+            },
+            "defaults": {
+              "notApplicable": "The archived signature has no optional arguments."
+            },
+            "errors": {
+              "notApplicable": "The archived reference defines no throwing path; empty results have a dedicated normal assertion."
+            }
+          },
+          "nativeVerification": {
+            "status": "passed",
+            "date": "2026-10-20",
+            "evidence": "docs/validation.md: Native action catalog identity acceptance — 20 October 2026; Native collision identity acceptance — 20 October 2026",
+            "scope": "Installed group lookup, missing lookup, getAll identity and group membership were asserted by native fixtures. Automatic tests cover the additional empty, readonly and visibility boundaries."
+          }
         }
       ]
     },

@@ -1481,3 +1481,25 @@ and remaining included contracts still require their own acceptance.
 Commits 41d038a and 13bfeba reached origin/main after DNS recovered. Continue
 with the remaining ActionGroup contracts and the engine/native acceptance
 items. The complete Mac roadmap remains open.
+
+
+### ActionGroup query contracts — 21 October 2026
+
+Read the frozen ActionGroup reference. Added three member-specific tests,
+each on legacy and worker runners. find uses an exact Unicode name and
+returns undefined for missing, case, prefix and whitespace variants. getAll
+covers an empty catalog, empty and implicit groups, typed results, unique IDs
+and local array mutation. actions covers empty groups, stored order, hidden
+entries, separators, disabled steps, foreign-group exclusion and readonly
+collection replacement. All three methods passed with six runner cases.
+
+Earlier native catalog fixtures asserted installed and missing lookup,
+getAll identity and separate membership. The specific new automatic cases
+complete actions, find and getAll. This does not accept installation formats.
+
+Found a concrete installation gap: groupInstallURL serializes only member
+actions. Empty groups lose their name and group record in the link. The
+installURL member stays partial. Next: add a group installation envelope,
+preserve its record and options, keep older action links readable, and test
+empty groups, populated groups and atomic import. Continue other engine and
+Mac roadmap requirements after that work.
