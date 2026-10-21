@@ -5072,3 +5072,22 @@ the popup and dialog without running an action. The editor stayed blank and
 the list still showed nine drafts. This accepts executable-picker exclusion
 only. Backup restoration and reference appearance remain pending. The engine
 contract stays partial. No source code or installed app changed in this check.
+
+
+### Native separator backup round trip — 20 October 2026
+
+On Engine QA image785e0548ab98a23c6a0e865e90215b7e8a1534b2e27406581359249f825d2224,
+exported the full library to /tmp, imported that exact backup through File >
+Import, observed Import complete, and exported again. This tests restoration
+into the same library, not reconstruction in an empty store.
+
+Comparison by record identity passed for all fields in every collection:
+9 notes,71 revisions,65 actions,64 runs; other collections were empty. Separator
+A0A29910-B452-4C8A-BF38-89854D18653D retained its identity, Order0, empty steps,
+isSeparator metadata, raw payload, and unknown null/false/Unicode values.
+The restored execution picker still showed A and C and omitted B. Cancelled
+without execution. The editor stayed blank. Raw backups remain in /tmp.
+
+This accepts the native same-library round trip and picker behavior. An empty-
+library native restore, grouped/mixed separator import variants, and Drafts
+appearance comparison remain pending. The engine contract stays partial.

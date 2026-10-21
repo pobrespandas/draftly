@@ -17749,7 +17749,7 @@
       },
       "liveCheck": null,
       "limitations": [
-        "Native list, editing bar, Actions menu, saved order, restart, search exclusion, and executable picker passed. Native backup restoration and comparison with Drafts appearance remain pending."
+        "Native list, bar, menu, order, restart, search and picker exclusion, and same-library backup round trip passed. Empty-library native restoration, grouped/mixed variants, and Drafts appearance comparison remain pending."
       ],
       "defaults": "Absent or false backingIsSeparator produces a normal action with isSeparator false. True marks an imported separator. The original payload remains available, including unknown fields.",
       "result": "A saved imported separator is found by Action.find with isSeparator true. A separator can retain an empty steps list without losing its API identity.",
@@ -17810,7 +17810,7 @@
       ],
       "nativeVerification": {
         "status": "pending",
-        "reason": "Executable picker now excludes the installed B separator while showing A and C. Cancel left the editor blank and nine drafts visible. Native backup restoration, grouped/mixed import variants, and reference appearance remain pending.",
+        "reason": "Picker exclusion and same-library full backup round trip passed. Empty-library native restoration, grouped/mixed import variants, and Drafts appearance comparison remain pending.",
         "evidence": "docs/validation.md",
         "additionalChecks": [
           {
@@ -17820,6 +17820,13 @@
             "result": "Imported A, B separator, and C. Native executable picker showed A Before section and C After section but no B Neutral section. Cancelled without execution; editor remained blank and note count stayed nine.",
             "evidence": "docs/validation.md: Native separator execution picker — 20 October 2026",
             "executableSHA256": "785e0548ab98a23c6a0e865e90215b7e8a1534b2e27406581359249f825d2224"
+          },
+          {
+            "date": "2026-10-20",
+            "executableSHA256": "785e0548ab98a23c6a0e865e90215b7e8a1534b2e27406581359249f825d2224",
+            "entryPoint": "File export/import full backup",
+            "result": "Same-library native backup round trip preserved all records by identity and every separator field, including raw unknown data. Restored execution picker still excluded B. Empty-library native restore is not covered.",
+            "evidence": "docs/validation.md: Native separator backup round trip — 20 October 2026"
           }
         ]
       },
