@@ -14,6 +14,7 @@ public struct ActionPresentation: Codable, Equatable {
     public var confirmBeforeRun = false
     public var notifyOnSuccess = false
     public var notifyOnError = false
+    public var logLevel: Int?
     public var addTags: [String] = []
     public var removeTags: [String] = []
     public var flagAfterSuccess: Int?

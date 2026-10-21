@@ -1149,3 +1149,10 @@ to none/error/all, using the supplemental official wizard reference recorded
 in validation. Original-fixture and both-runner tests pass. Raw unknown values
 remain intact. Native notification delivery is still pending. Other foreign
 option gaps in the preceding table remain open.
+
+
+Log-level follow-up —20 October2026: foreign logLevel0/1/2 now controls none,
+error-only, or complete execution history. Optional persistence preserves old
+libraries and unknown integers. Both runners and the inspector use this
+setting. Automatic and build evidence is in validation; native checks remain
+pending. Other imported-option gaps remain open.

@@ -95,7 +95,7 @@ extension ActionStep {
 extension ActionPresentation {
     private enum KnownKey: String, CodingKey, CaseIterable {
         case description, tintColor, barLabel, barUsesIcon, showInList, showInBar, showInSearch, confirmBeforeRun
-        case notifyOnSuccess, notifyOnError, addTags, removeTags, flagAfterSuccess, section, order
+        case notifyOnSuccess, notifyOnError, logLevel, addTags, removeTags, flagAfterSuccess, section, order
     }
 
     public init(from decoder: Decoder) throws {
@@ -110,6 +110,7 @@ extension ActionPresentation {
         confirmBeforeRun = try known.decode(Bool.self, forKey: .confirmBeforeRun)
         notifyOnSuccess = try known.decode(Bool.self, forKey: .notifyOnSuccess)
         notifyOnError = try known.decode(Bool.self, forKey: .notifyOnError)
+        logLevel = try known.decodeIfPresent(Int.self, forKey: .logLevel)
         addTags = try known.decode([String].self, forKey: .addTags)
         removeTags = try known.decode([String].self, forKey: .removeTags)
         flagAfterSuccess = try known.decodeIfPresent(Int.self, forKey: .flagAfterSuccess)
@@ -130,6 +131,7 @@ extension ActionPresentation {
         try known.encode(confirmBeforeRun, forKey: .confirmBeforeRun)
         try known.encode(notifyOnSuccess, forKey: .notifyOnSuccess)
         try known.encode(notifyOnError, forKey: .notifyOnError)
+        try known.encodeIfPresent(logLevel, forKey: .logLevel)
         try known.encode(addTags, forKey: .addTags)
         try known.encode(removeTags, forKey: .removeTags)
         try known.encodeIfPresent(flagAfterSuccess, forKey: .flagAfterSuccess)

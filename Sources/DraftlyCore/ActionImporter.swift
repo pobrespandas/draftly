@@ -59,6 +59,7 @@ public enum ActionImporter {
                 presentation.notifyOnSuccess = notification == 2
                 presentation.notifyOnError = notification == 1 || notification == 2
             }
+            presentation.logLevel = entry["logLevel"] as? Int
             presentation.addTags = TagRules.normalize(entry["assignTags"] as? [String] ?? [])
             action.options = presentation
             action.sourceURL = source

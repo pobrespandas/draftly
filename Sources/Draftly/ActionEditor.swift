@@ -56,6 +56,15 @@ struct ActionEditor: View {
                         Toggle("Confirm Before Run", isOn: $action.presentation.confirmBeforeRun)
                         Toggle("Notify on Success", isOn: $action.presentation.notifyOnSuccess)
                         Toggle("Notify on Error", isOn: $action.presentation.notifyOnError)
+                        Picker("Log Level", selection: Binding(get: { action.presentation.logLevel ?? 2 },
+                            set: { action.presentation.logLevel = $0 })) {
+                            Text("None").tag(0)
+                            Text("Errors").tag(1)
+                            Text("All").tag(2)
+                            if let level = action.presentation.logLevel, !(0...2).contains(level) {
+                                Text("Unknown (\(level))").tag(level)
+                            }
+                        }
                     }
                     Section("Keyboard Shortcut") {
                         TextField("Key", text: $action.shortcut)

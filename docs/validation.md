@@ -5180,3 +5180,30 @@ never notifies. The fake host emits no native notifications or sounds. Full
 regression passed app449/core478. The original scripts remain unchanged.
 Native banner/inspector checks and timeout-specific import policy acceptance
 remain pending. No new installed build is claimed.
+
+
+### Imported execution log level — 20 October 2026
+
+Implemented foreign logLevel using the supplemental official mail wizard
+reference recorded above:0 None,1 Error,2 Info. Added an optional integer field
+to ActionPresentation. Missing values keep complete history for old libraries.
+Unknown integer values remain intact and use complete history. Native export
+and backup carry the optional field; no Core Data schema change is needed.
+
+Both runner paths use one recording helper. None suppresses the execution
+record. Errors records Error outcomes, including timeout, and omits Success
+and Cancelled outcomes. All records every outcome. Reports, completed effects,
+error messages, and notifications remain independent. The action inspector
+exposes None, Errors, and All. An imported unknown integer stays selectable
+as Unknown and is not silently replaced. Existing edit-copy cancellation
+behavior remains in effect. Native inspector behavior is not yet verified.
+
+Automatic: the new policy test failed10 history assertions before the change.
+Eight cases now check four levels on both runners across success, error, and
+cancellation after backup restoration, including retained raw payload and
+level value. Two legacy-library cases confirm absent-field native round trip
+and complete success history. No test opens a window or emits notifications.
+Full regression passed app449/core479 before the final absent-field test was
+added. The subsequent focused suite passed both methods and ten cases. The
+unsigned Xcode build passed. Native history/inspector checks and a specific
+imported timeout case remain pending. No installed app was updated.

@@ -171,7 +171,7 @@ public final class ActionRunner: ObservableObject {
             if !result.succeeded { successParameters = [:]; queued = [] }
             var run = ActionRun(actionName: action.name, status: result.succeeded ? "Success" : result == .cancelled ? "Cancelled" : "Error",
                                 message: executionLog(finalMessage: result.succeeded || result == .cancelled ? nil : message))
-            run.noteID = sourceNoteID; run.actionID = action.id; library.log(run)
+            run.noteID = sourceNoteID; run.actionID = action.id; logExecution(run, for: action)
             if result.succeeded && action.presentation.notifyOnSuccess || reason == .error && action.presentation.notifyOnError || reason == .timeout && action.presentation.notifyOnError {
                 _ = try? host?.perform("actionNotification", values: ["title": action.name, "message": message ?? ""])
             }
@@ -190,6 +190,12 @@ public final class ActionRunner: ObservableObject {
         if activeSession?.cancellationRequested == true { throw ActionExecutionInterruption.cancelled }
     }
 
+    private func logExecution(_ run: ActionRun, for action: DraftAction) {
+        if action.presentation.logLevel == 0 { return }
+        if action.presentation.logLevel == 1 && run.status != "Error" { return }
+        library.log(run)
+    }
+
     private func executeRun(_ action: DraftAction) -> Bool {
         guard !isRunning else { message = "An action is already running."; return false }
         isRunning = true; queued = []; logs = []; customTags = [:]
@@ -203,7 +209,7 @@ public final class ActionRunner: ObservableObject {
                     message = "\(action.name) cancelled"
                     runOutcome = .cancelled
                     var run = ActionRun(actionName: action.name, status: "Cancelled", message: "Confirmation cancelled")
-                    run.noteID = sourceNoteID; run.actionID = action.id; library.log(run)
+                    run.noteID = sourceNoteID; run.actionID = action.id; logExecution(run, for: action)
                     return false
                 }
             }
@@ -227,7 +233,7 @@ public final class ActionRunner: ObservableObject {
             let status = completed ? "Success" : "Cancelled"
             message = completed ? (logs.last ?? "\(action.name) completed") : "\(action.name) cancelled"
             var run = ActionRun(actionName: action.name, status: status, message: executionLog(finalMessage: nil)); run.noteID = note.id; run.actionID = action.id
-            library.log(run)
+            logExecution(run, for: action)
             if completed && action.presentation.notifyOnSuccess { _ = try? platform("actionNotification", ["title": action.name, "message": message ?? "Complete"]) }
             return completed
         } catch {
@@ -237,7 +243,7 @@ public final class ActionRunner: ObservableObject {
             if (error as? ActionExecutionInterruption) == .timeout { terminationReason = .timeout }
             runOutcome = cancelled ? .cancelled : .failure(error.localizedDescription)
             var run = ActionRun(actionName: action.name, status: cancelled ? "Cancelled" : "Error", message: executionLog(finalMessage: error.localizedDescription)); run.noteID = sourceNoteID; run.actionID = action.id
-            library.log(run)
+            logExecution(run, for: action)
             if !cancelled && action.presentation.notifyOnError { _ = try? platform("actionNotification", ["title": action.name, "message": error.localizedDescription]) }
             return false
         }
