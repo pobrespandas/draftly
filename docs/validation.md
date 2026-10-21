@@ -5039,3 +5039,21 @@ a full accessibility read. Compare ordinary scrolling with the scrollbar AX
 value setter. Do not classify a scrollbar setter timeout alone as a measured
 user scroll latency. Long-scroll acceptance remains pending. Raw samples stay
 in /tmp. No production change follows from this diagnostic alone.
+
+
+### Native scale observation correction — 20 October 2026
+
+The same process recovered without restart and showed rows 9994–9999 at
+scrollbar value 1. Selected Note 9999; its editor content matched. The combined
+selection and observation call took about 22 seconds; that is tool wall time,
+not isolated selection latency. Home returned a screenshot with rows near
+9767. Subsequent accessibility diffs incorrectly reported no change. A full
+read confirmed rows 9766–9772 and scrollbar value 0.9772056778718564.
+
+Use full accessibility reads for scale checks. A no-change diff does not prove
+that the table did not move. A later ordinary five-page upward scroll returned
+rows 9959–9965, kept Note 9998 open, and completed with its full observation
+in about 1.62 seconds. Command-Up selected the previous note; it did not prove
+a jump to the first row. No content changed. Ordinary scroll and selection
+have native evidence; the whole-list jump and isolated latency remain open.
+Do not report the earlier AX setter timeout as general scrolling failure.
