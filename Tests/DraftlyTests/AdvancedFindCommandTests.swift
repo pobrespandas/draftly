@@ -147,4 +147,21 @@ struct AdvancedFindCommandTests {
         #expect(model.editor.content == content && model.library.notes.first?.content == content)
         #expect(model.editor.focusToken == focus && !model.hasUnsavedChanges)
     }
+    @Test func toolbarReopeningRetainsQueryWhileScriptDefaultsStillInitializeIt() throws {
+        let preferences = try TestPreferences(prefix: "Draftly.FindReopen.")
+        defer { preferences.close() }
+        let model = try model(defaults: preferences.defaults)
+        model.advancedFindRequest = AdvancedFindRequest(text: "café", replacement: "té", caseSensitive: true, regularExpression: true)
+        let retained = model.advancedFindRequest
+        let other = try self.model(defaults: preferences.defaults)
+        model.showAdvancedFind = false
+        EditorBarCommand.advancedFind.perform(model: model, session: model.editor)
+        #expect(model.showAdvancedFind && model.advancedFindRequest == retained)
+        #expect(other.advancedFindRequest == AdvancedFindRequest(text: "", replacement: "", caseSensitive: false, regularExpression: false))
+        _ = try model.actionUIOperation(["operation": "showFind", "args": [true, ""]])
+        #expect(model.advancedFindQuery.isEmpty)
+        model.advancedFindQuery = "café"
+        _ = try model.actionUIOperation(["operation": "showFind", "args": [true]])
+        #expect(model.advancedFindQuery.isEmpty)
+    }
 }

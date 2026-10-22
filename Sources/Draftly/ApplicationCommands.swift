@@ -117,7 +117,7 @@ private struct WindowCommands: Commands {
         }
         CommandGroup(after: .textEditing) {
             Button("Find…") {
-                model.perform { _ = try model.actionUIOperation(["operation": "showFind", "args": []]) }
+                model.perform { _ = try model.actionUIOperation(["operation": "showFind", "args": [], "preserveQuery": true]) }
             }.keyboardShortcut("f", modifiers: .command)
         }
         CommandGroup(after: .toolbar) {

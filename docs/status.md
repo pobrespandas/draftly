@@ -2563,3 +2563,12 @@ Native QA confirmed independent replacements, retained second-panel state and
 automatic panel closure with each source. Closed storage held both correct notes.
 Reopen-query defaults still need Drafts comparison. No production source changed.
 QA retired recoverably; usual app unchanged. See the dated continuation.
+
+### Find reopening state — 22 October 2026
+
+Drafts54.1.1 retained query, replacement and flags across close/reopen. A red/green
+regression now covers interface reopening while preserving script initialization.
+WindowModel retains the complete per-window request. Focused47, app703/123, local
+build and matrix structure passed. Rebuilt native QA confirmed Done/native close
+and unchanged source. QA retired recoverably. Restart/global defaults remain open.
+See the dated continuation. Usual app unchanged.

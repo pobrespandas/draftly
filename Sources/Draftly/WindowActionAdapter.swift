@@ -146,7 +146,8 @@ struct WindowActionAdapter {
             guard let performUndo = model.editor.performUndo else { throw DraftlyError.message("The editor undo manager is unavailable.") }; performUndo(operation == "redo")
         case "showFind":
             if (args.first as? Bool ?? model.prefersAdvancedFind()) {
-                model.advancedFindQuery = args.dropFirst().first as? String ?? ""
+                if let query = args.dropFirst().first as? String { model.advancedFindQuery = query }
+                else if values["preserveQuery"] as? Bool != true { model.advancedFindQuery = "" }
                 model.advancedFindPresentationID = UUID()
                 model.showAdvancedFind = true
                 return nil

@@ -47,7 +47,11 @@ final class WindowModel: ObservableObject {
     @Published var showTags = true
     var prefersAdvancedFind: () -> Bool
     @Published var showAdvancedFind = false
-    @Published var advancedFindQuery = ""
+    @Published var advancedFindRequest = AdvancedFindRequest(text: "", replacement: "", caseSensitive: false, regularExpression: false)
+    var advancedFindQuery: String {
+        get { advancedFindRequest.text }
+        set { advancedFindRequest.text = newValue }
+    }
     @Published var advancedFindPresentationID = UUID()
     @Published var showInfo = false
     @Published var infoDraft: Note?

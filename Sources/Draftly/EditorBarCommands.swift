@@ -78,8 +78,8 @@ import DraftlyCore
         case .moveRight: Self.move(1, session: session)
         case .wordLeft: native("moveWordLeft:")
         case .wordRight: native("moveWordRight:")
-        case .find: model.perform { _ = try model.actionUIOperation(["operation": "showFind", "args": []]) }
-        case .advancedFind: model.perform { _ = try model.actionUIOperation(["operation": "showFind", "args": [true]]) }
+        case .find: model.perform { _ = try model.actionUIOperation(["operation": "showFind", "args": [], "preserveQuery": true]) }
+        case .advancedFind: model.perform { _ = try model.actionUIOperation(["operation": "showFind", "args": [true], "preserveQuery": true]) }
         case .makeTasks: model.edit(EditingScripts.makeTasks)
         case .toggleTasks: model.edit(EditingScripts.toggleTasks)
         case .insertDate: model.edit(EditingScripts.insertDate)

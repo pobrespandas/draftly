@@ -517,17 +517,12 @@ struct InlineMarkdownPreview: NSViewRepresentable {
 struct AdvancedFindView: View {
     @ObservedObject var model: WindowModel
     @ObservedObject private var editor: EditorSession
-    @State private var replacement = ""
-    @State private var caseSensitive = false
-    @State private var regularExpression = false
+    private var replacement: String { model.advancedFindRequest.replacement }
     @State private var history: [AdvancedFindRequest] = []
     @FocusState private var queryFocused: Bool
     init(model: WindowModel) { self.model = model; editor = model.editor }
     private var commands: AdvancedFindCommands { AdvancedFindCommands(model: model) }
-    private var request: AdvancedFindRequest {
-        AdvancedFindRequest(text: model.advancedFindQuery, replacement: replacement,
-            caseSensitive: caseSensitive, regularExpression: regularExpression)
-    }
+    private var request: AdvancedFindRequest { model.advancedFindRequest }
     private var historyStore: AdvancedFindHistory {
         AdvancedFindHistory(defaults: model.dependencies.preferences.defaults)
     }
@@ -538,10 +533,7 @@ struct AdvancedFindView: View {
         catch { model.library.error = error.localizedDescription }
     }
     private func restore(_ request: AdvancedFindRequest) {
-        model.advancedFindQuery = request.text
-        replacement = request.replacement
-        caseSensitive = request.caseSensitive
-        regularExpression = request.regularExpression
+        model.advancedFindRequest = request
     }
     private func find() {
         guard case .success = query else { return }
@@ -559,7 +551,7 @@ struct AdvancedFindView: View {
             }
             HStack(alignment: .top) {
                 Text("Replace").frame(width: 60, alignment: .trailing)
-                TextEditor(text: $replacement).font(.body).frame(height: 60).accessibilityLabel("Replace")
+                TextEditor(text: $model.advancedFindRequest.replacement).font(.body).frame(height: 60).accessibilityLabel("Replace")
             }
             HStack {
                 Button("Reverse Values", systemImage: "arrow.up.arrow.down") {
@@ -577,8 +569,8 @@ struct AdvancedFindView: View {
                     .keyboardShortcut(.return, modifiers: .command)
             }
             HStack {
-                Toggle("Match Case", isOn: $caseSensitive)
-                Toggle("Regular Expression", isOn: $regularExpression)
+                Toggle("Match Case", isOn: $model.advancedFindRequest.caseSensitive)
+                Toggle("Regular Expression", isOn: $model.advancedFindRequest.regularExpression)
             }.toggleStyle(.checkbox)
             if case .failure(let error) = query {
                 Text(error.localizedDescription).foregroundStyle(.red).font(.caption)

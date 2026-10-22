@@ -82,7 +82,8 @@ behavior remain unchanged; syntax parity is a separate functional concern.
 ## Advanced Find command boundary
 
 AdvancedFindCommands coordinates selection, navigation and replacement for the
-current editor. It has no view state. AdvancedFindView keeps bindings, options,
+current editor. It has no view state. WindowModel retains the current complete
+AdvancedFindRequest for its source window. AdvancedFindView keeps bindings,
 query errors, result previews, focus and dismissal. EditorFindQuery remains the
 matching and replacement engine. AdvancedFindRequest contains both texts and
 matching options. AdvancedFindHistory stores complete requests in local
@@ -294,3 +295,9 @@ SyntaxImportPreparation resolves replacement or copy identity without saving.
 SyntaxImportReview presents the conflict choices and checks for catalog changes.
 DraftFileCommands and ApplicationURLRouter use this review before persistence.
 File syntax installation retains its bookmark ordering in SyntaxFileAccess.
+
+Find commands from the interface preserve that window's current request when no
+query is supplied. Script requests retain their existing query initialization.
+Explicit script query text, including an empty string, replaces the current query.
+Closing the Find window does not clear the source window request. Process restart
+and cross-window sharing of defaults are separate contracts.

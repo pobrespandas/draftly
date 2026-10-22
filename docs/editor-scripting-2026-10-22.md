@@ -849,3 +849,34 @@ was cleared while its té replacement stayed. Reactivating the existing window
 through Window did not clear it. Keep this distinction pending Drafts comparison;
 do not claim query-default parity from isolation acceptance. Remaining Find
 keyboard/default/background and reference acceptance still apply.
+
+## Retained Find fields after closing and reopening
+
+Drafts54.1.1 was checked with the neutral wrapping note. Use Advanced Find was
+enabled temporarily. Find used Wrap, replacement Reference QA, regex off and
+Ignore case on. Find returned one result. Closing with the native close button
+and reopening with Command-F retained both fields and both options. No replacement
+ran. Prior field values and the prior native-find preference were restored.
+
+The toolbar regression failed before the correction. WindowModel now owns a
+complete AdvancedFindRequest for its source window. Query, replacement and flags
+survive Find view destruction. Interface requests preserve that query; script
+requests keep their previous initialization, including an explicit empty query
+and the existing omitted-query default. Existing API tests retain those checks.
+New independent windows still start with their own default request. This does not
+claim process-restart or global shared-default parity.
+
+Forty-seven affected methods passed. The new case checks full request retention,
+separate window defaults and unchanged script initialization. The local Xcode
+build passed. Isolated rebuilt QA loaded Source Two, configured coffee/Reopen QA
+with both flags on, and closed/reopened using both Done and native close. Both
+fields, flags and two results remained. No replacement ran; closed-library
+inspection confirmed the original coffee coffee source.
+
+QA quit normally. Process absence was checked before exact unregistration. Its
+bundle, preferences and closed library are recoverable in Trash. Usual Draftly
+was unchanged. No screenshot or raw log is tracked. Remaining Find keyboard,
+background, restart/default and reference acceptance is still open.
+
+Full serial app regression passed703 methods/123 suites. Core source is unchanged
+from the671/124 baseline. Matrix structure0 passed. No retry or deadline changed.
