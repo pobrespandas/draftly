@@ -2665,3 +2665,10 @@ Completed text stayed in Inbox without tail/Archive. Recovery worked both with
 and without the original window. Closed history matched. Focused app15/Core2
 passed. QA/helper retired recoverably; usual app unchanged. App Intent-specific
 shell acceptance and other native routes remain open. See docs/validation.md.
+
+### File selector cancellation race — 22 October 2026
+
+Fixed a selector returning a late URL after task cancellation before queued
+cleanup. Red/green regression also requires exactly one close. Existing write
+and bookmark guards remain. Focused app17/Core6, full app711 with matching
+inventory, local build and matrix passed. Native acceptance remains separate.

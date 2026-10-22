@@ -19,7 +19,9 @@ enum NativeFileSelectionRequest {
             throw DraftlyError.message("The file selection timeout must be positive and finite.")
         }
         try Task.checkCancellation()
-        return try await FileSelectionWait().run(selection, timeout: timeout, deadline: now().addingTimeInterval(timeout), now: now, begin: begin)
+        let result = try await FileSelectionWait().run(selection, timeout: timeout, deadline: now().addingTimeInterval(timeout), now: now, begin: begin)
+        try Task.checkCancellation()
+        return result
     }
 
     private static func beginSystemPanel(_ selection: NativeFileSelection,

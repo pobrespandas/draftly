@@ -181,6 +181,25 @@ struct NativeFileSelectionTests {
         #expect(closes == 1)
     }
 
+    @Test func cancelledSelectionRejectsAResponseBeforeQueuedCleanup() async throws {
+        let started = AsyncStream.makeStream(of: Bool.self)
+        var completion: (@MainActor @Sendable (URL?) -> Void)?
+        var closes = 0
+        let task = Task { try await NativeFileSelectionRequest.select(.save(name: "neutral.md"), begin: { _, callback in
+            completion = callback
+            started.continuation.yield(true)
+            return { closes += 1 }
+        }) }
+        var events = started.stream.makeAsyncIterator()
+        try #require(await events.next() == true)
+        task.cancel()
+        completion?(URL(fileURLWithPath: "/neutral-late-selection"))
+        do { _ = try await task.value; Issue.record("Cancellation returned a selected file.") }
+        catch { #expect(error is CancellationError) }
+        completion?(nil)
+        #expect(closes == 1)
+    }
+
     @Test func callbackAfterTheAbsoluteDeadlineCannotBeatTheTimeoutTask() async {
         var now = Date(timeIntervalSince1970: 100)
         var closes = 0

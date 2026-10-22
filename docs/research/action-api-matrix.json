@@ -23504,6 +23504,10 @@
         {
           "suite": "ActionCallbackRouterTests",
           "test": "cancellationRejectsDeliveryBeforeTheMainActorCleanupRuns"
+        },
+        {
+          "suite": "NativeFileSelectionTests",
+          "test": "cancelledSelectionRejectsAResponseBeforeQueuedCleanup"
         }
       ],
       "nativeVerification": {

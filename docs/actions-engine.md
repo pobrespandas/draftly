@@ -655,3 +655,21 @@ with an injected executable. It does not accept /usr/bin/shortcuts dispatch,
 Shortcuts service cleanup, UI/URL/Intent capability-specific cancellation or a
 real Shortcut's external effects. Those native obligations remain open in
 engine-native-checklist.md. No new manual session or habitual app update occurred.
+
+## File selection cancellation before cleanup — 22 October 2026
+
+A deterministic test cancelled file selection and delivered its accepted URL in
+the same MainActor turn, before cancellation cleanup could run. The old selector
+returned the URL instead of throwing. The regression failed before the fix.
+NativeFileSelectionRequest.select now checks task cancellation after its wait
+and before returning any selection. Existing save/bookmark adapters retain their
+own cancellation checks, so this closes the selector boundary without removing
+write protection or adding a new UI flow.
+
+The new test also delivers a duplicate completion and requires exactly one panel
+close. Focused17 app and6 Core methods passed, including cancellation without
+writes or persisted bookmarks. All711 app methods passed serially and matched
+XML report inventory. Local Debug build and matrix structural check passed.
+No Core source or deadline changed. No new manual panel session was performed;
+real lost-access, owner-close and late OS panel delivery remain separate in the
+native checklist. The habitual app was not replaced.
