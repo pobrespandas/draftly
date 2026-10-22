@@ -4,6 +4,12 @@ Updated: 22 October 2026.
 
 ## Current Actions engine acceptance
 
+System-delivered App Intent shell checks now passed Stop cancellation, the
+production120s timeout and direct owner-window close. Each removed the confirmed
+parent/child and private files, stopped later steps and allowed a new Intent
+recovery. Closed history matched all six runs. QA was retired; the existing
+Shortcut parameters were restored. Other native capabilities remain separate.
+
 Native URL Shortcuts cancellation and the production 60-second timeout passed
 with the actual CLI process and private-file cleanup. Each returned one matching
 callback, stopped later steps and allowed shell recovery. The neutral Shortcut

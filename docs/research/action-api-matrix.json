@@ -23522,6 +23522,13 @@
             "fixture": "scripts/fixtures/engine-shortcut-lifetime-actions.json",
             "result": "Native URL task cancellation and production60s timeout with actual shortcuts CLI: exact process and owned-input cleanup, one matching callback, retained writes without tail/Archive and following Unicode shell recovery. Closed history matched. Internal service-job stop and actual child cleanup remain unobserved. QA retired; neutral Shortcut restored to five seconds.",
             "evidence": "docs/validation.md: Native Shortcuts interruption and timeout — 22 October 2026"
+          },
+          {
+            "date": "2026-10-22",
+            "debugLibrarySHA256": "554a03b3cb136f7e491cd26350c5c5eb88c9ba2ae4a26c9c8eb3715fa983c932",
+            "fixture": "scripts/fixtures/engine-url-shell-lifetime-actions.json",
+            "result": "System-delivered Run Draft Action from the existing Shortcuts fixture passed shell Stop cancellation, production120s timeout, direct owner-window close and three following Intent recoveries. Confirmed parent/child/private folders were removed. Closed history and retained writes without tail/Archive matched. Shortcut parameters restored; QA retired. Other native routes stay separate.",
+            "evidence": "docs/validation.md: System-delivered App Intent shell lifetime — 22 October 2026"
           }
         ]
       },
@@ -23780,6 +23787,13 @@
             "fixture": "scripts/fixtures/engine-shortcut-lifetime-actions.json",
             "result": "Native URL task cancellation and production60s timeout with actual shortcuts CLI: exact process and owned-input cleanup, one matching callback, retained writes without tail/Archive and following Unicode shell recovery. Closed history matched. Internal service-job stop and actual child cleanup remain unobserved. QA retired; neutral Shortcut restored to five seconds.",
             "evidence": "docs/validation.md: Native Shortcuts interruption and timeout — 22 October 2026"
+          },
+          {
+            "date": "2026-10-22",
+            "debugLibrarySHA256": "554a03b3cb136f7e491cd26350c5c5eb88c9ba2ae4a26c9c8eb3715fa983c932",
+            "fixture": "scripts/fixtures/engine-url-shell-lifetime-actions.json",
+            "result": "System-delivered Run Draft Action from the existing Shortcuts fixture passed shell Stop cancellation, production120s timeout, direct owner-window close and three following Intent recoveries. Confirmed parent/child/private folders were removed. Closed history and retained writes without tail/Archive matched. Shortcut parameters restored; QA retired. Other native routes stay separate.",
+            "evidence": "docs/validation.md: System-delivered App Intent shell lifetime — 22 October 2026"
           }
         ]
       },
@@ -24092,6 +24106,13 @@
             "fixture": "scripts/fixtures/engine-shortcut-lifetime-actions.json",
             "result": "Native URL task cancellation and production60s timeout with actual shortcuts CLI: exact process and owned-input cleanup, one matching callback, retained writes without tail/Archive and following Unicode shell recovery. Closed history matched. Internal service-job stop and actual child cleanup remain unobserved. QA retired; neutral Shortcut restored to five seconds.",
             "evidence": "docs/validation.md: Native Shortcuts interruption and timeout — 22 October 2026"
+          },
+          {
+            "date": "2026-10-22",
+            "debugLibrarySHA256": "554a03b3cb136f7e491cd26350c5c5eb88c9ba2ae4a26c9c8eb3715fa983c932",
+            "fixture": "scripts/fixtures/engine-url-shell-lifetime-actions.json",
+            "result": "System-delivered Run Draft Action from the existing Shortcuts fixture passed shell Stop cancellation, production120s timeout, direct owner-window close and three following Intent recoveries. Confirmed parent/child/private folders were removed. Closed history and retained writes without tail/Archive matched. Shortcut parameters restored; QA retired. Other native routes stay separate.",
+            "evidence": "docs/validation.md: System-delivered App Intent shell lifetime — 22 October 2026"
           }
         ]
       },

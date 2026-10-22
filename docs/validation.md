@@ -9861,3 +9861,52 @@ Production code did not change. Fixture identity, structural matrix and diff
 checks passed. Earlier Core674/app754/Python68/local-build results apply to
 unchanged production code, not a new execution of those checks. Six engine
 contracts remain partial.
+
+## System-delivered App Intent shell lifetime — 22 October 2026
+
+A complete isolated QA package from c21dac9 was development-signed with team
+NM92LU2KKV. Signature verification passed. Its signed debug-library SHA256 was
+554a03b3cb136f7e491cd26350c5c5eb88c9ba2ae4a26c9c8eb3715fa983c932.
+A fresh temporary library had one neutral source. QA had no iCloud container,
+Services or document-type entries. The usual app was not opened or replaced.
+
+Computer Use configured the existing Draftly QA Engine — disposable Shortcut,
+editor ID D11EC900-D6B4-48DD-AE0D-7CD51353D655. Its Run Draft Action used
+QA URL Shell pending and the neutral draft UUID. The imported pending/recovery
+scripts matched engine-url-shell-lifetime-actions.json before execution.
+The pending root retains an initial write, then runs a shell with a sleeping
+child. Later script and tail sentinels plus Archive apply only on success.
+
+This session used actual system delivery from Shortcuts, not an injected
+RunDraftActionIntent.perform call. Three interruption cases passed:
+
+- Stop in Shortcuts cancelled the request. Parent38543 and child38544 were
+  confirmed live before Stop. Both and their exact private folder were absent
+  afterward. History recorded Cancelled.
+- The unchanged production120s deadline expired. Parent38585 and child38586
+  stayed live at64s and117s. Both and their private folder were absent after
+  expiry. Shortcuts showed the operation-timeout alert and the same inline error.
+  History recorded Error with the timeout message.
+- Direct close of library-AppWindow-1 cancelled a later request while parent38644
+  and child38645 were confirmed live. Shortcuts showed the action-cancelled
+  alert. Both processes and their private folder were absent afterward.
+
+Each case was followed by a new shell recovery through the same App Intent.
+Shortcuts displayed completion, and the draft held exact Unicode recovery text.
+The last recovery ran after the source window closed. The closed history was
+Cancelled, Success, Error, Success, Cancelled, Success. All seven revisions had
+no sentinel. The final draft stayed in Inbox. No callback-helper action run
+substituted for an Intent in these six executions.
+
+Computer Use restored the Shortcut's original QA Caught rejection action name
+and original neutral UUID. No Shortcut was created or deleted. Shortcuts and
+both QA apps quit normally. Exact QA/helper process absence and exact
+LaunchServices unregistration passed. Packages, closed library and exported
+preferences remain recoverable at:
+~/.Trash/DraftlyIntentShellQA-tp1i9uui.
+
+Production code and fixtures did not change. Matrix and diff checks passed.
+The previous Core674/app754/Python68/local-build results apply to unchanged
+production code; this evidence session did not rerun those suites. The strict
+engine gate still has six partial contracts and18 diagnostics. Other native
+capabilities, entry variants and reference comparisons remain separate.
