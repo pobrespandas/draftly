@@ -8992,3 +8992,20 @@ QA/helper quit normally; exact process absence and unregistration were confirmed
 Apps, exported preferences and closed library were retained recoverably in
 ~/.Trash/DraftlySharingTimeoutQA-19mcp3wz. The shared folder was absent before
 retirement. Habitual app unchanged. No screenshots or raw logs were committed.
+
+
+## Integrated engine regression — 22 October 2026
+
+At 709821e, the complete headless runner passed 674 Core methods and 716 app
+methods. The runner compared both XML reports with test discovery. No methods
+were missing, duplicated or skipped. App tests ran serially. All 68 Python tests
+passed. Local Debug compilation passed after the tests. No retry or deadline
+change was used. Logs and XML remain outside the repository in
+`/tmp/draftly-engine-current-2026-10-22`.
+
+This run includes the Mail final-report cases and the file permission regression
+added after the previous complete run. It adds no native acceptance. The strict
+engine gate still reports 18 diagnostics across six partial contracts. Continue
+from `research/engine-native-checklist.md`, including sharing task cancellation
+and owner closure after service handoff. Confirmed Mail delivery still requires
+an implementation and an authorized recipient. The habitual app was unchanged.

@@ -2,6 +2,22 @@
 
 Updated: 22 October 2026.
 
+## Current Actions engine acceptance
+
+Actions work resumed after the refactoring stages below. At 709821e, integrated
+checks passed 674 Core methods, 716 app methods, 68 Python tests and local Debug
+compilation. Swift reports matched discovery. These totals do not establish
+contract parity. The strict engine gate retains six partial contracts and 18
+diagnostics. Native acceptance is tracked in
+[the remaining route checklist](research/engine-native-checklist.md).
+
+Notes sharing timeout, file retention and a late provider cancellation passed
+with a following action isolated from that old provider. Task cancellation and
+owner closure after handoff remain pending. Mail now fails explicitly instead
+of reporting composition as a confirmed send. Confirmed delivery remains partial.
+The habitual app has not received these QA changes. Historical pause statements
+below describe their own refactoring stages.
+
 ## Current Advanced Find refactoring stage
 
 Cloning remains paused. The
