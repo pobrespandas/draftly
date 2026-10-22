@@ -2,7 +2,8 @@
 
 ## Latest refactoring stage
 
-Cloning is paused for the [option refactoring stage](refactoring-options-2026-10-22.md).
+Cloning is paused for the [Advanced Find refactoring stage](refactoring-find-2026-10-22.md).
+The [option refactoring stage](refactoring-options-2026-10-22.md) is complete.
 The [editing refactoring record](refactoring-editing-2026-10-21.md) describes the
 previous completed stage. Current execution uses ActionRunner.runAsync and
 ActionScriptWorker. The dated records below retain their original scope; they
@@ -76,6 +77,22 @@ use the current root and do not share cached source across calls.
 storage access. EditorActionBar supplies the safe selection and applies the
 result before focus and save effects. Markdown marker rules and current line
 behavior remain unchanged; syntax parity is a separate functional concern.
+
+## Advanced Find command boundary
+
+AdvancedFindCommands coordinates selection, navigation and Replace All for the
+current editor. It has no view state. AdvancedFindView keeps bindings, options,
+query errors, result previews, focus and dismissal. EditorFindQuery remains the
+matching and replacement engine. Native find and preferAdvancedFind routes
+remain separate and unchanged.
+
+Navigation uses UTF-16 ranges and safeSelection. It excludes an identical
+zero-length result before wrapping. Replace All updates content and safe
+selection, synchronizes the native editor, reports the change and flushes.
+A failed flush retains the changed text, error and unsaved state. The command
+does not add rollback or present a new message. The view still disables
+replacement when there are no results; the command retains its previous valid
+query behavior when called directly.
 
 ## Native asynchronous route boundary
 

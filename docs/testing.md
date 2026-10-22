@@ -20,8 +20,9 @@ in `defer` to remove that domain.
 
 `TestUndoTextView` supplies a stable Undo manager to offscreen editor tests.
 `ScriptUndoEditorFixture` connects that text view, coordinator and script callbacks
-for AppThemeContractTests and AutomationEditorContextTests. Both consumers call
-`close()` in defer to disconnect callbacks and remove Undo actions. Each caller
+for AppThemeContractTests, AutomationEditorContextTests and
+AdvancedFindReplacementTests. Each consumer calls `close()` in defer to
+disconnect callbacks and remove Undo actions. Each caller
 keeps its font, content and change callback. Other suites retain their own setup
 and grouping rules. Do not combine fixtures when setup is part of the contract.
 
@@ -79,6 +80,21 @@ Tests must not show, activate, or move visible windows. AppKit layout fixtures
 use `OffscreenTestWindow`, which rejects ordering and activation. Use
 `TestMainQueue` to wait for queued work. Do not replace assertions with sleeps.
 Visible animation checks require a separate manual session.
+
+## Advanced Find refactoring check — 22 October 2026
+
+AdvancedFindCommandTests checks selection, navigation, zero-width results,
+empty results and editor isolation. AdvancedFindReplacementTests checks effect
+order, saved content after reopening a temporary store, save failure and retry,
+invalid queries, valid empty/no-match commands and native Undo/Redo. The tests
+create no windows. Native synchronization uses the existing Undo fixture with
+explicit initial selection and cleanup. Core query tests remain separate.
+
+Complete serial reports match 660 app and 650 Core methods. All 1,300 baseline
+method identities remain; ten methods were added. All 68 Python tests, local
+compilation and matrix structure checks passed. Manual Advanced Find/native-find
+regression checks ran separately. See the
+[refactoring record](refactoring-find-2026-10-22.md) for scope and limits.
 
 ## Option refactoring check — 22 October 2026
 

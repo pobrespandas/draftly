@@ -2,7 +2,23 @@
 
 Updated: 22 October 2026.
 
-## Current refactoring stage
+## Current Advanced Find refactoring stage
+
+Cloning remains paused. The
+[Advanced Find refactoring record](refactoring-find-2026-10-22.md) records the
+completed extraction from clean 11e8955. AdvancedFindCommands owns selection,
+navigation and replacement effects. The view keeps state, errors and focus;
+EditorFindQuery, native find and preference routes stay unchanged.
+
+Complete checks passed 660 app methods, 650 Core methods and 68 Python tests,
+local Xcode compilation and matrix structure validation. Every baseline method
+identity remains. Manual navigation, Match Case, replacement, Undo/Redo, invalid
+regex and native-find coexistence passed in isolated QA. The shutdown context
+change is recorded separately. QA was closed and retired without replacing the
+habitual app. Failed saves and retry have headless tests, not induced native
+acceptance. No Drafts compatibility status is promoted by this stage.
+
+## Previous option refactoring stage
 
 Functional cloning is paused at the user's request. The
 [option refactoring record](refactoring-options-2026-10-22.md) owns the current

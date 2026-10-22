@@ -71,3 +71,74 @@ No stored schema, backup format, identity, syntax rule or script changes.
 Complete integration and the separate manual check are next.
 
 The accepted functional and compatibility backlog remains separate.
+
+
+## Integrated automatic results
+
+All 660 app methods in 119 suites and 650 Core methods in 124 suites passed
+serially. Fresh per-target Swift Testing reports match discovery. All 1,300
+baseline method identities remain. Ten new methods cover the extracted command
+boundary. No test was deleted or renamed. All 68 Python tests passed. The normal
+matrix structure check has zero errors. The final local Xcode build passed.
+No Swift test run overlapped compilation. No retries or changed deadlines were
+used. The earlier concurrency risks remain separate; this is serial acceptance.
+
+Core source, public APIs, syntax, persisted definitions, backup and library
+formats, signing configuration and original action fixtures have no diff from
+the reference. The generated Xcode project only adds the internal app source.
+API compatibility classifications stay unchanged. Passing tests do not establish
+new Drafts parity, native integration or iCloud acceptance.
+
+## Manual results
+
+Computer Use used a fresh QA app with an isolated preferences domain and local
+library. It published no Services, URL scheme or document types. CloudKit and
+global capture shortcuts were disabled. The habitual app was not opened by this
+check or replaced. No permissions, messages or sounds were involved.
+
+Verified in use:
+
+- Paste the neutral source `🐼 café CAFÉ\ncafé Tail`. Advanced Find starts with
+  empty fields and unchecked options. Literal café finds three results.
+- Select the third result. Next wraps to the first. Previous wraps back to the
+  last. Temporary screenshots showed the corresponding result highlights.
+- Match Case reduces the count to two. Replace All with té produces exactly
+  `🐼 té CAFÉ\nté Tail`; the uppercase occurrence stays unchanged. Done closes
+  the sheet and the editor shows the result.
+- Undo restores the original Unicode source and its selection. Redo restores
+  the replacement. The draft row updates after the existing save delay.
+- Native Find opens after Advanced Find closes. Searching té selects it.
+  Native Done closes its bar without changing draft content or list filters.
+- Advanced Find can open again. A regex query `[` shows the existing error,
+  disables commands, and leaves text unchanged after Escape.
+
+The first Quit shortcut was rejected after a Computer Use context change.
+A fresh state contained additional QA text and no selected draft. Those later
+states are not credited as expected command output or as a reproduced product
+defect. Quit from the application's menu succeeded. Process absence was checked
+before retiring the exact Launch Services record. The bundle, exported
+preferences and closed library were moved together to recoverable Trash.
+
+Manual scope does not include an induced storage failure, all regex variants,
+Pro-only comparisons or full Drafts parity. Save failure, retry and zero-width
+boundaries have separate automatic evidence above. Captures and raw logs were
+not added to Git.
+
+QA identity: `com.pobrespandas.draftly.find-refactor-qa-b92ac458`.
+Debug implementation SHA-256:
+`fb48b7789e283d07fadd9ede25daef4726ee00468513d97280bef9b60744e973`.
+Session metadata: /tmp/draftly-find-refactor-qa.json. Temporary paths can disappear
+after restart; this document preserves the conclusions and limitations.
+
+## Closure and resume point
+
+The extraction, replacement tests and documentation have scoped atomic commits.
+The reference tag and validated commits are published. All accepted refactoring
+changes are complete. No new product regression was demonstrated in these
+checks. Earlier work and branches remain intact. The installed app is unchanged.
+
+Cloning remains paused. When feature work is requested, resume the existing
+Editor and scripting backlog: syntax-defined tasks, markers, links, custom
+grammars and advanced-find compatibility acceptance. Keep inspector options,
+native integrations and Pro-only comparisons separate. This stage does not
+complete those contracts or Draftly as a whole.
