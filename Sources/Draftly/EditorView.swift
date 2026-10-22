@@ -417,6 +417,7 @@ struct AdvancedFindView: View {
     @State private var regularExpression = false
     @FocusState private var queryFocused: Bool
     init(model: WindowModel) { self.model = model; editor = model.editor }
+    private var commands: AdvancedFindCommands { AdvancedFindCommands(model: model) }
     private var query: Result<EditorFindQuery, Error> {
         Result { try EditorFindQuery(model.advancedFindQuery, caseSensitive: caseSensitive, regularExpression: regularExpression) }
     }
@@ -424,7 +425,7 @@ struct AdvancedFindView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Advanced Find").font(.headline)
-            TextField("Find", text: $model.advancedFindQuery).focused($queryFocused).onSubmit { navigate(backward: false) }
+            TextField("Find", text: $model.advancedFindQuery).focused($queryFocused).onSubmit { commands.navigate(in: ranges, backward: false) }
             TextField("Replace", text: $replacement)
             HStack {
                 Toggle("Match Case", isOn: $caseSensitive)
@@ -436,7 +437,7 @@ struct AdvancedFindView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 4) {
                     ForEach(Array(ranges.enumerated()), id: \.offset) { index, range in
-                        Button { select(range) } label: {
+                        Button { commands.select(range) } label: {
                             Text("\(index + 1). " + preview(range)).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
                         }.buttonStyle(.plain).padding(5)
                             .background(editor.selection == range ? Color.accentColor.opacity(0.15) : .clear)
@@ -444,10 +445,10 @@ struct AdvancedFindView: View {
                 }
             }.frame(height: 160)
             HStack {
-                Button("Previous") { navigate(backward: true) }.disabled(ranges.isEmpty)
-                Button("Next") { navigate(backward: false) }.disabled(ranges.isEmpty)
+                Button("Previous") { commands.navigate(in: ranges, backward: true) }.disabled(ranges.isEmpty)
+                Button("Next") { commands.navigate(in: ranges, backward: false) }.disabled(ranges.isEmpty)
                 Spacer()
-                Button("Replace All") { replaceAll() }.disabled(ranges.isEmpty)
+                Button("Replace All") { commands.replaceAll(query: query, with: replacement) }.disabled(ranges.isEmpty)
                 Button("Done") { dismiss() }.keyboardShortcut(.cancelAction)
             }
         }.padding(20).frame(width: 520).onAppear { queryFocused = true }
@@ -455,23 +456,5 @@ struct AdvancedFindView: View {
     private func preview(_ range: NSRange) -> String {
         let text = editor.content as NSString
         return text.substring(with: text.lineRange(for: range)).trimmingCharacters(in: .newlines)
-    }
-    private func select(_ range: NSRange) {
-        editor.selection = range
-        editor.synchronizeScriptEdit?()
-    }
-    private func navigate(backward: Bool) {
-        guard !ranges.isEmpty else { return }
-        let selection = editor.safeSelection
-        if backward { select(ranges.last { $0.location < selection.location } ?? ranges[ranges.count - 1]) }
-        else { select(ranges.first { $0.location >= NSMaxRange(selection) && $0 != selection } ?? ranges[0]) }
-    }
-    private func replaceAll() {
-        guard let query = try? query.get() else { return }
-        editor.content = query.replacingAll(in: editor.content, with: replacement)
-        editor.selection = editor.safeSelection
-        editor.synchronizeScriptEdit?()
-        model.contentChanged()
-        _ = model.flush()
     }
 }
