@@ -237,10 +237,9 @@ private struct ActionConfigurationStepEditor: View {
             TextField("Name", text: value("name"))
             TextField("Description", text: value("description"), axis: .vertical)
             Picker("Value Type", selection: value("dataType", fallback: "string")) {
-                Text("String").tag("string")
-                Text("Text").tag("text")
-                Text("Boolean").tag("boolean")
-                Text("Number").tag("number")
+                ForEach(ActionStepInspectorFields.configurationTypes, id: \.self) { type in
+                    Text(type.capitalized).tag(type)
+                }
                 if !ActionStepInspectorFields.configurationTypes.contains(type) {
                     Text("Unknown (" + type + ")").tag(type)
                 }

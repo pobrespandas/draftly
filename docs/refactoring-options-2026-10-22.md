@@ -46,8 +46,9 @@ layer. Scripts already separate test discovery, execution and result checks;
 QA refresh scripts retain identity and Services safeguards.
 
 Syntax selectors currently differ in sorting and duplicate removal. Treat that
-as a functional follow-up, not a refactoring correction. The previously accepted Action.find duplicate-name correction stays unchanged.
-Keep other contract gaps in the functional backlog.
+as a functional follow-up, not a refactoring correction. The previously accepted
+Action.find duplicate-name correction stays unchanged. Keep other contract gaps
+in the functional backlog.
 No new native or Drafts compatibility acceptance is implied by this stage.
 
 ## Invariants and validation
@@ -79,6 +80,12 @@ the installed app as part of this refactoring.
    SwiftPM and the local Xcode build passed. Independent review found no change
    in rendering order, errors, imported data or Boolean interpretation.
 
+The configured-value picker also derives its four choices from the shared type
+list. Its labels and order stay String, Text, Boolean, Number. After this last
+app-only change, all 650 app methods and local compilation passed. A fresh QA
+launch recovered the saved Boolean value and displayed those four options in
+order. The check did not save another edit.
+
 The app and Core are separate modules in the Xcode build. The small
 ActionEditing SPI shares these rules without adding an ordinary public API.
 It adds exported SPI symbols; existing public signatures stay unchanged.
@@ -109,3 +116,34 @@ wait, a repeated wait, and a deadline without an exit. All three XML-RPC methods
 passed, including real body/fault/error and disconnect checks. No retry was
 added. Complete Core integration will run after this correction; its earlier
 incomplete run remains recorded. Manual checks remain open.
+
+
+## Manual regression results
+
+Computer Use ran separately after automatic tests. A fresh local QA bundle used
+an isolated preferences domain and library. It published no Services, URL scheme
+or document types. CloudKit and global capture shortcuts were disabled. The
+habitual app was neither launched by the check nor replaced.
+
+Verified in use:
+
+- Add Prompt, Create Draft and Configured Value steps. Prompt starts with Text
+  Field off and Cancel on. Create Draft starts with Open in Editor on.
+- Set Prompt text/buttons/title and a Unicode default. Select Boolean, set its
+  default and turn required configuration off. Move the selected step up/down.
+- Save and reopen all four steps. The saved options retain their values.
+- Change Prompt Cancel, delete the Configured Value step in the temporary copy,
+  then cancel editing. Reopening retains the saved step. The runtime still
+  offers the saved Cancel button.
+- Runtime Cancel leaves one draft and the source Unicode selection. Retry and
+  Second produce exactly `Second: café 🐼` as a second draft in the background.
+  The source text and selection stay current. Undo removes a typed tail; Redo
+  restores it.
+
+This checks refactoring bindings and existing behavior. It does not accept all
+Prompt options, import variants, integrations, visual parity or Drafts contracts.
+No personal data, permissions, messages or sounds were used.
+
+QA quit normally and its process was absent. Its exact Launch Services record
+was retired. The bundle, exported preferences and closed library were kept
+together in recoverable Trash. Raw screenshots and logs were not added to Git.
