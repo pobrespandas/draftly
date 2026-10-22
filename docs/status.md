@@ -2310,3 +2310,32 @@ Headless tests cover custom capture ranges with Unicode and CRLF, TaskPaper
 projects, Plain Text, missing syntax, and native synchronization. Existing
 Markdown navigation cases remain. Focused syntax, editing-bar and advanced-find
 regressions passed. Native interaction and comparison with Drafts remain open.
+
+## Syntax-based Toggle Tasks — 22 October 2026
+
+The built-in editing command now advances task snapshots through the shared
+syntax contract. It no longer uses a two-state Markdown regular expression.
+Changes run from the last task to the first, so a replacement cannot invalidate
+earlier UTF-16 positions. A nonempty selection limits changes to state ranges
+inside that selection. An empty selection targets the whole draft. The final
+selection accounts for changes in state length. Imported actions are unchanged.
+
+Focused tests check custom states, different state lengths, Unicode, CRLF,
+selection boundaries, TaskPaper dated completion, Plain Text, and stored text.
+The existing Make Tasks and Toggle Tasks regression remains. Native interaction,
+Undo acceptance and the remaining task presentation contracts are still open.
+
+## Advanced Find reference observations — 22 October 2026
+
+Computer Use opened Advanced Find in Drafts on the existing neutral draft
+“Visual QA 49 — Tasks and lines”. After the draft loaded, the query “First”
+produced one result, with line number and a Replace button. The dialog also
+provides Reverse Values, Regular expressions, Ignore case, Find, Previous,
+Next, Replace All and a history menu. The menu restores requests and offers
+Clear History. No replacement or content edit was performed. The initial blank
+editor produced no results; that state is not evidence of a search failure.
+The previous native-find mode was restored and its panel was closed.
+
+Draftly still needs per-result replacement, reversal, request history and further
+behavior comparisons. The current sheet differs from the independent reference
+window. These observations do not close advanced-find parity.

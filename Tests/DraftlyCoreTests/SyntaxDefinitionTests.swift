@@ -158,6 +158,39 @@ struct SyntaxDefinitionTests {
         #expect(try definition(value).resolvedLinks(in: text).isEmpty)
     }
 
+    @Test func toggleTasksUsesCustomStatesAndRetainsAdjustedSelection() throws {
+        var value = source()
+        value["taskMarkDefinitions"] = [["match": #"(\[(?: |doing|x)\])"#, "rangeType": "task",
+            "captures": ["state": "1", "interactive": "1"], "states": ["[ ]", "[doing]", "[x]"]]]
+        let syntax = try definition(value)
+        let store = try LibraryStore(inMemory: true, seed: false); try store.saveSyntax(syntax)
+        let text = "🐼 [ ] outside\r\n[ ] one [doing] two [ ] three\r\n[ ] after"
+        var note = try store.createNote(content: text); note.syntax = syntax.name; try store.saveNote(note)
+        let editor = EditorSession(); editor.load(note)
+        let selected = (text as NSString).range(of: "[ ] one [doing] two [ ] three")
+        editor.selection = selected
+        let runner = ActionRunner(library: store, editor: editor)
+        #expect(runner.run(DraftAction(name: "Toggle custom", steps: [ActionStep("script", ["script": EditingScripts.toggleTasks])])), Comment(rawValue: runner.message ?? ""))
+        #expect(editor.content == "🐼 [ ] outside\r\n[doing] one [x] two [doing] three\r\n[ ] after")
+        #expect(editor.selectedText == "[doing] one [x] two [doing] three")
+        #expect(editor.selection.location == selected.location)
+        #expect(store.notes.first?.content == editor.content)
+    }
+
+    @Test func toggleTasksUsesTaskPaperAndDoesNotInventPlainTextTasks() throws {
+        let store = try LibraryStore(inMemory: true, seed: false)
+        for syntax in ["TaskPaper", "Plain Text"] {
+            var note = try store.createNote(content: "🐼\n- one\n- two @done(2026-10-19)\n- [ ] literal")
+            note.syntax = syntax; try store.saveNote(note)
+            let editor = EditorSession(); editor.load(note)
+            let runner = ActionRunner(library: store, editor: editor)
+            #expect(runner.run(DraftAction(name: "Toggle", steps: [ActionStep("script", ["script": EditingScripts.toggleTasks])])))
+            let expected = syntax == "TaskPaper" ? "🐼\n- one @done\n- two\n- [ ] literal @done" : note.content
+            #expect(editor.content == expected)
+            #expect(editor.selectedText == expected)
+        }
+    }
+
     @Test func defaultWorkspaceCopiesConfigurationWithANewIdentityAndFallsBackAfterDeletion() throws {
         let store = try LibraryStore(inMemory: true, seed: false)
         var workspace = Workspace(name: "Selected"); workspace.tags = ["work"]; workspace.sort = .accessed
