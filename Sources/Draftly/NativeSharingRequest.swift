@@ -91,6 +91,43 @@ private struct SharingPreparation {
 }
 
 @MainActor
+private final class SharingActionWait {
+    private var continuation: CheckedContinuation<Bool, Error>?
+    private var timer: Task<Void, Never>?
+    private var beforeResume: (() -> Void)?
+    var isWaiting: Bool { continuation != nil }
+
+    func run(start: () -> Void, beforeResume: @escaping () -> Void) async throws -> Bool {
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                self.continuation = continuation
+                self.beforeResume = beforeResume
+                start()
+            }
+        } onCancel: {
+            Task { @MainActor [self] in finish(.failure(CancellationError())) }
+        }
+    }
+
+    func startTimer(deadline: Date, now: @escaping @MainActor () -> Date) {
+        timer = Task { @MainActor [self] in
+            do { try await Task.sleep(for: .seconds(max(0, deadline.timeIntervalSince(now())))) } catch { return }
+            finish(.failure(ActionExecutionInterruption.timeout))
+        }
+    }
+
+    func finish(_ result: Result<Bool, Error>) {
+        guard let continuation else { return }
+        self.continuation = nil
+        timer?.cancel(); timer = nil
+        let cleanup = beforeResume
+        beforeResume = nil
+        cleanup?()
+        continuation.resume(with: result)
+    }
+}
+
+@MainActor
 private final class SharingSession {
     // A handed-off service owns its work. Keep its file until its callback arrives.
     private static var handedOff: [UUID: SharingSession] = [:]
@@ -99,8 +136,7 @@ private final class SharingSession {
     private let driver: any NativeSharingDriving
     private let now: @MainActor () -> Date
     private let reportCleanupError: @MainActor (String) -> Void
-    private var continuation: CheckedContinuation<Bool, Error>?
-    private var timer: Task<Void, Never>?
+    private let wait = SharingActionWait()
     private let deadline: Date
     private var serviceStarted = false
     private var disposed = false
@@ -112,29 +148,26 @@ private final class SharingSession {
     }
 
     func run() async throws -> Bool {
-        try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { continuation in
-                self.continuation = continuation
-                guard !Task.isCancelled else { finish(.failure(CancellationError())); return }
-                guard now() < deadline else { finish(.failure(ActionExecutionInterruption.timeout)); return }
-                let available = driver.canShare(prepared.item)
-                guard !Task.isCancelled else { finish(.failure(CancellationError())); return }
-                guard now() < deadline else { finish(.failure(ActionExecutionInterruption.timeout)); return }
-                guard available else {
-                    finish(.failure(DraftlyError.message("No sharing service is available for these items.")))
-                    return
-                }
-                driver.onEvent = { [weak self] event in self?.received(event) }
-                timer = Task { @MainActor [self] in
-                    do { try await Task.sleep(for: .seconds(max(0, deadline.timeIntervalSince(now())))) } catch { return }
-                    finish(.failure(ActionExecutionInterruption.timeout))
-                }
-                do { try driver.show(prepared.item) }
-                catch { finish(.failure(error)) }
-            }
-        } onCancel: {
-            Task { @MainActor [self] in finish(.failure(CancellationError())) }
+        try await wait.run(start: { start() }, beforeResume: {
+            self.driver.dismissPicker()
+            if !self.serviceStarted { self.dispose() }
+        })
+    }
+
+    private func start() {
+        guard !Task.isCancelled else { wait.finish(.failure(CancellationError())); return }
+        guard now() < deadline else { wait.finish(.failure(ActionExecutionInterruption.timeout)); return }
+        let available = driver.canShare(prepared.item)
+        guard !Task.isCancelled else { wait.finish(.failure(CancellationError())); return }
+        guard now() < deadline else { wait.finish(.failure(ActionExecutionInterruption.timeout)); return }
+        guard available else {
+            wait.finish(.failure(DraftlyError.message("No sharing service is available for these items.")))
+            return
         }
+        driver.onEvent = { [weak self] event in self?.received(event) }
+        wait.startTimer(deadline: deadline, now: now)
+        do { try driver.show(prepared.item) }
+        catch { wait.finish(.failure(error)) }
     }
 
     private func received(_ event: NativeSharingEvent) {
@@ -144,32 +177,23 @@ private final class SharingSession {
             guard !serviceStarted else { return }
             serviceStarted = true
             Self.handedOff[id] = self
-            if continuation != nil, now() >= deadline { finish(.failure(ActionExecutionInterruption.timeout)) }
+            if wait.isWaiting, now() >= deadline { wait.finish(.failure(ActionExecutionInterruption.timeout)) }
         case .cancelled:
             guard !serviceStarted else { return }
-            finish(now() >= deadline ? .failure(ActionExecutionInterruption.timeout) : .success(false))
+            wait.finish(now() >= deadline ? .failure(ActionExecutionInterruption.timeout) : .success(false))
         case .completed:
             serviceStarted = false
-            if continuation != nil {
-                finish(now() >= deadline ? .failure(ActionExecutionInterruption.timeout) : .success(true))
+            if wait.isWaiting {
+                wait.finish(now() >= deadline ? .failure(ActionExecutionInterruption.timeout) : .success(true))
             } else { dispose() }
         case .failed(let error):
             serviceStarted = false
-            if continuation != nil {
+            if wait.isWaiting {
                 let cocoa = error as NSError
                 let result: Result<Bool, Error> = cocoa.domain == NSCocoaErrorDomain && cocoa.code == NSUserCancelledError ? .success(false) : .failure(error)
-                finish(now() >= deadline ? .failure(ActionExecutionInterruption.timeout) : result)
+                wait.finish(now() >= deadline ? .failure(ActionExecutionInterruption.timeout) : result)
             } else { dispose() }
         }
-    }
-
-    private func finish(_ result: Result<Bool, Error>) {
-        guard let continuation else { return }
-        self.continuation = nil
-        timer?.cancel(); timer = nil
-        driver.dismissPicker()
-        if !serviceStarted { dispose() }
-        continuation.resume(with: result)
     }
 
     private func dispose() {

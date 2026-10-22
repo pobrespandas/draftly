@@ -2,6 +2,15 @@
 
 Updated: 22 October 2026.
 
+## Latest refactoring
+
+The [native sharing lifetime refactoring](refactoring-native-lifecycle-2026-10-22.md)
+separates the action wait from service-resource retention. Final verification
+passed Core674/app767, Python68 and the local Debug build. The initial concurrent
+Core baseline had a pre-transport XML-RPC timeout; its focused serial check and
+the final complete run passed. This prior risk remains recorded. No new native
+acceptance or installed-app update occurred. Strict engine diagnostics remain 18.
+
 ## Current Actions engine acceptance
 
 Sharing discovery now checks cancellation and one absolute deadline before it

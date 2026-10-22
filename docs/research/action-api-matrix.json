@@ -23430,6 +23430,16 @@
           "suite": "NativeSharingRequestTests",
           "test": "headlessHostHasNoSharingWindowToBorrow",
           "file": "Tests/DraftlyTests/NativeSharingRequestTests.swift"
+        },
+        {
+          "suite": "NativeSharingRequestTests",
+          "test": "pickerDismissalCannotReplaceTheResultWithAReentrantCallback",
+          "file": "Tests/DraftlyTests/NativeSharingRequestTests.swift"
+        },
+        {
+          "suite": "NativeSharingRequestTests",
+          "test": "lateHandoffCleanupDoesNotFinishAnotherPendingRequest",
+          "file": "Tests/DraftlyTests/NativeSharingRequestTests.swift"
         }
       ],
       "nativeVerification": {

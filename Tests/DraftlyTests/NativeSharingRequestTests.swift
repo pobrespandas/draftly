@@ -282,6 +282,53 @@ struct NativeSharingRequestTests {
         #expect(cleanupErrors.isEmpty)
     }
 
+    @Test func pickerDismissalCannotReplaceTheResultWithAReentrantCallback() async throws {
+        let root = try SharingFolderFixture()
+        defer { root.close() }
+        let driver = SharingDriverFixture()
+        var cleanupErrors: [String] = []
+        driver.whenShown = { driver.onEvent?(.cancelled) }
+        driver.whenDismissed = { driver.onEvent?(.completed) }
+        let result = try await NativeSharingRequest.run("shareFile", [:], driver: driver,
+            temporaryDirectory: root.url, reportCleanupError: { cleanupErrors.append($0) })
+        #expect(!result)
+        #expect(driver.detaches == 1)
+        #expect(try root.contents().isEmpty)
+        #expect(cleanupErrors.isEmpty)
+    }
+
+    @Test func lateHandoffCleanupDoesNotFinishAnotherPendingRequest() async throws {
+        let firstRoot = try SharingFolderFixture()
+        let secondRoot = try SharingFolderFixture()
+        let first = SharingDriverFixture()
+        let second = SharingDriverFixture()
+        defer { first.onEvent?(.completed); second.onEvent?(.cancelled); firstRoot.close(); secondRoot.close() }
+        let firstTask = Task { try await NativeSharingRequest.run("shareFile", [:], driver: first, temporaryDirectory: firstRoot.url) }
+        defer { firstTask.cancel() }
+        try await first.waitUntilShown()
+        let firstFile = try #require(first.file)
+        first.onEvent?(.selected)
+        firstTask.cancel()
+        do { _ = try await firstTask.value; Issue.record("The cancelled share succeeded.") }
+        catch { #expect(error is CancellationError) }
+
+        let secondTask = Task { try await NativeSharingRequest.run("shareFile", [:], driver: second, temporaryDirectory: secondRoot.url) }
+        defer { secondTask.cancel() }
+        try await second.waitUntilShown()
+        let secondFile = try #require(second.file)
+        let lateEvent = first.onEvent
+        lateEvent?(.completed)
+        lateEvent?(.failed(NSError(domain: "Draftly.SharingFixture", code: 42)))
+        #expect(!FileManager.default.fileExists(atPath: firstFile.path))
+        #expect(first.detaches == 1)
+        #expect(FileManager.default.fileExists(atPath: secondFile.path))
+        #expect(second.pickerVisible && second.detaches == 0)
+        second.onEvent?(.cancelled)
+        #expect(try await secondTask.value == false)
+        #expect(second.detaches == 1)
+        #expect(try secondRoot.contents().isEmpty)
+    }
+
     @Test func presentationFailureDoesNotLeakAPreparedFile() async throws {
         let root = try SharingFolderFixture()
         defer { root.close() }
@@ -307,6 +354,7 @@ private final class SharingDriverFixture: NativeSharingDriving {
     let shown = AsyncStream.makeStream(of: Bool.self)
     var onEvent: ((NativeSharingEvent) -> Void)?
     var whenShown: (() -> Void)?
+    var whenDismissed: (() -> Void)?
     var beforeCanShare: (() -> Void)?
     var available = true
     var showError: Error?
@@ -328,8 +376,8 @@ private final class SharingDriverFixture: NativeSharingDriving {
         shown.continuation.yield(true); shown.continuation.finish()
         whenShown?()
     }
-    func dismissPicker() { pickerVisible = false }
-    func detach() { detaches += 1; dismissPicker(); onEvent = nil; whenShown = nil; beforeCanShare = nil; shown.continuation.finish() }
+    func dismissPicker() { pickerVisible = false; whenDismissed?() }
+    func detach() { detaches += 1; dismissPicker(); onEvent = nil; whenShown = nil; whenDismissed = nil; beforeCanShare = nil; shown.continuation.finish() }
 }
 
 private struct SharingFolderFixture {

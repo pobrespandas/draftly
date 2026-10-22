@@ -206,6 +206,9 @@ _Avoid_: Action history
 **Action cancellation**:
 An outcome that stops the remaining steps and queued actions without applying the cancelled action's after-success behavior. Changes already made can remain.
 
+**Sharing handoff**:
+The transfer of a draft item to a system sharing service. The service can still need the item after the action has ended.
+
 **Template**:
 Text that contains placeholders for draft content, dates, or other values.
 

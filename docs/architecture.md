@@ -112,6 +112,20 @@ NativePromptAdapter retains its own operation inventory. Classification does
 not invoke capabilities. A missing asynchronous route retains synchronous
 fallback; it does not mean that a direct asynchronous call must fail.
 
+## Sharing lifetime boundary
+
+SharingActionWait owns the continuation, timer and single result of one sharing
+request. It clears the continuation and cancels the timer before presentation
+cleanup. It resumes the caller after that cleanup. Cancellation keeps its
+existing MainActor dispatch.
+
+SharingSession owns discovery, deadline decisions, service events and resource
+retention. A selected service can still use its attachment after the caller
+receives cancellation or timeout. That session stays retained until a terminal
+service callback releases its file and driver. Prepared data and the system
+picker remain separate. Printing keeps its own wait because its cancellation
+and sheet rules differ. See [the refactoring record](refactoring-native-lifecycle-2026-10-22.md).
+
 ## Window-submission boundary
 
 `WindowModel.submitWindowAction` owns reservation and the stored task for
