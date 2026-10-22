@@ -345,3 +345,49 @@ encoding detection, request wire format, faults, malformed XML and disconnects.
 Native automation, JavaScript date/binary mapping, full grammar and remaining
 invalid inputs still require their specific acceptance. See docs/validation.md
 and the API matrix for the exact scope.
+
+## Inspector-created configured values — 21 October 2026
+
+Implemented: the add-step menu now includes configurationKey. New steps have
+editable key, name, description, value type, type-specific default, example and
+required-configuration controls. Text supports multiple lines. Boolean defaults
+use a switch. Unknown types and fields remain visible and preserved. Imported
+defaultValue remains separate and its precedence is shown. Reading a step does
+not fill missing imported fields. Cancel keeps the existing temporary-copy rule.
+New steps require first-use configuration by editor policy; the archived reference
+does not specify that initial toggle state. An omitted new name permits the
+existing key-label fallback. Existing imported empty names are not rewritten.
+
+Automatic: the editing-copy and descriptor cases passed. The new flow test uses
+the actual runner on both routes for string, text, false, zero and cancellation.
+It verifies typed script values, unchanged definitions, confirmation reuse,
+retained text, no Archive after cancel and library-gate release. Thirty focused
+methods passed across the app and initial-configuration suites. The first full
+concurrent Core run had five timeout issues in unchanged WorkerPromiseEpochTests
+and MustacheWorkerTests. The four affected methods passed in an isolated serial
+run. Complete serial verification then passed 646 Core and 637 app methods with
+inventory/report matching. No timeout or retry policy changed. After omitting the
+new empty name, all 15 affected app methods passed again, including key-label
+fallback. Final local Debug and signed Release passed. Structural API validation
+reported zero errors; this is not parity acceptance.
+
+Verified in use: a fresh local Functional QA app created a neutral draft and an
+action through the inspector. Added configurationKey, entered its fields and
+moved it before the script. Cancel at first configuration kept the draft intact
+and reported cancellation. A second run asked again. Accepted Unicode text reached
+the script and completed. After normal Quit, QA was refreshed with the final
+build while keeping its identity and library. The action and text survived. A new
+run reused the accepted value without another prompt and reported completion.
+Initial QA executable SHA256:
+309efa31eec68401a5b49a0b372a3888c9d5130804834f8af8b4a0f4e1de7bf3.
+Final restart executable SHA256:
+860277f92bd3e264a91cd5be536bb170f770062115c21a31b7a530a4ff744413.
+QA quit normally. It publishes no Services or URL schemes and uses no CloudKit.
+The habitual package and personal data were not changed.
+
+Pending: native typed-control variants, configuration via other entry points and
+shared include-key precedence remain separate. No engine record is promoted by
+this inspector flow alone. The prior UI Flows QA temporary package, library and
+bookmark folder were absent at this session start. Its old bookmark-restart check
+cannot be accepted from this fresh QA session. Recreate neutral fixtures for it.
+The next concrete inspector defect is the hidden includeAction target UUID.

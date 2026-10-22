@@ -4,7 +4,14 @@ Updated: 21 October 2026.
 
 Draftly works as a local Mac app. Mac parity is not complete. Cloning resumed
 from 026cfbb after the completed inspector/personalization refactoring stage.
-The current delivery covers the main window, daily flows and personalization.
+The user now prioritizes functional completion: Actions end to end, editor and
+scripting, the action inspector, integrations, then Settings and personalization.
+The visual/daily-flow delivery remains open. Inspector-created configurationKey
+steps now work through save, first-use cancel/accept and restart reuse. Typed
+runner checks passed. See the latest section in actions-engine.md. Full serial
+verification passed 646 Core / 637 app methods; the initial concurrent Core run
+had five worker-test timeouts and remains recorded separately.
+The earlier delivery covers the main window, daily flows and personalization.
 Read [the delivery record](ui-flows-2026-10-21.md) for separate implementation,
 automatic, native and pending results. Capture receipt/append, File commands,
 Workspace sort, list preference ownership and shortcut/font fixes are committed.

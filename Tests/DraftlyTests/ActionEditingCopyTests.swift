@@ -48,7 +48,9 @@ struct ActionEditingCopyTests {
             "callbackUrl": ["url": "https://example.com"],
             "runShortcut": ["name": "", "template": "[[draft]]"],
             "includeAction": ["name": "", "template": "[[draft]]"],
-            "file": ["name": "[[safe_title]].md", "template": "[[draft]]"]
+            "file": ["name": "[[safe_title]].md", "template": "[[draft]]"],
+            "configurationKey": ["key": "", "dataType": "string", "defaultStringValue": "",
+                                 "description": "", "exampleValue": "", "requiresInitialConfiguration": "true"]
         ]
         let original = DraftAction(name: "Neutral", steps: [ActionStep("futureOriginal", ["keep": "café 🐼"])])
         var copy = ActionEditingCopy(action: original)
@@ -147,5 +149,46 @@ struct ActionEditingCopyTests {
         #expect(library.actions == [copy.action])
         #expect(library.actions.first?.id == original.id)
         #expect(library.actions.first?.steps.first?.id == original.steps.first?.id)
+    }
+
+    @MainActor @Test func newConfigurationStaysTemporaryUntilSaveAndLeavesImportedConfigurationUntouched() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        var imported = ActionStep("configurationKey", ["key": "legacy", "defaultValue": "Keep café 🐼"])
+        imported.isEnabled = false
+        imported.unknownFields = ["future": .object(["nested": .bool(true)])]
+        var original = DraftAction(name: "Neutral configuration", steps: [imported])
+        original.rawPayload = "{\"future\":true}"
+        original.unknownFields = ["futureAction": .string("Keep")]
+        original.configuredValues = ["legacy": "Confirmed value"]
+        try library.saveAction(original)
+
+        var copy = ActionEditingCopy(action: original)
+        copy.addStep("configurationKey")
+        let createdID = try #require(copy.selectedStep)
+        #expect(createdID != imported.id)
+        #expect(copy.action.steps[0] == imported)
+        #expect(copy.action.steps[0].values["dataType"] == nil)
+        #expect(copy.action.steps[0].values["requiresInitialConfiguration"] == nil)
+        #expect(copy.action.steps[1].values["template"] == nil)
+        copy.action.steps[1].values["key"] = "destination"
+        copy.action.steps[1].values["name"] = "Neutral destination"
+        copy.action.steps[1].values["defaultStringValue"] = "café 🐼"
+        #expect(library.actions == [original])
+        let discarded = ActionEditingCopy(action: try #require(library.actions.first))
+        #expect(discarded.action == original)
+        #expect(discarded.action.steps.count == 1)
+
+        try library.saveAction(copy.action)
+        try library.reload()
+        let saved = try #require(library.actions.first)
+        #expect(saved == copy.action)
+        #expect(saved.id == original.id)
+        #expect(saved.steps[0] == imported)
+        #expect(saved.steps[1].id == createdID)
+        #expect(saved.steps[1].values["key"] == "destination")
+        #expect(saved.steps[1].values["requiresInitialConfiguration"] == "true")
+        #expect(saved.configuredValues == original.configuredValues)
+        #expect(saved.rawPayload == original.rawPayload)
+        #expect(saved.unknownFields == original.unknownFields)
     }
 }

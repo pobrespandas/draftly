@@ -10,8 +10,24 @@ enum ActionStepInspectorFields {
         var id: String { key }
     }
 
+    static let configurationTypes = ["string", "text", "boolean", "number"]
+    static func configurationDefaultKey(for type: String) -> String? {
+        switch type {
+        case "string": "defaultStringValue"
+        case "text": "defaultTextValue"
+        case "boolean": "defaultBoolValue"
+        case "number": "defaultNumberValue"
+        default: nil
+        }
+    }
+
     static func fields(for step: ActionStep) -> [Field] {
-        let excludedKeys: Set<String> = ["data", "parameters", "values", "uuid", "isEnabled", "platforms"]
+        var excludedKeys: Set<String> = ["data", "parameters", "values", "uuid", "isEnabled", "platforms"]
+        if step.type == "configurationKey" {
+            excludedKeys.formUnion(["key", "name", "description", "dataType", "exampleValue",
+                "requiresInitialConfiguration", "defaultValue"])
+            excludedKeys.formUnion(configurationTypes.compactMap(configurationDefaultKey))
+        }
         return step.values.keys.filter { !excludedKeys.contains($0) }.sorted().map { key in
             let isMultiline = ["template", "script", "source"].contains(key)
             return Field(key: key, isMultiline: isMultiline,

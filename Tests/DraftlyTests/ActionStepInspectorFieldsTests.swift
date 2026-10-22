@@ -40,4 +40,17 @@ struct ActionStepInspectorFieldsTests {
         #expect(step.unknownFields == original.unknownFields)
         #expect(step.isEnabled == original.isEnabled)
     }
+    @Test func configurationUsesTypedControlsWithoutDuplicatingKnownOrDiscardingUnknownFields() {
+        let keys = ["key", "name", "description", "dataType", "exampleValue",
+            "requiresInitialConfiguration", "defaultValue", "defaultStringValue",
+            "defaultTextValue", "defaultNumberValue", "defaultBoolValue", "futureOption"]
+        let step = ActionStep("configurationKey", Dictionary(uniqueKeysWithValues: keys.map { ($0, "Keep café 🐼") }))
+        let original = step
+        #expect(ActionStepInspectorFields.fields(for: step).map(\.key) == ["futureOption"])
+        #expect(step == original)
+        #expect(ActionStepInspectorFields.configurationTypes.compactMap(ActionStepInspectorFields.configurationDefaultKey)
+            == ["defaultStringValue", "defaultTextValue", "defaultBoolValue", "defaultNumberValue"])
+        #expect(ActionStepInspectorFields.configurationDefaultKey(for: "future") == nil)
+    }
+
 }

@@ -118,7 +118,7 @@ struct ActionEditor: View {
                     Divider()
                     HStack {
                         Menu {
-                            ForEach(DraftAction.supportedSteps.sorted().filter { $0 != "configurationKey" }, id: \.self) { type in
+                            ForEach(DraftAction.supportedSteps.sorted(), id: \.self) { type in
                                 Button(type) { editingCopy.addStep(type) }
                             }
                         } label: { Image(systemName: "plus") }.menuStyle(.borderlessButton).frame(width: 24)
@@ -169,6 +169,9 @@ private struct ActionStepInspector: View {
                     if !DraftAction.supportedSteps.contains(step.type) {
                         Label("Unsupported step · preserved on export", systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.orange)
                     }
+                    if step.type == "configurationKey" {
+                        ActionConfigurationStepEditor(step: $step)
+                    }
                     ForEach(ActionStepInspectorFields.fields(for: step)) { field in
                         let key = field.key
                         VStack(alignment: .leading, spacing: 6) {
@@ -194,5 +197,55 @@ private struct ActionStepInspector: View {
                 }.padding(16)
             }
         }
+    }
+}
+
+private struct ActionConfigurationStepEditor: View {
+    @Binding var step: ActionStep
+
+    private func value(_ key: String, fallback: String = "") -> Binding<String> {
+        Binding(get: { step.values[key] ?? fallback }, set: { step.values[key] = $0 })
+    }
+    private var type: String { step.values["dataType"] ?? "string" }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            TextField("Key", text: value("key"))
+            TextField("Name", text: value("name"))
+            TextField("Description", text: value("description"), axis: .vertical)
+            Picker("Value Type", selection: value("dataType", fallback: "string")) {
+                Text("String").tag("string")
+                Text("Text").tag("text")
+                Text("Boolean").tag("boolean")
+                Text("Number").tag("number")
+                if !ActionStepInspectorFields.configurationTypes.contains(type) {
+                    Text("Unknown (" + type + ")").tag(type)
+                }
+            }
+            if let key = ActionStepInspectorFields.configurationDefaultKey(for: type) {
+                if type == "boolean" {
+                    Toggle("Default Value", isOn: Binding(
+                        get: { ["true", "1"].contains(step.values[key] ?? "false") },
+                        set: { step.values[key] = $0 ? "true" : "false" }
+                    ))
+                } else if type == "text" {
+                    Text("Default Value")
+                    TextEditor(text: value(key)).frame(minHeight: 120)
+                } else {
+                    TextField("Default Value", text: value(key))
+                }
+            }
+            // Keep the imported fallback separate from the type-specific default.
+            if step.values["defaultValue"] != nil {
+                TextField("Imported Default Value", text: value("defaultValue"))
+                Text("Imported Default Value overrides the type-specific default.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            TextField("Example Value", text: value("exampleValue"))
+            Toggle("Requires Configuration", isOn: Binding(
+                get: { ["true", "1"].contains(step.values["requiresInitialConfiguration"] ?? "false") },
+                set: { step.values["requiresInitialConfiguration"] = $0 ? "true" : "false" }
+            ))
+        }.textFieldStyle(.roundedBorder)
     }
 }
