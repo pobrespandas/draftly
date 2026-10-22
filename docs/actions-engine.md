@@ -741,3 +741,11 @@ No production source changed. The prior full app713 run remains separate and
 predates these two new methods. Native corrected URL evidence from the previous
 checkpoint remains valid for unchanged production. Confirmed Mail delivery is
 still partial; this only accepts truthful failure propagation and recovery.
+
+## Speech notice cancellation — 22 October 2026
+
+The asynchronous speech adapter checks task cancellation after both notice
+responses. A cancelled task cannot accept a completion response or treat a
+rejected confirmation as a normal false result. Playback cleanup remains
+unchanged. Silent driver and presenter tests cover these boundaries. Native
+synthesis and panel lifetime checks remain separate acceptance work.

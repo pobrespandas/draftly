@@ -9431,3 +9431,23 @@ were removed. The closed QA library, preferences and packages remain recoverable
 in the Trash. The user's Mail app and the sent test message were retained.
 Production code did not change. The earlier Core674/app733 build and tests apply
 to the unchanged production code; this session did not rerun them.
+
+## Speech notice cancellation boundaries — 22 October 2026
+
+At `8ef988d`, silent presenter tests cancelled the current task immediately
+before returning a notice response. Both completion responses returned normal
+results. A rejected initial confirmation also returned false instead of task
+cancellation. All three cases failed before the fix.
+
+NativeSpeechRequest now checks cancellation after each notice response, before
+returning or deciding whether to create a driver. The regression cases pass.
+They use injected drivers and presenters: no windows, permissions or audio.
+Existing rate, voice, playback cancellation and cleanup cases still pass.
+
+Complete Swift runs passed: Core674 and application735. Machine-readable
+results matched the discovered test inventory. The local Debug app compiled.
+The structural matrix check passed. Strict engine acceptance still reports
+18 diagnostics for six partial contracts. No timeouts or retries were changed.
+Python was not rerun; no Python code changed. Native synthesis and notice-panel
+cancellation still require a separate manual session. The usual app was not
+replaced. This fix does not accept those native cases or complete the engine.

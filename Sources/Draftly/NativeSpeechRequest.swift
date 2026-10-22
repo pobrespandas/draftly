@@ -37,13 +37,19 @@ import DraftlyCore
         let settings = values["settings"] as? [String: Any] ?? [:]
         let text = values["text"] as? String ?? ""
         if settings["autoStart"] as? Bool == false {
-            guard try await present(.confirm(text)) else { return false }
+            let accepted = try await present(.confirm(text))
+            try Task.checkCancellation()
+            guard accepted else { return false }
         }
         try Task.checkCancellation()
         let driver = try makeDriver((settings["voice"] as? [String: Any])?["id"] as? String)
         driver.rate = settings["rate"] as? String == "slow" ? 130 : settings["rate"] as? String == "fast" ? 240 : 180
         guard try await SpeechPlayback(driver: driver).run(text) else { return false }
-        if settings["autoClose"] as? Bool == false { return try await present(.complete) }
+        if settings["autoClose"] as? Bool == false {
+            let accepted = try await present(.complete)
+            try Task.checkCancellation()
+            return accepted
+        }
         return true
     }
 }

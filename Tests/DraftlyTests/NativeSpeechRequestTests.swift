@@ -101,6 +101,37 @@ struct NativeSpeechRequestTests {
         #expect(driver.onFinish == nil)
     }
 
+    @Test(arguments: [true, false])
+    func cancellationDuringCompletionNoticeCannotReturnAResult(accepted: Bool) async throws {
+        let driver = Driver()
+        let task = Task {
+            try await NativeSpeechRequest.run(
+                ["text": "Neutral", "settings": ["autoClose": false]],
+                makeDriver: { _ in driver }, present: { notice in
+                    #expect(notice == .complete)
+                    withUnsafeCurrentTask { $0?.cancel() }
+                    return accepted
+                })
+        }
+        do { _ = try await task.value; Issue.record("Cancelled completion notice returned a result.") }
+        catch { #expect(error is CancellationError) }
+        #expect(driver.started && driver.onFinish == nil)
+    }
+
+    @Test func cancellationDuringRejectedConfirmationRemainsTaskCancellation() async {
+        let task = Task {
+            try await NativeSpeechRequest.run(
+                ["text": "Neutral", "settings": ["autoStart": false]],
+                makeDriver: { _ in Issue.record("Cancelled confirmation created a driver."); return Driver() },
+                present: { _ in
+                    withUnsafeCurrentTask { $0?.cancel() }
+                    return false
+                })
+        }
+        do { _ = try await task.value; Issue.record("Cancelled confirmation returned a result.") }
+        catch { #expect(error is CancellationError) }
+    }
+
     @Test func driverCreationErrorsRemainErrors() async {
         enum Failure: Error { case unavailable }
         do {
