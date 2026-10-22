@@ -4,7 +4,12 @@ Updated: 22 October 2026.
 
 ## Current Actions engine acceptance
 
-The latest integrated check includes dictation permission and speech completion
+The latest integrated check also covers transcription and EventKit callback
+deadlines and EventKit cancellation cleanup: 674 Core and 733 app methods
+passed with complete report inventories and local Debug compilation. Native
+permission and capability checks remain separate.
+
+The earlier integrated check includes dictation permission and speech completion
 cancellation races, plus actual Intent shell cleanup: 674 Core methods, 720 app
 methods, 68 Python tests and local Debug compilation passed. Native permission
 checks remain separate. Cancellation now blocks late dictation grants before

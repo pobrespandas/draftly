@@ -9342,3 +9342,26 @@ Local Debug compilation and matrix structure passed. No retry, deadline increase
 window, audio or privacy permission was used. The prior complete 674 Core /
 728 app result predates these new methods. Native recognition and permission
 acceptance remains separate. The habitual app was unchanged.
+
+
+## EventKit callback cancellation and deadline boundaries — 22 October 2026
+
+At 82cc2a2, controlled-clock EventKit waits returned success at and after expiry
+and skipped underlying request cancellation. A second deterministic test queued
+a completion before cancelling the task in the same MainActor turn. That wait
+also returned success and skipped cleanup. Both regressions failed before the
+correction. A callback before expiry remained valid.
+
+EventKitCallbackWait now records cancellation synchronously, retains an absolute
+deadline, and checks both when it delivers a callback. Cancelled or expired waits
+invoke their cancellation token once. Timely success releases the token without
+calling it. The timer uses remaining time after startup. Final return checks
+task cancellation. Default production timeouts did not change.
+
+All 20 EventKit wait/dialog methods passed. Complete Swift reports matched
+discovery: 674 Core and 733 app methods. Local Debug compilation passed. The
+strict engine gate still reports 18 diagnostics across six partial contracts.
+No retry or deadline increase was used. Previous Python68 evidence is separate;
+Python source was unchanged. These tests use injected authorization/fetch
+callbacks, no EventKit permissions or personal records. Native Calendar and
+Reminders acceptance remains pending. The habitual app was unchanged.

@@ -125,6 +125,39 @@ struct NativeEventKitWaitTests {
         #expect(value == "first")
     }
 
+    @Test(arguments: [9.0, 10.0, 11.0])
+    func callbackDeadlineIsCheckedBeforeQueuedTimer(elapsed: Double) async {
+        var now = Date(timeIntervalSinceReferenceDate: 100)
+        var cancellations = 0
+        do {
+            let value: String = try await EventKitCallbackWait.wait(timeout: 10, now: { now }) { reply in
+                now = now.addingTimeInterval(elapsed)
+                reply(.success("Neutral"))
+                return { cancellations += 1 }
+            }
+            #expect(elapsed < 10 && value == "Neutral")
+        } catch {
+            #expect(elapsed >= 10 && error as? ActionExecutionInterruption == .timeout)
+        }
+        #expect(cancellations == (elapsed >= 10 ? 1 : 0))
+    }
+
+    @Test func queuedCompletionCannotSkipCleanupAfterCancellation() async throws {
+        var cancellations = 0
+        var task: Task<String, Error>?
+        task = Task {
+            try await EventKitCallbackWait.wait(timeout: 10) { reply in
+                reply(.success("Late value"))
+                task?.cancel()
+                return { cancellations += 1 }
+            }
+        }
+        let pending = try #require(task)
+        do { _ = try await pending.value; Issue.record("Cancelled EventKit request returned success.") }
+        catch { #expect(error is CancellationError) }
+        #expect(cancellations == 1)
+    }
+
     @Test func invalidTimeoutDoesNotStartTheNativeRequest() async {
         var started = false
         do {

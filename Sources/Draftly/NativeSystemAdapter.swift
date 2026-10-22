@@ -149,17 +149,31 @@ struct EventKitAuthorizationRequest {
 
 @MainActor
 final class EventKitCallbackWait<Value: Sendable> {
+    private final class CancellationState: @unchecked Sendable {
+        private let lock = NSLock()
+        private var cancelled = false
+        var isCancelled: Bool { lock.withLock { cancelled } }
+        func cancel() { lock.withLock { cancelled = true } }
+    }
+    private let cancellation = CancellationState()
+    private let now: @MainActor () -> Date
+    private let deadline: Date
+
+    private init(timeout: TimeInterval, now: @escaping @MainActor () -> Date) {
+        self.now = now; self.deadline = now().addingTimeInterval(timeout)
+    }
+
     private var continuation: CheckedContinuation<Value, Error>?
     private var timeoutTask: Task<Void, Never>?
     private var cancelRequest: (() -> Void)?
 
-    static func wait(timeout: TimeInterval,
+    static func wait(timeout: TimeInterval, now: @escaping @MainActor () -> Date = Date.init,
                      start: (@escaping @Sendable (Result<Value, Error>) -> Void) throws -> (() -> Void)?) async throws -> Value {
         guard timeout.isFinite, timeout > 0 else {
             throw DraftlyError.message("The EventKit timeout must be positive and finite.")
         }
-        let pending = EventKitCallbackWait()
-        return try await withTaskCancellationHandler {
+        let pending = EventKitCallbackWait(timeout: timeout, now: now)
+        let value = try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
                 pending.continuation = continuation
                 guard !Task.isCancelled else {
@@ -171,14 +185,17 @@ final class EventKitCallbackWait<Value: Sendable> {
                         Task { @MainActor in pending.finish(result) }
                     }
                     pending.timeoutTask = Task { @MainActor in
-                        do { try await Task.sleep(for: .seconds(timeout)) } catch { return }
+                        do { try await Task.sleep(for: .seconds(max(0, pending.deadline.timeIntervalSince(pending.now())))) } catch { return }
                         pending.finish(.failure(ActionExecutionInterruption.timeout), cancel: true)
                     }
                 } catch { pending.finish(.failure(error), cancel: true) }
             }
-        } onCancel: {
+        } onCancel: { [cancellation = pending.cancellation] in
+            cancellation.cancel()
             Task { @MainActor in pending.finish(.failure(CancellationError()), cancel: true) }
         }
+        try Task.checkCancellation()
+        return value
     }
 
     private func finish(_ result: Result<Value, Error>, cancel: Bool = false) {
@@ -187,7 +204,11 @@ final class EventKitCallbackWait<Value: Sendable> {
         timeoutTask?.cancel(); timeoutTask = nil
         let cancelRequest = cancelRequest
         self.cancelRequest = nil
-        if cancel { cancelRequest?() }
-        continuation.resume(with: result)
+        let cancelled = cancellation.isCancelled
+        let expired = now() >= deadline
+        if cancel || cancelled || expired { cancelRequest?() }
+        if cancelled { continuation.resume(throwing: CancellationError()) }
+        else if expired { continuation.resume(throwing: ActionExecutionInterruption.timeout) }
+        else { continuation.resume(with: result) }
     }
 }
