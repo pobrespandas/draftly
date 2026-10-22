@@ -2,7 +2,10 @@
 
 ## Current continuation
 
-Editor and scripting work continues in the [dated scope record](editor-scripting-2026-10-22.md).
+The [modularity audit](modularity-audit-2026-10-22.md) records the current
+refactoring diagnosis and the next bounded stage. See [status](status.md) for
+functional work. The [dated editor/scripting record](editor-scripting-2026-10-22.md)
+retains its original scope. The audit does not implement its proposed changes.
 The [Advanced Find refactoring stage](refactoring-find-2026-10-22.md) is complete.
 The [option refactoring stage](refactoring-options-2026-10-22.md) is complete.
 The [editing refactoring record](refactoring-editing-2026-10-21.md) describes the
