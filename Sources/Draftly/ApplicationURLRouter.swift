@@ -18,9 +18,14 @@ struct ApplicationURLRouter {
         switch endpoint {
         case "workspace":
             do {
-                let workspace = try WorkspaceInstallation.decode(url)
-                try library?.saveWorkspace(workspace)
-                show()
+                if parameter("name") != nil {
+                    guard parameter("data") == nil else { throw DraftlyError.message("The workspace link has conflicting destinations.") }
+                    controller.openWorkspace(try Self.namedWorkspace(parameter("name"), library: library))
+                } else {
+                    let workspace = try WorkspaceInstallation.decode(url)
+                    try library?.saveWorkspace(workspace)
+                    show()
+                }
             } catch { library?.error = error.localizedDescription }
         case "action":
             do { try Self.installActions(url, library: library); show() }
@@ -55,7 +60,12 @@ struct ApplicationURLRouter {
             } catch { library?.error = error.localizedDescription }
         case "create": newDraft(content: parameter("text") ?? "")
         case "capture": capture(content: parameter("text") ?? "")
-        case "open": if let id = parameter("uuid").flatMap(UUID.init(uuidString:)) { show(id) }
+        case "open":
+            do {
+                let parameters = Dictionary(items.map { ($0.name, $0.value ?? "") }, uniquingKeysWith: { first, _ in first })
+                show(try Self.openTarget(parameters: parameters, library: library).id)
+            } catch { library?.error = error.localizedDescription }
+        case "quickSearch": controller.showQuickSearch(initialQuery: parameter("query") ?? "")
         case "run", "runAction":
             let callbackParameters = Dictionary(items.map { ($0.name, $0.value ?? "") }, uniquingKeysWith: { first, _ in first })
             let target: (action: DraftAction, note: Note)
@@ -134,6 +144,35 @@ struct ApplicationURLRouter {
     static func installActions(_ url: URL, library: LibraryStore?) throws {
         guard let library else { throw DraftlyError.message("The library is unavailable.") }
         try LibraryFileImport.apply(ActionImporter.installationData(url), fileExtension: "json", to: library)
+    }
+
+    static func openTarget(parameters: [String: String], library: LibraryStore?) throws -> Note {
+        guard let library else { throw DraftlyError.message("The library is unavailable.") }
+        if let value = parameters["uuid"] {
+            guard let id = UUID(uuidString: value), let note = library.notes.first(where: { $0.id == id }) else {
+                throw DraftlyError.message("The draft in the link was not found.")
+            }
+            return note
+        }
+        guard let title = parameters["title"], !title.isEmpty else {
+            throw DraftlyError.message("The draft link needs a title or UUID.")
+        }
+        if let note = library.notes.filter({ $0.trashedAt == nil && $0.title == title })
+            .sorted(by: { $0.modifiedAt == $1.modifiedAt ? $0.id.uuidString < $1.id.uuidString : $0.modifiedAt > $1.modifiedAt }).first {
+            return note
+        }
+        guard parameters["allowCreate"] == "true" else {
+            throw DraftlyError.message("The draft in the link was not found.")
+        }
+        return try library.createNote(content: title)
+    }
+
+    static func namedWorkspace(_ name: String?, library: LibraryStore?) throws -> Workspace {
+        guard let library else { throw DraftlyError.message("The library is unavailable.") }
+        guard let name, !name.isEmpty, let workspace = library.workspaces.first(where: { $0.name == name }) else {
+            throw DraftlyError.message("The workspace in the link was not found.")
+        }
+        return workspace
     }
 
     static func runTarget(parameters: [String: String], library: LibraryStore?) throws -> (action: DraftAction, note: Note) {

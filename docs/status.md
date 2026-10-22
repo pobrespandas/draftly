@@ -2482,3 +2482,11 @@ Autocomplete feature disable, restart persistence and re-enable passed in isolat
 QA. Six theme rendering tests passed, including retained populated Undo/Redo.
 Production is unchanged. Remaining syntax, link and Find scope stays open.
 See docs/editor-scripting-2026-10-22.md.
+
+### Built-in wiki destinations — 22 October 2026
+
+Markdown wiki templates now connect to title/UUID opening, Quick Search and named
+Workspace application. Imported templates and installation routes are retained.
+Specific encoding, lookup, creation and failure tests passed. Full serial app692
+and Core662 passed; local build and matrix structure passed. Native activation
+and Drafts matching/default comparison remain pending. See the dated continuation.

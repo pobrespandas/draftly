@@ -52,6 +52,7 @@ private enum PendingMenuAction {
     case findInDraftList
     case commandPalette
     case newDraft(String)
+    case workspace(Workspace)
 }
 
 @MainActor private final class DraftSceneRequest {
@@ -330,6 +331,7 @@ final class AppController: ObservableObject {
         if let model = commandWindow, !model.flush() { return }
         quickSearchController.show(initialQuery: initialQuery)
     }
+    func openWorkspace(_ workspace: Workspace) { openMenuAction(.workspace(workspace)) }
     func findInDraftList() { openMenuAction(.findInDraftList) }
     func showCommandPalette() { openMenuAction(.commandPalette) }
     func consumePendingMenuAction(for model: WindowModel) {
@@ -354,6 +356,9 @@ final class AppController: ObservableObject {
             model.noteSearchFocus = UUID()
         case .commandPalette:
             model.openCommandPalette()
+        case .workspace(let workspace):
+            guard model.flush() else { return }
+            model.apply(workspace)
         case .newDraft(let content):
             _ = model.capture(content)
         }

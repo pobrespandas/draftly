@@ -547,3 +547,35 @@ named-workspace destinations. Preserve imported templates and installation URLs.
 Matching, duplicate-title, Trash and creation defaults need explicit contract
 checks. Hanging indentation, grammar validation/import conflicts, IME, long
 suggestion lists, multiple windows and remaining Find parity stay open.
+
+## Built-in wiki destinations
+
+The archived syntax-format example supplies empty, d, u, s, w, google, wikipedia
+and bear template keys. The three built-in Markdown definitions now supply these
+keys and capture scopes. First-party links use draftly://. Imported definitions
+are unchanged. Unknown keys remain link snapshots without an active URL.
+
+The application router now opens an exact title, creates only with
+allowCreate=true, opens Quick Search with the decoded query, and applies an
+installed Workspace by name. Named Workspace navigation does not install records.
+A link with name and data fails before either effect. Installation decoding stays
+on its existing path. Workspace application uses the existing pending window
+command and flushes the editor before applying resolved presentation.
+
+Title lookup excludes Trash and chooses the latest modified match, then UUID
+for a stable tie. UUID takes precedence and cannot fall through to creation when
+invalid. These rules are explicit implementation choices pending Drafts behavior
+comparison. Creation must persist before navigation. A storage failure leaves no
+new note or revision; retry is covered.
+
+Focused tests passed: twenty shared syntax methods and eleven URL methods.
+They cover all eight destinations in three syntaxes, Unicode/reserved characters,
+UTF-16 ranges, unknown keys, title defaults, repeat creation, invalid UUID,
+duplicate titles, Trash, storage failure/retry and exact Workspace lookup.
+The local Xcode build passed. Native activation, Quick Search delivery, queued
+Workspace application and Drafts matching/default comparisons remain pending.
+External browser/Bear execution has not been checked. No app was installed.
+
+Full serial regression passed 692 app methods/122 suites and 662 Core methods/124
+suites. Matrix structural check passed with zero errors. No retry or deadline
+changed. Native acceptance above remains pending.

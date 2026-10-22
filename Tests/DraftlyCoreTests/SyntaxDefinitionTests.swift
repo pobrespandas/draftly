@@ -416,4 +416,26 @@ struct SyntaxDefinitionTests {
         #expect(WorkspaceDefaults.make(in: store, defaults: defaults).tags.isEmpty)
         defaults.removeObject(forKey: WorkspaceDefaults.key)
     }
+    @Test func builtInWikiLinksResolveEncodedDestinations() throws {
+        let value = "café 🐼 &/%#"
+        let templates = ["": "draftly://open?title=", "d": "draftly://open?title=", "u": "draftly://open?uuid=",
+            "s": "draftly://quickSearch?query=", "w": "draftly://workspace?name=",
+            "google": "https://www.google.com/search?q=", "wikipedia": "https://en.wikipedia.org/wiki/",
+            "bear": "bear://x-callback-url/open-note?title="]
+        for name in ["Markdown", "MultiMarkdown", "GitHub Markdown"] {
+            let syntax = try ScriptSyntax.definition(name)
+            for (key, prefix) in templates {
+                let inner = key.isEmpty ? value : key + ":" + value
+                let source = "🐼 [[" + inner + "]]"
+                let link = try #require(syntax.resolvedLinks(in: source).first)
+                #expect(link.range == (source as NSString).range(of: inner))
+                #expect(link.url.absoluteString.hasPrefix(prefix))
+                #expect(link.url.absoluteString.contains("caf%C3%A9%20%F0%9F%90%BC%20%26%2F%25%23"))
+                if key.isEmpty || key == "d" { #expect(link.url.absoluteString.hasSuffix("&allowCreate=true")) }
+            }
+            #expect(syntax.resolvedLinks(in: "[[unknown:value]]").isEmpty)
+            #expect(syntax.links(in: "[[unknown:value]]").count == 1)
+        }
+        #expect(try ScriptSyntax.definition("Plain Text").resolvedLinks(in: "[[title]]").isEmpty)
+    }
 }

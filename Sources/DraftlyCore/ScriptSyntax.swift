@@ -25,6 +25,19 @@ public extension ScriptSyntax {
             markers = (1...6).map { level in ["match": "^" + String(repeating: "#", count: level) + #" ([^\r\n]*)"#, "rangeCapture": "0", "labelCapture": "1", "prefix": "H\(level)", "level": level - 1] }
             links = [["match": #"(\[\[)((?:([^:\]\r\n]+):)?([^\]\r\n]+))(\]\])"#, "captures": ["prefix": "1", "link": "2", "key": "3", "value": "4", "suffix": "5"]]]
         }
+        if isMarkdown(name) {
+            links[0]["templates"] = [
+                "": "draftly://open?title=[[value]]&allowCreate=true",
+                "d": "draftly://open?title=[[value]]&allowCreate=true",
+                "u": "draftly://open?uuid=[[value]]",
+                "s": "draftly://quickSearch?query=[[value]]",
+                "w": "draftly://workspace?name=[[value]]",
+                "google": "https://www.google.com/search?q=[[value]]",
+                "wikipedia": "https://en.wikipedia.org/wiki/[[value]]",
+                "bear": "bear://x-callback-url/open-note?title=[[value]]"
+            ]
+            links[0]["scopes"] = ["key": "text.bold", "value": "text.italic", "prefix": "markup", "suffix": "markup"]
+        }
         if isMarkdown(name) || name == "Simple List" {
             lists = [
                 ["match": #"^(\h*)((?:[-*+>] )(?:\[[ xX]\] )?)([^\r\n]*)"#,

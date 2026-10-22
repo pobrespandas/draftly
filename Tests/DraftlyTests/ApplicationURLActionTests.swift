@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-import DraftlyCore
+@testable import DraftlyCore
 @testable import Draftly
 
 @Suite("Action URL targets") @MainActor
@@ -34,5 +34,64 @@ struct ApplicationURLActionTests {
         }
         #expect(library.runs.isEmpty)
         #expect(throws: (any Error).self) { try ApplicationURLRouter.runTarget(parameters: [:], library: nil) }
+    }
+    @Test func titleLinksResolveOrCreateOnlyWhenAllowed() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let title = "Café 🐼 &/%"
+        #expect(throws: (any Error).self) { try ApplicationURLRouter.openTarget(parameters: ["title": title], library: library) }
+        #expect(library.notes.isEmpty)
+        let created = try ApplicationURLRouter.openTarget(parameters: ["title": title, "allowCreate": "true"], library: library)
+        #expect(created.content == title)
+        let again = try ApplicationURLRouter.openTarget(parameters: ["title": title, "allowCreate": "true"], library: library)
+        #expect(again.id == created.id && library.notes.count == 1)
+        #expect(try ApplicationURLRouter.openTarget(parameters: ["uuid": created.id.uuidString, "title": "Other"], library: library).id == created.id)
+        #expect(throws: (any Error).self) {
+            try ApplicationURLRouter.openTarget(parameters: ["uuid": "invalid", "title": "Other", "allowCreate": "true"], library: library)
+        }
+        #expect(library.notes.count == 1)
+        for parameters in [[:], ["title": ""], ["title": "Missing", "allowCreate": "false"]] {
+            #expect(throws: (any Error).self) { try ApplicationURLRouter.openTarget(parameters: parameters, library: library) }
+        }
+        #expect(throws: (any Error).self) { try ApplicationURLRouter.openTarget(parameters: ["title": title], library: nil) }
+    }
+
+    @Test func namedWorkspaceLookupDoesNotInstallOrChangeRecords() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        var workspace = Workspace(name: "Café 🐼")
+        workspace.query = "neutral"
+        try library.saveWorkspace(workspace)
+        #expect(try ApplicationURLRouter.namedWorkspace(workspace.name, library: library).id == workspace.id)
+        for name in [nil, "", "Missing", "café 🐼"] as [String?] {
+            #expect(throws: (any Error).self) { try ApplicationURLRouter.namedWorkspace(name, library: library) }
+        }
+        #expect(library.workspaces.count == 1 && library.notes.isEmpty)
+    }
+    @Test func failedTitleCreationRetainsLibraryAndCanRetry() throws {
+        enum Failure: Error { case storage }
+        let library = try LibraryStore(inMemory: true, seed: false)
+        library.beforeBatchCommit = { throw Failure.storage }
+        #expect(throws: Failure.storage) {
+            try ApplicationURLRouter.openTarget(parameters: ["title": "Neutral", "allowCreate": "true"], library: library)
+        }
+        #expect(library.notes.isEmpty && library.revisions.isEmpty)
+        library.beforeBatchCommit = nil
+        let note = try ApplicationURLRouter.openTarget(parameters: ["title": "Neutral", "allowCreate": "true"], library: library)
+        #expect(library.notes.map(\.id) == [note.id])
+    }
+
+    @Test func titleLookupExcludesTrashAndUsesStableMostRecentMatch() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        var first = Note(content: "Neutral"), second = Note(content: "Neutral"), trash = Note(content: "Neutral")
+        first.id = UUID(uuidString: "00000000-0000-4000-8000-000000000001")!
+        second.id = UUID(uuidString: "00000000-0000-4000-8000-000000000002")!
+        first.modifiedAt = Date(timeIntervalSince1970: 1)
+        second.modifiedAt = first.modifiedAt
+        trash.trashedAt = Date(); trash.modifiedAt = Date()
+        try library.saveNotes([second, trash, first], preserveDates: true)
+        #expect(try ApplicationURLRouter.openTarget(parameters: ["title": "Neutral"], library: library).id == first.id)
+        second.modifiedAt = Date(timeIntervalSince1970: 2)
+        try library.saveNote(second, preserveDates: true)
+        #expect(try ApplicationURLRouter.openTarget(parameters: ["title": "Neutral"], library: library).id == second.id)
+        #expect(library.notes.count == 3)
     }
 }
