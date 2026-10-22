@@ -23355,6 +23355,26 @@
           "suite": "NativeSpeechRequestTests",
           "test": "driverFailurePreservesTimeoutReason",
           "file": "Tests/DraftlyTests/NativeSpeechRequestTests.swift"
+        },
+        {
+          "suite": "NativeModelAsyncTests",
+          "test": "responseDeadlineIsCheckedBeforeTheQueuedTimer",
+          "file": "Tests/DraftlyTests/NativeModelAsyncTests.swift"
+        },
+        {
+          "suite": "NativeModelAsyncTests",
+          "test": "expiredRequestDoesNotStartGeneration",
+          "file": "Tests/DraftlyTests/NativeModelAsyncTests.swift"
+        },
+        {
+          "suite": "NativeModelAsyncTests",
+          "test": "cancelledRequestCannotRunToolsBeforeQueuedCleanup",
+          "file": "Tests/DraftlyTests/NativeModelAsyncTests.swift"
+        },
+        {
+          "suite": "NativeModelAsyncTests",
+          "test": "expiredRequestCannotRunToolsOrReturnALateResponse",
+          "file": "Tests/DraftlyTests/NativeModelAsyncTests.swift"
         }
       ],
       "nativeVerification": {
@@ -23621,6 +23641,26 @@
           "suite": "NativePrintRequestTests",
           "test": "queuedPrintCompletionCannotSkipCancellationCleanup",
           "file": "Tests/DraftlyTests/NativePrintRequestTests.swift"
+        },
+        {
+          "suite": "NativeModelAsyncTests",
+          "test": "responseDeadlineIsCheckedBeforeTheQueuedTimer",
+          "file": "Tests/DraftlyTests/NativeModelAsyncTests.swift"
+        },
+        {
+          "suite": "NativeModelAsyncTests",
+          "test": "expiredRequestDoesNotStartGeneration",
+          "file": "Tests/DraftlyTests/NativeModelAsyncTests.swift"
+        },
+        {
+          "suite": "NativeModelAsyncTests",
+          "test": "cancelledRequestCannotRunToolsBeforeQueuedCleanup",
+          "file": "Tests/DraftlyTests/NativeModelAsyncTests.swift"
+        },
+        {
+          "suite": "NativeModelAsyncTests",
+          "test": "expiredRequestCannotRunToolsOrReturnALateResponse",
+          "file": "Tests/DraftlyTests/NativeModelAsyncTests.swift"
         }
       ],
       "nativeVerification": {

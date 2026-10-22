@@ -4,6 +4,12 @@ Updated: 22 October 2026.
 
 ## Current Actions engine acceptance
 
+Apple model requests now check absolute deadlines before generation, tool access
+and response delivery. Synchronous cancellation state closes the queued-cleanup
+gap. Red/green injected cases, Core674/app754, Python68 and local Debug build
+passed. Native model generation remains pending; six engine contracts remain
+partial. No usual-app deployment or native model acceptance is claimed.
+
 A clean native print check confirmed the source-close restriction: Close was
 disabled and Close All left the sheet and source window open. Panel Cancel and
 following shell recovery returned one matching callback each. This is not

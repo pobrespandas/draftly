@@ -11,12 +11,15 @@ import DraftlyCore
         let clear: @MainActor () -> Void
     }
     private let backend: Backend?
+    private let now: @MainActor () -> Date
     var responseTimeout: TimeInterval = 120
     private var sessions: [String: LanguageModelSession] = [:]
     private var toolLifetimes: [String: NativeModelToolLifetime] = [:]
     private var requests: [String: NativeModelWait] = [:]
     private var legacyActiveSessions: Set<String> = []
-    init(backend: Backend? = nil) { self.backend = backend }
+    init(backend: Backend? = nil, now: @escaping @MainActor () -> Date = Date.init) {
+        self.backend = backend; self.now = now
+    }
     func clear() {
         for request in requests.values { request.finish(.failure(CancellationError())) }
         legacyActiveSessions.removeAll()
@@ -95,7 +98,8 @@ import DraftlyCore
 
     func performTool(_ operation: String, json: String, sessionID: String) throws -> String {
         try Task.checkCancellation()
-        guard requests[sessionID]?.continuation != nil || legacyActiveSessions.contains(sessionID) else { throw CancellationError() }
+        if let request = requests[sessionID] { try request.requireActive() }
+        else if !legacyActiveSessions.contains(sessionID) { throw CancellationError() }
         guard let onTool else { throw DraftlyError.message("Model tools require an active Draftly window.") }
         return try onTool(operation, json)
     }
@@ -121,7 +125,7 @@ import DraftlyCore
         guard responseTimeout.isFinite, responseTimeout > 0 else { throw DraftlyError.message("The model timeout must be positive and finite.") }
         let id = values["sessionID"] as? String ?? UUID().uuidString
         guard requests[id] == nil else { throw DraftlyError.message("A response is already running in this model session.") }
-        let wait = NativeModelWait(); requests[id] = wait
+        let wait = NativeModelWait(timeout: responseTimeout, now: now); requests[id] = wait
         defer { requests.removeValue(forKey: id) }
         do {
             let result: String = try await withTaskCancellationHandler {
@@ -130,6 +134,8 @@ import DraftlyCore
                     guard !Task.isCancelled else { wait.finish(.failure(CancellationError())); return }
                     wait.operation = Task { @MainActor in
                         do {
+                            try Task.checkCancellation()
+                            try wait.requireActive()
                             let value: String
                             if let backend = self.backend { value = try await backend.respond(id, payload) }
                             else { value = try await self.respond(values, id: id, mode: mode) }
@@ -137,11 +143,14 @@ import DraftlyCore
                         } catch { wait.finish(.failure(error)) }
                     }
                     wait.timeout = Task { @MainActor in
-                        do { try await Task.sleep(for: .seconds(self.responseTimeout)) } catch { return }
+                        do { try await Task.sleep(for: .seconds(wait.remainingTime)) } catch { return }
                         wait.finish(.failure(ActionExecutionInterruption.timeout))
                     }
                 }
-            } onCancel: { Task { @MainActor in wait.finish(.failure(CancellationError())) } }
+            } onCancel: { [cancellation = wait.cancellation] in
+                cancellation.cancel()
+                Task { @MainActor in wait.finish(.failure(CancellationError())) }
+            }
             await wait.cleanup()
             try Task.checkCancellation()
             let value = try JSONSerialization.jsonObject(with: Data(result.utf8), options: [.fragmentsAllowed])
@@ -211,15 +220,40 @@ private struct ScriptModelTool: Tool {
     func call(arguments: GeneratedContent) async throws -> String { try await callback(operation, arguments.jsonString) }
 }
 
+private final class NativeModelCancellationState: @unchecked Sendable {
+    private let lock = NSLock()
+    private var cancelled = false
+    var isCancelled: Bool { lock.withLock { cancelled } }
+    func cancel() { lock.withLock { cancelled = true } }
+}
+
 @MainActor private final class NativeModelWait {
+    let cancellation = NativeModelCancellationState()
+    private let now: @MainActor () -> Date
+    private let deadline: Date
     var continuation: CheckedContinuation<String, Error>?
     var operation: Task<Void, Never>?
     var timeout: Task<Void, Never>?
+    init(timeout: TimeInterval, now: @escaping @MainActor () -> Date) {
+        self.now = now; self.deadline = now().addingTimeInterval(timeout)
+    }
+    var remainingTime: TimeInterval { max(0, deadline.timeIntervalSince(now())) }
+    func requireActive() throws {
+        guard continuation != nil, !cancellation.isCancelled else { throw CancellationError() }
+        guard now() < deadline else { throw ActionExecutionInterruption.timeout }
+    }
     func finish(_ result: Result<String, Error>) {
         guard let continuation else { return }
         self.continuation = nil
+        let explicitCancellation: Bool
+        if case .failure(let error) = result { explicitCancellation = error is CancellationError }
+        else { explicitCancellation = false }
+        let cancelled = cancellation.isCancelled || explicitCancellation
+        let expired = now() >= deadline
         operation?.cancel(); timeout?.cancel(); timeout = nil
-        continuation.resume(with: result)
+        if cancelled { continuation.resume(throwing: CancellationError()) }
+        else if expired { continuation.resume(throwing: ActionExecutionInterruption.timeout) }
+        else { continuation.resume(with: result) }
     }
     func cleanup() async { let task = operation; operation = nil; await task?.value }
 }

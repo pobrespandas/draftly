@@ -808,3 +808,15 @@ owned presentation before it returns CancellationError. The caller also
 checks task cancellation after a normal resume. Duplicate or late callbacks
 cannot repeat cleanup. This does not recall a print job already delivered
 to the operating system or promise a rollback of completed external effects.
+
+## Apple model request boundaries — 22 October 2026
+
+Async model requests capture an absolute deadline at creation. Generation, tool
+access and response delivery check that deadline. Cancellation records a locked
+flag before MainActor cleanup is queued. A cancelled request cannot authorize a
+tool during that gap. Cleanup still waits for the owned operation and discards
+the failed session. The legacy synchronous route is unchanged.
+
+Injected clock and backend tests cover the boundary and recovery without model
+generation or library writes. Native generation remains blocked by system
+readiness. These tests do not accept native model cancellation or tool cleanup.

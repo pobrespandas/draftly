@@ -103,6 +103,95 @@ struct NativeModelAsyncTests {
         #expect(calls == 1)
     }
 
+    @Test(arguments: [9.0, 10.0, 11.0])
+    func responseDeadlineIsCheckedBeforeTheQueuedTimer(elapsed: Double) async throws {
+        var clock = Date(timeIntervalSinceReferenceDate: 100)
+        var advance = elapsed
+        var discarded: [String] = []
+        let backend = NativeModelAPI.Backend(modes: { ["onDevice"] }, respond: { _, _ in
+            clock = clock.addingTimeInterval(advance)
+            return "{\"response\":\"Neutral\"}"
+        }, discard: { discarded.append($0) }, clear: {})
+        let api = NativeModelAPI(backend: backend, now: { clock }); api.responseTimeout = 10
+        do {
+            _ = try await api.performAsync("modelRespond", payload: payload("Neutral"))
+            #expect(elapsed < 10)
+        } catch { #expect(elapsed >= 10 && error as? ActionExecutionInterruption == .timeout) }
+        #expect(discarded == (elapsed < 10 ? [] : ["neutral-session"]))
+        advance = 0
+        _ = try await api.performAsync("modelRespond", payload: payload("Recovery"))
+    }
+
+    @Test func expiredRequestDoesNotStartGeneration() async throws {
+        var reads = 0
+        var responses = 0
+        var discarded: [String] = []
+        let backend = NativeModelAPI.Backend(modes: { ["onDevice"] }, respond: { _, _ in
+            responses += 1
+            return "{\"response\":\"Must not generate\"}"
+        }, discard: { discarded.append($0) }, clear: {})
+        let api = NativeModelAPI(backend: backend, now: {
+            defer { reads += 1 }
+            return Date(timeIntervalSinceReferenceDate: reads == 0 ? 100 : 110)
+        })
+        api.responseTimeout = 10
+        do { _ = try await api.performAsync("modelRespond", payload: payload("Neutral")); Issue.record("Expired generation succeeded.") }
+        catch { #expect(error as? ActionExecutionInterruption == .timeout) }
+        #expect(responses == 0)
+        #expect(discarded == ["neutral-session"])
+    }
+
+    @Test func cancelledRequestCannotRunToolsBeforeQueuedCleanup() async throws {
+        let started = AsyncStream.makeStream(of: Bool.self)
+        let release = AsyncStream.makeStream(of: Bool.self)
+        let backend = NativeModelAPI.Backend(modes: { ["onDevice"] }, respond: { _, _ in
+            started.continuation.yield(true); started.continuation.finish()
+            var replies = release.stream.makeAsyncIterator(); _ = await replies.next()
+            return "{\"response\":\"Late\"}"
+        }, discard: { _ in }, clear: {})
+        let api = NativeModelAPI(backend: backend)
+        var toolCalls = 0
+        api.onTool = { _, _ in toolCalls += 1; return "{}" }
+        let task = Task { try await api.performAsync("modelRespond", payload: payload("Neutral")) }
+        defer { task.cancel(); release.continuation.finish() }
+        var starts = started.stream.makeAsyncIterator()
+        try #require(await starts.next() == true)
+        task.cancel()
+        #expect(throws: CancellationError.self) { try api.performTool("draft.create", json: "{}", sessionID: "neutral-session") }
+        #expect(toolCalls == 0)
+        release.continuation.finish()
+        do { _ = try await task.value; Issue.record("Cancelled model request returned a result.") }
+        catch { #expect(error is CancellationError) }
+    }
+
+    @Test(arguments: [10.0, 11.0])
+    func expiredRequestCannotRunToolsOrReturnALateResponse(elapsed: Double) async throws {
+        var clock = Date(timeIntervalSinceReferenceDate: 100)
+        let started = AsyncStream.makeStream(of: Bool.self)
+        let release = AsyncStream.makeStream(of: Bool.self)
+        var discarded: [String] = []
+        let backend = NativeModelAPI.Backend(modes: { ["onDevice"] }, respond: { _, _ in
+            started.continuation.yield(true); started.continuation.finish()
+            var replies = release.stream.makeAsyncIterator(); _ = await replies.next()
+            return "{\"response\":\"Late\"}"
+        }, discard: { discarded.append($0) }, clear: {})
+        let api = NativeModelAPI(backend: backend, now: { clock }); api.responseTimeout = 10
+        var toolCalls = 0
+        api.onTool = { _, _ in toolCalls += 1; return "{}" }
+        let task = Task { try await api.performAsync("modelRespond", payload: payload("Neutral")) }
+        defer { task.cancel(); release.continuation.finish() }
+        var starts = started.stream.makeAsyncIterator()
+        try #require(await starts.next() == true)
+        clock = clock.addingTimeInterval(elapsed)
+        do { _ = try api.performTool("draft.create", json: "{}", sessionID: "neutral-session"); Issue.record("An expired model tool executed.") }
+        catch { #expect(error as? ActionExecutionInterruption == .timeout) }
+        #expect(toolCalls == 0)
+        release.continuation.finish()
+        do { _ = try await task.value; Issue.record("Expired model request returned a result.") }
+        catch { #expect(error as? ActionExecutionInterruption == .timeout) }
+        #expect(discarded == ["neutral-session"])
+    }
+
     @Test func clearingTheHostCancelsPendingResponsesAndSessionState() async throws {
         let state = BackendState()
         let api = NativeModelAPI(backend: state.backend())

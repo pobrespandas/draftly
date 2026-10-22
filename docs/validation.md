@@ -9750,3 +9750,25 @@ repeated as an owner-close test unless application or system behavior changes.
 Any later test must establish an actual source-window close through a supported
 lifetime operation. Process termination is not a substitute for a final engine
 result. Large-document print rendering latency is also still pending.
+
+## Apple model deadline and cancellation guards — 22 October 2026
+
+Injected tests reproduced three delivery defects before the fix: a response at
+or after its deadline returned success; a tool ran after owner cancellation
+before queued cleanup; and an expired request started generation. Deadline and
+cancellation checks now reject these paths. Failed requests still discard their
+session and await operation cleanup. Recovery reuses the session identity.
+
+Four new test methods cover before, at and after deadline delivery, cancelled
+tool authorization, expired tool authorization and expired generation start.
+The focused model suite passed 11 methods. Complete Swift runs passed 674 Core
+and 754 app methods. XML reports matched discovery. All 68 Python tests and the
+local Debug build passed. Structural matrix and diff checks passed. The strict
+engine check still reports six partial contracts and 18 diagnostics. No retry
+or longer timeout was added.
+
+The backend, clock and tools were neutral test doubles. No native model ran,
+no library write occurred, and no visible window or permission prompt opened.
+Native generation, cancellation and tool cleanup remain pending system readiness.
+The usual app was not replaced. No QA app is running or prepared.
+
