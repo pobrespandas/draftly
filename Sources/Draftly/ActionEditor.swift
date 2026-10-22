@@ -172,6 +172,12 @@ private struct ActionStepInspector: View {
                     if step.type == "configurationKey" {
                         ActionConfigurationStepEditor(step: $step)
                     }
+                    if step.type == "createDraft" {
+                        Toggle("Open in Editor", isOn: Binding(
+                            get: { step.values["openInEditor"] != "false" },
+                            set: { step.values["openInEditor"] = $0 ? "true" : "false" }
+                        ))
+                    }
                     ForEach(ActionStepInspectorFields.fields(for: step)) { field in
                         let key = field.key
                         VStack(alignment: .leading, spacing: 6) {

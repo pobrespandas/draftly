@@ -451,3 +451,32 @@ preceding validated builds. The result accepts this UI action-host bookmark path
 and restart, not Settings geometry, denied/lost permissions, Forget, iCloud Drive,
 owner-close cleanup or capability-specific URL/Intent variants. The strict engine
 records remain partial where those obligations remain open.
+
+## Create Draft editor destination — 21 October 2026
+
+Implemented: Create Draft now has one Open in Editor switch, including imported
+steps without the key. The read value matches the existing executor: only the
+literal false creates in the background. Reading imported or unknown values
+does not rewrite them. New steps explicitly retain the existing true default.
+The archived utility-step reference describes this option but does not fix its
+initial UI state. Other Create Draft fields remain separate inspector work.
+
+Automatic: the copy-to-save-to-run test covers both editor destinations on both
+runners. It checks new identity, saved step identity, source content, selection,
+access date, reload and imported disabled steps without this key. Background
+creation leaves access date unknown. Foreground creation loads the new note.
+Descriptor tests cover missing, true, false and unknown imported strings. All
+21 focused methods passed across the app and core step suites. All 641 app
+methods passed serially, with report/inventory matching. The unchanged Core
+suite retains the preceding complete serial 646 result. Local Debug and signed
+Release passed. No deadline, signing identity or storage format changed.
+
+Verified in use: created QA Create Draft in background in the inspector. Added
+createDraft, disabled Open in Editor and entered neutral Unicode content. Saved
+and ran it from Actions with café 🐼 selected in the source draft. A new list
+row contained the requested complete text. The source editor and Unicode
+selection stayed unchanged. The app reported completion. QA executable SHA256:
+31b8367402a745a9214a0fded515cc66172c8e6cb7acc982bbc26907e9fcc6f3.
+QA quit normally. Native foreground variants and other step options are not
+accepted by this one background check. Personal data and the habitual app remain
+unchanged. Continue editor/prompt and other inspector contracts separately.

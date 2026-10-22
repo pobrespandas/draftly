@@ -35,6 +35,7 @@ struct ActionEditingCopy {
         case "url", "callbackUrl": ["url": "https://example.com"]
         case "runShortcut", "includeAction": ["name": "", "template": "[[draft]]"]
         case "file": ["name": "[[safe_title]].md", "template": "[[draft]]"]
+        case "createDraft": ["template": "[[draft]]", "openInEditor": "true"]
         case "configurationKey": ["key": "", "dataType": "string", "defaultStringValue": "",
                                   "description": "", "exampleValue": "", "requiresInitialConfiguration": "true"]
         default: ["template": "[[draft]]"]

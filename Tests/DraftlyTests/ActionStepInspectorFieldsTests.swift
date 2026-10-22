@@ -64,4 +64,13 @@ struct ActionStepInspectorFieldsTests {
         #expect(ActionStepInspectorFields.fields(for: ActionStep("script", ["uuid": target.uuidString])).isEmpty)
     }
 
+    @Test(arguments: [String?.none, "false", "true", "futureValue"])
+    func createDraftOpenOptionHasOneDedicatedControlWithoutRewritingImports(openInEditor: String?) {
+        var step = ActionStep("createDraft", ["template": "Neutral café 🐼", "futureOption": "Keep"])
+        step.values["openInEditor"] = openInEditor
+        let original = step
+        #expect(ActionStepInspectorFields.fields(for: step).map(\.key) == ["futureOption", "template"])
+        #expect(step == original)
+    }
+
 }

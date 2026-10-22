@@ -12,7 +12,9 @@ runner checks passed. See the latest section in actions-engine.md. Full serial
 verification passed 646 Core / 637 app methods; the initial concurrent Core run
 had five worker-test timeouts and remains recorded separately. The includeAction
 UUID is now editable without changing the step identity. Cancel, Save and actual
-retargeted execution passed in QA. The latest complete app run passed 639 methods.
+retargeted execution passed in QA. The include-target complete app run passed 639 methods. Create Draft now has an
+Open in Editor switch. Background creation preserved native source text and
+Unicode selection. Its complete app run passed 641 methods.
 Native action-host bookmark read/write and reuse after process restart now passed
 in fresh Functional QA. Picker Cancel retained the draft, and History showed
 Cancelled / Success / Success. Permission loss and iCloud Drive remain open.

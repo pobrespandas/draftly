@@ -49,6 +49,7 @@ struct ActionEditingCopyTests {
             "runShortcut": ["name": "", "template": "[[draft]]"],
             "includeAction": ["name": "", "template": "[[draft]]"],
             "file": ["name": "[[safe_title]].md", "template": "[[draft]]"],
+            "createDraft": ["template": "[[draft]]", "openInEditor": "true"],
             "configurationKey": ["key": "", "dataType": "string", "defaultStringValue": "",
                                  "description": "", "exampleValue": "", "requiresInitialConfiguration": "true"]
         ]

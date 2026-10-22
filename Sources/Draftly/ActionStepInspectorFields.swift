@@ -28,6 +28,7 @@ enum ActionStepInspectorFields {
                 "requiresInitialConfiguration", "defaultValue"])
             excludedKeys.formUnion(configurationTypes.compactMap(configurationDefaultKey))
         }
+        if step.type == "createDraft" { excludedKeys.insert("openInEditor") }
         var keys = Set(step.values.keys)
         if step.type == "includeAction" {
             excludedKeys.remove("uuid")
