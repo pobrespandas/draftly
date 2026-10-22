@@ -8891,3 +8891,32 @@ QA/helper quit normally. Exact process absence and unregistration were confirmed
 Apps, closed library, preferences and neutral files were preserved recoverably in
 ~/.Trash/DraftlyFilePermissionQA-jr2q1ee9. Folder permissions were restored before
 retirement. Habitual app and personal folders stayed unchanged.
+
+## Native file Close All during export — 22 October 2026
+
+QA at 1cbeda7 imported the existing engine-file-lifetime-actions.json through
+File → Import. No fixture script changed. The neutral Inbox source was selected
+before starting QA File pending operation through the helper's explicit URL.
+The action saved its completed write and displayed NSSavePanel. Go to Folder
+selected the new QA exports directory, with draftly-file-lifetime-1.txt pending.
+
+File → Close was disabled by the panel. File → Close All was available. It
+removed the panel and source selection, leaving an Untitled editor. The helper
+received exactly one cancel callback. The intended file and all export directory
+entries remained absent. The completed note stayed in Inbox without the tail or
+Archive. This accepts the exposed Close All path; it does not claim an enabled
+individual-window close control or an actual late OS panel callback.
+
+The following QA File recovery URL displayed a fresh selector in the same neutral
+exports folder. Save created exactly the expected35 UTF-8 bytes, Neutral file
+café 🐼 followed by a newline and Second line. The helper received one success.
+The cancelled target still did not exist. Closed history confirmed Cancelled and
+Success on the same note; its completed text remained and isArchived was false.
+
+Focused app25 and Core6 methods passed. Local Debug build and matrix structural
+check passed. No production source or deadline changed. QA executable SHA256:
+36f4f06829b5f1241f760883828d9213239a5b6ecc474fb79e27da53ec8468cb.
+Both QA/helper quit normally; exact process absence and path unregistration were
+confirmed. Apps, exported preferences, closed library and neutral export were
+preserved recoverably in ~/.Trash/DraftlyFileCloseQA-c2vl4t8y. Habitual app unchanged.
+TCC/revoked-scope and actual late panel completion remain separate obligations.

@@ -2709,3 +2709,10 @@ Actual URL/bookmark save, filesystem write denial and recovery passed. The error
 kept original file bytes and prior draft text in Inbox without tail/Archive.
 Restored permissions reused the bookmark without another picker. File16/local
 build passed. TCC/sandbox denial remains separate. QA retired recoverably.
+
+### Export Close All lifetime — 22 October 2026
+
+Native URL export cancelled through File Close All, removed its selector and
+created no file. Completed text stayed in Inbox without tail/Archive. Following
+export saved exact35-byte neutral content. Closed history matched. App25/Core6,
+local build and matrix passed. QA retired recoverably; usual app unchanged.
