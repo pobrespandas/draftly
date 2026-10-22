@@ -110,6 +110,29 @@ struct NativeLocationRequestTests {
         #expect(driver.invalidated)
     }
 
+    @Test(arguments: [false, true], [false, true])
+    func expiredAuthorizationAndCoordinatesCannotBeatQueuedTimeout(authorization: Bool, exactDeadline: Bool) async {
+        let driver = LocationDriverFixture()
+        var now = Date(timeIntervalSinceReferenceDate: 100)
+        if authorization {
+            driver.authorizationStatus = .notDetermined
+            driver.whenAuthorizationRequested = {
+                now = now.addingTimeInterval(exactDeadline ? 10 : 11)
+                driver.onAuthorization?(.authorizedAlways)
+            }
+        }
+        driver.whenStarted = {
+            if !authorization { now = now.addingTimeInterval(exactDeadline ? 10 : 11) }
+            driver.onLocation?(1, 2)
+        }
+        do {
+            _ = try await NativeLocationRequest.current(timeout: 10, driver: driver, now: { now })
+            Issue.record("Expired location returned coordinates.")
+        } catch { #expect(error as? ActionExecutionInterruption == .timeout) }
+        #expect(driver.starts == (authorization ? 0 : 1))
+        #expect(driver.stops == 1 && driver.invalidated)
+    }
+
     @Test func invalidCoordinatesFailExplicitly() async {
         let driver = LocationDriverFixture()
         driver.whenStarted = { driver.onLocation?(.nan, 200) }

@@ -9299,3 +9299,25 @@ cases, a timely three-phase run and an expired Done case. Local Debug compilatio
 and matrix structure passed. No retry or deadline inflation was used. The prior
 complete 674 Core / 724 app run predates this change. Native dictation permission
 and recording acceptance remains separate. No QA or habitual app was opened.
+
+
+## Location callback deadline enforcement — 22 October 2026
+
+At 022c3bb, four controlled-clock cases delivered authorization or coordinates
+at or after the deadline before the queued timeout task ran. The request
+returned coordinates, and an expired authorization also started updates. All
+four cases failed before the correction.
+
+NativeLocationRequest now retains an absolute deadline from request startup.
+Authorization checks it before starting updates. Final delivery converts an
+expired callback to timeout, with cancellation retaining priority. Cleanup
+stops and invalidates the driver once. The clock is injectable and defaults
+to Date. The production 30-second limit did not change.
+
+All 46 focused location/dictation/composition methods passed. Complete Swift
+reports matched discovery: 674 Core and 728 app methods. Local Debug compilation
+passed. The strict engine gate still reports 18 diagnostics across six partial
+contracts; this is not a parity pass. No retry or deadline inflation was used.
+The previous 68 Python result is separate; Python source was unchanged.
+No permission, location capture, QA window or habitual app was used. Native
+location outcomes remain limited to the earlier recorded URL cases.

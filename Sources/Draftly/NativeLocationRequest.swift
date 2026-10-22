@@ -26,21 +26,26 @@ final class NativeLocationRequest {
     }
 
     private let cancellation = CancellationState()
+    private let now: @MainActor () -> Date
+    private var deadline = Date.distantFuture
     private let driver: any NativeLocationDriving
     private var continuation: CheckedContinuation<[String: Double], Error>?
     private var timeoutTask: Task<Void, Never>?
     private var authorizationRequested = false
     private var updatesStarted = false
 
-    init(driver: any NativeLocationDriving) { self.driver = driver }
+    init(driver: any NativeLocationDriving, now: @escaping @MainActor () -> Date = Date.init) {
+        self.driver = driver; self.now = now
+    }
 
     static func current(timeout: TimeInterval = 30,
-                        driver: (any NativeLocationDriving)? = nil) async throws -> [String: Double] {
+                        driver: (any NativeLocationDriving)? = nil,
+                        now: @escaping @MainActor () -> Date = Date.init) async throws -> [String: Double] {
         guard timeout.isFinite, timeout > 0 else {
             throw DraftlyError.message("The location timeout must be positive and finite.")
         }
         try Task.checkCancellation()
-        let request = NativeLocationRequest(driver: driver ?? CoreLocationDriver())
+        let request = NativeLocationRequest(driver: driver ?? CoreLocationDriver(), now: now)
         let result = try await request.run(timeout: timeout)
         try Task.checkCancellation()
         return result
@@ -51,6 +56,7 @@ final class NativeLocationRequest {
             try await withCheckedThrowingContinuation { continuation in
                 self.continuation = continuation
                 guard !Task.isCancelled else { finish(.failure(CancellationError())); return }
+                deadline = now().addingTimeInterval(timeout)
                 driver.onAuthorization = { [weak self] status in self?.authorizationChanged(status) }
                 driver.onLocation = { [weak self] latitude, longitude in
                     guard latitude.isFinite, longitude.isFinite,
@@ -83,6 +89,10 @@ final class NativeLocationRequest {
             finish(.failure(CancellationError()))
             return
         }
+        guard now() < deadline else {
+            finish(.failure(ActionExecutionInterruption.timeout))
+            return
+        }
         switch status {
         case .notDetermined:
             guard !authorizationRequested else { return }
@@ -105,7 +115,9 @@ final class NativeLocationRequest {
         timeoutTask?.cancel(); timeoutTask = nil
         driver.stopUpdating()
         driver.invalidate()
-        continuation.resume(with: cancellation.isCancelled ? .failure(CancellationError()) : result)
+        if cancellation.isCancelled { continuation.resume(throwing: CancellationError()) }
+        else if now() >= deadline { continuation.resume(throwing: ActionExecutionInterruption.timeout) }
+        else { continuation.resume(with: result) }
     }
 }
 
