@@ -554,3 +554,42 @@ QA executable SHA256:
 The habitual app and personal data remain unchanged. This check does not accept
 native Workspace loading, every toggle combination, first-party import variants
 or full step parity. Those obligations remain explicit in the API matrix.
+
+## First-party Prompt inspector fields — 22 October 2026
+
+Implemented: new Prompt steps expose Key, Title, Message, Buttons, Text Field
+Default, Include Text Field and Include Cancel Button. The defaults match the
+archived advanced-step reference: prompt, Prompt, empty message, OK, empty text,
+text field off and Cancel on. Message supports multiple lines and tag insertion.
+Buttons use the documented pipe separator. Missing imported fields display the
+default without inserting keys. Explicit empty fields, aliases and unknown data
+remain unchanged until edited. These defaults apply only to newly added steps.
+
+Automatic: 26 focused methods passed. Ten new flow cases cover both runners:
+documented defaults, custom tags, second-button selection, rendered title/message
+and text, cancellation before a tail and an already queued action, and invalid
+empty keys/buttons before the host or success effects. Copy discard, save/reload,
+IDs and unknown imported data also passed. All 650 app methods passed serially;
+report identities matched discovery. The unchanged Core suite retains the prior
+646 serial result. Local Debug and signed Release passed. No Python source
+changed; the earlier 68 Python result remains separate. No deadlines changed.
+
+Verified in use: created QA Prompt step response in the inspector. Initial
+controls showed OK, prompt, Prompt, text off and Cancel on. Set a custom key,
+title, two-line Unicode message, First|Second buttons and [[title]] text default.
+Enabled text and added a background Create Draft tail using choice_button and
+choice_text tags. The native prompt displayed all fields and rendered the title
+into its text input. Entered discarded text and canceled: eight drafts remained,
+the source stayed unchanged and the action reported cancellation. Repeating the
+run restored the configured text default. Accepted Second with neutral Unicode
+text: the ninth draft contained exactly Second: Accepted neutral café 🐼, while
+the source editor stayed unchanged. The action reported completion. QA quit
+normally and its process was confirmed absent.
+
+QA executable SHA256:
+689fee734f176cf9ac196484bbe17152cc7d6b8c7ea508aed6f9dd6c352d57f0.
+The habitual app, personal data, Services and CloudKit were not changed. Native
+Cancel-off/text-off variants, interruption/timeout paths and full imported step
+parity remain separate. This does not close Prompt's entire step acceptance or
+the five functional blocks. Continue the remaining inspector and integration
+contracts with specific evidence.

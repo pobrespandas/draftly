@@ -26,6 +26,11 @@ inspector. Both runner flows and reference-error preflight passed. Native save,
 execution, retained Unicode selection, Undo/Redo and edit Cancel passed for the
 recorded subset. Its complete app run passed 645 methods. Full step parity stays
 open. See actions-engine.md for the exact scope.
+The first-party Prompt step now exposes its documented options and defaults.
+Native inspector-to-dialog Cancel and second-button/text tag output passed.
+Both runner flows and error cases passed. The latest complete app run passed
+650 methods; local and signed builds passed. Full Prompt-step acceptance remains
+open for the listed variants. The habitual app is unchanged.
 The earlier delivery covers the main window, daily flows and personalization.
 Read [the delivery record](ui-flows-2026-10-21.md) for separate implementation,
 automatic, native and pending results. Capture receipt/append, File commands,

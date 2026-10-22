@@ -175,6 +175,16 @@ private struct ActionStepInspector: View {
                     if step.type == "configureWindow" {
                         ActionWindowConfigurationEditor(step: $step)
                     }
+                    if step.type == "prompt" {
+                        Toggle("Include Text Field", isOn: Binding(
+                            get: { ["true", "1"].contains(step.values["includeTextField"] ?? "false") },
+                            set: { step.values["includeTextField"] = $0 ? "true" : "false" }
+                        ))
+                        Toggle("Include Cancel Button", isOn: Binding(
+                            get: { step.values["includeCancelButton"] != "false" },
+                            set: { step.values["includeCancelButton"] = $0 ? "true" : "false" }
+                        ))
+                    }
                     if step.type == "createDraft" {
                         Toggle("Open in Editor", isOn: Binding(
                             get: { step.values["openInEditor"] != "false" },
@@ -185,7 +195,7 @@ private struct ActionStepInspector: View {
                         let key = field.key
                         VStack(alignment: .leading, spacing: 6) {
                             HStack {
-                                Text(step.type == "configureWindow" ? WindowConfigurationOptions.title(for: key) : step.type == "includeAction" && key == "uuid" ? "Action UUID" : key).font(.system(size: 12, weight: .medium))
+                                Text(ActionStepInspectorFields.title(for: key, in: step)).font(.system(size: 12, weight: .medium))
                                 Spacer()
                                 if field.allowsTagInsertion {
                                     Menu("Insert Tag") {
@@ -200,10 +210,10 @@ private struct ActionStepInspector: View {
                                     .font(.caption).foregroundStyle(.secondary)
                             }
                             if field.isMultiline {
-                                TextEditor(text: Binding(get: { step.values[key] ?? "" }, set: { step.values[key] = $0 }))
+                                TextEditor(text: Binding(get: { ActionStepInspectorFields.textValue(for: key, in: step) }, set: { step.values[key] = $0 }))
                                     .font(.system(size: 12, design: .monospaced)).frame(minHeight: field.minHeight).border(.quaternary)
                             } else {
-                                TextField(key, text: Binding(get: { step.values[key] ?? "" }, set: { step.values[key] = $0 })).textFieldStyle(.roundedBorder)
+                                TextField(key, text: Binding(get: { ActionStepInspectorFields.textValue(for: key, in: step) }, set: { step.values[key] = $0 })).textFieldStyle(.roundedBorder)
                             }
                         }
                     }

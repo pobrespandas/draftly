@@ -10,6 +10,29 @@ enum ActionStepInspectorFields {
         var id: String { key }
     }
 
+    static let promptDefaults = ["key": "prompt", "title": "Prompt", "message": "", "buttons": "OK",
+        "includeTextField": "false", "textFieldDefault": "", "includeCancelButton": "true"]
+
+    static func textValue(for key: String, in step: ActionStep) -> String {
+        step.values[key] ?? (step.type == "prompt" ? promptDefaults[key] : nil) ?? ""
+    }
+
+    static func title(for key: String, in step: ActionStep) -> String {
+        if step.type == "configureWindow" { return WindowConfigurationOptions.title(for: key) }
+        if step.type == "includeAction", key == "uuid" { return "Action UUID" }
+        if step.type == "prompt" {
+            switch key {
+            case "key": return "Key"
+            case "title": return "Title"
+            case "message": return "Message"
+            case "buttons": return "Buttons (separate with |)"
+            case "textFieldDefault": return "Text Field Default"
+            default: break
+            }
+        }
+        return key
+    }
+
     static let configurationTypes = ["string", "text", "boolean", "number"]
     static func configurationDefaultKey(for type: String) -> String? {
         switch type {
@@ -30,16 +53,18 @@ enum ActionStepInspectorFields {
         }
         if step.type == "createDraft" { excludedKeys.insert("openInEditor") }
         if step.type == "configureWindow" { excludedKeys.formUnion(WindowConfigurationOptions.toggleKeys) }
+        if step.type == "prompt" { excludedKeys.formUnion(["includeTextField", "includeCancelButton"]) }
         var keys = Set(step.values.keys)
+        if step.type == "prompt" { keys.formUnion(promptDefaults.keys) }
         if step.type == "configureWindow" { keys.formUnion(WindowConfigurationOptions.referenceKeys) }
         if step.type == "includeAction" {
             excludedKeys.remove("uuid")
             keys.formUnion(["uuid", "name"])
         }
         return keys.filter { !excludedKeys.contains($0) }.sorted().map { key in
-            let isMultiline = ["template", "script", "source"].contains(key)
+            let isMultiline = ["template", "script", "source"].contains(key) || (step.type == "prompt" && key == "message")
             return Field(key: key, isMultiline: isMultiline,
-                         minHeight: isMultiline ? (key == "template" ? 180 : 360) : nil)
+                         minHeight: isMultiline ? (key == "message" ? 100 : key == "template" ? 180 : 360) : nil)
         }
     }
 }

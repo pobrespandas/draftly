@@ -24424,8 +24424,14 @@
           "name": "Prompt",
           "compatibilityStatus": "partial",
           "implementationEvidence": {
-            "file": "Sources/DraftlyCore/ActionRunner.swift",
-            "symbol": "execute / expandedSteps"
+            "file": "Sources/DraftlyCore/ActionPromptStep.swift",
+            "symbol": "init / tags(from:)",
+            "additionalFiles": [
+              "Sources/Draftly/ActionEditor.swift",
+              "Sources/Draftly/ActionStepInspectorFields.swift",
+              "Sources/Draftly/ActionEditingCopy.swift",
+              "Sources/DraftlyCore/ActionAsyncHost.swift"
+            ]
           },
           "automatedTest": {
             "suite": "CoreStepContractsTests",
@@ -24433,13 +24439,38 @@
           },
           "liveCheck": null,
           "limitations": [
-            "Targeted option, default, and failure tests pass. Full first-party import variants and native step acceptance remain pending."
+            "Documented defaults and configured copy/save/run/accept/cancel/error cases pass on both runners. Native configured text/Cancel/second-button tags passed. Native text-off, Cancel-off, interruption/timeout and full first-party import variants remain pending."
           ],
           "referenceArchive": {
             "path": "docs/research/action-api-reference/2026-10-19/steps-advanced.73b558d3fb9616255d0fc54427cebbd8dfd8dbfd7036de98777b976f0e7e1433.html.gz",
             "sha256": "73b558d3fb9616255d0fc54427cebbd8dfd8dbfd7036de98777b976f0e7e1433",
             "url": "https://docs.getdrafts.com/docs/actions/steps/advanced",
             "capturedAt": "2026-10-19T16:59:47.603659+00:00"
+          },
+          "supportingTests": [
+            {
+              "suite": "ActionPromptEditingFlowTests",
+              "test": "newlySavedPromptUsesDocumentedDefaultsAndPublishesDefaultTags"
+            },
+            {
+              "suite": "ActionPromptEditingFlowTests",
+              "test": "savedTextAndSecondButtonUseCustomTagsAndRenderedOptions"
+            },
+            {
+              "suite": "ActionPromptEditingFlowTests",
+              "test": "cancellationStopsLaterStepsAndAnAlreadyQueuedActionWithoutArchiving"
+            },
+            {
+              "suite": "ActionPromptEditingFlowTests",
+              "test": "invalidEmptyKeysAndButtonTitlesFailBeforeHostOrLaterEffects"
+            }
+          ],
+          "nativeVerification": {
+            "status": "partial",
+            "date": "2026-10-22",
+            "evidence": "docs/actions-engine.md: First-party Prompt inspector fields — 22 October 2026",
+            "scope": "Inspector creation showed documented defaults. Edited key/title/Unicode two-line message/First|Second/text default and enabled text. Native Cancel discarded edited text, kept source and eight drafts; repeat restored template default. Second accepted text produced exact custom-tag output in ninth background draft and kept source. Native text-off, Cancel-off, interruption/timeout and full imported variants remain pending.",
+            "executableSHA256": "689fee734f176cf9ac196484bbe17152cc7d6b8c7ea508aed6f9dd6c352d57f0"
           }
         },
         {

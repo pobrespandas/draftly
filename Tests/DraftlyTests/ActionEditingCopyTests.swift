@@ -50,6 +50,8 @@ struct ActionEditingCopyTests {
             "includeAction": ["name": "", "template": "[[draft]]"],
             "file": ["name": "[[safe_title]].md", "template": "[[draft]]"],
             "createDraft": ["template": "[[draft]]", "openInEditor": "true"],
+            "prompt": ["key": "prompt", "title": "Prompt", "message": "", "buttons": "OK",
+                       "includeTextField": "false", "textFieldDefault": "", "includeCancelButton": "true"],
             "configurationKey": ["key": "", "dataType": "string", "defaultStringValue": "",
                                  "description": "", "exampleValue": "", "requiresInitialConfiguration": "true"]
         ]

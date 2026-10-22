@@ -90,4 +90,23 @@ struct ActionStepInspectorFieldsTests {
             == ["loadActionBarGroup", "loadActionGroup", "loadWorkspace"])
     }
 
+    @Test func promptShowsMissingDocumentedFieldsWithoutInsertingDefaultsIntoImports() {
+        let empty = ActionStep("prompt")
+        #expect(ActionStepInspectorFields.fields(for: empty).map(\.key) == ["buttons", "key", "message", "textFieldDefault", "title"])
+        #expect(ActionStepInspectorFields.textValue(for: "buttons", in: empty) == "OK")
+        #expect(ActionStepInspectorFields.textValue(for: "key", in: empty) == "prompt")
+        #expect(ActionStepInspectorFields.textValue(for: "title", in: empty) == "Prompt")
+        var imported = ActionStep("prompt", ["key": "", "title": "Café 🐼", "includeTextField": "1", "futureOption": "Keep"])
+        imported.unknownFields = ["future": .bool(false)]
+        let original = imported
+        let fields = ActionStepInspectorFields.fields(for: imported)
+        #expect(fields.map(\.key) == ["buttons", "futureOption", "key", "message", "textFieldDefault", "title"])
+        #expect(fields.first { $0.key == "message" }?.isMultiline == true)
+        #expect(fields.first { $0.key == "message" }?.minHeight == 100)
+        #expect(ActionStepInspectorFields.textValue(for: "key", in: imported).isEmpty)
+        #expect(ActionStepInspectorFields.textValue(for: "title", in: imported) == "Café 🐼")
+        #expect(imported == original)
+        #expect(ActionStepInspectorFields.textValue(for: "title", in: ActionStep("futureStep")).isEmpty)
+    }
+
 }
