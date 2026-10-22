@@ -329,6 +329,62 @@ struct NativeDictationRequestTests {
         #expect(driver.onUpdate == nil && driver.onDecision == nil)
     }
 
+    @Test(arguments: ["speech cancelled", "microphone cancelled", "recording cancelled", "speech denied", "microphone denied"])
+    func interruptedActionRetainsWritesSkipsSuccessAndRecovers(scenario: String) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false), editor = EditorSession()
+        let note = try library.createNote(content: "Original café 🐼")
+        editor.load(note, focusEditor: false)
+        let driver = DictationDriverFixture()
+        driver.speechAuthorization = scenario.hasPrefix("speech") ? .notDetermined : .authorized
+        driver.microphoneAuthorization = scenario.hasPrefix("microphone") ? .notDetermined : .authorized
+        var grant: (() -> Void)?, deny: (() -> Void)?
+        driver.whenSpeechRequested = { reply in grant = { reply(.authorized) }; deny = { reply(.denied) } }
+        driver.whenMicrophoneRequested = { reply in grant = { reply(true) }; deny = { reply(false) } }
+        let host = DictationActionFixtureHost(driver: driver)
+        let runner = ActionRunner(library: library, editor: editor, host: host)
+        runner.uiOperation = { _ in Issue.record("Unexpected synchronous editor operation."); return nil }
+        var action = DraftAction(name: "Interrupted neutral dictation", steps: [
+            ActionStep("script", ["script": "editor.setText('Retained café 🐼');draft.update();context.addSuccessParameter('mustDrop','yes');var text=editor.dictate();editor.setText('Must not insert '+text);draft.update();"]),
+            ActionStep("script", ["script": "editor.setText('Must not run');draft.update();"])
+        ])
+        action.afterSuccess = "archive"
+        let execution = Task { await runner.runAsync(action) }
+        defer { execution.cancel() }
+        try await driver.waitFor(scenario.hasPrefix("speech") ? .speech : scenario.hasPrefix("microphone") ? .microphone : .shown)
+        let lateUpdate = driver.onUpdate, lateDecision = driver.onDecision
+        if scenario.hasSuffix("denied") {
+            let refuse = try #require(deny)
+            refuse()
+        } else { execution.cancel() }
+        let report = await execution.value
+        #expect(report.reason == (scenario.hasSuffix("denied") ? .error : .cancelled))
+        #expect(report.successParameters.isEmpty && host.finishes == 1)
+        #expect(driver.cleanups == 1 && driver.stops == (scenario.hasPrefix("recording") ? 1 : 0))
+        #expect(!driver.resourcesActive && !driver.windowOpen)
+        #expect(editor.content == "Retained café 🐼")
+        #expect(library.notes.first?.content == editor.content && library.notes.first?.isArchived == false)
+        #expect(library.runs.count == 1 && library.runs.first?.status == (scenario.hasSuffix("denied") ? "Error" : "Cancelled"))
+        grant?(); deny?()
+        lateUpdate?(.init(text: "Late transcript", isFinal: true)); lateDecision?(true)
+        let recovery = DraftAction(name: "Dictation recovery", steps: [ActionStep("script", ["script": "editor.setText('Recovery café 🐼');draft.update();"])])
+        #expect(await runner.runAsync(recovery).reason == .success)
+        await TestMainQueue.drain()
+        #expect(editor.content == "Recovery café 🐼" && library.notes.first?.content == editor.content)
+        #expect(library.runs.count == 2 && host.finishes == 2 && driver.cleanups == 1)
+        #expect(driver.displayAfterCleanup == 0)
+    }
+
+    @Test func alreadyCancelledTaskDoesNotTouchPermissionOrCaptureDriver() async {
+        let driver = DictationDriverFixture()
+        driver.speechAuthorization = .notDetermined
+        let task = Task { try await NativeDictationRequest.run([:], driver: driver) }
+        task.cancel()
+        do { _ = try await task.value; Issue.record("A pre-cancelled request succeeded.") }
+        catch { #expect(error is CancellationError) }
+        #expect(driver.speechRequests == 0 && driver.microphoneRequests == 0)
+        #expect(driver.starts == 0 && driver.shows == 0 && driver.cleanups == 0)
+    }
+
     @Test func invalidTimeoutDoesNotRequestPermissionOrStartCapture() async {
         let driver = DictationDriverFixture()
         do { _ = try await NativeDictationRequest.run([:], driver: driver, timeout: 0); Issue.record("The invalid timeout succeeded.") }
@@ -426,4 +482,21 @@ struct DictationCallbackTests {
             #expect(received == allowed)
         }
     }
+}
+
+@MainActor
+private final class DictationActionFixtureHost: ActionHost {
+    let driver: DictationDriverFixture
+    var finishes = 0
+    init(driver: DictationDriverFixture) { self.driver = driver }
+    func supportsAsync(_ operation: String) -> Bool { operation == "dictate" }
+    func perform(_ operation: String, values: [String: Any]) throws -> Any? {
+        throw DraftlyError.message("Unexpected synchronous operation: " + operation)
+    }
+    func performAsync(_ operation: String, payload: String) async throws -> String {
+        guard operation == "dictate" else { throw DraftlyError.message("Unexpected native operation: " + operation) }
+        let text = try await NativeDictationRequest.run([:], driver: driver)
+        return String(decoding: try JSONSerialization.data(withJSONObject: ["value": text]), as: UTF8.self)
+    }
+    func finishAction() { finishes += 1 }
 }

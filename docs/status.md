@@ -2,6 +2,17 @@
 
 Updated: 22 October 2026.
 
+## Speech interruption coverage follow-up
+
+New worker/runner cases cover dictation cancellation during speech permission,
+microphone permission and capture, plus requested denials. Earlier writes stay;
+later steps and Archive do not run. Cleanup and history finish once, and a fresh
+action succeeds. Transcription runner coverage now includes file selection.
+Pre-cancelled request tests start no driver work. Focused47, full Core679/app796,
+Python80, local Debug build and structural matrix0 pass. Strict engine remains
+six partial/18 diagnostics. These tests do not establish real permission outcomes.
+The [speech record](research/speech-permission-lifetime-2026-10-22.md) lists scope.
+
 ## Native dictation audio callback
 
 Manual speech acceptance exposed an Engine QA exit after audio startup. The

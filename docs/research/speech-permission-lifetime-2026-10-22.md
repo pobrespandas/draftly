@@ -192,3 +192,49 @@ observed. Undo/Redo, denied or pending permissions, production timeout and full
 speech action completion remain separate checks. No new permission was granted
 by the agent. No source changed and no tests or builds ran during this session.
 QA remains open and idle with its neutral text visible; the usual app is unchanged.
+
+
+## Controlled interruption follow-up
+
+The baseline at18392a4 passed44 methods across the dictation, transcription,
+callback and injected-host suites. No build or test was active. QA was idle and
+quit normally before automatic tests. This stage changes tests and records only;
+production callbacks, permission policies and deadlines remain unchanged.
+
+NativeDictationRequestTests.interruptedActionRetainsWritesSkipsSuccessAndRecovers
+runs the real worker and ActionRunner with an injected dictation driver. Its five
+cases cancel during speech permission, microphone permission and recording, or
+return requested speech/microphone denial. They verify the final error/cancel
+reason, empty success parameters, one cleanup/host finish, retained Unicode
+writes, no later step or Archive, and one run record. Old grants, refusals,
+recognition and Done callbacks cannot change the following successful action.
+No driver opens a real panel or device.
+
+The existing transcription actionCancellationRetainsCompletedTextStopsLaterStepsAndRecovers
+keeps its method name and now also covers task cancellation during file selection.
+Authorization and recognition variants remain. Assertions include picker and
+recognition cleanup counts. It retains earlier writes and ignores the late file
+selection after cancellation before the successful recovery action.
+
+alreadyCancelledTaskDoesNotTouchPermissionOrCaptureDriver and
+alreadyCancelledTaskDoesNotTouchPermissionOrFileDriver cancel before the request
+starts. They verify no prompt, capture, file selection or driver cleanup begins.
+These cases differ from cancellation of an already started operation.
+
+The first new test compile triggered a Swift compiler assertion on an immediate
+invocation of a require macro result. Binding the required callback before
+invoking it removed that compiler failure. No app rule, test deadline or retry
+changed. The corrected focused47 passed. Full Core679/app796 matched the complete
+XML/discovery inventory. Python80 and local Debug build passed. No Swift build
+and test overlapped. Structural/strict results and native follow-up are below.
+
+These injected cases do not accept system permission denial, pending OS prompts,
+real task cancellation in the recorder or a native timeout. Existing QA grants
+cannot establish those outcomes. Do not reset TCC to manufacture a pending grant.
+
+
+Structural matrix validation reports0 errors. The strict engine gate still
+reports six partial contracts and18 diagnostics. Supporting references were
+added for the new runner and pre-cancelled request tests. Status and native
+acceptance were not promoted. Outputs use /tmp/draftly-speech-followup-* and are
+not versioned. Automatic tests ended before the native session below.

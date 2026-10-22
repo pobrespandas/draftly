@@ -23473,6 +23473,10 @@
         {
           "suite": "NativeTranscriptionRequestTests",
           "test": "actionCancellationRetainsCompletedTextStopsLaterStepsAndRecovers"
+        },
+        {
+          "suite": "NativeDictationRequestTests",
+          "test": "interruptedActionRetainsWritesSkipsSuccessAndRecovers"
         }
       ],
       "nativeVerification": {
@@ -23830,6 +23834,18 @@
         {
           "suite": "NativeTranscriptionRequestTests",
           "test": "actionCancellationRetainsCompletedTextStopsLaterStepsAndRecovers"
+        },
+        {
+          "suite": "NativeDictationRequestTests",
+          "test": "interruptedActionRetainsWritesSkipsSuccessAndRecovers"
+        },
+        {
+          "suite": "NativeDictationRequestTests",
+          "test": "alreadyCancelledTaskDoesNotTouchPermissionOrCaptureDriver"
+        },
+        {
+          "suite": "NativeTranscriptionRequestTests",
+          "test": "alreadyCancelledTaskDoesNotTouchPermissionOrFileDriver"
         }
       ],
       "nativeVerification": {
@@ -24153,6 +24169,10 @@
         {
           "suite": "NativeTranscriptionRequestTests",
           "test": "actionCancellationRetainsCompletedTextStopsLaterStepsAndRecovers"
+        },
+        {
+          "suite": "NativeDictationRequestTests",
+          "test": "interruptedActionRetainsWritesSkipsSuccessAndRecovers"
         }
       ],
       "nativeVerification": {

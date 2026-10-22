@@ -10194,3 +10194,21 @@ The latest capture entry was not observed. Older Success history rows do not
 prove the current fixture tail/Archive path. Full action completion, Undo/Redo
 and remaining speech negative cases stay open. QA is idle with neutral text.
 No production code, tests, habitual app or acceptance status changed.
+
+
+## Controlled speech interruption follow-up — 22 October 2026
+
+Baseline44 and final focused47 passed in four suites. The real worker with an
+injected dictation driver now covers cancellation during both permission stages
+and recording, plus requested denials. Assertions cover retained text, no later
+steps/Archive, no success parameters, one cleanup/log and successful recovery.
+The existing transcription runner test now includes file selection cancellation.
+Two pre-cancelled request cases start no driver work. No production code changed.
+
+Full Core679/app796 match XML/discovery. Python80, local Debug build and
+structural matrix0 pass. Strict engine retains six partial/18 diagnostics.
+No automatic test opened a visible window, used a microphone or requested access.
+Builds and tests did not overlap. The initial new fixture expression triggered
+a Swift compiler assertion; binding the require result before invocation fixed
+the compile. No timing threshold or retry policy changed. Native permission
+outcomes remain distinct obligations. See the speech record for exact cases.

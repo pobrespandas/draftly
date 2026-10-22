@@ -139,6 +139,7 @@ struct NativeTranscriptionRequestTests {
         if phase != "recognition" { #expect(driver.recognizedFile == nil) }
         if phase != "authorization" { #expect(driver.pickerCleanups == 1) }
         #expect(driver.recognitionCleanups == (phase == "recognition" ? 1 : 0))
+        #expect(driver.pickerCleanups == (phase == "authorization" ? 0 : 1))
         #expect(driver.invalidated)
     }
 
@@ -203,6 +204,7 @@ struct NativeTranscriptionRequestTests {
         #expect(driver.invalidated)
         #expect(driver.pickerCleanups == (phase == "authorization" ? 0 : 1))
         #expect(driver.recognitionCleanups == (phase == "recognition" ? 1 : 0))
+        #expect(driver.pickerCleanups == (phase == "authorization" ? 0 : 1))
         if phase == "authorization" { #expect(driver.locale == nil && driver.pickerRequests == 0) }
         if phase != "recognition" { #expect(driver.recognizedFile == nil) }
     }
@@ -270,6 +272,7 @@ struct NativeTranscriptionRequestTests {
         #expect(driver.invalidations == 1)
         #expect(driver.pickerRequests == (phase == "authorization" ? 0 : 1))
         #expect(driver.recognitionCleanups == (phase == "recognition" ? 1 : 0))
+        #expect(driver.pickerCleanups == (phase == "authorization" ? 0 : 1))
         #expect(next.invalidations == 0 && next.recognitionCleanups == 0)
         let acceptCurrent = try #require(currentReply)
         acceptCurrent(.init(text: "Fresh café 🐼", isFinal: true))
@@ -277,14 +280,15 @@ struct NativeTranscriptionRequestTests {
         #expect(next.recognitionCleanups == 1 && next.invalidations == 1)
     }
 
-    @Test(arguments: [false, true])
-    func actionCancellationRetainsCompletedTextStopsLaterStepsAndRecovers(recognizing: Bool) async throws {
+    @Test(arguments: ["authorization", "picker", "recognition"])
+    func actionCancellationRetainsCompletedTextStopsLaterStepsAndRecovers(phase: String) async throws {
         let library = try LibraryStore(inMemory: true, seed: false), editor = EditorSession()
         let note = try library.createNote(content: "Original café 🐼"); editor.load(note, focusEditor: false)
         let driver = TranscriptionDriverFixture()
-        driver.authorizationStatus = recognizing ? .authorized : .notDetermined
+        driver.authorizationStatus = phase == "authorization" ? .notDetermined : .authorized
         var lateReply: (() -> Void)?
         driver.onPermission = { reply in lateReply = { reply(.authorized) } }
+        if phase == "picker" { driver.onPick = { reply in lateReply = { reply(driver.file) } } }
         driver.onRecognize = { reply in lateReply = { reply(.init(text: "Late transcript", isFinal: true)) } }
         let host = TranscriptionActionFixtureHost(driver: driver)
         let runner = ActionRunner(library: library, editor: editor, host: host)
@@ -301,14 +305,15 @@ struct NativeTranscriptionRequestTests {
             return report
         }
         defer { execution.cancel() }
-        try await driver.waitFor(recognizing ? .recognition : .authorization)
+        try await driver.waitFor(phase == "authorization" ? .authorization : phase == "picker" ? .picker : .recognition)
         #expect(editor.content == "Retained café 🐼")
         let stale = try #require(lateReply)
         execution.cancel()
         let report = await execution.value
         #expect(report.reason == .cancelled && report.successParameters.isEmpty)
         #expect(driver.invalidations == 1 && host.finishes == 1)
-        #expect(driver.recognitionCleanups == (recognizing ? 1 : 0))
+        #expect(driver.recognitionCleanups == (phase == "recognition" ? 1 : 0))
+        #expect(driver.pickerCleanups == (phase == "authorization" ? 0 : 1))
         #expect(editor.content == "Retained café 🐼")
         #expect(library.notes.first?.content == editor.content && library.notes.first?.isArchived == false)
         #expect(library.runs.count == 1 && library.runs.first?.status == "Cancelled")
@@ -318,6 +323,17 @@ struct NativeTranscriptionRequestTests {
         await TestMainQueue.drain()
         #expect(editor.content == "Recovery café 🐼" && library.notes.first?.content == editor.content)
         #expect(library.runs.count == 2 && host.finishes == 2 && driver.invalidations == 1)
+    }
+
+    @Test func alreadyCancelledTaskDoesNotTouchPermissionOrFileDriver() async {
+        let driver = TranscriptionDriverFixture()
+        driver.authorizationStatus = .notDetermined
+        let task = Task { try await NativeTranscriptionRequest.run([:], driver: driver) }
+        task.cancel()
+        do { _ = try await task.value; Issue.record("A pre-cancelled request succeeded.") }
+        catch { #expect(error is CancellationError) }
+        #expect(driver.permissionRequests == 0 && driver.pickerRequests == 0)
+        #expect(driver.recognizedFile == nil && driver.invalidations == 0)
     }
 
     @Test func invalidTimeoutDoesNotRequestPermissionOrOpenAPicker() async {
