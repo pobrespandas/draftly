@@ -31,13 +31,14 @@ protocol NativeDictationDriving: AnyObject {
 enum NativeDictationRequest {
     static func run(_ values: [String: Any], driver: (any NativeDictationDriving)? = nil,
                     authorizationTimeout: TimeInterval = 60,
-                    timeout: TimeInterval = 120) async throws -> String {
+                    timeout: TimeInterval = 120,
+                    now: @escaping @MainActor () -> Date = Date.init) async throws -> String {
         guard authorizationTimeout.isFinite, authorizationTimeout > 0, timeout.isFinite, timeout > 0 else {
             throw DraftlyError.message("The dictation timeouts must be positive and finite.")
         }
         try Task.checkCancellation()
         let request = DictationSession(driver: driver ?? SystemDictationDriver(), locale: values["locale"] as? String ?? "",
-                                       authorizationTimeout: authorizationTimeout, recordingTimeout: timeout)
+                                       authorizationTimeout: authorizationTimeout, recordingTimeout: timeout, now: now)
         let text = try await request.run()
         try Task.checkCancellation()
         return text
@@ -58,6 +59,8 @@ private final class DictationSession {
     private let locale: String
     private let authorizationTimeout: TimeInterval
     private let recordingTimeout: TimeInterval
+    private let now: @MainActor () -> Date
+    private var deadline = Date.distantFuture
     private var phase = Phase.speech
     private var continuation: CheckedContinuation<String, Error>?
     private var timeoutTask: Task<Void, Never>?
@@ -66,9 +69,11 @@ private final class DictationSession {
     private var recognitionFinished = false
     private var text = ""
 
-    init(driver: any NativeDictationDriving, locale: String, authorizationTimeout: TimeInterval, recordingTimeout: TimeInterval) {
+    init(driver: any NativeDictationDriving, locale: String, authorizationTimeout: TimeInterval, recordingTimeout: TimeInterval,
+         now: @escaping @MainActor () -> Date) {
         self.driver = driver; self.locale = locale
         self.authorizationTimeout = authorizationTimeout; self.recordingTimeout = recordingTimeout
+        self.now = now
     }
 
     func run() async throws -> String {
@@ -157,10 +162,15 @@ private final class DictationSession {
             finish(.failure(CancellationError()))
             return false
         }
+        guard now() < deadline else {
+            finish(.failure(ActionExecutionInterruption.timeout))
+            return false
+        }
         return true
     }
 
     private func armTimeout(_ seconds: TimeInterval) {
+        deadline = now().addingTimeInterval(seconds)
         timeoutTask?.cancel()
         timeoutTask = Task { @MainActor [self] in
             do { try await Task.sleep(for: .seconds(seconds)) } catch { return }
@@ -174,7 +184,9 @@ private final class DictationSession {
         timeoutTask?.cancel(); timeoutTask = nil
         driver.onUpdate = nil; driver.onDecision = nil
         driver.cleanup()
-        continuation.resume(with: cancellation.isCancelled ? .failure(CancellationError()) : result)
+        if cancellation.isCancelled { continuation.resume(throwing: CancellationError()) }
+        else if now() >= deadline { continuation.resume(throwing: ActionExecutionInterruption.timeout) }
+        else { continuation.resume(with: result) }
     }
 }
 

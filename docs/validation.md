@@ -9277,3 +9277,25 @@ cc8ec7c33a7f1e2d4ec9c5fa209dc1946ebbdb84f86f9cabca65586476f96d55.
 QA/helper quit normally; exact process absence and LaunchServices unregistration
 passed. Before/after packages and closed libraries remain recoverable in
 `~/.Trash/DraftlyMessagesQA-dw_456s4`. The habitual app was unchanged.
+
+
+## Dictation phase deadline enforcement — 22 October 2026
+
+At b601442, controlled-clock tests advanced to or beyond the active deadline
+inside a speech grant, microphone grant or recording update. All six cases
+incorrectly advanced or returned success before the queued timeout task ran.
+The regression does not wait for a physical microphone or an OS permission.
+
+DictationSession now retains each phase deadline. Its transition checks reject
+expired authorization before the next permission or capture starts. Recording
+updates cannot display expired text. Final delivery checks the deadline too,
+so Done cannot return earlier partial text at expiry. Cancellation keeps its
+priority over timeout. Each timely phase still receives its own full timeout;
+this is not a single deadline for all three phases. Production limits are
+unchanged, and the injected clock defaults to Date.
+
+All 33 dictation/transcription methods passed. This includes the six red/green
+cases, a timely three-phase run and an expired Done case. Local Debug compilation
+and matrix structure passed. No retry or deadline inflation was used. The prior
+complete 674 Core / 724 app run predates this change. Native dictation permission
+and recording acceptance remains separate. No QA or habitual app was opened.

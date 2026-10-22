@@ -176,6 +176,66 @@ struct NativeDictationRequestTests {
         #expect(driver.starts == 0 && driver.cleanups == 1)
     }
 
+    @Test(arguments: ["speech", "microphone", "recording"], [false, true])
+    func expiredPhaseCannotAdvanceBeforeQueuedTimeout(phase: String, exactDeadline: Bool) async {
+        let driver = DictationDriverFixture()
+        var now = Date(timeIntervalSinceReferenceDate: 100)
+        func expire() { now = now.addingTimeInterval(exactDeadline ? 10 : 11) }
+        if phase == "speech" {
+            driver.speechAuthorization = .notDetermined
+            driver.whenSpeechRequested = { reply in expire(); reply(.authorized) }
+        } else if phase == "microphone" {
+            driver.microphoneAuthorization = .notDetermined
+            driver.whenMicrophoneRequested = { reply in expire(); reply(true) }
+        }
+        driver.whenShown = {
+            if phase == "recording" { expire() }
+            driver.onUpdate?(.init(text: "Expired text", isFinal: true))
+            driver.onDecision?(true)
+        }
+        do {
+            _ = try await NativeDictationRequest.run([:], driver: driver,
+                authorizationTimeout: 10, timeout: 10, now: { now })
+            Issue.record("Expired dictation phase returned success.")
+        } catch { #expect(error as? ActionExecutionInterruption == .timeout) }
+        if phase != "recording" { #expect(driver.starts == 0 && driver.shows == 0) }
+        if phase == "speech" { #expect(driver.locale == nil && driver.microphoneRequests == 0) }
+        #expect(driver.cleanups == 1 && !driver.resourcesActive && !driver.windowOpen)
+    }
+
+    @Test func eachTimelyPhaseReceivesItsOwnDeadline() async throws {
+        let driver = DictationDriverFixture()
+        var now = Date(timeIntervalSinceReferenceDate: 100)
+        driver.speechAuthorization = .notDetermined
+        driver.microphoneAuthorization = .notDetermined
+        driver.whenSpeechRequested = { reply in now = now.addingTimeInterval(9); reply(.authorized) }
+        driver.whenMicrophoneRequested = { reply in now = now.addingTimeInterval(9); reply(true) }
+        driver.whenShown = {
+            now = now.addingTimeInterval(9)
+            driver.onUpdate?(.init(text: "Timely café 🐼", isFinal: false))
+            driver.onDecision?(true)
+        }
+        let text = try await NativeDictationRequest.run([:], driver: driver,
+            authorizationTimeout: 10, timeout: 10, now: { now })
+        #expect(text == "Timely café 🐼")
+        #expect(driver.starts == 1 && driver.cleanups == 1)
+    }
+
+    @Test func doneAtDeadlineCannotReturnEarlierPartialText() async {
+        let driver = DictationDriverFixture()
+        var now = Date(timeIntervalSinceReferenceDate: 100)
+        driver.whenShown = {
+            driver.onUpdate?(.init(text: "Earlier partial text", isFinal: false))
+            now = now.addingTimeInterval(10)
+            driver.onDecision?(true)
+        }
+        do {
+            _ = try await NativeDictationRequest.run([:], driver: driver, timeout: 10, now: { now })
+            Issue.record("Expired Done returned partial text.")
+        } catch { #expect(error as? ActionExecutionInterruption == .timeout) }
+        #expect(driver.cleanups == 1 && !driver.resourcesActive && !driver.windowOpen)
+    }
+
     @Test func recordingTimeoutReleasesAudioAndClosesTheWindow() async {
         let driver = DictationDriverFixture()
         do { _ = try await NativeDictationRequest.run([:], driver: driver, timeout: 0.02); Issue.record("Recording did not time out.") }
