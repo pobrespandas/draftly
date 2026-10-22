@@ -23496,6 +23496,10 @@
         {
           "suite": "ActionEditorInterruptionTests",
           "test": "explicitCancellationKeepsCompletedEffectsAndAllowsAnotherRun"
+        },
+        {
+          "suite": "ActionCallbackRouterTests",
+          "test": "cancellationRejectsDeliveryBeforeTheMainActorCleanupRuns"
         }
       ],
       "nativeVerification": {

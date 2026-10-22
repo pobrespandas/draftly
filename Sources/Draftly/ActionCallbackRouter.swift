@@ -3,15 +3,29 @@ import DraftlyCore
 
 @MainActor final class ActionCallbackRouter {
     static var callbackScheme: String { Bundle.main.object(forInfoDictionaryKey: "DraftlyCallbackScheme") as? String ?? "draftly" }
+    private final class CancellationState: @unchecked Sendable {
+        private let lock = NSLock()
+        private var cancelled = false
+        var isCancelled: Bool {
+            lock.lock(); defer { lock.unlock() }
+            return cancelled
+        }
+        func cancel() {
+            lock.lock(); defer { lock.unlock() }
+            cancelled = true
+        }
+    }
     @MainActor private final class Pending {
         let continuation: CheckedContinuation<String, Error>
         var timeout: Task<Void, Never>?
         let deadline: Date
         let now: @MainActor () -> Date
+        let cancellation: CancellationState
         var hasExpired: Bool { now() >= deadline }
         init(_ continuation: CheckedContinuation<String, Error>, deadline: Date,
-             now: @escaping @MainActor () -> Date) {
+             now: @escaping @MainActor () -> Date, cancellation: CancellationState) {
             self.continuation = continuation; self.deadline = deadline; self.now = now
+            self.cancellation = cancellation
         }
     }
     private static var pending: [String: Pending] = [:]
@@ -25,6 +39,10 @@ import DraftlyCore
               pending[token] != nil || legacyTokens.contains(token),
               let status = query.first(where: { $0.name == "status" })?.value,
               ["success", "cancelled", "error"].contains(status) else { return false }
+        if pending[token]?.cancellation.isCancelled == true {
+            finish(token, result: .failure(CancellationError()))
+            return false
+        }
         if pending[token]?.hasExpired == true {
             finish(token, result: .success(timeoutResponse))
             return false
@@ -48,9 +66,10 @@ import DraftlyCore
         let token = UUID().uuidString, wait = values["waitForResponse"] as? Bool ?? true
         guard let url = callbackURL(values, token: token, wait: wait) else { return ["status": "invalid"] }
         if !wait { return openURL(url) ? ["status": "success", "parameters": [String: String]()] : ["status": "invalid"] }
+        let cancellation = CancellationState()
         let response: String = try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
-                pending[token] = Pending(continuation, deadline: now().addingTimeInterval(timeout), now: now)
+                pending[token] = Pending(continuation, deadline: now().addingTimeInterval(timeout), now: now, cancellation: cancellation)
                 guard !Task.isCancelled else { finish(token, result: .failure(CancellationError())); return }
                 guard openURL(url) else { finish(token, result: .success(["status": "invalid"])); return }
                 guard let request = pending[token] else { return }
@@ -60,8 +79,10 @@ import DraftlyCore
                 }
             }
         } onCancel: {
+            cancellation.cancel()
             Task { @MainActor in finish(token, result: .failure(CancellationError())) }
         }
+        try Task.checkCancellation()
         return try JSONSerialization.jsonObject(with: Data(response.utf8)) as? [String: Any] ?? [:]
     }
 
@@ -85,6 +106,10 @@ import DraftlyCore
     private static func finish(_ token: String, result: Result<[String: Any], Error>) {
         guard let request = pending.removeValue(forKey: token) else { return }
         request.timeout?.cancel()
+        guard !request.cancellation.isCancelled else {
+            request.continuation.resume(throwing: CancellationError())
+            return
+        }
         switch result {
         case .success(let value):
             do {

@@ -2634,3 +2634,10 @@ delivered exactly one correct callback. Pending Prompt delivered none. Unicode
 success parameters and closed history matched. Focused21 and fixture identity
 check passed. Strict engine gate remains open (six partial contracts). QA/helper
 retired recoverably; habitual app unchanged. See docs/validation.md.
+
+### Callback cancellation race — 22 October 2026
+
+Fixed acceptance of a callback after task cancellation but before MainActor
+cleanup. A deterministic regression failed before the fix and passed after it.
+Focused22, full app709 with matching inventory, local build and matrix structure
+passed. No new native acceptance or app rollout. See docs/actions-engine.md.

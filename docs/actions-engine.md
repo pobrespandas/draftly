@@ -612,3 +612,25 @@ cancel, timeout, owner-close and late-result cases in engine-native-checklist.md
 
 Validation: local Debug build passed. API matrix structural check reported zero
 errors. This structural result does not close the strict compatibility gate.
+
+## Cancellation before callback cleanup — 22 October 2026
+
+A new deterministic headless case cancelled an active callback task and delivered
+its reply in the same MainActor turn, before queued cleanup could run. The old
+router accepted that reply and returned success. The regression failed with both
+assertions. The first test draft needed a Sendable return value before execution;
+that compile correction was separate from the observed runtime failure.
+
+ActionCallbackRouter now keeps a locked cancellation flag per pending request.
+The cancellation handler sets it immediately before scheduling MainActor cleanup.
+Receive rejects a cancelled request; finalization releases its continuation with
+CancellationError. The resumed caller also checks task cancellation before it
+returns response data. Timer and dictionary cleanup remain on MainActor. The
+legacy synchronous path and public scripting contract stay unchanged.
+
+Automatic: the regression and all22 focused callback/Prompt/Intent methods passed.
+All709 app methods passed serially; XML results matched the discovered inventory.
+Local Debug build and matrix structural validation passed. Core source did not
+change. No deadlines or retry rules changed. No new native session was performed
+for this correction. Earlier native callbacks retain their tested-image scope.
+This does not close the six partial engine contracts or native-route checklist.

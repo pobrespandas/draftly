@@ -109,6 +109,28 @@ struct ActionCallbackRouterTests {
         #expect(result.0 == "success" && result.1 == "Fresh café 🐼")
     }
 
+    @Test func cancellationRejectsDeliveryBeforeTheMainActorCleanupRuns() async throws {
+        var reply: URL?
+        let task = Task { @MainActor in
+            _ = try await ActionCallbackRouter.openAsync(["url": "neutral-test://cancel-race"], openURL: { url in
+                reply = try? callback(url)
+                return true
+            })
+            return true
+        }
+        let deadline = ContinuousClock.now + .seconds(5)
+        while reply == nil, ContinuousClock.now < deadline { await Task.yield() }
+        let late = try #require(reply)
+        task.cancel()
+        // Do not yield: delivery precedes the queued MainActor cleanup.
+        #expect(!ActionCallbackRouter.receive(late))
+        do {
+            _ = try await task.value
+            Issue.record("Cancellation must reject the reply and release the wait.")
+        } catch { #expect(error is CancellationError) }
+        #expect(!ActionCallbackRouter.receive(late))
+    }
+
     @Test func concurrentCallbacksStayWithTheirOwnRequest() async throws {
         var urls: [String: URL] = [:]
         func start(_ name: String) -> Task<String?, Error> {
