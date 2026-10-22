@@ -176,7 +176,7 @@ private struct ActionStepInspector: View {
                         let key = field.key
                         VStack(alignment: .leading, spacing: 6) {
                             HStack {
-                                Text(key).font(.system(size: 12, weight: .medium))
+                                Text(step.type == "includeAction" && key == "uuid" ? "Action UUID" : key).font(.system(size: 12, weight: .medium))
                                 Spacer()
                                 if field.allowsTagInsertion {
                                     Menu("Insert Tag") {
@@ -185,6 +185,10 @@ private struct ActionStepInspector: View {
                                         }
                                     }.font(.caption).fixedSize()
                                 }
+                            }
+                            if step.type == "includeAction" && key == "uuid" {
+                                Text("An Action UUID takes precedence over the name. Leave it empty to use the name template.")
+                                    .font(.caption).foregroundStyle(.secondary)
                             }
                             if field.isMultiline {
                                 TextEditor(text: Binding(get: { step.values[key] ?? "" }, set: { step.values[key] = $0 }))

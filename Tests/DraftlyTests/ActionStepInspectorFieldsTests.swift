@@ -53,4 +53,15 @@ struct ActionStepInspectorFieldsTests {
         #expect(ActionStepInspectorFields.configurationDefaultKey(for: "future") == nil)
     }
 
+    @Test func includedActionTargetUUIDIsEditableAndDistinctFromStepIdentity() {
+        let target = UUID()
+        var imported = ActionStep("includeAction", ["uuid": target.uuidString, "name": "Old helper", "futureOption": "Keep"])
+        imported.unknownFields = ["future": .bool(true)]
+        let original = imported
+        #expect(ActionStepInspectorFields.fields(for: imported).map(\.key) == ["futureOption", "name", "uuid"])
+        #expect(imported == original && imported.id != target)
+        #expect(ActionStepInspectorFields.fields(for: ActionStep("includeAction")).map(\.key) == ["name", "uuid"])
+        #expect(ActionStepInspectorFields.fields(for: ActionStep("script", ["uuid": target.uuidString])).isEmpty)
+    }
+
 }

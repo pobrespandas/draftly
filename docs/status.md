@@ -10,7 +10,9 @@ The visual/daily-flow delivery remains open. Inspector-created configurationKey
 steps now work through save, first-use cancel/accept and restart reuse. Typed
 runner checks passed. See the latest section in actions-engine.md. Full serial
 verification passed 646 Core / 637 app methods; the initial concurrent Core run
-had five worker-test timeouts and remains recorded separately.
+had five worker-test timeouts and remains recorded separately. The includeAction
+UUID is now editable without changing the step identity. Cancel, Save and actual
+retargeted execution passed in QA. The latest complete app run passed 639 methods.
 The earlier delivery covers the main window, daily flows and personalization.
 Read [the delivery record](ui-flows-2026-10-21.md) for separate implementation,
 automatic, native and pending results. Capture receipt/append, File commands,

@@ -28,7 +28,12 @@ enum ActionStepInspectorFields {
                 "requiresInitialConfiguration", "defaultValue"])
             excludedKeys.formUnion(configurationTypes.compactMap(configurationDefaultKey))
         }
-        return step.values.keys.filter { !excludedKeys.contains($0) }.sorted().map { key in
+        var keys = Set(step.values.keys)
+        if step.type == "includeAction" {
+            excludedKeys.remove("uuid")
+            keys.formUnion(["uuid", "name"])
+        }
+        return keys.filter { !excludedKeys.contains($0) }.sorted().map { key in
             let isMultiline = ["template", "script", "source"].contains(key)
             return Field(key: key, isMultiline: isMultiline,
                          minHeight: isMultiline ? (key == "template" ? 180 : 360) : nil)

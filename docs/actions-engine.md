@@ -391,3 +391,35 @@ this inspector flow alone. The prior UI Flows QA temporary package, library and
 bookmark folder were absent at this session start. Its old bookmark-restart check
 cannot be accepted from this fresh QA session. Recreate neutral fixtures for it.
 The next concrete inspector defect is the hidden includeAction target UUID.
+
+## Editable included-action identity — 21 October 2026
+
+Implemented: the step inspector exposes the included action UUID and name even
+when an includeAction has no stored fields. Only this step treats values.uuid
+as an editable target. Other steps still hide that metadata key. The UI labels
+it Action UUID and explains name-template fallback. It does not modify the
+step's own identity, imported payload or unknown fields.
+
+Automatic: the descriptor regression failed twice before the fix: the imported
+UUID was hidden and an empty include had no target controls. It now passes.
+The new editing flow saves and exports an edited parent, preserves its step ID
+and unknown fields, then runs the selected UUID despite a stale matching name.
+Both runners passed. Focused inspector/editing/include suites passed. All 639
+app methods passed serially; report identities matched the inventory. The
+unchanged Core suite retains its earlier complete serial 646 result. Local
+Debug and signed Release passed. The prior concurrent worker timeouts remain
+recorded in the preceding section; no test deadlines changed.
+
+Verified in use: imported two neutral helpers and a parent with a target UUID,
+old name and futureOption. The inspector displayed the UUID and futureOption.
+Changed the UUID and canceled. Reopening retained the old target. Changed it
+again and saved. Execution from the action list returned Selected café 🐼 from
+the new target, although the old name remained. The app reported completion.
+QA executable SHA256:
+77aa984798a0eb6c5602f9ecd73c3ad6e5e83b4be482dd892c1a574195f05c2e.
+QA quit normally. The fixture and library remain outside Git. No personal app,
+services, permissions or CloudKit data changed.
+
+Pending: this field fix does not provide a visual action picker or settle shared
+configuration precedence. Other inspector options and native capability lifetime
+checks remain open. Continue the five functional blocks approved by the user.
