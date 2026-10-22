@@ -2626,3 +2626,11 @@ panel, retained completed writes and stopped tail/Archive. A following action
 succeeded. Closed storage matched the UI. QA retired recoverably; habitual app
 unchanged. Individual-window closure and other native routes remain open. See
 docs/validation.md, Native Arrange Close All.
+
+### URL Prompt callbacks — 22 October 2026
+
+Native URL Prompt Cancel, unchanged production timeout and following Accept each
+delivered exactly one correct callback. Pending Prompt delivered none. Unicode
+success parameters and closed history matched. Focused21 and fixture identity
+check passed. Strict engine gate remains open (six partial contracts). QA/helper
+retired recoverably; habitual app unchanged. See docs/validation.md.

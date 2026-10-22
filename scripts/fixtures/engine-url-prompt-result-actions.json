@@ -1,0 +1,29 @@
+[
+  {
+    "uuid": "A0760100-0000-4000-8000-000000000001",
+    "name": "QA URL Prompt final result",
+    "group": "URL lifetime QA",
+    "notificationType": 0,
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Retained URL prompt café 🐼');draft.update();"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "var p=Prompt.create();p.title='Awaited URL prompt';p.addButton('Accept');if(!p.show()){context.cancel();}else{context.addSuccessParameter('value','Accepted café 🐼');}"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": " Accepted"
+        }
+      }
+    ]
+  }
+]

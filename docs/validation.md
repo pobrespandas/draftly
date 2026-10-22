@@ -8684,3 +8684,50 @@ QA quit normally. Process inspection confirmed absence. Its exact LaunchServices
 path was unregistered. Runtime, exported preferences and closed library moved
 recoverably to ~/.Trash/DraftlyEngineLifetimeQA-5f9007e3. No screenshots or raw
 logs were added to Git. This observation does not close the engine strict gate.
+
+## URL Prompt final callbacks — 22 October 2026
+
+A fresh isolated Engine QA and the existing callback helper ran under Computer
+Use. Both bundles had only their QA URL schemes. QA used a copied closed neutral
+library, no Services and no CloudKit. The habitual app stayed unchanged.
+Reproduction: scripts/fixtures/engine-url-prompt-result-actions.json. Open its
+run URL with separate x-success, x-cancel and x-error destinations at the helper's
+received endpoint. The target note in this session was already archived.
+
+Observed native results:
+- While Prompt was open, the helper showed zero callbacks.
+- Prompt Cancel called context.cancel. The helper received exactly one callback
+  with outcome=cancel. The prior persisted edit remained.
+- A second run left Prompt pending at unchanged production deadlines. The panel
+  closed and QA displayed The action operation timed out before it completed.
+  The helper received exactly one outcome=error callback with that errorMessage.
+- A following run accepted Prompt and received exactly one outcome=success
+  callback with value=Accepted café 🐼. It ran the insertion step and completed.
+
+Closed storage confirmed Cancelled, Error with the timeout message, and Success
+for the same action and note. The final insertion used the retained selection;
+it produced Retained UR AcceptedL prompt café 🐼. This session does not accept
+Archive suppression after interruption because the note was archived before the
+Prompt cases. Headless runner/Intent tests cover that separate assertion.
+
+An earlier Arrange run in this session used the dialog's Cancel button. It
+continued and sent success, as the archived Editor.arrange contract requires:
+Cancel returns the original string. This is distinct from task cancellation or
+source closure and is not a defect. The neutral tail sentinel from that action
+was overwritten by the subsequent Prompt fixture. Do not classify this as a
+cancelled action or reuse that sentinel as a failed lifetime check.
+
+Automatic: 21 focused methods passed across NativeAsyncPromptTests,
+ActionCallbackRouterTests and RunDraftActionIntentTests. Fixture identity checks
+passed. The strict engine audit still reported 18 errors across six partial
+contracts. No production source, deadlines or installed app changed.
+
+QA executable SHA256:
+da540b1e5ab358fc4fc1cac706bac770b8b18a902091a6a54e281d072a3b8e92.
+Helper executable SHA256:
+17a76bfcb8e05c9740c0dbc3ef4bce4c7cf5c1e8741c22dacc0341070afeae59.
+Both apps quit normally. Process inspection confirmed absence. Exact paths were
+unregistered. Apps, exported QA preferences and closed library were preserved
+recoverably in ~/.Trash/DraftlyURLLifetimeQA-cxpjl39e. No screenshots or raw logs
+were committed. Other native routes, SelectPrompt timeout and actual late panel
+callbacks remain open; this is not full engine acceptance.
