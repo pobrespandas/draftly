@@ -9156,3 +9156,25 @@ This proves real process cleanup through perform() in the test environment.
 It does not accept system delivery from Shortcuts or every native capability.
 The previous complete Swift run predates this new method. The habitual app
 was unchanged.
+
+
+## Dictation permission cancellation race — 22 October 2026
+
+At 52f2e60, a new headless regression cancelled while speech or microphone
+authorization was pending. It delivered the grant before queued MainActor
+cleanup. Before the correction, the speech grant configured recognition and
+requested microphone access; the microphone grant started capture. Both cases
+failed their no-effects assertions.
+
+DictationSession now records cancellation synchronously in locked per-session
+state. Phase transitions and capture/display work check that state. Final
+delivery also rejects cancellation. The two regression cases pass with no
+next permission request, recording start or recorder presentation after cancel,
+and exactly one cleanup. No actual microphone, window or permission is used.
+
+The 30 focused dictation/transcription methods passed. Complete Swift reports
+matched discovery: 674 Core and 720 app methods. All 68 Python tests, local
+Debug compilation and matrix structure passed. No retry or deadline changed.
+This complete run includes the earlier speech race and actual Intent shell
+cleanup tests. Native dictation permission acceptance remains separate. The
+habitual app was unchanged.

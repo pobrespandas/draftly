@@ -4,6 +4,12 @@ Updated: 22 October 2026.
 
 ## Current Actions engine acceptance
 
+The latest integrated check includes dictation permission and speech completion
+cancellation races, plus actual Intent shell cleanup: 674 Core methods, 720 app
+methods, 68 Python tests and local Debug compilation passed. Native permission
+checks remain separate. Cancellation now blocks late dictation grants before
+they can request the next permission or start recording.
+
 Actions work resumed after the refactoring stages below. At 709821e, integrated
 checks passed 674 Core methods, 716 app methods, 68 Python tests and local Debug
 compilation. Swift reports matched discovery. These totals do not establish

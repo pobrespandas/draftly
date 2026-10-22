@@ -47,6 +47,13 @@ enum NativeDictationRequest {
 @MainActor
 private final class DictationSession {
     private enum Phase { case speech, microphone, recording }
+    private final class CancellationState: @unchecked Sendable {
+        private let lock = NSLock()
+        private var cancelled = false
+        var isCancelled: Bool { lock.withLock { cancelled } }
+        func cancel() { lock.withLock { cancelled = true } }
+    }
+    private let cancellation = CancellationState()
     private let driver: any NativeDictationDriving
     private let locale: String
     private let authorizationTimeout: TimeInterval
@@ -77,13 +84,14 @@ private final class DictationSession {
                 armTimeout(authorizationTimeout)
                 speechChanged(driver.speechAuthorization)
             }
-        } onCancel: {
+        } onCancel: { [cancellation] in
+            cancellation.cancel()
             Task { @MainActor [self] in finish(.failure(CancellationError())) }
         }
     }
 
     private func speechChanged(_ status: SFSpeechRecognizerAuthorizationStatus) {
-        guard continuation != nil, phase == .speech else { return }
+        guard continuation != nil, phase == .speech, canContinue() else { return }
         switch status {
         case .notDetermined:
             guard !speechRequested else { return }
@@ -103,7 +111,7 @@ private final class DictationSession {
     }
 
     private func microphoneChanged(_ status: AVAuthorizationStatus) {
-        guard continuation != nil, phase == .microphone else { return }
+        guard continuation != nil, phase == .microphone, canContinue() else { return }
         switch status {
         case .notDetermined:
             guard !microphoneRequested else { return }
@@ -122,26 +130,34 @@ private final class DictationSession {
     }
 
     private func beginRecording() {
-        guard continuation != nil, phase == .microphone else { return }
+        guard continuation != nil, phase == .microphone, canContinue() else { return }
         phase = .recording
         armTimeout(recordingTimeout)
         do {
             try driver.startRecording()
-            guard continuation != nil else { return }
+            guard continuation != nil, canContinue() else { return }
             try driver.showRecorder()
-            guard continuation != nil else { return }
+            guard continuation != nil, canContinue() else { return }
             driver.displayTranscript(text)
         } catch { finish(.failure(error)) }
     }
 
     private func received(_ update: NativeTranscriptionUpdate) {
-        guard continuation != nil, phase == .recording, !recognitionFinished else { return }
+        guard continuation != nil, phase == .recording, !recognitionFinished, canContinue() else { return }
         if let value = update.text { text = value; driver.displayTranscript(value) }
         if let error = update.error { finish(.failure(error)); return }
         if update.isFinal {
             recognitionFinished = true
             driver.stopRecording()
         }
+    }
+
+    private func canContinue() -> Bool {
+        guard !cancellation.isCancelled else {
+            finish(.failure(CancellationError()))
+            return false
+        }
+        return true
     }
 
     private func armTimeout(_ seconds: TimeInterval) {
@@ -158,7 +174,7 @@ private final class DictationSession {
         timeoutTask?.cancel(); timeoutTask = nil
         driver.onUpdate = nil; driver.onDecision = nil
         driver.cleanup()
-        continuation.resume(with: result)
+        continuation.resume(with: cancellation.isCancelled ? .failure(CancellationError()) : result)
     }
 }
 

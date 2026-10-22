@@ -145,6 +145,28 @@ struct NativeDictationRequestTests {
     }
 
     @Test(arguments: [false, true])
+    func cancelledAuthorizationCannotAdvanceBeforeQueuedCleanup(microphone: Bool) async throws {
+        let driver = DictationDriverFixture()
+        driver.speechAuthorization = microphone ? .authorized : .notDetermined
+        driver.microphoneAuthorization = .notDetermined
+        var speechReply: (@MainActor @Sendable (SFSpeechRecognizerAuthorizationStatus) -> Void)?
+        var microphoneReply: (@MainActor @Sendable (Bool) -> Void)?
+        driver.whenSpeechRequested = { speechReply = $0 }
+        driver.whenMicrophoneRequested = { microphoneReply = $0 }
+        let task = Task { try await NativeDictationRequest.run([:], driver: driver) }
+        try await driver.waitFor(microphone ? .microphone : .speech)
+        task.cancel()
+        if microphone { microphoneReply?(true) }
+        else { speechReply?(.authorized) }
+        do { _ = try await task.value; Issue.record("Cancelled authorization succeeded.") }
+        catch { #expect(error is CancellationError) }
+        #expect(driver.starts == 0 && driver.shows == 0)
+        #expect(driver.microphoneRequests == (microphone ? 1 : 0))
+        if !microphone { #expect(driver.locale == nil) }
+        #expect(driver.cleanups == 1 && !driver.resourcesActive && !driver.windowOpen)
+    }
+
+    @Test(arguments: [false, true])
     func authorizationTimeoutDoesNotStartCapture(microphone: Bool) async {
         let driver = DictationDriverFixture()
         driver.speechAuthorization = microphone ? .authorized : .notDetermined
