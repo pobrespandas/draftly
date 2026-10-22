@@ -307,3 +307,51 @@ new pending-grant outcome without a user-managed permission session. They are
 not exclusions. The current tests use injected outcomes for those branches.
 No new production defect was reproduced in this follow-up. No callback isolation
 rule was changed from an unobserved risk. The engine gate remains open.
+
+
+## Live action-task cancellation follow-up
+
+The next dictation attempt opened Dictation on a new neutral draft. The user
+reported using Cancel or the panel close control. The exact gesture was not
+observed. The latest persisted dictation log6D3D62BF-F63E-499E-BA7F-3BF6FC6C39C9
+instead records Success at20:33. Its note160DBC12-22AB-4621-89BC-CD1C667B993C
+has the completion tail and Archive. This is not accepted cancellation evidence.
+It requires a controlled reproduction before diagnosing a close-control defect.
+Do not reinterpret this outcome as Cancelled or claim the user used another
+control. No private transcript from this attempt is copied into the record.
+QA quit normally for a read-only check; no production code changed.
+
+The agent then ran the transcription fixture from the action palette on a new
+neutral draft. The selected file was long-neutral.aiff in the existing temporary
+neutral folder. The system say command generated it locally from30 repetitions
+of the same neutral Spanish phrase, with no playback or microphone recording.
+After Open closed and recognition was active, Actions showed Cancel Running
+Action enabled and all runnable actions disabled. Computer Use selected Cancel
+Running Action directly. The resulting main window retained only the fixture
+marker in Inbox. The completion tail and Archive did not run. History added one
+Cancelled at20:35 with an empty message, distinct from the fixture's explicit
+Neutral user cancellation branch.
+
+A fresh palette run selected the short neutral.aiff and succeeded. History
+added one Success after Cancelled. A read-only check after normal QA quit confirms:
+
+| Outcome | Persistent run ID | Neutral note ID |
+| --- | --- | --- |
+| Task cancelled during recognition | EF837AA5-F2C7-493B-8D61-3E6DDE0A6662 | 26F53FFE-C943-4F25-A017-A859210E20C1 |
+| Fresh recovery Success | 0D515DBC-3B5A-47C3-A383-F1005C683D5A | 26F53FFE-C943-4F25-A017-A859210E20C1 |
+
+The final note is archived and has the short transcript plus completion tail.
+The UI observation before recovery establishes retention after cancellation.
+No late text or duplicate result was observed during recovery. This is not proof
+that a real late recognition callback arrived. The SDK exposed no independent
+cancellation acknowledgement in the inspected system log. Resource-release
+internals therefore retain the controlled-driver evidence; do not claim an
+independent native task-deallocation measurement. The exact QA process is absent
+and its exact LaunchServices record was removed. Neutral data remain recoverable.
+
+This accepts task-cancel dispatch, retained writes and recovery for transcription
+from the UI. It does not accept URL/Intent dispatch, pending-grant cancellation,
+recognition timeout or live dictation task cancellation. Dictation still needs
+a quiet session with the observed Cancel Running Action command. Existing
+Core679/app796/Python80 validation still applies: source and tests did not change.
+Only documentation and structural matrix validation ran in this follow-up.

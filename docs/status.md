@@ -2,6 +2,18 @@
 
 Updated: 22 October 2026.
 
+## Native transcription task cancellation
+
+Computer Use selected the enabled Cancel Running Action command during synthetic
+file recognition. The marker stayed in Inbox without tail/Archive. One Cancelled
+result was followed by one Success from a fresh transcription. Closed-library
+checks confirmed both run IDs and the recovered archived text. No real late
+callback or independent SDK deallocation acknowledgement was observed.
+The latest reported dictation panel-close attempt instead has a Success record;
+its gesture was not observed, so cancellation remains unaccepted and needs a
+controlled repeat. QA is closed. Source/tests and the usual app are unchanged.
+See the [speech record](research/speech-permission-lifetime-2026-10-22.md).
+
 ## Native transcription interruption follow-up
 
 User Cancel and production timeout while selecting audio closed the picker,

@@ -10236,3 +10236,21 @@ No personal data, clipboard, habitual app, permission or privacy database change
 Existing speech access cannot prove denial or a pending grant. Those native
 cases, live task cancellation, late recognition and URL/Intent speech paths stay
 pending. Strict engine remains six partial contracts and18 diagnostics.
+
+
+## Native transcription task cancellation — 22 October 2026
+
+A synthetic long-file transcription reached recognition. Computer Use observed
+Cancel Running Action enabled and selected it. The main window retained the
+Inbox marker without tail/Archive; History recorded one Cancelled. A fresh
+short-file transcription succeeded. Read-only closed-library inspection confirms
+run EF837AA5-F2C7-493B-8D61-3E6DDE0A6662 then0D515DBC-3B5A-47C3-A383-F1005C683D5A
+on neutral note26F53FFE-C943-4F25-A017-A859210E20C1. QA quit normally. No microphone,
+permission change or personal data was needed. No native late callback or SDK
+resource-deallocation acknowledgement was observed. URL/Intent and recognition
+timeout remain separate. Source/tests are unchanged from their validated state.
+
+The user-reported dictation panel Cancel/close was not observed directly.
+Its latest durable log instead shows Success with tail/Archive. Do not accept
+that attempt as cancellation or diagnose the cause without a controlled repeat.
+The speech record preserves this discrepancy without a private transcript.

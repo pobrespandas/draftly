@@ -169,3 +169,14 @@ recognition timeout is distinct from waiting in Open. Native task cancellation
 and URL/Intent speech dispatch remain pending. No full contract is promoted.
 The controlled follow-up adds dictation runner denial/cancel and pre-start cancel
 coverage; transcription runner coverage also includes the picker stage.
+
+
+## Live transcription task-cancel follow-up
+
+The speech record adds observed UI Cancel Running Action during long synthetic
+file recognition. Retained marker/no tail/Archive, one Cancelled, a fresh Success
+and persistent run IDs were checked. This is task cancellation, unlike selector
+Cancel. Actual late recognition delivery, an independent SDK resource-release
+acknowledgement, URL/Intent speech paths and recognition timeout remain pending.
+A reported dictation panel-close attempt has a conflicting Success log and needs
+a controlled repeat; it is not accepted as cancelled. No contract status changed.
