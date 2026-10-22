@@ -117,6 +117,60 @@ struct NativeTranscriptionRequestTests {
         #expect(driver.recognitionCleanups == 1)
     }
 
+    @Test(arguments: ["authorization", "picker", "recognition"], [false, true])
+    func expiredPhaseCannotAdvanceBeforeQueuedTimeout(phase: String, exactDeadline: Bool) async {
+        let driver = TranscriptionDriverFixture()
+        var now = Date(timeIntervalSinceReferenceDate: 100)
+        func expire() { now = now.addingTimeInterval(exactDeadline ? 10 : 11) }
+        if phase == "authorization" {
+            driver.authorizationStatus = .notDetermined
+            driver.onPermission = { reply in expire(); reply(.authorized) }
+        } else if phase == "picker" {
+            driver.onPick = { reply in expire(); reply(driver.file) }
+        } else {
+            driver.onRecognize = { reply in expire(); reply(.init(text: "Expired café 🐼", isFinal: true)) }
+        }
+        do {
+            _ = try await NativeTranscriptionRequest.run([:], driver: driver,
+                authorizationTimeout: 10, timeout: 10, now: { now })
+            Issue.record("Expired transcription returned success.")
+        } catch { #expect(error as? ActionExecutionInterruption == .timeout) }
+        if phase == "authorization" { #expect(driver.locale == nil && driver.pickerRequests == 0) }
+        if phase != "recognition" { #expect(driver.recognizedFile == nil) }
+        if phase != "authorization" { #expect(driver.pickerCleanups == 1) }
+        #expect(driver.recognitionCleanups == (phase == "recognition" ? 1 : 0))
+        #expect(driver.invalidated)
+    }
+
+    @Test func timelyAuthorizationPickerAndRecognitionKeepSeparateBudgets() async throws {
+        let driver = TranscriptionDriverFixture()
+        var now = Date(timeIntervalSinceReferenceDate: 100)
+        driver.authorizationStatus = .notDetermined
+        driver.onPermission = { reply in now = now.addingTimeInterval(9); reply(.authorized) }
+        driver.onPick = { reply in now = now.addingTimeInterval(9); reply(driver.file) }
+        driver.onRecognize = { reply in
+            now = now.addingTimeInterval(9)
+            reply(.init(text: "Timely café 🐼", isFinal: true))
+        }
+        let text = try await NativeTranscriptionRequest.run([:], driver: driver,
+            authorizationTimeout: 10, timeout: 10, now: { now })
+        #expect(text == "Timely café 🐼")
+        #expect(driver.pickerCleanups == 1 && driver.recognitionCleanups == 1 && driver.invalidated)
+    }
+
+    @Test func cancellationAtDeadlineKeepsItsReasonAndClosesThePicker() async throws {
+        let driver = TranscriptionDriverFixture()
+        var now = Date(timeIntervalSinceReferenceDate: 100)
+        driver.onPick = { _ in }
+        let task = Task { try await NativeTranscriptionRequest.run([:], driver: driver, timeout: 10, now: { now }) }
+        try await driver.waitFor(.picker)
+        now = now.addingTimeInterval(10)
+        task.cancel()
+        do { _ = try await task.value; Issue.record("Cancelled transcription returned text.") }
+        catch { #expect(error is CancellationError) }
+        #expect(driver.pickerCleanups == 1 && driver.recognizedFile == nil && driver.invalidated)
+    }
+
     @Test func recognitionErrorTakesPriorityOverAFinalText() async {
         let driver = TranscriptionDriverFixture()
         driver.onRecognize = { update in update(.init(text: "Partial", isFinal: true, error: NSError(domain: "Draftly.SpeechFixture", code: 42, userInfo: [NSLocalizedDescriptionKey: "Neutral recognition failure"]))) }

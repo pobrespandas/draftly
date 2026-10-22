@@ -23,7 +23,8 @@ enum NativeTranscriptionRequest {
     static func run(_ values: [String: Any],
                     driver: (any NativeTranscriptionDriving)? = nil,
                     authorizationTimeout: TimeInterval = 60,
-                    timeout: TimeInterval = 120) async throws -> String {
+                    timeout: TimeInterval = 120,
+                    now: @escaping @MainActor () -> Date = Date.init) async throws -> String {
         guard authorizationTimeout.isFinite, authorizationTimeout > 0, timeout.isFinite, timeout > 0 else {
             throw DraftlyError.message("The transcription timeouts must be positive and finite.")
         }
@@ -32,7 +33,7 @@ enum NativeTranscriptionRequest {
         defer { driver.invalidate() }
         var authorization = driver.authorizationStatus
         if authorization == .notDetermined {
-            authorization = try await TranscriptionPhase.wait(timeout: authorizationTimeout) { completion in
+            authorization = try await TranscriptionPhase.wait(timeout: authorizationTimeout, now: now) { completion in
                 driver.requestAuthorization { completion(.success($0)) }
                 return nil
             }
@@ -40,13 +41,13 @@ enum NativeTranscriptionRequest {
         try Task.checkCancellation()
         guard authorization == .authorized else { throw DraftlyError.message("Speech recognition access is denied.") }
         try driver.configure(locale: values["locale"] as? String ?? "")
-        let file: URL? = try await TranscriptionPhase.wait(timeout: timeout) { completion in
+        let file: URL? = try await TranscriptionPhase.wait(timeout: timeout, now: now) { completion in
             driver.selectFile { completion(.success($0)) }
         }
         try Task.checkCancellation()
         guard let file else { return "" }
         let accumulator = TranscriptionAccumulator()
-        let result: String = try await TranscriptionPhase.wait(timeout: timeout) { completion in
+        let result: String = try await TranscriptionPhase.wait(timeout: timeout, now: now) { completion in
             try driver.recognize(file: file) { update in
                 if let text = update.text { accumulator.text = text }
                 if let error = update.error { completion(.failure(error)) }
@@ -66,10 +67,16 @@ private final class TranscriptionPhase<Value: Sendable> {
     private var continuation: CheckedContinuation<Value, Error>?
     private var timeoutTask: Task<Void, Never>?
     private var cleanup: (() -> Void)?
+    private let now: @MainActor () -> Date
+    private let deadline: Date
 
-    static func wait(timeout: TimeInterval,
+    private init(timeout: TimeInterval, now: @escaping @MainActor () -> Date) {
+        self.now = now; self.deadline = now().addingTimeInterval(timeout)
+    }
+
+    static func wait(timeout: TimeInterval, now: @escaping @MainActor () -> Date,
                      start: (@escaping @Sendable (Result<Value, Error>) -> Void) throws -> (() -> Void)?) async throws -> Value {
-        let pending = TranscriptionPhase()
+        let pending = TranscriptionPhase(timeout: timeout, now: now)
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
                 pending.continuation = continuation
@@ -79,7 +86,7 @@ private final class TranscriptionPhase<Value: Sendable> {
                         Task { @MainActor in pending.finish(result) }
                     }
                     pending.timeoutTask = Task { @MainActor in
-                        do { try await Task.sleep(for: .seconds(timeout)) } catch { return }
+                        do { try await Task.sleep(for: .seconds(max(0, pending.deadline.timeIntervalSince(pending.now())))) } catch { return }
                         pending.finish(.failure(ActionExecutionInterruption.timeout))
                     }
                 } catch { pending.finish(.failure(error)) }
@@ -96,7 +103,9 @@ private final class TranscriptionPhase<Value: Sendable> {
         let cleanup = cleanup
         self.cleanup = nil
         cleanup?()
-        continuation.resume(with: result)
+        if case .failure(let error) = result, error is CancellationError { continuation.resume(throwing: error) }
+        else if now() >= deadline { continuation.resume(throwing: ActionExecutionInterruption.timeout) }
+        else { continuation.resume(with: result) }
     }
 }
 

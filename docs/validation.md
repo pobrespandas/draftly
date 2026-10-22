@@ -9321,3 +9321,24 @@ contracts; this is not a parity pass. No retry or deadline inflation was used.
 The previous 68 Python result is separate; Python source was unchanged.
 No permission, location capture, QA window or habitual app was used. Native
 location outcomes remain limited to the earlier recorded URL cases.
+
+
+## Transcription phase deadline enforcement — 22 October 2026
+
+At ba0d315, controlled-clock callbacks completed authorization, file selection
+or recognition at or after expiry. Before queued timers ran, all six cases
+advanced or returned success. The regression failed before the correction.
+
+Each TranscriptionPhase now owns its absolute deadline and injected clock.
+Completion checks expiry before delivering a result; the existing cleanup runs
+first. An expired grant cannot configure or open a picker, an expired selection
+cannot start recognition, and expired recognition cannot return text. The timer
+uses the remaining phase time after startup. The default clock is Date and
+production limits remain unchanged. A cancellation result keeps its own reason.
+
+All 36 dictation/transcription methods passed. Besides the six red/green cases,
+tests verify independent timely phase budgets and picker cancellation at expiry.
+Local Debug compilation and matrix structure passed. No retry, deadline increase,
+window, audio or privacy permission was used. The prior complete 674 Core /
+728 app result predates these new methods. Native recognition and permission
+acceptance remains separate. The habitual app was unchanged.
