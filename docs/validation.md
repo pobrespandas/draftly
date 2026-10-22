@@ -9811,3 +9811,53 @@ Native transcription denial, pending-authorization cancellation, production
 recognition timeout and late recognition remain pending. This session accepts
 URL transcription completion after an actual grant, not the full route-by-entry
 matrix. Six engine contracts remain partial.
+
+## Native Shortcuts interruption and timeout — 22 October 2026
+
+QA used the complete isolated c21dac9 package. Its debug-library SHA256 was
+4c269dbc0200bbc5c0a46c9696a2b9e93523767c89776c51d3f28ef4d73c241d.
+The prior neutral QA library was restored from its closed recoverable copy.
+The usual app was not opened or replaced. No iCloud container was enabled.
+
+Computer Use changed only Draftly QA Output — disposable from a five-second
+Wait to 180 seconds. Reopening the editor confirmed the saved value. Its Text
+and Stop and Output actions stayed unchanged. The new action fixture is
+engine-shortcut-lifetime-actions.json. Its imported script and Archive-on-success
+value matched the source before execution.
+
+An initial preparation run completed before an active wait was established.
+Its source had success effects, as expected for success. This run does not
+accept interruption. A later request was cancelled at external confirmation
+and did not run the action. The accepted tests used a new neutral source loaded
+in the visible QA window, after the saved 180-second Wait was confirmed.
+
+For cancellation, /usr/bin/shortcuts PID32034 was confirmed live with its exact
+private input/output paths. Actions > Cancel Running Action returned one x-cancel.
+That PID and its owned input directory were absent afterward. History recorded
+Cancelled. The retained pre-wait text stayed in Inbox without the later script
+or tail. A following real shell recovery returned one Unicode success.
+
+The next request used the unchanged production 60-second Shortcut deadline.
+PID35323 and its separate input directory were still present at 37 seconds.
+After the deadline, one x-error reported that the operation timed out. The PID
+and directory were absent. Following shell recovery returned one Unicode success.
+Closed source history was Cancelled, Success, Error, Success. Its five revisions
+had no later-step sentinel, and its final draft stayed in Inbox.
+
+These observations accept the actual CLI process and owned-file cleanup, final
+callbacks, stopped later steps and recovery. They do not prove that every job
+inside the system Shortcuts service stopped, or recall effects already completed
+there. No service job identifier, spawned child or internal stop signal was
+observed. Those cases and system-delivered Intent variants remain pending.
+
+Computer Use restored Wait to five seconds, closed and reopened the editor, and
+confirmed five seconds plus the original output text. No new Shortcut was created
+or deleted. Shortcuts and both QA apps quit normally. Exact QA process absence
+and exact LaunchServices unregistration passed. Packages, closed library and
+exported preferences remain recoverable at:
+~/.Trash/DraftlyShortcutLifetimeQA-pufuzq3z.
+
+Production code did not change. Fixture identity, structural matrix and diff
+checks passed. Earlier Core674/app754/Python68/local-build results apply to
+unchanged production code, not a new execution of those checks. Six engine
+contracts remain partial.

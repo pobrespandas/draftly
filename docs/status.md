@@ -4,6 +4,12 @@ Updated: 22 October 2026.
 
 ## Current Actions engine acceptance
 
+Native URL Shortcuts cancellation and the production 60-second timeout passed
+with the actual CLI process and private-file cleanup. Each returned one matching
+callback, stopped later steps and allowed shell recovery. The neutral Shortcut
+was restored to five seconds. Internal service-job stop remains unobserved;
+system-delivered Intent variants stay separate. QA was retired recoverably.
+
 Native URL transcription now passed after a user-granted speech permission.
 Synthetic neutral audio returned one success, with matching callback and editor
 text. Following real shell recovery passed. QA was retired recoverably.

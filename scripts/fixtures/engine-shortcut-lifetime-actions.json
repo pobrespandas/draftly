@@ -1,0 +1,23 @@
+[
+  {
+    "uuid": "7E5C3F7D-C783-4933-A544-0D3E1ED90457",
+    "name": "QA Shortcut pending operation",
+    "group": "Native lifetime QA",
+    "notificationType": 0,
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Retained Shortcut wait café 🐼');draft.update();var shortcut=Shortcut.create('Draftly QA Output — disposable','Neutral lifetime input café 🐼');if(!shortcut.run())throw Error(shortcut.status+': '+JSON.stringify(shortcut.response));editor.setText('ERROR: Shortcut script continued');draft.update();"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "ERROR: Shortcut tail"
+        }
+      }
+    ]
+  }
+]

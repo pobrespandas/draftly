@@ -23515,6 +23515,13 @@
             "fixture": "scripts/fixtures/engine-transcription-completion-actions.json",
             "result": "Native URL transcription after a user-granted speech permission returned one success with matching neutral callback/editor text. Following shell recovery returned one Unicode success. Closed history matched. Denial, timeout, late recognition and remaining entry variants are pending. QA retired recoverably; usual app unchanged.",
             "evidence": "docs/validation.md: Native transcription completion and recovery — 22 October 2026"
+          },
+          {
+            "date": "2026-10-22",
+            "debugLibrarySHA256": "4c269dbc0200bbc5c0a46c9696a2b9e93523767c89776c51d3f28ef4d73c241d",
+            "fixture": "scripts/fixtures/engine-shortcut-lifetime-actions.json",
+            "result": "Native URL task cancellation and production60s timeout with actual shortcuts CLI: exact process and owned-input cleanup, one matching callback, retained writes without tail/Archive and following Unicode shell recovery. Closed history matched. Internal service-job stop and actual child cleanup remain unobserved. QA retired; neutral Shortcut restored to five seconds.",
+            "evidence": "docs/validation.md: Native Shortcuts interruption and timeout — 22 October 2026"
           }
         ]
       },
@@ -23766,6 +23773,13 @@
             "entryPoint": "UI command palette and native Save as PDF",
             "result": "Pre-fix Save crashed in MainActor NativePrintTextView pagination on an AppKit worker. The corrected operation renders on MainActor. Two corrected native runs saved one-page PDFs with all neutral text and continued to the success step without editing the draft. This does not accept print cancellation/timeout/owner-close variants.",
             "evidence": "docs/validation.md: Completed PDF printing and actor isolation — 21 October 2026"
+          },
+          {
+            "date": "2026-10-22",
+            "debugLibrarySHA256": "4c269dbc0200bbc5c0a46c9696a2b9e93523767c89776c51d3f28ef4d73c241d",
+            "fixture": "scripts/fixtures/engine-shortcut-lifetime-actions.json",
+            "result": "Native URL task cancellation and production60s timeout with actual shortcuts CLI: exact process and owned-input cleanup, one matching callback, retained writes without tail/Archive and following Unicode shell recovery. Closed history matched. Internal service-job stop and actual child cleanup remain unobserved. QA retired; neutral Shortcut restored to five seconds.",
+            "evidence": "docs/validation.md: Native Shortcuts interruption and timeout — 22 October 2026"
           }
         ]
       },
@@ -24071,6 +24085,13 @@
             "fixture": "scripts/fixtures/engine-transcription-completion-actions.json",
             "result": "Native URL transcription after a user-granted speech permission returned one success with matching neutral callback/editor text. Following shell recovery returned one Unicode success. Closed history matched. Denial, timeout, late recognition and remaining entry variants are pending. QA retired recoverably; usual app unchanged.",
             "evidence": "docs/validation.md: Native transcription completion and recovery — 22 October 2026"
+          },
+          {
+            "date": "2026-10-22",
+            "debugLibrarySHA256": "4c269dbc0200bbc5c0a46c9696a2b9e93523767c89776c51d3f28ef4d73c241d",
+            "fixture": "scripts/fixtures/engine-shortcut-lifetime-actions.json",
+            "result": "Native URL task cancellation and production60s timeout with actual shortcuts CLI: exact process and owned-input cleanup, one matching callback, retained writes without tail/Archive and following Unicode shell recovery. Closed history matched. Internal service-job stop and actual child cleanup remain unobserved. QA retired; neutral Shortcut restored to five seconds.",
+            "evidence": "docs/validation.md: Native Shortcuts interruption and timeout — 22 October 2026"
           }
         ]
       },
