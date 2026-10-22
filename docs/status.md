@@ -2641,3 +2641,11 @@ Fixed acceptance of a callback after task cancellation but before MainActor
 cleanup. A deterministic regression failed before the fix and passed after it.
 Focused22, full app709 with matching inventory, local build and matrix structure
 passed. No new native acceptance or app rollout. See docs/actions-engine.md.
+
+### URL SelectPrompt timeout — 22 October 2026
+
+Native URL SelectPrompt timed out at production settings, closed its panel, sent
+one error callback and kept prior text in Inbox without success effects. A new
+filtered selection returned selected=two once, saved success text and archived.
+Closed storage matched. Core36 and fixture check passed. QA/helper retired
+recoverably; usual app unchanged. Other native obligations remain open.

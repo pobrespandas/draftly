@@ -8731,3 +8731,40 @@ unregistered. Apps, exported QA preferences and closed library were preserved
 recoverably in ~/.Trash/DraftlyURLLifetimeQA-cxpjl39e. No screenshots or raw logs
 were committed. Other native routes, SelectPrompt timeout and actual late panel
 callbacks remain open; this is not full engine acceptance.
+
+## URL SelectPrompt timeout and recovery — 22 October 2026
+
+Current-image QA at cf956d6 used the callback cancellation correction. Isolated
+library, app identity and URL schemes stayed separate from the habitual app.
+Reproduction: scripts/fixtures/engine-url-selection-result-actions.json. The
+source was selected in a visible window and started in Inbox.
+
+Computer Use ran the action through the helper's explicit URL delivery. The
+native SelectPrompt showed both title/subtitle rows. Filtering Other selected
+the second row. The helper showed zero callbacks while the list remained open.
+At unchanged production deadlines the list closed, QA displayed the timeout
+message, and the helper received exactly one outcome=error callback with
+errorMessage=The action operation timed out before it completed. The editor and
+selected Inbox row retained exactly Retained selection café 🐼. Archive remained
+available; the success-only final text and Archive did not run.
+
+A following URL run opened a new list with empty search and the first row
+selected. Filtering Other and accepting returned one outcome=success callback
+with selected=two. Closed storage confirmed timeout Error then Success for the
+same action/note, final text Selection accepted café 🐼 and isArchived true.
+This accepts URL SelectPrompt timeout, current-selection result and recovery;
+it does not prove actual late panel-callback delivery or all native routes.
+
+Automatic: 36 focused Core methods across seven execution suites passed. Fixture
+identity validation and matrix structural validation passed. Previous full app709
+and local build belong to the same unchanged production source at cf956d6. No
+new code or deadline change was needed for this session.
+
+QA executable SHA256:
+941d5911b0c0a4030e9e94a4b2394c90ff0ac1a83b112a6cf46ad218541bbfe7.
+Helper SHA256 remains
+17a76bfcb8e05c9740c0dbc3ef4bce4c7cf5c1e8741c22dacc0341070afeae59.
+Both apps quit normally and process absence was confirmed. Exact paths were
+unregistered. Apps, exported QA preferences and closed library were preserved
+recoverably in ~/.Trash/DraftlySelectionLifetimeQA-37p7wtu_. Habitual app unchanged.
+The strict engine gate stays open. No screenshots or raw logs were committed.

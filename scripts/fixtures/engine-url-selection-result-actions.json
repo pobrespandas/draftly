@@ -1,0 +1,29 @@
+[
+  {
+    "uuid": "A0760100-0000-4000-8000-000000000002",
+    "name": "QA URL SelectPrompt final result",
+    "group": "URL lifetime QA",
+    "notificationType": 0,
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Retained selection café 🐼');draft.update();"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "var p=SelectPrompt.create();p.title='Awaited URL selection';p.addItem('one','One','Neutral café 🐼');p.addItem('two','Two','Other');if(!p.show()){context.cancel();}else{context.addSuccessParameter('selected',p.selectedItem.id);}"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Selection accepted café 🐼');draft.update();"
+        }
+      }
+    ]
+  }
+]
