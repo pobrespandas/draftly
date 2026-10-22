@@ -2672,3 +2672,10 @@ Fixed a selector returning a late URL after task cancellation before queued
 cleanup. Red/green regression also requires exactly one close. Existing write
 and bookmark guards remain. Focused app17/Core6, full app711 with matching
 inventory, local build and matrix passed. Native acceptance remains separate.
+
+### Intent pending-save safety — 22 October 2026
+
+Actual Intent.perform now has explicit target/other-draft save-failure and retry
+cases. Pending text and storage diagnostics remain; no execution or reservation
+starts. Focused14 and local build passed. No production change or native system
+dispatch acceptance. Other Actions-engine obligations remain open.

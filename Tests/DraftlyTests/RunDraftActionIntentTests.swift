@@ -64,6 +64,40 @@ struct RunDraftActionIntentTests {
         #expect(library.notes.first(where: { $0.id == note.id })?.content == "Stored" && library.runs.isEmpty)
     }
 
+    @Test(arguments: [false, true])
+    func failedPendingSaveRejectsIntentAndCanRecover(otherDraft: Bool) async throws {
+        struct SaveFailure: LocalizedError {
+            var errorDescription: String? { "Neutral storage failure café 🐼" }
+        }
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let target = try library.createNote(content: "Target")
+        let pending = otherDraft ? try library.createNote(content: "Other stored") : target
+        var rejectSave = false
+        let model = WindowModel(library: library, saveDraft: { note in
+            if rejectSave { throw SaveFailure() }
+            try library.saveNote(note)
+        })
+        model.select(pending.id)
+        model.editor.content = "Pending café 🐼"; model.hasUnsavedChanges = true
+        rejectSave = true
+        let action = DraftAction(name: "Intent save boundary", steps: [ActionStep("script", ["script": "editor.setText('Intent recovered');"])])
+        try library.saveAction(action)
+        let request = intent(action, note: target, library: library, models: [model], host: IntentMarkerHost())
+        do { _ = try await request.perform(); Issue.record("The intent started after a failed pending save.") }
+        catch { #expect(error.localizedDescription == "Pending edits could not be saved. The action was not started.") }
+        #expect(library.error == "Neutral storage failure café 🐼")
+        #expect(model.editor.content == "Pending café 🐼" && model.hasUnsavedChanges)
+        #expect(model.editor.noteID == pending.id)
+        #expect(library.notes.first { $0.id == pending.id }?.content == pending.content)
+        #expect(library.runs.isEmpty && !model.actionPending && !model.runner.isRunning)
+        #expect(!ActionRunner.isExecuting(in: library))
+        rejectSave = false
+        _ = try await request.perform()
+        #expect(library.runs.count == 1 && library.runs.first?.status == "Success")
+        #expect(library.notes.first { $0.id == target.id }?.content == "Intent recovered")
+        if otherDraft { #expect(library.notes.first { $0.id == pending.id }?.content == "Pending café 🐼") }
+    }
+
     @Test func invalidTargetsFailWithoutExecution() async throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let note = try library.createNote(content: "Neutral")

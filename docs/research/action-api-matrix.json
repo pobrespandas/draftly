@@ -23775,6 +23775,10 @@
           "suite": "AutomationOwnerCloseObserverTests",
           "test": "realObserverFiltersByOwnerAndStopsAfterRemoval",
           "file": "Tests/DraftlyTests/AutomationOwnerCloseObserverTests.swift"
+        },
+        {
+          "suite": "RunDraftActionIntentTests",
+          "test": "failedPendingSaveRejectsIntentAndCanRecover"
         }
       ],
       "nativeVerification": {

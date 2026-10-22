@@ -673,3 +673,20 @@ XML report inventory. Local Debug build and matrix structural check passed.
 No Core source or deadline changed. No new manual panel session was performed;
 real lost-access, owner-close and late OS panel delivery remain separate in the
 native checklist. The habitual app was not replaced.
+
+## Intent pending-save rejection and recovery — 22 October 2026
+
+The actual RunDraftActionIntent.perform method now has separate pending-save
+cases for the target draft and an unrelated editor draft. An injected storage
+failure must reach the caller before any action starts. Assertions retain the
+specific storage diagnostic in the library, the visible pending Unicode text,
+selection identity and dirty state. Stored text stays unchanged. No execution
+history or library reservation is created. Removing the injected failure and
+performing the same Intent succeeds. The unrelated draft's pending text saves
+before the target runs. No partial rollback is promised.
+
+All14 focused Intent and automation safety methods passed. Local Debug build and
+matrix structural validation passed. Production source did not change. No manual
+system Intent or storage-permission session was performed; the test invokes the
+actual Intent method with an isolated environment. Prior full app711 remains a
+prior run, not coverage of this new method. The engine strict gate stays open.
