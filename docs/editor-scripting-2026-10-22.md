@@ -817,3 +817,35 @@ unchanged. No screenshot or raw log is tracked.
 Full serial app regression passed701 methods/123 suites. Core source did not
 change; the preceding671/124 regression remains the Core baseline. Matrix
 structure0 passed. This does not close the remaining grammar or Find scope.
+
+## Advanced Find with two source windows
+
+A new headless regression uses two WindowModels in one neutral library, each with
+its own editor/Undo fixture. Replace All changes only its source note. The other
+selection, query, text and Undo stack stay unchanged. Each editor can undo its own
+replacement and persist its original text independently. Both fixtures disconnect
+explicitly. All eighteen Find command/replacement/history methods passed.
+No production source changed; native QA used the prior successful99184c8 build.
+
+Isolated Find Sources QA created Source One QA and Source Two QA in independent
+library windows. Each opened a separate Find window. The second started with empty
+query/replacement and both checkboxes off. Its query/replacement were set to
+café/coffee while the first used café/té. Reactivating the existing second Find
+through Window retained its query/replacement while the first was changed.
+
+Replace All in the first changed only Source One to té té. Source Two still showed
+café café. The second Find retained its own two results and coffee replacement;
+its Replace All changed only Source Two. Closing Source One removed its Find:
+Window then listed only one Find and Source Two. Closing Source Two left no windows
+available. This checks normal closure, not a forced-close or queued-event race.
+
+After normal quit, read-only inspection of closed neutral SQLite confirmed exact
+separate persisted contents. QA was unregistered by exact path and retired with
+its runtime, preferences and closed library recoverable in Trash. Habitual app
+unchanged. No screenshot or raw log is tracked.
+
+Reopening Find through the editor bar emitted a fresh request: the first query
+was cleared while its té replacement stayed. Reactivating the existing window
+through Window did not clear it. Keep this distinction pending Drafts comparison;
+do not claim query-default parity from isolation acceptance. Remaining Find
+keyboard/default/background and reference acceptance still apply.

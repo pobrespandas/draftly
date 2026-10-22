@@ -235,4 +235,38 @@ struct AdvancedFindReplacementTests {
         #expect(library.notes.count == 1 && library.notes.first?.id == note.id)
         #expect(library.notes.first?.content == "" && library.notes.first?.tags == ["keep"])
     }
+    @Test func replacementsAndUndoStayWithTheirSourceEditorAcrossTwoModels() throws {
+        let preferences = try TestPreferences(prefix: "Draftly.FindTwoSources.")
+        defer { preferences.close() }
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let firstNote = try library.createNote(content: "First 🐼 café café")
+        let secondNote = try library.createNote(content: "Second 🐼 café café")
+        let first = model(library: library, note: firstNote, defaults: preferences.defaults)
+        let second = model(library: library, note: secondNote, defaults: preferences.defaults)
+        first.advancedFindQuery = "café"; second.advancedFindQuery = "Second"
+        second.editor.selection = NSRange(location: 0, length: 6)
+        let firstFixture = ScriptUndoEditorFixture(NativeEditor(session: first.editor, fontName: "System", fontSize: 17,
+            lineSpacing: 2, markdown: false, onChange: { [weak first] in first?.contentChanged() }), content: firstNote.content)
+        let secondFixture = ScriptUndoEditorFixture(NativeEditor(session: second.editor, fontName: "System", fontSize: 17,
+            lineSpacing: 2, markdown: false, onChange: { [weak second] in second?.contentChanged() }), content: secondNote.content)
+        defer { firstFixture.close(); secondFixture.close() }
+        let query = try EditorFindQuery("café")
+        AdvancedFindCommands(model: first).replaceAll(query: .success(query), with: "té")
+        #expect(first.editor.content == "First 🐼 té té" && firstFixture.text.string == first.editor.content)
+        #expect(second.editor.content == secondNote.content && secondFixture.text.string == secondNote.content)
+        #expect(second.editor.selection == NSRange(location: 0, length: 6))
+        #expect(secondFixture.text.undoManager?.canUndo != true && second.advancedFindQuery == "Second")
+        let firstSelection = first.editor.selection
+        AdvancedFindCommands(model: second).replaceAll(query: .success(query), with: "coffee")
+        #expect(second.editor.content == "Second 🐼 coffee coffee")
+        #expect(first.editor.content == "First 🐼 té té" && first.editor.selection == firstSelection)
+        second.editor.performUndo?(false)
+        #expect(second.editor.content == secondNote.content && second.flush())
+        #expect(first.editor.content == "First 🐼 té té")
+        first.editor.performUndo?(false)
+        #expect(first.editor.content == firstNote.content && first.flush())
+        #expect(library.notes.first { $0.id == firstNote.id }?.content == firstNote.content)
+        #expect(library.notes.first { $0.id == secondNote.id }?.content == secondNote.content)
+        #expect(first.advancedFindQuery == "café" && second.advancedFindQuery == "Second")
+    }
 }

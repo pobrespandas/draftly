@@ -2555,3 +2555,11 @@ app701/123, local build and matrix structure passed. Native QA completed Cancel,
 Copy and Replace; closed-library checks confirmed identities and unknown fields.
 Built-in/file conflict and URL native checks remain pending. QA retired recoverably.
 See the dated continuation. Usual app unchanged.
+
+### Advanced Find source-window isolation — 22 October 2026
+
+New two-editor Undo/replacement regression and eighteen Find methods passed.
+Native QA confirmed independent replacements, retained second-panel state and
+automatic panel closure with each source. Closed storage held both correct notes.
+Reopen-query defaults still need Drafts comparison. No production source changed.
+QA retired recoverably; usual app unchanged. See the dated continuation.
