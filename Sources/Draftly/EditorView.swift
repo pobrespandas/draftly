@@ -81,16 +81,8 @@ struct NativeEditor: NSViewRepresentable {
         text.insertionPointColor = theme?.interfaceColor(named: "textCaret").flatMap(EditorTheme.color)
             ?? theme.flatMap { EditorTheme.color($0.foreground) } ?? .textColor
         let changedNote = coordinator.noteID != session.noteID || coordinator.style.isEmpty
-        let changedText = text.string != session.content
         let changedStyle = coordinator.theme != theme || coordinator.style != "\(fontName):\(fontSize):\(lineSpacing):\(lineHeightMultiple):\(paragraphSpacing):\(markdown):\(syntax):\(linksEnabled):\(syntaxDefinition?.source ?? ""):\(syntaxDefinition?.featureState ?? ""):\(theme?.foreground ?? ""):\(theme?.heading ?? "")"
-        if changedNote { text.undoManager?.removeAllActions(); coordinator.noteID = session.noteID }
-        if changedText {
-            if !changedNote {
-                let previous = text.string, selection = text.selectedRange()
-                text.undoManager?.registerUndo(withTarget: coordinator) { target in target.restore(previous, selection: selection) }
-            }
-            text.string = session.content
-        }
+        let changedText = coordinator.replaceSessionText(in: text, changedNote: changedNote)
         if changedText || changedStyle || changedNote {
             coordinator.highlight()
             coordinator.theme = theme
@@ -141,14 +133,18 @@ struct NativeEditor: NSViewRepresentable {
             guard let textView, !updating else { return }
             updating = true; defer { updating = false }
             let changedNote = noteID != parent.session.noteID
-            if changedNote { textView.undoManager?.removeAllActions(); noteID = parent.session.noteID }
-            if textView.string != parent.session.content {
-                let previous = textView.string, selection = textView.selectedRange()
-                if !changedNote { textView.undoManager?.registerUndo(withTarget: self) { target in target.restore(previous, selection: selection) } }
-                textView.string = parent.session.content
+            if replaceSessionText(in: textView, changedNote: changedNote) {
                 highlight(); invalidateDisplay()
             }
             textView.setSelectedRange(parent.session.safeSelection)
+        }
+        fileprivate func replaceSessionText(in textView: NSTextView, changedNote: Bool) -> Bool {
+            if changedNote { textView.undoManager?.removeAllActions(); noteID = parent.session.noteID }
+            guard textView.string != parent.session.content else { return false }
+            let previous = textView.string, selection = textView.selectedRange()
+            if !changedNote { textView.undoManager?.registerUndo(withTarget: self) { target in target.restore(previous, selection: selection) } }
+            textView.string = parent.session.content
+            return true
         }
         func restore(_ text: String, selection: NSRange = NSRange(location: 0, length: 0)) {
             guard let textView else { return }

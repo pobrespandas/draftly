@@ -2,6 +2,19 @@
 
 Updated: 22 October 2026.
 
+## Editor text mutation refactoring
+
+R3 is implemented in the [text mutation record](refactoring-editor-text-mutation-2026-10-22.md).
+The coordinator now owns one session-text mutation operation. Each route keeps
+its draft-change condition, guard, style cache, selection, scroll and focus rules.
+Four methods with nine route cases passed before extraction. Final verification
+passed Core674/app785, Python80, 79 focused methods, local Debug compilation and
+the structural matrix. Strict engine diagnostics remain 18. The initial Core
+baseline had known host-start and XML-RPC timing failures; their serial check
+and the complete final run passed. No timing rule was changed.
+No manual session or usual-app update occurred. R1 through R5 are implemented
+on stacked branches. Functional cloning and native acceptance remain separate.
+
 ## Editor styling refactoring
 
 R2 is implemented in the [editor styling record](refactoring-editor-styling-2026-10-22.md).
@@ -11,7 +24,7 @@ methods passed before extraction; a fourth checks separate native link defaults.
 Final verification passed Core674/app781, Python80, 72 focused methods, the local
 Debug build and structural matrix. Strict engine diagnostics remain 18.
 No manual session or usual-app update occurred. Prior timing risks did not recur.
-R3 shared text mutation is the next proposed refactoring.
+The later R3 record covers shared text mutation.
 
 ## Cloud QA preparation refactoring
 
@@ -49,7 +62,8 @@ XML-RPC timing risk and the 18 strict engine diagnostics remain separate.
 The [repository audit](modularity-audit-2026-10-22.md) is complete at the
 architectural level. It proposed five bounded refactorings. R1 completion
 context, R2 styling, R4 Workspace preparation and R5 Cloud QA preparation are
-implemented separately. Shared text mutation R3 remains. The audit itself changed no
+implemented separately. Shared text mutation R3 is also implemented on its own
+branch. The audit itself changed no
 production or test code and removed no tests. The documentation now distinguishes current orientation from
 historical records. Complete verification on 1e399dd passed Core674/app767,
 Python68, local Debug compilation and the structural matrix check. Native

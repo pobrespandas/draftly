@@ -7,7 +7,8 @@ refactoring diagnosis. [Editor completion context](refactoring-completion-contex
 implements its first stage. [Workspace preparation](refactoring-workspace-preparation-2026-10-22.md)
 is also implemented. [Cloud QA preparation](refactoring-cloud-qa-preparation-2026-10-22.md)
 is complete. [Editor styling](refactoring-editor-styling-2026-10-22.md)
-is implemented. Shared text mutation R3 is the next proposed stage.
+is implemented. [Shared text mutation](refactoring-editor-text-mutation-2026-10-22.md)
+completes R3. All five bounded audit stages are implemented on stacked branches.
 See [status](status.md) for
 functional work. The [dated editor/scripting record](editor-scripting-2026-10-22.md)
 retains its original scope. The audit does not implement its proposed changes.
@@ -63,6 +64,15 @@ Coordinator.highlight captures link defaults once and delegates styling. The
 coordinator retains text events, synchronization, selection, Undo, focus and
 invalidation. ThemeTextAttributes and SyntaxDefinition retain their rules.
 Attribute order and the built-in visual fallback rules remain unchanged.
+
+## Editor text mutation boundary
+
+Coordinator.replaceSessionText owns the shared history reset, identity update,
+Undo registration and session-content assignment. It returns whether text changed.
+Each route supplies its own draft-change decision and retains its update guard,
+style and display invalidation, selection, scrolling and focus policies.
+updateNSView also treats an empty style cache as a draft change. Script
+synchronization does not. restore remains the shared Undo/Redo inverse operation.
 
 ## Action catalog boundary
 

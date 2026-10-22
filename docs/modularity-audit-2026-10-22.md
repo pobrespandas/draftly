@@ -233,6 +233,17 @@ independent link defaults across views. No visual rule or text mutation policy
 changed. R1, R2, R4 and R5 are complete as refactoring stages. R3 shared text
 mutation is the next proposed stage. Native acceptance remains separate.
 
+## Follow-up — R3 implementation
+
+R3 is implemented in the [text mutation record](refactoring-editor-text-mutation-2026-10-22.md).
+A private coordinator operation shares history reset, identity tracking, Undo
+registration and text assignment. The routes retain their different change
+conditions, reentry guard, styling, selection, scrolling and focus policies.
+Four methods with nine route cases passed before extraction. Existing tests and
+fixtures remain. R1 through R5 are implemented as bounded refactoring stages on
+stacked branches. Functional cloning and native acceptance remain separate.
+The original sequence below records the audit's order at publication.
+
 ## Recommended implementation sequence
 
 1. R1: explicit completion context. This is the next small implementation stage.
