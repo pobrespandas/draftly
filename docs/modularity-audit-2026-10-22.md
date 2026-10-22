@@ -212,7 +212,16 @@ constructors. The later R4 follow-up below records Workspace preparation.
 R4 is implemented in the separate [Workspace preparation record](refactoring-workspace-preparation-2026-10-22.md).
 A common private operation prepares the resolved Workspace. Each caller keeps
 its existing save, cancel and apply order. R1 and R4 are complete as refactoring
-stages. Cloud QA preparation is next; R2, R3 and R5 remain unimplemented.
+stages at that checkpoint. The later R5 follow-up below records Cloud QA
+preparation. R2 and R3 remain unimplemented.
+
+## Follow-up — R5 implementation
+
+R5 is implemented in the separate [Cloud QA preparation record](refactoring-cloud-qa-preparation-2026-10-22.md).
+Metadata transformation, file operations and CLI entry are now testable without
+import-time preparation. Command-line identities, UUID rules and backup effects
+remain unchanged. R1, R4 and R5 are complete as refactoring stages. Styling R2
+is the next proposed stage, followed by text mutation R3.
 
 ## Recommended implementation sequence
 

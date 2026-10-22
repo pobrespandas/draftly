@@ -2,6 +2,18 @@
 
 Updated: 22 October 2026.
 
+## Cloud QA preparation refactoring
+
+R5 is implemented in the [Cloud QA preparation record](refactoring-cloud-qa-preparation-2026-10-22.md).
+Metadata rules, file operations and CLI entry now have explicit boundaries.
+The CLI keeps its identities, UUID reuse and backup/write behavior. Eight
+characterizations passed before and after extraction; the specific suite has
+12 tests. Final verification passed Core674/app777, Python80, local Debug build
+and structural matrix. The initial Core baseline had a pre-host-start failure;
+its focused check and the final full run passed. This risk remains separate.
+No native cloud run or app update occurred. Strict engine diagnostics remain 18.
+Editor styling is the next proposed refactoring.
+
 ## Workspace preparation refactoring
 
 R4 is implemented in the [Workspace preparation record](refactoring-workspace-preparation-2026-10-22.md).
@@ -9,8 +21,8 @@ The common private preparation operation leaves saving, cancellation and
 application in their callers. Four characterization methods passed before
 extraction. Final checks passed Core674/app777, Python68, 51 focused methods,
 local Debug compilation and the structural matrix. No native session or app
-update was needed. Strict engine diagnostics remain 18. Cloud QA preparation
-is the next proposed refactoring.
+update was needed. Strict engine diagnostics remain 18. The later R5 stage
+records Cloud QA preparation.
 
 ## Editor completion refactoring
 
@@ -25,8 +37,8 @@ XML-RPC timing risk and the 18 strict engine diagnostics remain separate.
 
 The [repository audit](modularity-audit-2026-10-22.md) is complete at the
 architectural level. It proposed five bounded refactorings. R1 completion
-context and R4 Workspace preparation are implemented separately. Next are Cloud
-QA preparation, styling and text synchronization. The audit itself changed no
+context, R4 Workspace preparation and R5 Cloud QA preparation are implemented
+separately. Styling and text synchronization remain. The audit itself changed no
 production or test code and removed no tests. The documentation now distinguishes current orientation from
 historical records. Complete verification on 1e399dd passed Core674/app767,
 Python68, local Debug compilation and the structural matrix check. Native

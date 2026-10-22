@@ -5,7 +5,8 @@
 The [modularity audit](modularity-audit-2026-10-22.md) records the current
 refactoring diagnosis. [Editor completion context](refactoring-completion-context-2026-10-22.md)
 implements its first stage. [Workspace preparation](refactoring-workspace-preparation-2026-10-22.md)
-is also implemented. Cloud QA preparation is the next proposed stage.
+is also implemented. [Cloud QA preparation](refactoring-cloud-qa-preparation-2026-10-22.md)
+is complete. Editor styling is the next proposed stage.
 See [status](status.md) for
 functional work. The [dated editor/scripting record](editor-scripting-2026-10-22.md)
 retains its original scope. The audit does not implement its proposed changes.
@@ -79,6 +80,15 @@ The shared rule does not combine those different caller policies.
 `ActionConfigurationField` owns raw key/type lookup and text-value selection.
 Import, runtime and prompt callers keep their own validation and conversion
 policies. The descriptor does not change imported values or confirmation state.
+
+## Cloud QA metadata boundary
+
+prepare-cloud-qa.py separates metadata transformation, filesystem preparation
+and CLI entry. cloud_qa_metadata owns the metadata and backup decision without
+I/O. prepare reads the current files, generates the ID and writes the backup
+before the destination. main preserves the existing arguments and working
+location. Importing the module does not run preparation. Build identities and
+signing remain with the existing build wrapper and configuration.
 
 ## Auditor reference boundary
 
