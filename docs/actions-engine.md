@@ -762,3 +762,24 @@ Controlled-clock tests cover exit before, at and after the deadline. A real
 parent/child fixture also checks that expiry after parent exit stops a remaining
 child that ignores SIGTERM. These tests use temporary files and local processes.
 They do not accept system-delivered Shortcuts or App Intent behavior.
+
+## Isolated speech synthesis — 22 October 2026
+
+The async speech route uses a private helper mode in the Draftly executable.
+The launcher handles this mode before preferences, controllers or SwiftUI start.
+Only the helper creates NSSpeechSynthesizer. Request files retain exact voice
+identities, UTF-8 text and rate. The helper returns a typed Boolean or error.
+Confirmation and completion notices remain in the parent app.
+
+The helper receives completion through the native delegate. Its event loop uses
+[CFRunLoopRun](https://developer.apple.com/documentation/corefoundation/cfrunlooprun())
+and stops on delegate completion. It does not poll the parent event loop.
+A blocked synthesis call or destructor cannot block the parent MainActor.
+
+NativeProcessExecutor owns the helper deadline and process group. Cancellation
+awaits helper termination and escalation cleanup before it releases the playback
+continuation. Input files remain private until that cleanup returns. Timeout
+keeps its typed reason. A failed helper cannot show a completion notice.
+The legacy synchronous adapter is unchanged; this section describes the async
+route. The operating system owns its shared audio services. Draftly never kills
+those services during cleanup. Audible completion needs separate verification.

@@ -4,7 +4,15 @@ Updated: 22 October 2026.
 
 ## Current Actions engine acceptance
 
-The latest integrated check also covers transcription and EventKit callback
+Async speech synthesis now runs in an owned helper process. Native URL task
+cancellation and the production timeout return their final callback without
+blocking MainActor. Both remove the helper and private files and allow a
+following successful action. Audible completion remains unverified because the
+system audio operation did not finish on this Mac. The usual app is unchanged.
+Current integrated checks passed Core674/app745, Python68 and local Debug build.
+This does not complete the six partial engine contracts.
+
+A prior integrated check also covers transcription and EventKit callback
 deadlines and EventKit cancellation cleanup: 674 Core and 733 app methods
 passed with complete report inventories and local Debug compilation. Native
 permission and capability checks remain separate.

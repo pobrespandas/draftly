@@ -3,27 +3,38 @@ import DraftlyCore
 
 @MainActor protocol NativeSpeechDriver: AnyObject {
     var rate: Float { get set }
-    var onFinish: ((Bool) -> Void)? { get set }
+    var onFinish: ((Result<Bool, Error>) -> Void)? { get set }
     func start(_ text: String) -> Bool
-    func stop()
+    func stop() async
 }
 
-@MainActor final class SystemSpeechDriver: NSObject, NativeSpeechDriver, NSSpeechSynthesizerDelegate {
-    private let synthesizer: NSSpeechSynthesizer
-    var onFinish: ((Bool) -> Void)?
-    var rate: Float { get { synthesizer.rate } set { synthesizer.rate = newValue } }
-    init(voice: String?) throws {
-        guard let synthesizer = NSSpeechSynthesizer(voice: voice.map(NSSpeechSynthesizer.VoiceName.init(rawValue:))) else {
-            throw DraftlyError.message("The selected voice is unavailable.")
-        }
-        self.synthesizer = synthesizer
-        super.init()
-        synthesizer.delegate = self
+@MainActor final class SystemSpeechDriver: NativeSpeechDriver {
+    private let voice: String?
+    private let executable: URL?
+    private let timeout: TimeInterval
+    private let temporaryDirectory: URL
+    private var playback: Task<Void, Never>?
+    var onFinish: ((Result<Bool, Error>) -> Void)?
+    var rate: Float = 180
+    init(voice: String?, executable: URL? = Bundle.main.executableURL, timeout: TimeInterval = 120,
+         temporaryDirectory: URL = FileManager.default.temporaryDirectory) {
+        self.voice = voice; self.executable = executable
+        self.timeout = timeout; self.temporaryDirectory = temporaryDirectory
     }
-    func start(_ text: String) -> Bool { synthesizer.startSpeaking(text) }
-    func stop() { synthesizer.stopSpeaking() }
-    nonisolated func speechSynthesizer(_ sender: NSSpeechSynthesizer, didFinishSpeaking finishedSpeaking: Bool) {
-        Task { @MainActor [weak self] in self?.onFinish?(finishedSpeaking) }
+    func start(_ text: String) -> Bool {
+        guard playback == nil else { return false }
+        let voice = voice, rate = rate, executable = executable, timeout = timeout, temporaryDirectory = temporaryDirectory
+        playback = Task { [weak self] in
+            let result: Result<Bool, Error>
+            do { result = .success(try await NativeSpeechProcess.run(text: text, voice: voice, rate: rate, executable: executable, timeout: timeout, temporaryDirectory: temporaryDirectory)) }
+            catch { result = .failure(error) }
+            self?.onFinish?(result)
+        }
+        return true
+    }
+    func stop() async {
+        playback?.cancel()
+        await playback?.value
     }
 }
 
@@ -31,7 +42,7 @@ import DraftlyCore
     enum Notice: Equatable { case confirm(String), complete }
 
     static func run(_ values: [String: Any],
-                    makeDriver: @MainActor (String?) throws -> any NativeSpeechDriver = { try SystemSpeechDriver(voice: $0) },
+                    makeDriver: @MainActor (String?) throws -> any NativeSpeechDriver = { SystemSpeechDriver(voice: $0) },
                     present: @MainActor (Notice) async throws -> Bool = { try await SpeechNoticePresenter.show($0) }) async throws -> Bool {
         try Task.checkCancellation()
         let settings = values["settings"] as? [String: Any] ?? [:]
@@ -57,34 +68,34 @@ import DraftlyCore
 @MainActor private final class SpeechPlayback {
     let driver: any NativeSpeechDriver
     var continuation: CheckedContinuation<Bool, Error>?
-    private var stopped = false
+    private var stopTask: Task<Void, Never>?
     init(driver: any NativeSpeechDriver) { self.driver = driver }
     func run(_ text: String) async throws -> Bool {
         let result = try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
                 self.continuation = continuation
                 guard !Task.isCancelled else { finish(.failure(CancellationError()), stop: true); return }
-                driver.onFinish = { [weak self] success in self?.finish(.success(success)) }
+                driver.onFinish = { [weak self] result in self?.finish(result) }
                 if !driver.start(text) { finish(.success(false)) }
             }
         } onCancel: {
             Task { @MainActor in self.finish(.failure(CancellationError()), stop: true) }
         }
         do { try Task.checkCancellation() }
-        catch { stopPlayback(); throw error }
+        catch { await stopPlayback(); throw error }
         return result
     }
-    private func stopPlayback() {
-        guard !stopped else { return }
-        stopped = true
-        driver.stop()
+    private func stopPlayback() async {
+        if stopTask == nil { stopTask = Task { await driver.stop() } }
+        await stopTask?.value
     }
     private func finish(_ result: Result<Bool, Error>, stop: Bool = false) {
         guard let continuation else { return }
         self.continuation = nil
         driver.onFinish = nil
-        if stop { stopPlayback() }
-        continuation.resume(with: result)
+        if stop {
+            Task { await stopPlayback(); continuation.resume(with: result) }
+        } else { continuation.resume(with: result) }
     }
 }
 

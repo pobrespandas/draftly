@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import DraftlyCore
 @testable import Draftly
 
 @Suite("Asynchronous speech requests") @MainActor
@@ -7,20 +8,21 @@ struct NativeSpeechRequestTests {
     @MainActor private final class Driver: NativeSpeechDriver {
         let startSignal = AsyncStream.makeStream(of: Bool.self)
         var rate: Float = 0
-        var onFinish: ((Bool) -> Void)?
+        var onFinish: ((Result<Bool, Error>) -> Void)?
         var text: String?
         var started = false
         var stopped = false
+        var stopBody: (@MainActor () async -> Void)?
         var canStart = true
         var finishImmediately: Bool? = true
-        var late: ((Bool) -> Void)?
+        var late: ((Result<Bool, Error>) -> Void)?
         func start(_ text: String) -> Bool {
             self.text = text; started = true; late = onFinish
             startSignal.continuation.yield(true); startSignal.continuation.finish()
-            if let finishImmediately { onFinish?(finishImmediately) }
+            if let finishImmediately { onFinish?(.success(finishImmediately)) }
             return canStart
         }
-        func stop() { stopped = true }
+        func stop() async { stopped = true; await stopBody?() }
     }
 
     @Test(arguments: [("slow", Float(130)), ("fast", Float(240)), ("normal", Float(180)), ("unknown", Float(180))])
@@ -79,7 +81,7 @@ struct NativeSpeechRequestTests {
         task.cancel()
         #expect(await task.value)
         #expect(driver.stopped && driver.onFinish == nil)
-        driver.late?(true)
+        driver.late?(.success(true))
         #expect(driver.onFinish == nil)
     }
 
@@ -94,7 +96,7 @@ struct NativeSpeechRequestTests {
         var started = driver.startSignal.stream.makeAsyncIterator()
         try #require(await started.next() == true)
         task.cancel()
-        driver.onFinish?(true)
+        driver.onFinish?(.success(true))
         do { _ = try await task.value; Issue.record("Cancelled playback succeeded.") }
         catch { #expect(error is CancellationError) }
         #expect(driver.stopped)
@@ -130,6 +132,47 @@ struct NativeSpeechRequestTests {
         }
         do { _ = try await task.value; Issue.record("Cancelled confirmation returned a result.") }
         catch { #expect(error is CancellationError) }
+    }
+
+    @Test func cancellationWaitsForDriverCleanupBeforeReturning() async throws {
+        let driver = Driver(); driver.finishImmediately = nil
+        let stopping = AsyncStream.makeStream(of: Bool.self)
+        let release = AsyncStream.makeStream(of: Bool.self)
+        driver.stopBody = {
+            stopping.continuation.yield(true); stopping.continuation.finish()
+            var replies = release.stream.makeAsyncIterator()
+            _ = await replies.next()
+        }
+        var returned = false
+        let task = Task {
+            defer { returned = true }
+            return try await NativeSpeechRequest.run(["text": "Neutral"], makeDriver: { _ in driver })
+        }
+        var starts = driver.startSignal.stream.makeAsyncIterator()
+        try #require(await starts.next() == true)
+        task.cancel()
+        var stops = stopping.stream.makeAsyncIterator()
+        try #require(await stops.next() == true)
+        #expect(!returned && driver.onFinish == nil)
+        driver.late?(.success(true))
+        #expect(!returned)
+        release.continuation.yield(true); release.continuation.finish()
+        do { _ = try await task.value; Issue.record("Cancelled playback returned a result.") }
+        catch { #expect(error is CancellationError) }
+        #expect(returned)
+    }
+
+    @Test func driverFailurePreservesTimeoutReason() async {
+        let driver = Driver(); driver.finishImmediately = nil
+        let task = Task {
+            try await NativeSpeechRequest.run(["text": "Neutral"], makeDriver: { _ in driver })
+        }
+        var starts = driver.startSignal.stream.makeAsyncIterator()
+        _ = await starts.next()
+        driver.onFinish?(.failure(DraftlyCore.ActionExecutionInterruption.timeout))
+        do { _ = try await task.value; Issue.record("Timed out playback returned a result.") }
+        catch { #expect(error as? DraftlyCore.ActionExecutionInterruption == .timeout) }
+        #expect(driver.onFinish == nil)
     }
 
     @Test func driverCreationErrorsRemainErrors() async {

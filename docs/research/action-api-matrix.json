@@ -23340,6 +23340,21 @@
           "suite": "NativeProcessExecutorTests",
           "test": "expiredParentExitStopsItsRemainingDescendantBeforeReturning",
           "file": "Tests/DraftlyTests/NativeProcessExecutorTests.swift"
+        },
+        {
+          "suite": "NativeSpeechProcessTests",
+          "test": "interruptionReapsBlockedHelperBeforeRemovingInput",
+          "file": "Tests/DraftlyTests/NativeSpeechProcessTests.swift"
+        },
+        {
+          "suite": "NativeSpeechRequestTests",
+          "test": "cancellationWaitsForDriverCleanupBeforeReturning",
+          "file": "Tests/DraftlyTests/NativeSpeechRequestTests.swift"
+        },
+        {
+          "suite": "NativeSpeechRequestTests",
+          "test": "driverFailurePreservesTimeoutReason",
+          "file": "Tests/DraftlyTests/NativeSpeechRequestTests.swift"
         }
       ],
       "nativeVerification": {

@@ -5,6 +5,7 @@ import DraftlyCore
 @main enum DraftlyLauncher {
     @MainActor static func main() {
         if let status = NativeAppleScriptProcess.runHelperIfRequested() { exit(status) }
+        if let status = NativeSpeechProcess.runHelperIfRequested() { exit(status) }
         while true {
             do {
                 try ApplicationIdentityMigration.prepare()

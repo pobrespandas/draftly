@@ -9517,3 +9517,59 @@ Next fix: isolate native synthesis and its blocking cleanup from MainActor.
 Cancellation and timeout must finish cleanup without waiting on an unbounded
 speech-system call. Preserve voice identity, rate, panels and final results.
 Repeat this native case and a successful following action after that fix.
+
+## Speech helper isolation and native recovery — 22 October 2026
+
+The failure recorded above was corrected in the asynchronous speech route.
+NSSpeechSynthesizer now runs in a private mode of the Draftly executable.
+The parent awaits an owned process with cancellation and deadline cleanup.
+The launcher enters helper mode before preferences or SwiftUI initialize.
+Text, voice identity and rate pass through a private request file.
+
+Tests preserve the existing notice and driver contracts. New tests check exact
+Unicode and voice/rate transport, Boolean results, helper errors, malformed
+responses and helper-mode validation. Real silent helper fixtures ignore TERM.
+Cancel and timeout must reap them before request-file removal and return the
+correct typed reason. A held cleanup fixture proves the playback result cannot
+return before driver cleanup. A timeout cannot show the completion notice.
+All33 speech/AppleScript test methods passed. Full Swift runs passed Core674 and
+application745; XML results matched discovery. All68 Python tests passed.
+The local Debug build passed after regenerating the project to include the new
+source file. Structural matrix validation passed. Strict engine acceptance
+still reports six partial contracts and 18 diagnostics.
+
+A separate manual session used the complete corrected Debug bundle in Engine QA.
+The debug library SHA256 was
+`7bfe58e99f7ccd5ebe375bcc8f09c7dc6775272c495ddb2d6996b340f58ca02c`.
+The session started with an empty isolated library. Computer Use imported
+engine-speech-actions.json and ran QA Speech completion through a URL. After
+Read, the actual helper process and its private request folder were observed.
+The Actions menu remained available. Cancel Running Action returned exactly one
+x-cancel callback. The helper and folder were absent before the final callback
+was inspected. The retained source text stayed in Inbox with no completion
+text. A following real shell action returned one success callback with exact
+Unicode output.
+
+A second run of the same short-phrase action exercised the unchanged production
+timeout. Its actual helper remained live and the receiver had zero callbacks
+through approximately97 seconds after the live-process observation. After the
+configured120-second limit, the receiver showed one x-error callback: The action
+operation timed out before it completed. The helper and private folder were
+absent when inspected at approximately134.5 seconds. No precise timer latency
+is inferred from that observation interval. The retained source text remained
+in Inbox. A following real shell action again returned exactly one success.
+Closed history records were Cancelled, Success, Error and Success in that order.
+
+QA and the callback helper quit normally. Exact process absence, private-folder
+cleanup and LaunchServices unregistration were checked. Their packages, closed
+library and preferences remain recoverable in the Trash. The usual app was
+not replaced. No shared speech service was terminated and no audio setting or
+permission changed.
+
+This accepts URL speech task cancellation, production timeout, cleanup and
+following recovery for this implementation. Audible successful completion,
+output-stop confirmation, individual owner close and capability-specific
+Intent delivery remain pending. The audio subsystem did not complete the short
+phrase on this Mac. The new isolation fixes the parent-app hang; it does not
+claim to repair the operating system audio condition. The legacy synchronous
+speech path is unchanged and is not accepted by this session.
