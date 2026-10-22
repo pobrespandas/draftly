@@ -9009,3 +9009,33 @@ engine gate still reports 18 diagnostics across six partial contracts. Continue
 from `research/engine-native-checklist.md`, including sharing task cancellation
 and owner closure after service handoff. Confirmed Mail delivery still requires
 an implementation and an authorized recipient. The habitual app was unchanged.
+
+
+## Native sharing task cancellation after handoff — 22 October 2026
+
+At 94aa77f, an isolated QA copied the closed neutral library. A cold URL run
+used a headless execution owner while the visible window remained Untitled.
+Its Cancel Running Action item was disabled. Notes Cancel returned one cancel
+callback. This does not accept task cancellation from that unrelated window.
+
+The draft was then loaded through its open URL. A second sharing URL selected
+Notes and displayed the actual extension dialog. Window selected the source
+draft; Actions now enabled Cancel Running Action. That command returned exactly
+one cancel callback. The prepared 38-byte Unicode file remained readable while
+the Notes provider was pending. The completed script text stayed in Inbox; the
+success tail and Archive did not run.
+
+A following shell recovery URL succeeded before the old provider closed. It
+returned one success callback with `value=Shell recovery café 🐼`. Minimizing the
+source exposed the old Notes dialog. Its actual Cancel removed the old file.
+The receiver remained at one recovery success with no extra callback. Closed
+storage recorded Cancelled, Cancelled and Success for these three runs. The
+final draft held the recovery text in Inbox. No Notes item was saved.
+
+QA executable SHA256:
+6c87f6ee73dff21712187281f8ea4df70b0787414e14a0299084b019cabb440d.
+No production code or tests changed. The preceding complete regression applies
+to this production source. QA and helper quit normally. Process absence and
+exact LaunchServices unregistration passed. Apps, preferences and the closed
+library remain recoverable in `~/.Trash/DraftlySharingCancelQA-r3c4x1dx`.
+The habitual app was unchanged. Owner closure after handoff remains pending.
