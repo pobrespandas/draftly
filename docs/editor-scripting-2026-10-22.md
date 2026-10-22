@@ -359,3 +359,32 @@ Native Settings toggles and scripting with a changed local preference still need
 acceptance in QA. Built-in feature declarations and their styling need reference
 comparison. Feature keys do not close autocomplete, hanging indentation, grammar
 validation, import conflicts, or the remaining Advanced Find checks.
+
+## Autocomplete query foundation
+
+Shared syntax analysis now builds a completion request from the latest trigger
+on the current line and the UTF-16 insertion point. A request retains its source
+range, display labels, insertion values and draft identities. It does not change
+editor text. Static definitions support optional template processing against
+current unsaved text. Draft definitions use the target draft for templates,
+query title or full text, require each listed tag, exclude Trash and the current
+draft, and order results by modification date with an identity tie break.
+Disabled rules and feature requirements use the same syntax rule filter.
+
+Tests cover Unicode triggers/ranges, query filtering, template processing on/off,
+unsaved current content, prefix/suffix, equal labels with different values or
+draft identities, title/full-text queries, tags, Trash, current draft exclusion,
+closed delimiters, invalid selection, feature disablement and invalid triggers.
+All 19 shared syntax methods and the local Xcode build passed. The original raw
+grammar is unchanged.
+
+This is the query foundation, not completed editor autocomplete. No dropdown is
+connected yet. Complete keyboard selection, acceptance, cancellation, stale
+requests, Undo and native comparison before accepting the feature. Built-in
+trigger definitions also remain pending. Keep unknown imported fields intact.
+
+AppKit completion documentation was checked through the official Apple source.
+Its completion insertion callback receives a word, while this domain can have
+equal labels with different values. The UI must retain result identity and must
+not choose a draft by display label alone. Reference:
+https://developer.apple.com/documentation/appkit/nstextview/insertcompletion(_:forpartialwordrange:movement:isfinal:)

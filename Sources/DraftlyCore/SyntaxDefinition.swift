@@ -9,6 +9,17 @@ public struct SyntaxFeature: Identifiable, Equatable {
     public let defaultValue: Bool
 }
 
+public struct SyntaxCompletion: Equatable {
+    public let label: String
+    public let value: String
+    public let draftID: UUID?
+}
+
+public struct SyntaxCompletionRequest: Equatable {
+    public let range: NSRange
+    public let items: [SyntaxCompletion]
+}
+
 public struct SyntaxDefinition: Identifiable, Codable, Equatable {
     public var id: UUID
     public var name: String
@@ -64,6 +75,26 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
                           let completed = (rule["completedState"] as? [String]) ?? states.last.map({ [$0] }), !completed.isEmpty,
                           completed.allSatisfy(states.contains), ["line", "task"].contains(rule["rangeType"] as? String ?? "") else {
                         throw DraftlyError.message("The syntax task states are invalid.")
+                    }
+                }
+            }
+        }
+        if let definitions = value["autocompleteDefinitions"] {
+            guard let definitions = definitions as? [[String: Any]] else { throw DraftlyError.message("The autocomplete definitions are invalid.") }
+            for definition in definitions {
+                guard let trigger = definition["trigger"] as? String, !trigger.isEmpty,
+                      let type = definition["type"] as? String, ["draft", "static"].contains(type) else {
+                    throw DraftlyError.message("The autocomplete trigger or type is invalid.")
+                }
+                if type == "draft" {
+                    guard definition["label"] is String, definition["value"] is String,
+                          ["title", "fullText"].contains(definition["queryType"] as? String ?? "title") else {
+                        throw DraftlyError.message("The draft autocomplete definition is invalid.")
+                    }
+                } else {
+                    guard let items = definition["items"] as? [[String: Any]],
+                          items.allSatisfy({ $0["label"] is String && $0["value"] is String }) else {
+                        throw DraftlyError.message("The static autocomplete items are invalid.")
                     }
                 }
             }
@@ -173,6 +204,53 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
             }
         }.sorted { ($0["location"] as? Int ?? 0) < ($1["location"] as? Int ?? 0) }
     }
+    public func completion(in text: String, selection: NSRange, drafts: [Note], current: Note,
+                           now: Date = Date()) -> SyntaxCompletionRequest? {
+        let source = text as NSString
+        guard selection.length == 0, selection.location >= 0, selection.location <= source.length else { return nil }
+        let lineRange = source.lineRange(for: NSRange(location: selection.location, length: 0))
+        let before = source.substring(with: NSRange(location: lineRange.location, length: selection.location - lineRange.location)) as NSString
+        var candidates: [(Int, Int, [String: Any])] = []
+        for (index, definition) in rules("autocompleteDefinitions").enumerated() {
+            guard let trigger = definition["trigger"] as? String, !trigger.isEmpty else { continue }
+            let found = before.range(of: trigger, options: .backwards)
+            if found.location != NSNotFound { candidates.append((found.location, index, definition)) }
+        }
+        guard let candidate = candidates.sorted(by: { $0.0 == $1.0 ? $0.1 < $1.1 : $0.0 > $1.0 }).first,
+              let trigger = candidate.2["trigger"] as? String else { return nil }
+        let rule = candidate.2
+        let query = before.substring(from: candidate.0 + trigger.utf16.count)
+        let suffix = rule["suffix"] as? String ?? ""
+        guard suffix.isEmpty || !query.contains(suffix) else { return nil }
+        var context = current; context.content = text
+        func contains(_ value: String) -> Bool {
+            query.isEmpty || value.range(of: query, options: [.caseInsensitive, .diacriticInsensitive]) != nil
+        }
+        func rendered(_ item: [String: Any], note: Note, template: Bool) -> SyntaxCompletion {
+            let prefix = item["prefix"] as? String ?? "", suffix = item["suffix"] as? String ?? ""
+            let label = item["label"] as? String ?? "", value = item["value"] as? String ?? ""
+            return SyntaxCompletion(label: prefix + (template ? Templates.render(label, note: note, now: now) : label) + suffix,
+                value: prefix + (template ? Templates.render(value, note: note, now: now) : value) + suffix,
+                draftID: rule["type"] as? String == "draft" ? note.id : nil)
+        }
+        let items: [SyntaxCompletion]
+        if rule["type"] as? String == "draft" {
+            let filters = (rule["queryTagFilter"] as? String ?? "").split(separator: ",").map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+            items = drafts.filter { note in
+                note.id != current.id && note.trashedAt == nil &&
+                contains(rule["queryType"] as? String == "fullText" ? note.content : note.title) &&
+                filters.allSatisfy { TagRules.matches($0, in: note.tags) }
+            }.sorted { $0.modifiedAt == $1.modifiedAt ? $0.id.uuidString < $1.id.uuidString : $0.modifiedAt > $1.modifiedAt }
+                .map { rendered(rule, note: $0, template: true) }
+        } else {
+            items = (rule["items"] as? [[String: Any]] ?? []).map { item in
+                rendered(item, note: context, template: item["processTemplateTags"] as? Bool ?? rule["processTemplateTags"] as? Bool ?? false)
+            }.filter { contains($0.label) }
+        }
+        return SyntaxCompletionRequest(range: NSRange(location: lineRange.location + candidate.0,
+            length: before.length - candidate.0), items: items)
+    }
+
     public func listContinuation(in text: String, selection: NSRange) -> (range: NSRange, text: String)? {
         let source = text as NSString
         guard selection.location >= 0, selection.length >= 0, selection.location <= source.length,

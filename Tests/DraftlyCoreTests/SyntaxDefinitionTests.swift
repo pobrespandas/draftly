@@ -279,6 +279,56 @@ struct SyntaxDefinitionTests {
         #expect(SyntaxFeaturePreferences.values(for: syntax.name, encoded: "invalid").isEmpty)
     }
 
+    @Test func staticCompletionUsesUTF16TriggerCurrentTextAndTemplateOptions() throws {
+        var object = source()
+        object["featureKeys"] = [["id": "suggestions", "name": "Suggestions", "description": "Neutral options", "defaultValue": true]]
+        object["autocompleteDefinitions"] = [["trigger": "!!", "type": "static", "featureKeys": "suggestions", "processTemplateTags": true,
+            "items": [["label": "Current title", "value": "[[title]]", "prefix": "<", "suffix": ">"],
+                      ["label": "Raw tags", "value": "[[draft]]", "processTemplateTags": false],
+                      ["label": "café 🐼", "value": "First"], ["label": "café 🐼", "value": "Second"]]]]
+        let syntax = try definition(object), current = Note(content: "Old title")
+        let text = "Unsaved title 🐼\n!!"
+        let request = try #require(syntax.completion(in: text, selection: NSRange(location: text.utf16.count, length: 0), drafts: [], current: current))
+        #expect(request.range == (text as NSString).range(of: "!!"))
+        #expect(request.items.map(\.value) == ["<Unsaved title 🐼>", "[[draft]]", "First", "Second"])
+        #expect(request.items[0].label == "<Current title>" && request.items.allSatisfy { $0.draftID == nil })
+        let filtered = "🐼 !!CAFE"
+        let matches = try #require(syntax.completion(in: filtered, selection: NSRange(location: filtered.utf16.count, length: 0), drafts: [], current: current))
+        #expect(matches.items.map(\.value) == ["First", "Second"])
+        #expect(matches.range == NSRange(location: 3, length: 6))
+        #expect(syntax.completion(in: "!!\nplain", selection: NSRange(location: 8, length: 0), drafts: [], current: current) == nil)
+        #expect(syntax.completion(in: "!!", selection: NSRange(location: 0, length: 2), drafts: [], current: current) == nil)
+        #expect(syntax.completion(in: "!!", selection: NSRange(location: Int.max, length: 0), drafts: [], current: current) == nil)
+        #expect(syntax.resolvingFeatures(["suggestions": false]).completion(in: "!!", selection: NSRange(location: 2, length: 0), drafts: [], current: current) == nil)
+        #expect(current.content == "Old title")
+    }
+
+    @Test func draftCompletionFiltersTitlesTextTagsAndPreservesDuplicateIdentities() throws {
+        var object = source()
+        object["autocompleteDefinitions"] = [["trigger": "[[", "type": "draft", "label": "[[display_title]]", "value": "[[body]]",
+            "prefix": "[[", "suffix": "]]", "queryType": "title", "queryTagFilter": "blue, red"]]
+        let current = Note(content: "Current"), now = Date(timeIntervalSince1970: 100)
+        var first = Note(content: "# Café 🐼\nBody one"); first.tags = ["blue/sub", "red"]; first.modifiedAt = now
+        var second = Note(content: "# Café 🐼\nBody two"); second.tags = ["blue", "red"]; second.modifiedAt = now.addingTimeInterval(-1)
+        var bodyOnly = Note(content: "Other title\nCafé content"); bodyOnly.tags = ["blue", "red"]
+        var missingTag = first; missingTag.id = UUID(); missingTag.tags = ["blue"]
+        var trash = first; trash.id = UUID(); trash.trashedAt = now
+        let drafts = [second, missingTag, trash, current, first, bodyOnly]
+        let syntax = try definition(object), text = "🐼 [[cafe"
+        let request = try #require(syntax.completion(in: text, selection: NSRange(location: text.utf16.count, length: 0), drafts: drafts, current: current))
+        #expect(request.items.map(\.draftID) == [first.id, second.id])
+        #expect(request.items.map(\.label) == ["[[Café 🐼]]", "[[Café 🐼]]"])
+        #expect(request.items.map(\.value) == ["[[Body one]]", "[[Body two]]"])
+        #expect(syntax.completion(in: "[[cafe]]", selection: NSRange(location: 8, length: 0), drafts: drafts, current: current) == nil)
+        var rules = try #require(object["autocompleteDefinitions"] as? [[String: Any]])
+        rules[0]["queryType"] = "fullText"; object["autocompleteDefinitions"] = rules
+        #expect(try definition(object).completion(in: text, selection: NSRange(location: text.utf16.count, length: 0), drafts: drafts, current: current)?.items.contains { $0.draftID == bodyOnly.id } == true)
+        rules[0]["enabled"] = false; object["autocompleteDefinitions"] = rules
+        #expect(try definition(object).completion(in: text, selection: NSRange(location: text.utf16.count, length: 0), drafts: drafts, current: current) == nil)
+        rules[0]["trigger"] = ""; object["autocompleteDefinitions"] = rules
+        #expect(throws: (any Error).self) { try definition(object) }
+    }
+
     @Test func customLinkTemplatesUseCapturedRangeAndEncodeValuesOnce() throws {
         var value = source()
         var rules = try #require(value["linkDefinitions"] as? [[String: Any]])
