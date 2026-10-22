@@ -665,3 +665,31 @@ comparison still require separate acceptance. This does not close grammar parity
 Full serial regression passed 694 app methods/122 suites and 666 Core methods/124
 suites. Matrix structural check passed with zero errors. No deadline or retry
 changed. Native indentation acceptance remains pending. Usual app unchanged.
+
+## Hanging indentation glyph metrics and native wrapping
+
+A new parameterized headless test compares actual NSLayoutManager glyph positions.
+The first content glyph and the first wrapped glyph align within one point for
+space and tab prefixes, each with text.normal and themed text.heading metrics.
+It checks the rendered layout rather than repeating the prefix-width calculation.
+All eight rendering methods passed, including these four parameter cases. No
+production code changed. The current binary is the successful ebf52e4 local build.
+Matrix structural check passed with zero errors.
+
+Isolated Wrap QA displayed long Markdown list and quote paragraphs. Wrapped lines
+aligned with the content after the prefix for two spaces, a tab and a quotation.
+Undo removed the pasted source. Redo restored the exact 782-character source.
+Drafts54.1.1 received a separate neutral note with the same source. Its built-in
+Markdown showed the same hanging alignment for these cases. This is functional
+wrapping evidence, not a full one-point visual comparison with normalized setup.
+Native custom theme metrics remain unverified; automatic themed metrics passed.
+
+The comparison exposed separate differences: Drafts italicizes quotation text,
+while QA leaves it upright; Drafts reports130 words and QA131 for this source.
+Do not treat either as accepted parity. Keep syntax styling in the remaining
+scope and record word counting separately. Existing reference notes were retained;
+the new neutral Wrap QA note remains in Drafts for reproduction.
+
+QA quit normally. Process absence was checked, its exact registration was removed,
+and its bundle, preferences and closed library are recoverable in Trash. The
+habitual Draftly app was unchanged. No screenshot or raw log is tracked.

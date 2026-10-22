@@ -2515,3 +2515,11 @@ Markdown variants include the archived list/quote rule. Rendering retains source
 selection and paragraph settings. Focused Core21/app7, full app694/Core666, local
 build and matrix structure passed. Native/tab/theme/reference checks remain pending.
 See the dated continuation. This does not close Editor and scripting.
+
+### Hanging indentation acceptance — 22 October 2026
+
+Eight rendering tests passed, including four actual glyph-alignment cases for
+spaces/tabs and normal/themed metrics. Native QA and Drafts54.1.1 showed the same
+basic hanging alignment. QA Undo/Redo retained782 characters. Quote styling and
+word-count differences are recorded separately. Native custom themes remain open.
+QA retired recoverably; usual Draftly unchanged. See the dated continuation.

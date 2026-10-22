@@ -274,4 +274,39 @@ struct ThemeRenderingTests {
             #expect(text.undoManager?.canUndo != true && !window.isVisible)
         }
     }
+    @Test(arguments: ["  - ", "\t- "], ["text.normal", "text.heading"])
+    func hangingIndentationAlignsWrappedGlyphsWithStyledPrefix(prefix: String, scope: String) async throws {
+        _ = NSApplication.shared
+        let source = prefix + String(repeating: "neutral café ", count: 15)
+        let session = EditorSession(); session.load(Note(content: source), focusEditor: false)
+        let syntax = try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: [
+            "name": "Neutral metrics", "patterns": [["match": "^(" + NSRegularExpression.escapedPattern(for: prefix) + ")", "captures": ["1": ["scope": scope]]]],
+            "navigationPatterns": [], "taskMarkDefinitions": [], "linkDefinitions": [],
+            "indentationPatterns": [["match": "^(" + NSRegularExpression.escapedPattern(for: prefix) + ").*", "indentCapture": "1", "indentScope": scope]]]))
+        let editor = NativeEditor(session: session, fontName: "System", fontSize: 17, lineSpacing: 2, markdown: false,
+            syntaxDefinition: syntax, theme: try theme(), onChange: {})
+        let host = NSHostingView(rootView: editor)
+        let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 240, height: 400), styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = host
+        defer { window.contentView = nil }
+        host.layoutSubtreeIfNeeded(); await TestMainQueue.drain()
+        func findText(_ view: NSView) -> NSTextView? {
+            if let text = view as? NSTextView { return text }
+            return view.subviews.lazy.compactMap { findText($0) }.first
+        }
+        let text = try #require(findText(host)), layout = try #require(text.layoutManager), container = try #require(text.textContainer)
+        container.widthTracksTextView = false
+        container.containerSize = NSSize(width: 200, height: 10000)
+        layout.ensureLayout(for: container)
+        let labelGlyph = layout.glyphIndexForCharacter(at: prefix.utf16.count)
+        var firstLine = NSRange()
+        let firstRect = layout.lineFragmentRect(forGlyphAt: labelGlyph, effectiveRange: &firstLine)
+        let nextGlyph = NSMaxRange(firstLine)
+        #expect(nextGlyph < layout.numberOfGlyphs)
+        let nextRect = layout.lineFragmentRect(forGlyphAt: nextGlyph, effectiveRange: nil)
+        let labelX = firstRect.minX + layout.location(forGlyphAt: labelGlyph).x
+        let wrappedX = nextRect.minX + layout.location(forGlyphAt: nextGlyph).x
+        #expect(abs(labelX - wrappedX) <= 1)
+        #expect(text.string == source && session.content == source && !window.isVisible)
+    }
 }
