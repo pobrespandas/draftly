@@ -4,6 +4,11 @@ Updated: 22 October 2026.
 
 ## Current Actions engine acceptance
 
+Print callback delivery now checks synchronous task-cancellation state. Both
+normal callback answers are rejected after cancellation, with owned-presentation
+cleanup once. Red/green headless cases and the complete Core674/app750 run passed,
+with local Debug compilation. Native print owner-close acceptance remains open.
+
 Native speech source-window close now passed during the completion notice and
 while the helper was confirmed live. Both cancelled without success effects
 and allowed recovery. A later short-phrase run held its callback until OK, then

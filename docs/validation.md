@@ -9688,3 +9688,27 @@ those suites were not rerun for this fixture and native-evidence update.
 Speech system-delivered Intent variants, selected-voice variants and direct
 output-stop confirmation remain separate. The six global partial contracts
 are not closed by this route-specific acceptance.
+
+## Print callback cancellation race — 22 October 2026
+
+At `58dea8c`, two headless driver cases cancelled the task immediately before
+delivering true or false from the print callback. Both returned normal results
+and skipped cancelOwnedPresentation. The before-fix run failed both cases.
+
+PrintRequestWait now records cancellation synchronously in a locked flag.
+The queued MainActor handler still performs cleanup, but a callback also checks
+the flag. It detaches callbacks, cancels the owned presentation once and throws
+CancellationError. NativePrintRequest checks cancellation after a normal resume.
+The same tests now pass; a later captured callback cannot repeat cleanup.
+
+The focused print suite passed16 methods, including both regression cases.
+The existing PDF output test still runs without a print or progress panel.
+Complete Swift runs passed Core674/app750; XML reports matched discovery.
+Local Debug compilation, structural matrix validation and diff checks passed.
+No test retries or longer deadlines were added. Python code did not change;
+its earlier68-test result is separate, not a new run.
+
+No native print panel was opened in this session. Native source-window closure
+remains separate and unaccepted: the earlier manual attempt did not establish
+owner closure. This fix also does not recall an already delivered print job
+or undo completed external effects. The usual app was not replaced.

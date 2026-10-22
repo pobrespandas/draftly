@@ -798,3 +798,13 @@ Detached launches keep their separate lifetime. They do not use the waited
 operation's cancellation handler. Their existing ownership tests still apply.
 The parent-exit regression tests share a fixture; expiry and cancellation keep
 separate assertions and test identities.
+
+## Print cancellation at callback delivery — 22 October 2026
+
+The asynchronous print wait records task cancellation before it schedules
+MainActor cleanup. A callback cannot return a normal true or false result
+after that cancellation. The wait detaches callbacks and cancels only its
+owned presentation before it returns CancellationError. The caller also
+checks task cancellation after a normal resume. Duplicate or late callbacks
+cannot repeat cleanup. This does not recall a print job already delivered
+to the operating system or promise a rollback of completed external effects.

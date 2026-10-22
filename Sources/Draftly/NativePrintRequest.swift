@@ -117,7 +117,9 @@ struct NativePrintPageGeometry {
         guard timeout.isFinite, timeout > 0 else { throw DraftlyError.message("The print timeout must be positive and finite.") }
         let deadline = now().addingTimeInterval(timeout)
         let configuration = try NativePrintConfiguration(values)
-        return try await PrintRequestWait(driver: makeDriver(configuration), deadline: deadline, now: now).run()
+        let result = try await PrintRequestWait(driver: makeDriver(configuration), deadline: deadline, now: now).run()
+        try Task.checkCancellation()
+        return result
     }
 }
 
@@ -156,6 +158,13 @@ struct NativePrintPageGeometry {
 }
 
 @MainActor private final class PrintRequestWait {
+    private final class CancellationState: @unchecked Sendable {
+        private let lock = NSLock()
+        private var cancelled = false
+        var isCancelled: Bool { lock.withLock { cancelled } }
+        func cancel() { lock.withLock { cancelled = true } }
+    }
+    private let cancellation = CancellationState()
     let driver: any NativePrintDriver
     var continuation: CheckedContinuation<Bool, Error>?
     var timer: Task<Void, Never>?
@@ -177,7 +186,10 @@ struct NativePrintPageGeometry {
                 }
                 driver.start()
             }
-        } onCancel: { Task { @MainActor in self.finish(.failure(CancellationError()), cancel: true) } }
+        } onCancel: { [cancellation] in
+            cancellation.cancel()
+            Task { @MainActor in self.finish(.failure(CancellationError()), cancel: true) }
+        }
     }
     private func finish(_ result: Result<Bool, Error>, cancel: Bool = false) {
         guard let continuation else { return }
@@ -185,7 +197,9 @@ struct NativePrintPageGeometry {
         let expired = !cancel && now() >= deadline
         timer?.cancel(); timer = nil
         driver.detach()
-        if cancel || expired { driver.cancelOwnedPresentation() }
-        continuation.resume(with: expired ? .failure(ActionExecutionInterruption.timeout) : result)
+        let cancelled = cancellation.isCancelled
+        if cancel || cancelled || expired { driver.cancelOwnedPresentation() }
+        if cancelled { continuation.resume(throwing: CancellationError()) }
+        else { continuation.resume(with: expired ? .failure(ActionExecutionInterruption.timeout) : result) }
     }
 }

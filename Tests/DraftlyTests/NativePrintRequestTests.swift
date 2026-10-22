@@ -157,6 +157,20 @@ struct NativePrintRequestTests {
         driver.late?(.success(true))
         #expect(driver.detached == 1 && driver.cancelled == 1)
     }
+    @Test(arguments: [true, false])
+    func queuedPrintCompletionCannotSkipCancellationCleanup(success: Bool) async throws {
+        let driver = Driver(); driver.result = .success(success)
+        var task: Task<Bool, Error>?
+        driver.beforeFinish = { task?.cancel() }
+        task = Task { try await NativePrintRequest.run([:], makeDriver: { _ in driver }) }
+        let pending = try #require(task)
+        do { _ = try await pending.value; Issue.record("Cancelled print completion returned a result.") }
+        catch { #expect(error is CancellationError) }
+        #expect(driver.started && driver.detached == 1 && driver.cancelled == 1)
+        driver.late?(.success(true))
+        #expect(driver.detached == 1 && driver.cancelled == 1)
+    }
+
     @Test func taskCancellationCancelsOnlyOwnedPresentationAndCompletesOnce() async {
         let driver = Driver(); driver.result = nil
         let task = Task { @MainActor in
