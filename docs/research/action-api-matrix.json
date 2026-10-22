@@ -23276,6 +23276,10 @@
           "suite": "ActionCallbackRouterTests",
           "test": "absoluteDeadlineRejectsDeliveryBeforeTheTimeoutTaskRuns",
           "file": "Tests/DraftlyTests/ActionCallbackRouterTests.swift"
+        },
+        {
+          "suite": "ShortcutLaunchTests",
+          "test": "waitedShortcutInterruptionStopsTheProcessAndRemovesItsInput"
         }
       ],
       "nativeVerification": {

@@ -2649,3 +2649,10 @@ one error callback and kept prior text in Inbox without success effects. A new
 filtered selection returned selected=two once, saved success text and archived.
 Closed storage matched. Core36 and fixture check passed. QA/helper retired
 recoverably; usual app unchanged. Other native obligations remain open.
+
+### Waited Shortcut process cleanup — 22 October 2026
+
+Added two specific real-process adapter cases for cancellation and timeout while
+waiting for Shortcut output. Both terminate the fixture process, remove input
+and reject output. Process/Shortcut17 and local build passed. Native Shortcuts
+service and entry-specific checks remain open; usual app unchanged.

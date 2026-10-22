@@ -214,6 +214,30 @@ struct ShortcutLaunchTests {
         try await fixture.waitForRemoval(input.deletingLastPathComponent())
     }
 
+    @Test(arguments: [false, true])
+    func waitedShortcutInterruptionStopsTheProcessAndRemovesItsInput(cancel: Bool) async throws {
+        let fixture = try ShortcutLaunchFixture(); defer { fixture.clean() }
+        let action = Task {
+            try await NativeAutomationAdapter().runShortcutAsync(name: "Neutral interruption", input: "Pending café 🐼",
+                executable: fixture.executable, timeout: cancel ? 10 : 1)
+        }
+        try await fixture.waitFor("started")
+        let input = try fixture.inputPath()
+        let pid = try fixture.pid()
+        #expect(FileManager.default.fileExists(atPath: input.path))
+        if cancel { action.cancel() }
+        do {
+            _ = try await action.value
+            Issue.record("An interrupted waited Shortcut must not return output.")
+        } catch {
+            if cancel { #expect(error is CancellationError) }
+            else { #expect((error as? ActionExecutionInterruption) == .timeout) }
+        }
+        #expect(getpgid(pid) == -1)
+        #expect(!FileManager.default.fileExists(atPath: input.deletingLastPathComponent().path))
+        #expect(!fixture.exists("finished"))
+    }
+
     @Test func detachedShortcutTimeoutTerminatesTheProcessAndCleansInput() async throws {
         let fixture = try ShortcutLaunchFixture(); defer { fixture.clean() }
         _ = try await NativeAutomationAdapter().runShortcutAsync(name: "Neutral", input: "Timed input", waitForResponse: false, executable: fixture.executable, timeout: 1)

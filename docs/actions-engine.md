@@ -634,3 +634,24 @@ Local Debug build and matrix structural validation passed. Core source did not
 change. No deadlines or retry rules changed. No new native session was performed
 for this correction. Earlier native callbacks retain their tested-image scope.
 This does not close the six partial engine contracts or native-route checklist.
+
+## Waited Shortcut process interruption — 22 October 2026
+
+The waited Shortcut adapter now has explicit cancellation and timeout cases.
+A neutral injected executable starts a real local process and waits on a fixture
+release file. The test waits for its started marker, confirms the transferred
+input file exists, then cancels the task or awaits the configured test timeout.
+Both cases require the distinct error, no returned result, terminated process,
+removed input directory and absence of the completion marker. The executable
+uses no installed Shortcut, permissions, sound, windows or personal data.
+
+All17 native process/Shortcut methods in two suites passed, including both new
+parameter cases. Local Debug build and matrix structural check passed. No
+production source or production deadline changed. The prior full app709 result
+remains a prior result; it is not a rerun of this new test.
+
+This accepts the actual adapter's process and input ownership under interruption
+with an injected executable. It does not accept /usr/bin/shortcuts dispatch,
+Shortcuts service cleanup, UI/URL/Intent capability-specific cancellation or a
+real Shortcut's external effects. Those native obligations remain open in
+engine-native-checklist.md. No new manual session or habitual app update occurred.
