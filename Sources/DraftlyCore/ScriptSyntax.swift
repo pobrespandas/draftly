@@ -12,7 +12,7 @@ public enum ScriptSyntax {
 public extension ScriptSyntax {
     static func definition(_ name: String) throws -> SyntaxDefinition {
         guard names.contains(name) else { throw DraftlyError.message("The syntax is not installed: \(name)") }
-        var tasks: [[String: Any]] = [], markers: [[String: Any]] = [], links: [[String: Any]] = [], lists: [[String: Any]] = [], completions: [[String: Any]] = []
+        var tasks: [[String: Any]] = [], markers: [[String: Any]] = [], links: [[String: Any]] = [], lists: [[String: Any]] = [], completions: [[String: Any]] = [], indentations: [[String: Any]] = []
         if isMarkdown(name) || name == "Simple List" {
             tasks = [["match": #"(\[[ xX]\])"#, "rangeType": "task", "captures": ["interactive": "1", "state": "1"], "states": ["[ ]", "[x]"], "initialState": "[ ]", "completedState": ["[x]"], "caseInsensitiveStates": true]]
         }
@@ -21,6 +21,7 @@ public extension ScriptSyntax {
                 ["trigger": "[[", "type": "draft", "label": "[[display_title]]", "value": "[[display_title]]", "queryType": "title", "queryTagFilter": "", "prefix": "[[", "suffix": "]]"],
                 ["trigger": "<<", "type": "draft", "label": "[[display_title]]", "value": "[[draft]]", "queryType": "title", "queryTagFilter": "", "prefix": "", "suffix": ""]
             ]
+            indentations = [["match": #"(^\h*\* |^\h*\- |^\h*\+ |^\h*\d+\. |^\h*>[> ]+).*"#, "indentCapture": "1", "indentScope": "text.normal"]]
             tasks[0]["scopes"] = ["interactive": "text.monospace.bold"]
             markers = (1...6).map { level in ["match": "^" + String(repeating: "#", count: level) + #" ([^\r\n]*)"#, "rangeCapture": "0", "labelCapture": "1", "prefix": "H\(level)", "level": level - 1] }
             links = [["match": #"(\[\[)((?:([^:\]\r\n]+):)?([^\]\r\n]+))(\]\])"#, "captures": ["prefix": "1", "link": "2", "key": "3", "value": "4", "suffix": "5"]]]
@@ -53,6 +54,6 @@ public extension ScriptSyntax {
             lists = [["match": #"^(\h*)(- )([^\r\n]*)"#, "captures": ["indent": "1", "prefix": "2", "line": "3"]]]
             markers = [["match": #"^\h*([^\s-][^\r\n]*):\h*$"#, "rangeCapture": "0", "labelCapture": "1", "prefix": "Project", "level": 0]]
         }
-        return try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: ["name": name, "patterns": [], "indentationPatterns": [], "taskMarkDefinitions": tasks, "navigationPatterns": markers, "linkDefinitions": links, "listCompletionDefinitions": lists, "autocompleteDefinitions": completions], options: [.sortedKeys]), type: "builtIn")
+        return try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: ["name": name, "patterns": [], "indentationPatterns": indentations, "taskMarkDefinitions": tasks, "navigationPatterns": markers, "linkDefinitions": links, "listCompletionDefinitions": lists, "autocompleteDefinitions": completions], options: [.sortedKeys]), type: "builtIn")
     }
 }

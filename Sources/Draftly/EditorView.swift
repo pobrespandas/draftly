@@ -299,6 +299,25 @@ struct NativeEditor: NSViewRepresentable {
                 }
                 view.linkTextAttributes = presentation
             }
+            if let definition = parent.syntaxDefinition {
+                for indentation in definition.indentations(in: view.string) {
+                    var metrics: [NSAttributedString.Key: Any] = [.font: font, .paragraphStyle: paragraph]
+                    for scope in indentation.scope.split(separator: ",").map({ $0.trimmingCharacters(in: .whitespaces) }) {
+                        var metricFont = metrics[.font] as? NSFont ?? font
+                        if scope.contains("monospace"), !metricFont.isFixedPitch { metricFont = NSFont.monospacedSystemFont(ofSize: metricFont.pointSize, weight: .regular) }
+                        if scope.contains("bold") { metricFont = NSFontManager.shared.convert(metricFont, toHaveTrait: .boldFontMask) }
+                        if scope.contains("italic") { metricFont = NSFontManager.shared.convert(metricFont, toHaveTrait: .italicFontMask) }
+                        metrics[.font] = metricFont
+                        if let style = parent.theme?.scopeStyle(named: scope) {
+                            metrics.merge(ThemeTextAttributes.make(style, currentFont: metrics[.font] as? NSFont ?? font, baseFont: baseFont)) { _, new in new }
+                        }
+                    }
+                    let prefix = (view.string as NSString).substring(with: indentation.prefix)
+                    let style = paragraph.mutableCopy() as! NSMutableParagraphStyle
+                    style.headIndent = (prefix as NSString).size(withAttributes: metrics).width
+                    storage.addAttribute(.paragraphStyle, value: style, range: indentation.range)
+                }
+            }
             storage.endEditing()
             view.typingAttributes = baseAttributes
         }

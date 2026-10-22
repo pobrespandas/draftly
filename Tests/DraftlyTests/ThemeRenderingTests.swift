@@ -239,4 +239,39 @@ struct ThemeRenderingTests {
             #expect(text.string == session.content && text.selectedRange() == session.selection)
         }
     }
+    @Test func hangingIndentationChangesWrappingWithoutChangingSourceOrSelection() async throws {
+        _ = NSApplication.shared
+        let source = "🐼  café text that wraps\nplain"
+        let session = EditorSession(); session.load(Note(content: source), focusEditor: false)
+        let selected = NSRange(location: 4, length: 4); session.selection = selected
+        let syntax = try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: [
+            "name": "Neutral indentation", "patterns": [], "navigationPatterns": [], "taskMarkDefinitions": [], "linkDefinitions": [],
+            "indentationPatterns": [["match": #"^(🐼 +).*"#, "indentCapture": "1", "indentScope": "text.normal", "featureKeys": "indent"]],
+            "featureKeys": [["id": "indent", "name": "Indent", "description": "Neutral wrapping", "defaultValue": true]]]))
+        func editor(_ enabled: Bool) -> NativeEditor {
+            NativeEditor(session: session, fontName: "System", fontSize: 17, lineSpacing: 2, markdown: false,
+                lineHeightMultiple: 1.2, paragraphSpacing: 3, syntaxDefinition: syntax.resolvingFeatures(["indent": enabled]), onChange: {})
+        }
+        let host = NSHostingView(rootView: editor(true))
+        let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 200, height: 400), styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = host
+        defer { window.contentView = nil }
+        func findText(_ view: NSView) -> NSTextView? {
+            if let text = view as? NSTextView { return text }
+            return view.subviews.lazy.compactMap { findText($0) }.first
+        }
+        for enabled in [true, false, true] {
+            host.rootView = editor(enabled); host.layoutSubtreeIfNeeded(); await TestMainQueue.drain()
+            let text = try #require(findText(host)), storage = try #require(text.textStorage)
+            let style = try #require(storage.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle)
+            let normal = try #require(storage.attribute(.paragraphStyle, at: source.utf16.count - 1, effectiveRange: nil) as? NSParagraphStyle)
+            let font = try #require(storage.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
+            let expected = ("🐼  " as NSString).size(withAttributes: [.font: font, .paragraphStyle: normal]).width
+            #expect(abs(style.headIndent - (enabled ? expected : 0)) < 0.01)
+            #expect(style.firstLineHeadIndent == 0 && normal.headIndent == 0)
+            #expect(style.lineHeightMultiple == normal.lineHeightMultiple && style.paragraphSpacing == normal.paragraphSpacing)
+            #expect(text.string == source && session.content == source && text.selectedRange() == selected)
+            #expect(text.undoManager?.canUndo != true && !window.isVisible)
+        }
+    }
 }

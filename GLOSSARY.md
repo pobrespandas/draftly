@@ -130,6 +130,10 @@ The recent find requests available for reuse on this device.
 An optional behavior declared by a syntax, with a default value that the user can
 override on the current device. A rule can require one or more enabled features.
 
+**Hanging indentation**:
+The offset of wrapped lines after the first line of a paragraph. A syntax can
+set this offset from a captured prefix without adding spaces to the source.
+
 ### Actions
 
 **Step creation default**:

@@ -2507,3 +2507,11 @@ Identical custom source retains identity; conflicts require reviewed replacement
 Red/green regression, thirty-two focused methods, Core665/124, local build and
 matrix structure passed. Native QA confirmed installation in the syntax selector
 with the note count unchanged. QA retired recoverably. See the dated continuation.
+
+### Grammar hanging indentation — 22 October 2026
+
+Shared UTF-16 prefix ranges now drive paragraph wrapping through indentationPatterns.
+Markdown variants include the archived list/quote rule. Rendering retains source,
+selection and paragraph settings. Focused Core21/app7, full app694/Core666, local
+build and matrix structure passed. Native/tab/theme/reference checks remain pending.
+See the dated continuation. This does not close Editor and scripting.

@@ -52,6 +52,9 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
             for rule in rules {
                 guard let pattern = rule["match"] as? String else { throw DraftlyError.message("A syntax pattern is missing.") }
                 let expression = try NSRegularExpression(pattern: pattern, options: [.anchorsMatchLines])
+                if key == "indentationPatterns", rule["indentCapture"] as? String == nil {
+                    throw DraftlyError.message("The indentation pattern needs an indent capture.")
+                }
                 if key == "navigationPatterns" {
                     guard rule["rangeCapture"] is String, rule["labelCapture"] is String, (0...9).contains(rule["level"] as? Int ?? 0) else { throw DraftlyError.message("The navigation pattern is invalid.") }
                 }
@@ -153,6 +156,21 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
         guard let value = index as? String, let index = Int(value), index >= 0, index < match.numberOfRanges else { return nil }
         let range = match.range(at: index)
         return range.location == NSNotFound ? nil : range
+    }
+    public func indentations(in text: String) -> [(range: NSRange, prefix: NSRange, scope: String)] {
+        let source = text as NSString
+        var lines: Set<Int> = []
+        return rules("indentationPatterns").flatMap { rule in
+            results(rule, text).compactMap { match in
+                guard let prefix = capture(match, rule["indentCapture"]), prefix.length > 0 else { return nil }
+                let line = source.lineRange(for: match.range)
+                guard match.range.location == line.location,
+                      NSMaxRange(prefix) <= NSMaxRange(line),
+                      source.substring(with: prefix).rangeOfCharacter(from: .newlines) == nil,
+                      lines.insert(line.location).inserted else { return nil }
+                return (line, prefix, rule["indentScope"] as? String ?? "text.normal")
+            }
+        }
     }
     public func tasks(in text: String) -> [[String: Any]] {
         let source = text as NSString

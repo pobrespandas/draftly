@@ -438,4 +438,25 @@ struct SyntaxDefinitionTests {
         }
         #expect(try ScriptSyntax.definition("Plain Text").resolvedLinks(in: "[[title]]").isEmpty)
     }
+    @Test func hangingIndentationUsesUTF16PrefixesAndFeatureRules() throws {
+        var object = source()
+        object["indentationPatterns"] = [["match": #"^(🐼 +).*"#, "indentCapture": "1", "indentScope": "text.bold"],
+            ["match": #"^(> +).*"#, "indentCapture": "1", "enabled": false]]
+        let syntax = try definition(object), text = "🐼  café\r\n> quote\nplain"
+        let values = syntax.indentations(in: text)
+        #expect(values.count == 1)
+        let first = try #require(values.first)
+        #expect(first.prefix == NSRange(location: 0, length: 4))
+        #expect(first.range == (text as NSString).lineRange(for: first.prefix))
+        #expect(first.scope == "text.bold")
+        object["indentationPatterns"] = [["match": "^x", "indentCapture": "2"]]
+        #expect(throws: (any Error).self) { try definition(object) }
+        object["indentationPatterns"] = [["match": "^x"]]
+        #expect(throws: (any Error).self) { try definition(object) }
+        for name in ["Markdown", "MultiMarkdown", "GitHub Markdown"] {
+            let builtIn = try ScriptSyntax.definition(name)
+            let prefixes = builtIn.indentations(in: "  - café\n10. item\n> quote\nplain")
+            #expect(prefixes.map(\.prefix.length) == [4, 4, 2])
+        }
+    }
 }

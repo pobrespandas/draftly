@@ -640,3 +640,28 @@ No screenshot or raw log is tracked. Native URL delivery remains pending.
 
 Full serial Core regression passed 665 methods/124 suites. Matrix structure passed
 with zero errors. No timeout or retry changed. App code is unchanged in this fix.
+
+## Grammar-defined hanging indentation
+
+The frozen syntax-format reference defines indentationPatterns as wrapped-line
+presentation. It measures indentCapture with indentScope font metrics. This is
+separate from Enter list continuation and source indentation.
+
+SyntaxDefinition now returns enabled prefix and paragraph ranges in UTF-16.
+It ignores empty/unmatched captures and non-line-start matches. The first matching
+rule supplies the indentation for a paragraph. Missing or out-of-range captures
+fail validation. Runtime values honor the shared feature rules. The archived
+Markdown list/quote pattern is included in the three built-in Markdown variants.
+
+The editor measures the prefix with default scope font traits and theme scope
+metrics. It applies headIndent to the paragraph while retaining the first-line
+position, line height and paragraph spacing. Source content is not changed.
+Twenty-one shared syntax methods and seven offscreen rendering methods passed.
+New cases cover Unicode, CRLF, disabled rules, invalid captures, built-in prefixes,
+feature changes, unchanged text/selection and an empty Undo stack. The local
+Xcode build passed. Native wrapping, tab metrics, themed metrics and Drafts
+comparison still require separate acceptance. This does not close grammar parity.
+
+Full serial regression passed 694 app methods/122 suites and 666 Core methods/124
+suites. Matrix structural check passed with zero errors. No deadline or retry
+changed. Native indentation acceptance remains pending. Usual app unchanged.
