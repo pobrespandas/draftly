@@ -168,3 +168,30 @@ retired after process absence was checked. The bundle, exported preferences,
 closed library and prior QA runtimes are together in recoverable Trash. No
 screenshots or raw logs were added to Git. Native-find focus routing remains a
 separate next correction. This does not close the full Editor/scripting goal.
+
+## Native Find source focus correction
+
+A separate regression test failed before the correction: the source focus hook
+was not called and a bound renderer that rejected focus did not report an error.
+The native route now focuses the source editor before sending its find command.
+It targets the source text view when available. A bound renderer that rejects
+focus reports an explicit error. Legacy headless routing remains available when
+no renderer hook is bound. Public void return behavior is unchanged.
+
+The focused run passed 57 app methods. A separate isolated QA session placed focus
+in the draft list, then invoked the editing-bar Find command. The native bar
+opened, found two “café” matches and selected a source match. Done closed the bar.
+Advanced Find then opened and Escape returned to the source with selection
+retained. Native Find opened again and still found two matches. Source text stayed
+exact. QA quit normally; its exact registration was retired and its closed data
+was retained with the bundle and exported preferences in recoverable Trash.
+
+The final app run passed 672 methods/121 suites. The unchanged Core sources had
+passed 654 methods/124 suites in this stage. Reports for both targets match the
+current inventory. The local build passed. Remaining native acceptance includes
+two independent source windows, background routing, request defaults and the
+remaining reference comparisons. This specific focus failure is resolved; it is
+not a claim of complete native-find or Editor parity.
+
+The final Python run passed 68 tests. The matrix structural check reported zero
+errors. These checks do not promote showFind from partial compatibility.

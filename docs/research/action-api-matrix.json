@@ -3613,7 +3613,7 @@
             "test": "editorInterfaceMembersDelegateWithoutLosingArguments"
           },
           "liveCheck": null,
-          "reviewDate": "2026-10-20",
+          "reviewDate": "2026-10-22",
           "defaults": "See the reference contract and constructor in Bridge.js. The reference does not specify every default.",
           "result": "Returns undefined (void), regardless of the native host result. Host side effects and arguments remain unchanged.",
           "errors": "Host and storage errors throw JavaScript errors.",
@@ -3644,7 +3644,35 @@
                 "test": "regularExpressionsSupportCapturesAndRejectInvalidPatterns"
               }
             ],
-            "nativeVerification": "Temporary QA library: search café, one match, replace with té, close, Undo restores café."
+            "nativeVerification": "Temporary QA library: search café, one match, replace with té, close, Undo restores café.",
+            "followUp": {
+              "reviewDate": "2026-10-22",
+              "implementation": "Independent source-bound Find window, multiline fields, line labels, individual replacement, value reversal and local request history. Native Find refocuses and targets the source text view.",
+              "automatedTests": [
+                {
+                  "suite": "AdvancedFindCommandTests",
+                  "test": "repeatedFindRequestsHaveSeparatePresentationIdentityWithoutMutatingEditor"
+                },
+                {
+                  "suite": "AdvancedFindCommandTests",
+                  "test": "resultPreviewsCountLinesWithoutSplittingCRLFOrUnicode"
+                },
+                {
+                  "suite": "AdvancedFindHistoryTests",
+                  "test": "historyPersistsCompleteRequestsAndMovesExactDuplicatesToTheFront"
+                },
+                {
+                  "suite": "WindowModelTests",
+                  "test": "nativeFindRefocusesItsSourceAndReportsAnUnavailableRenderer"
+                }
+              ],
+              "nativeVerification": "Isolated QA: multiline Find and replacement, Undo with source accessible, no focus theft, explicit reopening focus, Escape and source closure. Separate QA reproduced native Find from list focus and selected a match, then reopened native Find after closing Advanced Find.",
+              "evidence": "docs/editor-scripting-2026-10-22.md",
+              "limitations": [
+                "This does not close all showFind defaults, background routing, multi-window native acceptance, or complete Drafts parity.",
+                "Reverse Values behavior in the reference was inconsistent under automation."
+              ]
+            }
           },
           "automatedVerification": {
             "status": "passed",

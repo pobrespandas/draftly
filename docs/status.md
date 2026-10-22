@@ -2393,3 +2393,18 @@ build and matrix structure0. No test deadlines or retry rules changed.
 The session also found a separate native-find routing defect when list focus
 remains active. That correction is next. Full evidence and remaining scope:
 docs/editor-scripting-2026-10-22.md. The usual app was not changed.
+
+## Native Find source routing correction — 22 October 2026
+
+The separate list-focus defect is corrected. The source focus hook runs before
+the native Find command, and the command targets its source text view. A bound
+renderer that rejects focus produces an error. A new headless regression failed
+before the change and passed after it. Legacy headless calls remain compatible.
+
+Isolated Computer Use verified Find from list focus, two native matches, source
+selection, Advanced Find opening/Escape and return to native Find with text and
+selection retained. QA closed normally and was retired with recoverable data.
+Final app672/121 suites passed. Core654/124 passed before this app-only correction;
+both reports match current discovery. Local build passed. showFind evidence was
+updated with specific tests and native limits; its classification remains partial.
+The usual app is unchanged. Full remaining scope is in the dated Editor record.

@@ -50,6 +50,30 @@ struct WindowModelTests {
         #expect(!model.showAdvancedFind)
     }
 
+    @Test func nativeFindRefocusesItsSourceAndReportsAnUnavailableRenderer() throws {
+        let preferences = try TestPreferences(prefix: "Draftly.NativeFindFocus.")
+        defer { preferences.close() }
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "🐼 café")
+        let model = WindowModel(library: library,
+            dependencies: WindowDependencies(preferences: WindowPreferences(defaults: preferences.defaults)))
+        model.select(note.id)
+        model.editor.selection = NSRange(location: 3, length: 4)
+        model.showAdvancedFind = true
+        var focused = 0
+        model.editor.focusForDictation = { focused += 1; return true }
+        defer { model.editor.focusForDictation = nil }
+        _ = try model.actionUIOperation(["operation": "showFind", "args": [false]])
+        #expect(focused == 1 && !model.showAdvancedFind)
+        #expect(model.editor.content == note.content && model.editor.selection == NSRange(location: 3, length: 4))
+        #expect(!model.hasUnsavedChanges)
+        model.editor.focusForDictation = { false }
+        #expect(throws: (any Error).self) {
+            _ = try model.actionUIOperation(["operation": "showFind", "args": [false]])
+        }
+        #expect(model.editor.content == note.content && library.notes.first?.content == note.content)
+    }
+
     @Test func findPreferenceSelectsTheDefaultButExplicitArgumentsWin() throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let note = try library.createNote(content: "Find café 🐼")

@@ -153,8 +153,12 @@ struct WindowActionAdapter {
             }
             model.showAdvancedFind = false
             if let query = args.dropFirst().first as? String { NSPasteboard(name: .find).clearContents(); NSPasteboard(name: .find).setString(query, forType: .string) }
+            if let focus = model.editor.focusForDictation, !focus() {
+                throw DraftlyError.message("The editor find interface is unavailable.")
+            }
             let item = NSMenuItem(); item.tag = NSTextFinder.Action.showFindInterface.rawValue
-            NSApp.sendAction(#selector(NSTextView.performFindPanelAction(_:)), to: nil, from: item)
+            let target = model.window?.firstResponder as? NSTextView
+            NSApp.sendAction(#selector(NSTextView.performFindPanelAction(_:)), to: target, from: item)
         case "showDictate": try model.showDictation()
         case "arrange": return try model.host.perform("arrangeText", values: ["text": args.first as? String ?? ""])
         case "showArrange": try model.showArrangement()
