@@ -119,6 +119,38 @@ struct RunDraftActionIntentTests {
         #expect(library.runs.count == 1 && library.runs.first?.status == "Error")
     }
 
+    @Test(arguments: ["Promise.reject(new Error('Neutral rejection'));", "script.complete();context.fail('Neutral failure');"])
+    func failedCompletionRetainsPriorWritesStopsTailAndAllowsFollowingIntent(_ source: String) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Neutral")
+        let model = WindowModel(library: library); model.select(note.id)
+        var action = DraftAction(name: "Intent final failure", steps: [
+            ActionStep("script", ["script": "editor.setText('Retained café 🐼');draft.update();context.addSuccessParameter('discard','yes');"]),
+            ActionStep("script", ["allowAsync": "true", "script": source]),
+            ActionStep("script", ["script": "editor.setText('ERROR: tail ran');"])
+        ])
+        action.afterSuccess = "archive"
+        try library.saveAction(action)
+        do {
+            _ = try await intent(action, note: note, library: library, models: [model], host: IntentMarkerHost()).perform()
+            Issue.record("The intent must report the final failure.")
+        } catch {
+            let error = try #require(error as? AutomationActionError)
+            #expect(error.reason == .error && error.executionID == model.runner.lastReport?.executionID)
+        }
+        let failed = try #require(model.runner.lastReport)
+        #expect(failed.successParameters.isEmpty)
+        #expect(!model.actionPending && !model.runner.isRunning)
+        let retained = try #require(library.notes.first { $0.id == note.id })
+        #expect(retained.content == "Retained café 🐼" && !retained.isArchived)
+        let next = DraftAction(name: "Intent recovery", steps: [ActionStep("script", ["script": "editor.setText('Recovery');"])])
+        try library.saveAction(next)
+        _ = try await intent(next, note: retained, library: library, models: [model], host: IntentMarkerHost()).perform()
+        #expect(model.runner.lastReport?.reason == .success)
+        #expect(model.runner.lastReport?.executionID != failed.executionID)
+        #expect(library.notes.first { $0.id == note.id }?.content == "Recovery")
+    }
+
     @Test func preCancelledIntentReturnsTypedCancellationWithoutEffects() async throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let note = try library.createNote(content: "Neutral")

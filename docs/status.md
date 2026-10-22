@@ -2611,3 +2611,10 @@ Task mode ignores the line-only label capture; line mode retains it. A red/green
 legacy/worker case checks labels, UTF-16 ranges and advancement. Older line
 definitions without label still restore and derive their prior fallback. Focused32,
 Core674/124, local build and matrix passed. No new native acceptance is claimed.
+
+### Actions goal resumed — 22 October 2026
+
+Actual Intent failure/recovery coverage passed for rejected promises and failure
+after completion. Prior effects remain; tail and success effects stop. No runtime
+change or native acceptance is claimed. See docs/actions-engine.md. The engine
+goal remains open against docs/research/engine-native-checklist.md.

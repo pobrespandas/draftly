@@ -593,3 +593,22 @@ Cancel-off/text-off variants, interruption/timeout paths and full imported step
 parity remain separate. This does not close Prompt's entire step acceptance or
 the five functional blocks. Continue the remaining inspector and integration
 contracts with specific evidence.
+
+## App Intent final failure regression — 22 October 2026
+
+Automatic: the actual RunDraftActionIntent.perform method now has two explicit
+failure cases: a rejected promise and context.fail after script.complete. Both
+retain a prior persisted Unicode edit, stop the tail, skip Archive, remove success
+parameters, return the matching execution error, and release the window for a
+following successful Intent with a new execution identity. Eight Intent methods
+passed, including these two parameter cases. The prior focused baseline passed
+24 app methods and 18 Core methods. No production behavior or deadline changed.
+
+Native: no new system Shortcut or permission acceptance was performed. These
+headless tests do not accept system dispatch or any native capability route.
+The remaining native checklist and strict engine gate stay open. The habitual
+application was not replaced. Continue with the unresolved capability-specific
+cancel, timeout, owner-close and late-result cases in engine-native-checklist.md.
+
+Validation: local Debug build passed. API matrix structural check reported zero
+errors. This structural result does not close the strict compatibility gate.
