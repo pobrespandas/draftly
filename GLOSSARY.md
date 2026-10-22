@@ -114,6 +114,12 @@ The theme chosen on this Mac for light or dark appearance. A workspace can speci
 
 ### Actions
 
+**Step creation default**:
+An option value added when a new action step is created. It does not fill missing options in an imported step.
+
+**Step fallback**:
+An option value used when the action author has not supplied one. An explicit empty value can have a different meaning.
+
 **Action configuration**:
 Values that a user chooses for the configured-value steps of an action.
 

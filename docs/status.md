@@ -2,6 +2,27 @@
 
 Updated: 22 October 2026.
 
+## Current refactoring stage
+
+Functional cloning is paused at the user's request. The
+[option refactoring record](refactoring-options-2026-10-22.md) owns the current
+diagnosis, reference tag and acceptance results. Step creation defaults now have
+an app owner. Core supplies shared value rules through the ActionEditing SPI.
+Prompt and Create Draft tests share only their identical headless setup.
+Existing public signatures, imported data and storage formats stay unchanged.
+
+The integrated Core check exposed an unchanged XML-RPC test fixture waiting
+after its server exited. A separate test correction now retains that exit event
+and fails explicitly if it is absent. The incomplete run remains recorded.
+Final checks passed 650 Core methods, 650 app methods and 68 Python tests, plus
+local compilation and the matrix structure check. All baseline test identities
+remain. Manual copy/save/cancel, Prompt output, background creation, Undo/Redo
+and the final type picker passed in isolated QA. QA was closed and retired;
+the habitual app was not replaced.
+No feature or compatibility status is promoted by this refactoring.
+
+## Functional checkpoint before this refactoring
+
 Draftly works as a local Mac app. Mac parity is not complete. Cloning resumed
 from 026cfbb after the completed inspector/personalization refactoring stage.
 The user now prioritizes functional completion: Actions end to end, editor and

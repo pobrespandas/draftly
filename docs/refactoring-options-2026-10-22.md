@@ -75,7 +75,7 @@ the installed app as part of this refactoring.
 2. Shared value rules: implemented. ActionStepValueRules owns the existing
    Prompt defaults, exact Boolean reads and configuration type/default-key map.
    Inspector and runtime keep their own unknown-type policies. Three new methods
-   with 17 parameter cases passed against the previous implementation before
+   with 17 cases passed against the previous implementation before
    substitution. After substitution, 27 app methods and 27 Core methods passed.
    SwiftPM and the local Xcode build passed. Independent review found no change
    in rendering order, errors, imported data or Boolean interpretation.
@@ -114,8 +114,8 @@ HTTP fixture. It is not a production deadline. A missing event throws instead
 of waiting without a bound. A deterministic test covers an event before the
 wait, a repeated wait, and a deadline without an exit. All three XML-RPC methods
 passed, including real body/fault/error and disconnect checks. No retry was
-added. Complete Core integration will run after this correction; its earlier
-incomplete run remains recorded. Manual checks remain open.
+added. Complete Core integration then passed all 650 methods; its earlier incomplete
+run remains recorded. Manual results are separate below.
 
 
 ## Manual regression results
@@ -147,3 +147,56 @@ No personal data, permissions, messages or sounds were used.
 QA quit normally and its process was absent. Its exact Launch Services record
 was retired. The bundle, exported preferences and closed library were kept
 together in recoverable Trash. Raw screenshots and logs were not added to Git.
+
+
+## Integrated acceptance
+
+Implemented: all four accepted responsibility changes. The separate XML-RPC
+fixture correction preserves the protocol assertions. Workspaces, themes,
+syntax selectors and scripts received no speculative structural changes.
+
+Automatic: 650 Core methods in 124 suites and 650 app methods in 117 suites
+passed. Each target's fresh report matches discovery. All 1,296 baseline method
+identities remain; four characterization/regression methods were added. All
+68 Python tests passed. The matrix structure check has zero errors. Local Xcode
+compilation passed after the final production change. No build overlapped a
+Swift test run. The initial incomplete Core integration remains a failed gate,
+not a passing result obtained by retrying unchanged code.
+
+The five original action snapshots, manual action fixtures, compatibility
+classifications, package targets, signing configuration and storage/backup
+formats have no diff from the reference. This is not new signed-distribution,
+CloudKit, integration-capability or Drafts compatibility acceptance.
+
+Manual: the binding and runtime subset above passed. A final QA restart also
+retained both neutral drafts, all four steps and the configured Boolean value.
+The generated type picker preserved labels and order. QA quit normally again;
+its exact registration was retired. Package, preferences and closed library
+are in recoverable Trash. The habitual installation was not replaced.
+
+Final QA identity: `com.pobrespandas.draftly.refactor-qa-0f153075`.
+Final debug implementation SHA-256:
+`46d6231da356422cd841129dd834c4f0113d6629639f6aafbd3e5ac29120ff8f`.
+Temporary session metadata: /tmp/draftly-refactor-20261022-qa.json. These paths
+can disappear after restart; conclusions above are the versioned record.
+
+## Closure and resume point
+
+Each implementation and the independent test correction has a scoped atomic
+commit. The reference tag and validated commits are published. This record,
+architecture, test guidance, glossary, status and local handoff identify the
+current boundaries and preserve historical evidence. No earlier branch or work
+was discarded. No new regression remains unresolved in this stage's checks.
+
+Retain the earlier concurrent worker timeouts and window-opening timing risk.
+This stage does not change their deadlines or claim parallel acceptance. The
+ActionEditing SPI is an internal cross-module dependency; both build modes must
+continue to be checked when these rules change.
+
+Cloning remains paused. When feature work is requested, resume Editor and
+scripting: syntax-defined tasks, markers, links, custom grammars and advanced
+find acceptance. The existing inspector option and native capability backlog
+remains separate. Review the different syntax-selector order/duplicate policies
+before proposing a functional change. Do not reopen the accepted Action.find
+fix as an unresolved duplicate-name defect. Pro-only comparisons and the broader
+Mac acceptance remain pending. This refactoring does not complete Draftly.

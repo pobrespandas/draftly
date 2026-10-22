@@ -2,15 +2,31 @@
 
 ## Latest refactoring stage
 
-Cloning is paused. The [editing refactoring record](refactoring-editing-2026-10-21.md)
-records the completed stage, reference tag, checks and resume point. The sections below
-record earlier work and its original acceptance scope.
+Cloning is paused for the [option refactoring stage](refactoring-options-2026-10-22.md).
+The [editing refactoring record](refactoring-editing-2026-10-21.md) describes the
+previous completed stage. Current execution uses ActionRunner.runAsync and
+ActionScriptWorker. The dated records below retain their original scope; they
+do not describe the current engine or establish new compatibility acceptance.
 
 ## Action editing boundary
 
 ActionEditingCopy owns the temporary action, selected step and step operations.
 ActionEditor renders bindings and owns save, export, shortcut errors and dismissal.
 The editing copy does not persist data. Cancel discards it.
+
+## Step value boundary
+
+ActionStepCreationDefaults owns values added to new steps. It does not fill
+missing imported fields. ActionStepInspectorFields owns labels and control
+layout. ActionStepValueRules in Core owns effective Prompt defaults, exact
+Boolean reads and the configured-value type/default-key map. The app reads
+these through the ActionEditing SPI in both SwiftPM and Xcode builds.
+Existing public signatures and persisted dictionaries stay unchanged.
+
+Unknown configuration types retain separate caller policies. Reading a value
+uses the String default. The inspector offers no type-specific default control.
+Initial configuration rejects the type. Displaying an effective default never
+writes it. Explicit empty strings still take precedence over missing values.
 
 ## Installed theme command boundary
 
@@ -76,7 +92,7 @@ do not capture it before startup. Direct async entry points keep their caller
 lifetime. Execution sessions, source-window observers, worker waits and native
 continuations retain separate owners because their cleanup contracts differ.
 
-## Refactoring baseline
+## Historical refactoring baseline — 19 October 2026
 
 The annotated tag `pre-refactor-2026-10-19` points to `2fba5bd`.
 It is published on origin. The baseline passed 170 app and 266 core tests.
@@ -113,7 +129,7 @@ and window preference access has no dependency on SettingsView. Existing keys,
 formats, defaults, and AppStorage bindings remain. Local preferences do not
 move into the library. The related preference and workspace tests passed.
 
-## Stage 3: action execution
+## Historical stage 3: action execution before the worker
 
 ActionRunner coordinates sessions, queues, and final effects. ActionStepExpansion
 resolves included steps. ActionStepExecutor performs one step. ActionScriptValues
@@ -176,7 +192,7 @@ Two unused library-view helpers were removed. All 169 app and 267 core tests
 passed after extraction. Visible use was not repeated under the background test
 policy. The change does not claim new visual or CloudKit acceptance.
 
-## Final acceptance
+## Historical final acceptance — 19 October 2026
 
 File dialogs now live in DraftFileCommands. Tag operations receive the peer-window
 provider. Toolbar search and shortcut Settings use explicit routes or owners.
@@ -194,7 +210,7 @@ No worker or runAsync was added. Visible UI, two-client CloudKit, and signed
 installation were not repeated. Those checks retain their previous pending
 status. Historical test totals elsewhere are not the current test inventory.
 
-## Test refactoring
+## Historical test refactoring
 
 The scripting API tests now have eleven suites by API area. Shared setup, script
 builders, isolated preferences, and native Undo text views have test-only owners.
@@ -203,7 +219,7 @@ version cases were removed. The retained contract cases cover their assertions.
 See [test structure](testing.md) for the replacement map and background policy.
 Production code and package targets are unchanged.
 
-## Typed core scripting commands
+## Historical typed core scripting commands
 
 ScriptCommand decodes the 24 core wire operations into typed cases. It owns
 text defaults, identifiers, query options, and ranges. ActionScriptCommands
@@ -222,7 +238,7 @@ and native capabilities still use ActionHost dictionaries. Unknown core names
 delegate to those existing routes. No async worker, new public API, storage
 format, or compatibility claim was added.
 
-## Async Actions delivery
+## Current async execution boundary
 
 ActionRunner.runAsync owns the public async lifecycle. ActionScriptWorker owns
 JavaScriptCore and its scheduled timers on one serial queue. The bridge moves

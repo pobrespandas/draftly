@@ -1,6 +1,6 @@
 # Test structure
 
-Updated: 19 October 2026.
+Updated: 22 October 2026.
 
 ## Boundaries
 
@@ -25,7 +25,13 @@ for AppThemeContractTests and AutomationEditorContextTests. Both consumers call
 keeps its font, content and change callback. Other suites retain their own setup
 and grouping rules. Do not combine fixtures when setup is part of the contract.
 
-## Duplicate cases removed
+ActionEditingExecutionFixture shares only the windowless library, Unicode
+source, selection and runner for Prompt and Create Draft editing flows. It
+retains an optional host because the runner holds that host weakly. Each suite
+keeps its own action definitions, assertions and save checks. Configuration,
+Workspace and Undo fixtures retain their different responsibilities.
+
+## Historical duplicate cases removed
 
 These cases repeated checks in `DraftVersionContractTests`. Their matrix
 references now point to the retained tests. No contract status changed.
@@ -49,8 +55,15 @@ runner compares discovered test identities with fresh xUnit results. It rejects
 missing, duplicate, failed, skipped, or unexpected results even if Swift exits0.
 Each target gets a fresh report. AppKit tests run serially because they share
 process-wide state and concurrent app reports remain unreliable. Core tests run
-concurrently. Tests still exercise their explicit concurrent tasks. The runner
-never retries a failure. Use `--concurrent-app` for the open diagnostic case.
+concurrently. Earlier concurrent worker timeouts remain recorded in
+[project status](status.md). To compare this refactoring with its serial base,
+run each target with `swift test --no-parallel --filter TARGET --xunit-output
+/tmp/UNIQUE-TARGET.xml`. Keep target reports separate; a combined command can
+overwrite the report from another test process. Use the runner's
+`test_inventory` and `verify_results` functions to compare both fresh Swift
+Testing reports against `swift test list --skip-build`. Do not change timeouts
+or retry failed tests to obtain a passing result. Tests still exercise their
+explicit concurrent tasks. The runner never retries a failure. Use `--concurrent-app` for the open diagnostic case.
 The inventory checks test methods; parameter cases depend on Swift Testing's
 reporter and do not have a separate discovery inventory.
 Use `--output-dir /tmp/draftly-tests` to retain logs and XML outside the repo.
@@ -67,7 +80,18 @@ use `OffscreenTestWindow`, which rejects ordering and activation. Use
 `TestMainQueue` to wait for queued work. Do not replace assertions with sleeps.
 Visible animation checks require a separate manual session.
 
-## Refactoring acceptance
+## Option refactoring check — 22 October 2026
+
+The complete serial reports matched 650 Core and 650 app method identities.
+All previous methods remain. Three step-value characterization methods and one
+XML-RPC exit-event regression were added. No tests were removed or renamed.
+The XML-RPC fixture now registers process termination before launch and retains
+that event. Its bounded test-only wait reports a missing exit instead of hanging
+in Process.waitUntilExit. The earlier incomplete run remains in the
+[refactoring record](refactoring-options-2026-10-22.md). No production timeout,
+concurrency policy or automatic retry changed. The manual check is separate.
+
+## Historical test-refactoring acceptance — 19 October 2026
 
 The API suite split preserved all cases except the three duplicates above.
 Test discovery was compared with the previous commit. All 542 test references
@@ -79,7 +103,7 @@ Automatic checks passed: 170 app tests in 29 suites, 264 core tests in 33 suites
 24 Python tests, the normal matrix check, and the whitespace check.
 No visible UI or cloud acceptance ran. Strict parity remains pending.
 
-## Core command boundary acceptance
+## Historical Core command boundary acceptance
 
 ScriptCommandTests adds seven boundary cases. They cover missing and wrong-type
 values, query defaults and invalid options, UTF-16 limits and integer overflow,
