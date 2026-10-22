@@ -11,13 +11,7 @@ struct ActionConfigurationField {
     var dataType: String { values["dataType"] ?? "string" }
 
     func textValue(configuredValues: [String: String]) -> String {
-        let defaultKey: String
-        switch dataType {
-        case "boolean": defaultKey = "defaultBoolValue"
-        case "number": defaultKey = "defaultNumberValue"
-        case "text": defaultKey = "defaultTextValue"
-        default: defaultKey = "defaultStringValue"
-        }
+        let defaultKey = ActionStepValueRules.configurationDefaultKey(for: dataType) ?? "defaultStringValue"
         return configuredValues[key] ?? values["defaultValue"] ?? values[defaultKey] ?? ""
     }
 }

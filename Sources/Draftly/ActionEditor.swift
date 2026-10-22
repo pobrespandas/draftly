@@ -1,6 +1,6 @@
 import SwiftUI
 import AppKit
-import DraftlyCore
+@_spi(ActionEditing) import DraftlyCore
 
 struct ActionEditor: View {
     @State private var editingCopy: ActionEditingCopy
@@ -177,17 +177,17 @@ private struct ActionStepInspector: View {
                     }
                     if step.type == "prompt" {
                         Toggle("Include Text Field", isOn: Binding(
-                            get: { ["true", "1"].contains(step.values["includeTextField"] ?? "false") },
+                            get: { ActionStepValueRules.promptIncludesTextField(step.values) },
                             set: { step.values["includeTextField"] = $0 ? "true" : "false" }
                         ))
                         Toggle("Include Cancel Button", isOn: Binding(
-                            get: { step.values["includeCancelButton"] != "false" },
+                            get: { ActionStepValueRules.promptIncludesCancelButton(step.values) },
                             set: { step.values["includeCancelButton"] = $0 ? "true" : "false" }
                         ))
                     }
                     if step.type == "createDraft" {
                         Toggle("Open in Editor", isOn: Binding(
-                            get: { step.values["openInEditor"] != "false" },
+                            get: { ActionStepValueRules.createdDraftOpensInEditor(step.values) },
                             set: { step.values["openInEditor"] = $0 ? "true" : "false" }
                         ))
                     }
@@ -248,7 +248,7 @@ private struct ActionConfigurationStepEditor: View {
             if let key = ActionStepInspectorFields.configurationDefaultKey(for: type) {
                 if type == "boolean" {
                     Toggle("Default Value", isOn: Binding(
-                        get: { ["true", "1"].contains(step.values[key] ?? "false") },
+                        get: { ActionStepValueRules.configurationBooleanValue(step.values[key]) },
                         set: { step.values[key] = $0 ? "true" : "false" }
                     ))
                 } else if type == "text" {
@@ -266,7 +266,7 @@ private struct ActionConfigurationStepEditor: View {
             }
             TextField("Example Value", text: value("exampleValue"))
             Toggle("Requires Configuration", isOn: Binding(
-                get: { ["true", "1"].contains(step.values["requiresInitialConfiguration"] ?? "false") },
+                get: { ActionStepValueRules.requiresInitialConfiguration(step.values) },
                 set: { step.values["requiresInitialConfiguration"] = $0 ? "true" : "false" }
             ))
         }.textFieldStyle(.roundedBorder)

@@ -71,5 +71,18 @@ the installed app as part of this refactoring.
    methods passed, including defaults, imported data, identity, Save and Cancel.
    The local Xcode build passed. Existing assertions remain unchanged.
 
-Shared rule characterization and the test fixture extraction are in progress.
-No manual check is credited yet.
+2. Shared value rules: implemented. ActionStepValueRules owns the existing
+   Prompt defaults, exact Boolean reads and configuration type/default-key map.
+   Inspector and runtime keep their own unknown-type policies. Three new methods
+   with 17 parameter cases passed against the previous implementation before
+   substitution. After substitution, 27 app methods and 27 Core methods passed.
+   SwiftPM and the local Xcode build passed. Independent review found no change
+   in rendering order, errors, imported data or Boolean interpretation.
+
+The app and Core are separate modules in the Xcode build. The small
+ActionEditing SPI shares these rules without adding an ordinary public API.
+It adds exported SPI symbols; existing public signatures stay unchanged.
+Package-only access would not serve both build modes without extra build
+configuration. No model, storage representation or generic registry was added.
+
+The test fixture extraction is in progress. No manual check is credited yet.

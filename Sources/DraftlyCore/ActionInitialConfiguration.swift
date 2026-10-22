@@ -27,10 +27,10 @@ struct ActionInitialConfiguration {
             guard !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 throw DraftlyError.message("The configured value key must not be empty.")
             }
-            guard ["string", "text", "boolean", "number"].contains(type) else {
+            guard ActionStepValueRules.configurationTypes.contains(type) else {
                 throw DraftlyError.message("The configured value type is not supported: " + type)
             }
-            if ["true", "1"].contains(step.values["requiresInitialConfiguration"] ?? "false") {
+            if ActionStepValueRules.requiresInitialConfiguration(step.values) {
                 let identity = try JSONEncoder().encode([step.id.uuidString, key, type])
                 let signature = SHA256.hash(data: identity).map { String(format: "%02x", $0) }.joined()
                 if !confirmed.contains(signature) {
@@ -60,7 +60,7 @@ struct ActionInitialConfiguration {
             let value = ActionConfigurationField(field.step).textValue(configuredValues: action.configuredValues)
             var control: [String: Any] = ["key": field.key, "label": values["name"] ?? field.key,
                 "kind": field.type == "boolean" ? "switch" : field.type == "text" ? "textView" : field.type == "number" ? "number" : "text",
-                "value": field.type == "boolean" ? ["true", "1"].contains(value) : value,
+                "value": field.type == "boolean" ? ActionStepValueRules.configurationBooleanValue(value) : value,
                 "placeholder": values["exampleValue"] ?? ""]
             if field.type == "number" { control["allowDecimals"] = true }
             controls.append(control)

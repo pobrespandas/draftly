@@ -8,7 +8,7 @@ import Foundation
             let key = field.key, dataType = field.dataType
             let value = field.textValue(configuredValues: action.configuredValues)
             configured[key] = value
-            if dataType == "boolean" { configured[key] = value == "true" || value == "1" }
+            if dataType == "boolean" { configured[key] = ActionStepValueRules.configurationBooleanValue(value) }
             if dataType == "number" { configured[key] = Double(value) ?? 0 }
         }
         return configured

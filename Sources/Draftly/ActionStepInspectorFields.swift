@@ -1,5 +1,5 @@
 import Foundation
-import DraftlyCore
+@_spi(ActionEditing) import DraftlyCore
 
 enum ActionStepInspectorFields {
     struct Field: Identifiable, Equatable {
@@ -11,7 +11,7 @@ enum ActionStepInspectorFields {
     }
 
     static func textValue(for key: String, in step: ActionStep) -> String {
-        step.values[key] ?? (step.type == "prompt" ? ActionStepCreationDefaults.promptDefaults[key] : nil) ?? ""
+        step.type == "prompt" ? ActionStepValueRules.promptTextValue(for: key, in: step.values) : step.values[key] ?? ""
     }
 
     static func title(for key: String, in step: ActionStep) -> String {
@@ -30,15 +30,9 @@ enum ActionStepInspectorFields {
         return key
     }
 
-    static let configurationTypes = ["string", "text", "boolean", "number"]
+    static let configurationTypes = ActionStepValueRules.configurationTypes
     static func configurationDefaultKey(for type: String) -> String? {
-        switch type {
-        case "string": "defaultStringValue"
-        case "text": "defaultTextValue"
-        case "boolean": "defaultBoolValue"
-        case "number": "defaultNumberValue"
-        default: nil
-        }
+        ActionStepValueRules.configurationDefaultKey(for: type)
     }
 
     static func fields(for step: ActionStep) -> [Field] {
@@ -52,7 +46,7 @@ enum ActionStepInspectorFields {
         if step.type == "configureWindow" { excludedKeys.formUnion(WindowConfigurationOptions.toggleKeys) }
         if step.type == "prompt" { excludedKeys.formUnion(["includeTextField", "includeCancelButton"]) }
         var keys = Set(step.values.keys)
-        if step.type == "prompt" { keys.formUnion(ActionStepCreationDefaults.promptDefaults.keys) }
+        if step.type == "prompt" { keys.formUnion(ActionStepValueRules.promptDefaults.keys) }
         if step.type == "configureWindow" { keys.formUnion(WindowConfigurationOptions.referenceKeys) }
         if step.type == "includeAction" {
             excludedKeys.remove("uuid")
