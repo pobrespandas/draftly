@@ -2,6 +2,17 @@
 
 Updated: 22 October 2026.
 
+## Modularity audit
+
+The [repository audit](modularity-audit-2026-10-22.md) is complete at the
+architectural level. It proposes five bounded refactorings. Start with explicit
+editor completion context, then Workspace preparation, Cloud QA preparation,
+styling and text synchronization. No production or test code changed. No tests
+were removed. The documentation now distinguishes current orientation from
+historical records. Complete verification on 1e399dd passed Core674/app767,
+Python68, local Debug compilation and the structural matrix check. Native
+acceptance and the prior XML-RPC timing risk remain separate.
+
 ## Latest refactoring
 
 The [native sharing lifetime refactoring](refactoring-native-lifecycle-2026-10-22.md)
