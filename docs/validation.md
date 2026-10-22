@@ -9712,3 +9712,41 @@ No native print panel was opened in this session. Native source-window closure
 remains separate and unaccepted: the earlier manual attempt did not establish
 owner closure. This fix also does not recall an already delivered print job
 or undo completed external effects. The usual app was not replaced.
+
+## Native print source closure restriction and recovery — 22 October 2026
+
+A fresh isolated QA bundle used the full Debug build from `6e85978`. Its debug
+library SHA256 was
+`04594b83dfe372e2f9feabef6a6cca6dd6768025d6eb73cec96c9f0894e1c918`.
+The library started empty. The imported print fixture data were compared with
+engine-print-lifetime-actions.json after normalizing the stored step structure.
+The data matched exactly before execution. An initial import had the wrong
+template line break; it was corrected before any action ran.
+
+The URL requested QA Print pending operation on a neutral source. The one-page
+print sheet opened. No printer was selected and Print was disabled. File Close
+was disabled. File Close All remained available, but selecting it left the
+print sheet visible and the callback count at zero. The Window menu still
+listed the source window. This establishes that Close All did not close the
+owner in this state. It does not accept native owner-close cleanup.
+
+Computer Use cancelled the Window menu and clicked Cancel on the print sheet.
+Exactly one x-cancel callback arrived. A following real shell action returned
+one x-success with exact Unicode output. No print or PDF-save command was used.
+
+Both apps quit normally. The closed database had a Cancelled print run and a
+Success recovery run. Revisions retained the completed pre-print write and
+contained no later-step sentinel. The final source stayed in Inbox. Exact
+process absence and LaunchServices unregistration passed. Packages, closed
+library and preferences remain recoverable in the Trash. The usual app was
+not replaced.
+
+Production code and fixtures did not change in this session. The structural
+matrix and diff checks passed. The preceding Core674/app750/local-build results
+apply to unchanged code; those suites were not rerun for this evidence update.
+
+Native owner-close acceptance remains pending. File Close All must not be
+repeated as an owner-close test unless application or system behavior changes.
+Any later test must establish an actual source-window close through a supported
+lifetime operation. Process termination is not a substitute for a final engine
+result. Large-document print rendering latency is also still pending.

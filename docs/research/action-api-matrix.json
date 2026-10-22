@@ -23479,6 +23479,15 @@
             "entryPoint": "URL and direct source-window close",
             "result": "Speech completion-notice close and confirmed-live-helper playback close returned one cancel without later steps or Archive. The completed playback repeat preserved text, cleaned helper/files and allowed shell recovery. A native short phrase held callbacks until the final OK, then returned one success. The interrupted attempt is not accepted.",
             "evidence": "docs/validation.md: Native speech owner close and complete result — 22 October 2026"
+          },
+          {
+            "date": "2026-10-22",
+            "productionRevision": "6e85978",
+            "debugLibrarySHA256": "04594b83dfe372e2f9feabef6a6cca6dd6768025d6eb73cec96c9f0894e1c918",
+            "fixture": "scripts/fixtures/engine-print-lifetime-actions.json",
+            "entryPoint": "URL, File Close All, print-panel Cancel",
+            "result": "Close was disabled. Close All left the sheet and source window present and no callback. Owner-close cleanup remains unaccepted. Panel Cancel returned one cancel; subsequent shell recovery returned one success. Closed revisions retained the completed write without tail sentinel; final source remained Inbox.",
+            "evidence": "docs/validation.md: Native print source closure restriction and recovery — 22 October 2026"
           }
         ]
       },

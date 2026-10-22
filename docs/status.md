@@ -4,6 +4,12 @@ Updated: 22 October 2026.
 
 ## Current Actions engine acceptance
 
+A clean native print check confirmed the source-close restriction: Close was
+disabled and Close All left the sheet and source window open. Panel Cancel and
+following shell recovery returned one matching callback each. This is not
+owner-close acceptance. Repeating that same Close All path cannot close the
+remaining native case without a change in application or system behavior.
+
 Print callback delivery now checks synchronous task-cancellation state. Both
 normal callback answers are rejected after cancellation, with owned-presentation
 cleanup once. Red/green headless cases and the complete Core674/app750 run passed,
