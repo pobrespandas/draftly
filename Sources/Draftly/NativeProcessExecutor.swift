@@ -5,6 +5,8 @@ import DraftlyCore
 @MainActor
 final class NativeProcessExecutor {
     private let process: Process
+    private let now: @MainActor () -> Date
+    private var deadline = Date.distantFuture
     private var continuation: CheckedContinuation<Int32, Error>?
     private var timeoutTask: Task<Void, Never>?
     private var killTask: Task<Void, Never>?
@@ -15,10 +17,13 @@ final class NativeProcessExecutor {
     private var isolatedProcessGroup: pid_t?
     private var onExit: (() -> Void)?
 
-    init(process: Process) { self.process = process }
+    init(process: Process, now: @escaping @MainActor () -> Date = Date.init) {
+        self.process = process; self.now = now
+    }
 
-    static func run(_ process: Process, timeout: TimeInterval) async throws -> Int32 {
-        let executor = NativeProcessExecutor(process: process)
+    static func run(_ process: Process, timeout: TimeInterval,
+                    now: @escaping @MainActor () -> Date = Date.init) async throws -> Int32 {
+        let executor = NativeProcessExecutor(process: process, now: now)
         return try await executor.run(timeout: timeout)
     }
 
@@ -34,6 +39,7 @@ final class NativeProcessExecutor {
             throw DraftlyError.message("The process timeout must be positive and finite.")
         }
         try Task.checkCancellation()
+        deadline = now().addingTimeInterval(timeout)
         process.terminationHandler = { [self] _ in
             Task { @MainActor in self.parentExited = true; self.finish() }
         }
@@ -92,6 +98,10 @@ final class NativeProcessExecutor {
 
     private func finish(error: Error? = nil) {
         guard !finished, !cleanupPending else { return }
+        if error == nil, interruption == nil, now() >= deadline {
+            interrupt(ActionExecutionInterruption.timeout)
+            return
+        }
         finished = true
         timeoutTask?.cancel(); timeoutTask = nil
         killTask?.cancel(); killTask = nil

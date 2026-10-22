@@ -9451,3 +9451,28 @@ The structural matrix check passed. Strict engine acceptance still reports
 Python was not rerun; no Python code changed. Native synthesis and notice-panel
 cancellation still require a separate manual session. The usual app was not
 replaced. This fix does not accept those native cases or complete the engine.
+
+## Native process exit deadline — 22 October 2026
+
+At `8d35651`, controlled-clock process tests returned exit status zero at and
+after the configured deadline. The before-deadline case passed. The executor
+relied on the timeout task instead of checking expiry at termination delivery.
+A second real process fixture exited its parent while a child ignored SIGTERM.
+Before the fix, it returned success and left that child running. The fixture
+cleanup killed the child after the failed assertions.
+
+The executor now records the deadline before launch and checks it before
+accepting termination. Expiry enters the existing interruption and process-group
+cleanup path. The parent-exit fixture now returns timeout and removes the child.
+The clock remains injectable for tests; production uses Date. Explicit launch
+errors and the production timeout values remain unchanged.
+
+All19 process/Shortcut test methods passed, including the three clock cases and
+the remaining-child case. Complete Swift runs passed Core674/application737;
+XML results matched the discovered inventory. All68 Python tests passed. The
+local Debug app compiled and the structural matrix check passed. No retries or
+longer deadlines were added. Tests used temporary files and local processes.
+
+No manual UI session was needed for this executor correction. It does not accept
+system-delivered Shortcuts or additional App Intent routes. The usual app was
+not replaced. Strict engine acceptance remains pending for six partial records.

@@ -23330,6 +23330,16 @@
         {
           "suite": "ShortcutLaunchTests",
           "test": "waitedShortcutInterruptionStopsTheProcessAndRemovesItsInput"
+        },
+        {
+          "suite": "NativeProcessExecutorTests",
+          "test": "processExitChecksDeadlineBeforeQueuedTimeout",
+          "file": "Tests/DraftlyTests/NativeProcessExecutorTests.swift"
+        },
+        {
+          "suite": "NativeProcessExecutorTests",
+          "test": "expiredParentExitStopsItsRemainingDescendantBeforeReturning",
+          "file": "Tests/DraftlyTests/NativeProcessExecutorTests.swift"
         }
       ],
       "nativeVerification": {

@@ -749,3 +749,16 @@ responses. A cancelled task cannot accept a completion response or treat a
 rejected confirmation as a normal false result. Playback cleanup remains
 unchanged. Silent driver and presenter tests cover these boundaries. Native
 synthesis and panel lifetime checks remain separate acceptance work.
+
+## Process exit deadline — 22 October 2026
+
+The process executor records an absolute deadline before launch. It checks that
+deadline before accepting termination as a result. A late termination enters
+the same interruption path as the timeout task. That path terminates the
+isolated process group and completes cleanup before returning timeout.
+An explicit launch failure keeps its original error.
+
+Controlled-clock tests cover exit before, at and after the deadline. A real
+parent/child fixture also checks that expiry after parent exit stops a remaining
+child that ignores SIGTERM. These tests use temporary files and local processes.
+They do not accept system-delivered Shortcuts or App Intent behavior.

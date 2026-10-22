@@ -98,6 +98,54 @@ struct NativeProcessExecutorTests {
         #expect(!process.isRunning)
     }
 
+    @Test(arguments: [9.0, 10.0, 11.0])
+    func processExitChecksDeadlineBeforeQueuedTimeout(elapsed: Double) async throws {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/true")
+        var reads = 0
+        let start = Date(timeIntervalSinceReferenceDate: 100)
+        do {
+            let status = try await NativeProcessExecutor.run(process, timeout: 10, now: {
+                defer { reads += 1 }
+                return reads == 0 ? start : start.addingTimeInterval(elapsed)
+            })
+            #expect(elapsed < 10 && status == 0)
+        } catch { #expect(elapsed >= 10 && error as? ActionExecutionInterruption == .timeout) }
+        #expect(!process.isRunning)
+        #expect(process.terminationHandler == nil)
+    }
+
+    @Test func expiredParentExitStopsItsRemainingDescendantBeforeReturning() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let childFile = root.appendingPathComponent("child")
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/sh")
+        process.arguments = ["-c", """
+            /bin/sh -c 'trap "" TERM; printf "%s" "$$" > "$1"; exec /bin/sleep 30' fixture "$1" &
+            while [ ! -s "$1" ]; do /bin/sleep 0.01; done
+            """, "fixture", childFile.path]
+        defer {
+            if let text = try? String(contentsOf: childFile, encoding: .utf8), let child = Int32(text),
+               getpgid(child) == process.processIdentifier { _ = Darwin.kill(child, SIGKILL) }
+        }
+        var reads = 0
+        let start = Date(timeIntervalSinceReferenceDate: 100)
+        do {
+            _ = try await NativeProcessExecutor.run(process, timeout: 10, now: {
+                defer { reads += 1 }
+                return reads == 0 ? start : start.addingTimeInterval(10)
+            })
+            Issue.record("An expired parent exit returned success.")
+        } catch { #expect(error as? ActionExecutionInterruption == .timeout) }
+        let child = try #require(Int32(String(contentsOf: childFile, encoding: .utf8)))
+        let deadline = ContinuousClock.now + .seconds(2)
+        while getpgid(child) != -1, ContinuousClock.now < deadline { await Task.yield() }
+        #expect(getpgid(child) == -1)
+        #expect(!process.isRunning && process.terminationHandler == nil)
+    }
+
     @Test func launchFailureAndInvalidTimeoutReturnErrors() async {
         let missing = Process()
         missing.executableURL = URL(fileURLWithPath: "/draftly-missing-executable")
