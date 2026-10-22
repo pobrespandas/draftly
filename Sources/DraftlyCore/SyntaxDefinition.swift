@@ -428,15 +428,35 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
 public extension SyntaxDefinition {
     func styledRanges(in text: String) -> [(NSRange, String)] {
         var output: [(NSRange, String)] = [], excluded: [NSRange] = []
-        for rule in rules("patterns") {
-            for match in results(rule, text) where !excluded.contains(where: { NSIntersectionRange($0, match.range).length > 0 }) {
-                for (index, value) in rule["captures"] as? [String: [String: Any]] ?? [:] {
-                    guard let range = capture(match, index) else { continue }
-                    output.append((range, value["scope"] as? String ?? ""))
-                    if value["exclusive"] as? Bool == true { excluded.append(range) }
+        func unprotectedParts(of range: NSRange) -> [NSRange] {
+            guard range.length > 0 else { return [] }
+            return excluded.reduce([range]) { parts, protected in
+                parts.flatMap { part -> [NSRange] in
+                    let overlap = NSIntersectionRange(part, protected)
+                    guard overlap.length > 0 else { return [part] }
+                    var remaining: [NSRange] = []
+                    if part.location < overlap.location { remaining.append(NSRange(location: part.location, length: overlap.location - part.location)) }
+                    if NSMaxRange(overlap) < NSMaxRange(part) { remaining.append(NSRange(location: NSMaxRange(overlap), length: NSMaxRange(part) - NSMaxRange(overlap))) }
+                    return remaining
                 }
-                if rule["exclusive"] as? Bool == true { excluded.append(match.range) }
             }
+        }
+        for rule in rules("patterns") {
+            var newlyExcluded: [NSRange] = []
+            let captures = rule["captures"] as? [String: [String: Any]] ?? [:]
+            let indices = captures.keys.sorted {
+                let first = Int($0) ?? 0, second = Int($1) ?? 0
+                return first == second ? $0 < $1 : first < second
+            }
+            for match in results(rule, text) {
+                for index in indices {
+                    guard let value = captures[index], let range = capture(match, index) else { continue }
+                    output += unprotectedParts(of: range).map { ($0, value["scope"] as? String ?? "") }
+                    if value["exclusive"] as? Bool == true { newlyExcluded.append(range) }
+                }
+                if rule["exclusive"] as? Bool == true { newlyExcluded.append(match.range) }
+            }
+            excluded += newlyExcluded
         }
         return output
     }

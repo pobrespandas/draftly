@@ -751,3 +751,29 @@ checks remain separate; these tests do not accept native replacement dialogs.
 
 Full serial Core regression passed669 methods/124 suites. Local Xcode build and
 matrix structure0 passed. No retry or timeout changed. Usual app unchanged.
+
+## Exclusive capture boundaries and deterministic capture order
+
+The frozen syntax-format reference describes exclusivity as protection of the
+matched pattern or capture range from subsequent patterns. Previously a later
+match was discarded in full when any part overlapped a protected capture. This
+also removed valid styling outside the protected text. Capture dictionaries were
+iterated without numeric ordering, so overlapping capture precedence varied.
+Both new Core regressions failed before the correction.
+
+styledRanges now masks protected text from later style ranges and retains the
+unprotected fragments in source order. It applies capture indices in numeric
+order, with a stable string tie. Exclusions take effect after the current rule,
+so sibling captures can still style a parent match. Pattern exclusivity protects
+the full match. The tests cover capture-only protection with Unicode, whole-match
+protection and indices beyond9.
+
+A direct offscreen renderer case checks actual fonts: protected code stays
+monospaced and upright while text on both sides receives later italic styling.
+Content and selection remain unchanged. Twenty-six syntax methods and ten
+rendering methods passed. Local Xcode build passed. This is automatic acceptance;
+custom-grammar comparison in Drafts remains pending. No native session was needed
+for the headless range/attribute correction. Full grammar parity stays open.
+
+Full serial regression passed697 app methods/122 suites and671 Core methods/124
+suites. Matrix structure0 passed. No retry or deadline changed. Usual app unchanged.

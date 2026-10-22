@@ -337,4 +337,25 @@ struct ThemeRenderingTests {
             #expect(!window.isVisible)
         }
     }
+    @Test func exclusiveCodeCaptureKeepsItsFontWhileSurroundingTextGetsLaterStyles() throws {
+        let source = "🐼 before `café` after"
+        let syntax = try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: [
+            "name": "Neutral exclusive styles", "navigationPatterns": [], "taskMarkDefinitions": [], "linkDefinitions": [], "indentationPatterns": [],
+            "patterns": [["match": "`([^`]+)`", "captures": ["1": ["scope": "code.inline", "exclusive": true]]],
+                ["match": "^(.+)$", "captures": ["0": ["scope": "text.italic"]]]]]))
+        let session = EditorSession(); session.load(Note(content: source), focusEditor: false)
+        let selected = (source as NSString).range(of: "café"); session.selection = selected
+        let view = NSTextView(frame: .zero); view.string = source; view.setSelectedRange(selected)
+        let editor = NativeEditor(session: session, fontName: "System", fontSize: 17, lineSpacing: 2, markdown: false,
+            syntaxDefinition: syntax, theme: try theme(), onChange: {})
+        let coordinator = editor.makeCoordinator(); coordinator.textView = view; coordinator.highlight()
+        let storage = try #require(view.textStorage)
+        let code = try #require(storage.attribute(.font, at: selected.location, effectiveRange: nil) as? NSFont)
+        #expect(code.isFixedPitch && !NSFontManager.shared.traits(of: code).contains(.italicFontMask))
+        for index in [0, source.utf16.count - 1] {
+            let font = try #require(storage.attribute(.font, at: index, effectiveRange: nil) as? NSFont)
+            #expect(NSFontManager.shared.traits(of: font).contains(.italicFontMask))
+        }
+        #expect(view.string == source && view.selectedRange() == selected && session.content == source)
+    }
 }

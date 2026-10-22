@@ -2539,3 +2539,10 @@ A red/green regression covers rejected installation; a positive case preserves
 unknown fields and legacy defaults through import/backup. Core669/124, local build
 and matrix structure passed. Incremental range evaluation and native replacement
 acceptance remain open. See the dated continuation. Usual app unchanged.
+
+### Exclusive syntax captures — 22 October 2026
+
+Protected capture ranges no longer suppress later styles outside those ranges.
+Captures apply in numeric order. Red/green Core cases and actual renderer fonts
+passed; full app697/Core671, local build and matrix structure passed. Native custom
+grammar reference comparison remains open. See the dated continuation.

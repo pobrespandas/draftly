@@ -508,4 +508,30 @@ struct SyntaxDefinitionTests {
         #expect(restored.syntaxes == library.syntaxes)
         #expect(try definition().name == "Three states")
     }
+    @Test func exclusiveCaptureProtectsOnlyItsTextFromLaterStyles() throws {
+        var object = source()
+        object["patterns"] = [
+            ["match": "`([^`]+)`", "captures": ["1": ["scope": "code.inline", "exclusive": true]]],
+            ["match": "^(.+)$", "captures": ["0": ["scope": "text.italic"]]]]
+        let text = "🐼 before `café` after"
+        let ranges = try definition(object).styledRanges(in: text)
+        let protected = (text as NSString).range(of: "café")
+        #expect(ranges.first?.0 == protected && ranges.first?.1 == "code.inline")
+        let later = ranges.filter { $0.1 == "text.italic" }.map(\.0)
+        #expect(later == [NSRange(location: 0, length: protected.location),
+            NSRange(location: NSMaxRange(protected), length: text.utf16.count - NSMaxRange(protected))])
+        #expect(later.allSatisfy { NSIntersectionRange($0, protected).length == 0 })
+    }
+
+    @Test func styleCapturesApplyInNumericOrderBeforeExclusionsAffectLaterRules() throws {
+        var object = source()
+        object["patterns"] = [
+            ["match": "(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)(k)", "exclusive": true,
+             "captures": Dictionary(uniqueKeysWithValues: (0...11).map { (String($0), ["scope": "capture.\($0)"]) })],
+            ["match": "[a-k]", "captures": ["0": ["scope": "later"]]]]
+        let ranges = try definition(object).styledRanges(in: "abcdefghijk")
+        #expect(ranges.map(\.1) == (0...11).map { "capture.\($0)" })
+        #expect(ranges.first?.0 == NSRange(location: 0, length: 11))
+        #expect(ranges.dropFirst().map(\.0.location) == Array(0...10))
+    }
 }
