@@ -39,6 +39,9 @@ without a main window. The original 50 note IDs and texts were checked against
 the final exported backup. Native storage-failure and empty-clipboard checks
 remain pending. The user selected a three-point visual tolerance and prioritized
 data retention and daily flows. The habitual app is unchanged by this delivery. Do not install yet.
+Settings font-size and margin labels now reject unsafe integer conversions.
+Specific numeric-limit tests passed. This does not validate nonfinite font or
+layout rendering.
 User window closure now vetoes failed saves before the scene delegate runs.
 Specific failure/retry and delegate tests passed. Normal native close/reopen
 passed with two neutral QA notes. Quit with stale duplicate editors still needs

@@ -3,6 +3,13 @@ import SwiftUI
 import DraftlyCore
 import UniformTypeIdentifiers
 
+enum EditorPreferenceDisplay {
+    static func wholePointLabel(_ value: Double) -> String {
+        guard let points = Int(exactly: value.rounded(.towardZero)) else { return "Invalid value" }
+        return "\(points) pt"
+    }
+}
+
 enum EditorTextLayout {
     static let horizontalMargin = 6.0
     static let verticalMargin = 26.0
@@ -96,8 +103,8 @@ struct EditorLayoutPreferences: View {
             }
         }
         Section("Editor Layout") {
-            HStack { Text("Horizontal Margin"); Slider(value: $horizontal, in: 0...80, step: 1); Text("\(Int(horizontal)) pt") }
-            HStack { Text("Vertical Margin"); Slider(value: $vertical, in: 0...80, step: 1); Text("\(Int(vertical)) pt") }
+            HStack { Text("Horizontal Margin"); Slider(value: $horizontal, in: 0...80, step: 1); Text(EditorPreferenceDisplay.wholePointLabel(horizontal)) }
+            HStack { Text("Vertical Margin"); Slider(value: $vertical, in: 0...80, step: 1); Text(EditorPreferenceDisplay.wholePointLabel(vertical)) }
             HStack { Text("Maximum Text Width"); TextField("0 for unlimited", value: $maximum, format: .number).frame(width: 100); Text("pt · 0 = unlimited").font(.caption) }
             Toggle("Typewriter Scrolling", isOn: $typewriter)
         }
