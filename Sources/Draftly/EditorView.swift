@@ -55,7 +55,19 @@ struct NativeEditor: NSViewRepresentable {
         if let text = text as? DraftTextView {
             text.indentation = indentation
             text.configureTouchBar(model: touchBarModel, showCustom: showCustomTouchBar)
+            if text.syntaxDefinition?.source != syntaxDefinition?.source || text.syntaxDefinition?.featureState != syntaxDefinition?.featureState || text.syntaxDefinition?.type != syntaxDefinition?.type {
+                text.syntaxCompletions.dismiss()
+            }
             text.syntaxDefinition = syntaxDefinition
+            text.completionNoteID = session.noteID
+            text.syntaxCompletions.invalidate(source: session.content, selection: session.safeSelection, noteID: session.noteID)
+            text.completionProvider = { [weak model = touchBarModel, weak session] source, selection in
+                guard let session, let definition = syntaxDefinition else { return nil }
+                var current = model?.currentNote ?? Note(content: source)
+                current.content = source
+                if let id = session.noteID { current.id = id }
+                return definition.completion(in: source, selection: selection, drafts: model?.library.notes ?? [], current: current)
+            }
             text.typewriterScrollingEnabled = session.typewriterScrollingEnabled
             text.horizontalMargin = max(0, horizontalMargin); text.verticalMargin = max(0, verticalMargin)
             text.maximumLineWidth = max(0, maximumWidth); text.updateTextInsets()
@@ -294,6 +306,45 @@ struct NativeEditor: NSViewRepresentable {
 }
 
 final class DraftTextView: NSTextView {
+    let syntaxCompletions = EditorSyntaxCompletions()
+    var completionNoteID: UUID?
+    var completionProvider: ((String, NSRange) -> SyntaxCompletionRequest?)?
+    override func keyDown(with event: NSEvent) {
+        if syntaxCompletions.handle(event) { return }
+        syntaxCompletions.dismiss()
+        super.keyDown(with: event)
+    }
+    private var insertingSyntaxCompletion = false
+    override func insertText(_ insertString: Any, replacementRange: NSRange) {
+        super.insertText(insertString, replacementRange: replacementRange)
+        if !insertingSyntaxCompletion { refreshSyntaxCompletions() }
+    }
+    func insertSyntaxCompletion(_ value: String, range: NSRange) {
+        insertingSyntaxCompletion = true
+        defer { insertingSyntaxCompletion = false }
+        breakUndoCoalescing()
+        insertText(value, replacementRange: range)
+        breakUndoCoalescing()
+    }
+    @discardableResult func refreshSyntaxCompletions() -> Bool {
+        guard !hasMarkedText(), let request = completionProvider?(string, selectedRange()), !request.items.isEmpty else {
+            syntaxCompletions.dismiss(); return false
+        }
+        syntaxCompletions.begin(request, source: string, selection: selectedRange(), noteID: completionNoteID)
+        syntaxCompletions.present(for: self)
+        return true
+    }
+    override func complete(_ sender: Any?) {
+        if !refreshSyntaxCompletions() { super.complete(sender) }
+    }
+    override func resignFirstResponder() -> Bool {
+        syntaxCompletions.dismiss()
+        return super.resignFirstResponder()
+    }
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if window == nil { syntaxCompletions.dismiss() }
+    }
     private(set) var customTouchBarController: EditorTouchBarController?
     private(set) var showCustomTouchBar = true
     func configureTouchBar(model: WindowModel?, showCustom: Bool) {
@@ -334,6 +385,7 @@ final class DraftTextView: NSTextView {
 
     var syntaxDefinition: SyntaxDefinition?
     override func mouseDown(with event: NSEvent) {
+        syntaxCompletions.dismiss()
         let point = convert(event.locationInWindow, from: nil)
         if let syntaxDefinition, let layoutManager, let textContainer {
             let index = characterIndexForInsertion(at: point)

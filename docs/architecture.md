@@ -278,3 +278,12 @@ Window actions reserve scheduling, cancel on user edits or navigation, and retai
 scripted Undo and navigation. Stored-editor synchronization uses the same rule.
 Headless writes reject concurrent stored-content changes and deleted drafts.
 See [Actions execution](actions-engine.md) for implementation and native limits.
+
+
+### Syntax completion boundary
+
+SyntaxDefinition calculates completion requests and preserves separate labels,
+values and draft identities. NativeEditor supplies the current text and library
+snapshot. EditorSyntaxCompletions owns selection and the transient child panel.
+It checks source, selection and draft identity before an insertion. DraftTextView
+keeps text input and native Undo ownership. Hidden editors cannot show the panel.

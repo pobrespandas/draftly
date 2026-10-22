@@ -2427,3 +2427,19 @@ Full serial app677/121 and Core657/124 passed; reports match discovery. Python68
 matrix structure0 and the local Xcode build passed. See the dated Editor record
 for remaining grammar, Find, file permission and reference checks. Full parity
 remains open.
+
+
+### Editor autocomplete — 22 October 2026
+
+Syntax requests now feed a source-bound child panel. Keyboard selection preserves
+result identity for equal labels. Markdown variants expose title/full-draft
+triggers. Input refresh, stale source/selection/note guards, equivalent-definition
+updates and Undo boundaries have specific tests. Native isolated QA checked the
+visible list, duplicate-title selection, Escape and corrected Undo/Redo. Mouse
+acceptance, deletion refresh, static/custom feature checks and Drafts comparison
+remain pending. See the dated Editor continuation record for full scope.
+
+The final serial app684/122 and Core661/124 passed; XML reports match discovery.
+Python68, matrix structure0 and local Xcode build passed. Temporary trace code is
+removed. QA was closed and retired to recoverable Trash with its exact registration
+removed. The habitual app, its preferences and library were not changed.

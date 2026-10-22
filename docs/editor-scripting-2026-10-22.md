@@ -388,3 +388,61 @@ Its completion insertion callback receives a word, while this domain can have
 equal labels with different values. The UI must retain result identity and must
 not choose a draft by display label alone. Reference:
 https://developer.apple.com/documentation/appkit/nstextview/insertcompletion(_:forpartialwordrange:movement:isfinal:)
+
+## Editor autocomplete connection
+
+The native editor now binds completion queries to current editor text and library
+notes. Markdown variants declare the archived title and full-draft triggers.
+A nonactivating child panel displays the results without taking editor focus.
+Up/Down select an index; Return/Tab accept; Escape dismisses. Each row retains its
+index and draft identity. Equal labels do not collapse into one result. The panel
+uses the visible screen bounds and a scrollable list. Closing or detaching the
+editor removes its panel. Headless editors cannot show it.
+
+Acceptance requires the original source, selection and draft identity. Changed
+syntax rules or feature values invalidate the request. Equivalent built-in reads
+do not invalidate it merely because they have different transient IDs. Built-in
+JSON output now has sorted keys so unchanged rules also have stable source text.
+Acceptance replaces only the trigger/query range. It breaks native typing
+coalescing before and after insertion. An accepted value does not open another
+request. The existing native completion fallback remains available.
+
+Six new app methods cover duplicate labels, navigation bounds, cancellation,
+source/selection/draft staleness, native insertion and Undo/Redo, input refresh,
+acceptance without another request, equivalent definition updates, built-in
+triggers and Plain Text. All tests use no window or an offscreen window.
+The focused run passed ten app methods and 19 Core methods. The local build
+passed. No automatic test showed a panel or requested a permission.
+
+Computer Use used isolated Completion QA with neutral notes. Two source drafts
+had the same title and different bodies. Typing after the trigger displayed both
+rows. Down/Return selected the second identity and inserted Body one. The title
+trigger inserted the bracketed title. Escape kept the query, and a subsequent
+Return inserted a newline rather than a suggestion. A screenshot confirmed the
+active list, both equal labels and selection highlight. No screenshot is tracked.
+
+The session found input-path and false-invalidation defects before acceptance
+worked. A temporary count/focus trace confirmed the final request and panel state.
+The trace code was removed. Native Undo/Redo then exposed a coalescing defect:
+Redo repeated the last typed character. Breaking coalescing fixed the native case;
+the final binary restored the query and redid the exact full-draft insertion.
+The offscreen explicit-group case already passed before that correction. It is
+not a red/green reproduction of the native event grouping defect.
+
+Mouse acceptance did not complete through Computer Use. One click used the wrong
+Retina coordinates and dismissed the list; a later click on the secondary panel
+did not insert text. Keep mouse acceptance pending. Do not infer a product bug or
+approval from those attempts. Static custom suggestions, feature-toggle QA,
+query refresh after deletion, IME, long lists and multiple source windows need
+further checks. Drafts dropdown comparison remains pending. Built-in link
+activation, hanging indentation and the other grammar/Find work remain open.
+
+QA quit normally. Its process was absent before unregistering its exact app path.
+Its closed library, exported preferences, neutral inputs and earlier runtimes are
+together in recoverable Trash. CloudKit, global shortcuts and Services were off.
+The habitual app was not opened or replaced.
+
+Final serial runs passed 684 app methods/122 suites and 661 Core methods/124
+suites. Both reports match the discovered inventory. Python68, matrix structure0
+and the local Xcode build passed. No retry or timeout was changed. The full scope
+is not accepted; the interaction and reference checks above remain pending.
