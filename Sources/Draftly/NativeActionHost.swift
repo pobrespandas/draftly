@@ -17,6 +17,7 @@ final class NativeActionHost: ActionHost {
     var fileAdapter: NativeFileAdapter { NativeFileAdapter(defaults: fileDefaults, testFileRoot: testFileRoot) }
     var onPreview: ((String) -> Void)?
     var onError: (String) -> Void = { _ in }
+    var printingWindow: @MainActor () -> NSWindow? = { nil }
     private let previewAdapter = NativePreviewAdapter()
 
     func finishAction() { models.clear() }
@@ -36,7 +37,7 @@ final class NativeActionHost: ActionHost {
             result = try await NativePromptAdapter().performAsync(operation, values: values)
             return String(decoding: try JSONSerialization.data(withJSONObject: ["value": result ?? NSNull()]), as: UTF8.self)
         case .sharing: result = try await NativeSharingRequest.run(operation, values, reportCleanupError: { [weak self] message in self?.onError(message) })
-        case .printing: result = try await NativePrintRequest.run(values)
+        case .printing: result = try await NativePrintRequest.run(values, ownerWindow: printingWindow)
         case .arrangement: result = try await arrangeTextAsync(values["text"] as? String ?? "")
         case .htmlPreview: result = try await interactivePreviewAsync(values)
         case .file: result = try await fileAdapter.performAsync(operation, values: values)

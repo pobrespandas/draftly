@@ -7,6 +7,44 @@ import DraftlyCore
 
 @Suite("Asynchronous printing requests") @MainActor
 struct NativePrintRequestTests {
+    @Test func ownedWindowDoesNotDependOnGlobalKeyWindow() {
+        _ = NSApplication.shared
+        let owner = NSWindow(contentRect: .zero, styleMask: [], backing: .buffered, defer: true)
+        let unrelated = NSWindow(contentRect: .zero, styleMask: [], backing: .buffered, defer: true)
+        #expect(NativePrintRequest.windowForPrinting(owner: { owner }, current: { nil }) === owner)
+        #expect(NativePrintRequest.windowForPrinting(owner: { owner }, current: { unrelated }) === owner)
+        #expect(!owner.isVisible && !unrelated.isVisible)
+    }
+
+    @Test func missingOwnerNeverBorrowsAnotherWindow() {
+        var fallbackReads = 0
+        #expect(NativePrintRequest.windowForPrinting(owner: { nil }, current: { fallbackReads += 1; return nil }) == nil)
+        #expect(fallbackReads == 0)
+        #expect(NativePrintRequest.windowForPrinting(owner: nil, current: { fallbackReads += 1; return nil }) == nil)
+        #expect(fallbackReads == 1)
+    }
+
+    @Test func windowModelUpdatesPrintingOwnershipWhenItsWindowIsRemoved() throws {
+        _ = NSApplication.shared
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let model = WindowModel(library: library)
+        let window = NSWindow(contentRect: .zero, styleMask: [], backing: .buffered, defer: true)
+        model.window = window
+        #expect(model.host.printingWindow() === window)
+        model.window = nil
+        #expect(model.host.printingWindow() == nil)
+        #expect(!window.isVisible)
+    }
+
+    @Test func headlessHostRejectsPrintingBeforeOpeningAnyPanel() async {
+        let host = NativeActionHost()
+        #expect(host.printingWindow() == nil)
+        do {
+            _ = try await host.performAsync("print", payload: "{\"text\":\"Neutral\"}")
+            Issue.record("Printing without an owner succeeded.")
+        } catch { #expect(error.localizedDescription == "Open a Draftly window before printing.") }
+    }
+
     @Test func completedPDFKeepsPaginationOnTheMainActorWithoutShowingPanels() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

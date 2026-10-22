@@ -112,14 +112,23 @@ struct NativePrintPageGeometry {
 @MainActor enum NativePrintRequest {
     static func run(_ values: [String: Any], timeout: TimeInterval = 120,
                     now: @escaping @MainActor () -> Date = { Date() },
-                    makeDriver: @MainActor (NativePrintConfiguration) throws -> any NativePrintDriver = { try SheetPrintDriver($0) }) async throws -> Bool {
+                    ownerWindow: (@MainActor () -> NSWindow?)? = nil,
+                    makeDriver: (@MainActor (NativePrintConfiguration) throws -> any NativePrintDriver)? = nil) async throws -> Bool {
         try Task.checkCancellation()
         guard timeout.isFinite, timeout > 0 else { throw DraftlyError.message("The print timeout must be positive and finite.") }
         let deadline = now().addingTimeInterval(timeout)
         let configuration = try NativePrintConfiguration(values)
-        let result = try await PrintRequestWait(driver: makeDriver(configuration), deadline: deadline, now: now).run()
+        let driver: any NativePrintDriver
+        if let makeDriver { driver = try makeDriver(configuration) }
+        else { driver = try SheetPrintDriver(configuration, window: windowForPrinting(owner: ownerWindow, current: { NSApp?.keyWindow })) }
+        let result = try await PrintRequestWait(driver: driver, deadline: deadline, now: now).run()
         try Task.checkCancellation()
         return result
+    }
+
+    static func windowForPrinting(owner: (@MainActor () -> NSWindow?)?, current: @MainActor () -> NSWindow?) -> NSWindow? {
+        if let owner { return owner() }
+        return current()
     }
 }
 
@@ -129,8 +138,8 @@ struct NativePrintPageGeometry {
     var onFinish: ((Result<Bool, Error>) -> Void)?
     private weak var ownedSheet: NSWindow?
     private var retention: SheetPrintDriver?
-    init(_ configuration: NativePrintConfiguration) throws {
-        guard let window = NSApp?.keyWindow else { throw DraftlyError.message("Open a Draftly window before printing.") }
+    init(_ configuration: NativePrintConfiguration, window: NSWindow?) throws {
+        guard let window, window.isVisible else { throw DraftlyError.message("Open a Draftly window before printing.") }
         guard window.attachedSheet == nil else { throw DraftlyError.message("Close the current window sheet before printing.") }
         self.window = window
         operation = try NativePrintLayout.makeOperation(configuration, printInfo: .shared)

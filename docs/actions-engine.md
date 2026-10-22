@@ -820,3 +820,12 @@ the failed session. The legacy synchronous route is unchanged.
 Injected clock and backend tests cover the boundary and recovery without model
 generation or library writes. Native generation remains blocked by system
 readiness. These tests do not accept native model cancellation or tool cleanup.
+
+## Owned asynchronous print windows — 22 October 2026
+
+WindowModel binds its native host to its own window through a weak closure.
+Async printing uses that owner after external confirmations. It does not require
+the global key window. If the owner is absent or no longer visible, printing
+fails before opening a panel. An ownerless native host cannot borrow another
+window. The request helper keeps its current-window fallback only when no owner
+provider is supplied. The legacy synchronous print path is unchanged.

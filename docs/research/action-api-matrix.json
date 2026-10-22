@@ -23375,6 +23375,31 @@
           "suite": "NativeModelAsyncTests",
           "test": "expiredRequestCannotRunToolsOrReturnALateResponse",
           "file": "Tests/DraftlyTests/NativeModelAsyncTests.swift"
+        },
+        {
+          "suite": "NativePrintRequestTests",
+          "test": "ownedWindowDoesNotDependOnGlobalKeyWindow",
+          "file": "Tests/DraftlyTests/NativePrintRequestTests.swift"
+        },
+        {
+          "suite": "NativePrintRequestTests",
+          "test": "missingOwnerNeverBorrowsAnotherWindow",
+          "file": "Tests/DraftlyTests/NativePrintRequestTests.swift"
+        },
+        {
+          "suite": "NativePrintRequestTests",
+          "test": "windowModelUpdatesPrintingOwnershipWhenItsWindowIsRemoved",
+          "file": "Tests/DraftlyTests/NativePrintRequestTests.swift"
+        },
+        {
+          "suite": "NativePrintRequestTests",
+          "test": "headlessHostRejectsPrintingBeforeOpeningAnyPanel",
+          "file": "Tests/DraftlyTests/NativePrintRequestTests.swift"
+        },
+        {
+          "suite": "NativePrintRequestTests",
+          "test": "largePDFRetainsEveryNumberedLineWithoutShowingPanels",
+          "file": "Tests/DraftlyTests/NativePrintRequestTests.swift"
         }
       ],
       "nativeVerification": {
@@ -23536,6 +23561,13 @@
             "fixture": "scripts/fixtures/engine-reminders-authorization-actions.json",
             "result": "System-delivered App Intent default-list lookup returned access denied and retained pre-request text in Inbox without later steps. Following Intent shell recovery passed. Later URL lookup returned one success with listAvailable=yes and applied its configured tail/Archive; following Intent recovery passed. Permission gesture was not observed; pending authorization, cancellation and late grant are not accepted. No task/list creation or enumeration. QA retired.",
             "evidence": "docs/validation.md: Native Reminders access outcomes — 22 October 2026"
+          },
+          {
+            "date": "2026-10-22",
+            "debugLibrarySHA256": "97662ac2353d331f696f5af1f8ea91e832298f9a6592bb95e98ef91ece68792c",
+            "fixture": "scripts/fixtures/engine-print-large-document-actions.json",
+            "result": "The formerly failing confirmed URL now uses the action owner and completed a118-page local PDF with one success and correct parameters. All4000 numbered lines and markers verified; sampled rendered pages retained emoji despite extraction limits. Following shell recovery passed. Baseline Cancelled/Error and corrected Success/Success are retained. No printer job; usual app unchanged; QA retired. Owner-close remains separate.",
+            "evidence": "docs/validation.md: Owned print window and large native PDF — 22 October 2026"
           }
         ]
       },
@@ -23983,6 +24015,31 @@
           "suite": "NativeSpeechProcessTests",
           "test": "actualIntentWaitsForSpeechCleanupAndKeepsTheFinalReason",
           "file": "Tests/DraftlyTests/NativeSpeechProcessTests.swift"
+        },
+        {
+          "suite": "NativePrintRequestTests",
+          "test": "ownedWindowDoesNotDependOnGlobalKeyWindow",
+          "file": "Tests/DraftlyTests/NativePrintRequestTests.swift"
+        },
+        {
+          "suite": "NativePrintRequestTests",
+          "test": "missingOwnerNeverBorrowsAnotherWindow",
+          "file": "Tests/DraftlyTests/NativePrintRequestTests.swift"
+        },
+        {
+          "suite": "NativePrintRequestTests",
+          "test": "windowModelUpdatesPrintingOwnershipWhenItsWindowIsRemoved",
+          "file": "Tests/DraftlyTests/NativePrintRequestTests.swift"
+        },
+        {
+          "suite": "NativePrintRequestTests",
+          "test": "headlessHostRejectsPrintingBeforeOpeningAnyPanel",
+          "file": "Tests/DraftlyTests/NativePrintRequestTests.swift"
+        },
+        {
+          "suite": "NativePrintRequestTests",
+          "test": "largePDFRetainsEveryNumberedLineWithoutShowingPanels",
+          "file": "Tests/DraftlyTests/NativePrintRequestTests.swift"
         }
       ],
       "nativeVerification": {
@@ -24127,6 +24184,13 @@
             "fixture": "scripts/fixtures/engine-reminders-authorization-actions.json",
             "result": "System-delivered App Intent default-list lookup returned access denied and retained pre-request text in Inbox without later steps. Following Intent shell recovery passed. Later URL lookup returned one success with listAvailable=yes and applied its configured tail/Archive; following Intent recovery passed. Permission gesture was not observed; pending authorization, cancellation and late grant are not accepted. No task/list creation or enumeration. QA retired.",
             "evidence": "docs/validation.md: Native Reminders access outcomes — 22 October 2026"
+          },
+          {
+            "date": "2026-10-22",
+            "debugLibrarySHA256": "97662ac2353d331f696f5af1f8ea91e832298f9a6592bb95e98ef91ece68792c",
+            "fixture": "scripts/fixtures/engine-print-large-document-actions.json",
+            "result": "The formerly failing confirmed URL now uses the action owner and completed a118-page local PDF with one success and correct parameters. All4000 numbered lines and markers verified; sampled rendered pages retained emoji despite extraction limits. Following shell recovery passed. Baseline Cancelled/Error and corrected Success/Success are retained. No printer job; usual app unchanged; QA retired. Owner-close remains separate.",
+            "evidence": "docs/validation.md: Owned print window and large native PDF — 22 October 2026"
           }
         ]
       },

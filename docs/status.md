@@ -4,6 +4,12 @@ Updated: 22 October 2026.
 
 ## Current Actions engine acceptance
 
+Async printing now uses its action window after external confirmation. The
+previous missing-key-window failure is fixed; missing owners cannot borrow
+another window. Core674/app759, Python68 and local Debug build passed. The real
+118-page PDF completed, followed by shell recovery. QA was retired recoverably.
+Native print owner-close and other route obligations remain separate.
+
 Reminders default-list access returned an explicit denied outcome through a
 system-delivered App Intent, then succeeded through URL with a Boolean availability
 parameter only. Following Intent recoveries passed. The user later confirmed

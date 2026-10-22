@@ -9993,3 +9993,56 @@ owner disappears. Keep this defect separate from the large-PDF test change.
 Both QA apps quit normally and exact process absence passed. Their packages and
 closed temporary library remain in place for a validated refresh and repeat.
 The usual app is unchanged. No screenshot or raw log is tracked.
+
+## Owned print window and large native PDF — 22 October 2026
+
+The prior URL repeat failed after external confirmation because SheetPrintDriver
+read the global key window. The source window was still visible. Async native
+hosts now use the WindowModel owner through a weak closure. A missing or invisible
+owner fails before a panel opens. An ownerless host cannot borrow an unrelated
+window. Direct request calls keep the old fallback only if no owner provider is
+supplied. Legacy synchronous printing is unchanged.
+
+Four headless tests cover an owned window with no global key window or an unrelated
+key window, explicit missing-owner rejection, WindowModel binding removal and
+ownerless-host failure before presentation. Restoring the old global selection
+rule made the two selection tests fail with four assertions. Restoring the fix
+passed the complete run: Core674/app759, with XML results matched to discovery.
+All 68 Python tests and the local Debug build passed. No retry or longer limit
+was added. Structural matrix and diff checks passed. The strict engine gate still
+reports six partial contracts and 18 diagnostics.
+
+The closed baseline QA package and library were preserved before refresh. The
+complete current runtime was copied and development-signed. Signed debug-library
+SHA256: 97662ac2353d331f696f5af1f8ea91e832298f9a6592bb95e98ef91ece68792c.
+The usual app stayed unchanged. QA used the same neutral library and fixture.
+
+The same externally confirmed URL now opened the real 118-page panel. The
+run-button-to-panel observation was 1,521ms, including Computer Use overhead.
+Save as PDF wrote only large-neutral.pdf in the temporary QA directory. No printer
+was selected and no printer job was submitted. The first callback observation
+at 797ms after Save had zero replies; the next at 6,111ms had one success with
+printed=yes and utf16Length=126925. These are observation bounds, not isolated
+rendering times or proof of UI responsiveness during drawing.
+
+The saved PDF has 118 A4 pages, 595 x 842 points, and 218,182 bytes. Text extraction
+verified all 4,000 numbered lines in order, both markers and 4,000 cafe accents.
+Poppler extracted only 3 panda characters and PDFKit 34. Rendered pages 1, 59 and 118
+showed the repeated panda glyphs, correct line numbers and clean margins. This
+supports a text-extraction limitation, not a demonstrated rendering defect. Do
+not claim a full-page visual review or 4,000 extractable emoji characters.
+The automatic Letter export has 126 pages; its different geometry is explicit.
+Hardware: Mac14,6, Apple M2 Max, 64 GiB; macOS 27.0.1; local Debug build and temporary
+local storage. Timings are single observations without acceptance thresholds.
+
+A following real shell recovery returned one Unicode success. Both apps quit
+normally. Closed history preserved baseline Cancelled/Error and corrected
+Success/Success. The final source had recovery text in Archive, from the completed
+print root's explicit success effect. Exact process absence and exact
+LaunchServices unregistration passed. Both runtime versions, both closed library
+states, PDF and exported preferences remain recoverable at:
+~/.Trash/DraftlyLargePrintQA-x623szvb.
+
+Native print owner-close remains pending because the system sheet disables Close
+and Close All did not close its owner in the earlier check. The large-document
+case here does not remove that restriction or accept other capability routes.
