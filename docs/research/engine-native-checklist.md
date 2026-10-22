@@ -15,6 +15,15 @@ separates actionable checks from reference, permission and system blocks.
 records the current Drafts Pro block and Draftly-only characterization. No
 configuration precedence has been accepted from Drafts by that attempt.
 
+## Controlled speech permission follow-up
+
+[Speech permission and cleanup](speech-permission-lifetime-2026-10-22.md) records
+a red/green transcription cancellation-reason regression and new driver tests.
+Requested denials, stale authorization across sessions and capture cleanup are
+covered without real permissions or audio. The runner case retains completed
+text, stops later steps and Archive, and recovers. These checks do not accept
+the outstanding native speech/microphone dialogs or recognition timeout.
+
 ## Route checklist
 
 `Sources/Draftly/NativeAsyncRoute.swift` defines these 18 route families.

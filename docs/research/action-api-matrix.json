@@ -23461,6 +23461,18 @@
           "suite": "NativeSharingRequestTests",
           "test": "lateHandoffCleanupDoesNotFinishAnotherPendingRequest",
           "file": "Tests/DraftlyTests/NativeSharingRequestTests.swift"
+        },
+        {
+          "suite": "NativeTranscriptionRequestTests",
+          "test": "cancellationWinsWhenAnExpiredReplyIsQueuedBeforeCleanup"
+        },
+        {
+          "suite": "NativeTranscriptionRequestTests",
+          "test": "staleRepliesCannotChangeOrFinishTheNextTranscription"
+        },
+        {
+          "suite": "NativeTranscriptionRequestTests",
+          "test": "actionCancellationRetainsCompletedTextStopsLaterStepsAndRecovers"
         }
       ],
       "nativeVerification": {
@@ -23794,6 +23806,30 @@
           "suite": "NativeSharingRequestTests",
           "test": "cancellationDuringServiceDiscoveryNeverShowsPicker",
           "file": "Tests/DraftlyTests/NativeSharingRequestTests.swift"
+        },
+        {
+          "suite": "NativeDictationRequestTests",
+          "test": "requestedPermissionRefusalCleansWithoutCaptureAndAllowsRecovery"
+        },
+        {
+          "suite": "NativeDictationRequestTests",
+          "test": "staleAuthorizationCannotAdvanceOrFinishTheNextSession"
+        },
+        {
+          "suite": "NativeDictationRequestTests",
+          "test": "sameTurnRecordingCancellationRejectsTranscriptAndDoneBeforeCleanup"
+        },
+        {
+          "suite": "NativeTranscriptionRequestTests",
+          "test": "requestedPermissionRefusalInvalidatesWithoutPickerAndAllowsRecovery"
+        },
+        {
+          "suite": "NativeTranscriptionRequestTests",
+          "test": "cancellationWinsWhenAnExpiredReplyIsQueuedBeforeCleanup"
+        },
+        {
+          "suite": "NativeTranscriptionRequestTests",
+          "test": "actionCancellationRetainsCompletedTextStopsLaterStepsAndRecovers"
         }
       ],
       "nativeVerification": {
@@ -24113,6 +24149,10 @@
           "suite": "NativePrintRequestTests",
           "test": "largePDFRetainsEveryNumberedLineWithoutShowingPanels",
           "file": "Tests/DraftlyTests/NativePrintRequestTests.swift"
+        },
+        {
+          "suite": "NativeTranscriptionRequestTests",
+          "test": "actionCancellationRetainsCompletedTextStopsLaterStepsAndRecovers"
         }
       ],
       "nativeVerification": {

@@ -2,6 +2,23 @@
 
 Updated: 22 October 2026.
 
+## Speech permission and cleanup
+
+The [speech lifetime record](research/speech-permission-lifetime-2026-10-22.md)
+records a functional transcription cancellation correction and separate tests.
+A queued expired reply used to report timeout after task cancellation. A
+three-phase red/green case now verifies CancellationError with one cleanup.
+Six further methods cover requested denial, stale replies across requests,
+same-turn capture cancellation and the worker's retained-write/recovery path.
+Final checks passed Core679/app792, Python80, focused53, local Debug build and
+structural matrix0. The strict engine gate remains six partial contracts and
+18 diagnostics. Tests used injected drivers, no real microphone or permissions.
+Two neutral manual probes are prepared. Real speech/microphone permission,
+quiet dictation and production recognition timeout remain pending. No native
+session was started; the usual app and privacy settings remain unchanged.
+Work is on agent/speech-permission-lifetime-2026-10-22, based on the previous
+engine acceptance branch. Main remains c82ae79 until a separate integration.
+
 ## Engine acceptance cases and included configuration
 
 The [case inventory](research/engine-acceptance-cases-2026-10-22.md) separates

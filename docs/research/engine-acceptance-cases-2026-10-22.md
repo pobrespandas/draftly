@@ -121,6 +121,20 @@ Rows with several subcases name a bounded family, not acceptance of untested
 variants. Split the actual session into outcome-specific evidence before closing
 its row. Do not claim every API option or legacy integration from this inventory.
 
+## Controlled speech progress
+
+[Speech permission and cleanup](speech-permission-lifetime-2026-10-22.md) adds
+controlled support for SPEECH-DENY/CANCEL/LATE and MIC-DENY/CANCEL/LATE. Requested
+speech denial/restriction and microphone refusal stop before capture. Old grants
+cannot advance the next session. Same-turn recording cancellation rejects text
+and Done. The transcription runner case checks retained writes, no later steps
+or Archive, one final cleanup and a successful following action.
+
+The cancellation/deadline regression is fixed for all three transcription phases.
+These are injected driver and worker results. Native case states above remain
+pending. TRANSCRIBE-01 still requires the actual production recognition timeout;
+a fake-clock boundary is not that observation. No microphone was activated.
+
 ## Closure
 
 Keep the six engine contracts partial while required cases or reference decisions

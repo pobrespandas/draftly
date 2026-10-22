@@ -254,6 +254,81 @@ struct NativeDictationRequestTests {
         #expect(!driver.resourcesActive && !driver.windowOpen)
     }
 
+    @Test(arguments: ["speech denied", "speech restricted", "microphone denied"])
+    func requestedPermissionRefusalCleansWithoutCaptureAndAllowsRecovery(refusal: String) async throws {
+        let driver = DictationDriverFixture()
+        if refusal == "microphone denied" {
+            driver.microphoneAuthorization = .notDetermined
+            driver.whenMicrophoneRequested = { $0(false) }
+        } else {
+            driver.speechAuthorization = .notDetermined
+            driver.whenSpeechRequested = { $0(refusal == "speech denied" ? .denied : .restricted) }
+        }
+        do { _ = try await NativeDictationRequest.run([:], driver: driver); Issue.record("Refused permission started capture.") }
+        catch {
+            #expect(error.localizedDescription == (refusal == "microphone denied"
+                ? "Microphone access is denied." : "Speech recognition access is denied."))
+        }
+        #expect(driver.starts == 0 && driver.shows == 0 && driver.cleanups == 1)
+        #expect(driver.speechRequests == (refusal == "microphone denied" ? 0 : 1))
+        #expect(driver.microphoneRequests == (refusal == "microphone denied" ? 1 : 0))
+        #expect(!driver.resourcesActive && !driver.windowOpen && driver.onUpdate == nil && driver.onDecision == nil)
+        let next = DictationDriverFixture()
+        next.whenShown = { next.onUpdate?(.init(text: "Recovery café 🐼", isFinal: false)); next.onDecision?(true) }
+        #expect(try await NativeDictationRequest.run([:], driver: next) == "Recovery café 🐼")
+        #expect(next.stops == 1 && next.cleanups == 1 && !next.resourcesActive && !next.windowOpen)
+    }
+
+    @Test(arguments: [false, true])
+    func staleAuthorizationCannotAdvanceOrFinishTheNextSession(microphone: Bool) async throws {
+        let driver = DictationDriverFixture()
+        driver.speechAuthorization = microphone ? .authorized : .notDetermined
+        driver.microphoneAuthorization = .notDetermined
+        var grant: (() -> Void)?, deny: (() -> Void)?
+        driver.whenSpeechRequested = { reply in grant = { reply(.authorized) }; deny = { reply(.denied) } }
+        driver.whenMicrophoneRequested = { reply in grant = { reply(true) }; deny = { reply(false) } }
+        let task = Task { try await NativeDictationRequest.run([:], driver: driver) }
+        defer { task.cancel() }
+        try await driver.waitFor(microphone ? .microphone : .speech)
+        let lateGrant = try #require(grant), lateDenial = try #require(deny)
+        task.cancel()
+        do { _ = try await task.value; Issue.record("Cancelled authorization returned text.") }
+        catch { #expect(error is CancellationError) }
+
+        let next = DictationDriverFixture()
+        next.speechAuthorization = .notDetermined
+        var currentGrant: (@MainActor @Sendable (SFSpeechRecognizerAuthorizationStatus) -> Void)?
+        next.whenSpeechRequested = { currentGrant = $0 }
+        next.whenShown = { next.onUpdate?(.init(text: "Fresh café 🐼", isFinal: true)); next.onDecision?(true) }
+        let fresh = Task { try await NativeDictationRequest.run([:], driver: next) }
+        defer { fresh.cancel() }
+        try await next.waitFor(.speech)
+        lateGrant(); lateDenial(); lateGrant()
+        #expect(driver.starts == 0 && driver.cleanups == 1)
+        #expect(next.speechRequests == 1 && next.starts == 0 && next.cleanups == 0)
+        let acceptCurrent = try #require(currentGrant)
+        acceptCurrent(.authorized)
+        #expect(try await fresh.value == "Fresh café 🐼")
+        #expect(next.cleanups == 1 && next.stops == 1 && !next.resourcesActive && !next.windowOpen)
+    }
+
+    @Test func sameTurnRecordingCancellationRejectsTranscriptAndDoneBeforeCleanup() async throws {
+        let driver = DictationDriverFixture()
+        let task = Task { try await NativeDictationRequest.run([:], driver: driver) }
+        defer { task.cancel() }
+        try await driver.waitFor(.shown)
+        let update = try #require(driver.onUpdate), done = try #require(driver.onDecision)
+        let displayed = driver.displayed
+        task.cancel()
+        update(.init(text: "Must not display or insert", isFinal: true))
+        done(true)
+        do { _ = try await task.value; Issue.record("Cancelled capture returned a result.") }
+        catch { #expect(error is CancellationError) }
+        #expect(driver.displayed == displayed && driver.displayAfterCleanup == 0)
+        #expect(driver.stops == 1 && driver.cleanups == 1 && !driver.resourcesActive && !driver.windowOpen)
+        #expect(driver.onUpdate == nil && driver.onDecision == nil)
+    }
+
     @Test func invalidTimeoutDoesNotRequestPermissionOrStartCapture() async {
         let driver = DictationDriverFixture()
         do { _ = try await NativeDictationRequest.run([:], driver: driver, timeout: 0); Issue.record("The invalid timeout succeeded.") }
@@ -280,6 +355,7 @@ private final class DictationDriverFixture: NativeDictationDriving {
     var speechRequests = 0, microphoneRequests = 0, starts = 0, shows = 0, stops = 0, cleanups = 0
     var resourcesActive = false, windowOpen = false
     var displayAfterCleanup = 0
+    var displayed: [String] = []
 
     func waitFor(_ stage: Stage) async throws {
         for await current in started.stream { if current == stage { return } }
@@ -299,7 +375,7 @@ private final class DictationDriverFixture: NativeDictationDriving {
         started.continuation.yield(.shown)
         whenShown?()
     }
-    func displayTranscript(_ text: String) { if cleanups > 0 { displayAfterCleanup += 1 } }
+    func displayTranscript(_ text: String) { displayed.append(text); if cleanups > 0 { displayAfterCleanup += 1 } }
     func stopRecording() { if resourcesActive { resourcesActive = false; stops += 1 } }
     func cleanup() {
         cleanups += 1; stopRecording(); windowOpen = false

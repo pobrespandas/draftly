@@ -223,6 +223,103 @@ struct NativeTranscriptionRequestTests {
         #expect(driver.pickerRequests == 0)
     }
 
+    @Test(arguments: [SFSpeechRecognizerAuthorizationStatus.denied, .restricted])
+    func requestedPermissionRefusalInvalidatesWithoutPickerAndAllowsRecovery(status: SFSpeechRecognizerAuthorizationStatus) async throws {
+        let driver = TranscriptionDriverFixture()
+        driver.authorizationStatus = .notDetermined
+        driver.onPermission = { $0(status) }
+        do { _ = try await NativeTranscriptionRequest.run([:], driver: driver); Issue.record("Refused recognition returned text.") }
+        catch { #expect(error.localizedDescription == "Speech recognition access is denied.") }
+        #expect(driver.permissionRequests == 1 && driver.pickerRequests == 0 && driver.locale == nil)
+        #expect(driver.recognitionCleanups == 0 && driver.invalidations == 1)
+        let next = TranscriptionDriverFixture()
+        #expect(try await NativeTranscriptionRequest.run([:], driver: next) == "Neutral text")
+        #expect(next.pickerCleanups == 1 && next.recognitionCleanups == 1 && next.invalidations == 1)
+    }
+
+    @Test(arguments: ["authorization", "picker", "recognition"])
+    func staleRepliesCannotChangeOrFinishTheNextTranscription(phase: String) async throws {
+        let driver = TranscriptionDriverFixture()
+        var reply: (() -> Void)?
+        let stage: TranscriptionDriverFixture.Stage
+        switch phase {
+        case "authorization":
+            stage = .authorization; driver.authorizationStatus = .notDetermined
+            driver.onPermission = { completion in reply = { completion(.authorized) } }
+        case "picker":
+            stage = .picker; driver.onPick = { completion in reply = { completion(driver.file) } }
+        default:
+            stage = .recognition
+            driver.onRecognize = { completion in reply = { completion(.init(text: "Stale text", isFinal: true)) } }
+        }
+        let task = Task { try await NativeTranscriptionRequest.run([:], driver: driver) }
+        defer { task.cancel() }
+        try await driver.waitFor(stage)
+        let staleReply = try #require(reply)
+        task.cancel()
+        do { _ = try await task.value; Issue.record("Cancelled request returned text.") }
+        catch { #expect(error is CancellationError) }
+        let next = TranscriptionDriverFixture()
+        var currentReply: (@MainActor @Sendable (NativeTranscriptionUpdate) -> Void)?
+        next.onRecognize = { currentReply = $0 }
+        let fresh = Task { try await NativeTranscriptionRequest.run([:], driver: next) }
+        defer { fresh.cancel() }
+        try await next.waitFor(.recognition)
+        staleReply(); staleReply()
+        await TestMainQueue.drain()
+        #expect(driver.invalidations == 1)
+        #expect(driver.pickerRequests == (phase == "authorization" ? 0 : 1))
+        #expect(driver.recognitionCleanups == (phase == "recognition" ? 1 : 0))
+        #expect(next.invalidations == 0 && next.recognitionCleanups == 0)
+        let acceptCurrent = try #require(currentReply)
+        acceptCurrent(.init(text: "Fresh café 🐼", isFinal: true))
+        #expect(try await fresh.value == "Fresh café 🐼")
+        #expect(next.recognitionCleanups == 1 && next.invalidations == 1)
+    }
+
+    @Test(arguments: [false, true])
+    func actionCancellationRetainsCompletedTextStopsLaterStepsAndRecovers(recognizing: Bool) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false), editor = EditorSession()
+        let note = try library.createNote(content: "Original café 🐼"); editor.load(note, focusEditor: false)
+        let driver = TranscriptionDriverFixture()
+        driver.authorizationStatus = recognizing ? .authorized : .notDetermined
+        var lateReply: (() -> Void)?
+        driver.onPermission = { reply in lateReply = { reply(.authorized) } }
+        driver.onRecognize = { reply in lateReply = { reply(.init(text: "Late transcript", isFinal: true)) } }
+        let host = TranscriptionActionFixtureHost(driver: driver)
+        let runner = ActionRunner(library: library, editor: editor, host: host)
+        runner.uiOperation = { _ in Issue.record("Unexpected synchronous editor operation."); return nil }
+        var action = DraftAction(name: "QA cancelled transcription", steps: [ActionStep("script", ["script": """
+        editor.setText('Retained café 🐼');draft.update();
+        context.addSuccessParameter('mustDrop','yes');
+        var result=editor.transcribe();editor.setText('Must not insert '+result);draft.update();
+        """]), ActionStep("script", ["script": "editor.setText('Must not run');"])])
+        action.afterSuccess = "archive"
+        let execution = Task {
+            let report = await runner.runAsync(action)
+            driver.finishWaiting()
+            return report
+        }
+        defer { execution.cancel() }
+        try await driver.waitFor(recognizing ? .recognition : .authorization)
+        #expect(editor.content == "Retained café 🐼")
+        let stale = try #require(lateReply)
+        execution.cancel()
+        let report = await execution.value
+        #expect(report.reason == .cancelled && report.successParameters.isEmpty)
+        #expect(driver.invalidations == 1 && host.finishes == 1)
+        #expect(driver.recognitionCleanups == (recognizing ? 1 : 0))
+        #expect(editor.content == "Retained café 🐼")
+        #expect(library.notes.first?.content == editor.content && library.notes.first?.isArchived == false)
+        #expect(library.runs.count == 1 && library.runs.first?.status == "Cancelled")
+        stale()
+        let recovery = DraftAction(name: "QA transcription recovery", steps: [ActionStep("script", ["script": "editor.setText('Recovery café 🐼');draft.update();"])])
+        #expect(await runner.runAsync(recovery).reason == .success)
+        await TestMainQueue.drain()
+        #expect(editor.content == "Recovery café 🐼" && library.notes.first?.content == editor.content)
+        #expect(library.runs.count == 2 && host.finishes == 2 && driver.invalidations == 1)
+    }
+
     @Test func invalidTimeoutDoesNotRequestPermissionOrOpenAPicker() async {
         let driver = TranscriptionDriverFixture()
         do { _ = try await NativeTranscriptionRequest.run([:], driver: driver, timeout: .nan); Issue.record("The invalid timeout succeeded.") }
@@ -256,7 +353,8 @@ private final class TranscriptionDriverFixture: NativeTranscriptionDriving {
     var recognitionCleanups = 0
     var recognizedFile: URL?
     var locale: String?
-    var invalidated = false
+    var invalidations = 0
+    var invalidated: Bool { invalidations > 0 }
 
     func requestAuthorization(_ completion: @escaping @Sendable (SFSpeechRecognizerAuthorizationStatus) -> Void) { permissionRequests += 1; started.continuation.yield(.authorization); onPermission?(completion) }
     func configure(locale: String) throws { self.locale = locale; if let configurationError { throw configurationError } }
@@ -272,5 +370,22 @@ private final class TranscriptionDriverFixture: NativeTranscriptionDriving {
         if let onRecognize { onRecognize(update) } else { update(.init(text: "Neutral text", isFinal: true)) }
         return { self.recognitionCleanups += 1 }
     }
-    func invalidate() { started.continuation.finish(); invalidated = true; onPermission = nil; onPick = nil; onRecognize = nil }
+    func finishWaiting() { started.continuation.finish() }
+    func invalidate() { finishWaiting(); invalidations += 1; onPermission = nil; onPick = nil; onRecognize = nil }
+}
+
+@MainActor private final class TranscriptionActionFixtureHost: ActionHost {
+    let driver: TranscriptionDriverFixture
+    var finishes = 0
+    init(driver: TranscriptionDriverFixture) { self.driver = driver }
+    func supportsAsync(_ operation: String) -> Bool { operation == "transcribe" }
+    func perform(_ operation: String, values: [String: Any]) throws -> Any? {
+        throw DraftlyError.message("Unexpected synchronous operation: " + operation)
+    }
+    func performAsync(_ operation: String, payload: String) async throws -> String {
+        guard operation == "transcribe" else { throw DraftlyError.message("Unexpected native operation: " + operation) }
+        let text = try await NativeTranscriptionRequest.run([:], driver: driver)
+        return String(decoding: try JSONSerialization.data(withJSONObject: ["value": text]), as: UTF8.self)
+    }
+    func finishAction() { finishes += 1 }
 }

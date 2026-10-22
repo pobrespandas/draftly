@@ -10137,3 +10137,27 @@ Draftly-only characterization methods are described in
 research/included-configuration-comparison-2026-10-22.md. The remaining engine
 case inventory is research/engine-acceptance-cases-2026-10-22.md. The matrix stays
 partial and retains the six contracts. No production rule changed.
+
+
+## Controlled speech permission and cancellation — 22 October 2026
+
+The focused baseline passed 41 methods. A new fake-clock transcription test
+queued an expired reply before task-cancellation cleanup. Authorization, picker
+and recognition each incorrectly reported timeout. The correction records
+cancellation synchronously before actor cleanup and returns CancellationError.
+All 42 focused methods then passed; local Debug compilation passed.
+
+Additional injected-driver cases cover requested denial/restriction, stale
+speech/microphone grants, stale recognition/file replies, same-turn recording
+cancel and recovery. The real worker/runner with a speech-host fixture retains
+completed text, skips tail/Archive, drops success parameters and permits a fresh
+action after cancellation. This is not system-delivered UI/URL/Intent evidence.
+
+Final Core 679 / app 792 matched the full XML inventory. Focused 53, Python 80,
+local Debug build, structural matrix 0 and diff checks passed. Six partial engine
+contracts and 18 strict diagnostics remain. No retry or deadline changed.
+See research/speech-permission-lifetime-2026-10-22.md for the exact cases.
+No native permission request, speech session or microphone capture ran. Two
+neutral manual probes are prepared but not accepted as executed. The user was
+asked for a quiet-session availability; protected OS permissions remain gated.
+No habitual app, privacy setting, original script or native acceptance changed.
