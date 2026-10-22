@@ -37,3 +37,39 @@ struct AdvancedFindCommands {
         _ = model.flush()
     }
 }
+
+struct AdvancedFindRequest: Codable, Equatable {
+    var text: String
+    var replacement: String
+    var caseSensitive: Bool
+    var regularExpression: Bool
+
+    var historyTitle: String { "Find: " + text + (replacement.isEmpty ? "" : ", Replace: " + replacement) }
+
+    mutating func reverseValues() { swap(&text, &replacement) }
+
+    func query() throws -> EditorFindQuery {
+        try EditorFindQuery(text, caseSensitive: caseSensitive, regularExpression: regularExpression)
+    }
+}
+
+@MainActor
+struct AdvancedFindHistory {
+    static let storageKey = "editor.advancedFind.history"
+    let defaults: UserDefaults
+
+    var requests: [AdvancedFindRequest] {
+        guard let data = defaults.data(forKey: Self.storageKey),
+              let requests = try? JSONDecoder().decode([AdvancedFindRequest].self, from: data) else { return [] }
+        return requests
+    }
+
+    func record(_ request: AdvancedFindRequest) throws {
+        _ = try request.query()
+        var values = requests.filter { $0 != request }
+        values.insert(request, at: 0)
+        defaults.set(try JSONEncoder().encode(values), forKey: Self.storageKey)
+    }
+
+    func clear() { defaults.removeObject(forKey: Self.storageKey) }
+}

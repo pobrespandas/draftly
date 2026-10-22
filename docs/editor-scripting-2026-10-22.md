@@ -64,7 +64,7 @@ or screenshots were added to Git.
   these paths.
 - Custom syntax: audit all included format features, validation, installation,
   replacement, file reload, URLs, name conflicts and unknown-field preservation.
-- Advanced Find: implement Reverse Values and request history. Compare query
+- Advanced Find: compare the remaining Reverse Values edge cases. Compare query
   initialization, multiline input, line labels, keyboard actions, navigation,
   cancellation, persistence and the independent window in Drafts. Keep native
   find and `preferAdvancedFind` checks. Individual replacement alone does not
@@ -83,3 +83,46 @@ The final serial runs passed 666 app methods in 120 suites, 654 Core methods in
 124 suites, and 68 Python tests. The matrix structural check reported zero
 errors. The local build passed. These runs do not replace the open native and
 reference comparisons above. Tests did not use the QA app or personal data.
+
+## Find request history and reversal
+
+The view now provides Reverse Values, Find with Command-Return, and History.
+A request contains query text, replacement text, case sensitivity and regex mode.
+Reverse Values swaps only the two texts. Find and replacement commands record
+valid requests in local preferences. Exact duplicates move to the front. History
+labels include nonempty replacement text. Restoring a request restores all four
+values. Clear History removes only its own preference key. This change does not
+add history to library backups or change public scripting APIs.
+
+Three headless tests cover exact Unicode and multiline values, reversal,
+complete persistence, duplicate order, option differences, invalid regex,
+corrupt stored data, clearing and isolation between preference domains.
+
+Computer Use confirmed that Drafts 54.1.1 restores replacement and matching
+options from history. Its history labels include replacement text. The automated
+Reverse Values observation was inconsistent: the replacement field changed to
+the query text but the query field did not show the prior replacement. This is
+an unresolved reference observation, not proof that Draftly matches every edge
+case. No reference draft content was changed. The prior request and native-find
+mode were restored. Neutral comparison requests remain in Drafts history.
+
+Isolated QA verified both swapped texts with options retained. It restored the
+saved request after changing both options. After a normal process exit and
+relaunch, History still contained the request and restored both texts, options
+and results. Clear History then left only its disabled menu item. It retained
+the current fields and exact draft text. No replacement was performed in this
+session. One transient Computer Use context warning occurred after relaunch.
+Fresh state and a click on the row text recovered the session; that warning is
+not counted as a product failure or acceptance evidence.
+
+QA published no Services, normal URLs or document types. It used isolated
+preferences and storage with CloudKit and global shortcuts disabled. It quit
+normally. Process absence was checked before retiring only its registration.
+Its app, exported preferences and closed library remain together in recoverable
+Trash. The usual app was not replaced.
+
+The final history run passed 669 app methods/121 suites and 654 Core methods/124
+suites. Separate XML reports match the discovered method inventory. All 68 Python
+tests passed. The matrix structural check reported zero errors. The local build
+passed. No timeouts or retries were changed. This accepts the checked history
+and reversal behavior, not the remaining Editor/scripting scope above.

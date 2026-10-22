@@ -1,8 +1,9 @@
 # Draftly architecture
 
-## Latest refactoring stage
+## Current continuation
 
-Cloning is paused for the [Advanced Find refactoring stage](refactoring-find-2026-10-22.md).
+Editor and scripting work continues in the [dated scope record](editor-scripting-2026-10-22.md).
+The [Advanced Find refactoring stage](refactoring-find-2026-10-22.md) is complete.
 The [option refactoring stage](refactoring-options-2026-10-22.md) is complete.
 The [editing refactoring record](refactoring-editing-2026-10-21.md) describes the
 previous completed stage. Current execution uses ActionRunner.runAsync and
@@ -80,10 +81,12 @@ behavior remain unchanged; syntax parity is a separate functional concern.
 
 ## Advanced Find command boundary
 
-AdvancedFindCommands coordinates selection, navigation and Replace All for the
+AdvancedFindCommands coordinates selection, navigation and replacement for the
 current editor. It has no view state. AdvancedFindView keeps bindings, options,
 query errors, result previews, focus and dismissal. EditorFindQuery remains the
-matching and replacement engine. Native find and preferAdvancedFind routes
+matching and replacement engine. AdvancedFindRequest contains both texts and
+matching options. AdvancedFindHistory stores complete requests in local
+preferences. Library backups do not contain this history. Native find and preferAdvancedFind routes
 remain separate and unchanged.
 
 Navigation uses UTF-16 ranges and safeSelection. It excludes an identical

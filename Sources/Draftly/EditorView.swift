@@ -421,18 +421,55 @@ struct AdvancedFindView: View {
     @State private var replacement = ""
     @State private var caseSensitive = false
     @State private var regularExpression = false
+    @State private var history: [AdvancedFindRequest] = []
     @FocusState private var queryFocused: Bool
     init(model: WindowModel) { self.model = model; editor = model.editor }
     private var commands: AdvancedFindCommands { AdvancedFindCommands(model: model) }
-    private var query: Result<EditorFindQuery, Error> {
-        Result { try EditorFindQuery(model.advancedFindQuery, caseSensitive: caseSensitive, regularExpression: regularExpression) }
+    private var request: AdvancedFindRequest {
+        AdvancedFindRequest(text: model.advancedFindQuery, replacement: replacement,
+            caseSensitive: caseSensitive, regularExpression: regularExpression)
+    }
+    private var historyStore: AdvancedFindHistory {
+        AdvancedFindHistory(defaults: model.dependencies.preferences.defaults)
+    }
+    private var query: Result<EditorFindQuery, Error> { Result { try request.query() } }
+    private var validQuery: Bool { if case .success = query { return true }; return false }
+    private func remember() {
+        do { try historyStore.record(request); history = historyStore.requests }
+        catch { model.library.error = error.localizedDescription }
+    }
+    private func restore(_ request: AdvancedFindRequest) {
+        model.advancedFindQuery = request.text
+        replacement = request.replacement
+        caseSensitive = request.caseSensitive
+        regularExpression = request.regularExpression
+    }
+    private func find() {
+        guard case .success = query else { return }
+        remember()
+        commands.navigate(in: ranges, backward: false)
     }
     private var ranges: [NSRange] { (try? query.get().matches(in: editor.content)) ?? [] }
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Advanced Find").font(.headline)
-            TextField("Find", text: $model.advancedFindQuery).focused($queryFocused).onSubmit { commands.navigate(in: ranges, backward: false) }
+            TextField("Find", text: $model.advancedFindQuery).focused($queryFocused).onSubmit { find() }
             TextField("Replace", text: $replacement)
+            HStack {
+                Button("Reverse Values", systemImage: "arrow.up.arrow.down") {
+                    var reversed = request; reversed.reverseValues(); restore(reversed)
+                }
+                Menu("History", systemImage: "clock.arrow.circlepath") {
+                    ForEach(Array(history.enumerated()), id: \.offset) { _, value in
+                        Button(value.historyTitle) { restore(value) }
+                    }
+                    Divider()
+                    Button("Clear History") { historyStore.clear(); history = [] }.disabled(history.isEmpty)
+                }
+                Spacer()
+                Button("Find") { find() }.disabled(model.advancedFindQuery.isEmpty || !validQuery)
+                    .keyboardShortcut(.return, modifiers: .command)
+            }
             HStack {
                 Toggle("Match Case", isOn: $caseSensitive)
                 Toggle("Regular Expression", isOn: $regularExpression)
@@ -447,7 +484,7 @@ struct AdvancedFindView: View {
                             Button { commands.select(range) } label: {
                                 Text("\(index + 1). " + preview(range)).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
                             }.buttonStyle(.plain)
-                            Button("Replace") { commands.replace(query: query, range: range, with: replacement) }
+                            Button("Replace") { remember(); commands.replace(query: query, range: range, with: replacement) }
                                 .accessibilityLabel("Replace match \(index + 1)")
                         }.padding(5)
                             .background(editor.selection == range ? Color.accentColor.opacity(0.15) : .clear)
@@ -458,10 +495,12 @@ struct AdvancedFindView: View {
                 Button("Previous") { commands.navigate(in: ranges, backward: true) }.disabled(ranges.isEmpty)
                 Button("Next") { commands.navigate(in: ranges, backward: false) }.disabled(ranges.isEmpty)
                 Spacer()
-                Button("Replace All") { commands.replaceAll(query: query, with: replacement) }.disabled(ranges.isEmpty)
+                Button("Replace All") { remember(); commands.replaceAll(query: query, with: replacement) }.disabled(ranges.isEmpty)
                 Button("Done") { dismiss() }.keyboardShortcut(.cancelAction)
             }
-        }.padding(20).frame(width: 520).onAppear { queryFocused = true }
+        }.padding(20).frame(width: 520).onAppear { history = historyStore.requests; queryFocused = true }
+            .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification,
+                object: model.dependencies.preferences.defaults)) { _ in history = historyStore.requests }
     }
     private func preview(_ range: NSRange) -> String {
         let text = editor.content as NSString

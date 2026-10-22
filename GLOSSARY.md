@@ -112,6 +112,18 @@ A folder of external theme definitions used while creating and editing themes.
 **Configured theme**:
 The theme chosen on this Mac for light or dark appearance. A workspace can specify a different theme for its window.
 
+### Editor search
+
+**Find query**:
+The text or regular expression used to locate matches in the current draft.
+
+**Find request**:
+A find query, replacement text, and matching options that can be used together again.
+_Avoid_: Query (when referring to the complete request)
+
+**Find history**:
+The recent find requests available for reuse on this device.
+
 ### Actions
 
 **Step creation default**:

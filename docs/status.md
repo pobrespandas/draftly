@@ -2354,3 +2354,23 @@ verified replacement of only the second match, the result list, selection,
 Undo/Redo and Markdown marker navigation. QA quit normally and was retired with
 its closed data in recoverable Trash. Full remaining scope and exact limits:
 `docs/editor-scripting-2026-10-22.md`. Editor/scripting remains incomplete.
+
+## Advanced Find history and value reversal — 22 October 2026
+
+Reverse Values swaps query and replacement without changing options or content.
+Find and replacement commands save complete requests in device preferences.
+History restores both texts and matching options. Exact duplicates move to the
+front. Clear History removes only that key. The new glossary terms distinguish
+a query from a complete request. Library and backup formats remain unchanged.
+
+Three new headless methods cover persistence, labels, reversal, Unicode,
+duplicates, isolation, invalid regex and corrupt history. Full serial runs passed
+669 app methods/121 suites and 654 Core methods/124 suites. XML reports match the
+discovered inventory. Python68, matrix structure0 and local build passed.
+
+Isolated Computer Use verified reversal, restoration after option changes,
+normal exit/relaunch persistence and Clear History with fields and source kept.
+QA closed normally and was retired with recoverable data. Drafts54.1.1 confirmed
+history restoration and labels. Its Reverse Values result was inconsistent in
+automation and remains an explicit comparison limitation. The usual Draftly app
+is unchanged. Remaining scope: docs/editor-scripting-2026-10-22.md.
