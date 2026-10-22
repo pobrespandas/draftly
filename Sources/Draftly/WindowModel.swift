@@ -354,17 +354,19 @@ final class WindowModel: ObservableObject {
         showLibraryManagement = true
     }
 
-    func applyScriptWorkspace(_ workspace: Workspace) throws {
+    private func prepareWorkspace(_ workspace: Workspace) throws -> Workspace {
         let resolved = try WorkspacePresentationResolver.resolve(workspace, groupNames: library.groupNames,
             groups: library.actionGroups, themes: library.themes)
         try validateWorkspaceThemeFiles(resolved)
-        applyResolvedWorkspace(resolved)
+        return resolved
+    }
+
+    func applyScriptWorkspace(_ workspace: Workspace) throws {
+        applyResolvedWorkspace(try prepareWorkspace(workspace))
     }
 
     func saveAndApplyWorkspace(_ workspace: Workspace) throws {
-        let resolved = try WorkspacePresentationResolver.resolve(workspace, groupNames: library.groupNames,
-            groups: library.actionGroups, themes: library.themes)
-        try validateWorkspaceThemeFiles(resolved)
+        let resolved = try prepareWorkspace(workspace)
         try library.saveWorkspace(resolved)
         cancelActionForUserEdit()
         applyResolvedWorkspace(resolved)

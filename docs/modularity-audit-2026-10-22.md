@@ -205,7 +205,14 @@ inside any of R1–R5. No new functional defect was reproduced by this audit.
 R1 is implemented in the separate [completion-context refactoring record](refactoring-completion-context-2026-10-22.md).
 Its verification does not change the original audit results or implement R2–R5.
 The implementation adds the explicit provider and migrates the model-supplying
-constructors. Workspace preparation is the next proposed stage.
+constructors. The later R4 follow-up below records Workspace preparation.
+
+## Follow-up — R4 implementation
+
+R4 is implemented in the separate [Workspace preparation record](refactoring-workspace-preparation-2026-10-22.md).
+A common private operation prepares the resolved Workspace. Each caller keeps
+its existing save, cancel and apply order. R1 and R4 are complete as refactoring
+stages. Cloud QA preparation is next; R2, R3 and R5 remain unimplemented.
 
 ## Recommended implementation sequence
 

@@ -2,6 +2,16 @@
 
 Updated: 22 October 2026.
 
+## Workspace preparation refactoring
+
+R4 is implemented in the [Workspace preparation record](refactoring-workspace-preparation-2026-10-22.md).
+The common private preparation operation leaves saving, cancellation and
+application in their callers. Four characterization methods passed before
+extraction. Final checks passed Core674/app777, Python68, 51 focused methods,
+local Debug compilation and the structural matrix. No native session or app
+update was needed. Strict engine diagnostics remain 18. Cloud QA preparation
+is the next proposed refactoring.
+
 ## Editor completion refactoring
 
 R1 is implemented in the [completion-context record](refactoring-completion-context-2026-10-22.md).
@@ -15,8 +25,8 @@ XML-RPC timing risk and the 18 strict engine diagnostics remain separate.
 
 The [repository audit](modularity-audit-2026-10-22.md) is complete at the
 architectural level. It proposed five bounded refactorings. R1 completion
-context is now implemented separately. Next are Workspace preparation, Cloud QA
-preparation, styling and text synchronization. The audit itself changed no
+context and R4 Workspace preparation are implemented separately. Next are Cloud
+QA preparation, styling and text synchronization. The audit itself changed no
 production or test code and removed no tests. The documentation now distinguishes current orientation from
 historical records. Complete verification on 1e399dd passed Core674/app767,
 Python68, local Debug compilation and the structural matrix check. Native

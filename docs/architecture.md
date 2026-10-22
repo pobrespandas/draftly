@@ -4,7 +4,8 @@
 
 The [modularity audit](modularity-audit-2026-10-22.md) records the current
 refactoring diagnosis. [Editor completion context](refactoring-completion-context-2026-10-22.md)
-implements its first stage. Workspace preparation is the next proposed stage.
+implements its first stage. [Workspace preparation](refactoring-workspace-preparation-2026-10-22.md)
+is also implemented. Cloud QA preparation is the next proposed stage.
 See [status](status.md) for
 functional work. The [dated editor/scripting record](editor-scripting-2026-10-22.md)
 retains its original scope. The audit does not implement its proposed changes.
@@ -55,6 +56,15 @@ existing consumers. Picker tags are not a new storage format.
 group membership, identity lookup, visibility and presentation order without
 persistence or UI dependencies. `LibraryStore` delegates its existing catalog
 methods. Storage reload order remains separate.
+
+## Workspace preparation boundary
+
+WindowModel.prepareWorkspace resolves presentation references and validates
+external theme files through the existing components. Both application entry
+points use it. Callers retain saving, cancellation and published state changes.
+The script route prepares and applies. Save-and-apply prepares, saves, cancels
+and applies. The window apply wrapper cancels before preparation and keeps its
+existing error wrapper. File checks retain their current bookmark effects.
 
 ## Workspace sort writer boundary
 
