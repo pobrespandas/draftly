@@ -12,24 +12,48 @@ struct NativePrintRequestTests {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
         let output = directory.appendingPathComponent("neutral.pdf")
-        let info = NSPrintInfo()
-        info.paperSize = NSSize(width: 612, height: 792)
-        info.jobDisposition = .save
-        info.dictionary()[NSPrintInfo.AttributeKey.jobSavingURL] = output
         let text = "Print QA heading\nUnicode café 🐼\nSecond line"
-        let operation = try NativePrintLayout.makeOperation(NativePrintConfiguration(["text": text]), printInfo: info)
-        // Stop before rendering if AppKit could call the actor-isolated view on another thread.
-        try #require(!operation.canSpawnSeparateThread)
-        operation.showsPrintPanel = false
-        operation.showsProgressPanel = false
-        #expect(operation.run())
-        let document = try #require(PDFDocument(url: output))
+        let document = try renderPDF(text, to: output)
         #expect(document.pageCount == 1)
         let contents = try #require(document.string)
         // PDFKit can extract the emoji font run after the other text runs.
         for part in ["Print QA heading", "Unicode café", "🐼", "Second line"] {
             #expect(contents.contains(part), "Missing PDF text: \(part)")
         }
+    }
+
+    @Test func largePDFRetainsEveryNumberedLineWithoutShowingPanels() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let text = "Large print QA\n" + (1...4000).map { "Neutral print line \($0) café 🐼\n" }.joined() + "Last print marker"
+        #expect((text as NSString).length > 100_000)
+        let start = ContinuousClock.now
+        let document = try renderPDF(text, to: directory.appendingPathComponent("large.pdf"))
+        let elapsed = start.duration(to: .now)
+        #expect(document.pageCount > 1)
+        let contents = try #require(document.string)
+        let pattern = try NSRegularExpression(pattern: "Neutral print line ([0-9]+)")
+        let source = contents as NSString
+        let lines = pattern.matches(in: contents, range: NSRange(location: 0, length: source.length))
+            .compactMap { Int(source.substring(with: $0.range(at: 1))) }
+        #expect(lines == Array(1...4000))
+        #expect(contents.contains("Large print QA") && contents.contains("Last print marker"))
+        print("Large PDF render: \((text as NSString).length) UTF-16 units, \(document.pageCount) pages, \(elapsed).")
+    }
+
+    private func renderPDF(_ text: String, to output: URL) throws -> PDFDocument {
+        let info = NSPrintInfo()
+        info.paperSize = NSSize(width: 612, height: 792)
+        info.jobDisposition = .save
+        info.dictionary()[NSPrintInfo.AttributeKey.jobSavingURL] = output
+        let operation = try NativePrintLayout.makeOperation(NativePrintConfiguration(["text": text]), printInfo: info)
+        // Stop before rendering if AppKit could call the actor-isolated view on another thread.
+        try #require(!operation.canSpawnSeparateThread)
+        operation.showsPrintPanel = false
+        operation.showsProgressPanel = false
+        #expect(operation.run())
+        return try #require(PDFDocument(url: output))
     }
 
     @MainActor private final class Driver: NativePrintDriver {

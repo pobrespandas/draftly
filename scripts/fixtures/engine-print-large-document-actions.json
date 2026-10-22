@@ -1,0 +1,31 @@
+[
+  {
+    "uuid": "E51BB899-D5C2-4C54-A7BB-964187C9DA70",
+    "name": "QA Large print document",
+    "group": "Print lifecycle QA",
+    "notificationType": 0,
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Retained large print café 🐼');draft.update();var text='Large print QA\\n';for(var i=1;i<=4000;i++)text+='Neutral print line '+i+' café 🐼\\n';text+='Last print marker';draft.setTemplateTag('large_print',text);context.addSuccessParameter('utf16Length',String(text.length));"
+        }
+      },
+      {
+        "type": "print",
+        "data": {
+          "template": "[[large_print]]",
+          "printFormat": "Text",
+          "topMargin": "72"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "context.addSuccessParameter('printed','yes');editor.setText('Large print completed');draft.update();"
+        }
+      }
+    ]
+  }
+]

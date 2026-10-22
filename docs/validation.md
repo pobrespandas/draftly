@@ -9963,3 +9963,33 @@ The user later confirmed that the Reminders request appeared and that they
 pressed Allow. Computer Use did not operate that protected prompt. This adds
 human confirmation of the grant behind the later successful lookup. It does
 not establish pending-authorization cancellation or late-grant isolation.
+
+## Large PDF regression and native owner-selection failure — 22 October 2026
+
+The headless print suite now saves 4,000 numbered Unicode lines to a local PDF.
+The input has126,925 UTF-16 units. It verifies every line in order plus the first
+and final markers. Letter geometry produced126 pages in0.224800667s for one run.
+No print or progress panel appeared. Timing is an observation, not a threshold.
+The existing short-PDF test shares the same export setup and keeps its name.
+Complete Swift results passed Core674/app755 and matched discovery.
+
+The neutral engine-print-large-document-actions.json fixture generates that text
+as a template tag while retaining a short draft write. The imported script matched
+before execution. Native QA used unchanged c21dac9 production code, signed debug
+library81f11b36359b811826e4747421c455c13d81ed82b0d1bdd9aa89fa6457ea8cb1.
+
+The first real print panel showed118 pages with its system paper configuration.
+Panel Cancel returned one x-cancel without the pre-print success parameters.
+The click-to-observed-callback bound was881ms, including Computer Use overhead.
+The draft retained its initial write in Inbox without completion text or Archive.
+A later URL repeat failed with Open a Draftly window before printing, despite
+the source window remaining open. It returned one x-error. No PDF was saved and
+no print command was sent. The failed repeat does not accept native completion.
+
+Inspection found that SheetPrintDriver resolves NSApp.keyWindow after the external
+confirmation closes. This can be nil even when the action's source window exists.
+The fix must carry the owned window, without borrowing another window if that
+owner disappears. Keep this defect separate from the large-PDF test change.
+Both QA apps quit normally and exact process absence passed. Their packages and
+closed temporary library remain in place for a validated refresh and repeat.
+The usual app is unchanged. No screenshot or raw log is tracked.
