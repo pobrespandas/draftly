@@ -9063,3 +9063,25 @@ and exact LaunchServices paths were unregistered. Apps, preferences and closed
 library remain recoverable in `~/.Trash/DraftlySharingCloseQA-abbi4wsp`.
 The shared file was absent. The habitual app was unchanged. This accepts Notes
 owner closure after file handoff on this URL path, not every sharing provider.
+
+
+## Location authorization cancellation race — 22 October 2026
+
+A deterministic headless test cancelled the location task while authorization
+was pending. It delivered authorization and a location before the queued
+MainActor cleanup. Before the correction, the driver started updates and the
+request returned success. The new regression failed on both observations.
+
+NativeLocationRequest now records cancellation synchronously in a locked
+per-request state. Authorization checks that state before starting updates.
+Final delivery rejects cancellation, and the public async return also checks
+the task. Cleanup still stops updates and invalidates the driver once. The
+regression passes with zero starts and CancellationError. It uses no location
+service, privacy prompt, window or personal coordinates.
+
+All 51 focused location/sharing/file/callback methods passed. Complete Swift
+verification passed 674 Core and 717 app methods, matched against discovery.
+Local Debug compilation and matrix structure validation passed. No retry or
+deadline change was used. Python source was unchanged; the preceding 68-test
+result is separate. This controlled race test does not accept native macOS
+authorization outcomes. No QA app was launched or habitual app replaced.

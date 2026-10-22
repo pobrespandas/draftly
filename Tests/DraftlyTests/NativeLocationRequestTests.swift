@@ -84,6 +84,22 @@ struct NativeLocationRequestTests {
         #expect(driver.invalidated)
     }
 
+    @Test func cancellationRejectsAuthorizationBeforeQueuedCleanup() async throws {
+        let driver = LocationDriverFixture()
+        driver.authorizationStatus = .notDetermined
+        let task = Task { try await NativeLocationRequest.current(driver: driver) }
+        var requested = driver.authorizationRequested.stream.makeAsyncIterator()
+        try #require(await requested.next() == true)
+        task.cancel()
+        driver.onAuthorization?(.authorizedAlways)
+        driver.onLocation?(3, 4)
+        do { _ = try await task.value; Issue.record("The cancelled authorization succeeded.") }
+        catch { #expect(error is CancellationError) }
+        #expect(driver.starts == 0)
+        #expect(driver.stops == 1)
+        #expect(driver.invalidated)
+    }
+
     @Test func authorizationWaitTimesOutWithoutStartingLocationUpdates() async {
         let driver = LocationDriverFixture()
         driver.authorizationStatus = .notDetermined
@@ -113,6 +129,7 @@ struct NativeLocationRequestTests {
 
 @MainActor
 private final class LocationDriverFixture: NativeLocationDriving {
+    let authorizationRequested = AsyncStream.makeStream(of: Bool.self)
     let started = AsyncStream.makeStream(of: Bool.self)
     var servicesEnabled = true
     var authorizationStatus: CLAuthorizationStatus = .authorizedAlways
@@ -126,11 +143,12 @@ private final class LocationDriverFixture: NativeLocationDriving {
     var stops = 0
     var invalidated = false
 
-    func requestAuthorization() { authorizationRequests += 1; whenAuthorizationRequested?() }
+    func requestAuthorization() { authorizationRequests += 1; authorizationRequested.continuation.yield(true); authorizationRequested.continuation.finish(); whenAuthorizationRequested?() }
     func startUpdating() { starts += 1; started.continuation.yield(true); started.continuation.finish(); whenStarted?() }
     func stopUpdating() { stops += 1 }
     func invalidate() {
         started.continuation.finish()
+        authorizationRequested.continuation.finish()
         invalidated = true; onAuthorization = nil; onLocation = nil; onFailure = nil
         whenStarted = nil; whenAuthorizationRequested = nil
     }

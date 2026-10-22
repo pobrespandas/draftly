@@ -17,6 +17,15 @@ protocol NativeLocationDriving: AnyObject {
 
 @MainActor
 final class NativeLocationRequest {
+    private final class CancellationState: @unchecked Sendable {
+        private let lock = NSLock()
+        private var cancelled = false
+
+        var isCancelled: Bool { lock.withLock { cancelled } }
+        func cancel() { lock.withLock { cancelled = true } }
+    }
+
+    private let cancellation = CancellationState()
     private let driver: any NativeLocationDriving
     private var continuation: CheckedContinuation<[String: Double], Error>?
     private var timeoutTask: Task<Void, Never>?
@@ -32,7 +41,9 @@ final class NativeLocationRequest {
         }
         try Task.checkCancellation()
         let request = NativeLocationRequest(driver: driver ?? CoreLocationDriver())
-        return try await request.run(timeout: timeout)
+        let result = try await request.run(timeout: timeout)
+        try Task.checkCancellation()
+        return result
     }
 
     private func run(timeout: TimeInterval) async throws -> [String: Double] {
@@ -60,13 +71,18 @@ final class NativeLocationRequest {
                 }
                 authorizationChanged(driver.authorizationStatus)
             }
-        } onCancel: {
+        } onCancel: { [cancellation] in
+            cancellation.cancel()
             Task { @MainActor [self] in finish(.failure(CancellationError())) }
         }
     }
 
     private func authorizationChanged(_ status: CLAuthorizationStatus) {
         guard continuation != nil else { return }
+        guard !cancellation.isCancelled else {
+            finish(.failure(CancellationError()))
+            return
+        }
         switch status {
         case .notDetermined:
             guard !authorizationRequested else { return }
@@ -89,7 +105,7 @@ final class NativeLocationRequest {
         timeoutTask?.cancel(); timeoutTask = nil
         driver.stopUpdating()
         driver.invalidate()
-        continuation.resume(with: result)
+        continuation.resume(with: cancellation.isCancelled ? .failure(CancellationError()) : result)
     }
 }
 
