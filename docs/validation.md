@@ -9602,3 +9602,40 @@ windows, play audio or request permissions. No manual UI session was needed for
 this executor boundary. They do not accept new system-delivered App Intent or
 Shortcuts cases. The usual app was not replaced. Native route acceptance still
 has six partial engine records.
+
+## Speech process cleanup through actual Intent.perform — 22 October 2026
+
+At `0898a34`, a headless integration test calls RunDraftActionIntent.perform.
+It executes JavaScript through the worker, then NativeSpeechRequest, the real
+SystemSpeechDriver and NativeSpeechProcess. An injected executable waits as a
+real local process and ignores TERM. It does not use an audio device. The test
+host substitutes only that executable and the notice presenter. It does not
+accept the operating system delivery of an App Intent.
+
+Both task cancellation and helper timeout throw AutomationActionError with the
+matching final reason. Before the Intent returns, the helper is reaped and its
+request directory is removed. Retained text stays in Inbox. The later script,
+next step, completion notice and success Archive effect do not run. Library
+execution exclusion is released. A following Intent succeeds, saves distinct
+text and records Success. The interrupted run records Cancelled or Error.
+The process-level and Intent-level cases share the neutral blocked executable
+fixture; each keeps its own contract assertions.
+
+The focused speech-process suite passed7 methods, including the two new Intent
+cases. Complete Swift results passed Core674/app749 and matched discovery.
+Local Debug compilation, structural matrix validation and the manual-fixture
+identity test passed. Production code did not change in this session. Python
+fixture validation is not a new full Python run.
+
+A separate manual owner-close fixture is now prepared as QA Speech owner close
+in engine-speech-actions.json. It includes a later step and Archive after
+success, so both must remain absent after closing the source window. This
+fixture was not executed: Computer Use reported that the Mac was locked.
+No synthesis, UI action confirmation or final callback was observed for it.
+
+An isolated full QA bundle was prepared from `0898a34`, with debug-library hash
+`a8b51a41294099ed3c44b7b5faddd80a20c14a6756701006afc78fd829efc7e5`.
+Its process was confirmed live but idle, with zero stored notes and runs and no
+speech helper or request directory. The QA app and callback helper bundle stay
+prepared for the unlocked manual session. They do not publish Services entries.
+The usual app remains unchanged. Owner-close acceptance is still pending.

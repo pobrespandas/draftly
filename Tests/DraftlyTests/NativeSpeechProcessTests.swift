@@ -1,4 +1,5 @@
 import Foundation
+import AppIntents
 import Darwin
 import Testing
 import DraftlyCore
@@ -16,6 +17,16 @@ struct NativeSpeechProcessTests {
         try ("#!/bin/sh\n" + source).write(to: url, atomically: true, encoding: .utf8)
         try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: url.path)
         return url
+    }
+
+    private func blockedHelper(root: URL) throws -> URL {
+        try executable("""
+            trap '' TERM
+            printf '%s' "$2" > "\(root.path)/input-path"
+            printf '%s' "$$" > "\(root.path)/pid"
+            /usr/bin/touch "\(root.path)/ready"
+            exec /bin/sleep 30
+            """, root: root)
     }
 
     @Test func helperModeIsRecognizedBeforeApplicationStartup() {
@@ -90,13 +101,7 @@ struct NativeSpeechProcessTests {
     @Test(arguments: [false, true])
     func interruptionReapsBlockedHelperBeforeRemovingInput(cancel: Bool) async throws {
         let root = try folder(); defer { try? FileManager.default.removeItem(at: root) }
-        let helper = try executable("""
-            trap '' TERM
-            printf '%s' "$2" > "\(root.path)/input-path"
-            printf '%s' "$$" > "\(root.path)/pid"
-            /usr/bin/touch "\(root.path)/ready"
-            exec /bin/sleep 30
-            """, root: root)
+        let helper = try blockedHelper(root: root)
         let task = Task {
             try await NativeSpeechRequest.run(
                 ["text": "Neutral", "settings": ["autoClose": false]],
@@ -120,5 +125,76 @@ struct NativeSpeechProcessTests {
         }
         #expect(getpgid(pid) == -1)
         #expect(!FileManager.default.fileExists(atPath: input.deletingLastPathComponent().path))
+    }
+    @Test(arguments: [false, true])
+    func actualIntentWaitsForSpeechCleanupAndKeepsTheFinalReason(cancel: Bool) async throws {
+        let root = try folder(); defer { try? FileManager.default.removeItem(at: root) }
+        let helper = try blockedHelper(root: root)
+        let host = IntentSpeechProcessHost(executable: helper, root: root, timeout: cancel ? 10 : 1)
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Neutral")
+        var action = DraftAction(name: "Intent speech cleanup", steps: [
+            ActionStep("script", ["script": "editor.setText('Retained Intent speech café 🐼');draft.update();context.addSuccessParameter('discard','yes');speech.speak('Neutral',{autoClose:false});editor.setText('ERROR: speech continued');draft.update();"]),
+            ActionStep("insertText", ["template": "ERROR: speech tail"])
+        ])
+        action.afterSuccess = "archive"
+        try library.saveAction(action)
+        func request(_ action: DraftAction) -> RunDraftActionIntent {
+            var request = RunDraftActionIntent()
+            request.name = action.name; request.uuid = note.id.uuidString
+            request.executionEnvironment = RunActionIntentEnvironment(library: library, models: [], host: host)
+            return request
+        }
+        let task = Task { try await request(action).perform() }
+        defer { task.cancel() }
+        let deadline = ContinuousClock.now + .seconds(5)
+        while !FileManager.default.fileExists(atPath: root.appendingPathComponent("ready").path), ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        try #require(FileManager.default.fileExists(atPath: root.appendingPathComponent("ready").path))
+        let pid = try #require(Int32(String(contentsOf: root.appendingPathComponent("pid"), encoding: .utf8)))
+        defer { if getpgid(pid) == pid { _ = Darwin.kill(-pid, SIGKILL) } }
+        let input = URL(fileURLWithPath: try String(contentsOf: root.appendingPathComponent("input-path"), encoding: .utf8))
+        #expect(FileManager.default.fileExists(atPath: input.path))
+        if cancel { task.cancel() }
+        do { _ = try await task.value; Issue.record("Interrupted speech Intent returned success.") }
+        catch { #expect(try #require(error as? AutomationActionError).reason == (cancel ? .cancelled : .timeout)) }
+        #expect(getpgid(pid) == -1)
+        #expect(!FileManager.default.fileExists(atPath: input.deletingLastPathComponent().path))
+        #expect(host.notices.isEmpty)
+        #expect(library.notes.first?.content == "Retained Intent speech café 🐼")
+        #expect(library.notes.first?.isArchived == false)
+        #expect(!ActionRunner.isExecuting(in: library))
+        let recovery = DraftAction(name: "Intent speech recovery", steps: [ActionStep("script", ["script": "editor.setText('Intent speech recovered');draft.update();"])])
+        try library.saveAction(recovery)
+        _ = try await request(recovery).perform()
+        #expect(library.notes.first?.content == "Intent speech recovered")
+        #expect(library.runs.count == 2)
+        #expect(library.runs.first { $0.actionID == action.id }?.status == (cancel ? "Cancelled" : "Error"))
+        #expect(library.runs.first { $0.actionID == recovery.id }?.status == "Success")
+    }
+
+}
+
+@MainActor private final class IntentSpeechProcessHost: ActionHost {
+    let executable: URL
+    let root: URL
+    let timeout: TimeInterval
+    var notices: [NativeSpeechRequest.Notice] = []
+    init(executable: URL, root: URL, timeout: TimeInterval) {
+        self.executable = executable; self.root = root; self.timeout = timeout
+    }
+    func supportsAsync(_ operation: String) -> Bool { operation == "speak" }
+    func perform(_ operation: String, values: [String: Any]) throws -> Any? {
+        if operation == "device" { return [String: Any]() }
+        throw DraftlyError.message("Unexpected speech Intent operation: " + operation)
+    }
+    func performAsync(_ operation: String, payload: String) async throws -> String {
+        #expect(operation == "speak")
+        let values = try #require(JSONSerialization.jsonObject(with: Data(payload.utf8)) as? [String: Any])
+        let result = try await NativeSpeechRequest.run(values,
+            makeDriver: { SystemSpeechDriver(voice: $0, executable: self.executable, timeout: self.timeout, temporaryDirectory: self.root) },
+            present: { notice in self.notices.append(notice); return true })
+        return String(decoding: try JSONSerialization.data(withJSONObject: ["value": result]), as: UTF8.self)
     }
 }

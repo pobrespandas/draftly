@@ -23873,6 +23873,11 @@
         {
           "suite": "NativeMessageAsyncTests",
           "test": "actualIntentPropagatesUnconfirmedMailAsFailure"
+        },
+        {
+          "suite": "NativeSpeechProcessTests",
+          "test": "actualIntentWaitsForSpeechCleanupAndKeepsTheFinalReason",
+          "file": "Tests/DraftlyTests/NativeSpeechProcessTests.swift"
         }
       ],
       "nativeVerification": {

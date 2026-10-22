@@ -4,9 +4,16 @@ Updated: 22 October 2026.
 
 ## Current Actions engine acceptance
 
+Actual Intent.perform now has speech-process cancel and timeout coverage with
+real silent helper processes. It verifies cleanup before return, typed errors,
+retained writes, no later steps or Archive and a successful following Intent.
+The new full run passed Core674/app749 and local Debug compilation. System
+delivery of the Intent remains separate. The prepared manual speech owner-close
+check is pending because the Mac was locked.
+
 Waited process cancellation now has synchronous state at exit delivery and a
 second check before spawn. Red/green process tests cover cancelled launch,
-normal-status rejection and remaining-child cleanup. Current full checks passed
+normal-status rejection and remaining-child cleanup. The prior full checks passed
 Core674/app748 and local Debug compilation. Native entry acceptance remains
 separate. Python was unchanged; the earlier68-test result was not rerun.
 

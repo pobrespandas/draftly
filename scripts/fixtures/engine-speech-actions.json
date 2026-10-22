@@ -40,5 +40,26 @@
         }
       }
     ]
+  },
+  {
+    "uuid": "A0760100-0000-4000-8000-000000000022",
+    "name": "QA Speech owner close",
+    "group": "Speech lifetime QA",
+    "notificationType": 0,
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Retained speech owner close café 🐼');draft.update();if(!speech.speak('Prueba neutral de Draftly.',{autoStart:false,autoClose:false}))context.cancel();context.addSuccessParameter('speech','unexpected');editor.setText('ERROR: speech owner close continued');draft.update();"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "ERROR: owner close tail"
+        }
+      }
+    ]
   }
 ]
