@@ -534,4 +534,22 @@ struct SyntaxDefinitionTests {
         #expect(ranges.first?.0 == NSRange(location: 0, length: 11))
         #expect(ranges.dropFirst().map(\.0.location) == Array(0...10))
     }
+    @Test func librarySyntaxLookupUsesInjectedFileAccess() throws {
+        let suite = "Draftly.SyntaxLookup." + UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appendingPathComponent("Neutral.draftsSyntax")
+        let original = try definition()
+        try Data(original.source.utf8).write(to: file)
+        let fileSyntax = try SyntaxDefinition(data: Data(original.source.utf8), type: "file")
+        let library = try LibraryStore(inMemory: true, seed: false)
+        try SyntaxFileAccess.install(fileSyntax, from: file, in: library, defaults: defaults)
+        #expect(try library.syntaxDefinition(named: fileSyntax.name, defaults: defaults).id == fileSyntax.id)
+        defaults.removeObject(forKey: "syntax.file." + fileSyntax.id.uuidString)
+        #expect(throws: (any Error).self) { try library.syntaxDefinition(named: fileSyntax.name, defaults: defaults) }
+        #expect(library.syntaxes == [fileSyntax])
+    }
 }

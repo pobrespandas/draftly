@@ -287,7 +287,7 @@ public final class LibraryStore: ObservableObject {
     }
     public func syntaxDefinition(named name: String, defaults: UserDefaults) throws -> SyntaxDefinition {
         let value: SyntaxDefinition
-        if let definition = syntaxes.first(where: { $0.name == name }) { value = try definition.type == "file" ? SyntaxFileAccess.read(definition) : definition }
+        if let definition = syntaxes.first(where: { $0.name == name }) { value = try definition.type == "file" ? SyntaxFileAccess.read(definition, defaults: defaults) : definition }
         else { value = try ScriptSyntax.definition(name) }
         return value.resolvingFeatures(SyntaxFeaturePreferences.values(for: name, encoded: defaults.string(forKey: SyntaxFeaturePreferences.key) ?? "{}"))
     }

@@ -914,3 +914,16 @@ Both QAs quit normally. Exact active registrations were removed. An unregister
 attempt for the never-launched preserved runtime returned-10814; no global reset
 was used. Both runtimes, preferences and closed libraries are recoverable in
 Trash. The habitual app was unchanged. No screenshot or raw log is tracked.
+
+## Injected file-syntax access preferences
+
+LibraryStore.syntaxDefinition(named:defaults:) used the supplied preferences for
+features but called SyntaxFileAccess.read with global preferences for bookmarks.
+A specific Core regression reproduced the failure with an isolated installed file.
+The lookup now forwards the supplied preferences to file access too. The original
+single-argument lookup still uses standard preferences. Formats are unchanged.
+
+The regression passes with the injected bookmark, fails explicitly after its
+removal and retains the installed definition. The combined integration passed
+Core672/124 and app707/124 plus the local build and matrix structure0. The related
+editor error presentation is a separate change below. No retry or deadline changed.

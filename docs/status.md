@@ -2581,3 +2581,10 @@ Headless key/command cases, focused21, app705/123, local build and matrix passed
 Native corrected QA confirmed history, ordinary Return, Escape and enabled
 preferAdvancedFind routing. QAs retired recoverably; usual app unchanged.
 Remaining keyboard/background/default/reference scope stays open.
+
+### Injected file-syntax access — 22 October 2026
+
+Library lookup now forwards injected preferences to bookmark reads, as it already
+did for syntax features. A Core red/green regression verifies access and explicit
+missing-bookmark failure without changing definitions. Combined integration
+Core672/app707 and local build passed. Editor error presentation is separate.
