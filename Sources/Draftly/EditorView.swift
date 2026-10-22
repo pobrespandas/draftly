@@ -443,9 +443,13 @@ struct AdvancedFindView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 4) {
                     ForEach(Array(ranges.enumerated()), id: \.offset) { index, range in
-                        Button { commands.select(range) } label: {
-                            Text("\(index + 1). " + preview(range)).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
-                        }.buttonStyle(.plain).padding(5)
+                        HStack {
+                            Button { commands.select(range) } label: {
+                                Text("\(index + 1). " + preview(range)).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
+                            }.buttonStyle(.plain)
+                            Button("Replace") { commands.replace(query: query, range: range, with: replacement) }
+                                .accessibilityLabel("Replace match \(index + 1)")
+                        }.padding(5)
                             .background(editor.selection == range ? Color.accentColor.opacity(0.15) : .clear)
                     }
                 }

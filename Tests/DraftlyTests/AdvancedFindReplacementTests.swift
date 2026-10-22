@@ -16,6 +16,50 @@ struct AdvancedFindReplacementTests {
         return model
     }
 
+    @Test func individualReplacementPreservesOtherMatchesAndPersistsThroughUndo() throws {
+        let preferences = try TestPreferences(prefix: "Draftly.FindReplaceOne.")
+        defer { preferences.close() }
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: content)
+        let model = model(library: library, note: note, defaults: preferences.defaults)
+        let native = NativeEditor(session: model.editor, fontName: "System", fontSize: 17,
+            lineSpacing: 2, markdown: false, onChange: { [weak model] in model?.contentChanged() })
+        let fixture = ScriptUndoEditorFixture(native, content: content)
+        defer { fixture.close() }
+        let query = try EditorFindQuery("(?<=🐼 )(café)", regularExpression: true)
+        let range = try #require(query.matches(in: content).first)
+        AdvancedFindCommands(model: model).replace(query: .success(query), range: range, with: "[$1]")
+        #expect(model.editor.content == "🐼 [café] café\nTail")
+        #expect(model.editor.selectedText == "[café]" && fixture.text.selectedRange() == model.editor.selection)
+        #expect(fixture.text.string == model.editor.content && library.notes.first?.content == model.editor.content)
+        model.editor.performUndo?(false)
+        #expect(model.editor.content == content && fixture.text.string == content)
+        #expect(model.flush())
+        #expect(library.notes.first?.content == content)
+    }
+
+    @Test func individualReplacementRejectsInvalidResultsAndKeepsTextOnSaveFailure() throws {
+        let preferences = try TestPreferences(prefix: "Draftly.FindReplaceOneFailure.")
+        defer { preferences.close() }
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: content)
+        let model = model(library: library, note: note, defaults: preferences.defaults,
+            save: { _ in throw DraftlyError.message("Expected individual save failure") })
+        let commands = AdvancedFindCommands(model: model)
+        let query = try EditorFindQuery("café")
+        var syncs = 0
+        model.editor.synchronizeScriptEdit = { syncs += 1 }
+        defer { model.editor.synchronizeScriptEdit = nil }
+        commands.replace(query: Result { try EditorFindQuery("[", regularExpression: true) }, range: NSRange(location: 3, length: 4), with: "té")
+        commands.replace(query: .success(query), range: NSRange(location: 999, length: 4), with: "té")
+        #expect(syncs == 0 && model.editor.content == content && !model.hasUnsavedChanges)
+        commands.replace(query: .success(query), range: NSRange(location: 3, length: 4), with: "té")
+        #expect(syncs == 1 && model.editor.content == "🐼 té café\nTail")
+        #expect(model.editor.selectedText == "té" && model.hasUnsavedChanges)
+        #expect(library.notes.first?.content == content)
+        #expect(library.error?.contains("Expected individual save failure") == true)
+    }
+
     @Test(arguments: [false, true])
     func replacementSynchronizesSafeSelectionBeforeChangeNotificationAndDurableSave(regex: Bool) throws {
         let preferences = try TestPreferences(prefix: "Draftly.FindReplaceOrder.")

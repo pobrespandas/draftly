@@ -2339,3 +2339,18 @@ The previous native-find mode was restored and its panel was closed.
 Draftly still needs per-result replacement, reversal, request history and further
 behavior comparisons. The current sheet differs from the independent reference
 window. These observations do not close advanced-find parity.
+
+## Advanced Find individual replacement — 22 October 2026
+
+Replace is now available for each result. The command resolves regex captures
+against the full source, selects the inserted UTF-16 range, synchronizes the
+editor, marks the change and saves. Invalid queries or unmatched ranges do not
+mutate content. A save failure retains the text and pending state. Existing
+Replace All and native-find behavior remain.
+
+Full serial checks passed 666 app methods, 654 Core methods, 68 Python tests,
+and the structural matrix check. Local build passed. Isolated Computer Use
+verified replacement of only the second match, the result list, selection,
+Undo/Redo and Markdown marker navigation. QA quit normally and was retired with
+its closed data in recoverable Trash. Full remaining scope and exact limits:
+`docs/editor-scripting-2026-10-22.md`. Editor/scripting remains incomplete.

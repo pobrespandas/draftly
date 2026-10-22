@@ -87,6 +87,13 @@ public struct EditorFindQuery {
     public func matches(in text: String) -> [NSRange] {
         expression?.matches(in: text, range: NSRange(location: 0, length: text.utf16.count)).map(\.range) ?? []
     }
+    public func replacement(in text: String, at range: NSRange, with replacement: String) -> String? {
+        guard let expression,
+              let match = expression.matches(in: text, range: NSRange(location: 0, length: text.utf16.count))
+                .first(where: { $0.range == range }) else { return nil }
+        return expression.replacementString(for: match, in: text, offset: 0,
+            template: usesRegularExpression ? replacement : NSRegularExpression.escapedTemplate(for: replacement))
+    }
     public func replacingAll(in text: String, with replacement: String) -> String {
         guard let expression else { return text }
         return expression.stringByReplacingMatches(in: text, range: NSRange(location: 0, length: text.utf16.count),

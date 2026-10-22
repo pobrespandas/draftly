@@ -4,6 +4,19 @@ import Testing
 
 @Suite("Draft search contracts")
 struct DraftQueryTests {
+    @Test func individualReplacementKeepsFullTextRegexContextAndLiteralTemplates() throws {
+        let text = "🐼 café=12 café=34"
+        let query = try EditorFindQuery("(?<=café=)([0-9]+)", regularExpression: true)
+        let ranges = query.matches(in: text)
+        #expect(ranges.count == 2)
+        #expect(query.replacement(in: text, at: ranges[1], with: "[$1]") == "[34]")
+        #expect(query.replacement(in: "changed", at: ranges[1], with: "x") == nil)
+        #expect(query.replacement(in: text, at: NSRange(location: -1, length: 3), with: "x") == nil)
+        let literal = try EditorFindQuery("café")
+        #expect(literal.replacement(in: text, at: literal.matches(in: text)[0], with: "$1\\") == "$1\\")
+        #expect(try EditorFindQuery("$", regularExpression: true).replacement(in: "🐼", at: NSRange(location: 2, length: 0), with: "!") == "!")
+    }
+
     @Test func searchSupportsTermsPhrasesNegationAndBooleanGroups() {
         let note = Note(content: "Red title\nA blue parachute and café")
         #expect(DraftQuery("red blue").matches(note))
