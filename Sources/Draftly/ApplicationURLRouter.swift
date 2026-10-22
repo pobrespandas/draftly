@@ -63,8 +63,24 @@ struct ApplicationURLRouter {
         case "open":
             do {
                 let parameters = Dictionary(items.map { ($0.name, $0.value ?? "") }, uniquingKeysWith: { first, _ in first })
-                show(try Self.openTarget(parameters: parameters, library: library).id)
-            } catch { library?.error = error.localizedDescription }
+                let note = try Self.openTarget(parameters: parameters, library: library) { title in
+                    let alert = NSAlert()
+                    alert.messageText = "Create draft “\(title)”?"
+                    alert.informativeText = "No draft with this title was found."
+                    alert.addButton(withTitle: "Create"); alert.addButton(withTitle: "Cancel")
+                    alert.buttons.last?.keyEquivalent = "\u{1b}"
+                    return alert.runModal() == .alertFirstButtonReturn
+                }
+                show(note.id)
+            } catch OpenTargetError.ambiguous(let title) {
+                let alert = NSAlert()
+                alert.messageText = "More than one draft matches “\(title)”."
+                alert.informativeText = "Search to choose the draft to open."
+                alert.addButton(withTitle: "Search")
+                alert.runModal()
+                controller.showQuickSearch(initialQuery: title)
+            } catch OpenTargetError.cancelled { return }
+            catch { library?.error = error.localizedDescription }
         case "quickSearch": controller.showQuickSearch(initialQuery: parameter("query") ?? "")
         case "run", "runAction":
             let callbackParameters = Dictionary(items.map { ($0.name, $0.value ?? "") }, uniquingKeysWith: { first, _ in first })
@@ -146,7 +162,13 @@ struct ApplicationURLRouter {
         try LibraryFileImport.apply(ActionImporter.installationData(url), fileExtension: "json", to: library)
     }
 
-    static func openTarget(parameters: [String: String], library: LibraryStore?) throws -> Note {
+    enum OpenTargetError: Error, Equatable {
+        case ambiguous(String)
+        case cancelled
+    }
+
+    static func openTarget(parameters: [String: String], library: LibraryStore?,
+                           confirmCreation: (String) -> Bool = { _ in false }) throws -> Note {
         guard let library else { throw DraftlyError.message("The library is unavailable.") }
         if let value = parameters["uuid"] {
             guard let id = UUID(uuidString: value), let note = library.notes.first(where: { $0.id == id }) else {
@@ -157,13 +179,13 @@ struct ApplicationURLRouter {
         guard let title = parameters["title"], !title.isEmpty else {
             throw DraftlyError.message("The draft link needs a title or UUID.")
         }
-        if let note = library.notes.filter({ $0.trashedAt == nil && $0.title == title })
-            .sorted(by: { $0.modifiedAt == $1.modifiedAt ? $0.id.uuidString < $1.id.uuidString : $0.modifiedAt > $1.modifiedAt }).first {
-            return note
-        }
+        let matches = library.notes.filter { $0.trashedAt == nil && $0.title == title }
+        if matches.count > 1 { throw OpenTargetError.ambiguous(title) }
+        if let note = matches.first { return note }
         guard parameters["allowCreate"] == "true" else {
             throw DraftlyError.message("The draft in the link was not found.")
         }
+        guard confirmCreation(title) else { throw OpenTargetError.cancelled }
         return try library.createNote(content: title)
     }
 

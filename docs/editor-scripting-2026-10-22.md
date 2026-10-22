@@ -579,3 +579,37 @@ External browser/Bear execution has not been checked. No app was installed.
 Full serial regression passed 692 app methods/122 suites and 662 Core methods/124
 suites. Matrix structural check passed with zero errors. No retry or deadline
 changed. Native acceptance above remains pending.
+
+## Title-link confirmation correction and native delivery limits
+
+The current official URL scheme guide was consulted on 22 October 2026:
+https://docs.getdrafts.com/docs/automation/urlschemes
+This is a supplemental reference. The frozen 19 October archive is unchanged.
+The guide requires a prompt before creating a missing title. Multiple title
+matches produce a warning and search. It contradicts the direct creation and
+latest-match choice in the preceding implementation. Those choices are replaced.
+
+The router now asks before creation. Cancel makes no note or revision. Multiple
+matches cannot select an arbitrary note or create another one; the router warns
+and opens Quick Search. Twelve focused URL methods passed, including refusal,
+ambiguity, Trash exclusion, confirmed creation and storage failure/retry. Native
+confirmation, warning/search UI and exact Drafts search destination need checks.
+Title/Marker navigation and other open parameters remain outside this acceptance.
+
+Isolated Links QA installed a neutral file syntax with its own registered scheme.
+Link Mode showed the expected encoded URLs and active ranges, including Unicode
+and reserved characters. Click, Command-click and Open Link did not navigate.
+Safari rejected both the encoded title URL and a plain neutral title URL as an
+invalid address. Exact-path LaunchServices registration did not change this.
+This does not prove a router defect or successful native delivery. Native URL
+activation, query delivery and Workspace application remain pending.
+
+File > Import treated the .draftsSyntax file as a text note. Add File Syntax from
+the syntax selector installed it correctly. Record this separate import-path gap;
+no fix is included in this title-link correction. The neutral note is retained
+only in the recoverable QA data.
+
+QA quit normally. Process absence was checked. Its exact registration was removed,
+and its bundle, grammar, preferences and closed neutral library are in Trash.
+The temporary Safari tab was closed. The habitual app was not opened or replaced.
+No screenshot or raw log is tracked.

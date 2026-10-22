@@ -2490,3 +2490,12 @@ Workspace application. Imported templates and installation routes are retained.
 Specific encoding, lookup, creation and failure tests passed. Full serial app692
 and Core662 passed; local build and matrix structure passed. Native activation
 and Drafts matching/default comparison remain pending. See the dated continuation.
+
+### Title-link contract correction — 22 October 2026
+
+Missing titles now require confirmation. Ambiguous titles warn and search instead
+of choosing a note. Twelve focused URL methods, local build and matrix structure
+passed. Native QA displayed encoded links, but both editor activation and Safari
+delivery failed for the isolated scheme. Native routing remains pending. QA was
+retired recoverably; usual app unchanged. The continuation records the separate
+File Import syntax gap and the supplemental official reference.

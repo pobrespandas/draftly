@@ -40,9 +40,9 @@ struct ApplicationURLActionTests {
         let title = "Café 🐼 &/%"
         #expect(throws: (any Error).self) { try ApplicationURLRouter.openTarget(parameters: ["title": title], library: library) }
         #expect(library.notes.isEmpty)
-        let created = try ApplicationURLRouter.openTarget(parameters: ["title": title, "allowCreate": "true"], library: library)
+        let created = try ApplicationURLRouter.openTarget(parameters: ["title": title, "allowCreate": "true"], library: library, confirmCreation: { $0 == title })
         #expect(created.content == title)
-        let again = try ApplicationURLRouter.openTarget(parameters: ["title": title, "allowCreate": "true"], library: library)
+        let again = try ApplicationURLRouter.openTarget(parameters: ["title": title, "allowCreate": "true"], library: library, confirmCreation: { $0 == title })
         #expect(again.id == created.id && library.notes.count == 1)
         #expect(try ApplicationURLRouter.openTarget(parameters: ["uuid": created.id.uuidString, "title": "Other"], library: library).id == created.id)
         #expect(throws: (any Error).self) {
@@ -71,15 +71,15 @@ struct ApplicationURLActionTests {
         let library = try LibraryStore(inMemory: true, seed: false)
         library.beforeBatchCommit = { throw Failure.storage }
         #expect(throws: Failure.storage) {
-            try ApplicationURLRouter.openTarget(parameters: ["title": "Neutral", "allowCreate": "true"], library: library)
+            try ApplicationURLRouter.openTarget(parameters: ["title": "Neutral", "allowCreate": "true"], library: library, confirmCreation: { _ in true })
         }
         #expect(library.notes.isEmpty && library.revisions.isEmpty)
         library.beforeBatchCommit = nil
-        let note = try ApplicationURLRouter.openTarget(parameters: ["title": "Neutral", "allowCreate": "true"], library: library)
+        let note = try ApplicationURLRouter.openTarget(parameters: ["title": "Neutral", "allowCreate": "true"], library: library, confirmCreation: { _ in true })
         #expect(library.notes.map(\.id) == [note.id])
     }
 
-    @Test func titleLookupExcludesTrashAndUsesStableMostRecentMatch() throws {
+    @Test func titleLookupExcludesTrashAndRejectsAmbiguity() throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         var first = Note(content: "Neutral"), second = Note(content: "Neutral"), trash = Note(content: "Neutral")
         first.id = UUID(uuidString: "00000000-0000-4000-8000-000000000001")!
@@ -88,10 +88,29 @@ struct ApplicationURLActionTests {
         second.modifiedAt = first.modifiedAt
         trash.trashedAt = Date(); trash.modifiedAt = Date()
         try library.saveNotes([second, trash, first], preserveDates: true)
-        #expect(try ApplicationURLRouter.openTarget(parameters: ["title": "Neutral"], library: library).id == first.id)
-        second.modifiedAt = Date(timeIntervalSince1970: 2)
-        try library.saveNote(second, preserveDates: true)
+        var confirmationCount = 0
+        #expect(throws: ApplicationURLRouter.OpenTargetError.ambiguous("Neutral")) {
+            try ApplicationURLRouter.openTarget(parameters: ["title": "Neutral", "allowCreate": "true"], library: library) { _ in
+                confirmationCount += 1
+                return true
+            }
+        }
+        #expect(confirmationCount == 0)
+        first.trashedAt = Date()
+        try library.saveNote(first, preserveDates: true)
         #expect(try ApplicationURLRouter.openTarget(parameters: ["title": "Neutral"], library: library).id == second.id)
         #expect(library.notes.count == 3)
+    }
+    @Test func decliningTitleCreationDoesNotChangeTheLibrary() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        var requested: [String] = []
+        #expect(throws: ApplicationURLRouter.OpenTargetError.cancelled) {
+            try ApplicationURLRouter.openTarget(parameters: ["title": "Neutral", "allowCreate": "true"], library: library) {
+                requested.append($0)
+                return false
+            }
+        }
+        #expect(requested == ["Neutral"])
+        #expect(library.notes.isEmpty && library.revisions.isEmpty)
     }
 }
