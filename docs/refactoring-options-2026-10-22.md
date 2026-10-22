@@ -12,7 +12,7 @@ The initial serial run passed 646 Core and 650 app methods. All 68 Python tests
 and the local Xcode build passed. Separate target reports match all 1,296 discovered
 method identities. Raw reports and logs stay in /tmp, outside Git.
 Earlier concurrent worker timeouts and the window-opening deadline fragility
-remain known risks. This stage does not add retries or change deadlines.
+remain known risks. This stage does not add retries or change production deadlines.
 
 ## Accepted diagnosis
 
@@ -101,7 +101,11 @@ were unchanged by this stage. The earlier baseline passed; this observation
 must not be hidden by a retry. The confirmed stuck test helper was terminated;
 that incomplete run does not count as acceptance.
 
-Replace the fixture's unbounded Process waits in a separate test correction.
-Register a termination handler before launch and retain its completion event.
-A missing event must fail explicitly. Do not change production deadlines.
-Integrated Core acceptance and manual checks remain open.
+Independent test correction: both XML-RPC process waits now use an exit event
+registered before launch. A two-second diagnostic bound matches the existing
+HTTP fixture. It is not a production deadline. A missing event throws instead
+of waiting without a bound. A deterministic test covers an event before the
+wait, a repeated wait, and a deadline without an exit. All three XML-RPC methods
+passed, including real body/fault/error and disconnect checks. No retry was
+added. Complete Core integration will run after this correction; its earlier
+incomplete run remains recorded. Manual checks remain open.

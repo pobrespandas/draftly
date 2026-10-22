@@ -19,7 +19,7 @@ struct XMLRPCLocalServerTests {
         #expect(!(envelope["error"] as? String ?? "").isEmpty)
         let event = try #require(try JSONSerialization.jsonObject(with: server.readLine()) as? [String: Bool])
         #expect(event["disconnected"] == true)
-        server.process.waitUntilExit()
+        try server.waitForExit()
         #expect(server.process.terminationStatus == 0)
     }
 
@@ -49,7 +49,7 @@ struct XMLRPCLocalServerTests {
                 }
             }
         }
-        process.waitUntilExit()
+        try server.waitForExit()
         #expect(process.terminationStatus == 0)
         let requests = String(decoding: output.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
             .split(separator: "\n")
@@ -63,11 +63,33 @@ struct XMLRPCLocalServerTests {
             #expect(body.contains("<boolean>1</boolean>") && body.contains("<i8>7</i8>"))
         }
     }
+
+    @Test func serverExitBeforeWaitingIsRetainedAndAnExpiredWaitIsNotAnExit() throws {
+        let exit = LocalServerExitSignal()
+        #expect(throws: LocalServerExitSignal.WaitError.deadline) { try exit.wait(until: .now()) }
+        exit.signal()
+        try exit.wait(until: .now())
+        try exit.wait(until: .now())
+    }
+}
+
+private final class LocalServerExitSignal: Sendable {
+    enum WaitError: Error { case deadline }
+    private let completion = DispatchSemaphore(value: 0)
+
+    func signal() { completion.signal() }
+
+    func wait(until deadline: DispatchTime) throws {
+        guard completion.wait(timeout: deadline) == .success else { throw WaitError.deadline }
+        // Keep the exit event available for another observer.
+        completion.signal()
+    }
 }
 
 private final class LocalXMLRPCServer {
     let process = Process()
     let output = Pipe()
+    private let exit = LocalServerExitSignal()
     private(set) var port = 0
 
     init(wait: Bool = false) throws {
@@ -77,6 +99,8 @@ private final class LocalXMLRPCServer {
         process.arguments = ["-u", fixture.path] + (wait ? ["--wait"] : [])
         process.standardOutput = output
         process.standardError = Pipe()
+        let exit = exit
+        process.terminationHandler = { _ in exit.signal() }
         try process.run()
         try output.fileHandleForWriting.close()
         do { port = try #require(Int(String(decoding: readLine(), as: UTF8.self))) }
@@ -91,6 +115,8 @@ private final class LocalXMLRPCServer {
         }
         return line
     }
+
+    func waitForExit() throws { try exit.wait(until: .now() + 2) }
 
     func stop() {
         if process.isRunning { process.terminate() }
