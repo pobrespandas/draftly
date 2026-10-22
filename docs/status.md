@@ -2,6 +2,18 @@
 
 Updated: 22 October 2026.
 
+## Native transcription interruption follow-up
+
+User Cancel and production timeout while selecting audio closed the picker,
+retained earlier text and skipped tail/Archive. Each added one final history row.
+A fresh synthetic transcription succeeded after each interruption, ran the tail
+and archived the note. Closed-library checks confirmed the four run records.
+No mic, playback, personal data or permission change was used. QA is closed and
+its exact LaunchServices record is removed; neutral data remain recoverable.
+Actual denial/pending grants, live task cancellation, late recognition and
+recognition timeout remain pending. These results do not close URL/Intent speech
+acceptance. See the [speech record](research/speech-permission-lifetime-2026-10-22.md).
+
 ## Speech interruption coverage follow-up
 
 New worker/runner cases cover dictation cancellation during speech permission,

@@ -155,3 +155,17 @@ tail/Archive and recorded Cancelled. This is one user-Cancel subcase of DICTATE-
 Recognition/Done, Undo, URL/Intent speech paths, task cancellation, permission
 negative paths and production timeout remain open. No row is promoted wholesale.
 The usual app is unchanged. QA is closed; its neutral data remain recoverable.
+
+
+## Native transcription interruption follow-up
+
+The speech record now accepts action-palette selector Cancel and production wait
+timeout while selecting audio, each with a closed panel, retained marker, no
+later/success effects and one result. A fresh synthetic transcription succeeded
+after each. Four persistent run IDs and recovered archived text were checked
+read-only after normal QA quit. No microphone or new permission was needed.
+This does not accept SPEECH permission negatives/late events or TRANSCRIBE-01:
+recognition timeout is distinct from waiting in Open. Native task cancellation
+and URL/Intent speech dispatch remain pending. No full contract is promoted.
+The controlled follow-up adds dictation runner denial/cancel and pre-start cancel
+coverage; transcription runner coverage also includes the picker stage.

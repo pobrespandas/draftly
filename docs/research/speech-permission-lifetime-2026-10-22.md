@@ -238,3 +238,72 @@ reports six partial contracts and18 diagnostics. Supporting references were
 added for the new runner and pre-cancelled request tests. Status and native
 acceptance were not promoted. Outputs use /tmp/draftly-speech-followup-* and are
 not versioned. Automatic tests ended before the native session below.
+
+
+## Native transcription selector cancellation and recovery
+
+A separate Computer Use session used the same corrected, signed Engine QA
+package and neutral library. No source changed. QA used its existing speech
+grant. The agent did not change permissions or reset the privacy database.
+
+From the action palette, QA Transcription permission lifecycle saved its neutral
+marker and opened Open. Computer Use chose Cancel without opening a file. The
+panel closed, Inbox retained only Retained transcription café 🐼, and no tail or
+Archive ran. History showed one Cancelled row at20:24 with Neutral user cancellation.
+The fixture explicitly maps the API empty result to context.cancel. This is
+user cancellation, not cancellation of the action task or pending permission.
+
+A following palette execution selected only
+/tmp/DraftlySpeechFollowupNeutral/neutral.aiff through Go to Folder. The system
+say command generated this Spanish synthetic audio from neutral text; it was
+never played or recorded through a microphone. The resulting editor text was
+Prueba neutral de transcripción este texto es una prueba de la aplicación,
+followed by Completed neutral tail. The draft appeared in Archive. History added
+one Success at20:24 after the Cancelled row, with no duplicate final result.
+This proves recovery on a fresh native transcription action after selector Cancel.
+It does not prove a real recognition timeout or cancellation during recognition.
+
+Opening Actions after recognition had already completed showed Cancel Running
+Action disabled. No task cancellation was performed. The menu observation became
+stale after Escape. Its exposed accessibility Cancel action restored the main
+window without quitting, relaunching or changing the application. This is a
+Computer Use observation issue, not evidence of app unresponsiveness.
+
+A further new neutral draft opened the selector at approximately20:26:14. No
+file was selected. This separate check uses the unchanged production wait limit.
+At20:28 the panel closed without input. Inbox retained the marker, with no tail
+or Archive. History showed one Error with The action operation timed out before
+it completed. This is an end-to-end production wait timeout during file selection.
+It does not isolate the host deadline from the selector phase deadline, and does
+not accept TRANSCRIBE-01 recognition timeout.
+
+A fresh palette execution then opened a new selector and used the same neutral
+AIFF. It completed, archived the draft and added one Success after the Error.
+After normal QA quit, a read-only check of the closed neutral library confirmed
+these four durable run records and no duplicate result for the observed attempts:
+
+| Outcome | Run ID | Neutral note ID |
+| --- | --- | --- |
+| Picker user Cancel | E2A99067-BE49-4D2E-AF2B-CAE44C2BDC0B | 33CE5302-DE8B-48C1-A036-BD0698A5C1DA |
+| Recovery after Cancel | 1A20C33E-126E-4908-BFBE-077276007733 | 33CE5302-DE8B-48C1-A036-BD0698A5C1DA |
+| Timeout while selecting | 627FA1EC-4A28-4C1F-AE89-C3E33D9DAA0E | 44F0DB3D-C624-4512-BBC2-A73C8D99D9BB |
+| Recovery after timeout | EE7F000E-1FC3-4598-8DE1-5941EC9B67C5 | 44F0DB3D-C624-4512-BBC2-A73C8D99D9BB |
+
+These are persistent log IDs, not observed ActionExecutionSession IDs. Both
+notes contain the synthetic transcript and completion tail and remain archived
+after recovery. UI observations before recovery establish retained Inbox markers
+for Cancel and timeout; the final database state cannot substitute for those
+intermediate observations. The selector was absent after both interruptions.
+The exact QA process is absent after normal quit. Its exact LaunchServices entry
+was removed. The package, neutral library and synthetic audio remain recoverable
+at their temporary paths. The usual app, personal library and clipboard were
+not changed. No screenshot or raw log is added to Git.
+
+Still pending: actual speech/microphone denial or restriction; cancellation of a
+pending OS grant and a late grant; native action-task cancellation during live
+capture or recognition; native late recognition; production recognition timeout;
+URL/Intent speech dispatch; native dictation Undo/Redo. Existing grants block a
+new pending-grant outcome without a user-managed permission session. They are
+not exclusions. The current tests use injected outcomes for those branches.
+No new production defect was reproduced in this follow-up. No callback isolation
+rule was changed from an unobserved risk. The engine gate remains open.

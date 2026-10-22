@@ -10212,3 +10212,27 @@ Builds and tests did not overlap. The initial new fixture expression triggered
 a Swift compiler assertion; binding the require result before invocation fixed
 the compile. No timing threshold or retry policy changed. Native permission
 outcomes remain distinct obligations. See the speech record for exact cases.
+
+
+## Native transcription cancellation, wait timeout and recovery — 22 October 2026
+
+Computer Use ran the neutral transcription fixture through the action palette
+in the existing signed Engine QA. Cancel in Open closed the picker, retained the
+Inbox marker, omitted tail/Archive and added one Cancelled result. The next run
+transcribed a locally generated Spanish synthetic AIFF, ran the tail, archived
+the draft and added one Success. No microphone or playback was used.
+
+A separate selection wait used the unchanged production deadline. Open closed
+without input. The marker stayed in Inbox without a tail. One Error reported
+The action operation timed out before it completed. A following transcription
+succeeded and archived its neutral draft. This accepts selection-wait cleanup
+and recovery, not recognition timeout or an independent phase-deadline winner.
+
+QA quit normally. Read-only inspection of its closed library confirmed four
+corresponding run IDs, one per attempt, and both recovered archived transcripts.
+The speech lifetime record gives IDs, package hashes and exact limits. Its
+LaunchServices entry was removed; neutral data and package remain recoverable.
+No personal data, clipboard, habitual app, permission or privacy database changed.
+Existing speech access cannot prove denial or a pending grant. Those native
+cases, live task cancellation, late recognition and URL/Intent speech paths stay
+pending. Strict engine remains six partial contracts and18 diagnostics.
