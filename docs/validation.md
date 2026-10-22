@@ -9365,3 +9365,39 @@ No retry or deadline increase was used. Previous Python68 evidence is separate;
 Python source was unchanged. These tests use injected authorization/fetch
 callbacks, no EventKit permissions or personal records. Native Calendar and
 Reminders acceptance remains pending. The habitual app was unchanged.
+
+
+## Native Calendar default query and authorization — 22 October 2026
+
+At 89fde30, isolated QA imported the read-only Calendar fixture. The first URL
+run saved its neutral prior text, then returned exactly one access-denied error
+callback. It did not run the completion text or calendarAvailable parameter.
+The source retained its prior archived state; no new Archive effect was tested.
+A following shell recovery returned one success with the exact Unicode value.
+
+Computer Use could not inspect UserNotificationCenter because that app is
+blocked by its safety policy. No alternate automation was used. The user
+confirmed the Calendar access prompt and explicitly authorized full Calendar
+access for QA. QA was reopened and the same query returned one success with
+calendarAvailable=yes and stored the neutral completion text. It did not export
+calendar names, identifiers or event contents. The Calendar API requires full
+access, but this fixture reads only the default calendar and creates no records.
+
+After a normal Quit, exact process absence was checked. A new process ran the
+same query successfully with the same parameter. Closed QA history confirmed
+access-denied Error, recovery Success, query Success and reopened query Success.
+The user handled the permission UI; no agent privacy-setting change occurred.
+This accepts native default-calendar lookup, its access-denied result, final URL
+reports and successful lookup after restart. It does not accept event fetching,
+Calendar writes, Reminders, pending-authorization cancellation or late OS replies.
+
+The reproducible import is `scripts/fixtures/engine-eventkit-query-actions.json`.
+Its manual-fixture test and matrix structure passed. Production code was
+unchanged; the preceding complete 674 Core / 733 app result and local build
+apply to this source. Corrected QA SHA256, launcher:
+4b8ee99ae4e49670fdb48881fbaa84afe09377dabc506a805cd24e64de94536d.
+QA SHA256, Draftly.debug.dylib:
+a401d7c00a25dce8dc43a4d1af7980854ba33e6222bd050a00dd89788b420a05.
+QA/helper quit normally; exact process absence and LaunchServices unregistration
+passed. Apps, preferences and closed library remain recoverable in
+`~/.Trash/DraftlyEventQueryQA-q58vi1ol`. The habitual app was unchanged.

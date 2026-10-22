@@ -1,0 +1,16 @@
+[
+  {
+    "group": "EventKit lifetime QA",
+    "name": "QA Calendar read-only result",
+    "notificationType": 0,
+    "steps": [
+      {
+        "data": {
+          "script": "editor.setText('Retained Calendar QA café 🐼');draft.update();const calendar=Calendar.default();if(calendar!==undefined&&calendar!==null&&typeof calendar.identifier!=='string')throw Error('Invalid default calendar shape');context.addSuccessParameter('calendarAvailable',calendar?'yes':'no');editor.setText('Calendar read-only completed');draft.update();"
+        },
+        "type": "script"
+      }
+    ],
+    "uuid": "A0760100-0000-4000-8000-000000000012"
+  }
+]
