@@ -2,6 +2,17 @@
 
 Updated: 22 October 2026.
 
+## R1–R5 integration
+
+The [integration record](refactoring-integration-2026-10-22.md) records all five
+bounded audit stages in main. Fast-forward history preserves the existing work,
+individual commits, branches and reference tags. No production or test code
+changed during integration. Complete verification passed Core674/app785 with
+matching XML inventory, Python80, local Debug compilation and structural matrix0.
+Strict engine output is unchanged: six partial contracts and 18 diagnostics.
+The prior timing risks did not recur and remain recorded. The usual app was not
+updated. Continue functional cloning from main; Draftly is not complete.
+
 ## Editor text mutation refactoring
 
 R3 is implemented in the [text mutation record](refactoring-editor-text-mutation-2026-10-22.md).

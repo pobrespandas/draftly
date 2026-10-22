@@ -8,7 +8,9 @@ implements its first stage. [Workspace preparation](refactoring-workspace-prepar
 is also implemented. [Cloud QA preparation](refactoring-cloud-qa-preparation-2026-10-22.md)
 is complete. [Editor styling](refactoring-editor-styling-2026-10-22.md)
 is implemented. [Shared text mutation](refactoring-editor-text-mutation-2026-10-22.md)
-completes R3. All five bounded audit stages are implemented on stacked branches.
+completes R3. All five bounded audit stages are integrated into main.
+The [integration record](refactoring-integration-2026-10-22.md) records validation
+and history preservation.
 See [status](status.md) for
 functional work. The [dated editor/scripting record](editor-scripting-2026-10-22.md)
 retains its original scope. The audit does not implement its proposed changes.
