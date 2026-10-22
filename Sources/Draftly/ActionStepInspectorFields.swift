@@ -10,11 +10,8 @@ enum ActionStepInspectorFields {
         var id: String { key }
     }
 
-    static let promptDefaults = ["key": "prompt", "title": "Prompt", "message": "", "buttons": "OK",
-        "includeTextField": "false", "textFieldDefault": "", "includeCancelButton": "true"]
-
     static func textValue(for key: String, in step: ActionStep) -> String {
-        step.values[key] ?? (step.type == "prompt" ? promptDefaults[key] : nil) ?? ""
+        step.values[key] ?? (step.type == "prompt" ? ActionStepCreationDefaults.promptDefaults[key] : nil) ?? ""
     }
 
     static func title(for key: String, in step: ActionStep) -> String {
@@ -55,7 +52,7 @@ enum ActionStepInspectorFields {
         if step.type == "configureWindow" { excludedKeys.formUnion(WindowConfigurationOptions.toggleKeys) }
         if step.type == "prompt" { excludedKeys.formUnion(["includeTextField", "includeCancelButton"]) }
         var keys = Set(step.values.keys)
-        if step.type == "prompt" { keys.formUnion(promptDefaults.keys) }
+        if step.type == "prompt" { keys.formUnion(ActionStepCreationDefaults.promptDefaults.keys) }
         if step.type == "configureWindow" { keys.formUnion(WindowConfigurationOptions.referenceKeys) }
         if step.type == "includeAction" {
             excludedKeys.remove("uuid")
