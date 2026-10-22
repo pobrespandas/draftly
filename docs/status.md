@@ -2716,3 +2716,11 @@ Native URL export cancelled through File Close All, removed its selector and
 created no file. Completed text stayed in Inbox without tail/Archive. Following
 export saved exact35-byte neutral content. Closed history matched. App25/Core6,
 local build and matrix passed. QA retired recoverably; usual app unchanged.
+
+### Notes sharing service lifetime — 22 October 2026
+
+Native URL sharing through Notes passed Cancel and Save. Temporary file stayed
+readable until service completion, then disappeared; Notes' copied attachment
+opened with exact content afterward. One correct callback per run; tail/Archive
+only on success. Test note moved recoverably to Recently Deleted. App17/Core6
+and local build passed. QA retired; other sharing lifetimes remain open.

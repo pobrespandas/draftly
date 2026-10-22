@@ -1,0 +1,30 @@
+[
+  {
+    "uuid": "A0760100-0000-4000-8000-000000000009",
+    "name": "QA Sharing service lifetime",
+    "group": "Sharing lifetime QA",
+    "notificationType": 0,
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Retained sharing café 🐼');draft.update();"
+        }
+      },
+      {
+        "type": "openIn",
+        "data": {
+          "name": "Draftly Share Lifetime QA.txt",
+          "template": "Neutral sharing café 🐼\nSecond line"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Sharing completed café 🐼');draft.update();context.addSuccessParameter('shared','yes');"
+        }
+      }
+    ]
+  }
+]

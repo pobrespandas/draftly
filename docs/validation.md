@@ -8920,3 +8920,44 @@ Both QA/helper quit normally; exact process absence and path unregistration were
 confirmed. Apps, exported preferences, closed library and neutral export were
 preserved recoverably in ~/.Trash/DraftlyFileCloseQA-c2vl4t8y. Habitual app unchanged.
 TCC/revoked-scope and actual late panel completion remain separate obligations.
+
+## Native Notes sharing service lifetime — 22 October 2026
+
+Isolated QA at 4f3aea3 ran the tracked sharing-service-lifetime fixture through
+actual URLs. The source was a neutral Inbox draft. The system picker displayed
+the38-byte text file. Read-only inspection confirmed the exact prepared file.
+Selecting Notes opened its real share extension with the attachment.
+
+Cancel in the Notes extension delivered one cancel callback, removed the shared
+folder, kept Retained sharing café 🐼 in Inbox and stopped tail/Archive. A first
+coordinate click did not close the extension; fresh AX state exposed its Cancel
+button and that explicit control completed cancellation.
+
+The next run selected Notes again. While its Save dialog waited, the original
+shared file still existed with exact content. Neutral identifying text was added
+to a new test note. Save delivered one success with shared=yes; the temporary
+folder was removed. The action saved Sharing completed café 🐼 and archived its
+source. Closed history matched Cancelled then Success.
+
+In Notes, a scoped search located only the created test note and its38-byte
+attachment. After the original Draftly file was gone, opening the attachment in
+TextEdit showed exactly Neutral sharing café 🐼, newline, Second line. This proves
+the Notes service retained its own copy. The created note UUID was
+5383C50D-1790-4FB1-BBA4-991C245C6074. Only that test note was moved to Notes'
+Recently Deleted through its normal trash action. No permanent deletion occurred.
+TextEdit and Notes opened for this check were closed. No personal note was edited.
+
+Focused app17/Core6 methods, local Debug build, fixture identity and matrix
+structure passed. No production code or deadline changed. This accepts Notes
+service cancellation, completion and file handoff/copy lifetime. It does not
+accept task cancel, timeout/owner close after handoff, other services or legacy
+sharing. Supplemental archived Share contract remains unchanged.
+
+QA executable SHA256:
+c42ea8f7c42fc7027954bd6925f737d4dec3f48c0802d42b62ccd41896185f40.
+QA/helper quit normally; exact process absence and path unregistration were
+confirmed. Apps, exported preferences and closed library were retained recoverably
+in ~/.Trash/DraftlySharingServiceQA-c2btg1qg. Both temporary share folders were
+absent. Transient invalid-capture/frontmost errors were resolved by observing the
+same sessions; no action was restarted because of an observation error.
+Habitual app unchanged; no screenshots or raw logs committed.
