@@ -988,3 +988,27 @@ comparison remains pending; this does not accept all task defaults or labels.
 QA quit normally. Process absence was checked before exact unregistration. Its
 bundle, fixture, preferences and closed library are recoverable in Trash. Usual
 app unchanged. No screenshot or raw log is tracked.
+
+## Task labels by range type
+
+The frozen syntax-format guide states that the label capture is used only for
+line tasks. Task-mode parsing previously used that capture too. A proper mark-only
+pattern with label mapped to its state exposed [ ] as its label rather than the
+following task text. The parameterized regression failed on legacy and worker.
+
+Task mode now derives the label after the matched mark and skips horizontal space.
+Line mode still honors its explicit label capture. Existing line definitions that
+omit label retain their prior derived-label fallback. No new mandatory-field
+validation was added: LibraryStore.restore validates syntax source, and imposing
+a new requirement here would reject older backups. A specific save/backup/restore
+case preserves that legacy definition and its derived label.
+
+The final cases check Unicode/CRLF label ranges, mode-specific capture handling,
+Draft and Editor snapshots, advancement and retained labels on both runners.
+Thirty-two syntax/API methods and the local Xcode build passed. The full Core
+result follows. No native session was needed for this snapshot-only correction;
+the previous native task click/Undo acceptance remains separate. Broader label
+and custom-grammar comparisons with Drafts are not accepted by these tests.
+
+Full serial Core regression passed674 methods/124 suites. Matrix structure0 passed.
+No retry or deadline changed. App source and the usual installation are unchanged.

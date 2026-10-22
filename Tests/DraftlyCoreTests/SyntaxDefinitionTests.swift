@@ -591,4 +591,40 @@ struct SyntaxDefinitionTests {
         else { #expect(runner.run(action), Comment(rawValue: runner.message ?? "")) }
         #expect(editor.content == "🐼 *one[~] *two[~]\r\n*three[x]")
     }
+    @Test(arguments: [false, true])
+    func taskModeIgnoresTheLineOnlyLabelCapture(worker: Bool) async throws {
+        var object = source()
+        let rule: [String: Any] = ["match": #"(\[[ ~x]\])"#, "rangeType": "task",
+            "captures": ["interactive": "1", "state": "1", "label": "1"],
+            "states": ["[ ]", "[~]", "[x]"]]
+        object["taskMarkDefinitions"] = [rule]
+        let syntax = try definition(object), text = "🐼 [ ] café\r\n[x] tail"
+        let tasks = syntax.tasks(in: text)
+        #expect(tasks.map { $0["label"] as? String } == ["café", "tail"])
+        #expect(tasks.map { $0["labelRange"] as? [Int] } == [[7, 4], [17, 4]])
+        var lineRule = rule; lineRule["rangeType"] = "line"
+        object["taskMarkDefinitions"] = [lineRule]
+        #expect(try definition(object).tasks(in: text).first?["label"] as? String == "[ ]")
+        var captures = try #require(lineRule["captures"] as? [String: String]); captures.removeValue(forKey: "label")
+        lineRule["captures"] = captures; object["taskMarkDefinitions"] = [lineRule]
+        let legacy = try definition(object)
+        #expect(legacy.tasks(in: text).first?["label"] as? String == "café")
+        let legacyLibrary = try LibraryStore(inMemory: true, seed: false)
+        try legacyLibrary.saveSyntax(legacy)
+        let restored = try LibraryStore(inMemory: true, seed: false)
+        try restored.restore(legacyLibrary.backupData())
+        #expect(try restored.syntaxDefinition(named: legacy.name).tasks(in: text).first?["label"] as? String == "café")
+        let library = try LibraryStore(inMemory: true, seed: false)
+        try library.saveSyntax(syntax)
+        var note = try library.createNote(content: text); note.syntax = syntax.name; try library.saveNote(note)
+        let editor = EditorSession(); editor.load(note)
+        let runner = ActionRunner(library: library, editor: editor)
+        let action = DraftAction(name: "Neutral task labels", steps: [ActionStep("script", ["script": """
+        if(draft.tasks[0].label!=='café' || editor.tasks[0].labelRange[0]!==7)throw new Error('label');
+        if(editor.tasks[1].label!=='tail' || draft.tasks[1].labelRange[0]!==17)throw new Error('second label');
+        if(editor.advanceTask(editor.tasks[0])!==true || draft.tasks[0].label!=='café')throw new Error('advance label');
+        """])])
+        if worker { #expect(await runner.runAsync(action).reason == .success, Comment(rawValue: runner.message ?? "")) }
+        else { #expect(runner.run(action), Comment(rawValue: runner.message ?? "")) }
+    }
 }

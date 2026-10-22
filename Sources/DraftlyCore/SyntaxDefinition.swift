@@ -222,7 +222,8 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
                 let labelEnd = line.location + lineText.utf16.count
                 var labelStart = min(NSMaxRange(match.range), labelEnd)
                 while labelStart < labelEnd, [UInt16(32), UInt16(9)].contains(source.character(at: labelStart)) { labelStart += 1 }
-                let label = capture(match, captures["label"]) ?? NSRange(location: labelStart, length: labelEnd - labelStart)
+                let capturedLabel = rule["rangeType"] as? String == "line" ? capture(match, captures["label"]) : nil
+                let label = capturedLabel ?? NSRange(location: labelStart, length: labelEnd - labelStart)
                 let stateText = source.substring(with: state)
                 let completed = (rule["completedState"] as? [String]) ?? (rule["states"] as? [String])?.last.map { [$0] } ?? []
                 let isCompleted = completed.contains { rule["caseInsensitiveStates"] as? Bool == true ? $0.lowercased() == stateText.lowercased() : $0 == stateText }

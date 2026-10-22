@@ -134,6 +134,15 @@ override on the current device. A rule can require one or more enabled features.
 The offset of wrapped lines after the first line of a paragraph. A syntax can
 set this offset from a captured prefix without adding spaces to the source.
 
+**Task label**:
+The text associated with a task, separate from its state and interactive mark.
+
+**Task state**:
+The value that records the progress of a task.
+
+**Interactive task mark**:
+The text that a user clicks or taps to change a task state.
+
 ### Actions
 
 **Step creation default**:

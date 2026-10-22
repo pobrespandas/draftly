@@ -2604,3 +2604,10 @@ independent. Core red/green and final legacy/worker cases passed with UTF-16/CRL
 Core673 regression, local build and matrix structure passed. Native click/ignored-
 mark/next-line/Undo checks passed with a tracked neutral grammar. QA retired
 recoverably. Broader task and Drafts custom-grammar contracts remain open.
+
+### Task labels by range type — 22 October 2026
+
+Task mode ignores the line-only label capture; line mode retains it. A red/green
+legacy/worker case checks labels, UTF-16 ranges and advancement. Older line
+definitions without label still restore and derive their prior fallback. Focused32,
+Core674/124, local build and matrix passed. No new native acceptance is claimed.
