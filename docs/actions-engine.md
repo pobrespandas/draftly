@@ -841,5 +841,12 @@ Files handed to a service still remain until that service finishes.
 
 Controlled driver and clock tests cover these boundaries without system sharing
 services or visible windows. They do not accept native service interruption or
-window ownership. SystemSharingDriver still resolves the global key window;
-its owner binding needs a separate correction and manual check.
+window ownership. The later owned-sharing check below covers owner binding.
+
+## Owned sharing windows — 22 October 2026
+
+The native host now supplies its action window to sharing and printing through
+one weak owner closure. Sharing stores that window weakly and checks visibility
+before discovery and presentation. An ownerless host cannot borrow another
+window. Direct helper calls keep their previous current-window default. Owner
+failure removes any prepared file. Service handoff leases stay unchanged.

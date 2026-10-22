@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import Testing
 import DraftlyCore
 @testable import Draftly
@@ -6,6 +7,34 @@ import DraftlyCore
 @Suite("Asynchronous native sharing")
 @MainActor
 struct NativeSharingRequestTests {
+    @Test func missingOwnerFailsAndRemovesPreparedFile() async throws {
+        let root = try SharingFolderFixture()
+        defer { root.close() }
+        do {
+            _ = try await NativeSharingRequest.run("shareFile", [:], temporaryDirectory: root.url, ownerWindow: { nil })
+            Issue.record("Sharing without an owner succeeded.")
+        } catch { #expect(error.localizedDescription == "Open a Draftly window before sharing.") }
+        #expect(try root.contents().isEmpty)
+    }
+
+    @Test func invisibleOwnerFailsWithoutOpeningAnyWindow() async throws {
+        _ = NSApplication.shared
+        let owner = NSWindow(contentRect: .zero, styleMask: [], backing: .buffered, defer: true)
+        do {
+            _ = try await NativeSharingRequest.run("share", [:], ownerWindow: { owner })
+            Issue.record("Sharing with an invisible owner succeeded.")
+        } catch { #expect(error.localizedDescription == "Open a Draftly window before sharing.") }
+        #expect(!owner.isVisible)
+    }
+
+    @Test func headlessHostHasNoSharingWindowToBorrow() async {
+        let host = NativeActionHost()
+        do {
+            _ = try await host.performAsync("share", payload: "{\"text\":\"Neutral\"}")
+            Issue.record("An ownerless host showed sharing.")
+        } catch { #expect(error.localizedDescription == "Open a Draftly window before sharing.") }
+    }
+
     @Test(arguments: [true, false])
     func cancellationDuringServiceDiscoveryNeverShowsPicker(available: Bool) async throws {
         let root = try SharingFolderFixture()

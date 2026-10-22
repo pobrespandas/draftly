@@ -23415,6 +23415,21 @@
           "suite": "NativeSharingRequestTests",
           "test": "expiredPreparationDoesNotDiscoverOrShowServices",
           "file": "Tests/DraftlyTests/NativeSharingRequestTests.swift"
+        },
+        {
+          "suite": "NativeSharingRequestTests",
+          "test": "missingOwnerFailsAndRemovesPreparedFile",
+          "file": "Tests/DraftlyTests/NativeSharingRequestTests.swift"
+        },
+        {
+          "suite": "NativeSharingRequestTests",
+          "test": "invisibleOwnerFailsWithoutOpeningAnyWindow",
+          "file": "Tests/DraftlyTests/NativeSharingRequestTests.swift"
+        },
+        {
+          "suite": "NativeSharingRequestTests",
+          "test": "headlessHostHasNoSharingWindowToBorrow",
+          "file": "Tests/DraftlyTests/NativeSharingRequestTests.swift"
         }
       ],
       "nativeVerification": {
@@ -23583,6 +23598,13 @@
             "fixture": "scripts/fixtures/engine-print-large-document-actions.json",
             "result": "The formerly failing confirmed URL now uses the action owner and completed a118-page local PDF with one success and correct parameters. All4000 numbered lines and markers verified; sampled rendered pages retained emoji despite extraction limits. Following shell recovery passed. Baseline Cancelled/Error and corrected Success/Success are retained. No printer job; usual app unchanged; QA retired. Owner-close remains separate.",
             "evidence": "docs/validation.md: Owned print window and large native PDF — 22 October 2026"
+          },
+          {
+            "date": "2026-10-22",
+            "debugLibrarySHA256": "385dc946749c2991f8723c6ec398f8039a729e6681149835ba3429b6427fe6c0",
+            "fixture": "scripts/fixtures/engine-sharing-service-lifetime-actions.json",
+            "result": "Confirmed URL sharing used the action owner. Picker Cancel returned one cancel and removed the prepared file. With the owner closed and an unrelated window visible, the next URL returned one explicit missing-window error without showing a picker or retaining a new file. Pre-request effects remained; later steps and Archive did not run. Following shell recovery succeeded. No service handoff; QA retired; usual app unchanged.",
+            "evidence": "docs/validation.md: Owned sharing windows — 22 October 2026"
           }
         ]
       },
@@ -24211,6 +24233,13 @@
             "fixture": "scripts/fixtures/engine-print-large-document-actions.json",
             "result": "The formerly failing confirmed URL now uses the action owner and completed a118-page local PDF with one success and correct parameters. All4000 numbered lines and markers verified; sampled rendered pages retained emoji despite extraction limits. Following shell recovery passed. Baseline Cancelled/Error and corrected Success/Success are retained. No printer job; usual app unchanged; QA retired. Owner-close remains separate.",
             "evidence": "docs/validation.md: Owned print window and large native PDF — 22 October 2026"
+          },
+          {
+            "date": "2026-10-22",
+            "debugLibrarySHA256": "385dc946749c2991f8723c6ec398f8039a729e6681149835ba3429b6427fe6c0",
+            "fixture": "scripts/fixtures/engine-sharing-service-lifetime-actions.json",
+            "result": "Confirmed URL sharing used the action owner. Picker Cancel returned one cancel and removed the prepared file. With the owner closed and an unrelated window visible, the next URL returned one explicit missing-window error without showing a picker or retaining a new file. Pre-request effects remained; later steps and Archive did not run. Following shell recovery succeeded. No service handoff; QA retired; usual app unchanged.",
+            "evidence": "docs/validation.md: Owned sharing windows — 22 October 2026"
           }
         ]
       },

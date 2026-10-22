@@ -10079,3 +10079,43 @@ accept a live service interruption or complete native ownership.
 Next: SystemSharingDriver.show still takes NSApp.keyWindow. Review its owner
 binding separately, using the confirmed print-window failure as the risk model.
 Do not count that pending correction as part of this discovery-boundary fix.
+
+## Owned sharing windows — 22 October 2026
+
+The native host now supplies its action window to sharing and printing through
+one weak owner closure. Sharing stores that window weakly and checks visibility
+before discovery and presentation. An ownerless host cannot borrow another
+window. Direct helper calls keep their previous current-window default. Owner
+failure removes any prepared file. Service handoff leases stay unchanged.
+
+Three new headless tests cover a missing owner with file cleanup, an invisible
+owner and an ownerless host. Existing print test names stay unchanged. The final
+complete Swift run passed 674 Core and 765 app methods. XML results matched the
+discovered inventory. The local Debug build passed. An earlier complete run used
+a test name that changed during execution; it is not the final evidence. The
+final run used frozen source files. No retry or longer timeout hid a failure.
+Python code did not change; its earlier 68-test result remains separate.
+
+A separate manual session used a fresh, isolated, development-signed QA library.
+Signed debug-library SHA256:
+385dc946749c2991f8723c6ec398f8039a729e6681149835ba3429b6427fe6c0.
+The unchanged engine-sharing-service-lifetime-actions.json fixture opened the
+real picker on its source window after URL confirmation. The neutral attachment
+had 38 bytes. There were zero callbacks while the picker was open. Picker Cancel
+returned one cancel and removed the file. The pre-request write remained in
+Inbox; later steps and Archive did not run.
+
+A second neutral window stayed open after the source window closed. Repeating
+the confirmed URL returned one error: Open a Draftly window before sharing.
+No picker appeared on the unrelated window. Its editor stayed empty. No new
+sharing folder remained. Following shell recovery returned one success with
+Shell recovery café 🐼. The closed library records Cancelled, Error and Success.
+No revision contains the sharing completion marker.
+
+QA and the callback helper quit normally. Their exact LaunchServices entries
+were removed. Packages, exported preferences and the closed library remain
+recoverable in ~/.Trash/DraftlySharingOwnerQA-pefkodl5. The usual app stayed
+unchanged. No service was selected and no message was sent. Native service
+completion, other services and legacy sharing remain separate checks. Structural
+matrix checks pass; the strict engine gate retains six partial contracts and
+18 diagnostics. This check does not close the engine.

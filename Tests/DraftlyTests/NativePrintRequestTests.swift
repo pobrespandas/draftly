@@ -30,15 +30,15 @@ struct NativePrintRequestTests {
         let model = WindowModel(library: library)
         let window = NSWindow(contentRect: .zero, styleMask: [], backing: .buffered, defer: true)
         model.window = window
-        #expect(model.host.printingWindow() === window)
+        #expect(model.host.ownerWindow() === window)
         model.window = nil
-        #expect(model.host.printingWindow() == nil)
+        #expect(model.host.ownerWindow() == nil)
         #expect(!window.isVisible)
     }
 
     @Test func headlessHostRejectsPrintingBeforeOpeningAnyPanel() async {
         let host = NativeActionHost()
-        #expect(host.printingWindow() == nil)
+        #expect(host.ownerWindow() == nil)
         do {
             _ = try await host.performAsync("print", payload: "{\"text\":\"Neutral\"}")
             Issue.record("Printing without an owner succeeded.")

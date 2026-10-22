@@ -29,12 +29,21 @@ enum NativeSharingRequest {
                     driver: (any NativeSharingDriving)? = nil, timeout: TimeInterval = 120,
                     temporaryDirectory: URL = FileManager.default.temporaryDirectory,
                     now: @escaping @MainActor () -> Date = Date.init,
+                    ownerWindow: @escaping @MainActor () -> NSWindow? = { NSApp?.keyWindow },
                     reportCleanupError: @escaping @MainActor (String) -> Void = { _ in }) async throws -> Bool {
         guard timeout.isFinite, timeout > 0 else { throw DraftlyError.message("The sharing timeout must be positive and finite.") }
         try Task.checkCancellation()
         let deadline = now().addingTimeInterval(timeout)
         let prepared = try SharingPreparation.make(operation, values, temporaryDirectory: temporaryDirectory)
-        let request = SharingSession(prepared: prepared, driver: driver ?? SystemSharingDriver(),
+        let selectedDriver: any NativeSharingDriving
+        do {
+            if let driver { selectedDriver = driver }
+            else { selectedDriver = try SystemSharingDriver(ownerWindow: ownerWindow) }
+        } catch {
+            prepared.removeFile(reportCleanupError: reportCleanupError)
+            throw error
+        }
+        let request = SharingSession(prepared: prepared, driver: selectedDriver,
                                      deadline: deadline, now: now, reportCleanupError: reportCleanupError)
         let result = try await request.run()
         try Task.checkCancellation()
@@ -45,6 +54,12 @@ enum NativeSharingRequest {
 private struct SharingPreparation {
     let item: NativeSharingItem
     let folder: URL?
+
+    func removeFile(reportCleanupError: (String) -> Void) {
+        guard let folder else { return }
+        do { try FileManager.default.removeItem(at: folder) }
+        catch { reportCleanupError("The sharing temporary file could not be removed: " + error.localizedDescription) }
+    }
 
     static func make(_ operation: String, _ values: [String: Any], temporaryDirectory: URL) throws -> Self {
         switch operation {
@@ -163,19 +178,25 @@ private final class SharingSession {
         driver.onEvent = nil
         driver.detach()
         Self.handedOff.removeValue(forKey: id)
-        if let folder = prepared.folder {
-            do { try FileManager.default.removeItem(at: folder) }
-            catch { reportCleanupError("The sharing temporary file could not be removed: " + error.localizedDescription) }
-        }
+        prepared.removeFile(reportCleanupError: reportCleanupError)
     }
 }
 
 @MainActor
 private final class SystemSharingDriver: NSObject, NativeSharingDriving, @preconcurrency NSSharingServicePickerDelegate, NSSharingServiceDelegate {
+    private weak var window: NSWindow?
     var onEvent: ((NativeSharingEvent) -> Void)?
     private var picker: NSSharingServicePicker?
     private var service: NSSharingService?
     private var items: [Any] = []
+
+    init(ownerWindow: @MainActor () -> NSWindow?) throws {
+        guard let window = ownerWindow(), window.isVisible, window.contentView != nil else {
+            throw DraftlyError.message("Open a Draftly window before sharing.")
+        }
+        self.window = window
+        super.init()
+    }
 
     private func nativeItem(_ item: NativeSharingItem) -> Any {
         switch item {
@@ -188,7 +209,7 @@ private final class SystemSharingDriver: NSObject, NativeSharingDriving, @precon
         return NSSharingService.sharingServices(forItems: items).contains { $0.canPerform(withItems: items) }
     }
     func show(_ item: NativeSharingItem) throws {
-        guard let view = NSApp.keyWindow?.contentView else {
+        guard let window, window.isVisible, let view = window.contentView else {
             throw DraftlyError.message("Open a Draftly window before sharing.")
         }
         items = [nativeItem(item)]

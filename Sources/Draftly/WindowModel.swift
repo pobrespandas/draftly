@@ -163,7 +163,7 @@ final class WindowModel: ObservableObject {
             guard let self else { throw CancellationError() }
             return try await WindowActionAdapter(model: self).performAsync(values, timeout: timeout)
         }
-        host.printingWindow = { [weak self] in self?.window }
+        host.ownerWindow = { [weak self] in self?.window }
         host.onMessage = { [weak self] message, severity in
             guard let self else { throw DraftlyError.message("The action window is closed.") }
             try self.showMessageBanner(message, severity: severity)
