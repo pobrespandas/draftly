@@ -64,6 +64,13 @@ private final class TranscriptionAccumulator { var text = "" }
 
 @MainActor
 private final class TranscriptionPhase<Value: Sendable> {
+    private final class CancellationState: @unchecked Sendable {
+        private let lock = NSLock()
+        private var cancelled = false
+        var isCancelled: Bool { lock.withLock { cancelled } }
+        func cancel() { lock.withLock { cancelled = true } }
+    }
+    private let cancellation = CancellationState()
     private var continuation: CheckedContinuation<Value, Error>?
     private var timeoutTask: Task<Void, Never>?
     private var cleanup: (() -> Void)?
@@ -77,6 +84,7 @@ private final class TranscriptionPhase<Value: Sendable> {
     static func wait(timeout: TimeInterval, now: @escaping @MainActor () -> Date,
                      start: (@escaping @Sendable (Result<Value, Error>) -> Void) throws -> (() -> Void)?) async throws -> Value {
         let pending = TranscriptionPhase(timeout: timeout, now: now)
+        let cancellation = pending.cancellation
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
                 pending.continuation = continuation
@@ -92,6 +100,7 @@ private final class TranscriptionPhase<Value: Sendable> {
                 } catch { pending.finish(.failure(error)) }
             }
         } onCancel: {
+            cancellation.cancel()
             Task { @MainActor in pending.finish(.failure(CancellationError())) }
         }
     }
@@ -103,7 +112,8 @@ private final class TranscriptionPhase<Value: Sendable> {
         let cleanup = cleanup
         self.cleanup = nil
         cleanup?()
-        if case .failure(let error) = result, error is CancellationError { continuation.resume(throwing: error) }
+        if cancellation.isCancelled { continuation.resume(throwing: CancellationError()) }
+        else if case .failure(let error) = result, error is CancellationError { continuation.resume(throwing: error) }
         else if now() >= deadline { continuation.resume(throwing: ActionExecutionInterruption.timeout) }
         else { continuation.resume(with: result) }
     }

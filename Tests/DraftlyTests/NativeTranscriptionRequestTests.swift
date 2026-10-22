@@ -171,6 +171,42 @@ struct NativeTranscriptionRequestTests {
         #expect(driver.pickerCleanups == 1 && driver.recognizedFile == nil && driver.invalidated)
     }
 
+    @Test(arguments: ["authorization", "picker", "recognition"])
+    func cancellationWinsWhenAnExpiredReplyIsQueuedBeforeCleanup(phase: String) async throws {
+        let driver = TranscriptionDriverFixture()
+        var now = Date(timeIntervalSinceReferenceDate: 100)
+        var reply: (() -> Void)?
+        let stage: TranscriptionDriverFixture.Stage
+        switch phase {
+        case "authorization":
+            stage = .authorization
+            driver.authorizationStatus = .notDetermined
+            driver.onPermission = { completion in reply = { completion(.authorized) } }
+        case "picker":
+            stage = .picker
+            driver.onPick = { completion in reply = { completion(driver.file) } }
+        default:
+            stage = .recognition
+            driver.onRecognize = { completion in reply = { completion(.init(text: "Late café 🐼", isFinal: true)) } }
+        }
+        let task = Task {
+            try await NativeTranscriptionRequest.run([:], driver: driver,
+                authorizationTimeout: 10, timeout: 10, now: { now })
+        }
+        try await driver.waitFor(stage)
+        let completion = try #require(reply)
+        now = now.addingTimeInterval(10)
+        completion()
+        task.cancel()
+        do { _ = try await task.value; Issue.record("Cancelled transcription returned text.") }
+        catch { #expect(error is CancellationError) }
+        #expect(driver.invalidated)
+        #expect(driver.pickerCleanups == (phase == "authorization" ? 0 : 1))
+        #expect(driver.recognitionCleanups == (phase == "recognition" ? 1 : 0))
+        if phase == "authorization" { #expect(driver.locale == nil && driver.pickerRequests == 0) }
+        if phase != "recognition" { #expect(driver.recognizedFile == nil) }
+    }
+
     @Test func recognitionErrorTakesPriorityOverAFinalText() async {
         let driver = TranscriptionDriverFixture()
         driver.onRecognize = { update in update(.init(text: "Partial", isFinal: true, error: NSError(domain: "Draftly.SpeechFixture", code: 42, userInfo: [NSLocalizedDescriptionKey: "Neutral recognition failure"]))) }
