@@ -109,6 +109,29 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
             }
         }.sorted { ($0["location"] as? Int ?? 0) < ($1["location"] as? Int ?? 0) }
     }
+    public func taskStyledRanges(in text: String) -> [(NSRange, String)] {
+        let definitions = rules("taskMarkDefinitions")
+        return tasks(in: text).compactMap { task in
+            guard let index = task["_rule"] as? Int,
+                  let scope = (definitions[index]["scopes"] as? [String: String])?["interactive"],
+                  let range = task["interactiveRange"] as? [Int], range.count == 2 else { return nil }
+            return (NSRange(location: range[0], length: range[1]), scope)
+        }
+    }
+
+    public func linkStyledRanges(in text: String) -> [(NSRange, String)] {
+        return rules("linkDefinitions").flatMap { rule in
+            let captures = rule["captures"] as? [String: String] ?? [:]
+            let scopes = rule["scopes"] as? [String: String] ?? [:]
+            return results(rule, text).flatMap { match in
+                ["key", "value", "prefix", "suffix"].compactMap { key -> (NSRange, String)? in
+                    guard let scope = scopes[key], let range = capture(match, captures[key]) else { return nil }
+                    return (range, scope)
+                }
+            }
+        }
+    }
+
     public func resolvedLinks(in text: String) -> [(range: NSRange, url: URL)] {
         let source = text as NSString
         let unreserved = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")

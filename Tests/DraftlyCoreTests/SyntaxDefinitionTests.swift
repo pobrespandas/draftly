@@ -191,6 +191,29 @@ struct SyntaxDefinitionTests {
         }
     }
 
+    @Test func taskAndLinkScopesUseTheirDeclaredCapturesAndIgnoreDisabledRules() throws {
+        var value = source()
+        var taskRules = try #require(value["taskMarkDefinitions"] as? [[String: Any]])
+        taskRules[0]["scopes"] = ["interactive": "text.monospace.bold", "future": "ignored"]
+        value["taskMarkDefinitions"] = taskRules
+        var linkRules = try #require(value["linkDefinitions"] as? [[String: Any]])
+        linkRules[0]["scopes"] = ["key": "text.bold", "value": "color.red", "prefix": "markup", "suffix": "markup"]
+        value["linkDefinitions"] = linkRules
+        let syntax = try definition(value), text = "🐼 [~] <<note:café>>"
+        let source = text as NSString
+        let tasks = syntax.taskStyledRanges(in: text)
+        #expect(tasks.count == 1 && tasks[0].0 == source.range(of: "[~]") && tasks[0].1 == "text.monospace.bold")
+        let links = syntax.linkStyledRanges(in: text)
+        #expect(links.count == 4)
+        #expect(links.map { source.substring(with: $0.0) } == ["note", "café", "<<", ">>"])
+        #expect(links.map { $0.1 } == ["text.bold", "color.red", "markup", "markup"])
+        taskRules[0]["enabled"] = false; linkRules[0]["enabled"] = false
+        value["taskMarkDefinitions"] = taskRules; value["linkDefinitions"] = linkRules
+        let disabled = try definition(value)
+        #expect(disabled.taskStyledRanges(in: text).isEmpty && disabled.linkStyledRanges(in: text).isEmpty)
+        #expect((((disabled.object["taskMarkDefinitions"] as? [[String: Any]])?.first)?["scopes"] as? [String: String])?["future"] == "ignored")
+    }
+
     @Test func defaultWorkspaceCopiesConfigurationWithANewIdentityAndFallsBackAfterDeletion() throws {
         let store = try LibraryStore(inMemory: true, seed: false)
         var workspace = Workspace(name: "Selected"); workspace.tags = ["work"]; workspace.sort = .accessed

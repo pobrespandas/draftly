@@ -51,6 +51,43 @@ struct ThemeRenderingTests {
         }
     }
 
+    @Test func taskAndLinkCaptureScopesApplyWithoutTaskForegroundOrTextChanges() throws {
+        let text = "🐼 [ ] task <<note:café>>"
+        let syntax = try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: [
+            "name": "Neutral capture scopes", "patterns": [], "navigationPatterns": [], "indentationPatterns": [],
+            "taskMarkDefinitions": [["match": #"(\[[ x]\])"#, "rangeType": "task", "captures": ["state": "1", "interactive": "1"],
+                "states": ["[ ]", "[x]"], "scopes": ["interactive": "text.monospace.bold, color.red"]]],
+            "linkDefinitions": [["match": #"(<<)((note):([^>]+))(>>)"#,
+                "captures": ["key": "3", "value": "4", "prefix": "1", "suffix": "5", "link": "2"],
+                "scopes": ["key": "text.bold", "value": "custom.neutral"]]]]))
+        let session = EditorSession(); session.load(Note(content: text), focusEditor: false)
+        let selection = (text as NSString).range(of: "café"); session.selection = selection
+        let view = NSTextView(frame: .zero); view.string = text; view.setSelectedRange(selection)
+        let themed = try DraftsThemeImport.decode(data: JSONSerialization.data(withJSONObject: [
+            "name": "Neutral task styles", "description": "Neutral capture style test", "isDark": false,
+            "colors": ["editor": [:], "interface": ["textForeground": "#222222", "textBackground": "#FFFFFF"]],
+            "scopes": ["text.monospace.bold": ["settings": ["foreground": "#FF0000", "fontWeight": "bold", "fontStyle": "monospace, underline"]],
+                "custom.neutral": ["settings": ["foreground": "#FF00FF", "fontStyle": "italic"]]]]))
+        for theme in [Optional<EditorTheme>.none, themed] {
+            let editor = NativeEditor(session: session, fontName: "System", fontSize: 17, lineSpacing: 2,
+                markdown: false, syntaxDefinition: syntax, theme: theme, onChange: {})
+            let coordinator = editor.makeCoordinator(); coordinator.textView = view; coordinator.highlight()
+            let storage = try #require(view.textStorage)
+            let taskRange = (text as NSString).range(of: "[ ]")
+            let attributes = storage.attributes(at: taskRange.location, effectiveRange: nil)
+            #expect((attributes[.font] as? NSFont)?.isFixedPitch == true)
+            #expect(NSFontManager.shared.traits(of: try #require(attributes[.font] as? NSFont)).contains(.boldFontMask))
+            #expect(try hex(attributes[.foregroundColor]) != "FF0000")
+            if theme != nil {
+                #expect(attributes[.underlineStyle] as? Int == NSUnderlineStyle.single.rawValue)
+                #expect(try hex(storage.attribute(.foregroundColor, at: selection.location, effectiveRange: nil)) == "FF00FF")
+                #expect(NSFontManager.shared.traits(of: try #require(storage.attribute(.font, at: selection.location, effectiveRange: nil) as? NSFont)).contains(.italicFontMask))
+            }
+            #expect(view.string == text && view.selectedRange() == selection && session.content == text)
+            #expect(storage.attribute(.link, at: selection.location, effectiveRange: nil) == nil)
+        }
+    }
+
     @Test func markdownAndCustomScopesApplyAttributesWithoutChangingUTF16SelectionOrText() throws {
         let session = EditorSession()
         session.load(Note(content: "# Header\n**Bold** and `code`\n*Italic*\n~~Gone~~\ncafé 🐼"), focusEditor: false)

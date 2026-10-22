@@ -17,6 +17,7 @@ public extension ScriptSyntax {
             tasks = [["match": #"(\[[ xX]\])"#, "rangeType": "task", "captures": ["interactive": "1", "state": "1"], "states": ["[ ]", "[x]"], "initialState": "[ ]", "completedState": ["[x]"], "caseInsensitiveStates": true]]
         }
         if isMarkdown(name) {
+            tasks[0]["scopes"] = ["interactive": "text.monospace.bold"]
             markers = (1...6).map { level in ["match": "^" + String(repeating: "#", count: level) + #" ([^\r\n]*)"#, "rangeCapture": "0", "labelCapture": "1", "prefix": "H\(level)", "level": level - 1] }
             links = [["match": #"(\[\[)((?:([^:\]\r\n]+):)?([^\]\r\n]+))(\]\])"#, "captures": ["prefix": "1", "link": "2", "key": "3", "value": "4", "suffix": "5"]]]
         }

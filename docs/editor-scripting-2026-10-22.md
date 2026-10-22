@@ -195,3 +195,36 @@ not a claim of complete native-find or Editor parity.
 
 The final Python run passed 68 tests. The matrix structural check reported zero
 errors. These checks do not promote showFind from partial compatibility.
+
+## Task and link capture styles
+
+Task interactive scopes and link key, value, prefix and suffix scopes now use
+the shared syntax definition. Disabled rules produce no style ranges. The editor
+applies font and decoration styles to task controls without applying their scope
+foreground color, as required by the archived format. Markdown tasks declare the
+monospace bold scope. Link styles do not enable link activation when link mode
+is off. Imported scope fields remain intact.
+
+Specific headless tests cover UTF-16 capture ranges, disabled definitions,
+unknown fields, default and imported theme styles, task foreground protection,
+and unchanged text and selection. The focused run passed 13 Core methods and
+five app methods. The initial rendering fixture omitted required theme colors
+and used an invalid style separator. The corrected fixture passed without weaker
+assertions. The local Xcode build passed. Native rendering acceptance remains pending.
+
+## Additional syntax consumers to complete
+
+Navigate still parses Markdown headings independently and limits the menu to
+100 entries. It must use the assigned syntax, including custom markers and
+TaskPaper. Newline list continuation still uses a Markdown expression instead
+of listCompletionDefinitions. Complete sequence, padding and replacement rules.
+Also complete featureKeys, autocompleteDefinitions, rangeExtensionType and
+indentationPatterns. These fields are not excluded from the objective.
+
+File syntax installation registers its bookmark before saving the definition.
+A failed replacement can leave the previous record pointing to the new file.
+Correct this in a separate functional change with a storage failure test.
+The editor also suppresses file definition errors with try?, while scripting
+reports them. Required captures and malformed rule values need validation.
+Built-in name conflicts and import-as-new behavior need explicit resolution.
+The full Editor and scripting goal remains open.

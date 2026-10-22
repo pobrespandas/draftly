@@ -196,16 +196,31 @@ struct NativeEditor: NSViewRepresentable {
                 for task in definition.tasks(in: view.string) {
                     if let range = task["interactiveRange"] as? [Int], range.count == 2 { storage.addAttribute(.foregroundColor, value: NSColor.systemTeal, range: NSRange(location: range[0], length: range[1])) }
                 }
-                for (range, scopeList) in definition.styledRanges(in: view.string) {
+                func applyDefault(_ scopeList: String, range: NSRange, foregroundAllowed: Bool = true) {
+                    guard range.length > 0 else { return }
                     for scope in scopeList.split(separator: ",").map({ $0.trimmingCharacters(in: .whitespaces) }) {
                         var attributes: [NSAttributedString.Key: Any] = [:]
-                        if scope.contains("heading") { attributes[.foregroundColor] = heading }
-                        if scope.contains("bold") { attributes[.font] = NSFontManager.shared.convert(font, toHaveTrait: .boldFontMask) }
-                        if scope.contains("italic") { attributes[.font] = NSFontManager.shared.convert(font, toHaveTrait: .italicFontMask) }
+                        var currentFont = storage.attribute(.font, at: range.location, effectiveRange: nil) as? NSFont ?? font
+                        if scope.contains("monospace"), !currentFont.isFixedPitch {
+                            let traits = NSFontManager.shared.traits(of: currentFont).intersection([.boldFontMask, .italicFontMask])
+                            currentFont = NSFontManager.shared.convert(NSFont.monospacedSystemFont(ofSize: currentFont.pointSize, weight: .regular), toHaveTrait: traits)
+                        }
+                        if scope.contains("heading"), foregroundAllowed { attributes[.foregroundColor] = heading }
+                        if scope.contains("bold") { currentFont = NSFontManager.shared.convert(currentFont, toHaveTrait: .boldFontMask) }
+                        if scope.contains("italic") { currentFont = NSFontManager.shared.convert(currentFont, toHaveTrait: .italicFontMask) }
+                        if scope.contains("underline") { attributes[.underlineStyle] = NSUnderlineStyle.single.rawValue }
+                        if scope.contains("strikethrough") { attributes[.strikethroughStyle] = NSUnderlineStyle.single.rawValue }
+                        attributes[.font] = currentFont
                         let colors: [String: NSColor] = ["color.red": .systemRed, "color.blue": .systemBlue, "color.green": .systemGreen, "color.orange": .systemOrange, "color.purple": .systemPurple]
-                        if let color = colors[scope] { attributes[.foregroundColor] = color }
+                        if foregroundAllowed, let color = colors[scope] { attributes[.foregroundColor] = color }
                         storage.addAttributes(attributes, range: range)
                     }
+                }
+                for (range, scopes) in definition.styledRanges(in: view.string) + definition.linkStyledRanges(in: view.string) {
+                    applyDefault(scopes, range: range)
+                }
+                for (range, scopes) in definition.taskStyledRanges(in: view.string) {
+                    applyDefault(scopes, range: range, foregroundAllowed: false)
                 }
             }
             if parent.linksEnabled, let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) {
@@ -223,8 +238,9 @@ struct NativeEditor: NSViewRepresentable {
                 }
             }
             if let theme = parent.theme {
-                func apply(_ scope: String, range: NSRange) {
-                    guard range.length > 0, let style = theme.scopeStyle(named: scope) else { return }
+                func apply(_ scope: String, range: NSRange, foregroundAllowed: Bool = true) {
+                    guard range.length > 0, var style = theme.scopeStyle(named: scope) else { return }
+                    if !foregroundAllowed { style.foreground = nil }
                     storage.enumerateAttribute(.font, in: range) { value, run, _ in
                         let current = value as? NSFont ?? font
                         storage.addAttributes(ThemeTextAttributes.make(style, currentFont: current, baseFont: baseFont), range: run)
@@ -253,8 +269,11 @@ struct NativeEditor: NSViewRepresentable {
                     }
                 }
                 if let definition = parent.syntaxDefinition {
-                    for (range, scopes) in definition.styledRanges(in: view.string) {
+                    for (range, scopes) in definition.styledRanges(in: view.string) + definition.linkStyledRanges(in: view.string) {
                         for scope in scopes.split(separator: ",").map({ $0.trimmingCharacters(in: .whitespaces) }) { apply(scope, range: range) }
+                    }
+                    for (range, scopes) in definition.taskStyledRanges(in: view.string) {
+                        for scope in scopes.split(separator: ",").map({ $0.trimmingCharacters(in: .whitespaces) }) { apply(scope, range: range, foregroundAllowed: false) }
                     }
                 }
                 if let activeScope { for range in activeRanges { apply(activeScope, range: range) } }
