@@ -1,0 +1,44 @@
+[
+  {
+    "uuid": "A0760100-0000-4000-8000-000000000018",
+    "name": "QA Speech completion",
+    "group": "Speech lifetime QA",
+    "notificationType": 0,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Retained Speech QA café 🐼');draft.update();const accepted=speech.speak('Prueba neutral de Draftly.',{autoStart:false,autoClose:false});if(!accepted){context.cancel();}else{context.addSuccessParameter('speech','complete');editor.setText('Speech completed');draft.update();}"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "A0760100-0000-4000-8000-000000000019",
+    "name": "QA Speech playback interruption",
+    "group": "Speech lifetime QA",
+    "notificationType": 0,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Retained Speech QA café 🐼');draft.update();const accepted=speech.speak('Prueba neutral de Draftly. '.repeat(500),{autoClose:false});if(!accepted){context.cancel();}else{context.addSuccessParameter('speech','unexpected');editor.setText('Must not run after interruption');draft.update();}"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "A0760100-0000-4000-8000-000000000020",
+    "name": "QA Speech confirmation timeout",
+    "group": "Speech lifetime QA",
+    "notificationType": 0,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Retained Speech QA café 🐼');draft.update();const accepted=speech.speak('Prueba neutral de Draftly.',{autoStart:false});if(!accepted){context.cancel();}else{context.addSuccessParameter('speech','unexpected');editor.setText('Must not run after timeout');draft.update();}"
+        }
+      }
+    ]
+  }
+]

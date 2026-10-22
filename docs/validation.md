@@ -9476,3 +9476,44 @@ longer deadlines were added. Tests used temporary files and local processes.
 No manual UI session was needed for this executor correction. It does not accept
 system-delivered Shortcuts or additional App Intent routes. The usual app was
 not replaced. Strict engine acceptance remains pending for six partial records.
+
+## Native speech cancellation blocks the main thread — 22 October 2026
+
+The isolated Engine QA app used the full local Debug bundle from `2c8a456`.
+Its debug library SHA256 was
+`4c101b389816a8cc76b07e3b547280c3e1b3e477a0316fd68ac4d07490ed2bf8`.
+The main app was not replaced. The new library started with zero drafts.
+
+Three reproducible neutral actions are in
+`scripts/fixtures/engine-speech-actions.json`. Only QA Speech completion ran.
+A URL requested it on a neutral draft. Computer Use accepted the action
+confirmation and clicked Read in the native confirmation panel. The receiver
+remained at zero callbacks. The expected completion panel did not appear.
+The Actions menu still opened and exposed Cancel Running Action.
+
+Computer Use selected Cancel Running Action. QA then stopped answering UI
+requests. The receiver remained responsive with zero callbacks. A process
+sample showed the main thread in SpeechPlayback.finish -> stopPlayback ->
+SystemSpeechDriver.stop -> NSSpeechSynthesizer.stopSpeaking -> semaphore wait.
+An audio worker was waiting inside CoreAudio output-device initialization.
+This is a failed native check, not accepted synthesis or cancellation. The
+underlying audio condition does not justify blocking MainActor during cleanup.
+
+The exact QA executable and PID were checked before SIGTERM. Only the blocked
+QA process was terminated. Its helper quit normally. Both processes were
+confirmed absent and their exact LaunchServices registrations were removed.
+The closed QA library, preferences, packages and process sample remain
+recoverable in the Trash. The retained source text remained in Inbox. No
+completed run record was found; termination is not a final engine response.
+
+The long playback and confirmation-timeout fixtures were not run. No audio
+completion, stopped output, timeout, recovery or late callback is accepted by
+this session. No system speech service was killed and no audio settings or
+permissions changed. No production code changed. The fixture identity test and
+structural matrix check passed. Existing Core674/app737/Python68/build results
+apply to unchanged production code; they do not cover this observed OS block.
+
+Next fix: isolate native synthesis and its blocking cleanup from MainActor.
+Cancellation and timeout must finish cleanup without waiting on an unbounded
+speech-system call. Preserve voice identity, rate, panels and final results.
+Repeat this native case and a successful following action after that fix.
