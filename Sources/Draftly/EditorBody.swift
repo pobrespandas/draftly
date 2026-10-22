@@ -23,7 +23,9 @@ struct EditorBody: View {
                     if presentation.canAddFile { Button("Add File Syntax…") { model.importSyntax(asFile: true) } }
                 }.padding(8)
             }
-            NativeEditor(session: session, fontName: fontName, fontSize: fontSize, lineSpacing: lineSpacing, markdown: presentation.definition != nil && markdown, lineHeightMultiple: lineHeightMultiple, paragraphSpacing: paragraphSpacing, syntax: presentation.definition == nil ? "Plain Text" : model.currentNote?.syntax ?? "Markdown", syntaxDefinition: presentation.definition, horizontalMargin: horizontalMargin, verticalMargin: verticalMargin, maximumWidth: maximumWidth, theme: theme, linksEnabled: model.linksEnabled, isActive: !model.showPreview, showCustomTouchBar: showCustomTouchBar, touchBarModel: model, indentation: EditorIndentationPreferences.style(for: model.currentNote?.syntax ?? "Markdown", encoded: indentation).text) { model.contentChanged() }
+            NativeEditor(session: session, fontName: fontName, fontSize: fontSize, lineSpacing: lineSpacing, markdown: presentation.definition != nil && markdown, lineHeightMultiple: lineHeightMultiple, paragraphSpacing: paragraphSpacing, syntax: presentation.definition == nil ? "Plain Text" : model.currentNote?.syntax ?? "Markdown", syntaxDefinition: presentation.definition, horizontalMargin: horizontalMargin, verticalMargin: verticalMargin, maximumWidth: maximumWidth, theme: theme, linksEnabled: model.linksEnabled, isActive: !model.showPreview, showCustomTouchBar: showCustomTouchBar, touchBarModel: model, completionContext: { [weak model] in
+                EditorCompletionContext(currentDraft: model?.currentNote, drafts: model?.library.notes ?? [])
+            }, indentation: EditorIndentationPreferences.style(for: model.currentNote?.syntax ?? "Markdown", encoded: indentation).text) { model.contentChanged() }
         }
     }
 }

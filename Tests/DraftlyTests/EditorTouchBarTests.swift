@@ -43,7 +43,9 @@ struct EditorTouchBarTests {
         session.selection = range
         func editor(showCustom: Bool) -> NativeEditor {
             NativeEditor(session: session, fontName: "System", fontSize: 17, lineSpacing: 2,
-                markdown: false, showCustomTouchBar: showCustom, touchBarModel: model, onChange: {})
+                markdown: false, showCustomTouchBar: showCustom, touchBarModel: model, completionContext: { [weak model] in
+                    EditorCompletionContext(currentDraft: model?.currentNote, drafts: model?.library.notes ?? [])
+                }, onChange: {})
         }
         let host = NSHostingView(rootView: editor(showCustom: true))
         let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 500, height: 400),
@@ -71,7 +73,9 @@ struct EditorTouchBarTests {
         defer { preferences.close() }
         let model = try model(defaults: preferences.defaults)
         let native = NativeEditor(session: model.editor, fontName: "System", fontSize: 17, lineSpacing: 2,
-            markdown: false, touchBarModel: model, onChange: { model.contentChanged() })
+            markdown: false, touchBarModel: model, completionContext: { [weak model] in
+                EditorCompletionContext(currentDraft: model?.currentNote, drafts: model?.library.notes ?? [])
+            }, onChange: { model.contentChanged() })
         let host = NSHostingView(rootView: native)
         let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 500, height: 400),
             styleMask: [.titled], backing: .buffered, defer: false)

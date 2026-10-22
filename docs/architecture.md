@@ -3,7 +3,9 @@
 ## Current continuation
 
 The [modularity audit](modularity-audit-2026-10-22.md) records the current
-refactoring diagnosis and the next bounded stage. See [status](status.md) for
+refactoring diagnosis. [Editor completion context](refactoring-completion-context-2026-10-22.md)
+implements its first stage. Workspace preparation is the next proposed stage.
+See [status](status.md) for
 functional work. The [dated editor/scripting record](editor-scripting-2026-10-22.md)
 retains its original scope. The audit does not implement its proposed changes.
 The [Advanced Find refactoring stage](refactoring-find-2026-10-22.md) is complete.
@@ -81,6 +83,17 @@ use the current root and do not share cached source across calls.
 storage access. EditorActionBar supplies the safe selection and applies the
 result before focus and save effects. Markdown marker rules and current line
 behavior remain unchanged; syntax parity is a separate functional concern.
+
+## Editor completion data boundary
+
+EditorBody supplies a lazy completion-context provider to NativeEditor. The
+provider reads the current draft and candidates when invoked. The text-view
+callback does not obtain completion data from the Touch Bar model.
+EditorCompletionContext builds the current draft with the callback source and
+session identity, then delegates matching to SyntaxDefinition. Without a
+provider, standalone editors retain an empty candidate list and fallback draft.
+Touch Bar configuration, completion invalidation, text synchronization, selection
+and Undo retain their existing owners.
 
 ## Advanced Find command boundary
 

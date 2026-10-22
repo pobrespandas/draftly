@@ -200,6 +200,13 @@ not a proven production root cause. Keep it as an independent timing/test-design
 investigation. Do not change timeouts, serial execution policy or retry rules
 inside any of R1–R5. No new functional defect was reproduced by this audit.
 
+## Follow-up — R1 implementation
+
+R1 is implemented in the separate [completion-context refactoring record](refactoring-completion-context-2026-10-22.md).
+Its verification does not change the original audit results or implement R2–R5.
+The implementation adds the explicit provider and migrates the model-supplying
+constructors. Workspace preparation is the next proposed stage.
+
 ## Recommended implementation sequence
 
 1. R1: explicit completion context. This is the next small implementation stage.

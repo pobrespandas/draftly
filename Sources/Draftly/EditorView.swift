@@ -22,6 +22,7 @@ struct NativeEditor: NSViewRepresentable {
     var isActive = true
     var showCustomTouchBar = true
     var touchBarModel: WindowModel?
+    var completionContext: (@MainActor () -> EditorCompletionContext)?
     var indentation = "\t"
     var onChange: () -> Void
 
@@ -61,12 +62,10 @@ struct NativeEditor: NSViewRepresentable {
             text.syntaxDefinition = syntaxDefinition
             text.completionNoteID = session.noteID
             text.syntaxCompletions.invalidate(source: session.content, selection: session.safeSelection, noteID: session.noteID)
-            text.completionProvider = { [weak model = touchBarModel, weak session] source, selection in
+            text.completionProvider = { [weak session] source, selection in
                 guard let session, let definition = syntaxDefinition else { return nil }
-                var current = model?.currentNote ?? Note(content: source)
-                current.content = source
-                if let id = session.noteID { current.id = id }
-                return definition.completion(in: source, selection: selection, drafts: model?.library.notes ?? [], current: current)
+                let context = completionContext?() ?? EditorCompletionContext(currentDraft: nil, drafts: [])
+                return context.completion(in: source, selection: selection, definition: definition, noteID: session.noteID)
             }
             text.typewriterScrollingEnabled = session.typewriterScrollingEnabled
             text.horizontalMargin = max(0, horizontalMargin); text.verticalMargin = max(0, verticalMargin)

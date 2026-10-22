@@ -2,13 +2,22 @@
 
 Updated: 22 October 2026.
 
+## Editor completion refactoring
+
+R1 is implemented in the [completion-context record](refactoring-completion-context-2026-10-22.md).
+Completion data now has an explicit lazy provider, independent of Touch Bar.
+Characterization passed before extraction. Final checks passed Core674/app773,
+Python68, 56 focused methods, local Debug build and the structural matrix.
+There was no new native manual session or installed-app update. The prior
+XML-RPC timing risk and the 18 strict engine diagnostics remain separate.
+
 ## Modularity audit
 
 The [repository audit](modularity-audit-2026-10-22.md) is complete at the
-architectural level. It proposes five bounded refactorings. Start with explicit
-editor completion context, then Workspace preparation, Cloud QA preparation,
-styling and text synchronization. No production or test code changed. No tests
-were removed. The documentation now distinguishes current orientation from
+architectural level. It proposed five bounded refactorings. R1 completion
+context is now implemented separately. Next are Workspace preparation, Cloud QA
+preparation, styling and text synchronization. The audit itself changed no
+production or test code and removed no tests. The documentation now distinguishes current orientation from
 historical records. Complete verification on 1e399dd passed Core674/app767,
 Python68, local Debug compilation and the structural matrix check. Native
 acceptance and the prior XML-RPC timing risk remain separate.
