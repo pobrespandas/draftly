@@ -153,12 +153,19 @@ struct EditorActionBarEditingTests {
         }
     }
 
+    @Test func navigateMenuSeparatesBuiltInPrefixesFromLabels() throws {
+        try withBar("# Café 🐼\n## Next", selection: range(0)) { fixture in
+            let items = EditorBarCommand.navigationItems(model: fixture.model, session: fixture.model.editor)
+            #expect(items.map(\.title) == ["H1 Café 🐼", "H2 Next"])
+        }
+    }
+
     @Test func navigateMenuUsesTaskPaperPlainTextAndExplicitMissingSyntaxError() throws {
         try withBar("# ignored\nProject:\n- task\nLast:", selection: range(0)) { fixture in
             var note = try #require(fixture.model.currentNote)
             note.syntax = "TaskPaper"; try fixture.library.saveNote(note)
             let items = EditorBarCommand.navigationItems(model: fixture.model, session: fixture.model.editor)
-            #expect(items.count == 2)
+            #expect(items.map(\.title) == ["Project Project", "Project Last"])
             items.first?.action?()
             #expect(fixture.model.editor.selectedText == "Project:")
             note.syntax = "Plain Text"; try fixture.library.saveNote(note)

@@ -1,0 +1,69 @@
+{
+  "name": "Neutral QA grammar",
+  "patterns": [],
+  "indentationPatterns": [],
+  "future": {
+    "preserve": true
+  },
+  "navigationPatterns": [
+    {
+      "match": "^! (.*)$",
+      "rangeCapture": "1",
+      "labelCapture": "1",
+      "prefix": "→ ",
+      "level": 1
+    }
+  ],
+  "taskMarkDefinitions": [
+    {
+      "match": "(\\[[ ~x]\\])",
+      "rangeType": "task",
+      "captures": {
+        "state": "1",
+        "interactive": "1"
+      },
+      "states": [
+        "[ ]",
+        "[~]",
+        "[x]"
+      ],
+      "scopes": {
+        "interactive": "text.monospace.bold"
+      }
+    }
+  ],
+  "linkDefinitions": [
+    {
+      "match": "(<<)((note):([^>]+))(>>)",
+      "captures": {
+        "key": "3",
+        "value": "4",
+        "link": "2",
+        "prefix": "1",
+        "suffix": "5"
+      },
+      "scopes": {
+        "key": "text.bold",
+        "value": "text.italic"
+      },
+      "templates": {
+        "note": "https://example.invalid/?q=[[value]]"
+      }
+    }
+  ],
+  "listCompletionDefinitions": [
+    {
+      "match": "^(\\h*)((\\d+)\\) \\{done\\} )(.*)$",
+      "captures": {
+        "indent": "1",
+        "prefix": "2",
+        "sequence": "3",
+        "line": "4"
+      },
+      "sequencePadding": "2",
+      "replacements": {
+        "{done}": "{todo}"
+      }
+    }
+  ]
+}

@@ -125,7 +125,9 @@ import DraftlyCore
             let items = definition.markers(in: text).compactMap { marker -> PanelMenuItem? in
                 guard let label = marker["label"] as? String,
                       let location = marker["location"] as? Int, let length = marker["length"] as? Int else { return nil }
-                return PanelMenuItem(title: (marker["prefix"] as? String ?? "") + label, action: {
+                let prefix = marker["prefix"] as? String ?? ""
+                let separator = prefix.isEmpty || prefix.last?.isWhitespace == true || label.isEmpty ? "" : " "
+                return PanelMenuItem(title: prefix + separator + label, action: {
                     guard session.content == text else { return }
                     selectMarker(NSRange(location: location, length: length), session: session)
                 }, indentationLevel: max(0, marker["level"] as? Int ?? 0))

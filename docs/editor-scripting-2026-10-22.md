@@ -287,3 +287,48 @@ fixed the fixture; production Undo behavior was not changed to hide the failure.
 The final focused rerun and local Xcode build passed. Native interactive list
 acceptance remains pending. Feature keys, autocomplete,
 hanging indentation and broader validation are still incomplete.
+
+## Native syntax check and prefix spacing
+
+Computer Use used a new isolated Syntax QA bundle with CloudKit and global
+shortcuts disabled. It published no Services, document types or URL handlers.
+Markdown Enter changed `9. [x] task` to a next line `10. [ ] `. Undo removed that
+line and Redo restored it. Navigate listed both Markdown headings and selected
+`## Second`. TaskPaper listed two projects, selected `Last:`, and continued an
+indented task with its tab and dash retained.
+
+The session installed editor-neutral-grammar.draftsSyntax with Add File Syntax.
+It selected the installed definition, then entered neutral Unicode text. Enter
+continued `009) {done} item` as `010) {todo} ` with the leading spaces retained.
+The custom task marker was bold and monospace; link key and value showed bold
+and italic styles. Navigate displayed `→ Café 🐼` and selected exactly `Café 🐼`.
+Toggle Tasks cycled `[ ]`, `[~]`, `[x]`, `[ ]`. After normal quit and relaunch,
+opening the saved note restored its source and assigned file syntax with styles.
+This checks same-machine file access, not sandbox permissions on another Mac.
+The request used no microphone, private text or external link activation.
+
+A separate neutral note in Drafts 54.1.1 confirmed ordered task continuation and
+removing the empty next item. Its Navigate menu showed `H1 Syntax QA neutral`
+and `H2 Café 🐼`. QA had joined the prefix and label. The correction inserts a
+space only when the nonempty prefix does not already end in whitespace. Custom
+prefix spacing remains intact. Nine editing-bar methods passed. The correction
+still needs a native check in the rebuilt binary.
+
+The toggle session showed a full-document selection after an action. The cursor
+placement before the action was not observed independently. Do not count this as
+selection acceptance or a confirmed product defect; reproduce it with explicit
+before/after state. Custom padding still lacks a Drafts custom-grammar comparison.
+Imported-theme native rendering, external link activation, empty/missing-file
+errors, replacement dialogs and file permission denial remain pending.
+
+QA quit normally. Process absence was checked, its exact LaunchServices record
+was retired, and its bundle, exported preferences, fixture and closed library
+were moved together to recoverable Trash. The usual Draftly app was untouched.
+No screenshots or raw logs are tracked. The neutral source fixture is retained
+under scripts/fixtures for replay. Full Editor/scripting acceptance is still open.
+
+Final serial regression passed 677 app methods in 121 suites and 657 Core methods
+in 124 suites. Both XML reports match current discovery. All 68 Python tests
+passed. The matrix structural check reported zero errors. The local Xcode build
+passed after the prefix correction. No test timeout or retry policy changed.
+These results do not close the native checks and grammar features listed above.

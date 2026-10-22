@@ -2408,3 +2408,22 @@ Final app672/121 suites passed. Core654/124 passed before this app-only correcti
 both reports match current discovery. Local build passed. showFind evidence was
 updated with specific tests and native limits; its classification remains partial.
 The usual app is unchanged. Full remaining scope is in the dated Editor record.
+
+
+### Native syntax continuation — 22 October 2026
+
+Shared task/link styles, syntax-defined Navigate, file bookmark save ordering and
+grammar-defined Enter are implemented in separate commits. Isolated native QA
+checked Markdown numbering/Undo/Redo, TaskPaper markers/continuation, and a neutral
+file grammar with custom captures, three-state tasks, padded sequences and restart.
+Drafts54.1.1 confirmed ordered task continuation, empty-item exit and spaced H1/H2
+labels. Prefix spacing now has a specific correction and regression. Native check
+of that correction remains pending. The neutral grammar is under scripts/fixtures.
+QA quit and its exact registration was retired. Closed data is recoverable in
+Trash. The usual app was not changed. Selection after Toggle Tasks needs a precise
+before/after reproduction; the observation is not acceptance or a confirmed bug.
+
+Full serial app677/121 and Core657/124 passed; reports match discovery. Python68,
+matrix structure0 and the local Xcode build passed. See the dated Editor record
+for remaining grammar, Find, file permission and reference checks. Full parity
+remains open.
