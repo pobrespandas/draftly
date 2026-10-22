@@ -4,12 +4,18 @@ Updated: 22 October 2026.
 
 ## Current Actions engine acceptance
 
+Native speech source-window close now passed during the completion notice and
+while the helper was confirmed live. Both cancelled without success effects
+and allowed recovery. A later short-phrase run held its callback until OK, then
+returned one success. Direct audible-output confirmation and system-delivered
+Intent variants remain separate. QA apps were retired after the complete repeat.
+
 Actual Intent.perform now has speech-process cancel and timeout coverage with
 real silent helper processes. It verifies cleanup before return, typed errors,
 retained writes, no later steps or Archive and a successful following Intent.
 The new full run passed Core674/app749 and local Debug compilation. System
 delivery of the Intent remains separate. The prepared manual speech owner-close
-check is pending because the Mac was locked.
+check was completed after unlock, as recorded above.
 
 Waited process cancellation now has synchronous state at exit delivery and a
 second check before spawn. Red/green process tests cover cancelled launch,
@@ -20,8 +26,8 @@ separate. Python was unchanged; the earlier68-test result was not rerun.
 Async speech synthesis now runs in an owned helper process. Native URL task
 cancellation and the production timeout return their final callback without
 blocking MainActor. Both remove the helper and private files and allow a
-following successful action. Audible completion remains unverified because the
-system audio operation did not finish on this Mac. The usual app is unchanged.
+following successful action. A later native synthesis result completed successfully. Independent audible
+output confirmation remains separate. The usual app is unchanged.
 The prior integrated checks passed Core674/app745, Python68 and local Debug build.
 This does not complete the six partial engine contracts.
 

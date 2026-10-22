@@ -9639,3 +9639,52 @@ Its process was confirmed live but idle, with zero stored notes and runs and no
 speech helper or request directory. The QA app and callback helper bundle stay
 prepared for the unlocked manual session. They do not publish Services entries.
 The usual app remains unchanged. Owner-close acceptance is still pending.
+
+## Native speech owner close and complete result — 22 October 2026
+
+The prepared QA session resumed after the Mac was unlocked. During its first
+portion, closing the source window while Reading complete was open returned
+one x-cancel. The retained source stayed in Inbox with no later script, tail
+or Archive. A following shell action returned one success. A normal short
+phrase also returned one speech=complete success callback. The later attempt
+to close during playback was interrupted before a final result was observed.
+Its process and temporary database were absent at continuation. That attempt
+is not accepted. Missing observation was not treated as a live process.
+
+The playback case was repeated only after confirming the earlier process was
+absent. The same isolated QA bundle retained the production code from
+`0898a34`; no production source changed through `7428733`. Its debug library
+SHA256 was
+`a8b51a41294099ed3c44b7b5faddd80a20c14a6756701006afc78fd829efc7e5`.
+The temporary library was recreated empty.
+
+Computer Use imported QA Speech playback owner close from
+engine-speech-actions.json and created a neutral source. The action reads a
+neutral phrase repeated40 times, then has a later script, another step and
+Archive after success. After external-link confirmation, the real helper and
+its private request folder were confirmed live. Computer Use clicked the
+source window's close button. Exactly one x-cancel callback arrived. The
+helper and folder were absent after cancellation. The database retained the
+prior text in Inbox, with no sentinel and a Cancelled run. A following real
+shell action returned one success with exact Unicode output.
+
+The same completed session then ran QA Speech completion. Computer Use
+clicked Read. The actual native helper completed and Reading complete appeared
+while the callback count remained zero. Computer Use clicked OK. One x-success
+arrived with speech=complete. The saved source was Speech completed in Inbox.
+This proves the native synthesis result and final notice ordering; it is not
+a microphone recording or an independent confirmation of audible output.
+
+Both apps quit normally. Exact process absence, private-folder cleanup and
+LaunchServices unregistration passed. The closed repeat-library history was
+Cancelled, Success, Success. Packages, closed library and preferences remain
+recoverable in the Trash. Earlier interrupted temporary data were unavailable
+and were not claimed as recovered. No shared speech services, audio settings,
+permissions or usual-app files were changed.
+
+The fixture identity test and structural matrix check passed. Production code
+did not change. The preceding Core674/app749/local-build evidence applies;
+those suites were not rerun for this fixture and native-evidence update.
+Speech system-delivered Intent variants, selected-voice variants and direct
+output-stop confirmation remain separate. The six global partial contracts
+are not closed by this route-specific acceptance.

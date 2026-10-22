@@ -23470,6 +23470,15 @@
             "entryPoint": "Functional QA Actions menu",
             "result": "Folder picker Cancel kept neutral draft; next run selected a neutral folder and passed exact Unicode read/write and missing-file error. After normal process Quit and restart, action reused the bookmark without another picker. History: Cancelled, Success, Success. Does not accept denied/lost access, owner close, late panel callback, iCloud Drive or URL/Intent variants.",
             "evidence": "docs/actions-engine.md: Native action bookmark restart — 21 October 2026"
+          },
+          {
+            "date": "2026-10-22",
+            "productionRevision": "0898a34",
+            "debugLibrarySHA256": "a8b51a41294099ed3c44b7b5faddd80a20c14a6756701006afc78fd829efc7e5",
+            "fixture": "scripts/fixtures/engine-speech-actions.json",
+            "entryPoint": "URL and direct source-window close",
+            "result": "Speech completion-notice close and confirmed-live-helper playback close returned one cancel without later steps or Archive. The completed playback repeat preserved text, cleaned helper/files and allowed shell recovery. A native short phrase held callbacks until the final OK, then returned one success. The interrupted attempt is not accepted.",
+            "evidence": "docs/validation.md: Native speech owner close and complete result — 22 October 2026"
           }
         ]
       },

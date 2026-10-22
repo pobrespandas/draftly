@@ -61,5 +61,26 @@
         }
       }
     ]
+  },
+  {
+    "uuid": "A0760100-0000-4000-8000-000000000023",
+    "name": "QA Speech playback owner close",
+    "group": "Speech lifetime QA",
+    "notificationType": 0,
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Retained speech playback close café 🐼');draft.update();if(!speech.speak('Prueba neutral de Draftly. '.repeat(40),{autoClose:false}))context.cancel();context.addSuccessParameter('speech','unexpected');editor.setText('ERROR: playback close continued');draft.update();"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "ERROR: playback close tail"
+        }
+      }
+    ]
   }
 ]
