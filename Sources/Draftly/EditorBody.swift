@@ -14,6 +14,34 @@ struct EditorBody: View {
     var horizontalMargin: Double; var verticalMargin: Double; var maximumWidth: Double; var theme: EditorTheme?
     var body: some View {
         let _ = syntaxFeatures
-        NativeEditor(session: session, fontName: fontName, fontSize: fontSize, lineSpacing: lineSpacing, markdown: markdown, lineHeightMultiple: lineHeightMultiple, paragraphSpacing: paragraphSpacing, syntax: model.currentNote?.syntax ?? "Markdown", syntaxDefinition: try? model.library.syntaxDefinition(named: model.currentNote?.syntax ?? "Markdown"), horizontalMargin: horizontalMargin, verticalMargin: verticalMargin, maximumWidth: maximumWidth, theme: theme, linksEnabled: model.linksEnabled, isActive: !model.showPreview, showCustomTouchBar: showCustomTouchBar, touchBarModel: model, indentation: EditorIndentationPreferences.style(for: model.currentNote?.syntax ?? "Markdown", encoded: indentation).text) { model.contentChanged() }
+        let presentation = EditorSyntaxPresentation(model: model)
+        VStack(spacing: 0) {
+            if let error = presentation.error {
+                HStack {
+                    Text("Syntax unavailable: " + error).font(.caption).foregroundStyle(.red)
+                    Spacer()
+                    if presentation.canAddFile { Button("Add File Syntax…") { model.importSyntax(asFile: true) } }
+                }.padding(8)
+            }
+            NativeEditor(session: session, fontName: fontName, fontSize: fontSize, lineSpacing: lineSpacing, markdown: presentation.definition != nil && markdown, lineHeightMultiple: lineHeightMultiple, paragraphSpacing: paragraphSpacing, syntax: presentation.definition == nil ? "Plain Text" : model.currentNote?.syntax ?? "Markdown", syntaxDefinition: presentation.definition, horizontalMargin: horizontalMargin, verticalMargin: verticalMargin, maximumWidth: maximumWidth, theme: theme, linksEnabled: model.linksEnabled, isActive: !model.showPreview, showCustomTouchBar: showCustomTouchBar, touchBarModel: model, indentation: EditorIndentationPreferences.style(for: model.currentNote?.syntax ?? "Markdown", encoded: indentation).text) { model.contentChanged() }
+        }
+    }
+}
+
+@MainActor struct EditorSyntaxPresentation {
+    let definition: SyntaxDefinition?
+    let error: String?
+    let canAddFile: Bool
+
+    init(model: WindowModel) {
+        let name = model.currentNote?.syntax ?? "Markdown"
+        canAddFile = model.library.syntaxes.first { $0.name == name }?.type == "file"
+        do {
+            definition = try model.library.syntaxDefinition(named: name, defaults: model.dependencies.preferences.defaults)
+            error = nil
+        } catch {
+            definition = nil
+            self.error = error.localizedDescription
+        }
     }
 }

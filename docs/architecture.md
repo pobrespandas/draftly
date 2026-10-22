@@ -305,3 +305,8 @@ and cross-window sharing of defaults are separate contracts.
 FindWindow handles Command-Return before multiline text input. It calls the same
 AdvancedFindCommands.find operation as the button. Ordinary Return stays with the
 text editor. The callback retains no source model and ignores a closed Find state.
+
+EditorSyntaxPresentation resolves the assigned grammar with window preferences.
+It returns a definition or a visible error without mutating editor content.
+EditorBody retains its editor view while the notice appears or disappears.
+SyntaxFileAccess keeps bookmark lookup separate from shared syntax records.

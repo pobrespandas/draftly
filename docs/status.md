@@ -2588,3 +2588,11 @@ Library lookup now forwards injected preferences to bookmark reads, as it alread
 did for syntax features. A Core red/green regression verifies access and explicit
 missing-bookmark failure without changing definitions. Combined integration
 Core672/app707 and local build passed. Editor error presentation is separate.
+
+### Visible syntax errors — 22 October 2026
+
+The editor reports grammar-read failures and keeps text editable. File grammar
+recovery uses the reviewed import path. Two headless cases and native missing-
+bookmark/reselection/Undo/Redo passed. Full app707/Core672, local build and matrix
+structure passed. Permission denial and other native errors remain open. QA
+retired recoverably; usual app unchanged. See the dated continuation.

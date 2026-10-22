@@ -927,3 +927,32 @@ The regression passes with the injected bookmark, fails explicitly after its
 removal and retains the installed definition. The combined integration passed
 Core672/124 and app707/124 plus the local build and matrix structure0. The related
 editor error presentation is a separate change below. No retry or deadline changed.
+
+## Visible editor syntax errors and recovery
+
+EditorBody previously discarded syntax resolution errors with try?. It now uses
+EditorSyntaxPresentation to retain a definition or its explicit error. Missing or
+invalid syntax displays a notice above the editable text. File definitions offer
+Add File Syntax to reselect a source through the reviewed import flow. Rendering
+uses plain text while the assigned grammar is unavailable; Note.syntax is not
+changed and no successful grammar application is implied.
+
+Two headless methods check missing grammar, unsaved content/selection retention,
+invalid and absent files, repair, stable identity and unchanged installed data.
+Together with the separate injected-preferences fix, full app707/124 and Core672/124,
+local Xcode build and matrix structure0 passed. No retry or deadline changed.
+
+Native isolated QA loaded the neutral Links QA note without its local bookmark.
+It showed the explicit reselect-file notice while retaining the source. A neutral
+edit was added. Add File Syntax and reviewed Replace restored the same named
+file definition. The notice disappeared without removing the edit. Undo restored
+the original source; Redo restored the edit. A final Undo left the exact original
+source, confirmed by read-only closed-library inspection. The first cleanup check
+incorrectly compared a displayed character count with UTF-16 length; it was
+replaced with an exact source comparison. This was a check error, not data loss.
+
+QA quit normally. Process absence was checked before exact unregistration. The
+runtime, replacement grammar, preferences and closed library are recoverable in
+Trash. The usual app was not opened or replaced. No screenshot or raw log is
+tracked. File permission denial and native malformed-file paths still need their
+own checks; this does not accept all file-syntax contracts.
