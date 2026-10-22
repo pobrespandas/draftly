@@ -9401,3 +9401,33 @@ a401d7c00a25dce8dc43a4d1af7980854ba33e6222bd050a00dd89788b420a05.
 QA/helper quit normally; exact process absence and LaunchServices unregistration
 passed. Apps, preferences and closed library remain recoverable in
 `~/.Trash/DraftlyEventQueryQA-q58vi1ol`. The habitual app was unchanged.
+
+## Authorized Mail composition investigation — 22 October 2026
+
+The isolated Engine QA app used the production code from `89fde30`. Its full
+Debug bundle included the debug library. The main app was not replaced.
+
+Native AppleScript actions queried the Mail version and the outgoing-message
+count. Both returned one success callback. No new Automation prompt appeared.
+The version query alone does not prove Automation authorization.
+
+The user authorized one neutral message to a specific test recipient in chat.
+One action created one visible outgoing message. Computer Use checked the
+composer and clicked Send once. A read-only query of the exact test subject
+returned no Sent records before Send and one record after Send. A second
+read-only query checked only that record. Subject and recipient matched. The
+record had an RFC Message-ID. The outgoing object no longer existed. The exact
+body comparison failed after paragraph normalization. Its cause is unresolved.
+No recipient address or message content is stored in this record.
+
+Mail used different object IDs for the outgoing and Sent records. Disappearance
+of an outgoing object cannot distinguish Send from Cancel. This experiment
+does not accept `Mail.send()`: the current adapter still rejects unconfirmed
+delivery, and no replacement correlation rule was implemented. A Sent record
+also does not prove delivery to the recipient. No second message was sent.
+
+QA and its callback helper quit normally. Their exact LaunchServices entries
+were removed. The closed QA library, preferences and packages remain recoverable
+in the Trash. The user's Mail app and the sent test message were retained.
+Production code did not change. The earlier Core674/app733 build and tests apply
+to the unchanged production code; this session did not rerun them.
