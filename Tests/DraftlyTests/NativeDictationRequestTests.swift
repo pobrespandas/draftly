@@ -238,3 +238,19 @@ struct NativeDictationHostTests {
         #expect(envelope?["value"] as? String == "café 🐼" && locale == "es-AR")
     }
 }
+
+@Suite("Dictation callback isolation") @MainActor
+struct DictationCallbackTests {
+    @Test func backgroundPermissionRepliesReachMainActor() async {
+        for allowed in [true, false] {
+            let received = await withCheckedContinuation { continuation in
+                let reply = DictationCallback.onMainActor { (value: Bool) in
+                    MainActor.assertIsolated()
+                    continuation.resume(returning: value)
+                }
+                Task.detached { reply(allowed) }
+            }
+            #expect(received == allowed)
+        }
+    }
+}

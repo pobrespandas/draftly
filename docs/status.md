@@ -2256,3 +2256,21 @@ shares normalization with validation; imported conflicts remain intact. Checked
 626 core/524 app methods and unsigned compilation pass. Native interaction and
 restart acceptance remain pending because CUA lost the QA menu. The reference
 filter modes and full inspector/Settings delivery are still open.
+
+## Dictation permission callback fix — 22 October 2026
+
+The installed app crash report identifies an executor assertion in
+`SystemDictationDriver.requestSpeechAuthorization`. The permission reply runs
+on a background queue. The old closure inherited MainActor isolation before
+it could dispatch its body to MainActor.
+
+Permission replies now use an explicitly Sendable callback bridge. Speech
+updates also use an explicitly Sendable entry closure. UI changes still run
+on MainActor. A headless test sends granted and denied replies from a detached
+task and checks MainActor delivery. All 23 dictation tests passed. No permission,
+audio capture, or personal data was used by these tests.
+
+The isolated local app build passed. Native permission acceptance and the
+installed app update remain pending.
+The usual app was not replaced. This is a functional fix, separate from the
+completed Advanced Find refactoring.

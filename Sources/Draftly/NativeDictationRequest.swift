@@ -3,6 +3,14 @@ import AVFoundation
 @preconcurrency import Speech
 import DraftlyCore
 
+enum DictationCallback {
+    static func onMainActor<Value: Sendable>(
+        _ completion: @escaping @MainActor @Sendable (Value) -> Void
+    ) -> @Sendable (Value) -> Void {
+        { value in Task { @MainActor in completion(value) } }
+    }
+}
+
 @MainActor
 protocol NativeDictationDriving: AnyObject {
     var speechAuthorization: SFSpeechRecognizerAuthorizationStatus { get }
@@ -169,10 +177,10 @@ private final class SystemDictationDriver: NSObject, NativeDictationDriving, NSW
     var microphoneAuthorization: AVAuthorizationStatus { AVCaptureDevice.authorizationStatus(for: .audio) }
 
     func requestSpeechAuthorization(_ completion: @escaping @MainActor @Sendable (SFSpeechRecognizerAuthorizationStatus) -> Void) {
-        SFSpeechRecognizer.requestAuthorization { status in Task { @MainActor in completion(status) } }
+        SFSpeechRecognizer.requestAuthorization(DictationCallback.onMainActor(completion))
     }
     func requestMicrophoneAuthorization(_ completion: @escaping @MainActor @Sendable (Bool) -> Void) {
-        AVCaptureDevice.requestAccess(for: .audio) { allowed in Task { @MainActor in completion(allowed) } }
+        AVCaptureDevice.requestAccess(for: .audio, completionHandler: DictationCallback.onMainActor(completion))
     }
     func configure(locale: String) throws {
         guard let recognizer = SFSpeechRecognizer(locale: locale.isEmpty ? .current : Locale(identifier: locale)), recognizer.isAvailable else {
@@ -191,7 +199,7 @@ private final class SystemDictationDriver: NSObject, NativeDictationDriving, NSW
         guard format.channelCount > 0, format.sampleRate > 0 else { throw DraftlyError.message("No microphone is available.") }
         input.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in request.append(buffer) }
         tapInstalled = true
-        recognitionTask = recognizer.recognitionTask(with: request) { [weak self] result, error in
+        recognitionTask = recognizer.recognitionTask(with: request) { @Sendable [weak self] result, error in
             let update = NativeTranscriptionUpdate(text: result?.bestTranscription.formattedString,
                                                    isFinal: result?.isFinal == true, error: error)
             Task { @MainActor in self?.onUpdate?(update) }
