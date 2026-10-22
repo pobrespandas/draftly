@@ -31,6 +31,28 @@ struct NativeMessageAsyncTests {
         #expect(driver.detachCount == 1)
     }
 
+    @Test(arguments: [false, true])
+    func actualMailAdapterRejectsUnverifiableDeliveryBeforeOpeningAComposer(asynchronous: Bool) async {
+        do {
+            let values: [String: Any] = ["subject": "Neutral QA", "body": "Neutral café 🐼", "toRecipients": [String]()]
+            if asynchronous {
+                _ = try await NativeMessageAdapter().composeAsync("composeMail", values, makeDriver: { operation in
+                    try SharingMessageDriver(operation: operation, makeService: { _ in
+                        Issue.record("Unverifiable Mail delivery must fail before creating a sharing service."); return nil
+                    })
+                })
+            } else {
+                _ = try NativeMessageAdapter().compose("composeMail", values, makeService: { _ in
+                    Issue.record("Unverifiable Mail delivery must fail before creating a sharing service."); return nil
+                })
+            }
+            Issue.record("Opening a Mail composer must not be reported as a sent message.")
+        } catch {
+            #expect(error.localizedDescription.contains("cannot confirm that a message was sent"))
+            #expect(error.localizedDescription.contains("Mail.send() is unavailable through this service"))
+        }
+    }
+
     @Test func unsupportedOptionsFailBeforeCreatingOrOpeningAComposer() async {
         let unsupported: [[String: Any]] = [["isBodyHTML": true], ["sendInBackground": true], ["replyToRecipients": ["neutral@example.invalid"]], ["ccRecipients": ["neutral@example.invalid"]], ["bccRecipients": ["neutral@example.invalid"]]]
         for values in unsupported {

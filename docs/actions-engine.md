@@ -715,3 +715,12 @@ was introduced. This audit corrects the continuation direction, not the contract
 No production source, installed app or native state changed in this checkpoint.
 Continue the capability-specific native lifetime checks, including external
 composition handoff/cancel behavior, and the outstanding reference comparisons.
+
+## Mail delivery result correction — 22 October 2026
+
+Native QA exposed a false sent result when NSSharingService only opened a Mail
+composer. The current Mail.send adapter now fails explicitly before opening that
+service. This removes false action success; confirmed Mail delivery remains
+partial. It is not a system-wide unavailable classification. Full app713, local
+build and native corrected error/recovery passed. See docs/validation.md, Mail
+handoff is not delivery. No mail was sent; habitual app unchanged.

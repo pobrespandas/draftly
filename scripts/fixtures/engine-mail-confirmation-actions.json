@@ -1,0 +1,22 @@
+[
+  {
+    "uuid": "A0760100-0000-4000-8000-000000000005",
+    "name": "QA Mail neutral composer",
+    "group": "Native composition QA",
+    "notificationType": 0,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Retained mail QA café 🐼');draft.update();var m=Mail.create();m.subject='Draftly QA neutral composition — do not send';m.body='Neutral Draftly QA body café 🐼. No recipient. Do not send.';var accepted=m.send();console.log('Mail returned '+accepted+' status '+m.status);if(!accepted){context.cancel();}context.addSuccessParameter('mailStatus',m.status);"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "console.log('Mail tail reached');"
+        }
+      }
+    ]
+  }
+]

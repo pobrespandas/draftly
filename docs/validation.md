@@ -8813,3 +8813,47 @@ Helper SHA256:
 Both apps quit normally; exact process absence was confirmed. Exact app paths
 were unregistered. Apps, exported preferences and the closed library were moved
 recoverably to ~/.Trash/DraftlyShellURLQA-53c2nx7a. Habitual app unchanged.
+
+## Mail handoff is not delivery — 22 October 2026
+
+A real URL action with no recipients opened a neutral Mail composer. Before any
+send, the helper received one success callback with mailStatus=sent. Closing the
+composer showed Mail's explicit not-sent/save-draft warning. The neutral content
+was discarded without sending. Closed QA history recorded Success and the tail.
+This contradicted archived Mail.send(): true requires a successfully sent message.
+
+The current NSSharingService composeEmail adapter cannot observe actual delivery.
+It now rejects Mail.send before creating the service on both legacy and async
+routes, with an explicit delivery-confirmation-unavailable error. Sharing remains
+separate. This removes false success; it does not implement confirmed Mail delivery
+or classify macOS Mail itself as unavailable. Mail.send remains partial. A future
+confirmed-delivery adapter and authorized send/cancel acceptance are still needed.
+Messages was not tested or changed by this finding.
+
+The regression uses injected service factories, so a removed guard fails without
+opening a real composer. Removing only the guards made both parameter cases fail;
+restoring them passed. Full app713 methods passed with matching XML inventory.
+Local Debug build, fixture identity and matrix structural checks passed. Core
+source stayed unchanged; its prior integrated674 result remains separate.
+
+Computer Use repeated the same URL on the corrected QA: one x-error contained the
+explicit diagnostic, no neutral composer appeared and the tail did not run.
+A following shell recovery URL returned one correct Unicode success. Closed
+storage confirmed the old false Success and the corrected Error on the same
+neutral action/note. No mail was sent. No personal message was edited.
+
+Before QA executable SHA256:
+11abf1ff703a1a48a706e2db4b78e183859aec02a8682142f96c237b9245d373.
+After QA executable SHA256:
+aeba9e2372ea10fe3f22782a1d277d65eb5c6d7c7f0e0752b5750e95db23c7e6.
+Both QA/helper quit normally; process absence and exact path unregistration were
+confirmed. Old/new runtimes, QA preferences and closed library were retained
+recoverably in ~/.Trash/DraftlyMailLifetimeQA-7pj02op2. Habitual app unchanged.
+Reproduction: scripts/fixtures/engine-mail-confirmation-actions.json.
+
+Official AppKit docs reviewed through find-docs/Context7 on 22 October:
+https://developer.apple.com/documentation/appkit/nssharingservicedelegate/sharingservice(_:didshareitems:)
+and
+https://developer.apple.com/documentation/appkit/nssharingservicedelegate/sharingservice(_:didfailtoshareitems:error:).
+They describe sharing completion and user-cancel errors. The observed Mail
+handoff does not prove send completion. Frozen Drafts reference stayed unchanged.

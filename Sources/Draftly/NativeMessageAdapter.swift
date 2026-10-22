@@ -3,9 +3,13 @@ import DraftlyCore
 
 @MainActor
 struct NativeMessageAdapter {
-    func compose(_ operation: String, _ values: [String: Any]) throws -> [String: String] {
+    static let unconfirmedMailDelivery = "The macOS Mail sharing service cannot confirm that a message was sent. Mail.send() is unavailable through this service."
+
+    func compose(_ operation: String, _ values: [String: Any],
+                 makeService: (NSSharingService.Name) -> NSSharingService? = { NSSharingService(named: $0) }) throws -> [String: String] {
         guard values["isBodyHTML"] as? Bool != true else { throw DraftlyError.message("HTML mail composition is unavailable on macOS.") }
-        guard let service = NSSharingService(named: operation == "composeMail" ? .composeEmail : .composeMessage) else { throw DraftlyError.message("The system composition service is unavailable.") }
+        guard operation != "composeMail" else { throw DraftlyError.message(Self.unconfirmedMailDelivery) }
+        guard let service = makeService(operation == "composeMail" ? .composeEmail : .composeMessage) else { throw DraftlyError.message("The system composition service is unavailable.") }
         service.recipients = values["toRecipients"] as? [String] ?? []; service.subject = values["subject"] as? String ?? ""
         if !(values["ccRecipients"] as? [String] ?? []).isEmpty || !(values["bccRecipients"] as? [String] ?? []).isEmpty { throw DraftlyError.message("The macOS composition service does not accept CC or BCC recipients. Use a mailto URL.") }
         let result = ScriptSharingResult(); service.delegate = result
@@ -36,8 +40,9 @@ struct NativeMessageAdapter {
     var onFinish: ((Result<Void, Error>) -> Void)?
     var recipients: [String] { get { service.recipients ?? [] } set { service.recipients = newValue } }
     var subject: String { get { service.subject ?? "" } set { service.subject = newValue } }
-    init(operation: String) throws {
-        guard let service = NSSharingService(named: operation == "composeMail" ? .composeEmail : .composeMessage) else {
+    init(operation: String, makeService: (NSSharingService.Name) -> NSSharingService? = { NSSharingService(named: $0) }) throws {
+        guard operation != "composeMail" else { throw DraftlyError.message(NativeMessageAdapter.unconfirmedMailDelivery) }
+        guard let service = makeService(operation == "composeMail" ? .composeEmail : .composeMessage) else {
             throw DraftlyError.message("The system composition service is unavailable.")
         }
         self.service = service

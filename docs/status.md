@@ -2687,3 +2687,11 @@ No retries or deadlines changed. Strict engine acceptance still rejects six
 partial records (18 diagnostics). Action.find duplicates follow the archived
 first-match contract and already have native acceptance; they are not an open
 defect. See docs/actions-engine.md and engine-native-checklist.md.
+
+### Mail false-success correction — 22 October 2026
+
+Native Mail composer handoff incorrectly returned sent before any send. Current
+Mail.send now returns an explicit error through the legacy/async host before
+opening that service. Confirmed delivery remains partial. Native corrected URL
+error and recovery, app713/inventory and local build passed. No message sent.
+See docs/validation.md. QA retired recoverably; habitual app unchanged.

@@ -17115,10 +17115,36 @@
             "send(): boolean"
           ],
           "contract": "Send the mail message. This will open the Mail.app sending window. Returns true if the message was sent successfully or false if not - if, for example, the user cancelled the mail window.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "reviewed-partial",
+          "automatedTest": {
+            "suite": "NativeMessageAsyncTests",
+            "test": "actualMailAdapterRejectsUnverifiableDeliveryBeforeOpeningAComposer"
+          },
+          "liveCheck": "docs/validation.md: Mail handoff is not delivery — 22 October 2026",
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-22",
+          "defaults": "No arguments or optional send defaults.",
+          "result": "The current macOS Mail sharing adapter throws before composition because it cannot confirm message delivery. It never reports handoff as sent.",
+          "errors": "Explicit Mail.send delivery-confirmation error through legacy and async routes; no composer or success tail. This differs from the documented successful-delivery boolean and remains partial.",
+          "limitations": [
+            "Confirmed Mail delivery is not implemented by the current sharing adapter. A native handoff was observed to return before sending; do not classify this as macOS Mail being unavailable. Authorized real send and cancellation remain pending."
+          ],
+          "implementationEvidence": {
+            "file": "Sources/Draftly/NativeMessageAdapter.swift",
+            "symbol": "compose / SharingMessageDriver.init"
+          },
+          "automatedVerification": {
+            "status": "passed",
+            "date": "2026-10-22",
+            "evidence": "docs/validation.md",
+            "scope": "Legacy and async rejection before a service factory; full app713 inventory. This tests explicit failure, not successful delivery."
+          },
+          "nativeVerification": {
+            "status": "pending",
+            "date": "2026-10-22",
+            "evidence": "docs/validation.md",
+            "scope": "False sent reproduced; corrected error and following recovery verified. Confirmed delivery not accepted."
+          }
         },
         {
           "member": "create",
