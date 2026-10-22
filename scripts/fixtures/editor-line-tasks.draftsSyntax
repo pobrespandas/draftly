@@ -1,0 +1,21 @@
+{
+  "name": "Neutral line tasks QA",
+  "description": "Neutral three-state tasks with one interactive match per line.",
+  "sampleText": "🐼 *one[ ] *two[~]\n*three[x]",
+  "rangeExtensionType": {"default": "fullText"},
+  "patterns": [],
+  "navigationPatterns": [],
+  "indentationPatterns": [],
+  "linkDefinitions": [],
+  "taskMarkDefinitions": [
+    {
+      "match": "(\\*)([^*\\r\\n]*?)(\\[[ ~x]\\])",
+      "rangeType": "line",
+      "captures": {"interactive": "1", "label": "2", "state": "3"},
+      "states": ["[ ]", "[~]", "[x]"],
+      "initialState": "[ ]",
+      "completedState": ["[x]"],
+      "scopes": {"interactive": "text.monospace.bold"}
+    }
+  ]
+}

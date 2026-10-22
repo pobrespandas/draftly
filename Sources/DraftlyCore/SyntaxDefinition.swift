@@ -211,11 +211,13 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
     }
     public func tasks(in text: String) -> [[String: Any]] {
         let source = text as NSString
+        var lineTasks: Set<Int> = []
         return rules("taskMarkDefinitions").enumerated().flatMap { ruleIndex, rule -> [[String: Any]] in
             let captures = rule["captures"] as? [String: String] ?? [:]
             return results(rule, text).compactMap { match in
                 guard let state = capture(match, captures["state"]), let interactive = capture(match, captures["interactive"]) else { return nil }
                 let line = source.lineRange(for: match.range)
+                if rule["rangeType"] as? String == "line", !lineTasks.insert(line.location).inserted { return nil }
                 let lineText = source.substring(with: line).trimmingCharacters(in: .newlines)
                 let labelEnd = line.location + lineText.utf16.count
                 var labelStart = min(NSMaxRange(match.range), labelEnd)

@@ -956,3 +956,35 @@ runtime, replacement grammar, preferences and closed library are recoverable in
 Trash. The usual app was not opened or replaced. No screenshot or raw log is
 tracked. File permission denial and native malformed-file paths still need their
 own checks; this does not accept all file-syntax contracts.
+
+## One line task per source line
+
+The frozen syntax-format reference limits rangeType:line to one match per line;
+rangeType:task permits independent marks on the same line. The shared parser
+previously emitted every line-rule match. The new regression failed before the
+correction. Enabled line rules now claim the source line after valid captures.
+The first matching enabled line rule wins. Task-range definitions keep independent
+matches. No source JSON, API signature or persisted format changed.
+
+The regression covers Unicode UTF-16 offsets, CRLF, labels, state mutation,
+ignored second-match snapshot rejection, overlapping line definitions and task
+mode. Draft.tasks and Editor.tasks see the same result and update after advancing.
+The final parameterized case passed on both legacy and worker execution.
+
+Focused syntax/API31 and renderer10 methods passed. Full serial Core673/124 passed
+before the final addition of the worker parameter case; the final focused run
+passed both runner cases. Production did not change after the full regression.
+Local Xcode build and matrix structure0 passed. No retry or deadline changed.
+
+Native isolated QA imported editor-line-tasks.draftsSyntax, created the neutral
+sample and assigned that syntax. Only the first mark on each line received the
+interactive style. Clicking the first mark advanced its separate state. Clicking
+the second mark on that line left its state unchanged. The next line's mark
+advanced independently. Two Undo operations restored the original source one
+operation at a time. Closed SQLite inspection confirmed the exact original text.
+The neutral fixture is tracked for reproduction. Drafts custom-grammar priority
+comparison remains pending; this does not accept all task defaults or labels.
+
+QA quit normally. Process absence was checked before exact unregistration. Its
+bundle, fixture, preferences and closed library are recoverable in Trash. Usual
+app unchanged. No screenshot or raw log is tracked.

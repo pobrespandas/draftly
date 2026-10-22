@@ -552,4 +552,43 @@ struct SyntaxDefinitionTests {
         #expect(throws: (any Error).self) { try library.syntaxDefinition(named: fileSyntax.name, defaults: defaults) }
         #expect(library.syntaxes == [fileSyntax])
     }
+    @Test(arguments: [false, true])
+    func lineTasksHaveOneMatchPerLineWhileTaskMarksRemainIndependent(worker: Bool) async throws {
+        var object = source()
+        let rule: [String: Any] = ["match": #"(\*)([^*\r\n]*?)(\[[ ~x]\])"#, "rangeType": "line",
+            "captures": ["interactive": "1", "label": "2", "state": "3"],
+            "states": ["[ ]", "[~]", "[x]"], "initialState": "[ ]", "completedState": ["[x]"]]
+        object["taskMarkDefinitions"] = [rule]
+        let text = "🐼 *one[ ] *two[~]\r\n*three[x]"
+        let syntax = try definition(object), tasks = syntax.tasks(in: text)
+        #expect(tasks.count == 2)
+        #expect(tasks.map { $0["stateRange"] as? [Int] } == [[7, 3], [26, 3]])
+        #expect(tasks.map { $0["label"] as? String } == ["one", "three"])
+        let first = try #require(tasks.first)
+        let change = try syntax.taskChange(in: text, task: first, operation: "advance")
+        #expect((text as NSString).replacingCharacters(in: change.0, with: change.1) == "🐼 *one[~] *two[~]\r\n*three[x]")
+        var independent = rule; independent["rangeType"] = "task"
+        object["taskMarkDefinitions"] = [independent]
+        let marks = try definition(object).tasks(in: text)
+        #expect(marks.count == 3)
+        let ignored = try #require(marks.first { $0["stateRange"] as? [Int] == [15, 3] })
+        #expect(throws: SyntaxTaskError.invalidSnapshot) { try syntax.taskChange(in: text, task: ignored, operation: "advance") }
+        object["taskMarkDefinitions"] = [rule, rule]
+        let installed = try definition(object)
+        #expect(installed.tasks(in: text).count == 2)
+        let library = try LibraryStore(inMemory: true, seed: false)
+        try library.saveSyntax(installed)
+        var note = try library.createNote(content: text); note.syntax = installed.name; try library.saveNote(note)
+        let editor = EditorSession(); editor.load(note)
+        let runner = ActionRunner(library: library, editor: editor)
+        let action = DraftAction(name: "Neutral line tasks", steps: [ActionStep("script", ["script": """
+        if(draft.tasks.length!==2 || editor.tasks.length!==2)throw new Error('line count');
+        if(editor.tasks[0].label!=='one' || editor.tasks[1].stateRange[0]!==26)throw new Error('line fields');
+        if(editor.advanceTask(editor.tasks[0])!==true)throw new Error('advance');
+        if(editor.tasks.length!==2 || draft.tasks[0].state!=='[~]')throw new Error('updated snapshot');
+        """])])
+        if worker { #expect(await runner.runAsync(action).reason == .success, Comment(rawValue: runner.message ?? "")) }
+        else { #expect(runner.run(action), Comment(rawValue: runner.message ?? "")) }
+        #expect(editor.content == "🐼 *one[~] *two[~]\r\n*three[x]")
+    }
 }

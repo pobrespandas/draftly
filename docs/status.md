@@ -2596,3 +2596,11 @@ recovery uses the reviewed import path. Two headless cases and native missing-
 bookmark/reselection/Undo/Redo passed. Full app707/Core672, local build and matrix
 structure passed. Permission denial and other native errors remain open. QA
 retired recoverably; usual app unchanged. See the dated continuation.
+
+### Line task matching — 22 October 2026
+
+Line-range definitions now expose one task per source line; task-range marks stay
+independent. Core red/green and final legacy/worker cases passed with UTF-16/CRLF.
+Core673 regression, local build and matrix structure passed. Native click/ignored-
+mark/next-line/Undo checks passed with a tracked neutral grammar. QA retired
+recoverably. Broader task and Drafts custom-grammar contracts remain open.
