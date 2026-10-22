@@ -693,3 +693,34 @@ the new neutral Wrap QA note remains in Drafts for reproduction.
 QA quit normally. Process absence was checked, its exact registration was removed,
 and its bundle, preferences and closed library are recoverable in Trash. The
 habitual Draftly app was unchanged. No screenshot or raw log is tracked.
+
+## Markdown quotation style correction
+
+The official grammar example linked by the frozen syntax guide was fetched on
+22 October 2026: https://config.agiletortoise.com/examples/grammar-markdown.json
+SHA256:6148637b698407b96b64d6a8a88560fa1f9dac32d4c801e5eb8d759d3f6b060e.
+This is a supplemental reference; the frozen archive remains unchanged. Its
+quotation rule captures markup.quotation and text.quotation separately.
+
+The three built-in Markdown definitions now include that shared rule. Default
+scope rendering gives quotation text italic font traits and attenuates its markup.
+Theme scope rendering still runs afterward and can override defaults. Plain Text
+and custom grammars without this rule do not gain quotation matches. No separate
+quotation regex was added to the view.
+
+The offscreen rendering regression failed before this correction. It now checks
+italic body, plain following text and style reset across syntax changes, with
+content, selection and Undo unchanged. A Core case checks nested prefix and body
+captures with Unicode and CRLF. Twenty-two syntax methods and nine rendering
+methods passed. Local Xcode build and matrix structure0 passed. No deadline or
+retry changed.
+
+Native Quote QA loaded the saved782-character wrapping note. The quotation now
+renders in italics with attenuated markup, while lists and hanging alignment stay
+intact. This resolves the specific before/after difference observed against
+Drafts54.1.1. It does not accept all Markdown styling or native custom-theme
+behavior. Word count130/131 remains a separate recorded difference.
+
+QA quit normally. Process absence was checked before exact unregistration. The
+runtime, preferences and closed library are recoverable in Trash. The habitual
+app was unchanged. No screenshot or raw log is tracked.

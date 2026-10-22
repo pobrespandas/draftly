@@ -459,4 +459,16 @@ struct SyntaxDefinitionTests {
             #expect(prefixes.map(\.prefix.length) == [4, 4, 2])
         }
     }
+    @Test func builtInQuotationScopesUseSharedGrammarAndUTF16Ranges() throws {
+        let text = "🐼 plain\r\n  >> café 🐼\nplain"
+        for name in ["Markdown", "MultiMarkdown", "GitHub Markdown"] {
+            let ranges = try ScriptSyntax.definition(name).styledRanges(in: text)
+            let prefix = try #require(ranges.first { $0.1 == "markup.quotation" })
+            let body = try #require(ranges.first { $0.1 == "text.quotation" })
+            #expect(prefix.0 == (text as NSString).range(of: "  >> "))
+            #expect(body.0 == (text as NSString).range(of: "café 🐼"))
+            #expect(ranges.count == 2)
+        }
+        #expect(try ScriptSyntax.definition("Plain Text").styledRanges(in: text).isEmpty)
+    }
 }

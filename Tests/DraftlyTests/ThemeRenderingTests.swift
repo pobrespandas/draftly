@@ -309,4 +309,32 @@ struct ThemeRenderingTests {
         #expect(abs(labelX - wrappedX) <= 1)
         #expect(text.string == source && session.content == source && !window.isVisible)
     }
+    @Test func builtInQuotationUsesItalicBodyAndRetainsPlainTextDefaults() async throws {
+        _ = NSApplication.shared
+        let source = "> café 🐼\nplain"
+        let session = EditorSession(); session.load(Note(content: source), focusEditor: false)
+        session.selection = NSRange(location: 2, length: 4)
+        func editor(_ name: String) throws -> NativeEditor {
+            NativeEditor(session: session, fontName: "System", fontSize: 17, lineSpacing: 2, markdown: false,
+                syntax: name, syntaxDefinition: try ScriptSyntax.definition(name), onChange: {})
+        }
+        let host = NSHostingView(rootView: try editor("Markdown"))
+        let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 300, height: 200), styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = host
+        defer { window.contentView = nil }
+        func findText(_ view: NSView) -> NSTextView? {
+            if let text = view as? NSTextView { return text }
+            return view.subviews.lazy.compactMap { findText($0) }.first
+        }
+        for name in ["Markdown", "MultiMarkdown", "GitHub Markdown", "Plain Text", "Markdown"] {
+            host.rootView = try editor(name); host.layoutSubtreeIfNeeded(); await TestMainQueue.drain()
+            let text = try #require(findText(host)), storage = try #require(text.textStorage)
+            let body = try #require(storage.attribute(.font, at: 2, effectiveRange: nil) as? NSFont)
+            let plain = try #require(storage.attribute(.font, at: source.utf16.count - 1, effectiveRange: nil) as? NSFont)
+            #expect(NSFontManager.shared.traits(of: body).contains(.italicFontMask) == (name != "Plain Text"))
+            #expect(!NSFontManager.shared.traits(of: plain).contains(.italicFontMask))
+            #expect(text.string == source && text.selectedRange() == session.selection && text.undoManager?.canUndo != true)
+            #expect(!window.isVisible)
+        }
+    }
 }

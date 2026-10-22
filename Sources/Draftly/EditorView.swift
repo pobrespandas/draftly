@@ -219,7 +219,8 @@ struct NativeEditor: NSViewRepresentable {
                         }
                         if scope.contains("heading"), foregroundAllowed { attributes[.foregroundColor] = heading }
                         if scope.contains("bold") { currentFont = NSFontManager.shared.convert(currentFont, toHaveTrait: .boldFontMask) }
-                        if scope.contains("italic") { currentFont = NSFontManager.shared.convert(currentFont, toHaveTrait: .italicFontMask) }
+                        if scope == "markup.quotation", foregroundAllowed { attributes[.foregroundColor] = NSColor.secondaryLabelColor }
+                        if scope.contains("italic") || scope == "text.quotation" { currentFont = NSFontManager.shared.convert(currentFont, toHaveTrait: .italicFontMask) }
                         if scope.contains("underline") { attributes[.underlineStyle] = NSUnderlineStyle.single.rawValue }
                         if scope.contains("strikethrough") { attributes[.strikethroughStyle] = NSUnderlineStyle.single.rawValue }
                         attributes[.font] = currentFont

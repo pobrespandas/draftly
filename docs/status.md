@@ -2523,3 +2523,11 @@ spaces/tabs and normal/themed metrics. Native QA and Drafts54.1.1 showed the sam
 basic hanging alignment. QA Undo/Redo retained782 characters. Quote styling and
 word-count differences are recorded separately. Native custom themes remain open.
 QA retired recoverably; usual Draftly unchanged. See the dated continuation.
+
+### Markdown quotation style — 22 October 2026
+
+Shared built-in grammar now supplies quotation scopes. Default rendering italicizes
+the body and attenuates markup. Red/green rendering regression, Core22/app9, local
+build and matrix structure passed. Native rebuilt QA confirmed the correction on
+the saved wrapping note. Broader styling and word-count parity remain open.
+See the dated continuation. QA retired recoverably; usual app unchanged.
