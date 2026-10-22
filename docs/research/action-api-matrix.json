@@ -23529,6 +23529,13 @@
             "fixture": "scripts/fixtures/engine-url-shell-lifetime-actions.json",
             "result": "System-delivered Run Draft Action from the existing Shortcuts fixture passed shell Stop cancellation, production120s timeout, direct owner-window close and three following Intent recoveries. Confirmed parent/child/private folders were removed. Closed history and retained writes without tail/Archive matched. Shortcut parameters restored; QA retired. Other native routes stay separate.",
             "evidence": "docs/validation.md: System-delivered App Intent shell lifetime — 22 October 2026"
+          },
+          {
+            "date": "2026-10-22",
+            "debugLibrarySHA256": "b77772ece411c7a9f79f3485a7d31e8b8322c3823e780387b2f1d771c532c7b3",
+            "fixture": "scripts/fixtures/engine-reminders-authorization-actions.json",
+            "result": "System-delivered App Intent default-list lookup returned access denied and retained pre-request text in Inbox without later steps. Following Intent shell recovery passed. Later URL lookup returned one success with listAvailable=yes and applied its configured tail/Archive; following Intent recovery passed. Permission gesture was not observed; pending authorization, cancellation and late grant are not accepted. No task/list creation or enumeration. QA retired.",
+            "evidence": "docs/validation.md: Native Reminders access outcomes — 22 October 2026"
           }
         ]
       },
@@ -24113,6 +24120,13 @@
             "fixture": "scripts/fixtures/engine-url-shell-lifetime-actions.json",
             "result": "System-delivered Run Draft Action from the existing Shortcuts fixture passed shell Stop cancellation, production120s timeout, direct owner-window close and three following Intent recoveries. Confirmed parent/child/private folders were removed. Closed history and retained writes without tail/Archive matched. Shortcut parameters restored; QA retired. Other native routes stay separate.",
             "evidence": "docs/validation.md: System-delivered App Intent shell lifetime — 22 October 2026"
+          },
+          {
+            "date": "2026-10-22",
+            "debugLibrarySHA256": "b77772ece411c7a9f79f3485a7d31e8b8322c3823e780387b2f1d771c532c7b3",
+            "fixture": "scripts/fixtures/engine-reminders-authorization-actions.json",
+            "result": "System-delivered App Intent default-list lookup returned access denied and retained pre-request text in Inbox without later steps. Following Intent shell recovery passed. Later URL lookup returned one success with listAvailable=yes and applied its configured tail/Archive; following Intent recovery passed. Permission gesture was not observed; pending authorization, cancellation and late grant are not accepted. No task/list creation or enumeration. QA retired.",
+            "evidence": "docs/validation.md: Native Reminders access outcomes — 22 October 2026"
           }
         ]
       },

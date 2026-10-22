@@ -9910,3 +9910,49 @@ The previous Core674/app754/Python68/local-build results apply to unchanged
 production code; this evidence session did not rerun those suites. The strict
 engine gate still has six partial contracts and18 diagnostics. Other native
 capabilities, entry variants and reference comparisons remain separate.
+
+## Native Reminders access outcomes — 22 October 2026
+
+The complete c21dac9 QA package was development-signed with team NM92LU2KKV.
+Signature verification passed. Signed debug-library SHA256:
+b77772ece411c7a9f79f3485a7d31e8b8322c3823e780387b2f1d771c532c7b3.
+The library was fresh and temporary. No iCloud container, Services or document
+handlers were enabled. The usual app was not opened or replaced.
+
+The new engine-reminders-authorization-actions.json fixture matched its imported
+script and Archive-on-success option before execution. It writes neutral text,
+requests only ReminderList.default(), validates the returned shape, then adds a
+success parameter and tail. It does not enumerate lists or tasks, export a list
+name or identifier, or create a reminder or list.
+
+The existing Shortcuts fixture delivered Run Draft Action through the system.
+The first request returned Error: Access was denied. Enable access in System
+Settings. This was visible inline in Shortcuts and in Execution History. A
+read-only check before recovery confirmed the pre-request write stayed in Inbox
+without the success text or tail. No active wait remained to cancel. A following
+shell recovery through the same App Intent completed with exact Unicode text.
+
+A later URL request returned one x-success with listAvailable=yes.
+History recorded Success. The script reached its success text and tail, and its
+configured Archive effect applied. A second App Intent shell recovery completed.
+The closed history was Error, Success, Success, Success. The final source held
+recovery text in Archive, which was the prior successful root's deliberate effect.
+
+The permission gesture was not visible to Computer Use. Questions to the user
+were pending at recording time. Do not infer that the first response was an
+observed button-level denial, that the grant gesture was observed, or that
+pending-authorization cancellation or a late grant was tested. The accepted
+results are the native access-denied outcome from App Intents and a subsequent
+successful URL default-list lookup. No privacy setting was changed by the agent.
+
+Computer Use restored the Shortcut's original action name and neutral UUID.
+Shortcuts and both QA apps quit normally. Exact QA/helper process absence and
+exact LaunchServices unregistration passed. Packages, closed library and exported
+preferences remain recoverable at:
+~/.Trash/DraftlyReminderAuthorizationQA-viiam2ln.
+
+Only the manual fixture and evidence changed. Fixture identity, matrix and diff
+checks passed. Previous Core674/app754/Python68/local-build results apply to
+unchanged production code; these suites were not rerun. Reminder queries and
+persistence, pending authorization, timeout and late results remain open.
+Six engine contracts remain partial.

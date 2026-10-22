@@ -4,6 +4,12 @@ Updated: 22 October 2026.
 
 ## Current Actions engine acceptance
 
+Reminders default-list access returned an explicit denied outcome through a
+system-delivered App Intent, then succeeded through URL with a Boolean availability
+parameter only. Following Intent recoveries passed. The permission gesture was
+not observed, so pending authorization, cancellation and late grant stay open.
+QA was retired and Shortcut parameters restored. No reminder or list was created.
+
 System-delivered App Intent shell checks now passed Stop cancellation, the
 production120s timeout and direct owner-window close. Each removed the confirmed
 parent/child and private files, stopped later steps and allowed a new Intent

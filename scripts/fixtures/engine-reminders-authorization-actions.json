@@ -1,0 +1,23 @@
+[
+  {
+    "uuid": "CCB32C36-AD7F-4D74-A74B-5C16D3849C59",
+    "name": "QA Reminders authorization",
+    "group": "Native authorization QA",
+    "notificationType": 0,
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Retained Reminders authorization café 🐼');draft.update();var list=ReminderList.default();if(list&&typeof list.identifier!=='string')throw Error('Invalid list result');context.addSuccessParameter('listAvailable',list?'yes':'no');editor.setText('Reminders default completed');draft.update();"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "Reminders authorization tail"
+        }
+      }
+    ]
+  }
+]
