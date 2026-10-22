@@ -13,7 +13,7 @@ The measured pass aligns five list titles, row pitch and editor text at
 850 by 600 points are valid at 2x. The action-inspector separator now tracks the third real split boundary.
 Measured central toolbar offsets improved to 10–12 points, but still exceed the
 current three-point target. Right toolbar alignment is still being refined.
-The latest checked complete run passed 646 Core and 626 app methods. Python: 68.
+The latest checked complete run passed 646 Core and 633 app methods. Python: 68.
 Local Debug and signed Release passed. An initial new Spotlight test found unstable payload order;
 its identity-order correction passed focused and complete checks. Prior engine
 timing fragility remains documented, without retries or deadline changes.
@@ -39,6 +39,10 @@ without a main window. The original 50 note IDs and texts were checked against
 the final exported backup. Native storage-failure and empty-clipboard checks
 remain pending. The user selected a three-point visual tolerance and prioritized
 data retention and daily flows. The habitual app is unchanged by this delivery. Do not install yet.
+User window closure now vetoes failed saves before the scene delegate runs.
+Specific failure/retry and delegate tests passed. Normal native close/reopen
+passed with two neutral QA notes. Quit with stale duplicate editors still needs
+a separate check. See the latest delivery section.
 The earlier [refactoring record](refactoring-editing-2026-10-21.md) retains the
 four completed extractions and their evidence.
 Historical sections below retain their original scope and dates.

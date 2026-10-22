@@ -91,6 +91,7 @@ final class WindowModel: ObservableObject {
     @Published private var scratchNote: Note?
     weak var window: NSWindow?
     var referenceToolbar: ReferenceToolbar?
+    var windowCloseGuard: LibraryWindowCloseGuard?
     var openQuickSearch: (String) -> Void
     let dependencies: WindowDependencies
     private var saveTask: Task<Void, Never>?

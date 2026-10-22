@@ -196,6 +196,7 @@ final class AppController: ObservableObject {
 
     func registerWindow(_ model: WindowModel, window: NSWindow? = nil, requestID: UUID? = nil) {
         if let window { model.window = window }
+        if let window = model.window { model.installCloseProtection(on: window) }
         if let requestID {
             registerRequestedWindow(model, requestID: requestID)
             return
