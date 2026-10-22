@@ -12,7 +12,7 @@ The measured pass aligns five list titles, row pitch and editor text at
 1200 by 800 points against Drafts. New reference captures at 1033 by 734 and
 850 by 600 points are valid at 2x. The action-inspector separator now tracks the third real split boundary.
 Measured central toolbar offsets improved to 10–12 points, but still exceed the
-one-point target. Right toolbar alignment is still being refined.
+current three-point target. Right toolbar alignment is still being refined.
 The latest checked complete run passed 646 Core and 626 app methods. Python: 68.
 Local Debug and signed Release passed. An initial new Spotlight test found unstable payload order;
 its identity-order correction passed focused and complete checks. Prior engine
@@ -33,7 +33,12 @@ reference rejection and backup restoration passed in isolated QA. The focused
 results are in the delivery record. Other native boundary and Settings checks
 remain pending.
 The host has no Touch Bar. Do not treat headless construction as hardware
-acceptance. The habitual app is unchanged by this delivery. Do not install yet.
+acceptance. Native daily-flow checks passed for Quit without explicit Save, Capture Append
+with two windows, selection and Undo/Redo, Quick Search cancellation and Capture
+without a main window. The original 50 note IDs and texts were checked against
+the final exported backup. Native storage-failure and empty-clipboard checks
+remain pending. The user selected a three-point visual tolerance and prioritized
+data retention and daily flows. The habitual app is unchanged by this delivery. Do not install yet.
 The earlier [refactoring record](refactoring-editing-2026-10-21.md) retains the
 four completed extractions and their evidence.
 Historical sections below retain their original scope and dates.
