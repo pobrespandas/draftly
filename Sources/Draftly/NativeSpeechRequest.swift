@@ -51,9 +51,10 @@ import DraftlyCore
 @MainActor private final class SpeechPlayback {
     let driver: any NativeSpeechDriver
     var continuation: CheckedContinuation<Bool, Error>?
+    private var stopped = false
     init(driver: any NativeSpeechDriver) { self.driver = driver }
     func run(_ text: String) async throws -> Bool {
-        try await withTaskCancellationHandler {
+        let result = try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
                 self.continuation = continuation
                 guard !Task.isCancelled else { finish(.failure(CancellationError()), stop: true); return }
@@ -63,12 +64,20 @@ import DraftlyCore
         } onCancel: {
             Task { @MainActor in self.finish(.failure(CancellationError()), stop: true) }
         }
+        do { try Task.checkCancellation() }
+        catch { stopPlayback(); throw error }
+        return result
+    }
+    private func stopPlayback() {
+        guard !stopped else { return }
+        stopped = true
+        driver.stop()
     }
     private func finish(_ result: Result<Bool, Error>, stop: Bool = false) {
         guard let continuation else { return }
         self.continuation = nil
         driver.onFinish = nil
-        if stop { driver.stop() }
+        if stop { stopPlayback() }
         continuation.resume(with: result)
     }
 }

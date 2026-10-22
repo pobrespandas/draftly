@@ -9085,3 +9085,23 @@ Local Debug compilation and matrix structure validation passed. No retry or
 deadline change was used. Python source was unchanged; the preceding 68-test
 result is separate. This controlled race test does not accept native macOS
 authorization outcomes. No QA app was launched or habitual app replaced.
+
+
+## Speech completion cancellation race — 22 October 2026
+
+At 24fb4a5, a headless speech driver waited for completion. The test cancelled
+the task and delivered completion before MainActor cancellation cleanup ran.
+Before the correction, playback returned success, showed the completion notice
+and did not stop the driver. The new regression failed on all three effects.
+
+SpeechPlayback now checks cancellation after its continuation resumes. A
+cancelled return stops the driver through one guarded cleanup operation and
+throws CancellationError before the completion notice. The existing queued
+cancellation path uses that same stop operation. The new test passes without
+creating a synthesizer, window, permission prompt or sound.
+
+All 31 speech, transcription and location methods passed. Local Debug compilation
+passed. No retry or deadline changed. The previous complete 674 Core / 717 app
+run predates this change; it is not a complete run for the new regression.
+Native audio and permission acceptance remains separate. No QA was launched
+and the habitual app was unchanged.

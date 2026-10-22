@@ -5,6 +5,7 @@ import Testing
 @Suite("Asynchronous speech requests") @MainActor
 struct NativeSpeechRequestTests {
     @MainActor private final class Driver: NativeSpeechDriver {
+        let startSignal = AsyncStream.makeStream(of: Bool.self)
         var rate: Float = 0
         var onFinish: ((Bool) -> Void)?
         var text: String?
@@ -15,6 +16,7 @@ struct NativeSpeechRequestTests {
         var late: ((Bool) -> Void)?
         func start(_ text: String) -> Bool {
             self.text = text; started = true; late = onFinish
+            startSignal.continuation.yield(true); startSignal.continuation.finish()
             if let finishImmediately { onFinish?(finishImmediately) }
             return canStart
         }
@@ -78,6 +80,24 @@ struct NativeSpeechRequestTests {
         #expect(await task.value)
         #expect(driver.stopped && driver.onFinish == nil)
         driver.late?(true)
+        #expect(driver.onFinish == nil)
+    }
+
+    @Test func cancellationRejectsCompletionBeforeQueuedCleanup() async throws {
+        let driver = Driver(); driver.finishImmediately = nil
+        let task = Task {
+            try await NativeSpeechRequest.run(
+                ["text": "Neutral", "settings": ["autoClose": false]],
+                makeDriver: { _ in driver },
+                present: { _ in Issue.record("Cancelled playback showed completion."); return true })
+        }
+        var started = driver.startSignal.stream.makeAsyncIterator()
+        try #require(await started.next() == true)
+        task.cancel()
+        driver.onFinish?(true)
+        do { _ = try await task.value; Issue.record("Cancelled playback succeeded.") }
+        catch { #expect(error is CancellationError) }
+        #expect(driver.stopped)
         #expect(driver.onFinish == nil)
     }
 
