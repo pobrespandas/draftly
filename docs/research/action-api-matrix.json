@@ -17144,7 +17144,17 @@
             "date": "2026-10-22",
             "evidence": "docs/validation.md",
             "scope": "False sent reproduced; corrected error and following recovery verified. Confirmed delivery not accepted."
-          }
+          },
+          "supportingTests": [
+            {
+              "suite": "NativeMessageAsyncTests",
+              "test": "unconfirmedMailStopsBothRunnersAndPreservesPriorEffects"
+            },
+            {
+              "suite": "NativeMessageAsyncTests",
+              "test": "actualIntentPropagatesUnconfirmedMailAsFailure"
+            }
+          ]
         },
         {
           "member": "create",
@@ -23805,6 +23815,10 @@
         {
           "suite": "RunDraftActionIntentTests",
           "test": "failedPendingSaveRejectsIntentAndCanRecover"
+        },
+        {
+          "suite": "NativeMessageAsyncTests",
+          "test": "actualIntentPropagatesUnconfirmedMailAsFailure"
         }
       ],
       "nativeVerification": {

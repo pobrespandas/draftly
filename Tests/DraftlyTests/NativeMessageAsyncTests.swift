@@ -110,4 +110,80 @@ struct NativeMessageAsyncTests {
         driver.late?(.success(()))
         #expect(driver.detachCount == 1 && driver.onFinish == nil)
     }
+
+    @Test(arguments: [false, true], [false, true])
+    func unconfirmedMailStopsBothRunnersAndPreservesPriorEffects(worker: Bool, script: Bool) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Neutral")
+        let editor = EditorSession(); editor.load(note)
+        let host = UnconfirmedMailHost()
+        let runner = ActionRunner(library: library, editor: editor, host: host)
+        let action = unconfirmedMailAction(script: script)
+        let report = worker ? await runner.runAsync(action) : runner.runReport(action)
+        #expect(report.reason == .error && !report.result.succeeded)
+        #expect(report.successParameters.isEmpty)
+        #expect(runner.message?.contains("cannot confirm that a message was sent") == true)
+        #expect(editor.content == "Retained café 🐼")
+        let saved = try #require(library.notes.first { $0.id == note.id })
+        #expect(saved.content == editor.content && !saved.isArchived)
+        #expect(library.runs.count == 1 && library.runs.first?.status == "Error")
+        let recovery = DraftAction(name: "Following mail failure", steps: [ActionStep("script", ["script": "editor.setText('Recovery');"])])
+        let next = worker ? await runner.runAsync(recovery) : runner.runReport(recovery)
+        #expect(next.reason == .success && next.executionID != report.executionID)
+        #expect(library.notes.first { $0.id == note.id }?.content == "Recovery")
+    }
+    @Test func actualIntentPropagatesUnconfirmedMailAsFailure() async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Neutral")
+        let host = UnconfirmedMailHost()
+        let action = unconfirmedMailAction(script: false)
+        try library.saveAction(action)
+        var request = RunDraftActionIntent()
+        request.name = action.name; request.uuid = note.id.uuidString
+        request.executionEnvironment = RunActionIntentEnvironment(library: library, models: [], host: host)
+        do { _ = try await request.perform(); Issue.record("The Intent reported success without confirmed mail delivery.") }
+        catch {
+            let error = try #require(error as? AutomationActionError)
+            #expect(error.reason == .error)
+            #expect(error.localizedDescription.contains("cannot confirm that a message was sent"))
+        }
+        let saved = try #require(library.notes.first { $0.id == note.id })
+        #expect(saved.content == "Retained café 🐼" && !saved.isArchived)
+        #expect(library.runs.count == 1 && library.runs.first?.status == "Error")
+        #expect(!ActionRunner.isExecuting(in: library))
+    }
+
+    private func unconfirmedMailAction(script: Bool) -> DraftAction {
+        let mail = script
+            ? ActionStep("script", ["script": "var m=Mail.create();m.subject='Neutral';m.body='Neutral body';m.send();"])
+            : ActionStep("mail", ["subject": "Neutral", "template": "Neutral body"])
+        var action = DraftAction(name: "Unconfirmed mail result", steps: [
+            ActionStep("script", ["script": "editor.setText('Retained café 🐼');draft.update();context.addSuccessParameter('discard','yes');"]),
+            mail,
+            ActionStep("insertText", ["template": "ERROR: tail"])
+        ])
+        action.afterSuccess = "archive"
+        return action
+    }
+
+}
+
+@MainActor private final class UnconfirmedMailHost: ActionHost {
+    func supportsAsync(_ operation: String) -> Bool { operation == "composeMail" }
+    func perform(_ operation: String, values: [String: Any]) throws -> Any? {
+        if operation == "device" { return [String: Any]() }
+        guard operation == "composeMail" else { throw DraftlyError.message("Unexpected neutral host operation: " + operation) }
+        return try NativeMessageAdapter().compose(operation, values, makeService: { _ in
+            Issue.record("A Mail result test must not create a sharing service."); return nil
+        })
+    }
+    func performAsync(_ operation: String, payload: String) async throws -> String {
+        let values = try #require(JSONSerialization.jsonObject(with: Data(payload.utf8)) as? [String: Any])
+        let result = try await NativeMessageAdapter().composeAsync(operation, values, makeDriver: { operation in
+            try SharingMessageDriver(operation: operation, makeService: { _ in
+                Issue.record("A Mail result test must not create a sharing service."); return nil
+            })
+        })
+        return String(decoding: try JSONSerialization.data(withJSONObject: ["value": result]), as: UTF8.self)
+    }
 }

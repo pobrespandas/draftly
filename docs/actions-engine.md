@@ -724,3 +724,20 @@ service. This removes false action success; confirmed Mail delivery remains
 partial. It is not a system-wide unavailable classification. Full app713, local
 build and native corrected error/recovery passed. See docs/validation.md, Mail
 handoff is not delivery. No mail was sent; habitual app unchanged.
+
+## Mail rejection through final reports — 22 October 2026
+
+Specific runner cases now exercise the actual rejecting Mail adapter through both
+legacy and worker execution, for both a Mail step and Mail.send scripting. They
+require an error report, retained persisted Unicode text, no tail or Archive,
+empty success parameters and an Error history entry. A following action succeeds
+with a different execution identity. The actual Intent.perform method also
+requires a typed error, retained prior effects and released library ownership.
+Factories prevent any real sharing service from opening, including on failure.
+
+All19 focused message/Intent methods passed, including the four runner parameter
+cases and the Intent boundary. Local Debug build and matrix structure passed.
+No production source changed. The prior full app713 run remains separate and
+predates these two new methods. Native corrected URL evidence from the previous
+checkpoint remains valid for unchanged production. Confirmed Mail delivery is
+still partial; this only accepts truthful failure propagation and recovery.

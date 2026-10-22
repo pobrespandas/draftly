@@ -2695,3 +2695,10 @@ Mail.send now returns an explicit error through the legacy/async host before
 opening that service. Confirmed delivery remains partial. Native corrected URL
 error and recovery, app713/inventory and local build passed. No message sent.
 See docs/validation.md. QA retired recoverably; habitual app unchanged.
+
+### Mail failure through runners and Intent — 22 October 2026
+
+Both runners, Mail step/scripting and actual Intent.perform now have explicit
+no-false-success assertions. Prior effects persist, tail/Archive stop, ownership
+releases and a following action succeeds. Focused19 and local build passed. No
+production change; confirmed Mail delivery remains partial.
