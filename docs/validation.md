@@ -10182,3 +10182,15 @@ This accepts user-Cancel from the action palette, not task cancellation or a
 permission outcome. Recognition/Done and other native speech cases stay open.
 The usual app is unchanged.
 See research/speech-permission-lifetime-2026-10-22.md for package hashes and limits.
+
+
+## Native neutral phrase follow-up — 22 October 2026
+
+The user completed a new neutral dictation attempt. Computer Use observed
+`Prueba neutral de Daf Fitly` in the editor with the panel closed and QA responsive.
+The process log confirms engine/input stop at20:17:18. This accepts recognition,
+insertion and capture stop with the corrected QA package, not exact spelling.
+The latest capture entry was not observed. Older Success history rows do not
+prove the current fixture tail/Archive path. Full action completion, Undo/Redo
+and remaining speech negative cases stay open. QA is idle with neutral text.
+No production code, tests, habitual app or acceptance status changed.

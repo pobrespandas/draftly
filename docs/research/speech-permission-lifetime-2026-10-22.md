@@ -172,3 +172,23 @@ stop for this package. Recognition/Done, Undo, URL/Intent speech entry points,
 permission denial, pending grant cancellation and production timeout stay open.
 The user-reported grant alone does not accept those outcomes. The usual app
 remains unchanged. No raw log or screenshot is tracked.
+
+
+## Neutral phrase follow-up
+
+The user requested another attempt and then reported completion. Computer Use
+observed the editor text `Prueba neutral de Daf Fitly`, with no Dictation panel.
+QA remained responsive. The recognizer changed the product name; do not record
+an exact transcript match. The process21673 log shows engine and input stop at
+20:17:18. This verifies native recognition, insertion and capture stop for the
+corrected QA package. The user operated the recording completion control.
+
+Execution History showed Success at19:59 and20:00 and Cancelled at19:52. The
+current draft was in Inbox without the fixture completion tail, modified20:17.
+Those older Success rows do not establish a final action result for the20:17
+capture. Do not infer tail/Archive acceptance or a new UI/URL/Intent engine case
+from this observation. The exact entry used for the latest capture was not
+observed. Undo/Redo, denied or pending permissions, production timeout and full
+speech action completion remain separate checks. No new permission was granted
+by the agent. No source changed and no tests or builds ran during this session.
+QA remains open and idle with its neutral text visible; the usual app is unchanged.

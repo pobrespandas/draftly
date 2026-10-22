@@ -10,8 +10,10 @@ Sendable callback outside the driver actor. A synthetic off-actor callback test
 passes without devices. Full Core679/app793, Python80, local Debug build and
 structural matrix0 pass. The corrected isolated QA shows Dictation without exit.
 Native Cancel closed the panel, stopped audio and retained the Inbox marker
-without the tail/Archive effect. History showed Cancelled. Recognition/Done and
-the remaining speech cases stay open. QA is closed; the usual app is unchanged. See the [speech record](research/speech-permission-lifetime-2026-10-22.md).
+without the tail/Archive effect. History showed Cancelled. A later neutral attempt produced `Prueba neutral de Daf Fitly` in the editor;
+QA remained responsive and the system log confirmed capture stop. Full action
+completion, Undo/Redo and the remaining speech cases stay open. QA is idle;
+the usual app is unchanged. See the [speech record](research/speech-permission-lifetime-2026-10-22.md).
 
 ## Speech permission and cleanup
 
