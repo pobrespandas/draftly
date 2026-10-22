@@ -2,6 +2,27 @@
 
 Updated: 22 October 2026.
 
+## Engine acceptance cases and included configuration
+
+The [case inventory](research/engine-acceptance-cases-2026-10-22.md) separates
+remaining operations, entries, outcomes and cleanup from reference, permission
+and system blocks. It keeps accepted generic evidence separate.
+The [configuration comparison](research/included-configuration-comparison-2026-10-22.md)
+records five new characterization methods and the shared neutral observer.
+Both runners preserve the recorded values, types, visibility and sibling edits.
+Static and template inclusion differ. These are Draftly observations, not parity.
+Manual Computer Use confirmed Drafts 54.1.1 (943) and a Pro block at Add Action.
+The empty group QA Included Configuration 20261022 remains for a later session.
+No reference action ran and no personal draft or subscription changed.
+
+Final verification passed Core679/app785, Python80, focused48, local Debug build
+and structural matrix0. The strict engine gate retains six partial contracts and
+18 diagnostics. Production rules and compatibility status are unchanged. Native
+comparison CFG-01 through CFG-05 needs Pro access before any precedence change.
+The new work is on agent/engine-acceptance-cases-2026-10-22; the R1–R5 integration
+below remains on main. Next: obtain the reference result or proceed with READY
+cases without treating their acceptance as evidence for blocked cases.
+
 ## R1–R5 integration
 
 The [integration record](refactoring-integration-2026-10-22.md) records all five
@@ -2571,7 +2592,7 @@ discovered inventory. Python68, matrix structure0 and local build passed.
 
 Isolated Computer Use verified reversal, restoration after option changes,
 normal exit/relaunch persistence and Clear History with fields and source kept.
-QA closed normally and was retired with recoverable data. Drafts54.1.1 confirmed
+QA closed normally and was retired with recoverable data. Drafts 54.1.1 confirmed
 history restoration and labels. Its Reverse Values result was inconsistent in
 automation and remains an explicit comparison limitation. The usual Draftly app
 is unchanged. Remaining scope: docs/editor-scripting-2026-10-22.md.
@@ -2617,7 +2638,7 @@ Shared task/link styles, syntax-defined Navigate, file bookmark save ordering an
 grammar-defined Enter are implemented in separate commits. Isolated native QA
 checked Markdown numbering/Undo/Redo, TaskPaper markers/continuation, and a neutral
 file grammar with custom captures, three-state tasks, padded sequences and restart.
-Drafts54.1.1 confirmed ordered task continuation, empty-item exit and spaced H1/H2
+Drafts 54.1.1 confirmed ordered task continuation, empty-item exit and spaced H1/H2
 labels. Prefix spacing now has a specific correction and regression. Native check
 of that correction remains pending. The neutral grammar is under scripts/fixtures.
 QA quit and its exact registration was retired. Closed data is recoverable in
@@ -2720,7 +2741,7 @@ See the dated continuation. This does not close Editor and scripting.
 ### Hanging indentation acceptance — 22 October 2026
 
 Eight rendering tests passed, including four actual glyph-alignment cases for
-spaces/tabs and normal/themed metrics. Native QA and Drafts54.1.1 showed the same
+spaces/tabs and normal/themed metrics. Native QA and Drafts 54.1.1 showed the same
 basic hanging alignment. QA Undo/Redo retained782 characters. Quote styling and
 word-count differences are recorded separately. Native custom themes remain open.
 QA retired recoverably; usual Draftly unchanged. See the dated continuation.
@@ -2767,7 +2788,7 @@ QA retired recoverably; usual app unchanged. See the dated continuation.
 
 ### Find reopening state — 22 October 2026
 
-Drafts54.1.1 retained query, replacement and flags across close/reopen. A red/green
+Drafts 54.1.1 retained query, replacement and flags across close/reopen. A red/green
 regression now covers interface reopening while preserving script initialization.
 WindowModel retains the complete per-window request. Focused47, app703/123, local
 build and matrix structure passed. Rebuilt native QA confirmed Done/native close

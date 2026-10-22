@@ -10119,3 +10119,21 @@ unchanged. No service was selected and no message was sent. Native service
 completion, other services and legacy sharing remain separate checks. Structural
 matrix checks pass; the strict engine gate retains six partial contracts and
 18 diagnostics. This check does not close the engine.
+
+
+## Included configuration reference block — 22 October 2026
+
+Manual Computer Use observed Drafts About: Version54.1.1 (943). Manage Action
+Groups allowed the neutral empty group QA Included Configuration 20261022.
+Add Action opened Drafts Pro with action creation/customization listed among
+paid features. The dialog was closed without purchase, trial, restore or account
+change. No action was created or executed. About and group management were
+closed. The empty neutral group remains for the next reference session.
+No personal draft or existing filter was changed. No screenshot or raw log is
+versioned. This is evidence of the reference block, not configuration parity.
+
+CFG-01 through CFG-05 remain blocked. The packaged neutral observer and five
+Draftly-only characterization methods are described in
+research/included-configuration-comparison-2026-10-22.md. The remaining engine
+case inventory is research/engine-acceptance-cases-2026-10-22.md. The matrix stays
+partial and retains the six contracts. No production rule changed.

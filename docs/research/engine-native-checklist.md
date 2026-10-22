@@ -6,6 +6,15 @@ the six partial engine records. The API matrix owns compatibility status.
 The dated validation records own observed results. A listed result accepts
 only that operation, outcome and entry point.
 
+## Current case inventory
+
+[Engine acceptance cases](engine-acceptance-cases-2026-10-22.md) assigns case IDs,
+entries, outcomes, cleanup and affected contracts to the remaining work. It
+separates actionable checks from reference, permission and system blocks.
+[Included configuration comparison](included-configuration-comparison-2026-10-22.md)
+records the current Drafts Pro block and Draftly-only characterization. No
+configuration precedence has been accepted from Drafts by that attempt.
+
 ## Route checklist
 
 `Sources/Draftly/NativeAsyncRoute.swift` defines these 18 route families.

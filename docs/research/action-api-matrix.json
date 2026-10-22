@@ -22206,7 +22206,8 @@
       "liveCheck": "docs/validation.md: Native selected identity and template inclusion — 20 October 2026",
       "limitations": [
         "Configuration key collision/type precedence still needs comparison. The archived reference does not specify the winner, and child saved values versus inline defaults remain unresolved.",
-        "Required first-use configuration has separate confirmation state, atomic persistence, and tests on both runners. Native text, Boolean/number controls, invalid-number retry, restart reuse, additional required fields, and static/dynamic inclusion cancellation passed. This does not settle duplicate-key or child-value precedence."
+        "Required first-use configuration has separate confirmation state, atomic persistence, and tests on both runners. Native text, Boolean/number controls, invalid-number retry, restart reuse, additional required fields, and static/dynamic inclusion cancellation passed. This does not settle duplicate-key or child-value precedence.",
+        "22 October 2026: five characterization methods record current Draftly values, types, visibility and sibling mutations on both runners. They do not establish Drafts precedence. A native Drafts 54.1.1 (943) attempt reached the Pro requirement when adding the neutral action; CFG-01 through CFG-05 remain reference-blocked. See docs/research/included-configuration-comparison-2026-10-22.md."
       ],
       "legacyAutomatedTest": {
         "suite": "ExecutionActionAPITests",
@@ -22295,6 +22296,26 @@
         {
           "suite": "EngineInclusionAcceptanceTests",
           "test": "includedStepsKeepTheirOwnerAndOneExecutionIdentity"
+        },
+        {
+          "suite": "IncludedConfigurationCharacterizationTests",
+          "test": "childSavedValueDoesNotReplaceItsDefaultInRootContext"
+        },
+        {
+          "suite": "IncludedConfigurationCharacterizationTests",
+          "test": "duplicateRootAndChildKeysKeepRoutePrecedenceAndRootSavedValues"
+        },
+        {
+          "suite": "IncludedConfigurationCharacterizationTests",
+          "test": "conflictingTypesKeepStaticConversionAndDynamicExistingType"
+        },
+        {
+          "suite": "IncludedConfigurationCharacterizationTests",
+          "test": "childConfigurationIsAvailableBeforeStaticButNotDynamicInclusion"
+        },
+        {
+          "suite": "IncludedConfigurationCharacterizationTests",
+          "test": "repeatedSiblingConfigurationRetainsRuntimeEditsWithDifferentInitialWinners"
         }
       ],
       "nativeVerification": {
