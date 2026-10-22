@@ -8768,3 +8768,48 @@ Both apps quit normally and process absence was confirmed. Exact paths were
 unregistered. Apps, exported QA preferences and closed library were preserved
 recoverably in ~/.Trash/DraftlySelectionLifetimeQA-37p7wtu_. Habitual app unchanged.
 The strict engine gate stays open. No screenshots or raw logs were committed.
+
+## Native URL shell lifetime — 22 October 2026
+
+Current-image QA at b1584f9 ran shell through actual URL delivery and the callback
+helper. The source was a new neutral Inbox draft, selected in its visible window.
+QA had a separate library, identity and callback scheme, no Services and no
+CloudKit. Reproduction: scripts/fixtures/engine-url-shell-lifetime-actions.json.
+
+The pending action saved Retained shell URL café 🐼 before launching a shell
+that ignored TERM and waited for a sleep180 child. Read-only process inspection
+identified the exact parent, child, separate group and native temporary folder.
+No process was controlled outside the action's normal UI cancellation path.
+
+Observed outcomes:
+- Actions → Cancel Running Action produced one x-cancel callback. Parent87342,
+  child87343 and their temporary folder were absent after cleanup.
+- Repeating and waiting for unchanged production deadlines produced one x-error
+  with the timeout message. Parent87398, child87399 and their folder were absent.
+  The editor retained the completed write and selected Inbox row; no tail or
+  Archive ran. The helper showed zero callbacks while waiting.
+- A following recovery action returned exactly Shell recovery café 🐼 from shell,
+  saved it and sent one success callback with that exact value.
+- Repeating pending work then closing its source with Command-W produced one
+  x-cancel. Parent87755, child87756 and their folder were absent. Another recovery
+  URL worked without the original window and displayed the saved draft again.
+
+Closed storage confirmed Cancelled, timeout Error, Success, Cancelled and Success
+for these runs on the same note. Final content was Shell recovery café 🐼 with
+isArchived false. A transient Computer Use invalid-capture error occurred while
+starting the owner-close case. Fresh observation recovered the existing run
+confirmation; the action was not restarted or duplicated.
+
+Automatic: focused15 app methods and2 Core cleanup methods passed, as did fixture
+identity and matrix structural checks. No production source/deadline changed.
+Previous local build at the same source passed. App Intent shell-specific native
+acceptance and exact deadline-race ordering remain separate. This does not close
+the six partial engine contracts.
+
+QA executable SHA256:
+585a4940752235c310c1c01d003241e571c3fc8ce65a3342cc742a41abe2f34b.
+Helper SHA256:
+17a76bfcb8e05c9740c0dbc3ef4bce4c7cf5c1e8741c22dacc0341070afeae59.
+Both apps quit normally; exact process absence was confirmed. Exact app paths
+were unregistered. Apps, exported preferences and the closed library were moved
+recoverably to ~/.Trash/DraftlyShellURLQA-53c2nx7a. Habitual app unchanged.

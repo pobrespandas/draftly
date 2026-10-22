@@ -1,0 +1,37 @@
+[
+  {
+    "uuid": "A0760100-0000-4000-8000-000000000003",
+    "name": "QA URL Shell pending",
+    "group": "URL lifetime QA",
+    "notificationType": 0,
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Retained shell URL café 🐼');draft.update();const s=ShellScript.create(\"#!/bin/sh\\ntrap '' TERM\\n/bin/sleep 180 &\\nwait\\nprintf 'ERROR: finished'\\n\");if(!s.execute(['draftly-shell-url-lifetime-qa']))throw Error(s.standardError);editor.setText('ERROR: script continued');"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "ERROR: shell tail"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "A0760100-0000-4000-8000-000000000004",
+    "name": "QA URL Shell recovery",
+    "group": "URL lifetime QA",
+    "notificationType": 0,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "const s=ShellScript.create(\"printf 'Shell recovery café 🐼'\");if(!s.execute())throw Error(s.standardError);if(s.standardOutput!=='Shell recovery café 🐼')throw Error('Wrong shell output');context.addSuccessParameter('value',s.standardOutput);editor.setText(s.standardOutput);draft.update();"
+        }
+      }
+    ]
+  }
+]

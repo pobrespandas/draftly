@@ -2656,3 +2656,12 @@ Added two specific real-process adapter cases for cancellation and timeout while
 waiting for Shortcut output. Both terminate the fixture process, remove input
 and reject output. Process/Shortcut17 and local build passed. Native Shortcuts
 service and entry-specific checks remain open; usual app unchanged.
+
+### Native shell URL lifecycle — 22 October 2026
+
+URL shell task cancel, production timeout and direct source close each returned
+one correct callback and removed exact parent/child processes and temp folders.
+Completed text stayed in Inbox without tail/Archive. Recovery worked both with
+and without the original window. Closed history matched. Focused app15/Core2
+passed. QA/helper retired recoverably; usual app unchanged. App Intent-specific
+shell acceptance and other native routes remain open. See docs/validation.md.
