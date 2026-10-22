@@ -73,3 +73,16 @@ struct AdvancedFindHistory {
 
     func clear() { defaults.removeObject(forKey: Self.storageKey) }
 }
+
+enum AdvancedFindResult {
+    private static let lineBreaks = try! NSRegularExpression(pattern: #"\r\n|[\r\n\u2028\u2029]"#)
+
+    static func preview(in text: String, range: NSRange) -> String {
+        let source = text as NSString
+        guard range.location >= 0, range.length >= 0, range.location <= source.length,
+              range.length <= source.length - range.location else { return "" }
+        let line = source.lineRange(for: range)
+        let number = lineBreaks.numberOfMatches(in: text, range: NSRange(location: 0, length: line.location)) + 1
+        return "L\(number): " + source.substring(with: line).trimmingCharacters(in: .newlines)
+    }
+}

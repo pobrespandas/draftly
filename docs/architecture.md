@@ -97,6 +97,13 @@ does not add rollback or present a new message. The view still disables
 replacement when there are no results; the command retains its previous valid
 query behavior when called directly.
 
+AdvancedFindWindow presents a native window from LibraryView. WindowModel only
+stores presentation state; scripting tests do not create native windows. An
+explicit presentation identity controls raising and initial focus. Query and
+content changes update the existing view without raising its window. The bridge
+closes Find when the source closes and rejects delayed focus work for old windows.
+Multiline fields and result previews stay in AdvancedFindView.
+
 ## Native asynchronous route boundary
 
 `NativeAsyncRoute` classifies support and dispatch for NativeActionHost.

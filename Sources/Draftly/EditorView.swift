@@ -417,7 +417,6 @@ struct InlineMarkdownPreview: NSViewRepresentable {
 struct AdvancedFindView: View {
     @ObservedObject var model: WindowModel
     @ObservedObject private var editor: EditorSession
-    @Environment(\.dismiss) private var dismiss
     @State private var replacement = ""
     @State private var caseSensitive = false
     @State private var regularExpression = false
@@ -453,8 +452,15 @@ struct AdvancedFindView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Advanced Find").font(.headline)
-            TextField("Find", text: $model.advancedFindQuery).focused($queryFocused).onSubmit { find() }
-            TextField("Replace", text: $replacement)
+            HStack(alignment: .top) {
+                Text("Find").frame(width: 60, alignment: .trailing)
+                TextEditor(text: $model.advancedFindQuery).focused($queryFocused)
+                    .font(.body).frame(height: 60).accessibilityLabel("Find")
+            }
+            HStack(alignment: .top) {
+                Text("Replace").frame(width: 60, alignment: .trailing)
+                TextEditor(text: $replacement).font(.body).frame(height: 60).accessibilityLabel("Replace")
+            }
             HStack {
                 Button("Reverse Values", systemImage: "arrow.up.arrow.down") {
                     var reversed = request; reversed.reverseValues(); restore(reversed)
@@ -482,7 +488,7 @@ struct AdvancedFindView: View {
                     ForEach(Array(ranges.enumerated()), id: \.offset) { index, range in
                         HStack {
                             Button { commands.select(range) } label: {
-                                Text("\(index + 1). " + preview(range)).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
+                                Text(preview(range)).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
                             }.buttonStyle(.plain)
                             Button("Replace") { remember(); commands.replace(query: query, range: range, with: replacement) }
                                 .accessibilityLabel("Replace match \(index + 1)")
@@ -490,20 +496,19 @@ struct AdvancedFindView: View {
                             .background(editor.selection == range ? Color.accentColor.opacity(0.15) : .clear)
                     }
                 }
-            }.frame(height: 160)
+            }.frame(maxWidth: .infinity, maxHeight: .infinity)
             HStack {
                 Button("Previous") { commands.navigate(in: ranges, backward: true) }.disabled(ranges.isEmpty)
                 Button("Next") { commands.navigate(in: ranges, backward: false) }.disabled(ranges.isEmpty)
                 Spacer()
                 Button("Replace All") { remember(); commands.replaceAll(query: query, with: replacement) }.disabled(ranges.isEmpty)
-                Button("Done") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button("Done") { model.showAdvancedFind = false }.keyboardShortcut(.cancelAction)
             }
-        }.padding(20).frame(width: 520).onAppear { history = historyStore.requests; queryFocused = true }
+        }.padding(20).frame(minWidth: 580, minHeight: 380).onAppear { history = historyStore.requests; queryFocused = true }
             .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification,
                 object: model.dependencies.preferences.defaults)) { _ in history = historyStore.requests }
     }
     private func preview(_ range: NSRange) -> String {
-        let text = editor.content as NSString
-        return text.substring(with: text.lineRange(for: range)).trimmingCharacters(in: .newlines)
+        AdvancedFindResult.preview(in: editor.content, range: range)
     }
 }

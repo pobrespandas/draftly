@@ -48,6 +48,7 @@ final class WindowModel: ObservableObject {
     var prefersAdvancedFind: () -> Bool
     @Published var showAdvancedFind = false
     @Published var advancedFindQuery = ""
+    @Published var advancedFindPresentationID = UUID()
     @Published var showInfo = false
     @Published var infoDraft: Note?
     @Published var historyDraftID: UUID?

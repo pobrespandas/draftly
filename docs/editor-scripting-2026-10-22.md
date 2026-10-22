@@ -66,7 +66,7 @@ or screenshots were added to Git.
   replacement, file reload, URLs, name conflicts and unknown-field preservation.
 - Advanced Find: compare the remaining Reverse Values edge cases. Compare query
   initialization, multiline input, line labels, keyboard actions, navigation,
-  cancellation, persistence and the independent window in Drafts. Keep native
+  cancellation, persistence and remaining independent-window edge cases. Keep native
   find and `preferAdvancedFind` checks. Individual replacement alone does not
   establish parity.
 - Run complete regressions and the applicable contract gates. Update member
@@ -126,3 +126,45 @@ suites. Separate XML reports match the discovered method inventory. All 68 Pytho
 tests passed. The matrix structural check reported zero errors. The local build
 passed. No timeouts or retries were changed. This accepts the checked history
 and reversal behavior, not the remaining Editor/scripting scope above.
+
+## Independent Find window and multiline input
+
+Advanced Find now opens in an independent resizable window for its source editor.
+LibraryView owns the presentation bridge. WindowModel requests presentation;
+headless model calls do not construct windows. A presentation identity separates
+an explicit open request from ordinary query and editor updates. Returning to
+Find raises the existing window and focuses the query. Typing and source changes
+do not raise it. Closing the source closes its Find window. Done and plain Escape
+close Find without closing the source editor.
+
+Both fields accept multiple lines. Command-Return runs Find. Results show the
+source line number. The preview calculation handles UTF-16 positions, CRLF, CR,
+LF and Unicode line separators. Tests cover empty final lines and invalid ranges.
+Other tests check repeated requests, multiline initial queries and isolation
+between window models. Existing tests remain.
+
+Native QA found two defects during this implementation: the initial query lacked
+focus, and TextEditor absorbed Escape. The focus bridge and Find-specific Escape
+handling correct these cases. A second focus adjustment makes returning to an
+existing Find window focus the query instead of the prior replacement field.
+The final native checks confirmed those corrections.
+
+QA searched the literal two-line query “café” followed by “Tail”. It found two
+matches with labels L1 and L3. It replaced only the second with two-line text
+“té” followed by “End”. The source editor remained accessible while Find stayed
+open. Undo restored the exact source without raising Find. Returning to Find
+reused it and focused the query. Escape closed it with the draft retained. Closing
+the source also left no available windows in the earlier lifetime check.
+
+The same session found that native Find does not reach the source text view
+when the draft list retains focus. That routing defect is a separate correction;
+this presentation work does not claim full native-find coexistence yet. The
+usual app was not replaced. Source content is neutral and QA data remains isolated.
+
+Final presentation checks passed 671 app methods/121 suites, 654 Core methods/124
+suites and 68 Python tests. Separate reports match discovery. Matrix structure0
+and the local Xcode build passed. QA quit normally. Its exact registration was
+retired after process absence was checked. The bundle, exported preferences,
+closed library and prior QA runtimes are together in recoverable Trash. No
+screenshots or raw logs were added to Git. Native-find focus routing remains a
+separate next correction. This does not close the full Editor/scripting goal.

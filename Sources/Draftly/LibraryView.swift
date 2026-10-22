@@ -53,7 +53,7 @@ struct LibraryView: View {
             hub.registerWindow(model, window: window, requestID: requestID)
         })
         .focusedSceneValue(\.windowModel, model)
-        .sheet(isPresented: $model.showAdvancedFind) { AdvancedFindView(model: model) }
+        .background(AdvancedFindWindow(model: model).frame(width: 0, height: 0))
         .sheet(item: $model.mergeRequest) { request in MergeDraftsView(model: model, request: request) }
         .sheet(item: $model.editingAction) { action in ActionEditor(action: action, library: library) }
         .sheet(isPresented: $model.showActionImporter) { ActionImportView(library: library) { actions in model.actionGroup = actions.first?.group ?? "General" } }

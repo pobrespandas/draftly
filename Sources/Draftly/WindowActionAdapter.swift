@@ -147,6 +147,7 @@ struct WindowActionAdapter {
         case "showFind":
             if (args.first as? Bool ?? model.prefersAdvancedFind()) {
                 model.advancedFindQuery = args.dropFirst().first as? String ?? ""
+                model.advancedFindPresentationID = UUID()
                 model.showAdvancedFind = true
                 return nil
             }

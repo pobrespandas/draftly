@@ -2374,3 +2374,22 @@ QA closed normally and was retired with recoverable data. Drafts54.1.1 confirmed
 history restoration and labels. Its Reverse Values result was inconsistent in
 automation and remains an explicit comparison limitation. The usual Draftly app
 is unchanged. Remaining scope: docs/editor-scripting-2026-10-22.md.
+
+## Independent Advanced Find window — 22 October 2026
+
+Find is now a separate resizable window tied to its source editor. Explicit open
+requests raise it and focus the query. Ordinary query and editor updates do not
+raise it. Both fields accept multiple lines; Command-Return runs Find. Results
+show line numbers. Escape and Done close Find, and source closure closes Find.
+The model remains headless; LibraryView owns the native presentation bridge.
+
+Native QA verified initial focus, multiline literal results and replacement,
+source access with Find open, Undo without focus theft, returning to Find,
+Escape and source closure. Focus and Escape defects found in the first QA build
+were corrected and rechecked. QA was retired normally with recoverable data.
+Full checks passed 671 app/654 Core methods, 68 Python, report inventory, local
+build and matrix structure0. No test deadlines or retry rules changed.
+
+The session also found a separate native-find routing defect when list focus
+remains active. That correction is next. Full evidence and remaining scope:
+docs/editor-scripting-2026-10-22.md. The usual app was not changed.

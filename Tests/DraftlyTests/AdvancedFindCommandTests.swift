@@ -16,6 +16,40 @@ struct AdvancedFindCommandTests {
         return model
     }
 
+    @Test func resultPreviewsCountLinesWithoutSplittingCRLFOrUnicode() {
+        let text = "🐼 first\r\ncafé\nthird\rfourth\u{2028}fifth\u{2029}last"
+        let source = text as NSString
+        for (word, line) in [("🐼", 1), ("café", 2), ("third", 3), ("fourth", 4), ("fifth", 5), ("last", 6)] {
+            let result = AdvancedFindResult.preview(in: text, range: source.range(of: word))
+            #expect(result.hasPrefix("L\(line): "))
+            #expect(result.contains(word))
+        }
+        #expect(AdvancedFindResult.preview(in: "🐼\r\n", range: NSRange(location: 4, length: 0)) == "L2: ")
+        #expect(AdvancedFindResult.preview(in: "", range: NSRange(location: 0, length: 0)) == "L1: ")
+        #expect(AdvancedFindResult.preview(in: "🐼", range: NSRange(location: 2, length: 0)) == "L1: 🐼")
+        #expect(AdvancedFindResult.preview(in: text, range: NSRange(location: 999, length: 1)).isEmpty)
+    }
+
+    @Test func repeatedFindRequestsHaveSeparatePresentationIdentityWithoutMutatingEditor() throws {
+        let preferences = try TestPreferences(prefix: "Draftly.FindPresentation.")
+        defer { preferences.close() }
+        let first = try model(defaults: preferences.defaults)
+        let other = try model(defaults: preferences.defaults)
+        let otherID = other.advancedFindPresentationID
+        first.editor.selection = NSRange(location: 3, length: 4)
+        let original = first.advancedFindPresentationID
+        _ = try first.actionUIOperation(["operation": "showFind", "args": [true, "café\nTail"]])
+        let opened = first.advancedFindPresentationID
+        #expect(opened != original && first.showAdvancedFind && first.advancedFindQuery == "café\nTail")
+        first.advancedFindQuery = "typing"
+        #expect(first.advancedFindPresentationID == opened)
+        _ = try first.actionUIOperation(["operation": "showFind", "args": [true, "café\nTail"]])
+        #expect(first.advancedFindPresentationID != opened)
+        #expect(other.advancedFindPresentationID == otherID && !other.showAdvancedFind)
+        #expect(first.editor.content == content && first.editor.selection == NSRange(location: 3, length: 4))
+        #expect(!first.hasUnsavedChanges && first.library.notes.first?.content == content)
+    }
+
     @Test(arguments: [false, true])
     func navigationUsesUTF16SelectionBoundariesAndWraps(backward: Bool) throws {
         let preferences = try TestPreferences(prefix: "Draftly.FindNavigation.")
