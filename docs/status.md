@@ -4,6 +4,12 @@ Updated: 22 October 2026.
 
 ## Current Actions engine acceptance
 
+Sharing discovery now checks cancellation and one absolute deadline before it
+can show a picker. Controlled red/green cases cover available and unavailable
+services, expiry and temporary-file cleanup. Core674/app762 and local Debug
+compilation passed. Native sharing window ownership remains a separate next
+correction. No QA or usual-app deployment occurred in this check.
+
 Async printing now uses its action window after external confirmation. The
 previous missing-key-window failure is fixed; missing owners cannot borrow
 another window. Core674/app759, Python68 and local Debug build passed. The real

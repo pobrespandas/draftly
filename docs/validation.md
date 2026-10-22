@@ -10046,3 +10046,36 @@ states, PDF and exported preferences remain recoverable at:
 Native print owner-close remains pending because the system sheet disables Close
 and Close All did not close its owner in the earlier check. The large-document
 case here does not remove that restriction or accept other capability routes.
+
+## Sharing discovery cancellation and deadline — 22 October 2026
+
+Two controlled regression methods reproduced the prior defects before the fix.
+Cancelling from service discovery still showed the picker when services existed;
+without services it returned the availability error instead of cancellation.
+Advancing the clock to or past the original deadline still showed the picker
+because the request started a fresh budget after discovery. The five expanded
+cases included a timely nine-second control; four cases failed with six issues.
+
+The request now captures one deadline before file preparation. The sharing
+session checks cancellation and expiry before and after discovery, then starts
+a timer for the remaining budget. Cancellation wins over an unavailable-service
+answer from that cancelled discovery. No service is handed the prepared file
+on these paths, so existing disposal removes it. Handed-off service leases and
+late provider callbacks keep their existing behavior.
+
+The two regressions passed after the fix. A third case expires during preparation
+and confirms that discovery and presentation never start. The focused sharing
+suite passed 20 methods. Complete Swift results passed 674 Core and 762 app
+methods, with XML reports matched to discovery. Local Debug compilation,
+structural matrix and diff checks passed. No retries or longer limits were added.
+Python code did not change; the earlier 68-test result remains separate.
+The strict engine check still reports six partial contracts and 18 diagnostics.
+
+The driver, clock and files were neutral temporary fixtures. No native sharing
+service, visible window, permission or personal data was used. No QA package was
+prepared or launched, and the usual app stayed unchanged. These tests do not
+accept a live service interruption or complete native ownership.
+
+Next: SystemSharingDriver.show still takes NSApp.keyWindow. Review its owner
+binding separately, using the confirmed print-window failure as the risk model.
+Do not count that pending correction as part of this discovery-boundary fix.

@@ -23400,6 +23400,21 @@
           "suite": "NativePrintRequestTests",
           "test": "largePDFRetainsEveryNumberedLineWithoutShowingPanels",
           "file": "Tests/DraftlyTests/NativePrintRequestTests.swift"
+        },
+        {
+          "suite": "NativeSharingRequestTests",
+          "test": "cancellationDuringServiceDiscoveryNeverShowsPicker",
+          "file": "Tests/DraftlyTests/NativeSharingRequestTests.swift"
+        },
+        {
+          "suite": "NativeSharingRequestTests",
+          "test": "serviceDiscoveryUsesTheOriginalRequestDeadline",
+          "file": "Tests/DraftlyTests/NativeSharingRequestTests.swift"
+        },
+        {
+          "suite": "NativeSharingRequestTests",
+          "test": "expiredPreparationDoesNotDiscoverOrShowServices",
+          "file": "Tests/DraftlyTests/NativeSharingRequestTests.swift"
         }
       ],
       "nativeVerification": {
@@ -23721,6 +23736,11 @@
           "suite": "NativeModelAsyncTests",
           "test": "expiredRequestCannotRunToolsOrReturnALateResponse",
           "file": "Tests/DraftlyTests/NativeModelAsyncTests.swift"
+        },
+        {
+          "suite": "NativeSharingRequestTests",
+          "test": "cancellationDuringServiceDiscoveryNeverShowsPicker",
+          "file": "Tests/DraftlyTests/NativeSharingRequestTests.swift"
         }
       ],
       "nativeVerification": {

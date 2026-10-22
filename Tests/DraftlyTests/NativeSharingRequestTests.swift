@@ -6,6 +6,60 @@ import DraftlyCore
 @Suite("Asynchronous native sharing")
 @MainActor
 struct NativeSharingRequestTests {
+    @Test(arguments: [true, false])
+    func cancellationDuringServiceDiscoveryNeverShowsPicker(available: Bool) async throws {
+        let root = try SharingFolderFixture()
+        defer { root.close() }
+        let driver = SharingDriverFixture()
+        driver.available = available
+        var task: Task<Bool, Error>?
+        driver.beforeCanShare = { task?.cancel() }
+        driver.whenShown = { driver.onEvent?(.cancelled) }
+        task = Task { try await NativeSharingRequest.run("shareFile", [:], driver: driver, temporaryDirectory: root.url) }
+        let pending = try #require(task)
+        do { _ = try await pending.value; Issue.record("Cancelled discovery returned a result.") }
+        catch { #expect(error is CancellationError) }
+        #expect(driver.shows == 0 && driver.detaches == 1)
+        #expect(try root.contents().isEmpty)
+    }
+
+    @Test(arguments: [9.0, 10.0, 11.0])
+    func serviceDiscoveryUsesTheOriginalRequestDeadline(elapsed: Double) async throws {
+        let root = try SharingFolderFixture()
+        defer { root.close() }
+        let driver = SharingDriverFixture()
+        var now = Date(timeIntervalSince1970: 100)
+        driver.beforeCanShare = { now = now.addingTimeInterval(elapsed) }
+        driver.whenShown = { driver.onEvent?(.cancelled) }
+        do {
+            let result = try await NativeSharingRequest.run("shareFile", [:], driver: driver, timeout: 10,
+                                                          temporaryDirectory: root.url, now: { now })
+            #expect(elapsed < 10 && !result)
+        } catch { #expect(elapsed >= 10 && error as? ActionExecutionInterruption == .timeout) }
+        #expect(driver.shows == (elapsed < 10 ? 1 : 0))
+        #expect(driver.detaches == 1)
+        #expect(try root.contents().isEmpty)
+    }
+
+    @Test func expiredPreparationDoesNotDiscoverOrShowServices() async throws {
+        let root = try SharingFolderFixture()
+        defer { root.close() }
+        let driver = SharingDriverFixture()
+        var discoveries = 0
+        var clockReads = 0
+        driver.beforeCanShare = { discoveries += 1 }
+        do {
+            _ = try await NativeSharingRequest.run("shareFile", [:], driver: driver, timeout: 10,
+                                                   temporaryDirectory: root.url, now: {
+                defer { clockReads += 1 }
+                return Date(timeIntervalSince1970: clockReads == 0 ? 100 : 110)
+            })
+            Issue.record("Expired preparation returned a result.")
+        } catch { #expect(error as? ActionExecutionInterruption == .timeout) }
+        #expect(discoveries == 0 && driver.shows == 0 && driver.detaches == 1)
+        #expect(try root.contents().isEmpty)
+    }
+
     @Test func textSharingWaitsForTheActualServiceCompletion() async throws {
         let driver = SharingDriverFixture()
         let task = Task { try await NativeSharingRequest.run("share", ["text": "café 🐼"], driver: driver) }
@@ -224,6 +278,7 @@ private final class SharingDriverFixture: NativeSharingDriving {
     let shown = AsyncStream.makeStream(of: Bool.self)
     var onEvent: ((NativeSharingEvent) -> Void)?
     var whenShown: (() -> Void)?
+    var beforeCanShare: (() -> Void)?
     var available = true
     var showError: Error?
     var item: NativeSharingItem?
@@ -236,7 +291,7 @@ private final class SharingDriverFixture: NativeSharingDriving {
         var events = shown.stream.makeAsyncIterator()
         try #require(await events.next() == true)
     }
-    func canShare(_ item: NativeSharingItem) -> Bool { available }
+    func canShare(_ item: NativeSharingItem) -> Bool { beforeCanShare?(); return available }
     func show(_ item: NativeSharingItem) throws {
         self.item = item; shows += 1
         if let showError { throw showError }
@@ -245,7 +300,7 @@ private final class SharingDriverFixture: NativeSharingDriving {
         whenShown?()
     }
     func dismissPicker() { pickerVisible = false }
-    func detach() { detaches += 1; dismissPicker(); onEvent = nil; whenShown = nil; shown.continuation.finish() }
+    func detach() { detaches += 1; dismissPicker(); onEvent = nil; whenShown = nil; beforeCanShare = nil; shown.continuation.finish() }
 }
 
 private struct SharingFolderFixture {

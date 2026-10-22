@@ -32,10 +32,11 @@ enum NativeSharingRequest {
                     reportCleanupError: @escaping @MainActor (String) -> Void = { _ in }) async throws -> Bool {
         guard timeout.isFinite, timeout > 0 else { throw DraftlyError.message("The sharing timeout must be positive and finite.") }
         try Task.checkCancellation()
+        let deadline = now().addingTimeInterval(timeout)
         let prepared = try SharingPreparation.make(operation, values, temporaryDirectory: temporaryDirectory)
         let request = SharingSession(prepared: prepared, driver: driver ?? SystemSharingDriver(),
-                                     now: now, reportCleanupError: reportCleanupError)
-        let result = try await request.run(timeout: timeout)
+                                     deadline: deadline, now: now, reportCleanupError: reportCleanupError)
+        let result = try await request.run()
         try Task.checkCancellation()
         return result
     }
@@ -85,28 +86,32 @@ private final class SharingSession {
     private let reportCleanupError: @MainActor (String) -> Void
     private var continuation: CheckedContinuation<Bool, Error>?
     private var timer: Task<Void, Never>?
-    private var deadline = Date.distantFuture
+    private let deadline: Date
     private var serviceStarted = false
     private var disposed = false
 
     init(prepared: SharingPreparation, driver: any NativeSharingDriving,
-         now: @escaping @MainActor () -> Date, reportCleanupError: @escaping @MainActor (String) -> Void) {
-        self.prepared = prepared; self.driver = driver; self.now = now; self.reportCleanupError = reportCleanupError
+         deadline: Date, now: @escaping @MainActor () -> Date, reportCleanupError: @escaping @MainActor (String) -> Void) {
+        self.prepared = prepared; self.driver = driver; self.deadline = deadline
+        self.now = now; self.reportCleanupError = reportCleanupError
     }
 
-    func run(timeout: TimeInterval) async throws -> Bool {
+    func run() async throws -> Bool {
         try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
                 self.continuation = continuation
                 guard !Task.isCancelled else { finish(.failure(CancellationError())); return }
-                guard driver.canShare(prepared.item) else {
+                guard now() < deadline else { finish(.failure(ActionExecutionInterruption.timeout)); return }
+                let available = driver.canShare(prepared.item)
+                guard !Task.isCancelled else { finish(.failure(CancellationError())); return }
+                guard now() < deadline else { finish(.failure(ActionExecutionInterruption.timeout)); return }
+                guard available else {
                     finish(.failure(DraftlyError.message("No sharing service is available for these items.")))
                     return
                 }
-                deadline = now().addingTimeInterval(timeout)
                 driver.onEvent = { [weak self] event in self?.received(event) }
                 timer = Task { @MainActor [self] in
-                    do { try await Task.sleep(for: .seconds(timeout)) } catch { return }
+                    do { try await Task.sleep(for: .seconds(max(0, deadline.timeIntervalSince(now())))) } catch { return }
                     finish(.failure(ActionExecutionInterruption.timeout))
                 }
                 do { try driver.show(prepared.item) }

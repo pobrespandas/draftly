@@ -829,3 +829,17 @@ the global key window. If the owner is absent or no longer visible, printing
 fails before opening a panel. An ownerless native host cannot borrow another
 window. The request helper keeps its current-window fallback only when no owner
 provider is supplied. The legacy synchronous print path is unchanged.
+
+## Sharing discovery boundaries — 22 October 2026
+
+The async sharing deadline starts before file preparation and service discovery.
+The request checks cancellation and expiry before and after service discovery.
+A cancelled discovery cannot open the picker or become an unavailable-service
+error. An expired discovery cannot reset the timeout. The timer waits only for
+the remaining budget. Prepared files are removed when no service owns them.
+Files handed to a service still remain until that service finishes.
+
+Controlled driver and clock tests cover these boundaries without system sharing
+services or visible windows. They do not accept native service interruption or
+window ownership. SystemSharingDriver still resolves the global key window;
+its owner binding needs a separate correction and manual check.
