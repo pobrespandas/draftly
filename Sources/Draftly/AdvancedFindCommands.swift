@@ -6,6 +6,14 @@ struct AdvancedFindCommands {
     let model: WindowModel
     private var editor: EditorSession { model.editor }
 
+    func find() {
+        let request = model.advancedFindRequest
+        guard !request.text.isEmpty, let query = try? request.query() else { return }
+        do { try AdvancedFindHistory(defaults: model.dependencies.preferences.defaults).record(request) }
+        catch { model.library.error = error.localizedDescription }
+        navigate(in: query.matches(in: editor.content), backward: false)
+    }
+
     func select(_ range: NSRange) {
         editor.selection = range
         editor.synchronizeScriptEdit?()

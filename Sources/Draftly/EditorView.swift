@@ -536,9 +536,8 @@ struct AdvancedFindView: View {
         model.advancedFindRequest = request
     }
     private func find() {
-        guard case .success = query else { return }
-        remember()
-        commands.navigate(in: ranges, backward: false)
+        commands.find()
+        history = historyStore.requests
     }
     private var ranges: [NSRange] { (try? query.get().matches(in: editor.content)) ?? [] }
     var body: some View {

@@ -880,3 +880,37 @@ background, restart/default and reference acceptance is still open.
 
 Full serial app regression passed703 methods/123 suites. Core source is unchanged
 from the671/124 baseline. Matrix structure0 passed. No retry or deadline changed.
+
+## Command-Return in the multiline Find field
+
+Native Keys QA used preferAdvancedFind=true in its isolated setup. Command-F
+opened Advanced Find. With focus in its multiline query, Command-Return did not
+record Find. A click on Find did. A separate fresh QA with the preserved pre-fix
+binary repeated this control: after Command-Return, History contained only disabled
+Clear History; clicking Find added Find: Two. This direct UI control removes the
+uncertainty of the first delayed preference-export observation.
+
+FindWindow now handles Command-Return and Command-keypad-Enter before the native
+text editor. It shares AdvancedFindCommands.find with the button. That command
+records the current valid request and navigates its source editor. Empty/invalid
+queries do not change history or selection. Handled events are not forwarded.
+Plain Return and modified variants remain native text input. Escape still closes
+only the Find window. The window callback holds its source model weakly and checks
+that Find remains presented.
+
+Two new headless methods cover key mapping, untouched ordinary/modified keys,
+valid request/history/navigation and invalid-regex nonmutation. Twenty-one Find
+methods and the local Xcode build passed. Full serial app705/123 passed; Core is
+unchanged from671/124. Matrix structure0 passed. No retry or deadline changed.
+Automatic tests do not dispatch events or construct visible Find windows.
+
+Rebuilt native QA showed Find: Source in History immediately after Command-Return.
+Plain Return inserted a newline into the query and changed its result count;
+Escape returned to Source Two without closing it. Closed neutral storage retained
+Source Two QA 🐼 plus coffee coffee. No replacement ran. This accepts the checked
+keys and enabled-preference route, not all Find keyboard/background/default parity.
+
+Both QAs quit normally. Exact active registrations were removed. An unregister
+attempt for the never-launched preserved runtime returned-10814; no global reset
+was used. Both runtimes, preferences and closed libraries are recoverable in
+Trash. The habitual app was unchanged. No screenshot or raw log is tracked.

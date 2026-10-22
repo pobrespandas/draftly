@@ -33,6 +33,10 @@ struct AdvancedFindWindow: NSViewRepresentable {
             window.isReleasedWhenClosed = false
             window.minSize = NSSize(width: 600, height: 420)
             window.delegate = self
+            window.onFind = { [weak model] in
+                guard let model, model.showAdvancedFind else { return }
+                AdvancedFindCommands(model: model).find()
+            }
             window.contentView = NSHostingView(rootView: AdvancedFindView(model: model))
             self.window = window
             presentationID = model.advancedFindPresentationID
@@ -86,10 +90,24 @@ struct AdvancedFindWindow: NSViewRepresentable {
 
 @MainActor
 private final class FindWindow: NSWindow {
+    var onFind: (() -> Void)?
     override func sendEvent(_ event: NSEvent) {
-        if event.type == .keyDown, event.keyCode == 53,
-           event.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty {
-            performClose(nil)
-        } else { super.sendEvent(event) }
+        guard event.type == .keyDown else { super.sendEvent(event); return }
+        switch AdvancedFindKeyCommand.resolve(keyCode: event.keyCode, modifiers: event.modifierFlags) {
+        case .find: onFind?()
+        case .close: performClose(nil)
+        case nil: super.sendEvent(event)
+        }
+    }
+}
+
+
+enum AdvancedFindKeyCommand: Equatable {
+    case find, close
+    static func resolve(keyCode: UInt16, modifiers: NSEvent.ModifierFlags) -> Self? {
+        let modifiers = modifiers.intersection([.command, .control, .option, .shift])
+        if [36, 76].contains(keyCode), modifiers == .command { return .find }
+        if keyCode == 53, modifiers.isEmpty { return .close }
+        return nil
     }
 }

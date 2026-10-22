@@ -2572,3 +2572,12 @@ WindowModel retains the complete per-window request. Focused47, app703/123, loca
 build and matrix structure passed. Rebuilt native QA confirmed Done/native close
 and unchanged source. QA retired recoverably. Restart/global defaults remain open.
 See the dated continuation. Usual app unchanged.
+
+### Advanced Find keyboard command — 22 October 2026
+
+Native before/after control confirmed Command-Return failed in the multiline query
+while the button worked. FindWindow now routes it to the shared Find command.
+Headless key/command cases, focused21, app705/123, local build and matrix passed.
+Native corrected QA confirmed history, ordinary Return, Escape and enabled
+preferAdvancedFind routing. QAs retired recoverably; usual app unchanged.
+Remaining keyboard/background/default/reference scope stays open.

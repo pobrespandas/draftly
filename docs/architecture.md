@@ -301,3 +301,7 @@ query is supplied. Script requests retain their existing query initialization.
 Explicit script query text, including an empty string, replaces the current query.
 Closing the Find window does not clear the source window request. Process restart
 and cross-window sharing of defaults are separate contracts.
+
+FindWindow handles Command-Return before multiline text input. It calls the same
+AdvancedFindCommands.find operation as the button. Ordinary Return stays with the
+text editor. The callback retains no source model and ignores a closed Find state.

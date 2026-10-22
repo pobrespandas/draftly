@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import Testing
 import DraftlyCore
 @testable import Draftly
@@ -163,5 +164,36 @@ struct AdvancedFindCommandTests {
         model.advancedFindQuery = "café"
         _ = try model.actionUIOperation(["operation": "showFind", "args": [true]])
         #expect(model.advancedFindQuery.isEmpty)
+    }
+    @Test func findKeyboardCommandsKeepPlainReturnAndModifiedKeysInTheTextEditor() {
+        for key: UInt16 in [36, 76] {
+            #expect(AdvancedFindKeyCommand.resolve(keyCode: key, modifiers: .command) == .find)
+            for modifiers: NSEvent.ModifierFlags in [[], .shift, [.command, .shift], [.command, .option]] {
+                #expect(AdvancedFindKeyCommand.resolve(keyCode: key, modifiers: modifiers) == nil)
+            }
+        }
+        #expect(AdvancedFindKeyCommand.resolve(keyCode: 53, modifiers: []) == .close)
+        #expect(AdvancedFindKeyCommand.resolve(keyCode: 53, modifiers: .command) == nil)
+        #expect(AdvancedFindKeyCommand.resolve(keyCode: 1, modifiers: .command) == nil)
+    }
+
+    @Test func findCommandRecordsCurrentRequestAndSelectsOnlyValidMatches() throws {
+        let preferences = try TestPreferences(prefix: "Draftly.FindCommand.")
+        defer { preferences.close() }
+        let model = try model(defaults: preferences.defaults)
+        let request = AdvancedFindRequest(text: "café", replacement: "té", caseSensitive: true, regularExpression: false)
+        model.advancedFindRequest = request
+        let commands = AdvancedFindCommands(model: model)
+        commands.find()
+        #expect(model.editor.selectedText == "café" && model.editor.selection.location == 3)
+        #expect(AdvancedFindHistory(defaults: preferences.defaults).requests == [request])
+        commands.find()
+        #expect(model.editor.selection.location == 8)
+        let selected = model.editor.selection
+        model.advancedFindRequest = AdvancedFindRequest(text: "[", replacement: "", caseSensitive: false, regularExpression: true)
+        commands.find()
+        #expect(model.editor.selection == selected)
+        #expect(AdvancedFindHistory(defaults: preferences.defaults).requests == [request])
+        #expect(model.editor.content == content && !model.hasUnsavedChanges)
     }
 }
