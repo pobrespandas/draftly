@@ -10125,9 +10125,22 @@
                 "fixture": "scripts/fixtures/engine-prompt-actions.json",
                 "result": "Prompt cancellation discarded field edits and retained draft text; acceptance applied Unicode. SelectPrompt cancellation retained text; subtitle search and Return selected id two. History confirmed Cancelled/Success for both. Other fields, permission dialogs, and native interruption paths remain pending.",
                 "evidence": "docs/validation.md: Native worker prompt boundaries — 20 October 2026"
+              },
+              {
+                "date": "2026-10-21",
+                "executableSHA256": "c089bbc5348f6e2ada8ff8ac7b6d7170ea0f8039d4a2631b33c328613ab30839",
+                "fixture": "scripts/fixtures/engine-prompt-actions.json",
+                "result": "Search initially focused. Down selected Two, Up selected One, Down and Return completed with script result Selected: two. Second run Escape canceled and preserved text. This is a Draftly keyboard improvement, not a new comparison with Drafts or acceptance of other options/lifetimes.",
+                "evidence": "docs/actions-engine.md: SelectPrompt search arrow navigation — 21 October 2026"
               }
             ]
-          }
+          },
+          "supportingTests": [
+            {
+              "suite": "DraftSelectionPresentationTests",
+              "test": "ordinarySearchArrowsNavigateFilteredOriginalIndicesAndKeepNativeEscape"
+            }
+          ]
         },
         {
           "member": "create",

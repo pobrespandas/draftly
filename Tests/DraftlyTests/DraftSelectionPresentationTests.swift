@@ -84,10 +84,37 @@ struct DraftSelectionPresentationTests {
         #expect(send(#selector(NSResponder.moveDown(_:))) && send(#selector(NSResponder.moveUp(_:))))
         #expect(choices.selectedIndex == nil && choices.emphasizedRow == nil)
         let ordinary = SearchablePromptChoices(items: [["id": "one", "title": "First"]])
-        #expect(!ordinary.control(ordinary.search, textView: editor, doCommandBy: #selector(NSResponder.moveDown(_:))))
+        #expect(ordinary.control(ordinary.search, textView: editor, doCommandBy: #selector(NSResponder.moveDown(_:))))
         ordinary.cancelSelection = { Issue.record("Ordinary SelectPrompt intercepted Escape.") }
         #expect(!ordinary.control(ordinary.search, textView: editor, doCommandBy: #selector(NSResponder.cancelOperation(_:))))
         #expect(!choices.control(NSSearchField(), textView: editor, doCommandBy: #selector(NSResponder.moveDown(_:))))
+    }
+
+    @Test func ordinarySearchArrowsNavigateFilteredOriginalIndicesAndKeepNativeEscape() {
+        let choices = SearchablePromptChoices(items: [
+            ["id": "excluded", "title": "Other"],
+            ["id": "one", "title": "First café 🐼"],
+            ["id": "two", "title": "Second", "subtitle": "café 🐼"]])
+        choices.search.stringValue = "café 🐼"; choices.filter(choices.search.stringValue)
+        let editor = NSTextView(frame: .zero)
+        func send(_ selector: Selector) -> Bool {
+            choices.control(choices.search, textView: editor, doCommandBy: selector)
+        }
+        #expect(choices.visibleIndices == [1, 2] && choices.selectedIndex == 1)
+        #expect(send(#selector(NSResponder.moveDown(_:))))
+        #expect(choices.selectedIndex == 2)
+        #expect(send(#selector(NSResponder.moveDown(_:))) && choices.selectedIndex == 2)
+        #expect(send(#selector(NSResponder.moveUp(_:))) && choices.selectedIndex == 1)
+        #expect(send(#selector(NSResponder.moveUp(_:))) && choices.selectedIndex == 1)
+        #expect(choices.search.stringValue == "café 🐼" && choices.visibleIndices == [1, 2])
+        #expect(choices.emphasizedRow == nil)
+        #expect(!send(#selector(NSResponder.insertNewline(_:))))
+        choices.cancelSelection = { Issue.record("Ordinary SelectPrompt intercepted Escape.") }
+        #expect(!send(#selector(NSResponder.cancelOperation(_:))))
+        #expect(!choices.control(NSSearchField(), textView: editor, doCommandBy: #selector(NSResponder.moveDown(_:))))
+        choices.filter("no match")
+        #expect(send(#selector(NSResponder.moveDown(_:))) && send(#selector(NSResponder.moveUp(_:))))
+        #expect(choices.selectedIndex == nil)
     }
 
     @Test func workspaceQueryStartsVisibleAndCanBeReplacedWithoutLosingSourceRows() throws {

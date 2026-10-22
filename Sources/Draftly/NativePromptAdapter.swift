@@ -219,8 +219,8 @@ struct NativePromptAdapter {
     }
     func controlTextDidChange(_ notification: Notification) { filter(search.stringValue) }
     func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
-        guard draftListOptions != nil, control === search else { return false }
-        if commandSelector == #selector(NSResponder.cancelOperation(_:)), let cancelSelection {
+        guard control === search else { return false }
+        if draftListOptions != nil, commandSelector == #selector(NSResponder.cancelOperation(_:)), let cancelSelection {
             cancelSelection()
             return true
         }

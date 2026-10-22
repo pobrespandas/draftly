@@ -480,3 +480,38 @@ selection stayed unchanged. The app reported completion. QA executable SHA256:
 QA quit normally. Native foreground variants and other step options are not
 accepted by this one background check. Personal data and the habitual app remain
 unchanged. Continue editor/prompt and other inspector contracts separately.
+
+## SelectPrompt search arrow navigation — 21 October 2026
+
+Implemented: ordinary SelectPrompt now accepts Up and Down from its initially
+focused Search field. It uses the existing filtered-index mapping and clamps at
+the first/last visible item. Draft selection retains its existing Escape route.
+Ordinary SelectPrompt leaves Escape and Return with the native alert. Unrelated
+controls are not intercepted. No scripting signature or stored format changed.
+
+The previous restriction was explicit and characterized by a test. Before the
+change, native Down from Search kept One selected and Search focused. Escape
+canceled and kept the neutral draft. This is a functional improvement; no new
+comparison with Drafts was made, and it is not evidence of a Drafts mismatch.
+
+Automatic: a new ordinary-search regression failed before the change. It covers
+Unicode title/subtitle filtering, original indices, both directions, boundaries,
+empty results, retained query, native Escape/Return and foreign controls. The
+existing draft-selection test now permits ordinary arrow navigation while
+retaining its Escape assertion. Forty-two focused app/core prompt methods passed.
+All 642 app methods passed serially with inventory/report matching. The unchanged
+Core suite retains the preceding full serial 646 result. Local Debug and signed
+Release passed. Python remains 68 from this session. The concurrent worker
+issues described above remain recorded; no deadlines or retry policy changed.
+
+Verified in use on QA executable
+c089bbc5348f6e2ada8ff8ac7b6d7170ea0f8039d4a2631b33c328613ab30839:
+- Reused scripts/fixtures/engine-prompt-actions.json and a neutral existing draft.
+- Search had initial focus. Down selected Two; Up selected One. Focus stayed in
+  Search. Down followed by Return completed and the script displayed Selected: two.
+- Ran it again and pressed Escape. It reported cancellation and retained
+  Selected: two. QA quit normally. The habitual app remained unchanged.
+
+Pending: other prompt options, interruption paths and the remaining editor,
+inspector, integration and Settings contracts retain their own acceptance. This
+check does not close the five functional blocks or the complete cloning plan.

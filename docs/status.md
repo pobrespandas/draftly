@@ -14,7 +14,10 @@ had five worker-test timeouts and remains recorded separately. The includeAction
 UUID is now editable without changing the step identity. Cancel, Save and actual
 retargeted execution passed in QA. The include-target complete app run passed 639 methods. Create Draft now has an
 Open in Editor switch. Background creation preserved native source text and
-Unicode selection. Its complete app run passed 641 methods.
+Unicode selection. Its complete app run passed 641 methods. Ordinary SelectPrompt now supports
+Up/Down from Search. Native direction changes, Return-to-script and Escape
+passed. Its complete app run passed 642 methods. No new Drafts comparison was
+made for that keyboard improvement.
 Native action-host bookmark read/write and reuse after process restart now passed
 in fresh Functional QA. Picker Cancel retained the draft, and History showed
 Cancelled / Success / Success. Permission loss and iCloud Drive remain open.
