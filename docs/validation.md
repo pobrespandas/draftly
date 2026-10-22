@@ -9771,4 +9771,3 @@ The backend, clock and tools were neutral test doubles. No native model ran,
 no library write occurred, and no visible window or permission prompt opened.
 Native generation, cancellation and tool cleanup remain pending system readiness.
 The usual app was not replaced. No QA app is running or prepared.
-
