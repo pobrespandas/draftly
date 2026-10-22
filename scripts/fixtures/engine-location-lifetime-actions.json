@@ -1,0 +1,17 @@
+[
+  {
+    "afterSuccess": "archive",
+    "group": "Location lifetime QA",
+    "name": "QA Location final result",
+    "notificationType": 0,
+    "steps": [
+      {
+        "data": {
+          "script": "editor.setText('Retained location café 🐼');draft.update();Location.currentLatitude();editor.setText('Unexpected location success');draft.update();"
+        },
+        "type": "script"
+      }
+    ],
+    "uuid": "A0760100-0000-4000-8000-000000000010"
+  }
+]

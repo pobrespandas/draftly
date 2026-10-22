@@ -9105,3 +9105,30 @@ passed. No retry or deadline changed. The previous complete 674 Core / 717 app
 run predates this change; it is not a complete run for the new regression.
 Native audio and permission acceptance remains separate. No QA was launched
 and the habitual app was unchanged.
+
+
+## Native location URL timeout and cancellation — 22 October 2026
+
+At 8d60429, isolated QA imported the neutral location fixture and loaded its
+source draft before URL execution. The script saved retained text, then called
+Location.currentLatitude without recording its value. No authorization dialog
+was observed in the QA window or app inventory. No privacy setting changed
+and no permission was granted. The real request reached its unchanged timeout
+and returned exactly one error callback with the timeout message. This does
+not establish denied authorization or unavailable services.
+
+A second URL run was cancelled through Actions > Cancel Running Action while
+location was pending. It returned exactly one cancel callback. Read-only QA
+storage confirmed retained text in Inbox with no success tail or Archive. A
+following shell recovery URL returned one success with the exact Unicode value.
+Closed storage confirmed Error, Cancelled, Success and final recovery text in
+Inbox. Actual driver stop/delegate state and late OS callbacks were not directly
+observed; those assertions still have separate injected coverage only.
+
+The reproducible import is `scripts/fixtures/engine-location-lifetime-actions.json`.
+QA executable SHA256:
+fb1d02b3b050e237e60993291f309faf14fa61612afeea12f72a88e614a08d40.
+Production code and tests were unchanged. QA/helper quit normally. Exact process
+absence and LaunchServices unregistration passed. Apps, preferences and closed
+library remain recoverable in `~/.Trash/DraftlyLocationQA-pamo_0rl`. The habitual
+app was unchanged. Native permission outcomes remain pending.
