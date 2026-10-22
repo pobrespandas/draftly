@@ -72,7 +72,7 @@ struct EditorActionBar: View {
     func move(_ offset: Int) { EditorBarCommand.move(offset, session: session) }
     func moveLine(_ direction: Int) { EditorBarCommand.moveLine(direction, model: model, session: session) }
     func duplicateLine() { EditorBarCommand.duplicateLine(model: model, session: session) }
-    func moveToMarker(_ direction: Int) { EditorBarCommand.moveToMarker(direction, session: session) }
+    func moveToMarker(_ direction: Int) { EditorBarCommand.moveToMarker(direction, model: model, session: session) }
 
 }
 

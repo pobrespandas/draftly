@@ -2297,3 +2297,16 @@ installation, advanced-find parity, full regression checks, and isolated native
 verification. The usual installed app remains unchanged.
 
 The isolated local Xcode build passed for this change.
+
+## Syntax-based marker navigation — 22 October 2026
+
+Previous Marker and Next Marker now use the assigned syntax definition, as
+scripting does. They no longer parse Markdown headings with a separate regular
+expression. They retain circular navigation and full marker selection. Selection
+synchronizes with the native editor. Navigation does not change or save content.
+A missing syntax reports an error instead of using Markdown markers.
+
+Headless tests cover custom capture ranges with Unicode and CRLF, TaskPaper
+projects, Plain Text, missing syntax, and native synchronization. Existing
+Markdown navigation cases remain. Focused syntax, editing-bar and advanced-find
+regressions passed. Native interaction and comparison with Drafts remain open.

@@ -49,14 +49,10 @@ enum EditorBarTextCommands {
             selection: NSRange(location: insertion, length: (duplicate as NSString).length))
     }
 
-    static func marker(in text: String, selection: NSRange, direction: Int) -> NSRange? {
-        let source = text as NSString
-        guard let regex = try? NSRegularExpression(pattern: "(?m)^#{1,6}\\s+.+$") else { return nil }
-        let matches = regex.matches(in: text, range: NSRange(location: 0, length: source.length))
-        guard !matches.isEmpty else { return nil }
-        let target = direction < 0
-            ? (matches.last { $0.range.location < selection.location } ?? matches.last!)
-            : (matches.first { $0.range.location > selection.location } ?? matches.first!)
-        return target.range
+    static func marker(in ranges: [NSRange], selection: NSRange, direction: Int) -> NSRange? {
+        guard let first = ranges.first, let last = ranges.last else { return nil }
+        return direction < 0
+            ? (ranges.last { $0.location < selection.location } ?? last)
+            : (ranges.first { $0.location > selection.location } ?? first)
     }
 }

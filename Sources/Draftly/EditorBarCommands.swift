@@ -92,8 +92,8 @@ import DraftlyCore
         case .moveLineUp: Self.moveLine(-1, model: model, session: session)
         case .moveLineDown: Self.moveLine(1, model: model, session: session)
         case .duplicateLine: Self.duplicateLine(model: model, session: session)
-        case .previousMarker: Self.moveToMarker(-1, session: session)
-        case .nextMarker: Self.moveToMarker(1, session: session)
+        case .previousMarker: Self.moveToMarker(-1, model: model, session: session)
+        case .nextMarker: Self.moveToMarker(1, model: model, session: session)
         case .toggleTheme:
             let isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
             model.darkTheme = !(model.darkTheme ?? isDark)
@@ -118,8 +118,17 @@ import DraftlyCore
         session.content = change.content; session.selection = change.selection
         session.focusToken = UUID(); model.contentChanged()
     }
-    static func moveToMarker(_ direction: Int, session: EditorSession) {
-        guard let selection = EditorBarTextCommands.marker(in: session.content, selection: session.safeSelection, direction: direction) else { return }
-        session.selection = selection; session.focusToken = UUID()
+    static func moveToMarker(_ direction: Int, model: WindowModel, session: EditorSession) {
+        model.perform {
+            let definition = try model.library.syntaxDefinition(named: model.currentNote?.syntax ?? "Markdown")
+            let ranges = definition.markers(in: session.content).compactMap { marker -> NSRange? in
+                guard let location = marker["location"] as? Int, let length = marker["length"] as? Int else { return nil }
+                return NSRange(location: location, length: length)
+            }
+            guard let selection = EditorBarTextCommands.marker(in: ranges, selection: session.safeSelection, direction: direction) else { return }
+            session.selection = selection
+            session.synchronizeScriptEdit?()
+            session.focusToken = UUID()
+        }
     }
 }

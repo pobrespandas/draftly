@@ -85,6 +85,47 @@ struct EditorActionBarEditingTests {
         }
     }
 
+    @Test func markerNavigationUsesAssignedSyntaxAndSynchronizesWithoutSaving() throws {
+        let text = "🐼\r\n! Café\r\n# ignored\r\n! Last"
+        try withBar(text, selection: range(0)) { fixture in
+            let syntax = try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: [
+                "name": "Neutral markers", "patterns": [], "taskMarkDefinitions": [], "linkDefinitions": [], "indentationPatterns": [],
+                "navigationPatterns": [["match": "^! ([^\r\n]*)", "rangeCapture": "1", "labelCapture": "1", "level": 0]]]))
+            try fixture.library.saveSyntax(syntax)
+            var note = try #require(fixture.model.currentNote); note.syntax = syntax.name
+            try fixture.library.saveNote(note)
+            let expected = (text as NSString).range(of: "Café")
+            var synchronized: [NSRange] = []
+            fixture.model.editor.synchronizeScriptEdit = { synchronized.append(fixture.model.editor.selection) }
+            defer { fixture.model.editor.synchronizeScriptEdit = nil }
+            fixture.bar.moveToMarker(1)
+            #expect(fixture.model.editor.selection == expected)
+            fixture.bar.moveToMarker(-1)
+            #expect(fixture.model.editor.selectedText == "Last")
+            #expect(synchronized.count == 2)
+            #expect(fixture.model.editor.content == text && !fixture.model.hasUnsavedChanges)
+        }
+    }
+
+    @Test func taskPaperMarkersAndMissingSyntaxDoNotFallBackToMarkdown() throws {
+        let text = "🐼\n# not a project\nProject:\n- task\nLast:"
+        try withBar(text, selection: range(0)) { fixture in
+            var note = try #require(fixture.model.currentNote); note.syntax = "TaskPaper"
+            try fixture.library.saveNote(note)
+            fixture.bar.moveToMarker(1)
+            #expect(fixture.model.editor.selectedText == "Project:")
+            let selection = fixture.model.editor.selection
+            note.syntax = "Plain Text"; try fixture.library.saveNote(note)
+            let focus = fixture.model.editor.focusToken
+            fixture.bar.moveToMarker(1)
+            #expect(fixture.model.editor.selection == selection && fixture.model.editor.focusToken == focus)
+            note.syntax = "Missing syntax"; try fixture.library.saveNote(note)
+            fixture.bar.moveToMarker(1)
+            #expect(fixture.library.error?.contains("Missing syntax") == true)
+            #expect(fixture.model.editor.selection == selection && fixture.model.editor.content == text)
+        }
+    }
+
     private func verify(_ scenario: EditingBarCase, fixture: Fixture, previousFocus: UUID) {
         let expected = scenario.content ?? scenario.text
         #expect(fixture.model.editor.content == expected)
