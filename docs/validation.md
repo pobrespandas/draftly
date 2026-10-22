@@ -9771,3 +9771,43 @@ The backend, clock and tools were neutral test doubles. No native model ran,
 no library write occurred, and no visible window or permission prompt opened.
 Native generation, cancellation and tool cleanup remain pending system readiness.
 The usual app was not replaced. No QA app is running or prepared.
+
+## Native transcription completion and recovery — 22 October 2026
+
+The complete isolated QA package used production commit c21dac9. Its debug
+library SHA256 was 4c269dbc0200bbc5c0a46c9696a2b9e93523767c89776c51d3f28ef4d73c241d.
+A fresh temporary library had no drafts before the neutral test source.
+The usual app was not opened or replaced. The QA bundle had no iCloud container,
+Services or document-type entries.
+
+A URL model readiness action returned one success callback with available=false
+and readiness=unavailable. No generation ran and no Apple Intelligence settings
+changed. The local action remains with the recoverable QA data; this result does
+not accept native model generation, cancellation or timeout.
+
+The transcription fixture is engine-transcription-completion-actions.json.
+The user authorized and granted speech recognition access in the protected macOS
+prompt. Computer Use then selected only the synthetic neutral audio file. The
+file was generated with Samantha, without playback or microphone recording:
+"This is a neutral test. The blue notebook is on the table."
+
+The current async adapter returned one success callback with transcript:
+"This is a neutral test the blue notebook is on the table".
+The visible editor had that same text. A read-only check confirmed the imported
+script matched the fixture. The following existing URL shell recovery returned
+one success with exact Unicode output. No extra callback was observed.
+
+Both apps quit normally. Exact process absence and exact LaunchServices
+unregistration passed. Closed history had three Success records: model readiness,
+transcription and shell recovery. The final draft had the recovery text.
+QA packages, closed library, exported preferences, local readiness action and
+synthetic audio remain recoverable at:
+~/.Trash/DraftlyModelTranscriptionQA-r0n_9o_o.
+
+Only a manual fixture and evidence changed. The fixture test and structural
+matrix check passed. Previous Core674/app754/Python68/local-build results apply
+to unchanged production code; they were not repeated for this evidence update.
+Native transcription denial, pending-authorization cancellation, production
+recognition timeout and late recognition remain pending. This session accepts
+URL transcription completion after an actual grant, not the full route-by-entry
+matrix. Six engine contracts remain partial.

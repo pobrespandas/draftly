@@ -4,6 +4,12 @@ Updated: 22 October 2026.
 
 ## Current Actions engine acceptance
 
+Native URL transcription now passed after a user-granted speech permission.
+Synthetic neutral audio returned one success, with matching callback and editor
+text. Following real shell recovery passed. QA was retired recoverably.
+Model readiness still returned unavailable. Recognition denial, timeout and
+late-result acceptance remain separate. Six engine contracts remain partial.
+
 Apple model requests now check absolute deadlines before generation, tool access
 and response delivery. Synchronous cancellation state closes the queued-cleanup
 gap. Red/green injected cases, Core674/app754, Python68 and local Debug build

@@ -1,0 +1,16 @@
+[
+  {
+    "uuid": "C95F63F5-4CCE-4E33-B3AC-5392B421D20E",
+    "name": "QA Transcription neutral completion",
+    "group": "Native acceptance QA",
+    "notificationType": 0,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Retained transcription neutral');draft.update();var text=editor.transcribe('en-US');if(typeof text!=='string'||!text.trim())throw Error('Empty transcription');context.addSuccessParameter('transcript',text);editor.setText(text);draft.update();"
+        }
+      }
+    ]
+  }
+]
