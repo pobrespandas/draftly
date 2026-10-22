@@ -8656,3 +8656,31 @@ sort differs from sort labels, absent list options use different editor/window
 fallbacks, and unsaved Workspace display options are bypassed by list getters.
 Reproduce them with focused tests before correcting production code. Keep those
 functional corrections separate from this action-list preference change.
+
+## Native Arrange Close All — 22 October 2026
+
+Build: local Debug at 2af31c8. Isolated QA executable SHA256:
+7cd18d48966da357583ed1a7517b4279dbb5b19db0c7e17ce9727cb1e8f89107.
+QA had a unique app identity, a copied closed neutral library, no Services,
+no normal URL registration and no CloudKit container. The habitual app stayed
+unchanged. Reproduction: scripts/fixtures/engine-owner-close-arrangement-actions.json.
+
+Computer Use imported the neutral actions and ran QA Owner Close Arrange Valid.
+The Arrange dialog displayed First and Second café 🐼. Command-W did not close
+it. File → Close was disabled; File → Close All was available. Close All removed
+the dialog and cleared the source selection. Execution History showed Cancelled.
+The source remained in Inbox with exactly Retained owner-close café 🐼. Neither
+ERROR tail nor Archive occurred. A following action completed and appended only
+Following action passed. Closed storage confirmed Cancelled and Success records
+for the same note, retained text and isArchived false.
+
+An initial manually constructed fixture had a literal newline inside a JavaScript
+string and failed with Unexpected EOF. It did not reach Arrange and does not count
+as lifetime acceptance. The corrected fixture above reached the panel before the
+close operation. No production fix was needed. Direct individual-window closure,
+stale navigation and URL/Intent variants remain separate checks.
+
+QA quit normally. Process inspection confirmed absence. Its exact LaunchServices
+path was unregistered. Runtime, exported preferences and closed library moved
+recoverably to ~/.Trash/DraftlyEngineLifetimeQA-5f9007e3. No screenshots or raw
+logs were added to Git. This observation does not close the engine strict gate.

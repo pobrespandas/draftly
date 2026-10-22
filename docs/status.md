@@ -2618,3 +2618,11 @@ Actual Intent failure/recovery coverage passed for rejected promises and failure
 after completion. Prior effects remain; tail and success effects stop. No runtime
 change or native acceptance is claimed. See docs/actions-engine.md. The engine
 goal remains open against docs/research/engine-native-checklist.md.
+
+### Native Arrange close and recovery — 22 October 2026
+
+File → Close All during an action Arrange dialog cancelled the run, removed the
+panel, retained completed writes and stopped tail/Archive. A following action
+succeeded. Closed storage matched the UI. QA retired recoverably; habitual app
+unchanged. Individual-window closure and other native routes remain open. See
+docs/validation.md, Native Arrange Close All.

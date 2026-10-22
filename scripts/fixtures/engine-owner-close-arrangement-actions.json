@@ -1,0 +1,43 @@
+[
+  {
+    "name": "QA Owner Close Arrange Valid",
+    "group": "Lifetime QA",
+    "notificationType": 0,
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Retained owner-close café 🐼');draft.update();"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.arrange(\"First\\nSecond café 🐼\");editor.setText('ERROR: continued');"
+        }
+      },
+      {
+        "type": "insertText",
+        "data": {
+          "template": "ERROR: tail"
+        }
+      }
+    ],
+    "uuid": "E452167C-2578-4B68-9CA7-81DE116C4141"
+  },
+  {
+    "name": "QA Following Action Valid",
+    "group": "Lifetime QA",
+    "notificationType": 0,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText(editor.getText()+\"\\nFollowing action passed\");draft.update();"
+        }
+      }
+    ],
+    "uuid": "8744062C-1405-463B-9A13-FFB0B7477959"
+  }
+]
