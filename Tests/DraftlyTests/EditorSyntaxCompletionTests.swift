@@ -7,11 +7,14 @@ import Testing
 @Suite("Editor syntax completions") @MainActor
 struct EditorSyntaxCompletionTests {
     private func request(_ source: String, selection: NSRange) throws -> SyntaxCompletionRequest {
+        try #require(try completion(source, selection: selection))
+    }
+    private func completion(_ source: String, selection: NSRange) throws -> SyntaxCompletionRequest? {
         let syntax = try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: [
             "name": "Neutral completion", "patterns": [], "navigationPatterns": [], "taskMarkDefinitions": [], "linkDefinitions": [], "indentationPatterns": [],
             "autocompleteDefinitions": [["trigger": "!!", "type": "static", "items": [
                 ["label": "Same label", "value": "First café"], ["label": "Same label", "value": "Second 🐼"]]]]]))
-        return try #require(syntax.completion(in: source, selection: selection, drafts: [], current: Note(content: source)))
+        return syntax.completion(in: source, selection: selection, drafts: [], current: Note(content: source))
     }
     @Test func navigationRetainsDuplicateIdentityAndCancelNeverProducesAnEdit() throws {
         let source = "🐼 !!", selection = NSRange(location: source.utf16.count, length: 0), id = UUID()
@@ -57,19 +60,69 @@ struct EditorSyntaxCompletionTests {
         manager.undo(); #expect(text.string == source)
         manager.redo(); #expect(text.string == "🐼 Second 🐼")
     }
-    @Test func textInputRefreshesSuggestionsButAcceptanceDoesNotOpenAnotherRequest() throws {
+    @Test func textInputRefreshesSuggestionsButAcceptanceDoesNotOpenAnotherRequest() async throws {
         let text = DraftTextView(frame: .zero); text.isRichText = false
         text.string = "🐼 !"; text.setSelectedRange(NSRange(location: text.string.utf16.count, length: 0))
         var requested = 0
         text.completionProvider = { source, selection in
             requested += 1
-            return try? request(source, selection: selection)
+            return try? completion(source, selection: selection)
         }
         text.insertText("!", replacementRange: text.selectedRange())
+        await TestMainQueue.drain()
         #expect(requested == 1 && text.syntaxCompletions.request?.items.count == 2)
         text.syntaxCompletions.accept(in: text, index: 1)
+        await TestMainQueue.drain()
         #expect(text.string == "🐼 Second 🐼" && requested == 1)
         #expect(text.syntaxCompletions.request == nil && text.window == nil)
+    }
+
+    @Test func deletionRefreshesSuggestionsAndRemovingTriggerDismissesThem() async throws {
+        let text = DraftTextView(frame: .zero); text.isRichText = false
+        text.string = "🐼 !!x"; text.setSelectedRange(NSRange(location: text.string.utf16.count, length: 0))
+        text.completionProvider = { source, selection in try? completion(source, selection: selection) }
+        #expect(!text.refreshSyntaxCompletions())
+        text.deleteBackward(nil); await TestMainQueue.drain()
+        #expect(text.string == "🐼 !!")
+        #expect(text.syntaxCompletions.request?.items.count == 2)
+        text.deleteBackward(nil); await TestMainQueue.drain()
+        #expect(text.string == "🐼 !" && text.syntaxCompletions.request == nil)
+        #expect(text.window == nil)
+    }
+
+    @Test func forwardDeletionRefreshesTheQueryAtTheFinalInsertionPoint() async throws {
+        let text = DraftTextView(frame: .zero); text.isRichText = false
+        text.string = "🐼 !!x"; text.setSelectedRange(NSRange(location: text.string.utf16.count - 1, length: 0))
+        var queries: [NSRange] = []
+        text.completionProvider = { source, selection in
+            queries.append(selection)
+            return try? completion(source, selection: selection)
+        }
+        text.deleteForward(nil); await TestMainQueue.drain()
+        #expect(text.string == "🐼 !!")
+        #expect(queries == [NSRange(location: text.string.utf16.count, length: 0)])
+        #expect(text.syntaxCompletions.request?.items.count == 2 && text.window == nil)
+    }
+
+    @Test(arguments: ["cancel", "selection", "draft", "source"])
+    func queuedRefreshIgnoresAChangedEditingContext(_ change: String) async throws {
+        let text = DraftTextView(frame: .zero); text.isRichText = false
+        text.string = "🐼 !!x"; text.setSelectedRange(NSRange(location: text.string.utf16.count, length: 0))
+        text.completionNoteID = UUID()
+        var requested = 0
+        text.completionProvider = { source, selection in
+            requested += 1
+            return try? completion(source, selection: selection)
+        }
+        text.deleteBackward(nil)
+        switch change {
+        case "cancel": text.cancelSyntaxCompletions()
+        case "selection": text.setSelectedRange(NSRange(location: 0, length: 0))
+        case "draft": text.completionNoteID = UUID()
+        default: text.string = "Other source"
+        }
+        await TestMainQueue.drain()
+        #expect(requested == 0 && text.syntaxCompletions.request == nil && text.window == nil)
     }
 
     @Test func equivalentBuiltInDefinitionsRetainSuggestionsAcrossViewUpdates() async throws {

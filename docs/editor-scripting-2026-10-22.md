@@ -446,3 +446,41 @@ Final serial runs passed 684 app methods/122 suites and 661 Core methods/124
 suites. Both reports match the discovered inventory. Python68, matrix structure0
 and the local Xcode build passed. No retry or timeout was changed. The full scope
 is not accepted; the interaction and reference checks above remain pending.
+
+## Autocomplete refresh after deletion
+
+Two new headless cases failed before the correction. Backward and forward deletion
+changed the text without requesting updated suggestions. DraftTextView now uses
+didChangeText for edits that do not pass through insertText. It waits for the next
+main-queue turn, then checks source, selection, draft identity and refresh revision.
+An explicit refresh supersedes the queued one. Cancellation, focus loss, detachment
+and acceptance invalidate pending refreshes. Undo and Redo do not request them.
+
+Nine focused app methods passed. New cases cover deleting a nonmatching suffix,
+removing a trigger, forward deletion, the final UTF-16 insertion point, and pending
+work after cancellation or a source/selection/draft change. The insertion test
+now drains pending work and confirms that acceptance does not open another request.
+The fixture separates an optional query from a required request. Expected absence
+does not record an asynchronous assertion outside the test case.
+
+Apple's didChangeText contract was checked: it notifies the delegate when a series
+of changes completes. Reference:
+https://developer.apple.com/documentation/appkit/nstextview/didchangetext()
+
+Isolated Delete QA had one neutral target draft. Query cafex had no result.
+Backward deletion produced cafe and displayed its matching bracketed title.
+Return inserted the title. Undo restored the query and Redo restored exactly the
+accepted result. A second deletion/Escape/Return sequence kept the query and
+inserted only a newline. The local Xcode build passed. Forward deletion and stale
+contexts have automatic evidence; their separate native checks remain pending.
+
+QA quit normally. Process absence was checked, its exact registration was removed,
+and the bundle, exported preferences and closed library are in recoverable Trash.
+No screenshots or raw logs are tracked. The habitual app is unchanged. Mouse/static
+suggestions, feature-toggle acceptance, IME, long lists, multiple windows and the
+remaining grammar/link/Find scope remain open.
+
+The final serial app run passed 687 methods in 122 suites. Its report matches
+current discovery. Core sources did not change; the prior661/124 report also
+matches the current Core inventory. The matrix structural check has zero errors.
+No timeout or retry changed. These results do not accept the remaining scope.

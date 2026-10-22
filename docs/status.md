@@ -2443,3 +2443,18 @@ The final serial app684/122 and Core661/124 passed; XML reports match discovery.
 Python68, matrix structure0 and local Xcode build passed. Temporary trace code is
 removed. QA was closed and retired to recoverable Trash with its exact registration
 removed. The habitual app, its preferences and library were not changed.
+
+
+### Completion refresh after deletion — 22 October 2026
+
+Specific backward/forward deletion tests failed before the correction. The editor
+now queues a guarded refresh after text-change notification. Explicit input,
+cancellation, focus/context changes and acceptance invalidate older requests.
+Nine focused methods passed. Isolated native QA checked backward deletion,
+list reopening, title insertion, Undo/Redo and Escape. It quit normally and its
+exact registration was retired. Its closed data remains recoverable in Trash.
+
+The full serial app run passed687/122; XML matches discovery. Core sources are
+unchanged and the prior661/124 report matches current inventory. Local build and
+matrix structure0 passed. Forward native deletion, mouse/static suggestions,
+feature toggles and the wider Editor/scripting objective remain pending.

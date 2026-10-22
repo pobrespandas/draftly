@@ -309,15 +309,31 @@ final class DraftTextView: NSTextView {
     let syntaxCompletions = EditorSyntaxCompletions()
     var completionNoteID: UUID?
     var completionProvider: ((String, NSRange) -> SyntaxCompletionRequest?)?
+    private var completionRevision = 0
     override func keyDown(with event: NSEvent) {
+        completionRevision &+= 1
         if syntaxCompletions.handle(event) { return }
         syntaxCompletions.dismiss()
         super.keyDown(with: event)
     }
     private var insertingSyntaxCompletion = false
+    override func didChangeText() {
+        super.didChangeText()
+        guard !insertingSyntaxCompletion, undoManager?.isUndoing != true, undoManager?.isRedoing != true else { return }
+        let revision = completionRevision, source = string, noteID = completionNoteID, selection = selectedRange()
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.completionRevision == revision, self.string == source,
+                  self.completionNoteID == noteID, self.selectedRange() == selection else { return }
+            self.refreshSyntaxCompletions()
+        }
+    }
     override func insertText(_ insertString: Any, replacementRange: NSRange) {
         super.insertText(insertString, replacementRange: replacementRange)
         if !insertingSyntaxCompletion { refreshSyntaxCompletions() }
+    }
+    func cancelSyntaxCompletions() {
+        completionRevision &+= 1
+        syntaxCompletions.dismiss()
     }
     func insertSyntaxCompletion(_ value: String, range: NSRange) {
         insertingSyntaxCompletion = true
@@ -327,6 +343,7 @@ final class DraftTextView: NSTextView {
         breakUndoCoalescing()
     }
     @discardableResult func refreshSyntaxCompletions() -> Bool {
+        completionRevision &+= 1
         guard !hasMarkedText(), let request = completionProvider?(string, selectedRange()), !request.items.isEmpty else {
             syntaxCompletions.dismiss(); return false
         }
@@ -338,12 +355,12 @@ final class DraftTextView: NSTextView {
         if !refreshSyntaxCompletions() { super.complete(sender) }
     }
     override func resignFirstResponder() -> Bool {
-        syntaxCompletions.dismiss()
+        cancelSyntaxCompletions()
         return super.resignFirstResponder()
     }
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
-        if window == nil { syntaxCompletions.dismiss() }
+        if window == nil { cancelSyntaxCompletions() }
     }
     private(set) var customTouchBarController: EditorTouchBarController?
     private(set) var showCustomTouchBar = true
@@ -385,7 +402,7 @@ final class DraftTextView: NSTextView {
 
     var syntaxDefinition: SyntaxDefinition?
     override func mouseDown(with event: NSEvent) {
-        syntaxCompletions.dismiss()
+        cancelSyntaxCompletions()
         let point = convert(event.locationInWindow, from: nil)
         if let syntaxDefinition, let layoutManager, let textContainer {
             let index = characterIndexForInsertion(at: point)

@@ -74,6 +74,7 @@ import DraftlyCore
     }
     func accept(in textView: DraftTextView, index: Int? = nil) {
         let edit = value(source: textView.string, selection: textView.selectedRange(), noteID: textView.completionNoteID, index: index)
+        textView.cancelSyntaxCompletions()
         dismiss()
         if let edit { textView.insertSyntaxCompletion(edit.1, range: edit.0) }
     }
