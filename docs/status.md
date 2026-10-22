@@ -13,6 +13,9 @@ verification passed 646 Core / 637 app methods; the initial concurrent Core run
 had five worker-test timeouts and remains recorded separately. The includeAction
 UUID is now editable without changing the step identity. Cancel, Save and actual
 retargeted execution passed in QA. The latest complete app run passed 639 methods.
+Native action-host bookmark read/write and reuse after process restart now passed
+in fresh Functional QA. Picker Cancel retained the draft, and History showed
+Cancelled / Success / Success. Permission loss and iCloud Drive remain open.
 The earlier delivery covers the main window, daily flows and personalization.
 Read [the delivery record](ui-flows-2026-10-21.md) for separate implementation,
 automatic, native and pending results. Capture receipt/append, File commands,

@@ -1,0 +1,17 @@
+[
+  {
+    "uuid": "FE8A600E-4B31-4B5F-BAC8-D899181421E5",
+    "name": "QA Bookmark restart read and write",
+    "group": "File Bookmark QA",
+    "notificationType": 0,
+    "logLevel": 2,
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "const bookmark=Bookmark.findOrCreate('Functional QA Folder');\nif(!bookmark)throw Error('No QA bookmark selected');\nconst fm=FileManager.createForBookmark(bookmark);\nconst expected='Neutral bookmark source — café 🐼\\n';\nif(fm.readString('source.txt')!==expected)throw Error('Unexpected neutral source: '+fm.lastError);\nif(fm.readString('missing.txt')!==undefined||!fm.lastError)throw Error('Missing-file error was not reported');\nconst result='Bookmark action read/write passed — café 🐼\\n';\nif(!fm.writeString('result.txt',result))throw Error('Write failed: '+fm.lastError);\nif(fm.readString('result.txt')!==result)throw Error('Readback failed: '+fm.lastError);\ncontext.addSuccessParameter('bookmarkResult','passed');\napp.displayInfoMessage('Bookmark action read/write passed');"
+        }
+      }
+    ]
+  }
+]

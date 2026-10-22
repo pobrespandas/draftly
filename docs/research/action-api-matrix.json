@@ -23342,6 +23342,14 @@
             "fixture": "scripts/fixtures/window-tab-opening-actions.json",
             "result": "Two native target tabs confirmed in origin tab group before worker action success. Exact targets and source preservation observed; Success07:54. Slow, canceled and simultaneous native scene creation not accepted by this success case.",
             "evidence": "docs/validation.md: Correlated native tab opening — 21 October 2026"
+          },
+          {
+            "date": "2026-10-21",
+            "executableSHA256": "77aa984798a0eb6c5602f9ecd73c3ad6e5e83b4be482dd892c1a574195f05c2e",
+            "fixture": "scripts/fixtures/bookmark-restart-actions.json",
+            "entryPoint": "Functional QA Actions menu",
+            "result": "Folder picker Cancel kept neutral draft; next run selected a neutral folder and passed exact Unicode read/write and missing-file error. After normal process Quit and restart, action reused the bookmark without another picker. History: Cancelled, Success, Success. Does not accept denied/lost access, owner close, late panel callback, iCloud Drive or URL/Intent variants.",
+            "evidence": "docs/actions-engine.md: Native action bookmark restart — 21 October 2026"
           }
         ]
       },

@@ -423,3 +423,31 @@ services, permissions or CloudKit data changed.
 Pending: this field fix does not provide a visual action picker or settle shared
 configuration precedence. Other inspector options and native capability lifetime
 checks remain open. Continue the five functional blocks approved by the user.
+
+## Native action bookmark restart — 21 October 2026
+
+No production change was needed. The reproducible fixture is
+scripts/fixtures/bookmark-restart-actions.json. Prepare a neutral folder with
+source.txt containing Neutral bookmark source — café 🐼 followed by a newline.
+Do not use a personal folder. The action reads source.txt, checks the missing.txt
+error, writes result.txt, checks exact Unicode readback and adds a success
+parameter. It does not change the draft.
+
+Verified in use on Functional QA executable
+77aa984798a0eb6c5602f9ecd73c3ad6e5e83b4be482dd892c1a574195f05c2e:
+- Imported the fixture through File Import. Started from a neutral draft.
+- Canceled the first folder picker. The app reported cancellation and kept the
+  draft text. The next run requested a folder again.
+- Selected only the neutral BookmarkQA folder. The action reported read/write
+  success. File inspection confirmed exact source/result text and no missing.txt.
+- Quit normally and confirmed the process absent. Reopened the same package and
+  library. Loaded the existing draft and ran the same action. It completed
+  without a folder picker. Execution History contained Cancelled, Success and
+  Success for these three attempts. QA then quit normally.
+
+The QA app uses no CloudKit, Services or URL scheme. Python tooling passed all
+68 tests, including fixture identity checks. No Swift source changed after the
+preceding validated builds. The result accepts this UI action-host bookmark path
+and restart, not Settings geometry, denied/lost permissions, Forget, iCloud Drive,
+owner-close cleanup or capability-specific URL/Intent variants. The strict engine
+records remain partial where those obligations remain open.
