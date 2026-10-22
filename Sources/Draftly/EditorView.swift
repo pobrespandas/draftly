@@ -216,6 +216,12 @@ struct NativeEditor: NSViewRepresentable {
                     }
                 }
             }
+            if parent.linksEnabled, let definition = parent.syntaxDefinition {
+                for link in definition.resolvedLinks(in: view.string) {
+                    activeRanges.append(link.range)
+                    storage.addAttributes([.link: link.url, .foregroundColor: NSColor.linkColor], range: link.range)
+                }
+            }
             if let theme = parent.theme {
                 func apply(_ scope: String, range: NSRange) {
                     guard range.length > 0, let style = theme.scopeStyle(named: scope) else { return }

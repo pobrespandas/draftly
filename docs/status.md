@@ -2274,3 +2274,26 @@ The isolated local app build passed. Native permission acceptance and the
 installed app update remain pending.
 The usual app was not replaced. This is a functional fix, separate from the
 completed Advanced Find refactoring.
+
+## Editor syntax link templates — 22 October 2026
+
+The editor did not turn custom syntax link templates into active links. The
+shared definition now resolves templates by captured key. It uses the link
+capture for the active UTF-16 range. Encoded values escape URL delimiters. Raw
+values retain URL delimiters and existing escapes. Invalid URL characters are
+escaped before Foundation constructs the URL, to prevent double encoding when
+both placeholders occur in one template. Missing templates do not create links.
+Disabled definitions remain inactive. Script link snapshots keep their format.
+
+The editor applies resolved links only in link mode. The new windowless rendering
+test checks the capture boundaries, mode changes, and retained text and selection.
+The focused run passed four rendering methods and ten syntax methods. No native
+click or Drafts comparison is claimed. The reference remains the archived syntax
+format from 19 October. The current web guide was consulted only as a cross-check.
+
+This change does not close Editor/scripting. Remaining acceptance includes tasks,
+markers, built-in link templates and destinations, custom grammar features and
+installation, advanced-find parity, full regression checks, and isolated native
+verification. The usual installed app remains unchanged.
+
+The isolated local Xcode build passed for this change.

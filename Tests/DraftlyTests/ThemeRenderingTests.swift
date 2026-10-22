@@ -24,6 +24,33 @@ struct ThemeRenderingTests {
         let color = try #require((value as? NSColor)?.usingColorSpace(.sRGB))
         return String(format: "%02X%02X%02X", Int((color.redComponent * 255).rounded()), Int((color.greenComponent * 255).rounded()), Int((color.blueComponent * 255).rounded()))
     }
+    @Test func customSyntaxLinksRespectLinkModeAndCapturedUTF16Range() throws {
+        let text = "🐼 <<web:café &/>>"
+        let syntax = try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: [
+            "name": "Neutral links", "patterns": [], "navigationPatterns": [],
+            "indentationPatterns": [], "taskMarkDefinitions": [],
+            "linkDefinitions": [["match": #"(<<)((web):([^>]+))(>>)"#,
+                "captures": ["key": "3", "value": "4", "link": "2"],
+                "templates": ["web": "https://example.invalid/?q=[[value]]"]]]]))
+        let session = EditorSession(); session.load(Note(content: text), focusEditor: false)
+        let selected = (text as NSString).range(of: "🐼")
+        session.selection = selected
+        let view = NSTextView(frame: .zero); view.string = text; view.setSelectedRange(selected)
+        for enabled in [true, false, true] {
+            let editor = NativeEditor(session: session, fontName: "System", fontSize: 17,
+                lineSpacing: 2, markdown: false, syntaxDefinition: syntax, linksEnabled: enabled, onChange: {})
+            let coordinator = editor.makeCoordinator(); coordinator.textView = view
+            coordinator.highlight()
+            let storage = try #require(view.textStorage)
+            let range = (text as NSString).range(of: "web:café &/")
+            let url = storage.attribute(.link, at: range.location, effectiveRange: nil) as? URL
+            #expect(url?.absoluteString == (enabled ? "https://example.invalid/?q=caf%C3%A9%20%26%2F" : nil))
+            #expect(storage.attribute(.link, at: range.location - 1, effectiveRange: nil) == nil)
+            #expect(storage.attribute(.link, at: NSMaxRange(range), effectiveRange: nil) == nil)
+            #expect(view.string == text && view.selectedRange() == selected)
+        }
+    }
+
     @Test func markdownAndCustomScopesApplyAttributesWithoutChangingUTF16SelectionOrText() throws {
         let session = EditorSession()
         session.load(Note(content: "# Header\n**Bold** and `code`\n*Italic*\n~~Gone~~\ncafé 🐼"), focusEditor: false)

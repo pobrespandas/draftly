@@ -109,6 +109,30 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
             }
         }.sorted { ($0["location"] as? Int ?? 0) < ($1["location"] as? Int ?? 0) }
     }
+    public func resolvedLinks(in text: String) -> [(range: NSRange, url: URL)] {
+        let source = text as NSString
+        let unreserved = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
+        return rules("linkDefinitions").flatMap { rule in
+            let captures = rule["captures"] as? [String: String] ?? [:]
+            let templates = rule["templates"] as? [String: String] ?? [:]
+            return results(rule, text).compactMap { match -> (range: NSRange, url: URL)? in
+                let key = capture(match, captures["key"]).map(source.substring(with:)) ?? ""
+                guard let template = templates[key],
+                      let valueRange = capture(match, captures["value"]),
+                      let range = capture(match, captures["link"]), range.length > 0 else { return nil }
+                let value = source.substring(with: valueRange)
+                guard let encoded = value.addingPercentEncoding(withAllowedCharacters: unreserved) else { return nil }
+                // Preserve URL delimiters and existing escapes in the raw value.
+                let urlCharacters = unreserved.union(CharacterSet(charactersIn: ":/?#[]@!$&'()*+,;=%"))
+                guard let raw = value.addingPercentEncoding(withAllowedCharacters: urlCharacters) else { return nil }
+                let expanded = template.replacingOccurrences(of: "[[value]]", with: encoded)
+                    .replacingOccurrences(of: "[[value_unencoded]]", with: raw)
+                guard let url = URL(string: expanded), url.scheme != nil else { return nil }
+                return (range, url)
+            }
+        }.sorted { $0.range.location < $1.range.location }
+    }
+
     public func links(in text: String) -> [[String: Any]] {
         let source = text as NSString
         return rules("linkDefinitions").flatMap { rule in

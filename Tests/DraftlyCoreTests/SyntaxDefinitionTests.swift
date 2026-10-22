@@ -140,6 +140,24 @@ struct SyntaxDefinitionTests {
         #expect(throws: (any Error).self) { try SyntaxFileAccess.read(syntax, defaults: defaults) }
         #expect(!String(decoding: try JSONEncoder().encode(syntax), as: UTF8.self).contains(directory.path))
     }
+    @Test func customLinkTemplatesUseCapturedRangeAndEncodeValuesOnce() throws {
+        var value = source()
+        var rules = try #require(value["linkDefinitions"] as? [[String: Any]])
+        rules[0]["templates"] = ["note": "https://example.invalid/?q=[[value]]&raw=[[value_unencoded]]"]
+        value["linkDefinitions"] = rules
+        let syntax = try definition(value)
+        let text = "🐼 <<note:café &/>> <<unknown:x>>"
+        let links = syntax.resolvedLinks(in: text)
+        #expect(links.count == 1)
+        let link = try #require(links.first)
+        #expect(link.range == (text as NSString).range(of: "note:café &/"))
+        #expect(link.url.absoluteString.contains("q=caf%C3%A9%20%26%2F&raw="))
+        #expect(link.url.absoluteString.contains("raw=caf%C3%A9%20&/"))
+        #expect(syntax.links(in: text).count == 2)
+        rules[0]["enabled"] = false; value["linkDefinitions"] = rules
+        #expect(try definition(value).resolvedLinks(in: text).isEmpty)
+    }
+
     @Test func defaultWorkspaceCopiesConfigurationWithANewIdentityAndFallsBackAfterDeletion() throws {
         let store = try LibraryStore(inMemory: true, seed: false)
         var workspace = Workspace(name: "Selected"); workspace.tags = ["work"]; workspace.sort = .accessed
