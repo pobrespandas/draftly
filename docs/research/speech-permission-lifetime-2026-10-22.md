@@ -111,3 +111,64 @@ manual probes were prepared, not executed. Their explicit identities pass the
 existing Python collision check. No native permission, capture cleanup or
 production 120-second recognition timeout is newly accepted. Existing positive
 speech/transcription evidence remains in the dated validation records.
+
+
+## Native audio callback fault found during acceptance
+
+A separate manual session used the existing Engine QA identity, signed with
+team NM92LU2KKV. It used only the neutral speech fixture and a new temporary
+library (7764586B-7C73-438E-8DA6-5773EEE836EB). CloudKit and Services were disabled.
+The user reported granting speech recognition permission. The protected system
+prompt was not readable through Computer Use. No privacy database was reset.
+
+The first attempts retained the fixture marker in Inbox. Reopening QA confirmed
+that text. Two subsequent runs exited before Computer Use could observe the
+Dictation panel. The system log for process 11059 at 19:47:28 reported audio
+engine start followed by a libdispatch assertion: the block expected the main
+queue. Audio therefore started briefly; absence of a visible panel does not
+prove that capture never started. No recognized text was observed or accepted.
+The old 18:56 launch-constraint crash report belongs to a different attempt and
+must not be used as the cause of this exit.
+
+SystemDictationDriver.startRecording created its audio tap closure inside a
+MainActor class. The installed macOS 27 SDK declares AVAudioNodeTapBlock
+NS_SWIFT_NONSENDABLE and explicitly permits invocation outside the main thread.
+This allows inherited actor isolation that the audio callback cannot satisfy.
+The [Swift migration guide](https://github.com/swiftlang/swift-migration-guide/blob/main/Guide.docc/IncrementalAdoption.md)
+describes the same missing-annotation inference and the explicit Sendable remedy.
+
+DictationCallback.audioTap now creates an explicitly Sendable callback outside
+the driver actor. It only appends the supplied buffer to its recognition request.
+The driver still creates and owns its engine, request and panel on MainActor.
+Recognition updates still return to MainActor. No timeout, permission rule,
+selection rule or public API changed. This functional fix is separate from the
+previous cancellation correction and coverage commit.
+
+DictationCallbackTests.audioTapCreatedOnMainActorAcceptsSyntheticAudioOffActor
+creates the production callback on MainActor and invokes it from a detached task
+with 32 silent synthetic frames. It starts no engine, recognition task or device.
+Both callback tests pass. Full Core679/app793 results match XML/discovery; Python80,
+local Debug build, structural matrix0 and diff checks pass. The strict engine
+gate still has six partial contracts and18 diagnostics. No deadline or retry rule
+changed. Test/build outputs remain in /tmp/draftly-audio-tap-* outside Git.
+
+The corrected QA package passed deep/strict signature validation. SHA256:
+- Draftly: 727b905cf2b1d1de3218153cf9736d030b1a21b088770e0de55062020df564d0
+- Draftly.debug.dylib: 137cc06947e7b4aefd7f012e3c6ed1e21da31c4e2271b322b1c73342524543cc
+
+Computer Use then observed the Dictation panel with Listening, Cancel and Done.
+The user was asked to say only the agreed neutral phrase and choose Done.
+No phrase result arrived during this wait. Computer Use selected Cancel at 19:52.
+The panel closed. The draft retained only Retained dictation café 🐼 in Inbox.
+No completion tail appeared. Execution History showed one Cancelled row with
+Neutral user cancellation. This is the fixture's explicit empty-result branch,
+not task cancellation, permission denial or timeout. The process log confirms
+engine stop and input Stopped at 19:52:13, before the normal QA quit.
+The exact QA process is absent. Its exact LaunchServices record was removed.
+The package and neutral library remain at their temporary paths for recovery.
+
+This accepts the native user-Cancel subcase from the action palette and capture
+stop for this package. Recognition/Done, Undo, URL/Intent speech entry points,
+permission denial, pending grant cancellation and production timeout stay open.
+The user-reported grant alone does not accept those outcomes. The usual app
+remains unchanged. No raw log or screenshot is tracked.

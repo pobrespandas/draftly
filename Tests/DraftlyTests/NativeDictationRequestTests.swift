@@ -399,6 +399,21 @@ struct NativeDictationHostTests {
 
 @Suite("Dictation callback isolation") @MainActor
 struct DictationCallbackTests {
+    @Test func audioTapCreatedOnMainActorAcceptsSyntheticAudioOffActor() async throws {
+        let request = SFSpeechAudioBufferRecognitionRequest()
+        let tap = DictationCallback.audioTap(for: request)
+        let frames = try await Task.detached {
+            let format = try #require(AVAudioFormat(standardFormatWithSampleRate: 44_100, channels: 1))
+            let buffer = try #require(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 32))
+            buffer.frameLength = 32
+            buffer.floatChannelData?[0].initialize(repeating: 0, count: 32)
+            tap(buffer, AVAudioTime(sampleTime: 0, atRate: format.sampleRate))
+            return buffer.frameLength
+        }.value
+        request.endAudio()
+        #expect(frames == 32)
+    }
+
     @Test func backgroundPermissionRepliesReachMainActor() async {
         for allowed in [true, false] {
             let received = await withCheckedContinuation { continuation in

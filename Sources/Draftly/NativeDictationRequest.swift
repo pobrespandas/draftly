@@ -4,6 +4,11 @@ import AVFoundation
 import DraftlyCore
 
 enum DictationCallback {
+    static func audioTap(for request: SFSpeechAudioBufferRecognitionRequest)
+        -> @Sendable (AVAudioPCMBuffer, AVAudioTime) -> Void {
+        { @Sendable buffer, _ in request.append(buffer) }
+    }
+
     static func onMainActor<Value: Sendable>(
         _ completion: @escaping @MainActor @Sendable (Value) -> Void
     ) -> @Sendable (Value) -> Void {
@@ -225,7 +230,7 @@ private final class SystemDictationDriver: NSObject, NativeDictationDriving, NSW
         self.request = request
         let input = engine.inputNode, format = input.outputFormat(forBus: 0)
         guard format.channelCount > 0, format.sampleRate > 0 else { throw DraftlyError.message("No microphone is available.") }
-        input.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in request.append(buffer) }
+        input.installTap(onBus: 0, bufferSize: 1024, format: format, block: DictationCallback.audioTap(for: request))
         tapInstalled = true
         recognitionTask = recognizer.recognitionTask(with: request) { @Sendable [weak self] result, error in
             let update = NativeTranscriptionUpdate(text: result?.bestTranscription.formattedString,

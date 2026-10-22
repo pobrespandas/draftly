@@ -142,3 +142,16 @@ remain unresolved. Link results to their case IDs and existing dated evidence.
 Update limits only after observed acceptance. Retain blocked cases explicitly.
 The strict gate must not pass by deleting an obligation, removing a contract or
 marking a whole contract unavailable for one blocked capability.
+
+
+## Native dictation callback follow-up
+
+The separate speech record documents a native audio-start exit and a focused
+Sendable audio-tap correction. Full Core679/app793, Python80, local Debug build
+and structural matrix0 pass. Strict engine remains six partial/18 diagnostics.
+The corrected signed Engine QA showed Dictation. User-Cancel from the action
+palette closed the panel, stopped audio, retained the marker in Inbox, omitted
+tail/Archive and recorded Cancelled. This is one user-Cancel subcase of DICTATE-01.
+Recognition/Done, Undo, URL/Intent speech paths, task cancellation, permission
+negative paths and production timeout remain open. No row is promoted wholesale.
+The usual app is unchanged. QA is closed; its neutral data remain recoverable.

@@ -2,6 +2,17 @@
 
 Updated: 22 October 2026.
 
+## Native dictation audio callback
+
+Manual speech acceptance exposed an Engine QA exit after audio startup. The
+system log reports a main-queue assertion. The audio tap now uses an explicit
+Sendable callback outside the driver actor. A synthetic off-actor callback test
+passes without devices. Full Core679/app793, Python80, local Debug build and
+structural matrix0 pass. The corrected isolated QA shows Dictation without exit.
+Native Cancel closed the panel, stopped audio and retained the Inbox marker
+without the tail/Archive effect. History showed Cancelled. Recognition/Done and
+the remaining speech cases stay open. QA is closed; the usual app is unchanged. See the [speech record](research/speech-permission-lifetime-2026-10-22.md).
+
 ## Speech permission and cleanup
 
 The [speech lifetime record](research/speech-permission-lifetime-2026-10-22.md)
@@ -14,8 +25,8 @@ Final checks passed Core679/app792, Python80, focused53, local Debug build and
 structural matrix0. The strict engine gate remains six partial contracts and
 18 diagnostics. Tests used injected drivers, no real microphone or permissions.
 Two neutral manual probes are prepared. Real speech/microphone permission,
-quiet dictation and production recognition timeout remain pending. No native
-session was started; the usual app and privacy settings remain unchanged.
+quiet dictation and production recognition timeout remain pending. That controlled stage started no native session. The later manual session above
+records the user-reported permission grant and the separate audio callback fault.
 Work is on agent/speech-permission-lifetime-2026-10-22, based on the previous
 engine acceptance branch. Main remains c82ae79 until a separate integration.
 

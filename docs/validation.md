@@ -10161,3 +10161,24 @@ No native permission request, speech session or microphone capture ran. Two
 neutral manual probes are prepared but not accepted as executed. The user was
 asked for a quiet-session availability; protected OS permissions remain gated.
 No habitual app, privacy setting, original script or native acceptance changed.
+
+
+## Native dictation callback correction — 22 October 2026
+
+A manual Engine QA run exited after audio engine startup. The system log reports
+a block that expected the main queue. The installed SDK permits audio tap calls
+outside that queue. The driver now uses an explicit Sendable callback constructed
+outside MainActor. Its new test supplies synthetic silent audio on a detached
+task without starting a microphone or recognition task.
+
+Full Core679/app793 matched XML/discovery; Python80, local Debug build and
+structural matrix0 pass. Strict engine remains six partial contracts/18 diagnostics.
+The signed isolated QA then displayed Dictation with Listening, Cancel and Done.
+No phrase result arrived during the wait. Computer Use selected Cancel. The
+panel closed, Inbox retained the marker without a completion tail or Archive,
+and History showed Cancelled: Neutral user cancellation. The process log shows
+engine/input stop at 19:52:13. QA quit normally; its exact process is absent.
+This accepts user-Cancel from the action palette, not task cancellation or a
+permission outcome. Recognition/Done and other native speech cases stay open.
+The usual app is unchanged.
+See research/speech-permission-lifetime-2026-10-22.md for package hashes and limits.
