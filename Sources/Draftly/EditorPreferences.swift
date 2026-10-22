@@ -86,6 +86,7 @@ struct EditorLayoutPreferences: View {
     @State private var editing: EditorTheme?
     @State private var editingDark: Bool?
     @State private var error: String?
+    @AppStorage(SyntaxFeaturePreferences.key) private var syntaxFeatures = "{}"
     @State private var indentationSyntax = "Markdown"
     @AppStorage(EditorIndentationPreferences.key) private var indentation = "{}"
     private var themes: [EditorTheme] { library.themes }
@@ -100,6 +101,19 @@ struct EditorLayoutPreferences: View {
                 set: { indentation = EditorIndentationPreferences.setting($0, for: indentationSyntax, encoded: indentation) }
             )) {
                 ForEach(EditorIndentationStyle.allCases, id: \.self) { Text($0.label).tag($0) }
+            }
+        }
+        Section("Syntax Features") {
+            switch Result(catching: { try library.syntaxDefinition(named: indentationSyntax) }) {
+            case .success(let definition):
+                if definition.features.isEmpty { Text("This syntax has no feature options.").foregroundStyle(.secondary) }
+                ForEach(definition.features) { feature in
+                    Toggle(feature.name, isOn: Binding(
+                        get: { SyntaxFeaturePreferences.values(for: indentationSyntax, encoded: syntaxFeatures)[feature.id] ?? feature.defaultValue },
+                        set: { syntaxFeatures = SyntaxFeaturePreferences.setting($0, feature: feature.id, syntax: indentationSyntax, encoded: syntaxFeatures) }
+                    )).help(feature.description)
+                }
+            case .failure(let failure): Text(failure.localizedDescription).foregroundStyle(.red)
             }
         }
         Section("Editor Layout") {

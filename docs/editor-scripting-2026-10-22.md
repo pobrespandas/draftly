@@ -332,3 +332,30 @@ in 124 suites. Both XML reports match current discovery. All 68 Python tests
 passed. The matrix structural check reported zero errors. The local Xcode build
 passed after the prefix correction. No test timeout or retry policy changed.
 These results do not close the native checks and grammar features listed above.
+
+## Syntax feature options
+
+Definitions expose their named feature keys, descriptions and default values.
+Shared rules require all feature IDs in their comma-separated featureKeys value.
+The same filter governs highlighting, tasks, links, markers and list continuation.
+Editor Settings lists the selected syntax features as toggles with descriptions.
+Changing a toggle invalidates editor styling even when the source is unchanged.
+The original syntaxDefinition(named:) access remains available; a separate
+preferences-injected access supports isolated tests.
+
+Overrides use a local preferences key, grouped by syntax name. Syntax source,
+identity and coding keys remain unchanged. Runtime overrides are not encoded in
+syntax records or backups. Unknown preference values survive edits. The glossary
+distinguishes a syntax feature from its local override.
+
+The focused run passed 17 Core methods and 15 app methods. Specific new cases
+cover defaults, multiple requirements, disabled rules, persisted local overrides,
+unchanged source and backup data, decode without overrides, unknown preferences
+and malformed feature metadata. An offscreen renderer test changes a feature
+on/off/on and checks color updates, exact text/selection and unchanged Undo state.
+No window was shown. The local Xcode build passed.
+
+Native Settings toggles and scripting with a changed local preference still need
+acceptance in QA. Built-in feature declarations and their styling need reference
+comparison. Feature keys do not close autocomplete, hanging indentation, grammar
+validation, import conflicts, or the remaining Advanced Find checks.

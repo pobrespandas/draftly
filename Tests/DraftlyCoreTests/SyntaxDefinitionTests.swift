@@ -222,6 +222,63 @@ struct SyntaxDefinitionTests {
         #expect(throws: (any Error).self) { try definition(object) }
     }
 
+    @Test func featureDefaultsAndMultipleRequirementsControlAllSharedRulesWithoutChangingSource() throws {
+        var object = source()
+        object["featureKeys"] = [
+            ["id": "enabled", "name": "Enabled", "description": "Neutral enabled feature", "defaultValue": true],
+            ["id": "optional", "name": "Optional", "description": "Neutral optional feature", "defaultValue": false]]
+        object["patterns"] = [["match": "Café", "captures": ["0": ["scope": "text.bold"]]]]
+        for key in ["patterns", "navigationPatterns", "taskMarkDefinitions", "linkDefinitions"] {
+            var rules = object[key] as? [[String: Any]] ?? []
+            for index in rules.indices { rules[index]["featureKeys"] = "enabled, optional" }
+            object[key] = rules
+        }
+        object["listCompletionDefinitions"] = [["match": #"^(\h*)(- )(.*)$"#,
+            "captures": ["indent": "1", "prefix": "2", "line": "3"], "featureKeys": "enabled, optional"]]
+        let syntax = try definition(object)
+        let text = "! Café\n[ ] task <<note:café>>\n- item"
+        #expect(syntax.features.map(\.id) == ["enabled", "optional"])
+        #expect(syntax.tasks(in: text).isEmpty && syntax.markers(in: text).isEmpty && syntax.links(in: text).isEmpty)
+        let enabled = syntax.resolvingFeatures(["optional": true])
+        #expect(enabled.tasks(in: text).count == 1 && enabled.markers(in: text).count == 1 && enabled.links(in: text).count == 1)
+        #expect(enabled.styledRanges(in: text).count == 1 && syntax.styledRanges(in: text).isEmpty)
+        #expect(enabled.listContinuation(in: text, selection: NSRange(location: text.utf16.count, length: 0))?.text == "\n- ")
+        let disabled = enabled.resolvingFeatures(["enabled": false, "optional": true])
+        #expect(disabled.tasks(in: text).isEmpty && disabled.markers(in: text).isEmpty && disabled.links(in: text).isEmpty)
+        #expect(disabled.listContinuation(in: text, selection: NSRange(location: text.utf16.count, length: 0)) == nil)
+        #expect(enabled.source == syntax.source && enabled.id == syntax.id)
+        let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
+        #expect(try encoder.encode(enabled) == encoder.encode(syntax))
+        let decoded = try JSONDecoder().decode(SyntaxDefinition.self, from: JSONEncoder().encode(enabled))
+        #expect(decoded.featureValues.isEmpty && decoded.source == syntax.source)
+        var invalid = object; invalid["featureKeys"] = [["id": "same", "defaultValue": true]]
+        #expect(throws: (any Error).self) { try definition(invalid) }
+    }
+
+    @Test func featurePreferencesAreLocalPersistentAndPreserveUnknownValues() throws {
+        let domain = "Draftly-FeatureTests-" + UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: domain))
+        defer { defaults.removePersistentDomain(forName: domain) }
+        var object = source()
+        object["featureKeys"] = [["id": "tasks", "name": "Tasks", "description": "Neutral tasks", "defaultValue": true]]
+        var tasks = try #require(object["taskMarkDefinitions"] as? [[String: Any]])
+        tasks[0]["featureKeys"] = "tasks"; object["taskMarkDefinitions"] = tasks
+        let syntax = try definition(object), store = try LibraryStore(inMemory: true, seed: false)
+        try store.saveSyntax(syntax)
+        let backup = try store.backupData()
+        let encoded = SyntaxFeaturePreferences.setting(false, feature: "tasks", syntax: syntax.name,
+            encoded: "{\"Future syntax\":{\"data\":[1,2]},\"Neutral\":{\"future\":\"keep\"}}")
+        defaults.set(encoded, forKey: SyntaxFeaturePreferences.key)
+        let reopened = try #require(UserDefaults(suiteName: domain))
+        #expect(try store.syntaxDefinition(named: syntax.name, defaults: reopened).tasks(in: "[ ] task").isEmpty)
+        #expect(syntax.tasks(in: "[ ] task").count == 1)
+        #expect(try store.backupData() == backup)
+        let decoded = try #require(JSONSerialization.jsonObject(with: Data(encoded.utf8)) as? [String: Any])
+        #expect(decoded["Future syntax"] != nil && (decoded["Neutral"] as? [String: Any])?["future"] as? String == "keep")
+        #expect(SyntaxFeaturePreferences.values(for: "other", encoded: encoded).isEmpty)
+        #expect(SyntaxFeaturePreferences.values(for: syntax.name, encoded: "invalid").isEmpty)
+    }
+
     @Test func customLinkTemplatesUseCapturedRangeAndEncodeValuesOnce() throws {
         var value = source()
         var rules = try #require(value["linkDefinitions"] as? [[String: Any]])

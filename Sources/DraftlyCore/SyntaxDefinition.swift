@@ -2,11 +2,34 @@ import Foundation
 
 public enum SyntaxTaskError: Error { case invalidSnapshot }
 
+public struct SyntaxFeature: Identifiable, Equatable {
+    public let id: String
+    public let name: String
+    public let description: String
+    public let defaultValue: Bool
+}
+
 public struct SyntaxDefinition: Identifiable, Codable, Equatable {
     public var id: UUID
     public var name: String
     public var type: String
     public var source: String
+    public private(set) var featureValues: [String: Bool] = [:]
+    private enum CodingKeys: String, CodingKey { case id, name, type, source }
+    public var features: [SyntaxFeature] {
+        (object["featureKeys"] as? [[String: Any]] ?? []).compactMap { feature in
+            guard let id = feature["id"] as? String, let name = feature["name"] as? String,
+                  let description = feature["description"] as? String, let value = feature["defaultValue"] as? Bool else { return nil }
+            return SyntaxFeature(id: id, name: name, description: description, defaultValue: value)
+        }
+    }
+    public var featureState: String {
+        features.map { "\($0.id):\(featureValues[$0.id] ?? $0.defaultValue)" }.joined(separator: ",")
+    }
+    public func resolvingFeatures(_ values: [String: Bool]) -> SyntaxDefinition {
+        var definition = self; definition.featureValues = values
+        return definition
+    }
     public init(data: Data, type: String = "custom", id: UUID = UUID()) throws {
         guard ["custom", "file", "builtIn"].contains(type),
               let value = try JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -45,6 +68,16 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
                 }
             }
         }
+        if let definitions = value["featureKeys"] {
+            guard let definitions = definitions as? [[String: Any]] else { throw DraftlyError.message("The syntax feature keys are invalid.") }
+            var ids = Set<String>()
+            for feature in definitions {
+                guard let id = feature["id"] as? String, !id.isEmpty, ids.insert(id).inserted,
+                      feature["name"] is String, feature["description"] is String, feature["defaultValue"] is Bool else {
+                    throw DraftlyError.message("A syntax feature key is invalid.")
+                }
+            }
+        }
         if let definitions = value["listCompletionDefinitions"] {
             guard let definitions = definitions as? [[String: Any]] else { throw DraftlyError.message("The list completion definitions are invalid.") }
             for rule in definitions {
@@ -73,7 +106,14 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
         self.source = String(decoding: data, as: UTF8.self)
     }
     public var object: [String: Any] { (try? JSONSerialization.jsonObject(with: Data(source.utf8))) as? [String: Any] ?? [:] }
-    private func rules(_ key: String) -> [[String: Any]] { (object[key] as? [[String: Any]] ?? []).filter { $0["enabled"] as? Bool != false } }
+    private func rules(_ key: String) -> [[String: Any]] {
+        let defaults = features.reduce(into: [String: Bool]()) { $0[$1.id] = $1.defaultValue }
+        return (object[key] as? [[String: Any]] ?? []).filter { rule in
+            guard rule["enabled"] as? Bool != false else { return false }
+            let keys = (rule["featureKeys"] as? String ?? "").split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            return keys.allSatisfy { featureValues[$0] ?? defaults[$0] ?? false }
+        }
+    }
     private func results(_ rule: [String: Any], _ text: String) -> [NSTextCheckingResult] {
         guard let pattern = rule["match"] as? String, let regex = try? NSRegularExpression(pattern: pattern, options: [.anchorsMatchLines]) else { return [] }
         return regex.matches(in: text, range: NSRange(location: 0, length: text.utf16.count))
@@ -266,5 +306,22 @@ public extension SyntaxDefinition {
             }
         }
         return output
+    }
+}
+
+public enum SyntaxFeaturePreferences {
+    public static let key = "editor.syntaxFeatures"
+    public static func values(for syntax: String, encoded: String) -> [String: Bool] {
+        let object = (try? JSONSerialization.jsonObject(with: Data(encoded.utf8))) as? [String: Any] ?? [:]
+        return (object[syntax] as? [String: Any] ?? [:]).reduce(into: [String: Bool]()) { values, entry in
+            if let value = entry.value as? Bool { values[entry.key] = value }
+        }
+    }
+    public static func setting(_ enabled: Bool, feature: String, syntax: String, encoded: String) -> String {
+        var object = (try? JSONSerialization.jsonObject(with: Data(encoded.utf8))) as? [String: Any] ?? [:]
+        var values = object[syntax] as? [String: Any] ?? [:]
+        values[feature] = enabled; object[syntax] = values
+        guard let data = try? JSONSerialization.data(withJSONObject: object, options: [.sortedKeys]) else { return encoded }
+        return String(decoding: data, as: UTF8.self)
     }
 }

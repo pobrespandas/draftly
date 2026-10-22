@@ -124,6 +124,12 @@ _Avoid_: Query (when referring to the complete request)
 **Find history**:
 The recent find requests available for reuse on this device.
 
+### Syntax
+
+**Syntax feature**:
+An optional behavior declared by a syntax, with a default value that the user can
+override on the current device. A rule can require one or more enabled features.
+
 ### Actions
 
 **Step creation default**:

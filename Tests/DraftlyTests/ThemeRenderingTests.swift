@@ -160,6 +160,36 @@ struct ThemeRenderingTests {
         }
     }
 
+    @Test func featureChangesInvalidateStylesWithoutChangingTextSelectionOrUndo() async throws {
+        _ = NSApplication.shared
+        let session = EditorSession(); session.load(Note(content: "café 🐼"), focusEditor: false)
+        session.selection = NSRange(location: 0, length: 4)
+        let syntax = try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: [
+            "name": "Neutral feature styles", "navigationPatterns": [], "taskMarkDefinitions": [], "linkDefinitions": [], "indentationPatterns": [],
+            "featureKeys": [["id": "highlight", "name": "Highlight", "description": "Neutral feature", "defaultValue": true]],
+            "patterns": [["match": "café", "featureKeys": "highlight", "captures": ["0": ["scope": "custom.neutral"]]]]]))
+        let theme = try theme()
+        func editor(_ enabled: Bool) -> NativeEditor {
+            NativeEditor(session: session, fontName: "System", fontSize: 17, lineSpacing: 2, markdown: false,
+                syntaxDefinition: syntax.resolvingFeatures(["highlight": enabled]), theme: theme, onChange: {})
+        }
+        let host = NSHostingView(rootView: editor(true))
+        let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 500, height: 400), styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = host
+        defer { window.contentView = nil }
+        func textView(_ view: NSView) -> NSTextView? {
+            if let view = view as? NSTextView { return view }
+            return view.subviews.lazy.compactMap { textView($0) }.first
+        }
+        for enabled in [true, false, true] {
+            host.rootView = editor(enabled); host.layoutSubtreeIfNeeded(); await TestMainQueue.drain()
+            let text = try #require(textView(host))
+            #expect(try hex(text.textStorage?.attribute(.foregroundColor, at: 0, effectiveRange: nil)) == (enabled ? "FF00FF" : "F0F0F0"))
+            #expect(text.string == session.content && text.selectedRange() == session.selection)
+            #expect(text.undoManager?.canUndo != true && !window.isVisible)
+        }
+    }
+
     @Test func sourceOnlyStyleChangesInvalidateCachedHighlighting() async throws {
         _ = NSApplication.shared
         let session = EditorSession(); session.load(Note(content: "`code` 🐼"), focusEditor: false)

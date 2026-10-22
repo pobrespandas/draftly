@@ -283,8 +283,13 @@ public final class LibraryStore: ObservableObject {
         } catch { container.viewContext.rollback(); try? reload(); throw error }
     }
     public func syntaxDefinition(named name: String) throws -> SyntaxDefinition {
-        if let definition = syntaxes.first(where: { $0.name == name }) { return try definition.type == "file" ? SyntaxFileAccess.read(definition) : definition }
-        return try ScriptSyntax.definition(name)
+        try syntaxDefinition(named: name, defaults: .standard)
+    }
+    public func syntaxDefinition(named name: String, defaults: UserDefaults) throws -> SyntaxDefinition {
+        let value: SyntaxDefinition
+        if let definition = syntaxes.first(where: { $0.name == name }) { value = try definition.type == "file" ? SyntaxFileAccess.read(definition) : definition }
+        else { value = try ScriptSyntax.definition(name) }
+        return value.resolvingFeatures(SyntaxFeaturePreferences.values(for: name, encoded: defaults.string(forKey: SyntaxFeaturePreferences.key) ?? "{}"))
     }
     public func saveSyntax(_ value: SyntaxDefinition) throws {
         let value = try SyntaxDefinition(data: Data(value.source.utf8), type: value.type, id: value.id)
