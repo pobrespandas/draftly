@@ -21,6 +21,10 @@ Notes sharing timeout, file retention and a late provider cancellation passed
 with a following action isolated from that old provider. Task cancellation and
 owner closure after handoff remain pending. Mail now fails explicitly instead
 of reporting composition as a confirmed send. Confirmed delivery remains partial.
+Messages also reported false sent before actual sending. Its adapter now rejects
+unconfirmed delivery before composition. Message.send remains partial; a native
+URL error and following recovery passed. The latest complete check passed
+674 Core, 724 app and 68 Python tests plus local Debug compilation.
 The habitual app has not received these QA changes. Historical pause statements
 below describe their own refactoring stages.
 

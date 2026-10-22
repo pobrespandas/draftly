@@ -17285,10 +17285,24 @@
             "send(): boolean"
           ],
           "contract": "Send the message. This will open the Messages.app sending window. Returns true if the message was sent successfully or false if not - if, for example, the user cancelled the message window.",
-          "implementation": "not-audited",
-          "automatedTest": null,
-          "liveCheck": null,
-          "compatibilityStatus": null
+          "implementation": "reviewed-partial",
+          "automatedTest": {
+            "suite": "NativeMessageAsyncTests",
+            "test": "actualMessagesAdapterRejectsUnverifiableDeliveryBeforeOpeningAComposer"
+          },
+          "liveCheck": "docs/validation.md: Messages handoff is not delivery — 22 October 2026",
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-22",
+          "defaults": "No arguments or optional send defaults.",
+          "result": "The current sharing adapter throws before composition. It cannot confirm that a Messages message was sent.",
+          "errors": "Explicit delivery-confirmation error through legacy and async routes. This differs from the documented boolean result and remains partial.",
+          "limitations": [
+            "A native recipient-free composition returned sent and ran success effects before any send. Reliable confirmed sending and user cancellation remain unimplemented; this is not evidence that Messages is unavailable on macOS."
+          ],
+          "implementationEvidence": {
+            "file": "Sources/Draftly/NativeMessageAdapter.swift",
+            "symbol": "compose / SharingMessageDriver.init"
+          }
         },
         {
           "member": "create",

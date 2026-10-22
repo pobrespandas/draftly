@@ -9229,3 +9229,51 @@ b68ccd1dd9bf9d8c207b9968cf7c8cb0cc1323ae8bcfa19b11141723da62dace.
 QA/helper quit normally; exact process absence and LaunchServices unregistration
 passed. Apps, preferences and closed library remain recoverable in
 `~/.Trash/DraftlyPrintCloseQA-p1sumtoi`. The habitual app was unchanged.
+
+
+## Messages handoff is not delivery — 22 October 2026
+
+At 1522028, isolated QA ran the neutral Messages fixture through URL. Its
+recipient list was empty. Before any send, the action returned success, ran its
+error-marked tail and archived the draft. Messages displayed an unsent new
+composition with the exact neutral body and an empty To field. Only that body
+was cleared; the window and app were closed. No message was sent. No private
+conversation content was copied to repository artifacts.
+
+The legacy and async adapters now reject this unverifiable service before
+composition. They return an explicit Message.send delivery-confirmation error.
+This prevents false success effects but does not implement confirmed sending;
+Message.send is partial, not unavailable on macOS and not accepted as parity.
+Safe factories prove neither route opens a service. Both runners and actual
+Intent.perform preserve prior writes, stop tails/Archive and return error.
+The runner tests also prove following recovery. The first integrated attempt
+failed because the new fixture did not retain the weak host. Retaining it fixed
+the fixture; no production lifetime rule or test deadline changed.
+
+The first native repeat mistakenly copied only the Debug executable, leaving
+the old Draftly.debug.dylib. It repeated the old false-success behavior and is
+not corrected-build evidence. Its neutral unsent body was also cleared. The
+complete current app package was then copied and signed. Debug QA updates must
+copy the complete package, including code libraries, rather than the launcher.
+
+On that corrected package, the same fixture returned one explicit error callback
+and Messages remained stopped. No new composer or tail appeared. Following shell
+recovery returned one success with the exact Unicode value. Closed history
+confirmed two old Success records, corrected Error, then recovery Success.
+The draft was already archived by the old defect and remained archived; native
+non-archiving is not claimed from this state. Headless tests start in Inbox.
+
+Complete Swift reports matched discovery: 674 Core and 724 app methods. All 68
+Python tests, local Debug compilation and matrix structure passed. The new
+factory regression failed before the correction and passed after it. No retry
+or deadline inflation was used. Native acceptance here covers explicit failure
+and recovery, not successful delivery or user-cancel parity. The fixture is
+`scripts/fixtures/engine-messages-lifetime-actions.json`.
+
+Corrected QA SHA256, launcher:
+bb9e86b1eea32153dcf5534339a6a440fdb977b2456b9bea313221fb01514b51.
+Corrected QA SHA256, Draftly.debug.dylib:
+cc8ec7c33a7f1e2d4ec9c5fa209dc1946ebbdb84f86f9cabca65586476f96d55.
+QA/helper quit normally; exact process absence and LaunchServices unregistration
+passed. Before/after packages and closed libraries remain recoverable in
+`~/.Trash/DraftlyMessagesQA-dw_456s4`. The habitual app was unchanged.

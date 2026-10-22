@@ -53,6 +53,24 @@ struct NativeMessageAsyncTests {
         }
     }
 
+    @Test(arguments: [false, true])
+    func actualMessagesAdapterRejectsUnverifiableDeliveryBeforeOpeningAComposer(asynchronous: Bool) async {
+        do {
+            if asynchronous {
+                _ = try await NativeMessageAdapter().composeAsync("composeMessage", [:], makeDriver: { operation in
+                    try SharingMessageDriver(operation: operation, makeService: { _ in
+                        Issue.record("Unconfirmed Messages must not open a service."); return nil
+                    })
+                })
+            } else {
+                _ = try NativeMessageAdapter().compose("composeMessage", [:], makeService: { _ in
+                    Issue.record("Unconfirmed Messages must not open a service."); return nil
+                })
+            }
+            Issue.record("Unconfirmed Messages reported success.")
+        } catch { #expect(error.localizedDescription.contains("Messages sharing service cannot confirm")) }
+    }
+
     @Test func unsupportedOptionsFailBeforeCreatingOrOpeningAComposer() async {
         let unsupported: [[String: Any]] = [["isBodyHTML": true], ["sendInBackground": true], ["replyToRecipients": ["neutral@example.invalid"]], ["ccRecipients": ["neutral@example.invalid"]], ["bccRecipients": ["neutral@example.invalid"]]]
         for values in unsupported {
@@ -168,6 +186,49 @@ struct NativeMessageAsyncTests {
         #expect(!ActionRunner.isExecuting(in: library))
     }
 
+    @Test(arguments: [false, true])
+    func unconfirmedMessagesStopBothRunnersWithoutSuccessEffects(worker: Bool) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Neutral")
+        let editor = EditorSession(); editor.load(note)
+        let host = UnconfirmedMailHost()
+        let runner = ActionRunner(library: library, editor: editor, host: host)
+        let action = unconfirmedMessagesAction()
+        let report = worker ? await runner.runAsync(action) : runner.runReport(action)
+        #expect(report.reason == .error && report.successParameters.isEmpty)
+        #expect(runner.message?.contains("Messages sharing service cannot confirm") == true, "Final message: \(runner.message ?? "nil")")
+        #expect(library.notes.first?.content == "Retained café 🐼" && library.notes.first?.isArchived == false)
+        #expect(library.runs.first?.status == "Error")
+        let next = DraftAction(name: "Messages recovery", steps: [ActionStep("script", ["script": "editor.setText('Recovered');draft.update();"])])
+        let recovered = worker ? await runner.runAsync(next) : runner.runReport(next)
+        #expect(recovered.reason == .success && recovered.executionID != report.executionID)
+        #expect(library.notes.first?.content == "Recovered")
+    }
+
+    @Test func actualIntentPropagatesUnconfirmedMessagesAsFailure() async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Neutral")
+        let action = unconfirmedMessagesAction()
+        try library.saveAction(action)
+        var request = RunDraftActionIntent()
+        request.name = action.name; request.uuid = note.id.uuidString
+        request.executionEnvironment = RunActionIntentEnvironment(library: library, models: [], host: UnconfirmedMailHost())
+        do { _ = try await request.perform(); Issue.record("Unconfirmed Messages Intent succeeded.") }
+        catch {
+            #expect(try #require(error as? AutomationActionError).reason == .error)
+            #expect(error.localizedDescription.contains("Messages sharing service cannot confirm"))
+        }
+        #expect(library.notes.first?.content == "Retained café 🐼" && library.notes.first?.isArchived == false)
+        #expect(library.runs.first?.status == "Error" && !ActionRunner.isExecuting(in: library))
+    }
+
+    private func unconfirmedMessagesAction() -> DraftAction {
+        var action = unconfirmedMailAction(script: true)
+        action.name = "Unconfirmed Messages result"
+        action.steps[1] = ActionStep("script", ["script": "var m=Message.create();m.body='Neutral';m.send();"])
+        return action
+    }
+
     private func unconfirmedMailAction(script: Bool) -> DraftAction {
         let mail = script
             ? ActionStep("script", ["script": "var m=Mail.create();m.subject='Neutral';m.body='Neutral body';m.send();"])
@@ -184,10 +245,10 @@ struct NativeMessageAsyncTests {
 }
 
 @MainActor private final class UnconfirmedMailHost: ActionHost {
-    func supportsAsync(_ operation: String) -> Bool { operation == "composeMail" }
+    func supportsAsync(_ operation: String) -> Bool { ["composeMail", "composeMessage"].contains(operation) }
     func perform(_ operation: String, values: [String: Any]) throws -> Any? {
         if operation == "device" { return [String: Any]() }
-        guard operation == "composeMail" else { throw DraftlyError.message("Unexpected neutral host operation: " + operation) }
+        guard ["composeMail", "composeMessage"].contains(operation) else { throw DraftlyError.message("Unexpected neutral host operation: " + operation) }
         return try NativeMessageAdapter().compose(operation, values, makeService: { _ in
             Issue.record("A Mail result test must not create a sharing service."); return nil
         })

@@ -1,0 +1,23 @@
+[
+  {
+    "afterSuccess": "archive",
+    "group": "Messages lifetime QA",
+    "name": "QA Messages cancellation",
+    "notificationType": 0,
+    "steps": [
+      {
+        "data": {
+          "script": "editor.setText('Retained Messages café 🐼');draft.update();const message=Message.create();message.body='Neutral Draftly QA — no send';const sent=message.send();if(!sent){context.cancel();}else{editor.setText('Messages reported sent');draft.update();}"
+        },
+        "type": "script"
+      },
+      {
+        "data": {
+          "template": "ERROR: Messages tail"
+        },
+        "type": "insertText"
+      }
+    ],
+    "uuid": "A0760100-0000-4000-8000-000000000011"
+  }
+]
