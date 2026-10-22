@@ -1,0 +1,37 @@
+<!-- @dsCard height=288 -->
+<style>
+  .cv { position: relative; width: 960px; height: 288px; background: var(--canvas); overflow: hidden; font-family: var(--font-sans); }
+  .cv svg { position: absolute; left: 0; top: 0; }
+  .b-back { fill: var(--icon-gradient-end); rx: var(--radius-banner); }
+  .b-front { fill: var(--icon-gradient-start); rx: var(--radius-banner); }
+  .b-accent { fill: var(--accent); }
+  .b-window { fill: var(--window); }
+  .line { fill: var(--canvas); rx: 6px; }
+  .seg { fill: var(--fill-track); rx: 14px; }
+  .seg-on { fill: var(--accent); rx: 14px; }
+  .flag { fill: var(--system-orange); rx: 14px; }
+  .cv .name { position: absolute; left: 40px; bottom: 74px; margin: 0; font-size: 96px; line-height: .92; font-weight: 600; letter-spacing: -1px; color: var(--label); }
+  .cv .tag { position: absolute; left: 42px; bottom: 40px; margin: 0; font-size: 14px; color: var(--label-secondary); max-width: 440px; }
+</style>
+<div class="cv">
+  <svg width="960" height="288" viewBox="0 0 960 288" aria-hidden="true">
+    <!-- blocks: icon-gradient-end back page 200x250, icon-gradient-start front page 200x270, accent 160x144, window 160x144
+         arrangement: two pages stacked and offset like the app icon, bleeding off the top and bottom, with a slab column at the right edge
+         pattern: literal motif (stacked drafts) - text-line capsules cut from the front page in canvas, plus a FolderControl capsule row; chosen because the icon and the product are pages of text
+         steps and radii: space-20 page offset, space-12 line gap, radius-banner page corners, radius-capsule lines and segments, folder-control-height 28 -->
+    <rect class="b-back" x="512" y="-24" width="200" height="250"/>
+    <rect class="b-front" x="552" y="36" width="200" height="270"/>
+    <rect class="line" x="580" y="80" width="120" height="12"/>
+    <rect class="line" x="580" y="104" width="144" height="12"/>
+    <rect class="line" x="580" y="128" width="96" height="12"/>
+    <rect class="line" x="580" y="164" width="132" height="12"/>
+    <rect class="line" x="580" y="188" width="72" height="12"/>
+    <rect class="b-accent" x="800" y="0" width="160" height="144"/>
+    <rect class="b-window" x="800" y="144" width="160" height="144"/>
+    <rect class="seg-on" x="812" y="236" width="40" height="28"/>
+    <rect class="seg" x="858" y="236" width="40" height="28"/>
+    <rect class="flag" x="904" y="236" width="40" height="28"/>
+  </svg>
+  <p class="name">Draftly</p>
+  <p class="tag">Quick text capture and actions for the Mac.</p>
+</div>
