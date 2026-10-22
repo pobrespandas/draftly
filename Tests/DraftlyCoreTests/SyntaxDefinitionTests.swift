@@ -140,6 +140,51 @@ struct SyntaxDefinitionTests {
         #expect(throws: (any Error).self) { try SyntaxFileAccess.read(syntax, defaults: defaults) }
         #expect(!String(decoding: try JSONEncoder().encode(syntax), as: UTF8.self).contains(directory.path))
     }
+    @Test func fileSyntaxInstallationRetainsPreviousBookmarkOnStorageFailureAndRetries() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let domain = "Draftly-SyntaxInstall-" + UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: domain))
+        defer { defaults.removePersistentDomain(forName: domain) }
+        let store = try LibraryStore(inMemory: true, seed: false)
+        let originalURL = directory.appendingPathComponent("Original.draftsSyntax")
+        let replacementURL = directory.appendingPathComponent("Replacement.draftsSyntax")
+        var originalObject = source(); originalObject["future"] = ["version": "original"]
+        let originalData = try JSONSerialization.data(withJSONObject: originalObject)
+        try originalData.write(to: originalURL)
+        let original = try SyntaxDefinition(data: originalData, type: "file")
+        try SyntaxFileAccess.install(original, from: originalURL, in: store, defaults: defaults)
+        let key = "syntax.file." + original.id.uuidString
+        let bookmark = try #require(defaults.data(forKey: key))
+        var replacementObject = source(); replacementObject["future"] = ["version": "replacement"]
+        let replacementData = try JSONSerialization.data(withJSONObject: replacementObject)
+        try replacementData.write(to: replacementURL)
+        let replacement = try SyntaxDefinition(data: replacementData, type: "file", id: original.id)
+        store.beforeBatchCommit = { throw DraftlyError.message("Expected storage failure") }
+        #expect(throws: (any Error).self) {
+            try SyntaxFileAccess.install(replacement, from: replacementURL, in: store, defaults: defaults)
+        }
+        #expect(store.syntaxes == [original] && defaults.data(forKey: key) == bookmark)
+        #expect(try SyntaxFileAccess.read(original, defaults: defaults).source == original.source)
+        let newID = UUID()
+        var freshObject = replacementObject; freshObject["name"] = "Neutral new file syntax"
+        let fresh = try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: freshObject), type: "file", id: newID)
+        #expect(throws: (any Error).self) {
+            try SyntaxFileAccess.install(fresh, from: replacementURL, in: store, defaults: defaults)
+        }
+        #expect(defaults.data(forKey: "syntax.file." + newID.uuidString) == nil)
+        store.beforeBatchCommit = nil
+        try SyntaxFileAccess.install(replacement, from: replacementURL, in: store, defaults: defaults)
+        #expect(store.syntaxes == [replacement])
+        #expect(try SyntaxFileAccess.read(replacement, defaults: defaults).source == replacement.source)
+        #expect(defaults.data(forKey: key) != bookmark)
+        #expect(throws: (any Error).self) {
+            try SyntaxFileAccess.install(definition(), from: replacementURL, in: store, defaults: defaults)
+        }
+        #expect(store.syntaxes == [replacement])
+    }
+
     @Test func customLinkTemplatesUseCapturedRangeAndEncodeValuesOnce() throws {
         var value = source()
         var rules = try #require(value["linkDefinitions"] as? [[String: Any]])

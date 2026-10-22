@@ -220,9 +220,7 @@ of listCompletionDefinitions. Complete sequence, padding and replacement rules.
 Also complete featureKeys, autocompleteDefinitions, rangeExtensionType and
 indentationPatterns. These fields are not excluded from the objective.
 
-File syntax installation registers its bookmark before saving the definition.
-A failed replacement can leave the previous record pointing to the new file.
-Correct this in a separate functional change with a storage failure test.
+The file syntax bookmark ordering defect is corrected below.
 The editor also suppresses file definition errors with try?, while scripting
 reports them. Required captures and malformed rule values need validation.
 Built-in name conflicts and import-as-new behavior need explicit resolution.
@@ -244,3 +242,20 @@ synchronization, stale entries, TaskPaper, Plain Text and missing syntax. Initia
 fixture errors omitted required definition arrays; valid fixtures passed without
 changing validation. The local Xcode build passed. Native menu presentation and
 selection remain pending.
+
+## File syntax installation and storage failure
+
+File syntax installation now prepares bookmark data before saving the definition.
+It writes the new local bookmark only after the library save succeeds. The import
+command uses this operation. Custom definitions retain their existing save path.
+Bookmark creation errors cannot save a definition. Storage errors cannot change
+the previous bookmark. This does not change backup formats or copy permissions.
+
+A temporary-file test installs an original definition, injects a storage error,
+and replaces it with another file under the same identity. It checks the stored
+definition, exact previous bookmark and content read from the original file.
+A new definition with a unique name also fails without a local bookmark. A retry
+then replaces both stored content and file access. Unknown fields survive. The
+operation rejects non-file definitions. All 14 shared syntax methods and the
+local Xcode build passed.
+Native file permission and import-dialog acceptance remain pending.

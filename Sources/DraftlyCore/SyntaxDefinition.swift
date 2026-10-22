@@ -170,6 +170,14 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
 }
 
 @MainActor public enum SyntaxFileAccess {
+    public static func install(_ definition: SyntaxDefinition, from url: URL, in library: LibraryStore,
+                               defaults: UserDefaults = .standard) throws {
+        guard definition.type == "file" else { throw DraftlyError.message("A file syntax definition is required.") }
+        let bookmark = try url.bookmarkData(options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil)
+        try library.saveSyntax(definition)
+        defaults.set(bookmark, forKey: "syntax.file." + definition.id.uuidString)
+    }
+
     public static func register(_ url: URL, id: UUID, defaults: UserDefaults = .standard) throws {
         let bookmark = try url.bookmarkData(options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil)
         defaults.set(bookmark, forKey: "syntax.file." + id.uuidString)

@@ -43,8 +43,8 @@ struct DraftFileCommands {
                 guard alert.runModal() == .alertFirstButtonReturn else { return }
                 value.id = existing.id
             }
-            if asFile { try SyntaxFileAccess.register(url, id: value.id) }
-            try model.library.saveSyntax(value)
+            if asFile { try SyntaxFileAccess.install(value, from: url, in: model.library) }
+            else { try model.library.saveSyntax(value) }
         }
     }
 }
