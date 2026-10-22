@@ -2,6 +2,17 @@
 
 Updated: 22 October 2026.
 
+## Editor styling refactoring
+
+R2 is implemented in the [editor styling record](refactoring-editor-styling-2026-10-22.md).
+EditorSyntaxStyler applies attributes from explicit style inputs. The coordinator
+retains text events, synchronization, selection and Undo. Three characterization
+methods passed before extraction; a fourth checks separate native link defaults.
+Final verification passed Core674/app781, Python80, 72 focused methods, the local
+Debug build and structural matrix. Strict engine diagnostics remain 18.
+No manual session or usual-app update occurred. Prior timing risks did not recur.
+R3 shared text mutation is the next proposed refactoring.
+
 ## Cloud QA preparation refactoring
 
 R5 is implemented in the [Cloud QA preparation record](refactoring-cloud-qa-preparation-2026-10-22.md).
@@ -12,7 +23,7 @@ characterizations passed before and after extraction; the specific suite has
 and structural matrix. The initial Core baseline had a pre-host-start failure;
 its focused check and the final full run passed. This risk remains separate.
 No native cloud run or app update occurred. Strict engine diagnostics remain 18.
-Editor styling is the next proposed refactoring.
+The later R2 record covers editor styling.
 
 ## Workspace preparation refactoring
 
@@ -37,8 +48,8 @@ XML-RPC timing risk and the 18 strict engine diagnostics remain separate.
 
 The [repository audit](modularity-audit-2026-10-22.md) is complete at the
 architectural level. It proposed five bounded refactorings. R1 completion
-context, R4 Workspace preparation and R5 Cloud QA preparation are implemented
-separately. Styling and text synchronization remain. The audit itself changed no
+context, R2 styling, R4 Workspace preparation and R5 Cloud QA preparation are
+implemented separately. Shared text mutation R3 remains. The audit itself changed no
 production or test code and removed no tests. The documentation now distinguishes current orientation from
 historical records. Complete verification on 1e399dd passed Core674/app767,
 Python68, local Debug compilation and the structural matrix check. Native

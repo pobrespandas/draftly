@@ -6,7 +6,8 @@ The [modularity audit](modularity-audit-2026-10-22.md) records the current
 refactoring diagnosis. [Editor completion context](refactoring-completion-context-2026-10-22.md)
 implements its first stage. [Workspace preparation](refactoring-workspace-preparation-2026-10-22.md)
 is also implemented. [Cloud QA preparation](refactoring-cloud-qa-preparation-2026-10-22.md)
-is complete. Editor styling is the next proposed stage.
+is complete. [Editor styling](refactoring-editor-styling-2026-10-22.md)
+is implemented. Shared text mutation R3 is the next proposed stage.
 See [status](status.md) for
 functional work. The [dated editor/scripting record](editor-scripting-2026-10-22.md)
 retains its original scope. The audit does not implement its proposed changes.
@@ -50,6 +51,18 @@ ThemePickerOptions supplies ordered labels, identities and references without
 persistence or UI effects. Editor Settings uses type-prefixed tags. Workspace
 Settings keeps name or UUID tags. Resolution and missing references stay with
 existing consumers. Picker tags are not a new storage format.
+
+## Editor styling boundary
+
+EditorSyntaxStyler applies base attributes, visual syntax rules, custom scopes,
+active links and indentation metrics to an NSTextView. Its value inputs contain
+only style settings and the syntax definition. It receives native link defaults
+explicitly. It does not read NativeEditor, EditorSession or WindowModel.
+
+Coordinator.highlight captures link defaults once and delegates styling. The
+coordinator retains text events, synchronization, selection, Undo, focus and
+invalidation. ThemeTextAttributes and SyntaxDefinition retain their rules.
+Attribute order and the built-in visual fallback rules remain unchanged.
 
 ## Action catalog boundary
 

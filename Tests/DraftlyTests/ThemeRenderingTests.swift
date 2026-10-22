@@ -358,4 +358,118 @@ struct ThemeRenderingTests {
         }
         #expect(view.string == source && view.selectedRange() == selected && session.content == source)
     }
+
+    @Test func overlappingStylesKeepCustomScopesAndActiveLinksLast() throws {
+        let source = "# **café** `code` https://example.invalid/🐼"
+        let syntax = try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: [
+            "name": "Neutral overlap", "navigationPatterns": [], "taskMarkDefinitions": [],
+            "linkDefinitions": [], "indentationPatterns": [],
+            "patterns": [["match": "café|code|https://[^ ]+", "captures": ["0": ["scope": "custom.neutral"]]]]]))
+        let session = EditorSession(); session.load(Note(content: source), focusEditor: false)
+        let selected = (source as NSString).range(of: "🐼"); session.selection = selected
+        let view = NSTextView(frame: .zero); view.string = source; view.setSelectedRange(selected)
+        let editor = NativeEditor(session: session, fontName: "System", fontSize: 17, lineSpacing: 2,
+            markdown: true, syntaxDefinition: syntax, theme: try theme(), linksEnabled: true, onChange: {})
+        let coordinator = editor.makeCoordinator(); coordinator.textView = view; coordinator.highlight()
+        let storage = try #require(view.textStorage)
+        for word in ["café", "code"] {
+            let index = (source as NSString).range(of: word).location
+            #expect(try hex(storage.attribute(.foregroundColor, at: index, effectiveRange: nil)) == "FF00FF")
+        }
+        let bold = storage.attributes(at: (source as NSString).range(of: "café").location, effectiveRange: nil)
+        #expect(bold[.underlineStyle] as? Int == NSUnderlineStyle.single.rawValue)
+        #expect(NSFontManager.shared.traits(of: try #require(bold[.font] as? NSFont)).contains(.boldFontMask))
+        let code = storage.attributes(at: (source as NSString).range(of: "code").location, effectiveRange: nil)
+        #expect((code[.font] as? NSFont)?.isFixedPitch == true)
+        #expect(try hex(code[.backgroundColor]) == "112233")
+        let link = (source as NSString).range(of: "https://").location
+        #expect(storage.attribute(.link, at: link, effectiveRange: nil) != nil)
+        #expect(try hex(storage.attribute(.foregroundColor, at: link, effectiveRange: nil)) == "0099EE")
+        #expect(view.string == source && session.content == source && view.selectedRange() == selected)
+    }
+
+    @Test func removingStylesRetainsNativeUndoAndUnicodeSelection() throws {
+        let source = "`café` 🐼"
+        let session = EditorSession(); session.load(Note(content: source), focusEditor: false)
+        let selected = (source as NSString).range(of: "🐼"); session.selection = selected
+        var changes = 0
+        func editor(themed: Bool) throws -> NativeEditor {
+            NativeEditor(session: session, fontName: "System", fontSize: 17, lineSpacing: 2,
+                markdown: themed, theme: themed ? try theme() : nil, onChange: { changes += 1 })
+        }
+        let view = TestUndoTextView(frame: .zero); view.string = source; view.setSelectedRange(selected)
+        view.manager.groupsByEvent = false
+        let coordinator = try editor(themed: true).makeCoordinator(); coordinator.textView = view
+        coordinator.highlight()
+        #expect(!view.manager.canUndo && changes == 0)
+        view.manager.beginUndoGrouping()
+        coordinator.restore(source + " edited", selection: selected)
+        view.manager.endUndoGrouping()
+        for themed in [false, true, false] {
+            coordinator.parent = try editor(themed: themed); coordinator.highlight()
+            let storage = try #require(view.textStorage)
+            let attributes = storage.attributes(at: 1, effectiveRange: nil)
+            #expect((attributes[.backgroundColor] != nil) == themed)
+            #expect((attributes[.font] as? NSFont)?.isFixedPitch == themed)
+            #expect(view.string == source + " edited" && session.content == view.string)
+            #expect(view.selectedRange() == selected && session.selection == selected)
+            #expect(view.manager.canUndo && !view.manager.canRedo && changes == 1)
+        }
+        view.manager.undo()
+        #expect(view.string == source && session.content == source && view.selectedRange() == selected)
+        #expect(!view.manager.canUndo && view.manager.canRedo)
+        view.manager.redo()
+        #expect(view.string == source + " edited" && session.content == view.string && view.selectedRange() == selected)
+        #expect(view.manager.canUndo && !view.manager.canRedo && changes == 3)
+    }
+
+    @Test func emptyTextRestoresBaseTypingAttributesWithoutUndo() throws {
+        let session = EditorSession(); session.load(Note(content: ""), focusEditor: false)
+        let view = TestUndoTextView(frame: .zero)
+        var changes = 0
+        let editor = NativeEditor(session: session, fontName: "System", fontSize: 17, lineSpacing: 2,
+            markdown: true, lineHeightMultiple: 1.25, paragraphSpacing: 3, theme: try theme(),
+            linksEnabled: true, onChange: { changes += 1 })
+        let coordinator = editor.makeCoordinator(); coordinator.textView = view
+        for themed in [true, false, true] {
+            coordinator.parent.theme = themed ? try theme() : nil
+            coordinator.highlight()
+            #expect(view.textStorage?.length == 0 && view.string.isEmpty && session.content.isEmpty)
+            #expect(view.selectedRange() == NSRange(location: 0, length: 0))
+            #expect((view.typingAttributes[.font] as? NSFont)?.pointSize == 17)
+            let paragraph = try #require(view.typingAttributes[.paragraphStyle] as? NSParagraphStyle)
+            #expect(paragraph.lineHeightMultiple == 1.25 && paragraph.paragraphSpacing == 3)
+            #expect(!view.manager.canUndo && changes == 0)
+        }
+    }
+
+
+    @Test func stylerRestoresExplicitLinkDefaultsIndependentlyForEachView() throws {
+        let themed = try theme()
+        func styler(_ theme: EditorTheme?, links: Bool) -> EditorSyntaxStyler {
+            EditorSyntaxStyler(fontName: "System", fontSize: 17, lineSpacing: 2,
+                markdown: false, lineHeightMultiple: 0, paragraphSpacing: 0,
+                syntax: "Plain Text", syntaxDefinition: nil, theme: theme, linksEnabled: links)
+        }
+        let views = [NSTextView(frame: .zero), NSTextView(frame: .zero)]
+        let defaults: [[NSAttributedString.Key: Any]?] = [nil,
+            [.foregroundColor: NSColor.systemRed, .underlineStyle: NSUnderlineStyle.double.rawValue]]
+        let active = styler(themed, links: true)
+        for (index, view) in views.enumerated() {
+            view.string = "https://example.invalid/"
+            view.linkTextAttributes = [.foregroundColor: NSColor.systemOrange]
+            active.apply(to: view, defaultLinkAttributes: defaults[index])
+            #expect(try hex(view.linkTextAttributes?[.foregroundColor]) == "0099EE")
+        }
+        let plain = styler(nil, links: false)
+        for index in views.indices.reversed() {
+            let view = views[index]
+            plain.apply(to: view, defaultLinkAttributes: defaults[index])
+            #expect((view.linkTextAttributes == nil) == (defaults[index] == nil))
+            #expect(((view.linkTextAttributes ?? [:]) as NSDictionary).isEqual(defaults[index] ?? [:]))
+            #expect(view.textStorage?.attribute(.link, at: 0, effectiveRange: nil) == nil)
+            #expect(view.string == "https://example.invalid/")
+        }
+    }
+
 }

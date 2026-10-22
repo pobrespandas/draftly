@@ -223,6 +223,16 @@ import-time preparation. Command-line identities, UUID rules and backup effects
 remain unchanged. R1, R4 and R5 are complete as refactoring stages. Styling R2
 is the next proposed stage, followed by text mutation R3.
 
+## Follow-up — R2 implementation
+
+R2 is implemented in the [editor styling record](refactoring-editor-styling-2026-10-22.md).
+EditorSyntaxStyler receives explicit style settings, the text view and native
+link defaults. The coordinator keeps event, selection and Undo policies.
+Three characterizations passed before extraction. A direct test also checks
+independent link defaults across views. No visual rule or text mutation policy
+changed. R1, R2, R4 and R5 are complete as refactoring stages. R3 shared text
+mutation is the next proposed stage. Native acceptance remains separate.
+
 ## Recommended implementation sequence
 
 1. R1: explicit completion context. This is the next small implementation stage.
