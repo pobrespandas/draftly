@@ -471,4 +471,41 @@ struct SyntaxDefinitionTests {
         }
         #expect(try ScriptSyntax.definition("Plain Text").styledRanges(in: text).isEmpty)
     }
+    @Test func malformedRuleOptionsAndCapturesFailBeforeInstallation() throws {
+        var invalid: [[String: Any]] = []
+        for captures: Any in [["0": "text.bold"], ["0": ["scope": 12]], ["0": ["scope": "text.bold", "exclusive": "true"]]] {
+            var value = source(); value["patterns"] = [["match": "x", "captures": captures]]; invalid.append(value)
+        }
+        for captures: [String: Any] in [["key": "1", "value": "2"], ["key": "1", "value": 2, "link": "0"]] {
+            var value = source(); value["linkDefinitions"] = [["match": "(x)(y)", "captures": captures]]; invalid.append(value)
+        }
+        for option in ["enabled", "exclusive", "featureKeys"] {
+            var value = source(); value["patterns"] = [["match": "x", option: 1, "captures": ["0": ["scope": "text.bold"]]]]; invalid.append(value)
+        }
+        var value = source(); value["linkDefinitions"] = [["match": "(x)(y)", "captures": ["key": "1", "value": "2", "link": "0"], "templates": ["x": 42]]]; invalid.append(value)
+        for object in invalid { #expect(throws: (any Error).self) { try definition(object) } }
+        let library = try LibraryStore(inMemory: true, seed: false)
+        for object in invalid {
+            #expect(throws: (any Error).self) {
+                try LibraryFileImport.apply(JSONSerialization.data(withJSONObject: object), fileExtension: "draftsSyntax", to: library)
+            }
+        }
+        #expect(library.syntaxes.isEmpty && library.notes.isEmpty)
+    }
+    @Test func validatedRulesRetainUnknownFieldsAndLegacyOptionalDefaults() throws {
+        var object = source()
+        object["patterns"] = [["match": "(café)", "enabled": true, "exclusive": false,
+            "future": ["keep": 17], "captures": ["1": ["scope": "text.bold", "exclusive": false, "future": ["keep": true]]]]]
+        object["rangeExtensionType"] = ["default": "lineExtended", "futurePlatform": "futureValue"]
+        let original = try definition(object)
+        let library = try LibraryStore(inMemory: true, seed: false)
+        try LibraryFileImport.apply(Data(original.source.utf8), fileExtension: "draftsSyntax", to: library)
+        let installed = try #require(library.syntaxes.first)
+        #expect(installed.source == original.source)
+        #expect(installed.styledRanges(in: "🐼 café").first?.0 == NSRange(location: 3, length: 4))
+        let restored = try LibraryStore(inMemory: true, seed: false)
+        try restored.restore(library.backupData())
+        #expect(restored.syntaxes == library.syntaxes)
+        #expect(try definition().name == "Three states")
+    }
 }

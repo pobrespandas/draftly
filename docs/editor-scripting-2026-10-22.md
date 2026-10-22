@@ -724,3 +724,30 @@ behavior. Word count130/131 remains a separate recorded difference.
 QA quit normally. Process absence was checked before exact unregistration. The
 runtime, preferences and closed library are recoverable in Trash. The habitual
 app was unchanged. No screenshot or raw log is tracked.
+
+## Known grammar field validation
+
+The frozen syntax-format reference specifies object-valued style captures,
+string capture indices, string scopes/templates and boolean enabled/exclusive
+options. Previously several wrong types passed initialization and were ignored
+at runtime. The new regression failed before this correction.
+
+SyntaxDefinition now rejects malformed style capture objects and scopes, wrong
+index container types, missing required link captures, non-string scope/template
+maps and non-boolean rule flags. JSON numbers are not accepted as boolean flags.
+Shared option checks also cover autocomplete and list rules. Feature defaults
+require JSON booleans. Validation runs before File Import can persist records.
+
+The positive regression preserves unknown root, rule and capture fields through
+installation and backup. Legacy definitions without optional metadata retain their
+existing defaults. Missing metadata was not made mandatory. Unknown platform
+fields remain in rangeExtensionType. Full-text evaluation still ignores the range
+optimization hint; incremental evaluation is not claimed by this change.
+
+Thirty-eight focused methods passed before the additional preservation case.
+The complete Core regression and local build results follow below. No native QA
+session was required for this parsing-only change. Existing native syntax import
+checks remain separate; these tests do not accept native replacement dialogs.
+
+Full serial Core regression passed669 methods/124 suites. Local Xcode build and
+matrix structure0 passed. No retry or timeout changed. Usual app unchanged.

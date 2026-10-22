@@ -2531,3 +2531,11 @@ the body and attenuates markup. Red/green rendering regression, Core22/app9, loc
 build and matrix structure passed. Native rebuilt QA confirmed the correction on
 the saved wrapping note. Broader styling and word-count parity remain open.
 See the dated continuation. QA retired recoverably; usual app unchanged.
+
+### Grammar validation — 22 October 2026
+
+Known capture, scope, template and flag types now fail explicitly when malformed.
+A red/green regression covers rejected installation; a positive case preserves
+unknown fields and legacy defaults through import/backup. Core669/124, local build
+and matrix structure passed. Incremental range evaluation and native replacement
+acceptance remain open. See the dated continuation. Usual app unchanged.

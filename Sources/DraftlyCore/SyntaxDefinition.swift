@@ -1,4 +1,5 @@
 import Foundation
+import CoreFoundation
 
 public enum SyntaxTaskError: Error { case invalidSnapshot }
 
@@ -47,9 +48,43 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
               let name = value["name"] as? String, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw DraftlyError.message("The syntax needs a name and a valid type.")
         }
+        func isBoolean(_ value: Any?) -> Bool {
+            guard let number = value as? NSNumber else { return false }
+            return CFGetTypeID(number) == CFBooleanGetTypeID()
+        }
+        func validateOptions(_ rule: [String: Any]) throws {
+            for key in ["enabled", "exclusive"] where rule[key] != nil {
+                guard isBoolean(rule[key]) else { throw DraftlyError.message("The syntax \(key) option must be a boolean.") }
+            }
+            if let keys = rule["featureKeys"], !(keys is String) {
+                throw DraftlyError.message("The syntax feature requirement must be a string.")
+            }
+        }
         for key in ["patterns", "navigationPatterns", "linkDefinitions", "taskMarkDefinitions", "indentationPatterns"] {
             guard let rules = value[key] as? [[String: Any]] else { throw DraftlyError.message("The syntax needs a \(key) array.") }
             for rule in rules {
+                try validateOptions(rule)
+                if let captures = rule["captures"] {
+                    if key == "patterns" {
+                        guard let captures = captures as? [String: [String: Any]] else { throw DraftlyError.message("The syntax style captures must be objects.") }
+                        for capture in captures.values {
+                            try validateOptions(capture)
+                            if let scope = capture["scope"], !(scope is String) { throw DraftlyError.message("The syntax scope must be a string.") }
+                        }
+                    } else if !(captures is [String: String]) {
+                        throw DraftlyError.message("The syntax captures must contain string indices.")
+                    }
+                }
+                for option in ["scopes", "templates"] where rule[option] != nil {
+                    guard rule[option] is [String: String] else { throw DraftlyError.message("The syntax \(option) must contain strings.") }
+                }
+                if let scope = rule["indentScope"], !(scope is String) { throw DraftlyError.message("The indentation scope must be a string.") }
+                if key == "linkDefinitions" {
+                    let captures = rule["captures"] as? [String: String] ?? [:]
+                    guard ["key", "value", "link"].allSatisfy({ !(captures[$0] ?? "").isEmpty }) else {
+                        throw DraftlyError.message("The link pattern needs key, value and link captures.")
+                    }
+                }
                 guard let pattern = rule["match"] as? String else { throw DraftlyError.message("A syntax pattern is missing.") }
                 let expression = try NSRegularExpression(pattern: pattern, options: [.anchorsMatchLines])
                 if key == "indentationPatterns", rule["indentCapture"] as? String == nil {
@@ -85,6 +120,7 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
         if let definitions = value["autocompleteDefinitions"] {
             guard let definitions = definitions as? [[String: Any]] else { throw DraftlyError.message("The autocomplete definitions are invalid.") }
             for definition in definitions {
+                try validateOptions(definition)
                 guard let trigger = definition["trigger"] as? String, !trigger.isEmpty,
                       let type = definition["type"] as? String, ["draft", "static"].contains(type) else {
                     throw DraftlyError.message("The autocomplete trigger or type is invalid.")
@@ -107,7 +143,7 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
             var ids = Set<String>()
             for feature in definitions {
                 guard let id = feature["id"] as? String, !id.isEmpty, ids.insert(id).inserted,
-                      feature["name"] is String, feature["description"] is String, feature["defaultValue"] is Bool else {
+                      feature["name"] is String, feature["description"] is String, isBoolean(feature["defaultValue"]) else {
                     throw DraftlyError.message("A syntax feature key is invalid.")
                 }
             }
@@ -115,6 +151,7 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
         if let definitions = value["listCompletionDefinitions"] {
             guard let definitions = definitions as? [[String: Any]] else { throw DraftlyError.message("The list completion definitions are invalid.") }
             for rule in definitions {
+                try validateOptions(rule)
                 guard let pattern = rule["match"] as? String,
                       let captures = rule["captures"] as? [String: String],
                       ["indent", "prefix", "line"].allSatisfy({ captures[$0] != nil }) else {
