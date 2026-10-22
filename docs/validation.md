@@ -9039,3 +9039,27 @@ to this production source. QA and helper quit normally. Process absence and
 exact LaunchServices unregistration passed. Apps, preferences and the closed
 library remain recoverable in `~/.Trash/DraftlySharingCancelQA-r3c4x1dx`.
 The habitual app was unchanged. Owner closure after handoff remains pending.
+
+
+## Native sharing owner closure after handoff — 22 October 2026
+
+At bb9a10f, a loaded neutral draft ran the sharing fixture through URL. Notes
+opened its actual extension dialog. Window selected the source. Its enabled
+close button closed that window and returned exactly one cancel callback. The
+prepared file still contained all 38 UTF-8 bytes. Read-only QA storage confirmed
+the completed script text in Inbox, without the success tail or Archive.
+
+A following shell recovery URL succeeded before the old Notes dialog closed.
+The receiver reported one success with `value=Shell recovery café 🐼`. The new
+source window was minimized to expose Notes. Actual provider Cancel removed
+the retained file without another callback. Closed storage recorded Cancelled
+then Success, with final recovery text in Inbox. No Notes item was saved.
+
+QA executable SHA256:
+3f76c853c19b34de0bdf3584cd3e31562c1da2a8cc13d40bd33471b2b46ab45a.
+No production code or tests changed. The complete regression recorded above
+continues to apply. QA and helper quit normally; exact processes were absent,
+and exact LaunchServices paths were unregistered. Apps, preferences and closed
+library remain recoverable in `~/.Trash/DraftlySharingCloseQA-abbi4wsp`.
+The shared file was absent. The habitual app was unchanged. This accepts Notes
+owner closure after file handoff on this URL path, not every sharing provider.
