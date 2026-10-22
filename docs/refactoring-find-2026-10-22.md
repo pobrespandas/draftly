@@ -59,6 +59,15 @@ No stored schema, backup format, identity, syntax rule or script changes.
    editor isolation. All 34 affected app methods and five Core query methods
    passed. Local Xcode compilation passed. Independent review found the command
    comparisons and effect order unchanged. Query state, previews and focus stay
-   in the view. Replacement integration and manual checks are next.
+   in the view.
+2. Replacement integration: six methods cover exact publication/callback/save
+   order, literal and regex composition, durable reopening, selection after
+   shortening/deletion, invalid queries, valid no-match commands, save failure,
+   explicit retry and real native Undo/Redo. All 49 affected app methods and
+   five Core query methods passed. Local compilation passed. Independent review
+   found no weakened assertions or unnecessary duplicate cases. Native editor
+   fixtures have no window and are disconnected in defer.
+
+Complete integration and the separate manual check are next.
 
 The accepted functional and compatibility backlog remains separate.
