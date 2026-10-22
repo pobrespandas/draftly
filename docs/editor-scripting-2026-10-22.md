@@ -215,8 +215,8 @@ assertions. The local Xcode build passed. Native rendering acceptance remains pe
 ## Additional syntax consumers to complete
 
 Navigate used a separate Markdown parser with a 100-entry limit. The correction
-below replaces that parser. Newline list continuation still uses a Markdown expression instead
-of listCompletionDefinitions. Complete sequence, padding and replacement rules.
+below replaces that parser. The list continuation change below connects
+listCompletionDefinitions, sequence, padding and replacement rules.
 Also complete featureKeys, autocompleteDefinitions, rangeExtensionType and
 indentationPatterns. These fields are not excluded from the objective.
 
@@ -259,3 +259,31 @@ then replaces both stored content and file access. Unknown fields survive. The
 operation rejects non-file definitions. All 14 shared syntax methods and the
 local Xcode build passed.
 Native file permission and import-dialog acceptance remain pending.
+
+## Grammar-defined list continuation
+
+Enter now asks the assigned definition for a list continuation edit. Plain Text
+and definitions without list rules use native newline behavior. Markdown variants
+and Simple List define unordered and ordered rules. TaskPaper defines its task
+prefix. Custom definitions retain their raw rules and unknown fields.
+
+The shared calculation uses UTF-16 captures for indent, prefix, line and optional
+sequence. It increments integer sequences, applies leading padding and prefix
+replacements, and retains the indentation. An empty item removes its prefix.
+Invalid selections and positions before the prefix do not create a list edit.
+Disabled rules do not run. Optional list rules now validate expression captures,
+replacement values and nonnegative integer padding before installation.
+
+The padding calculation follows the archived example: padding 2 produces 001.
+Its wording is ambiguous about total width. Native reference comparison remains
+required. Sequence overflow does not increment the number. Empty item behavior,
+selection across lines and built-in variants also need native comparison.
+
+The focused run passed 15 Core methods and four app methods. Native text insertion
+was tested in an offscreen window, including selection, Undo, Redo and Plain Text
+fallback. No window was shown. The first Undo fixture failed because its second
+edit lacked an explicit group with groupsByEvent disabled. Adding that group
+fixed the fixture; production Undo behavior was not changed to hide the failure.
+The final focused rerun and local Xcode build passed. Native interactive list
+acceptance remains pending. Feature keys, autocomplete,
+hanging indentation and broader validation are still incomplete.

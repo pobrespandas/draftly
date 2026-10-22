@@ -185,6 +185,43 @@ struct SyntaxDefinitionTests {
         #expect(store.syntaxes == [replacement])
     }
 
+    @Test func listContinuationUsesAssignedGrammarSequencesReplacementsAndUTF16() throws {
+        let markdown = try ScriptSyntax.definition("Markdown")
+        for (text, expected) in [("- café 🐼", "\n- "), ("\t+ [X] café", "\n\t+ [ ] "),
+                                 ("9. café", "\n10. "), ("99. [x] café", "\n100. [ ] "),
+                                 ("> café", "\n> ")] {
+            let change = try #require(markdown.listContinuation(in: text, selection: NSRange(location: text.utf16.count, length: 0)))
+            #expect(change.text == expected)
+            #expect(change.range == NSRange(location: text.utf16.count, length: 0))
+        }
+        let text = "🐼\r\n- café"
+        let selected = (text as NSString).range(of: "café")
+        let change = try #require(markdown.listContinuation(in: text, selection: selected))
+        #expect(change.range == selected && change.text == "\n- ")
+        let empty = try #require(markdown.listContinuation(in: "\t- [ ] ", selection: NSRange(location: 7, length: 0)))
+        #expect(empty.range == NSRange(location: 0, length: 7) && empty.text == "\n")
+        #expect(markdown.listContinuation(in: "- café", selection: NSRange(location: 0, length: 0)) == nil)
+        #expect(markdown.listContinuation(in: text, selection: NSRange(location: -1, length: 0)) == nil)
+        #expect(markdown.listContinuation(in: text, selection: NSRange(location: Int.max, length: 1)) == nil)
+        #expect(try ScriptSyntax.definition("Plain Text").listContinuation(in: "- café", selection: NSRange(location: 6, length: 0)) == nil)
+        #expect(try ScriptSyntax.definition("TaskPaper").listContinuation(in: "\t- café", selection: NSRange(location: 7, length: 0))?.text == "\n\t- ")
+        var object = source()
+        object["listCompletionDefinitions"] = [["match": #"^(\h*)((\d+)\) \{done\} )(.*)$"#,
+            "captures": ["indent": "1", "prefix": "2", "sequence": "3", "line": "4"],
+            "sequencePadding": "2", "replacements": ["{done}": "{todo}"]]]
+        let custom = try definition(object), customText = "  009) {done} café 🐼"
+        #expect(custom.listContinuation(in: customText, selection: NSRange(location: customText.utf16.count, length: 0))?.text == "\n  010) {todo} ")
+        var rules = try #require(object["listCompletionDefinitions"] as? [[String: Any]])
+        rules[0]["enabled"] = false; object["listCompletionDefinitions"] = rules
+        #expect(try definition(object).listContinuation(in: customText, selection: NSRange(location: customText.utf16.count, length: 0)) == nil)
+        rules[0]["sequencePadding"] = "-1"; object["listCompletionDefinitions"] = rules
+        #expect(throws: (any Error).self) { try definition(object) }
+        rules[0]["sequencePadding"] = "2"
+        rules[0]["captures"] = ["indent": "1", "prefix": "2", "line": "99"]
+        object["listCompletionDefinitions"] = rules
+        #expect(throws: (any Error).self) { try definition(object) }
+    }
+
     @Test func customLinkTemplatesUseCapturedRangeAndEncodeValuesOnce() throws {
         var value = source()
         var rules = try #require(value["linkDefinitions"] as? [[String: Any]])

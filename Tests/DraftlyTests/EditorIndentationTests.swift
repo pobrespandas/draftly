@@ -56,6 +56,35 @@ struct EditorIndentationTests {
         #expect(model.editor.content == original && model.editor.selection == selection)
     }
 
+    @Test func nativeNewlineUsesGrammarAndRetainsUndoWithoutShowingAWindow() throws {
+        let text = DraftTextView(frame: .zero)
+        text.isRichText = false; text.allowsUndo = true
+        let window = OffscreenTestWindow(contentRect: .zero, styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = text
+        defer { window.contentView = nil }
+        let manager = try #require(text.undoManager)
+        manager.groupsByEvent = false
+        text.string = "🐼\n9. [x] café"
+        text.syntaxDefinition = try ScriptSyntax.definition("Markdown")
+        let original = text.string
+        text.setSelectedRange(NSRange(location: original.utf16.count, length: 0))
+        manager.beginUndoGrouping()
+        text.insertNewline(nil)
+        manager.endUndoGrouping()
+        #expect(text.string == original + "\n10. [ ] ")
+        #expect(text.selectedRange() == NSRange(location: text.string.utf16.count, length: 0))
+        manager.undo()
+        #expect(text.string == original)
+        manager.redo()
+        #expect(text.string == original + "\n10. [ ] ")
+        text.syntaxDefinition = try ScriptSyntax.definition("Plain Text")
+        text.string = "- café"; text.setSelectedRange(NSRange(location: 6, length: 0))
+        manager.beginUndoGrouping()
+        text.insertNewline(nil)
+        manager.endUndoGrouping()
+        #expect(text.string == "- café\n" && !window.isVisible)
+    }
+
     @Test(arguments: EditorIndentationStyle.allCases)
     func nativeTabReplacesTheUTF16SelectionWithoutAWindow(style: EditorIndentationStyle) {
         let text = DraftTextView(frame: .zero)

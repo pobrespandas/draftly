@@ -366,17 +366,9 @@ final class DraftTextView: NSTextView {
     }
 
     override func insertNewline(_ sender: Any?) {
-        let source = string as NSString
-        let range = selectedRange()
-        let lineRange = source.lineRange(for: NSRange(location: range.location, length: 0))
-        let line = source.substring(with: lineRange).trimmingCharacters(in: .newlines)
-        if let match = line.range(of: "^\\s*(?:[-*] (?:\\[[ xX]\\] )?|[0-9]+\\. )", options: .regularExpression) {
-            var prefix = String(line[match])
-            if line.trimmingCharacters(in: .whitespaces) == prefix.trimmingCharacters(in: .whitespaces) {
-                insertText("\n", replacementRange: NSRange(location: lineRange.location, length: range.location - lineRange.location)); return
-            }
-            prefix = prefix.replacingOccurrences(of: "[x]", with: "[ ]").replacingOccurrences(of: "[X]", with: "[ ]")
-            insertText("\n" + prefix, replacementRange: range); return
+        if let change = syntaxDefinition?.listContinuation(in: string, selection: selectedRange()) {
+            insertText(change.text, replacementRange: change.range)
+            return
         }
         super.insertNewline(sender)
     }

@@ -45,6 +45,30 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
                 }
             }
         }
+        if let definitions = value["listCompletionDefinitions"] {
+            guard let definitions = definitions as? [[String: Any]] else { throw DraftlyError.message("The list completion definitions are invalid.") }
+            for rule in definitions {
+                guard let pattern = rule["match"] as? String,
+                      let captures = rule["captures"] as? [String: String],
+                      ["indent", "prefix", "line"].allSatisfy({ captures[$0] != nil }) else {
+                    throw DraftlyError.message("The list completion pattern needs indent, prefix and line captures.")
+                }
+                let expression = try NSRegularExpression(pattern: pattern, options: [.anchorsMatchLines])
+                for capture in captures.values where !capture.isEmpty {
+                    guard let index = Int(capture), (0...expression.numberOfCaptureGroups).contains(index) else {
+                        throw DraftlyError.message("A list completion capture is outside its pattern.")
+                    }
+                }
+                if let padding = rule["sequencePadding"] {
+                    guard let padding = padding as? String, let count = Int(padding), count >= 0, count < Int.max else {
+                        throw DraftlyError.message("The list sequence padding is invalid.")
+                    }
+                }
+                if let replacements = rule["replacements"], !(replacements is [String: String]) {
+                    throw DraftlyError.message("The list replacements are invalid.")
+                }
+            }
+        }
         self.id = id; self.name = name; self.type = type
         self.source = String(decoding: data, as: UTF8.self)
     }
@@ -109,6 +133,40 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
             }
         }.sorted { ($0["location"] as? Int ?? 0) < ($1["location"] as? Int ?? 0) }
     }
+    public func listContinuation(in text: String, selection: NSRange) -> (range: NSRange, text: String)? {
+        let source = text as NSString
+        guard selection.location >= 0, selection.length >= 0, selection.location <= source.length,
+              selection.length <= source.length - selection.location else { return nil }
+        let lineRange = source.lineRange(for: NSRange(location: selection.location, length: 0))
+        let line = source.substring(with: lineRange).trimmingCharacters(in: .newlines)
+        let lineSource = line as NSString
+        for rule in rules("listCompletionDefinitions") {
+            let captures = rule["captures"] as? [String: String] ?? [:]
+            guard let match = results(rule, line).first, match.range.location == 0,
+                  let indentRange = capture(match, captures["indent"]),
+                  let prefixRange = capture(match, captures["prefix"]),
+                  let contentRange = capture(match, captures["line"]),
+                  selection.location >= lineRange.location + NSMaxRange(prefixRange) else { continue }
+            if lineSource.substring(with: contentRange).trimmingCharacters(in: .whitespaces).isEmpty {
+                return (NSRange(location: lineRange.location, length: NSMaxRange(selection) - lineRange.location), "\n")
+            }
+            var prefix = lineSource.substring(with: prefixRange)
+            if let sequence = capture(match, captures["sequence"]),
+               NSIntersectionRange(sequence, prefixRange) == sequence,
+               let number = Int(lineSource.substring(with: sequence)), number < Int.max {
+                let next = String(number + 1)
+                let padding = Int(rule["sequencePadding"] as? String ?? "0") ?? 0
+                let digits = String(repeating: "0", count: max(0, padding + 1 - next.count)) + next
+                prefix = (prefix as NSString).replacingCharacters(in: NSRange(location: sequence.location - prefixRange.location, length: sequence.length), with: digits)
+            }
+            for (key, value) in (rule["replacements"] as? [String: String] ?? [:]).sorted(by: { $0.key < $1.key }) where !key.isEmpty {
+                prefix = prefix.replacingOccurrences(of: key, with: value)
+            }
+            return (selection, "\n" + lineSource.substring(with: indentRange) + prefix)
+        }
+        return nil
+    }
+
     public func taskStyledRanges(in text: String) -> [(NSRange, String)] {
         let definitions = rules("taskMarkDefinitions")
         return tasks(in: text).compactMap { task in
