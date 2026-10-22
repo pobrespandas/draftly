@@ -2679,3 +2679,11 @@ Actual Intent.perform now has explicit target/other-draft save-failure and retry
 cases. Pending text and storage diagnostics remain; no execution or reservation
 starts. Focused14 and local build passed. No production change or native system
 dispatch acceptance. Other Actions-engine obligations remain open.
+
+### Integrated Actions regression — 22 October 2026
+
+Core674/app712 passed with complete machine-readable inventory; Python68 passed.
+No retries or deadlines changed. Strict engine acceptance still rejects six
+partial records (18 diagnostics). Action.find duplicates follow the archived
+first-match contract and already have native acceptance; they are not an open
+defect. See docs/actions-engine.md and engine-native-checklist.md.

@@ -690,3 +690,28 @@ matrix structural validation passed. Production source did not change. No manual
 system Intent or storage-permission session was performed; the test invokes the
 actual Intent method with an isolated environment. Prior full app711 remains a
 prior run, not coverage of this new method. The engine strict gate stays open.
+
+## Integrated engine regression — 22 October 2026
+
+At 8f50a87 the repository was clean. scripts/run-swift-tests.py completed both
+Swift targets and checked every XML identity against discovery: Core674 and
+app712 methods passed. App tests ran serially. All68 Python tests passed.
+No retries, deadline changes or visible UI tests were used. The local build from
+the same production source had passed in the prior pending-save checkpoint.
+
+The structural matrix check remains distinct from acceptance. The strict engine
+check returned18 errors across six partial contracts: included configuration
+precedence, separator group import, worker/native lifetime, host lifetime, task
+cancellation and common entries. Their native/reference obligations remain in
+engine-native-checklist.md. These suite totals do not measure compatibility.
+
+The duplicate Action.find issue is not currently open. The archived Action page
+explicitly specifies the first found name. ActionLookupContractTests and the
+21 October native deterministic Action.find record already verify exact names,
+UUID tie order, restart and backup behavior. URL and Intent lookup currently use
+the same loaded first-match catalog. No ambiguity rejection or new lookup rule
+was introduced. This audit corrects the continuation direction, not the contract.
+
+No production source, installed app or native state changed in this checkpoint.
+Continue the capability-specific native lifetime checks, including external
+composition handoff/cancel behavior, and the outstanding reference comparisons.
