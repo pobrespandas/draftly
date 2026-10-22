@@ -2458,3 +2458,20 @@ The full serial app run passed687/122; XML matches discovery. Core sources are
 unchanged and the prior661/124 report matches current inventory. Local build and
 matrix structure0 passed. Forward native deletion, mouse/static suggestions,
 feature toggles and the wider Editor/scripting objective remain pending.
+
+
+### Autocomplete mouse acceptance — 22 October 2026
+
+The actual content view failed its first-mouse policy check. Its hosting subclass
+now accepts that click without making the panel key. Rows use a rectangular hit
+area. Native QA confirmed a first-click draft insertion and a click in empty space
+of an unselected static row. Duplicate labels inserted the correct second value.
+A static template retained its current-title value, prefix and suffix. Typing and
+Undo/Redo worked after draft acceptance. The neutral fixture includes these cases.
+
+Ten focused methods, full app688/122, local build and matrix structure0 passed.
+The app report matches discovery. Core is unchanged; prior661/124 still matches
+inventory. QA quit and its exact registration was retired; data and runtimes are
+recoverable in Trash. No habitual app, screenshot or raw-log change. Feature-toggle
+persistence, IME/long lists/multiple windows, reference comparison and the broader
+Editor/scripting scope remain open in the dated continuation record.

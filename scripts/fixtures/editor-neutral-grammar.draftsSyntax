@@ -65,5 +65,38 @@
         "{done}": "{todo}"
       }
     }
+  ],
+  "featureKeys": [
+    {
+      "id": "suggestions",
+      "name": "Suggestions",
+      "description": "Enable neutral completion suggestions.",
+      "defaultValue": true
+    }
+  ],
+  "autocompleteDefinitions": [
+    {
+      "trigger": "!!",
+      "type": "static",
+      "enabled": true,
+      "featureKeys": "suggestions",
+      "processTemplateTags": true,
+      "items": [
+        {
+          "label": "Same label",
+          "value": "First café"
+        },
+        {
+          "label": "Same label",
+          "value": "Second 🐼"
+        },
+        {
+          "label": "Current title",
+          "value": "[[title]]",
+          "prefix": "(",
+          "suffix": ")"
+        }
+      ]
+    }
   ]
 }

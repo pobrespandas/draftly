@@ -16,6 +16,17 @@ struct EditorSyntaxCompletionTests {
                 ["label": "Same label", "value": "First café"], ["label": "Same label", "value": "Second 🐼"]]]]]))
         return syntax.completion(in: source, selection: selection, drafts: [], current: Note(content: source))
     }
+    @Test func suggestionContentAcceptsTheFirstMouseWithoutActivatingAWindow() throws {
+        let source = "🐼 !!", selection = NSRange(location: source.utf16.count, length: 0)
+        let state = EditorSyntaxCompletions()
+        #expect(state.makeContentView() == nil)
+        state.begin(try request(source, selection: selection), source: source, selection: selection, noteID: UUID())
+        let view = try #require(state.makeContentView())
+        #expect(view.acceptsFirstMouse(for: nil))
+        #expect(view.window == nil)
+        state.dismiss(); #expect(state.makeContentView() == nil)
+    }
+
     @Test func navigationRetainsDuplicateIdentityAndCancelNeverProducesAnEdit() throws {
         let source = "🐼 !!", selection = NSRange(location: source.utf16.count, length: 0), id = UUID()
         let state = EditorSyntaxCompletions()

@@ -484,3 +484,41 @@ The final serial app run passed 687 methods in 122 suites. Its report matches
 current discovery. Core sources did not change; the prior661/124 report also
 matches the current Core inventory. The matrix structural check has zero errors.
 No timeout or retry changed. These results do not accept the remaining scope.
+
+## Mouse acceptance and custom static suggestions
+
+The suggestion hosting view rejected first mouse events in its nonactivating
+panel. A headless test failed on the actual content view's acceptsFirstMouse
+result. The panel now uses a hosting view that accepts that event. Its window
+still cannot become key or main. The content builder is shared by presentation
+and the test; the test does not construct or show a panel.
+
+Native Mouse QA confirmed the first click on a draft suggestion inserted its
+bracketed title. Typing then continued in the editor. Undo removed that typing
+and the accepted suggestion in separate operations; Redo restored the suggestion.
+This completes the earlier unverified single-click path for the checked case.
+
+The session imported the neutral grammar fixture with static autocomplete and a
+default-enabled feature key. Two rows had the same label and different values.
+Clicking the second label inserted Second 🐼. Clicking empty space in that row
+initially did nothing. The row now defines a rectangular hit area. The rebuilt
+binary accepted the first click in the same empty region and inserted Second 🐼.
+A separate static template rendered [[title]] from the current draft and kept its
+parenthesis prefix/suffix. The editor displayed (Current café 🐼).
+
+The fixture is retained under scripts/fixtures for replay. Ten focused app methods
+and the local Xcode build passed. The first-mouse policy has automatic red/green
+evidence. Full-row hit testing has native before/after evidence, not an automatic
+mouse simulation. No automated test opened a window or sent a mouse event.
+Apple reference: https://developer.apple.com/documentation/appkit/nsview/acceptsfirstmouse(for:)
+
+QA quit normally. Process absence was checked before exact unregistration. Its
+bundle, prior runtime, fixture, exported preferences and closed library are in
+recoverable Trash. The habitual app was untouched. No screenshot is tracked.
+Feature-toggle persistence, IME, long lists, multiple windows and Drafts dropdown
+comparison remain pending. Other grammar, links and Find acceptance remain open.
+
+The final serial app run passed 688 methods/122 suites. Its XML matches discovery.
+Core sources are unchanged; the prior661/124 report still matches current Core
+inventory. Local Xcode build and matrix structure0 passed. No retry or deadline
+changed. These results accept the checked mouse paths, not complete parity.

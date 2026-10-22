@@ -79,8 +79,12 @@ import DraftlyCore
         if let edit { textView.insertSyntaxCompletion(edit.1, range: edit.0) }
     }
     private func render() {
-        guard let panel, let request else { return }
-        panel.contentView = NSHostingView(rootView: CompletionList(items: request.items, selectedIndex: selectedIndex) { [weak self] index in
+        guard let panel else { return }
+        panel.contentView = makeContentView()
+    }
+    func makeContentView() -> NSView? {
+        guard let request else { return nil }
+        return CompletionHostingView(rootView: CompletionList(items: request.items, selectedIndex: selectedIndex) { [weak self] index in
             self?.accept(index: index)
         })
     }
@@ -89,6 +93,10 @@ import DraftlyCore
 private final class CompletionPanel: NSPanel {
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
+}
+
+private final class CompletionHostingView: NSHostingView<CompletionList> {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 }
 
 private struct CompletionList: View {
@@ -104,6 +112,7 @@ private struct CompletionList: View {
                             Text(item.label).font(.system(size: 13)).lineLimit(2)
                                 .frame(maxWidth: .infinity, minHeight: 34, alignment: .leading)
                                 .padding(.horizontal, 8)
+                                .contentShape(Rectangle())
                                 .background(index == selectedIndex ? Color.accentColor.opacity(0.2) : .clear)
                         }.buttonStyle(.plain).id(index)
                     }
