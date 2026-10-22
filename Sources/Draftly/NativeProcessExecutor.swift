@@ -4,6 +4,13 @@ import DraftlyCore
 
 @MainActor
 final class NativeProcessExecutor {
+    private final class CancellationState: @unchecked Sendable {
+        private let lock = NSLock()
+        private var cancelled = false
+        var isCancelled: Bool { lock.withLock { cancelled } }
+        func cancel() { lock.withLock { cancelled = true } }
+    }
+    private let cancellation = CancellationState()
     private let process: Process
     private let now: @MainActor () -> Date
     private var deadline = Date.distantFuture
@@ -40,6 +47,7 @@ final class NativeProcessExecutor {
         }
         try Task.checkCancellation()
         deadline = now().addingTimeInterval(timeout)
+        try Task.checkCancellation()
         process.terminationHandler = { [self] _ in
             Task { @MainActor in self.parentExited = true; self.finish() }
         }
@@ -59,15 +67,18 @@ final class NativeProcessExecutor {
     }
 
     private func run(timeout: TimeInterval) async throws -> Int32 {
-        return try await withTaskCancellationHandler {
+        let status = try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
                 self.continuation = continuation
                 do { try launch(timeout: timeout) }
                 catch { finish(error: error) }
             }
-        } onCancel: {
+        } onCancel: { [cancellation] in
+            cancellation.cancel()
             Task { @MainActor [self] in interrupt(CancellationError()) }
         }
+        try Task.checkCancellation()
+        return status
     }
 
     private func interrupt(_ error: Error) {
@@ -98,7 +109,12 @@ final class NativeProcessExecutor {
 
     private func finish(error: Error? = nil) {
         guard !finished, !cleanupPending else { return }
-        if error == nil, interruption == nil, now() >= deadline {
+        let expired = now() >= deadline
+        if interruption == nil, cancellation.isCancelled {
+            interrupt(CancellationError())
+            return
+        }
+        if error == nil, interruption == nil, expired {
             interrupt(ActionExecutionInterruption.timeout)
             return
         }

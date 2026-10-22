@@ -23583,6 +23583,21 @@
         {
           "suite": "NativeFileSelectionTests",
           "test": "cancelledSelectionRejectsAResponseBeforeQueuedCleanup"
+        },
+        {
+          "suite": "NativeProcessExecutorTests",
+          "test": "cancellationBeforeSpawnDoesNotLaunchTheProcess",
+          "file": "Tests/DraftlyTests/NativeProcessExecutorTests.swift"
+        },
+        {
+          "suite": "NativeProcessExecutorTests",
+          "test": "cancellationDuringExitDeliveryCannotReturnStatus",
+          "file": "Tests/DraftlyTests/NativeProcessExecutorTests.swift"
+        },
+        {
+          "suite": "NativeProcessExecutorTests",
+          "test": "cancellationAtParentExitReapsRemainingDescendant",
+          "file": "Tests/DraftlyTests/NativeProcessExecutorTests.swift"
         }
       ],
       "nativeVerification": {

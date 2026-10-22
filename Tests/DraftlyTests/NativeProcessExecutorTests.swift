@@ -116,20 +116,8 @@ struct NativeProcessExecutorTests {
     }
 
     @Test func expiredParentExitStopsItsRemainingDescendantBeforeReturning() async throws {
-        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: root) }
-        let childFile = root.appendingPathComponent("child")
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/sh")
-        process.arguments = ["-c", """
-            /bin/sh -c 'trap "" TERM; printf "%s" "$$" > "$1"; exec /bin/sleep 30' fixture "$1" &
-            while [ ! -s "$1" ]; do /bin/sleep 0.01; done
-            """, "fixture", childFile.path]
-        defer {
-            if let text = try? String(contentsOf: childFile, encoding: .utf8), let child = Int32(text),
-               getpgid(child) == process.processIdentifier { _ = Darwin.kill(child, SIGKILL) }
-        }
+        let fixture = try ParentExitFixture(); defer { fixture.clean() }
+        let process = fixture.process, childFile = fixture.childFile
         var reads = 0
         let start = Date(timeIntervalSinceReferenceDate: 100)
         do {
@@ -139,6 +127,61 @@ struct NativeProcessExecutorTests {
             })
             Issue.record("An expired parent exit returned success.")
         } catch { #expect(error as? ActionExecutionInterruption == .timeout) }
+        let child = try #require(Int32(String(contentsOf: childFile, encoding: .utf8)))
+        let deadline = ContinuousClock.now + .seconds(2)
+        while getpgid(child) != -1, ContinuousClock.now < deadline { await Task.yield() }
+        #expect(getpgid(child) == -1)
+        #expect(!process.isRunning && process.terminationHandler == nil)
+    }
+
+    @Test func cancellationBeforeSpawnDoesNotLaunchTheProcess() async throws {
+        let process = Process(); process.executableURL = URL(fileURLWithPath: "/usr/bin/true")
+        var task: Task<Int32, Error>?
+        task = Task {
+            try await NativeProcessExecutor.run(process, timeout: 10, now: {
+                task?.cancel()
+                return Date(timeIntervalSinceReferenceDate: 100)
+            })
+        }
+        let pending = try #require(task)
+        do { _ = try await pending.value; Issue.record("Cancelled launch returned a result.") }
+        catch { #expect(error is CancellationError) }
+        #expect(process.processIdentifier == 0)
+        #expect(!process.isRunning && process.terminationHandler == nil)
+    }
+
+    @Test func cancellationDuringExitDeliveryCannotReturnStatus() async throws {
+        let process = Process(); process.executableURL = URL(fileURLWithPath: "/usr/bin/true")
+        var reads = 0
+        var task: Task<Int32, Error>?
+        task = Task {
+            try await NativeProcessExecutor.run(process, timeout: 10, now: {
+                reads += 1
+                if reads == 2 { task?.cancel() }
+                return Date(timeIntervalSinceReferenceDate: 100)
+            })
+        }
+        let pending = try #require(task)
+        do { _ = try await pending.value; Issue.record("Cancelled process delivery returned an exit status.") }
+        catch { #expect(error is CancellationError) }
+        #expect(!process.isRunning && process.terminationHandler == nil)
+    }
+
+    @Test func cancellationAtParentExitReapsRemainingDescendant() async throws {
+        let fixture = try ParentExitFixture(); defer { fixture.clean() }
+        let process = fixture.process, childFile = fixture.childFile
+        var reads = 0
+        var task: Task<Int32, Error>?
+        task = Task {
+            try await NativeProcessExecutor.run(process, timeout: 10, now: {
+                reads += 1
+                if reads == 2 { task?.cancel() }
+                return Date(timeIntervalSinceReferenceDate: 100)
+            })
+        }
+        let pending = try #require(task)
+        do { _ = try await pending.value; Issue.record("Cancelled parent exit returned an exit status.") }
+        catch { #expect(error is CancellationError) }
         let child = try #require(Int32(String(contentsOf: childFile, encoding: .utf8)))
         let deadline = ContinuousClock.now + .seconds(2)
         while getpgid(child) != -1, ContinuousClock.now < deadline { await Task.yield() }
@@ -195,6 +238,26 @@ struct NativeProcessExecutorTests {
         #expect(!FileManager.default.fileExists(atPath: URL(fileURLWithPath: inputPath).deletingLastPathComponent().path))
     }
 
+}
+
+@MainActor private struct ParentExitFixture {
+    let root: URL
+    let process: Process
+    var childFile: URL { root.appendingPathComponent("child") }
+    init() throws {
+        root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        process = Process(); process.executableURL = URL(fileURLWithPath: "/bin/sh")
+        process.arguments = ["-c", """
+            /bin/sh -c 'trap "" TERM; printf "%s" "$$" > "$1"; exec /bin/sleep 30' fixture "$1" &
+            while [ ! -s "$1" ]; do /bin/sleep 0.01; done
+            """, "fixture", root.appendingPathComponent("child").path]
+    }
+    func clean() {
+        if let text = try? String(contentsOf: childFile, encoding: .utf8), let child = Int32(text),
+           getpgid(child) == process.processIdentifier { _ = Darwin.kill(child, SIGKILL) }
+        try? FileManager.default.removeItem(at: root)
+    }
 }
 
 @Suite("Shortcut launch without waiting") @MainActor

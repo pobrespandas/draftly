@@ -783,3 +783,18 @@ keeps its typed reason. A failed helper cannot show a completion notice.
 The legacy synchronous adapter is unchanged; this section describes the async
 route. The operating system owns its shared audio services. Draftly never kills
 those services during cleanup. Audible completion needs separate verification.
+
+## Process cancellation at exit delivery — 22 October 2026
+
+Waited processes record task cancellation synchronously in a locked flag.
+The MainActor interruption task still owns process signals and cleanup.
+Termination delivery checks the flag before accepting a status, so queued
+cleanup cannot lose to a completed parent. If descendants remain, the executor
+terminates their isolated process group before returning cancellation.
+A second cancellation check before spawn prevents a cancelled launch from
+starting a process. The caller also checks cancellation after a normal resume.
+
+Detached launches keep their separate lifetime. They do not use the waited
+operation's cancellation handler. Their existing ownership tests still apply.
+The parent-exit regression tests share a fixture; expiry and cancellation keep
+separate assertions and test identities.

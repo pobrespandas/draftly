@@ -9573,3 +9573,32 @@ Intent delivery remain pending. The audio subsystem did not complete the short
 phrase on this Mac. The new isolation fixes the parent-app hang; it does not
 claim to repair the operating system audio condition. The legacy synchronous
 speech path is unchanged and is not accepted by this session.
+
+## Process cancellation before queued cleanup — 22 October 2026
+
+At `e312a3e`, controlled-clock tests cancelled the owner during process exit
+delivery, before its MainActor interruption task ran. A completed process
+returned status zero. A parent-exit fixture also returned status zero and left
+a TERM-ignoring child running. Both tests failed. A third test cancelled before
+spawn and showed that the process still launched. Its cancellation result was
+correct, but the unwanted process launch was a side effect.
+
+NativeProcessExecutor now records cancellation synchronously in a locked flag.
+Termination checks that flag before accepting a status and uses the existing
+process-group cleanup before returning cancellation. A check immediately before
+spawn rejects cancellation that arrived after the initial check. A post-await
+check also prevents a cancelled caller from receiving a normal status.
+
+All three regressions passed after the change. The parent-exit expiry and
+cancellation tests share a fixture, with separate test identities and assertions.
+Focused process, Shortcut and speech-process suites passed28 methods before the
+fixture extraction. The complete run after extraction passed Core674/app748.
+XML results matched discovery. Local Debug compilation and the structural
+matrix check passed. No retries or timeout increases were added. Python code
+did not change; the previous68-test result is separate, not a new run.
+
+These tests use real local processes and temporary files. They do not open
+windows, play audio or request permissions. No manual UI session was needed for
+this executor boundary. They do not accept new system-delivered App Intent or
+Shortcuts cases. The usual app was not replaced. Native route acceptance still
+has six partial engine records.
