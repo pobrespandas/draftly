@@ -95,6 +95,21 @@ struct NativeMessageAsyncTests {
         #expect(driver.detachCount == 1 && driver.onFinish == nil)
     }
 
+    @Test(arguments: [false, true])
+    func completionAtOrAfterDeadlineCannotBeatQueuedTimeout(exactDeadline: Bool) async {
+        let driver = Driver()
+        var now = Date(timeIntervalSinceReferenceDate: 100)
+        driver.onStart = { now = now.addingTimeInterval(exactDeadline ? 10 : 11) }
+        do {
+            _ = try await NativeMessageAdapter().composeAsync("composeMessage", [:], timeout: 10,
+                now: { now }, makeDriver: { _ in driver })
+            Issue.record("Expired composition reported success.")
+        } catch { #expect(error as? ActionExecutionInterruption == .timeout) }
+        #expect(driver.detachCount == 1 && driver.onFinish == nil)
+        driver.late?(.success(()))
+        #expect(driver.detachCount == 1)
+    }
+
     @Test func taskCancellationDetachesWithoutClaimingToRecallExternalComposition() async throws {
         let driver = Driver(); driver.result = nil
         let started = AsyncStream.makeStream(of: Bool.self)

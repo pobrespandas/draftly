@@ -9178,3 +9178,30 @@ Debug compilation and matrix structure passed. No retry or deadline changed.
 This complete run includes the earlier speech race and actual Intent shell
 cleanup tests. Native dictation permission acceptance remains separate. The
 habitual app was unchanged.
+
+
+## Composition callback deadline — 22 October 2026
+
+At 02cf08f, a controlled clock advanced to the composition deadline or beyond
+it during driver startup, before the queued timeout task ran. Both new cases
+incorrectly returned sent. MessageCompositionWait now retains its absolute
+deadline and checks it when a service callback arrives. The exact boundary and
+the later completion return timeout, detach once and ignore a repeated callback.
+The injected clock defaults to Date; production limits did not change.
+
+All 21 composition/Intent methods passed, as did local Debug compilation and
+matrix structure. Tests used only injected composition drivers and neutral
+process fixtures. No Mail message, composer, permission or QA app was opened.
+The previous complete 674/720 run predates this new regression. Native Messages
+acceptance and confirmed Mail sending remain pending.
+
+Mail investigation: the archived Mail.send contract opens the Mail window and
+returns true for a successful send. Apple documents didShareItems as a sharing
+completion, but the earlier native Mail observation showed it before send. See
+[the delegate reference](https://developer.apple.com/documentation/appkit/nssharingservicedelegate/sharingservice(_:didshareitems:)).
+The installed Mail scripting dictionary offers a send command with a Boolean
+result. Calling it directly would not preserve the documented user composition
+flow. No such replacement was implemented. The user authorized one neutral
+message to a named recipient in chat. No message has been sent; the recipient
+is not stored in repository fixtures. Authorization is no longer the blocker
+for that one message. A reliable send/cancel implementation is still required.

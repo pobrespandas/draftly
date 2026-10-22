@@ -58,6 +58,7 @@ struct NativeMessageAdapter {
 
 @MainActor extension NativeMessageAdapter {
     func composeAsync(_ operation: String, _ values: [String: Any], timeout: TimeInterval = 120,
+                      now: @escaping @MainActor () -> Date = Date.init,
                       makeDriver: @MainActor (String) throws -> any NativeMessageDriver = { try SharingMessageDriver(operation: $0) }) async throws -> [String: String] {
         try Task.checkCancellation()
         guard ["composeMail", "composeMessage"].contains(operation) else { throw DraftlyError.message("The composition operation is unavailable.") }
@@ -73,7 +74,7 @@ struct NativeMessageAdapter {
         driver.subject = values["subject"] as? String ?? ""
         let body = values["body"] as? String ?? ""
         guard driver.canPerform(body) else { driver.detach(); throw DraftlyError.message("The system composition service cannot handle this message.") }
-        let status = try await MessageCompositionWait(driver: driver).run(body, timeout: timeout)
+        let status = try await MessageCompositionWait(driver: driver, now: now).run(body, timeout: timeout)
         try Task.checkCancellation()
         return ["status": status]
     }
@@ -83,19 +84,29 @@ struct NativeMessageAdapter {
     let driver: any NativeMessageDriver
     var continuation: CheckedContinuation<String, Error>?
     var timer: Task<Void, Never>?
-    init(driver: any NativeMessageDriver) { self.driver = driver }
+    let now: @MainActor () -> Date
+    var deadline = Date.distantFuture
+    init(driver: any NativeMessageDriver, now: @escaping @MainActor () -> Date) {
+        self.driver = driver; self.now = now
+    }
     func run(_ body: String, timeout: TimeInterval) async throws -> String {
         try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
                 self.continuation = continuation
                 guard !Task.isCancelled else { finish(.failure(CancellationError())); return }
+                deadline = now().addingTimeInterval(timeout)
                 driver.onFinish = { [weak self] result in
+                    guard let self else { return }
+                    guard self.now() < self.deadline else {
+                        self.finish(.failure(ActionExecutionInterruption.timeout))
+                        return
+                    }
                     switch result {
-                    case .success: self?.finish(.success("sent"))
+                    case .success: self.finish(.success("sent"))
                     case .failure(let error):
                         let native = error as NSError
-                        if native.domain == NSCocoaErrorDomain, native.code == NSUserCancelledError { self?.finish(.success("userCancelled")) }
-                        else { self?.finish(.failure(error)) }
+                        if native.domain == NSCocoaErrorDomain, native.code == NSUserCancelledError { self.finish(.success("userCancelled")) }
+                        else { self.finish(.failure(error)) }
                     }
                 }
                 timer = Task { @MainActor in
