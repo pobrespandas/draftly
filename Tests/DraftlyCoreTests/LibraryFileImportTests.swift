@@ -178,4 +178,47 @@ import Testing
         try LibraryFileImport.apply(Data(unclassified.utf8), fileExtension: "txt", to: library)
         #expect(library.notes.contains { $0.content == unclassified })
     }
+    @Test func syntaxFileInstallsDefinitionWithoutCreatingATextDraft() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let data = Data(#"{"name":"Import café 🐼","patterns":[],"navigationPatterns":[],"linkDefinitions":[],"taskMarkDefinitions":[],"indentationPatterns":[],"future":{"keep":true}}"#.utf8)
+        try LibraryFileImport.apply(data, fileExtension: "draftsSyntax", to: library)
+        let installed = try #require(library.syntaxes.first)
+        #expect(installed.name == "Import café 🐼" && installed.type == "custom")
+        #expect(installed.source == String(decoding: data, as: UTF8.self))
+        #expect(library.notes.isEmpty && library.revisions.isEmpty)
+        try LibraryFileImport.apply(data, fileExtension: "DRAFTSSYNTAX", to: library)
+        #expect(library.syntaxes.map(\.id) == [installed.id])
+        let restored = try LibraryStore(inMemory: true, seed: false)
+        try restored.restore(library.backupData())
+        #expect(restored.syntaxes == library.syntaxes)
+    }
+
+    @Test func invalidOrConflictingSyntaxFileCannotBecomeTextOrReplaceInstalledData() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let data = Data(#"{"name":"Neutral import","patterns":[],"navigationPatterns":[],"linkDefinitions":[],"taskMarkDefinitions":[],"indentationPatterns":[]}"#.utf8)
+        let original = try SyntaxDefinition(data: data)
+        try library.saveSyntax(original)
+        let before = try library.backupData()
+        for incoming in [Data("{broken".utf8), Data(#"{"name":"Incomplete"}"#.utf8),
+            Data(String(decoding: data, as: UTF8.self).replacingOccurrences(of: "\"patterns\":[]", with: "\"patterns\":[],\"future\":true").utf8)] {
+            #expect(throws: (any Error).self) { try LibraryFileImport.apply(incoming, fileExtension: "draftsSyntax", to: library) }
+            #expect(try library.backupData() == before)
+        }
+    }
+
+    @Test func syntaxImportFailureAndMixedFileFailureLeaveNoPartialRecords() throws {
+        enum Failure: Error { case storage }
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let data = Data(#"{"name":"Neutral import","patterns":[],"navigationPatterns":[],"linkDefinitions":[],"taskMarkDefinitions":[],"indentationPatterns":[]}"#.utf8)
+        library.beforeBatchCommit = { throw Failure.storage }
+        #expect(throws: Failure.storage) { try LibraryFileImport.apply(data, fileExtension: "draftsSyntax", to: library) }
+        #expect(library.syntaxes.isEmpty && library.notes.isEmpty)
+        library.beforeBatchCommit = nil
+        #expect(throws: (any Error).self) {
+            try LibraryFileImport.apply([.init(data: data, fileExtension: "draftsSyntax"), .init(data: Data("invalid".utf8), fileExtension: "draftsSyntax")], to: library)
+        }
+        #expect(library.syntaxes.isEmpty && library.notes.isEmpty)
+        try LibraryFileImport.apply(data, fileExtension: "draftsSyntax", to: library)
+        #expect(library.syntaxes.count == 1 && library.notes.isEmpty)
+    }
 }

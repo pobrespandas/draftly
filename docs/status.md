@@ -2499,3 +2499,11 @@ passed. Native QA displayed encoded links, but both editor activation and Safari
 delivery failed for the isolated scheme. Native routing remains pending. QA was
 retired recoverably; usual app unchanged. The continuation records the separate
 File Import syntax gap and the supplemental official reference.
+
+### Syntax File Import — 22 October 2026
+
+File Import now validates .draftsSyntax as a definition instead of a text draft.
+Identical custom source retains identity; conflicts require reviewed replacement.
+Red/green regression, thirty-two focused methods, Core665/124, local build and
+matrix structure passed. Native QA confirmed installation in the syntax selector
+with the note count unchanged. QA retired recoverably. See the dated continuation.

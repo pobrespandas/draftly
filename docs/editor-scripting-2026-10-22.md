@@ -613,3 +613,30 @@ QA quit normally. Process absence was checked. Its exact registration was remove
 and its bundle, grammar, preferences and closed neutral library are in Trash.
 The temporary Safari tab was closed. The habitual app was not opened or replaced.
 No screenshot or raw log is tracked.
+
+## Syntax files through File Import
+
+LibraryFileImport recognizes .draftsSyntax before generic JSON and text routes.
+It validates with SyntaxDefinition and saves a custom definition. Invalid syntax
+cannot fall through to a text note. Reimporting identical custom source keeps the
+installed identity. A different definition with the same name fails explicitly;
+Import Syntax remains the route to review replacement. Existing file definitions
+are not silently converted to stored custom definitions. Built-in name rules stay
+in LibraryStore. No public API or library format changed.
+
+The regression failed before the change because import created text notes.
+Thirty-two focused import and syntax methods passed after the change. New cases
+cover source/unknown-field preservation, extension case, repeat identity, backup,
+malformed and conflicting input, storage failure/retry and atomic mixed-file import.
+The local Xcode build passed.
+
+Native Import QA used a coherent copy of the closed neutral library. File > Import
+reported Import complete for ImportQA.draftsSyntax. The list retained four drafts;
+File Import café 🐼 appeared in the syntax selector. This verifies installation,
+not all syntax replacement/import-as-new behavior. QA quit normally. Process
+absence was checked before exact unregistration. Its bundle, grammar, preferences
+and closed library are recoverable in Trash. The habitual app was unchanged.
+No screenshot or raw log is tracked. Native URL delivery remains pending.
+
+Full serial Core regression passed 665 methods/124 suites. Matrix structure passed
+with zero errors. No timeout or retry changed. App code is unchanged in this fix.

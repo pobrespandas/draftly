@@ -22,6 +22,17 @@ import Foundation
     }
 
     public static func apply(_ data: Data, fileExtension: String, to library: LibraryStore) throws {
+        if fileExtension.lowercased() == "draftssyntax" {
+            let definition = try SyntaxDefinition(data: data)
+            if let existing = library.syntaxes.first(where: { $0.name == definition.name }) {
+                guard existing.type == "custom", existing.source == definition.source else {
+                    throw DraftlyError.message("This syntax is already installed. Use Import Syntax to review its replacement.")
+                }
+                return
+            }
+            try library.saveSyntax(definition)
+            return
+        }
         let object = try? JSONSerialization.jsonObject(with: data)
         let dictionary = object as? [String: Any]
         let entries = object as? [[String: Any]] ?? []
