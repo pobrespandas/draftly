@@ -9205,3 +9205,27 @@ flow. No such replacement was implemented. The user authorized one neutral
 message to a named recipient in chat. No message has been sent; the recipient
 is not stored in repository fixtures. Authorization is no longer the blocker
 for that one message. A reliable send/cancel implementation is still required.
+
+
+## Print owner-close observation limit — 22 October 2026
+
+At 4f66e62, isolated QA imported the unchanged print-lifetime fixture. Two URL
+runs reached the native one-page print panel. Both ended with one cancel
+callback. The source retained the completed write in Inbox without the error
+tail or Archive. The first panel disappeared during an observation that reported
+user interaction. During the second run, File Close was disabled. File Close
+All left the print panel visible in the immediate observation. Window source
+selection also reported user interaction; the next observation showed the panel
+gone and one cancel callback. The user reported that it worked.
+
+Do not infer which close operation ended either run. Owner-close acceptance
+remains pending because the input sequence was not isolated. A following shell
+recovery URL returned one success with the exact Unicode value. Closed storage
+confirmed Cancelled, Cancelled, Success and recovery text in Inbox. No physical
+printing or PDF save was requested. No production code or tests changed.
+
+QA executable SHA256:
+b68ccd1dd9bf9d8c207b9968cf7c8cb0cc1323ae8bcfa19b11141723da62dace.
+QA/helper quit normally; exact process absence and LaunchServices unregistration
+passed. Apps, preferences and closed library remain recoverable in
+`~/.Trash/DraftlyPrintCloseQA-p1sumtoi`. The habitual app was unchanged.
