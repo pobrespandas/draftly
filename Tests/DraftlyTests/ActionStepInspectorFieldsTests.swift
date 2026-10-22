@@ -73,4 +73,21 @@ struct ActionStepInspectorFieldsTests {
         #expect(step == original)
     }
 
+    @Test func windowConfigurationExposesAbsentReferencesWithoutChangingImportedToggleValues() {
+        var step = ActionStep("configureWindow", ["showActionBar": "hide", "showTagEntry": "future", "futureOption": "Keep café 🐼"])
+        step.unknownFields = ["future": .array([.bool(true)])]
+        let original = step
+        #expect(ActionStepInspectorFields.fields(for: step).map(\.key) == ["futureOption", "loadActionBarGroup", "loadActionGroup", "loadWorkspace"])
+        #expect(step == original)
+        #expect(WindowConfigurationOptions.selectionValue(step.values["showActionBar"]) == "false")
+        #expect(WindowConfigurationOptions.selectionValue(step.values["showTagEntry"]) == "future")
+        #expect(WindowConfigurationOptions.selectionValue(nil) == "unchanged")
+        #expect(WindowConfigurationOptions.selectionValue("show") == "true")
+        #expect(WindowConfigurationOptions.selectionValue("1") == "true")
+        #expect(WindowConfigurationOptions.selectionValue("0") == "false")
+        #expect(WindowConfigurationOptions.selectionValue("") == "")
+        #expect(ActionStepInspectorFields.fields(for: ActionStep("configureWindow")).map(\.key)
+            == ["loadActionBarGroup", "loadActionGroup", "loadWorkspace"])
+    }
+
 }

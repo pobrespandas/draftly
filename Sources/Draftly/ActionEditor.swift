@@ -172,6 +172,9 @@ private struct ActionStepInspector: View {
                     if step.type == "configurationKey" {
                         ActionConfigurationStepEditor(step: $step)
                     }
+                    if step.type == "configureWindow" {
+                        ActionWindowConfigurationEditor(step: $step)
+                    }
                     if step.type == "createDraft" {
                         Toggle("Open in Editor", isOn: Binding(
                             get: { step.values["openInEditor"] != "false" },
@@ -182,7 +185,7 @@ private struct ActionStepInspector: View {
                         let key = field.key
                         VStack(alignment: .leading, spacing: 6) {
                             HStack {
-                                Text(step.type == "includeAction" && key == "uuid" ? "Action UUID" : key).font(.system(size: 12, weight: .medium))
+                                Text(step.type == "configureWindow" ? WindowConfigurationOptions.title(for: key) : step.type == "includeAction" && key == "uuid" ? "Action UUID" : key).font(.system(size: 12, weight: .medium))
                                 Spacer()
                                 if field.allowsTagInsertion {
                                     Menu("Insert Tag") {
@@ -257,5 +260,28 @@ private struct ActionConfigurationStepEditor: View {
                 set: { step.values["requiresInitialConfiguration"] = $0 ? "true" : "false" }
             ))
         }.textFieldStyle(.roundedBorder)
+    }
+}
+
+private struct ActionWindowConfigurationEditor: View {
+    @Binding var step: ActionStep
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            ForEach(WindowConfigurationOptions.toggleKeys, id: \.self) { key in
+                let selected = WindowConfigurationOptions.selectionValue(step.values[key])
+                Picker(WindowConfigurationOptions.title(for: key), selection: Binding(
+                    get: { WindowConfigurationOptions.selectionValue(step.values[key]) },
+                    set: { step.values[key] = $0 == "unchanged" ? nil : $0 }
+                )) {
+                    Text("Unchanged").tag("unchanged")
+                    Text("On").tag("true")
+                    Text("Off").tag("false")
+                    if !["unchanged", "true", "false"].contains(selected) {
+                        Text("Imported (" + selected + ")").tag(selected)
+                    }
+                }
+            }
+        }
     }
 }

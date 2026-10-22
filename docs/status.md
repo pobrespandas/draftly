@@ -1,6 +1,6 @@
 # Draftly implementation and remaining work
 
-Updated: 21 October 2026.
+Updated: 22 October 2026.
 
 Draftly works as a local Mac app. Mac parity is not complete. Cloning resumed
 from 026cfbb after the completed inspector/personalization refactoring stage.
@@ -21,6 +21,11 @@ made for that keyboard improvement.
 Native action-host bookmark read/write and reuse after process restart now passed
 in fresh Functional QA. Picker Cancel retained the draft, and History showed
 Cancelled / Success / Success. Permission loss and iCloud Drive remain open.
+Configure Window now exposes its seven controls and three references in the
+inspector. Both runner flows and reference-error preflight passed. Native save,
+execution, retained Unicode selection, Undo/Redo and edit Cancel passed for the
+recorded subset. Its complete app run passed 645 methods. Full step parity stays
+open. See actions-engine.md for the exact scope.
 The earlier delivery covers the main window, daily flows and personalization.
 Read [the delivery record](ui-flows-2026-10-21.md) for separate implementation,
 automatic, native and pending results. Capture receipt/append, File commands,

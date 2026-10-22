@@ -24211,8 +24211,13 @@
           "name": "Configure Window",
           "compatibilityStatus": "partial",
           "implementationEvidence": {
-            "file": "Sources/DraftlyCore/ActionRunner.swift",
-            "symbol": "execute / expandedSteps"
+            "file": "Sources/Draftly/WindowActionAdapter.swift",
+            "symbol": "WindowActionAdapter.perform / WindowConfigurationOptions",
+            "additionalFiles": [
+              "Sources/Draftly/ActionEditor.swift",
+              "Sources/Draftly/ActionStepInspectorFields.swift",
+              "Sources/DraftlyCore/ActionStepExecutor.swift"
+            ]
           },
           "automatedTest": {
             "suite": "NativeCoreContractsTests",
@@ -24220,13 +24225,34 @@
           },
           "liveCheck": null,
           "limitations": [
-            "Targeted option, default, and failure tests pass. Full first-party import variants and native step acceptance remain pending."
+            "Both runners have seven-control and three-reference editing/save/execution/error tests. Recorded native inspector subset passed. Native Workspace loading, remaining toggle combinations and first-party import variants remain pending."
           ],
           "referenceArchive": {
             "path": "docs/research/action-api-reference/2026-10-19/steps-utility.2d95779e26f6a2329403fc3aadc43c3764f5a00a66faad5fef5e0d1e39c85ec6.html.gz",
             "sha256": "2d95779e26f6a2329403fc3aadc43c3764f5a00a66faad5fef5e0d1e39c85ec6",
             "url": "https://docs.getdrafts.com/docs/actions/steps/utility",
             "capturedAt": "2026-10-19T16:59:47.603659+00:00"
+          },
+          "supportingTests": [
+            {
+              "suite": "ActionWindowConfigurationEditingFlowTests",
+              "test": "savedCopyAppliesAllControlsAndReferencesWithoutChangingTheEditor"
+            },
+            {
+              "suite": "ActionWindowConfigurationEditingFlowTests",
+              "test": "missingReferencesFailBeforeAnyControlOrWorkspaceChange"
+            },
+            {
+              "suite": "ActionStepInspectorFieldsTests",
+              "test": "windowConfigurationExposesAbsentReferencesWithoutChangingImportedToggleValues"
+            }
+          ],
+          "nativeVerification": {
+            "status": "partial",
+            "date": "2026-10-22",
+            "evidence": "docs/actions-engine.md: Configure Window inspector controls — 22 October 2026",
+            "scope": "Created new step, saved On Action List/Pin and Off Action Bar/Tag Entry plus separate list/bar group names. UI execution showed Imported list, hid bar/tags and kept draft/Unicode selection; Undo/Redo passed. Reopening kept options; canceled missing Workspace was absent on reopen. Does not accept Workspace load, all toggle combinations, process restart or first-party import variants.",
+            "executableSHA256": "3787f3f57ce616a58ef87df4d5c53bcc8c9679baabcde48ac163b6c2ad588d25"
           }
         }
       ],

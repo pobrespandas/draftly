@@ -29,7 +29,9 @@ enum ActionStepInspectorFields {
             excludedKeys.formUnion(configurationTypes.compactMap(configurationDefaultKey))
         }
         if step.type == "createDraft" { excludedKeys.insert("openInEditor") }
+        if step.type == "configureWindow" { excludedKeys.formUnion(WindowConfigurationOptions.toggleKeys) }
         var keys = Set(step.values.keys)
+        if step.type == "configureWindow" { keys.formUnion(WindowConfigurationOptions.referenceKeys) }
         if step.type == "includeAction" {
             excludedKeys.remove("uuid")
             keys.formUnion(["uuid", "name"])

@@ -1,6 +1,34 @@
 import AppKit
 import DraftlyCore
 
+enum WindowConfigurationOptions {
+    static let toggleKeys = ["showDraftList", "showActionList", "showFilters", "showActionBar", "showTagEntry", "pinCurrentDraft", "linkMode"]
+    static let referenceKeys = ["loadWorkspace", "loadActionGroup", "loadActionBarGroup"]
+    static let enabledValues: Set<String> = ["true", "1", "show"]
+    static let disabledValues: Set<String> = ["false", "0", "hide"]
+    static func selectionValue(_ value: String?) -> String {
+        guard let value else { return "unchanged" }
+        if enabledValues.contains(value) { return "true" }
+        if disabledValues.contains(value) { return "false" }
+        return value
+    }
+    static func title(for key: String) -> String {
+        switch key {
+        case "showDraftList": "Draft List"
+        case "showActionList": "Action List"
+        case "showFilters": "Filters"
+        case "showActionBar": "Action Bar"
+        case "showTagEntry": "Tag Entry"
+        case "pinCurrentDraft": "Pin Current Draft"
+        case "linkMode": "Link Mode"
+        case "loadWorkspace": "Load Workspace"
+        case "loadActionGroup": "Load Action Group"
+        case "loadActionBarGroup": "Load Action Bar Group"
+        default: key
+        }
+    }
+}
+
 @MainActor
 struct WindowActionAdapter {
     unowned let model: WindowModel
@@ -59,15 +87,15 @@ struct WindowActionAdapter {
             return ThemeCatalog.values(in: model.library)
         case "configureWindow":
             let options = values["values"] as? [String: String] ?? [:]
-            let toggles = ["showDraftList", "showActionList", "showFilters", "showActionBar", "showTagEntry", "pinCurrentDraft", "linkMode"]
+            let toggles = WindowConfigurationOptions.toggleKeys
             let metadata = ["data", "parameters", "values", "uuid", "platforms", "isEnabled", "template", "templateType"]
-            let supported = Set(toggles + metadata + ["loadWorkspace", "loadActionGroup", "loadActionBarGroup"])
+            let supported = Set(toggles + metadata + WindowConfigurationOptions.referenceKeys)
             if let unsupported = options.keys.sorted().first(where: { !supported.contains($0) && options[$0] != "" && options[$0] != "unchanged" }) { throw DraftlyError.message("The window option \(unsupported) is not supported.") }
             var settings: [String: Bool] = [:]
             for key in toggles {
                 guard let value = options[key], value != "unchanged" else { continue }
-                guard ["true", "false", "1", "0", "show", "hide"].contains(value) else { throw DraftlyError.message("The window option \(key) is invalid.") }
-                settings[key] = ["true", "1", "show"].contains(value)
+                guard WindowConfigurationOptions.enabledValues.contains(value) || WindowConfigurationOptions.disabledValues.contains(value) else { throw DraftlyError.message("The window option \(key) is invalid.") }
+                settings[key] = WindowConfigurationOptions.enabledValues.contains(value)
             }
             let workspace: Workspace?
             if let name = options["loadWorkspace"], !name.isEmpty {

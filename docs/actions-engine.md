@@ -1,6 +1,6 @@
 # Actions execution
 
-Updated: 21 October 2026.
+Updated: 22 October 2026.
 
 ## Implemented
 
@@ -515,3 +515,42 @@ c089bbc5348f6e2ada8ff8ac7b6d7170ea0f8039d4a2631b33c328613ab30839:
 Pending: other prompt options, interruption paths and the remaining editor,
 inspector, integration and Settings contracts retain their own acceptance. This
 check does not close the five functional blocks or the complete cloning plan.
+
+## Configure Window inspector controls — 22 October 2026
+
+Implemented: a new or imported configureWindow step exposes Draft List, Action
+List, Filters, Action Bar, Tag Entry, Pin Current Draft and Link Mode. Each
+control supports Unchanged, On and Off. Choosing Unchanged removes only that
+key. Imported aliases are normalized for display only. Unknown values remain
+visible as Imported and are not rewritten when the editor opens. Three reference
+fields remain available even when absent: Workspace, action list group and action
+bar group. The adapter and inspector share the supported keys and Boolean values.
+The executor's accepted values, case sensitivity and errors did not change.
+
+Automatic: 24 focused app methods passed. Ten new flow cases use temporary
+preferences, an in-memory library and both actual runners. They cover all seven
+controls, all three references, Workspace name/UUID lookup, copy discard, save,
+reload, unknown fields, stable identities and missing-reference preflight before
+any change. Text, UTF-16 selection and focus stay intact. Descriptor tests cover
+missing references and display-only aliases. All 645 app methods passed serially;
+report identities matched discovery. The unchanged Core suite retains the prior
+646 serial result. Local Debug and signed Release passed. Python remains 68 from
+the previous session; no Python source changed. Prior concurrent worker timeouts
+stay documented. No deadline, retry, identity or storage format changed.
+
+Verified in use: created QA Configure Window controls through the new-step menu.
+The seven controls initially showed Unchanged. Saved Action List On, Action Bar
+Off, Tag Entry Off, Pin Current Draft On, list group Imported and bar group
+General. Execution reported completion, showed the Imported list, hid the bar
+and tag entry, and displayed the active pin. Source text and café 🐼 selection
+remained. Undo removed the original paste and Redo restored the exact text.
+Reopening the action retained its saved options. Entered a missing Workspace in
+the temporary copy and canceled. Reopening again showed that field empty and
+kept the saved options. A user focus change required one fresh accessibility
+snapshot; no forced exit was used. QA quit normally.
+
+QA executable SHA256:
+3787f3f57ce616a58ef87df4d5c53bcc8c9679baabcde48ac163b6c2ad588d25.
+The habitual app and personal data remain unchanged. This check does not accept
+native Workspace loading, every toggle combination, first-party import variants
+or full step parity. Those obligations remain explicit in the API matrix.
