@@ -172,13 +172,6 @@ struct TagCapsuleField: View {
 struct DraftTagStrip: View {
     @ObservedObject var model: WindowModel
     @ObservedObject var session: EditorSession
-    private var headings: [(String, NSRange)] {
-        let text = session.content
-        guard let regex = try? NSRegularExpression(pattern: "(?m)^#{1,6} .+$") else { return [] }
-        return regex.matches(in: text, range: NSRange(text.startIndex..., in: text)).prefix(100).map {
-            ((text as NSString).substring(with: $0.range), $0.range)
-        }
-    }
     var body: some View {
         HStack(spacing: 10) {
             Button {
@@ -202,9 +195,7 @@ struct DraftTagStrip: View {
                 model.change([noteID]) { $0.tags = TagRules.normalize(tags) }
             }), noteID: session.noteID, suggestions: model.allTags).frame(height: 25)
             PanelMenu(symbol: "arrowtriangle.down.fill", help: "Navigate", items:
-                headings.isEmpty ? [.section("No navigation markers")] : headings.map { heading in
-                    PanelMenuItem(title: heading.0) { session.selection = heading.1; session.focusToken = UUID() }
-                }, symbolSize: 11,
+                EditorBarCommand.navigationItems(model: model, session: session), symbolSize: 11,
                 symbolDimensions: NSSize(width: MainWindowStyle.navigationSymbolWidth, height: MainWindowStyle.navigationSymbolHeight)
             ).frame(width: 20, height: 25)
         }.buttonStyle(.plain).font(.system(size: 14)).foregroundStyle(.secondary).padding(.horizontal, 20).frame(height: 45)
@@ -232,6 +223,7 @@ struct PanelMenuItem {
     var children: [PanelMenuItem] = []
     var action: (() -> Void)?
     var isSection = false
+    var indentationLevel = 0
     static var separator: PanelMenuItem { PanelMenuItem(title: "", action: nil) }
     static func section(_ title: String) -> PanelMenuItem { PanelMenuItem(title: title, isSection: true) }
 }
@@ -302,6 +294,7 @@ struct PanelMenu: NSViewRepresentable {
                 } else if let action = entry.action {
                     let item = NSMenuItem(title: entry.title, action: #selector(select(_:)), keyEquivalent: "")
                     item.target = self; item.tag = callbacks.count; item.state = entry.isOn ? .on : .off
+                    item.indentationLevel = min(15, entry.indentationLevel)
                     callbacks.append(action); menu.addItem(item)
                 } else { menu.addItem(.separator()) }
             }

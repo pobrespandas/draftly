@@ -126,6 +126,51 @@ struct EditorActionBarEditingTests {
         }
     }
 
+    @Test func navigateMenuUsesCustomLabelsAllMarkersAndCurrentEditorText() throws {
+        try withBar("stored", selection: range(0)) { fixture in
+            let syntax = try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: [
+                "name": "Neutral navigation", "patterns": [], "taskMarkDefinitions": [], "linkDefinitions": [], "indentationPatterns": [], "navigationPatterns": [["match": "^! (.*)$",
+                    "rangeCapture": "1", "labelCapture": "1", "prefix": "→ ", "level": 2]]]))
+            try fixture.library.saveSyntax(syntax)
+            var note = try #require(fixture.model.currentNote); note.syntax = syntax.name
+            try fixture.library.saveNote(note)
+            let text = "🐼\n" + (0..<105).map { "! café \($0)" }.joined(separator: "\n")
+            fixture.model.editor.content = text
+            var synchronized = 0
+            fixture.model.editor.synchronizeScriptEdit = { synchronized += 1 }
+            defer { fixture.model.editor.synchronizeScriptEdit = nil }
+            let items = EditorBarCommand.navigationItems(model: fixture.model, session: fixture.model.editor)
+            #expect(items.count == 105)
+            #expect(items.last?.title == "→ café 104" && items.last?.indentationLevel == 2)
+            items.last?.action?()
+            #expect(fixture.model.editor.selection == (text as NSString).range(of: "café 104"))
+            #expect(synchronized == 1 && fixture.model.editor.content == text)
+            #expect(fixture.library.notes.first { $0.id == note.id }?.content == "stored")
+            fixture.model.editor.content = "changed"
+            let selection = fixture.model.editor.selection
+            items.first?.action?()
+            #expect(synchronized == 1 && fixture.model.editor.selection == selection)
+        }
+    }
+
+    @Test func navigateMenuUsesTaskPaperPlainTextAndExplicitMissingSyntaxError() throws {
+        try withBar("# ignored\nProject:\n- task\nLast:", selection: range(0)) { fixture in
+            var note = try #require(fixture.model.currentNote)
+            note.syntax = "TaskPaper"; try fixture.library.saveNote(note)
+            let items = EditorBarCommand.navigationItems(model: fixture.model, session: fixture.model.editor)
+            #expect(items.count == 2)
+            items.first?.action?()
+            #expect(fixture.model.editor.selectedText == "Project:")
+            note.syntax = "Plain Text"; try fixture.library.saveNote(note)
+            let empty = EditorBarCommand.navigationItems(model: fixture.model, session: fixture.model.editor)
+            #expect(empty.count == 1 && empty[0].isSection && empty[0].action == nil)
+            note.syntax = "Missing navigation syntax"; try fixture.library.saveNote(note)
+            let failed = EditorBarCommand.navigationItems(model: fixture.model, session: fixture.model.editor)
+            failed.first?.action?()
+            #expect(fixture.library.error?.contains("Missing navigation syntax") == true)
+        }
+    }
+
     private func verify(_ scenario: EditingBarCase, fixture: Fixture, previousFocus: UUID) {
         let expected = scenario.content ?? scenario.text
         #expect(fixture.model.editor.content == expected)

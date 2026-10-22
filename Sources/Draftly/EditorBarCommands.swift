@@ -118,6 +118,32 @@ import DraftlyCore
         session.content = change.content; session.selection = change.selection
         session.focusToken = UUID(); model.contentChanged()
     }
+    static func navigationItems(model: WindowModel, session: EditorSession) -> [PanelMenuItem] {
+        do {
+            let definition = try model.library.syntaxDefinition(named: model.currentNote?.syntax ?? "Markdown")
+            let text = session.content
+            let items = definition.markers(in: text).compactMap { marker -> PanelMenuItem? in
+                guard let label = marker["label"] as? String,
+                      let location = marker["location"] as? Int, let length = marker["length"] as? Int else { return nil }
+                return PanelMenuItem(title: (marker["prefix"] as? String ?? "") + label, action: {
+                    guard session.content == text else { return }
+                    selectMarker(NSRange(location: location, length: length), session: session)
+                }, indentationLevel: max(0, marker["level"] as? Int ?? 0))
+            }
+            return items.isEmpty ? [.section("No navigation markers")] : items
+        } catch {
+            return [PanelMenuItem(title: "Unable to load navigation markers") {
+                model.perform { throw error }
+            }]
+        }
+    }
+
+    private static func selectMarker(_ range: NSRange, session: EditorSession) {
+        session.selection = range
+        session.synchronizeScriptEdit?()
+        session.focusToken = UUID()
+    }
+
     static func moveToMarker(_ direction: Int, model: WindowModel, session: EditorSession) {
         model.perform {
             let definition = try model.library.syntaxDefinition(named: model.currentNote?.syntax ?? "Markdown")
@@ -126,9 +152,7 @@ import DraftlyCore
                 return NSRange(location: location, length: length)
             }
             guard let selection = EditorBarTextCommands.marker(in: ranges, selection: session.safeSelection, direction: direction) else { return }
-            session.selection = selection
-            session.synchronizeScriptEdit?()
-            session.focusToken = UUID()
+            selectMarker(selection, session: session)
         }
     }
 }

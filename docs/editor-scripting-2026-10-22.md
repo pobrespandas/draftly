@@ -214,9 +214,8 @@ assertions. The local Xcode build passed. Native rendering acceptance remains pe
 
 ## Additional syntax consumers to complete
 
-Navigate still parses Markdown headings independently and limits the menu to
-100 entries. It must use the assigned syntax, including custom markers and
-TaskPaper. Newline list continuation still uses a Markdown expression instead
+Navigate used a separate Markdown parser with a 100-entry limit. The correction
+below replaces that parser. Newline list continuation still uses a Markdown expression instead
 of listCompletionDefinitions. Complete sequence, padding and replacement rules.
 Also complete featureKeys, autocompleteDefinitions, rangeExtensionType and
 indentationPatterns. These fields are not excluded from the objective.
@@ -228,3 +227,20 @@ The editor also suppresses file definition errors with try?, while scripting
 reports them. Required captures and malformed rule values need validation.
 Built-in name conflicts and import-as-new behavior need explicit resolution.
 The full Editor and scripting goal remains open.
+
+## Navigate uses assigned syntax
+
+Navigate now builds its entries from the shared syntax markers in current editor
+text. It retains all entries, labels, prefixes and indentation levels. TaskPaper
+projects and custom markers use the same definitions as scripting and the marker
+commands. Selection uses the shared synchronization and focus path. It does not
+save or modify content. A menu captured before a text change cannot apply an old
+range. Missing syntax offers an explicit error action instead of Markdown fallback.
+Native menu indentation uses the AppKit limit of 15; the definition keeps its level.
+
+Eight headless editing-bar methods passed, including existing parameterized cases.
+New cases cover 105 custom markers, Unicode, unsaved text, prefix and level,
+synchronization, stale entries, TaskPaper, Plain Text and missing syntax. Initial
+fixture errors omitted required definition arrays; valid fixtures passed without
+changing validation. The local Xcode build passed. Native menu presentation and
+selection remain pending.
