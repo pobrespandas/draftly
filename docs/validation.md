@@ -9132,3 +9132,27 @@ Production code and tests were unchanged. QA/helper quit normally. Exact process
 absence and LaunchServices unregistration passed. Apps, preferences and closed
 library remain recoverable in `~/.Trash/DraftlyLocationQA-pamo_0rl`. The habitual
 app was unchanged. Native permission outcomes remain pending.
+
+
+## App Intent shell process interruption — 22 October 2026
+
+The new RunDraftActionIntentTests case calls actual perform() with the native
+action host, an in-memory library and a real neutral shell with one child.
+Separate cases cancel the Intent task or reach the configurable host timeout.
+Both require typed final reasons before checking that parent and child process
+groups no longer exist and the shell temporary folder is gone. The test checks
+retained Unicode text in Inbox, empty success parameters, no later step or
+Archive, released library ownership and a following successful Intent. History
+is checked by action identity.
+
+The first fixture assumed history insertion order and failed; it now resolves
+entries by action ID. The next run exposed a partial readiness-file read. The
+shell now writes a pending file and renames it before the test consumes it.
+No production code, retry or deadline was changed for those fixture defects.
+The final 27 Intent/process methods passed. Local Debug compilation and matrix
+structure passed. No windows, permissions, sound or personal data were used.
+
+This proves real process cleanup through perform() in the test environment.
+It does not accept system delivery from Shortcuts or every native capability.
+The previous complete Swift run predates this new method. The habitual app
+was unchanged.

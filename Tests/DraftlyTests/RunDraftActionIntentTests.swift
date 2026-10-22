@@ -1,5 +1,6 @@
 import AppIntents
 import Foundation
+import Darwin
 import Testing
 import DraftlyCore
 @testable import Draftly
@@ -183,6 +184,57 @@ struct RunDraftActionIntentTests {
         #expect(model.runner.lastReport?.reason == .success)
         #expect(model.runner.lastReport?.executionID != failed.executionID)
         #expect(library.notes.first { $0.id == note.id }?.content == "Recovery")
+    }
+
+    @Test(arguments: [false, true])
+    func shellInterruptionWaitsForProcessCleanupBeforeIntentReturns(cancel: Bool) async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let marker = root.appendingPathComponent("started")
+        let shell = "trap '' TERM\n/bin/sleep 30 &\nchild=$!\nprintf '%s\\n%s\\n%s' \"$$\" \"$child\" \"$0\" > \"$1.pending\"\n/bin/mv \"$1.pending\" \"$1\"\nwait"
+        func literal(_ value: String) throws -> String {
+            String(decoding: try JSONSerialization.data(withJSONObject: value, options: .fragmentsAllowed), as: UTF8.self)
+        }
+        let script = try "editor.setText('Retained Intent shell café 🐼');draft.update();context.addSuccessParameter('discard','yes');const sh=ShellScript.create(" + literal(shell) + ");sh.execute([" + literal(marker.path) + "]);editor.setText('ERROR: shell continued');draft.update();"
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Neutral")
+        let model = WindowModel(library: library); model.select(note.id)
+        model.runner.hostOperationTimeout = 2
+        var action = DraftAction(name: "Intent shell interruption", steps: [
+            ActionStep("script", ["script": script]),
+            ActionStep("insertText", ["template": "ERROR: tail ran"])
+        ])
+        action.afterSuccess = "archive"
+        try library.saveAction(action)
+        let request = intent(action, note: note, library: library, models: [model], host: NativeActionHost())
+        let task = Task { try await request.perform() }
+        defer { task.cancel() }
+        let deadline = ContinuousClock.now + .seconds(5)
+        while !FileManager.default.fileExists(atPath: marker.path), ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        let fields = try String(contentsOf: marker, encoding: .utf8).components(separatedBy: "\n")
+        try #require(fields.count == 3)
+        let parent = try #require(Int32(fields[0])), child = try #require(Int32(fields[1]))
+        let shellFolder = URL(fileURLWithPath: fields[2]).deletingLastPathComponent()
+        if cancel { task.cancel() }
+        do { _ = try await task.value; Issue.record("The interrupted shell Intent succeeded.") }
+        catch { #expect(try #require(error as? AutomationActionError).reason == (cancel ? .cancelled : .timeout)) }
+        #expect(getpgid(parent) == -1)
+        #expect(getpgid(child) == -1)
+        #expect(!FileManager.default.fileExists(atPath: shellFolder.path))
+        #expect(model.runner.lastReport?.successParameters.isEmpty == true)
+        #expect(library.notes.first?.content == "Retained Intent shell café 🐼")
+        #expect(library.notes.first?.isArchived == false)
+        #expect(!ActionRunner.isExecuting(in: library))
+        let recovery = DraftAction(name: "Intent shell recovery", steps: [ActionStep("script", ["script": "editor.setText('Recovered');draft.update();"])])
+        try library.saveAction(recovery)
+        _ = try await intent(recovery, note: note, library: library, models: [model], host: NativeActionHost()).perform()
+        #expect(library.notes.first?.content == "Recovered")
+        #expect(library.runs.count == 2)
+        #expect(library.runs.first { $0.actionID == recovery.id }?.status == "Success")
+        #expect(library.runs.first { $0.actionID == action.id }?.status == (cancel ? "Cancelled" : "Error"))
     }
 
     @Test func preCancelledIntentReturnsTypedCancellationWithoutEffects() async throws {
