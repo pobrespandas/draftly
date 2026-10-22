@@ -7,12 +7,9 @@ import DraftlyCore
 struct ActionCreateDraftEditingFlowTests {
     @Test(arguments: [false, true], [false, true])
     func savedCopyUsesTheChosenEditorDestinationWithoutChangingImportedSteps(opensInEditor: Bool, asynchronous: Bool) async throws {
-        let library = try LibraryStore(inMemory: true, seed: false)
-        let source = try library.createNote(content: "Source café 🐼")
-        let editor = EditorSession()
-        editor.load(source)
-        let selection = NSRange(location: 7, length: 4)
-        editor.selection = selection
+        let fixture = try ActionEditingExecutionFixture()
+        let library = fixture.library, source = fixture.source, editor = fixture.editor
+        let selection = fixture.selection
 
         var imported = ActionStep("createDraft", ["template": "Disabled imported template"])
         imported.isEnabled = false
@@ -46,10 +43,7 @@ struct ActionCreateDraftEditingFlowTests {
         #expect(saved.steps[1].id == stepID)
         #expect(saved.rawPayload == original.rawPayload && saved.unknownFields == original.unknownFields)
 
-        let runner = ActionRunner(library: library, editor: editor)
-        let report: ActionExecutionReport
-        if asynchronous { report = await runner.runAsync(saved) }
-        else { report = runner.runReport(saved) }
+        let report = await fixture.run(saved, asynchronous: asynchronous)
         #expect(report.reason == .success)
         let created = try #require(library.notes.first { $0.id != source.id })
         #expect(library.notes.count == 2)

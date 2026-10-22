@@ -46,8 +46,8 @@ layer. Scripts already separate test discovery, execution and result checks;
 QA refresh scripts retain identity and Services safeguards.
 
 Syntax selectors currently differ in sorting and duplicate removal. Treat that
-as a functional follow-up, not a refactoring correction. Keep Action.find
-duplicate-name behavior and other contract gaps in the functional backlog.
+as a functional follow-up, not a refactoring correction. The previously accepted Action.find duplicate-name correction stays unchanged.
+Keep other contract gaps in the functional backlog.
 No new native or Drafts compatibility acceptance is implied by this stage.
 
 ## Invariants and validation
@@ -85,4 +85,23 @@ It adds exported SPI symbols; existing public signatures stay unchanged.
 Package-only access would not serve both build modes without extra build
 configuration. No model, storage representation or generic registry was added.
 
-The test fixture extraction is in progress. No manual check is credited yet.
+3. Editing fixture: implemented. ActionEditingExecutionFixture shares only
+   in-memory setup, the Unicode source and selection, optional host lifetime and
+   runner entry selection. Prompt-specific hosts, actions and assertions remain
+   local. All 650 app methods passed after extraction. No test was removed or
+   renamed. The preceding local build used the same production sources.
+
+## Independent test-infrastructure defect
+
+The integrated Core run stopped making progress in
+XMLRPCLocalServerTests.realHTTPPreservesXMLBodyUnicodeFaultsAndInvalidResponseErrors.
+A process sample showed NSConcreteTask.waitUntilExit at line52 on a cooperative
+thread. The Python child was already absent. The fixture and XML-RPC runtime
+were unchanged by this stage. The earlier baseline passed; this observation
+must not be hidden by a retry. The confirmed stuck test helper was terminated;
+that incomplete run does not count as acceptance.
+
+Replace the fixture's unbounded Process waits in a separate test correction.
+Register a termination handler before launch and retain its completion event.
+A missing event must fail explicitly. Do not change production deadlines.
+Integrated Core acceptance and manual checks remain open.

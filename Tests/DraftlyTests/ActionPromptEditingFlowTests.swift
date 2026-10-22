@@ -17,21 +17,16 @@ import DraftlyCore
 }
 
 @MainActor private struct PromptEditingFixture {
-    let library: LibraryStore
-    let editor: EditorSession
-    let source: Note
+    private let execution: ActionEditingExecutionFixture
+    var library: LibraryStore { execution.library }
+    var editor: EditorSession { execution.editor }
+    var source: Note { execution.source }
     let host: PromptEditingHost
-    let runner: ActionRunner
     let original: DraftAction
 
     init(response: Any?) throws {
-        library = try LibraryStore(inMemory: true, seed: false)
-        source = try library.createNote(content: "Source café 🐼")
-        editor = EditorSession()
-        editor.load(source)
-        editor.selection = NSRange(location: 7, length: 4)
         host = PromptEditingHost(response: response)
-        runner = ActionRunner(library: library, editor: editor, host: host)
+        execution = try ActionEditingExecutionFixture(host: host)
         var imported = ActionStep("prompt", ["futureOption": "Keep café 🐼"])
         imported.isEnabled = false
         imported.unknownFields = ["future": .object(["keep": .bool(true)])]
@@ -68,8 +63,7 @@ import DraftlyCore
     }
 
     func run(_ action: DraftAction, asynchronous: Bool) async -> ActionExecutionReport {
-        if asynchronous { return await runner.runAsync(action) }
-        return runner.runReport(action)
+        await execution.run(action, asynchronous: asynchronous)
     }
 
     func expectSourceUnchanged() {
