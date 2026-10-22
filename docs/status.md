@@ -2724,3 +2724,10 @@ readable until service completion, then disappeared; Notes' copied attachment
 opened with exact content afterward. One correct callback per run; tail/Archive
 only on success. Test note moved recoverably to Recently Deleted. App17/Core6
 and local build passed. QA retired; other sharing lifetimes remain open.
+
+### Sharing timeout after handoff — 22 October 2026
+
+Native Notes sharing timed out with one error while retaining its38-byte file.
+A new action succeeded before the old dialog was cancelled. Late provider Cancel
+removed the old file without another callback or changed result. Closed history
+matched. App17/Core2 and local build passed. QA retired; usual app unchanged.

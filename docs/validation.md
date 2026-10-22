@@ -8961,3 +8961,34 @@ in ~/.Trash/DraftlySharingServiceQA-c2btg1qg. Both temporary share folders were
 absent. Transient invalid-capture/frontmost errors were resolved by observing the
 same sessions; no action was restarted because of an observation error.
 Habitual app unchanged; no screenshots or raw logs committed.
+
+## Native sharing timeout after handoff — 22 October 2026
+
+QA at 827f54f used the existing sharing-service-lifetime fixture. The source was
+moved back to Inbox before execution. Its URL opened Notes with the38-byte file.
+The helper showed zero callbacks and the file remained exactly readable while
+Notes waited. At unchanged production deadlines, the action delivered one error
+callback with the timeout message. The completed draft text stayed in Inbox;
+tail and Archive did not run. The handed-off file remained readable after timeout.
+
+A shell recovery URL completed BEFORE the old Notes dialog was closed. It returned
+one success with exact Unicode output while the old file remained retained. The
+read-only QA inventory showed two visible windows. Notes was behind the source
+and absent from its Window menu. Accessible menu Cancel closed that menu; minimizing
+only the QA source exposed the old Notes dialog. No process restart was needed.
+
+Cancel in that old dialog then removed the old temporary folder. The helper stayed
+at one success for the recovery request: no extra cancel/error/success arrived.
+Closed storage confirmed only timeout Error then recovery Success for this session,
+with unchanged recovery content and isArchived false. No Notes item was saved.
+This is actual late provider cancellation, not a simulated callback. It accepts
+Notes handoff retention, production timeout, cleanup and isolation from a later
+execution; task cancel/owner close and other services remain separate.
+
+Focused app17/Core2 methods, local Debug build and matrix structural check passed.
+No production code/deadline changed. QA executable SHA256:
+3026d63f7bb9da6e616848b9848c764f31462b00b763087ec5994220f78360d4.
+QA/helper quit normally; exact process absence and unregistration were confirmed.
+Apps, exported preferences and closed library were retained recoverably in
+~/.Trash/DraftlySharingTimeoutQA-19mcp3wz. The shared folder was absent before
+retirement. Habitual app unchanged. No screenshots or raw logs were committed.
