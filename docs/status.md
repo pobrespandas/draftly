@@ -2702,3 +2702,10 @@ Both runners, Mail step/scripting and actual Intent.perform now have explicit
 no-false-success assertions. Prior effects persist, tail/Archive stop, ownership
 releases and a following action succeeds. Focused19 and local build passed. No
 production change; confirmed Mail delivery remains partial.
+
+### Native file write-permission loss — 22 October 2026
+
+Actual URL/bookmark save, filesystem write denial and recovery passed. The error
+kept original file bytes and prior draft text in Inbox without tail/Archive.
+Restored permissions reused the bookmark without another picker. File16/local
+build passed. TCC/sandbox denial remains separate. QA retired recoverably.

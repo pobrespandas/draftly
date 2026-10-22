@@ -1,0 +1,75 @@
+[
+  {
+    "uuid": "A0760100-0000-4000-8000-000000000006",
+    "name": "QA File permission grant",
+    "group": "File permissions QA",
+    "notificationType": 0,
+    "steps": [
+      {
+        "type": "file",
+        "data": {
+          "useBookmark": "true",
+          "bookmarkName": "QA Local Write Access",
+          "fileNameTemplate": "neutral.txt",
+          "writeType": "replace",
+          "template": "Original neutral file café 🐼"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "A0760100-0000-4000-8000-000000000007",
+    "name": "QA File permission failure",
+    "group": "File permissions QA",
+    "notificationType": 0,
+    "afterSuccess": "archive",
+    "steps": [
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('Retained before file failure café 🐼');draft.update();"
+        }
+      },
+      {
+        "type": "file",
+        "data": {
+          "useBookmark": "true",
+          "bookmarkName": "QA Local Write Access",
+          "fileNameTemplate": "neutral.txt",
+          "writeType": "replace",
+          "template": "Must not replace while denied"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('ERROR: file tail');"
+        }
+      }
+    ]
+  },
+  {
+    "uuid": "A0760100-0000-4000-8000-000000000008",
+    "name": "QA File permission recovery",
+    "group": "File permissions QA",
+    "notificationType": 0,
+    "steps": [
+      {
+        "type": "file",
+        "data": {
+          "useBookmark": "true",
+          "bookmarkName": "QA Local Write Access",
+          "fileNameTemplate": "neutral.txt",
+          "writeType": "replace",
+          "template": "Recovered neutral file café 🐼"
+        }
+      },
+      {
+        "type": "script",
+        "data": {
+          "script": "editor.setText('File permission recovery café 🐼');draft.update();context.addSuccessParameter('saved','yes');"
+        }
+      }
+    ]
+  }
+]

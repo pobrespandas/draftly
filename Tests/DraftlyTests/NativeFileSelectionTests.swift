@@ -71,6 +71,32 @@ struct NativeFileSelectionTests {
         #expect(try String(contentsOf: fixture.root.appendingPathComponent("nested/note.md"), encoding: .utf8) == "D")
     }
 
+    @Test func lostDirectoryWritePermissionPreservesFileAndBookmarkThenRecovers() async throws {
+        let fixture = try FileAdapterFixture()
+        defer { fixture.close() }
+        let manager = FileManager.default
+        let permissions = try #require(manager.attributesOfItem(atPath: fixture.root.path)[.posixPermissions] as? NSNumber)
+        defer { try? manager.setAttributes([.posixPermissions: permissions], ofItemAtPath: fixture.root.path) }
+        let target = fixture.root.appendingPathComponent("neutral.txt")
+        try "Original café 🐼".write(to: target, atomically: true, encoding: .utf8)
+        try manager.setAttributes([.posixPermissions: 0o500], ofItemAtPath: fixture.root.path)
+        let values: [String: Any] = ["bookmark": "QA", "name": "neutral.txt", "mode": "replace", "text": "Recovered café 🐼"]
+        do {
+            _ = try await fixture.adapter.saveFileAsync(values, select: { _ in fixture.root })
+            Issue.record("The export replaced a file without directory write permission.")
+        } catch {
+            let native = error as NSError
+            #expect(native.domain == NSCocoaErrorDomain && native.code == CocoaError.Code.fileWriteNoPermission.rawValue)
+        }
+        #expect(try String(contentsOf: target, encoding: .utf8) == "Original café 🐼")
+        #expect(fixture.defaults.data(forKey: "bookmark.QA") != nil)
+        try manager.setAttributes([.posixPermissions: permissions], ofItemAtPath: fixture.root.path)
+        #expect(try await fixture.adapter.saveFileAsync(values, select: { _ in
+            Issue.record("The retained bookmark must not request another selection."); return nil
+        }))
+        #expect(try String(contentsOf: target, encoding: .utf8) == "Recovered café 🐼")
+    }
+
     @Test func unsupportedModeFailsBeforeSelectionAndPreservesExistingData() async throws {
         let fixture = try FileAdapterFixture()
         defer { fixture.close() }

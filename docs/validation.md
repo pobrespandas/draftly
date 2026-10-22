@@ -8857,3 +8857,37 @@ and
 https://developer.apple.com/documentation/appkit/nssharingservicedelegate/sharingservice(_:didfailtoshareitems:error:).
 They describe sharing completion and user-cancel errors. The observed Mail
 handoff does not prove send completion. Frozen Drafts reference stayed unchanged.
+
+## Native file write permission loss — 22 October 2026
+
+Isolated QA at 8257008 ran the tracked engine-file-permission-actions.json through
+actual URLs. The source was selected in an Inbox window. A native folder picker
+selected only the newly created neutral QA destination. Grant saved its bookmark
+and wrote exactly Original neutral file café 🐼, then delivered one success.
+
+Only that QA folder's owner write permission was removed (mode0500). The next
+URL action saved Retained before file failure café 🐼 before attempting replace.
+It delivered one error callback: You don’t have permission to save the file
+“neutral.txt” in the folder “destination”. The file stayed exactly original; the
+draft stayed in Inbox with its completed write and no tail or Archive. The folder
+mode was restored to its exact prior value. Recovery reused the same bookmark
+without another picker, wrote Recovered neutral file café 🐼 and returned one
+success with saved=yes. Closed history confirmed Success, Error and Success.
+
+This proves actual filesystem write denial and recovery. It does not prove TCC
+privacy denial, revoked security scope, sandbox permission loss or stale-bookmark
+recovery. Those outcomes remain separate; do not merge them into this acceptance.
+
+Automatic: new lostDirectoryWritePermissionPreservesFileAndBookmarkThenRecovers
+uses a real neutral temporary folder with restored permissions. It requires the
+specific Cocoa fileWriteNoPermission error, original bytes and retained bookmark,
+then successful replacement without another selection. All16 file-selection
+methods passed. Local Debug build, fixture identity and matrix structure passed.
+Production unchanged; no complete-suite rerun is claimed for this new test.
+
+QA executable SHA256:
+7c7c14ea2b6b69500fc69cc7249341e3e1171d22671a7c9fbf5e576fbbe47817.
+QA/helper quit normally. Exact process absence and unregistration were confirmed.
+Apps, closed library, preferences and neutral files were preserved recoverably in
+~/.Trash/DraftlyFilePermissionQA-jr2q1ee9. Folder permissions were restored before
+retirement. Habitual app and personal folders stayed unchanged.
