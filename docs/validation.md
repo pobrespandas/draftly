@@ -9956,3 +9956,10 @@ checks passed. Previous Core674/app754/Python68/local-build results apply to
 unchanged production code; these suites were not rerun. Reminder queries and
 persistence, pending authorization, timeout and late results remain open.
 Six engine contracts remain partial.
+
+### Reminders permission clarification — 22 October 2026
+
+The user later confirmed that the Reminders request appeared and that they
+pressed Allow. Computer Use did not operate that protected prompt. This adds
+human confirmation of the grant behind the later successful lookup. It does
+not establish pending-authorization cancellation or late-grant isolation.
