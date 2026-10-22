@@ -522,3 +522,28 @@ The final serial app run passed 688 methods/122 suites. Its XML matches discover
 Core sources are unchanged; the prior661/124 report still matches current Core
 inventory. Local Xcode build and matrix structure0 passed. No retry or deadline
 changed. These results accept the checked mouse paths, not complete parity.
+
+## Native syntax feature persistence and retained Undo
+
+Isolated Feature QA used the neutral custom grammar. Suggestions appeared for
+!!sam. Editor Settings disabled Suggestions without changing the source. A new
+input event produced no suggestion. After a normal quit and restart, the switch
+remained off. Enabling it restored both equal-label suggestions without another
+restart. Return inserted First café. This checks autocomplete gating and local
+persistence, not all feature-gated scripting contracts.
+
+The existing feature rendering test now also creates a real content edit through
+NativeEditor, changes feature values with a populated Undo stack, then checks
+exact Undo and Redo in both the session and text view. Its prior empty-stack
+checks remain. All six ThemeRenderingTests passed. Production code did not change.
+The current binary already passed the local build in the preceding stage.
+
+QA quit normally. Its exact registration was removed. The runtime, exported
+preferences and closed neutral library are recoverable in Trash. The habitual
+app was unchanged. No screenshot or raw log is tracked.
+
+Next: add built-in wiki templates together with working title, quick-search and
+named-workspace destinations. Preserve imported templates and installation URLs.
+Matching, duplicate-title, Trash and creation defaults need explicit contract
+checks. Hanging indentation, grammar validation/import conflicts, IME, long
+suggestion lists, multiple windows and remaining Find parity stay open.

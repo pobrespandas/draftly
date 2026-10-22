@@ -188,6 +188,28 @@ struct ThemeRenderingTests {
             #expect(text.string == session.content && text.selectedRange() == session.selection)
             #expect(text.undoManager?.canUndo != true && !window.isVisible)
         }
+        let text = try #require(textView(host))
+        let undo = try #require(text.undoManager)
+        undo.groupsByEvent = false
+        undo.beginUndoGrouping()
+        session.content = "café 🐼 edited"
+        host.rootView = editor(true)
+        host.layoutSubtreeIfNeeded()
+        await TestMainQueue.drain()
+        undo.endUndoGrouping()
+        for enabled in [false, true] {
+            host.rootView = editor(enabled)
+            host.layoutSubtreeIfNeeded()
+            await TestMainQueue.drain()
+            #expect(text.string == "café 🐼 edited" && session.content == text.string)
+            #expect(text.selectedRange() == session.selection)
+            #expect(undo.canUndo && !window.isVisible)
+        }
+        undo.undo()
+        #expect(text.string == "café 🐼" && session.content == text.string)
+        #expect(undo.canRedo)
+        undo.redo()
+        #expect(text.string == "café 🐼 edited" && session.content == text.string)
     }
 
     @Test func sourceOnlyStyleChangesInvalidateCachedHighlighting() async throws {

@@ -2475,3 +2475,10 @@ inventory. QA quit and its exact registration was retired; data and runtimes are
 recoverable in Trash. No habitual app, screenshot or raw-log change. Feature-toggle
 persistence, IME/long lists/multiple windows, reference comparison and the broader
 Editor/scripting scope remain open in the dated continuation record.
+
+### Syntax feature acceptance — 22 October 2026
+
+Autocomplete feature disable, restart persistence and re-enable passed in isolated
+QA. Six theme rendering tests passed, including retained populated Undo/Redo.
+Production is unchanged. Remaining syntax, link and Find scope stays open.
+See docs/editor-scripting-2026-10-22.md.
