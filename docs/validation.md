@@ -10254,3 +10254,18 @@ The user-reported dictation panel Cancel/close was not observed directly.
 Its latest durable log instead shows Success with tail/Archive. Do not accept
 that attempt as cancellation or diagnose the cause without a controlled repeat.
 The speech record preserves this discrepancy without a private transcript.
+
+
+## Dictation final-result cancellation boundary — 22 October 2026
+
+One new headless method covers user Cancel and task cancellation after final
+recognition has already stopped audio but the panel still awaits Done. Final
+text is discarded, cleanup runs once, and stale final/Done callbacks cannot
+affect a fresh request. Baseline27 and focused48 passed. Full Core679/app797
+match XML/discovery; Python80, local build and structural matrix0 pass. Strict
+engine remains six partial/18. No production rule or deadline changed.
+
+The user noted that native sessions had already run. No new microphone session
+was started. Accepted prior cases remain accepted; live dictation task cancel
+and the recorded close/Success discrepancy remain unresolved, not repeated or
+promoted. See the speech record's consolidation for the bounded next checks.

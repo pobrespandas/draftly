@@ -2,6 +2,16 @@
 
 Updated: 22 October 2026.
 
+## Speech verification consolidation
+
+Do not repeat the accepted recorder Cancel, neutral recognition, transcription
+selector Cancel/timeout or transcription task-cancel/recovery sessions. A new
+headless boundary test covers cancellation after final recognition but before
+Done, including stale callbacks during a fresh session. It changes no app rule.
+Core679/app797, Python80, local build and matrix0 pass. Live dictation task cancel
+still needs a controlled observation; its prior reported close has a Success log.
+No extra microphone session was started after the user chose to move forward.
+
 ## Native transcription task cancellation
 
 Computer Use selected the enabled Cancel Running Action command during synthetic

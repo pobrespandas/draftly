@@ -355,3 +355,37 @@ recognition timeout or live dictation task cancellation. Dictation still needs
 a quiet session with the observed Cancel Running Action command. Existing
 Core679/app796/Python80 validation still applies: source and tests did not change.
 Only documentation and structural matrix validation ran in this follow-up.
+
+
+## Consolidation: do not repeat accepted native cases
+
+The user noted that the native cases had already been run. No new dictation
+session was started. A readiness reply was received, but no microphone was
+activated. Existing QA was found idle at the action palette and quit normally
+before automatic tests. Keep these accepted observations distinct:
+
+- Recorder user Cancel closed capture and retained the marker at19:52.
+- Native recognition inserted the neutral phrase and stopped capture at20:17.
+- Transcription selector Cancel and production wait timeout each closed Open.
+- Fresh synthetic transcription recovered after both selector interruptions.
+- Cancel Running Action during native transcription recognition retained writes
+  and allowed a fresh successful action at20:35.
+
+Do not rerun those cases as if they had no evidence. Live dictation task cancel
+is still unaccepted because the reported close gesture instead has a Success
+record. Actual denied/pending OS grants, native late callbacks, recognition
+timeout and route-specific speech checks also remain separate pending cases.
+
+A new headless test covers a distinct boundary after final recognition stops
+audio but before the user chooses Done. In
+NativeDictationRequestTests.cancellationAfterFinalRecognitionDiscardsTextAndCannotAffectNextSession,
+both user Cancel and task cancellation discard the final text. Cleanup runs once;
+old final/Done callbacks cannot finish the following session. No production code
+changed. This test does not reproduce the unobserved native close gesture.
+
+Baseline27 dictation/callback methods and final focused48 across four suites
+passed. Complete Core679/app797 match XML/discovery. Python80, local Debug build,
+structural matrix0 and diff checks pass. Strict engine remains six partial/18.
+No test requested permission, opened a visible window or used a microphone.
+Swift builds/tests did not overlap. Outputs use /tmp/draftly-dictation-final-cancel-*.
+The user chose to move forward; no extra native result is claimed by this test.

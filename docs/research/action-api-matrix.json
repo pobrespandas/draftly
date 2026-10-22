@@ -23477,6 +23477,10 @@
         {
           "suite": "NativeDictationRequestTests",
           "test": "interruptedActionRetainsWritesSkipsSuccessAndRecovers"
+        },
+        {
+          "suite": "NativeDictationRequestTests",
+          "test": "cancellationAfterFinalRecognitionDiscardsTextAndCannotAffectNextSession"
         }
       ],
       "nativeVerification": {
@@ -23846,6 +23850,10 @@
         {
           "suite": "NativeTranscriptionRequestTests",
           "test": "alreadyCancelledTaskDoesNotTouchPermissionOrFileDriver"
+        },
+        {
+          "suite": "NativeDictationRequestTests",
+          "test": "cancellationAfterFinalRecognitionDiscardsTextAndCannotAffectNextSession"
         }
       ],
       "nativeVerification": {

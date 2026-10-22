@@ -115,6 +115,37 @@ struct NativeDictationRequestTests {
         #expect(driver.stops == 1 && driver.cleanups == 1)
     }
 
+    @Test(arguments: [false, true])
+    func cancellationAfterFinalRecognitionDiscardsTextAndCannotAffectNextSession(taskCancellation: Bool) async throws {
+        let driver = DictationDriverFixture()
+        let task = Task { try await NativeDictationRequest.run([:], driver: driver) }
+        defer { task.cancel() }
+        try await driver.waitFor(.shown)
+        let update = try #require(driver.onUpdate)
+        let decide = try #require(driver.onDecision)
+        update(.init(text: "Final café 🐼", isFinal: true))
+        #expect(driver.stops == 1 && !driver.resourcesActive && driver.windowOpen)
+        if taskCancellation { task.cancel() } else { decide(false) }
+        do {
+            let text = try await task.value
+            #expect(!taskCancellation && text.isEmpty)
+        } catch {
+            #expect(taskCancellation && error is CancellationError)
+        }
+        #expect(driver.cleanups == 1 && driver.stops == 1 && !driver.windowOpen)
+        let displayed = driver.displayed
+        let next = DictationDriverFixture()
+        next.whenShown = {
+            update(.init(text: "Stale final result", isFinal: true))
+            decide(true)
+            next.onUpdate?(.init(text: "Fresh café 🐼", isFinal: false))
+            next.onDecision?(true)
+        }
+        #expect(try await NativeDictationRequest.run([:], driver: next) == "Fresh café 🐼")
+        #expect(driver.displayed == displayed && driver.displayAfterCleanup == 0)
+        #expect(next.stops == 1 && next.cleanups == 1 && !next.windowOpen && !next.resourcesActive)
+    }
+
     @Test func taskCancellationStopsCaptureAndIgnoresLateCallbacks() async throws {
         let driver = DictationDriverFixture()
         let task = Task { try await NativeDictationRequest.run([:], driver: driver) }
