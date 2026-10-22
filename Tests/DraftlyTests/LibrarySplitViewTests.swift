@@ -49,7 +49,7 @@ struct LibrarySplitViewTests {
         model.window = window
         let split = NSSplitView()
         split.isVertical = true
-        for _ in 0..<3 { split.addArrangedSubview(NSView()) }
+        for _ in 0..<4 { split.addArrangedSubview(NSView()) }
         window.contentView = split
         let toolbar = ReferenceToolbar(model: model, window: window, splitView: split)
         let changes = TitleChanges()

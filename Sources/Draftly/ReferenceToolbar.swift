@@ -16,7 +16,7 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
     static let defaultItemIdentifiers: [NSToolbarItem.Identifier] = (
         ["filters", NSToolbarItem.Identifier.sidebarTrackingSeparator.rawValue, "drafts"]
         + [NSToolbarItem.Identifier.flexibleSpace.rawValue]
-        + ["last", "NSToolbarSpaceItem", "navigate", "draftEditorTrackingSeparator", "capture", "flag", "tags", "NSToolbarSpaceItem", "inbox", "archive", "trash", "NSToolbarSpaceItem", "share", "NSToolbarFlexibleSpaceItem", "palette", "quickSearch", "NSToolbarSpaceItem", "actions"]
+        + ["last", "NSToolbarSpaceItem", "navigate", "draftEditorTrackingSeparator", "capture", "flag", "tags", "NSToolbarSpaceItem", "inbox", "archive", "trash", "NSToolbarSpaceItem", "share", "actionInspectorTrackingSeparator", "NSToolbarFlexibleSpaceItem", "palette", "quickSearch", "NSToolbarSpaceItem", "actions"]
     ).map { NSToolbarItem.Identifier($0) }
     init(model: WindowModel, window: NSWindow, splitView: NSSplitView) {
         self.model = model
@@ -62,6 +62,9 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
         case "draftEditorTrackingSeparator":
             guard let splitView else { return nil }
             item = NSTrackingSeparatorToolbarItem(identifier: identifier, splitView: splitView, dividerIndex: 1)
+        case "actionInspectorTrackingSeparator":
+            guard let splitView else { return nil }
+            item = NSTrackingSeparatorToolbarItem(identifier: identifier, splitView: splitView, dividerIndex: 2)
         case "navigate": item = group(identifier, symbols: ["chevron.up", "chevron.down"], labels: ["Previous Draft", "Next Draft"])
         case "capture": item = group(identifier, symbols: ["plus", "mic"], labels: ["New Draft", "Dictate Text"])
         case "flag": item = group(identifier, symbols: ["flag", "chevron.down"], labels: ["Flag", "Flag Color"])

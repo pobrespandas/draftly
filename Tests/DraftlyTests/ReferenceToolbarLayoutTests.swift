@@ -48,7 +48,7 @@ struct ReferenceToolbarLayoutTests {
         #expect(try !item("trash").isEnabled)
     }
 
-    @Test func trackingSeparatorsUseBothPanelBoundariesOnTheSameNativeSplit() throws {
+    @Test func trackingSeparatorsUseAllThreePanelBoundariesOnTheSameNativeSplit() throws {
         _ = NSApplication.shared
         let model = WindowModel(library: try LibraryStore(inMemory: true, seed: false))
         let controller = LibrarySplitController(model: model, panels: (0..<4).map { _ in AnyView(Color.clear) })
@@ -60,12 +60,19 @@ struct ReferenceToolbarLayoutTests {
         defer { withExtendedLifetime(toolbar) {} }
         let items = try #require(window.toolbar?.items)
         let tracking = items.compactMap { $0 as? NSTrackingSeparatorToolbarItem }
-        #expect(tracking.map(\.dividerIndex) == [0, 1])
+        #expect(tracking.map(\.dividerIndex) == [0, 1, 2])
         #expect(tracking.allSatisfy { $0.splitView === controller.splitView })
         let navigation = try #require(items.firstIndex { $0.itemIdentifier.rawValue == "navigate" })
         let editorBoundary = try #require(items.firstIndex { ($0 as? NSTrackingSeparatorToolbarItem)?.dividerIndex == 1 })
         let creation = try #require(items.firstIndex { $0.itemIdentifier.rawValue == "capture" })
         #expect(navigation < editorBoundary && editorBoundary < creation)
+        let share = try #require(items.firstIndex { $0.itemIdentifier.rawValue == "share" })
+        let searchBoundary = try #require(items.firstIndex { $0.itemIdentifier.rawValue == "actionInspectorTrackingSeparator" })
+        let palette = try #require(items.firstIndex { $0.itemIdentifier.rawValue == "palette" })
+        let separator = try #require(items[searchBoundary] as? NSTrackingSeparatorToolbarItem)
+        #expect(share < searchBoundary && searchBoundary < palette)
+        #expect(separator.dividerIndex == 2 && separator.splitView === controller.splitView)
+        #expect(items[searchBoundary].action == nil)
     }
 
     @Test func actionsToggleReflectsVisibilityFromTheModelAndKeepsTheSameImageOnUnrelatedUpdates() async throws {
