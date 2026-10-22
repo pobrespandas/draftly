@@ -777,3 +777,43 @@ for the headless range/attribute correction. Full grammar parity stays open.
 
 Full serial regression passed697 app methods/122 suites and671 Core methods/124
 suites. Matrix structure0 passed. No retry or deadline changed. Usual app unchanged.
+
+## Syntax conflict review and import as new
+
+Stored syntax import now offers Replace, Import as New and Cancel when a name
+conflicts. Import Syntax file selection and syntax installation URLs share this
+review. General File > Import still refuses conflicting definitions and directs
+the user to this reviewed route. Identical
+stored-source URL installation retains its existing no-dialog behavior. Built-in
+names cannot be replaced; a stored copy can use a different name. File syntaxes
+retain their external-file semantics and require renaming in the source file
+before adding another file definition. No file bookmark is silently reassigned to
+a stored copy.
+
+SyntaxImportPreparation resolves the choice without persistence. Replace keeps
+the installed identity. A new stored copy changes name and identity while retaining
+all other JSON fields. It rejects empty, installed and built-in copy names. Cancel
+returns no value. The review checks its installed-definition snapshot again after
+modal interaction, before persistence, to avoid overwriting a changed catalog.
+
+Four headless choice methods cover identity, no save before commit, cancellation,
+unknown fields, backup, built-in/name conflicts, file-copy rejection and storage
+failure/retry. Nine focused choice/URL methods and the local Xcode build passed.
+The first test compilation lacked inner try expressions in require macros; those
+were corrected before acceptance. No retry or deadline changed.
+
+Native isolated QA exercised Cancel, named Copy QA café 🐼 and Replace using a
+neutral conflict. The selector retained the original and listed the copy. The
+five-note count stayed unchanged. After normal quit, read-only inspection of the
+closed neutral SQLite library confirmed the original UUID, distinct copy UUID,
+replacement source description and preserved unknown field. This is native QA
+plus stored-data evidence, not a Drafts Pro dialog comparison. Built-in-name
+copy dialogs, file conflicts and URL delivery still need native checks.
+
+QA process absence was checked before exact unregistration. The bundle, fixture,
+preferences and closed library are recoverable in Trash. The habitual app was
+unchanged. No screenshot or raw log is tracked.
+
+Full serial app regression passed701 methods/123 suites. Core source did not
+change; the preceding671/124 regression remains the Core baseline. Matrix
+structure0 passed. This does not close the remaining grammar or Find scope.

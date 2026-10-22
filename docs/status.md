@@ -2546,3 +2546,12 @@ Protected capture ranges no longer suppress later styles outside those ranges.
 Captures apply in numeric order. Red/green Core cases and actual renderer fonts
 passed; full app697/Core671, local build and matrix structure passed. Native custom
 grammar reference comparison remains open. See the dated continuation.
+
+### Syntax import choices — 22 October 2026
+
+Reviewed syntax import supports replacement, named stored copies and cancellation.
+Identity/name rules have four specific headless methods. Nine focused methods,
+app701/123, local build and matrix structure passed. Native QA completed Cancel,
+Copy and Replace; closed-library checks confirmed identities and unknown fields.
+Built-in/file conflict and URL native checks remain pending. QA retired recoverably.
+See the dated continuation. Usual app unchanged.

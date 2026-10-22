@@ -45,16 +45,13 @@ struct ApplicationURLRouter {
         case "syntax":
             do {
                 if let data = parameter("data") {
-                    var syntax = try SyntaxDefinition(data: Data(data.utf8))
-                    if let existing = library?.syntaxes.first(where: { $0.name == syntax.name }) {
-                        if existing.source != syntax.source {
-                            let alert = NSAlert(); alert.messageText = "Replace syntax “\(syntax.name)”?"
-                            alert.addButton(withTitle: "Replace"); alert.addButton(withTitle: "Cancel")
-                            guard alert.runModal() == .alertFirstButtonReturn else { return }
-                        }
-                        syntax.id = existing.id
+                    let incoming = try SyntaxDefinition(data: Data(data.utf8))
+                    guard let library else { throw DraftlyError.message("The library is unavailable.") }
+                    if library.syntaxes.contains(where: { $0.name == incoming.name && $0.type == "custom" && $0.source == incoming.source }) {
+                        show(); return
                     }
-                    try library?.saveSyntax(syntax); show()
+                    guard let syntax = try SyntaxImportReview.resolve(incoming, library: library) else { return }
+                    try library.saveSyntax(syntax); show()
                 } else if let name = parameter("name"), ScriptSyntax.names.contains(name) { show() }
                 else { throw DraftlyError.message("The syntax link is invalid.") }
             } catch { library?.error = error.localizedDescription }

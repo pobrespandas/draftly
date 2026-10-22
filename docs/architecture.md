@@ -287,3 +287,10 @@ values and draft identities. NativeEditor supplies the current text and library
 snapshot. EditorSyntaxCompletions owns selection and the transient child panel.
 It checks source, selection and draft identity before an insertion. DraftTextView
 keeps text input and native Undo ownership. Hidden editors cannot show the panel.
+
+### Syntax import choices
+
+SyntaxImportPreparation resolves replacement or copy identity without saving.
+SyntaxImportReview presents the conflict choices and checks for catalog changes.
+DraftFileCommands and ApplicationURLRouter use this review before persistence.
+File syntax installation retains its bookmark ordering in SyntaxFileAccess.
