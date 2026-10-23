@@ -255,3 +255,68 @@ The updated signed Release build passed. Signature and profile verification
 confirmed com.pobrespandas.draftly, team NM92LU2KKV and the unchanged
 iCloud.com.andrestobelem.draftly container. The candidate stays in ignored
 .build/settings-personal. It was not installed or used as synchronization proof.
+
+## Native theme files and bookmarks follow-up
+
+This batch starts at ff3e3f1. It changes no production code, test rule or stored
+format. The isolated Engine QA package uses the same neutral library and local
+preferences as the previous Settings session. It publishes no Services.
+
+### Verified in use
+
+CUA selected a neutral Drafts theme through Use Theme File. A first definition
+without description produced an explicit validation error and kept the previous
+selection. Adding the required string allowed installation as a file theme.
+The dark slot showed QA External café 🐼 (File). Reload applied an external
+background change from152535 to354525. After normal Quit and restart, the same
+file theme remained selected. Replacing its JSON with invalid text made Reload
+show an explicit error without changing selection. Restoring valid JSON and
+pressing Reload cleared the error. The neutral editor then rendered the green
+background and retained its original text. This is qualitative render evidence;
+the screenshot still has invalid scale for point measurements.
+
+Import Theme opened the review form with the expected source colors. Save
+created QA Imported café 🐼. Editing its name and background, then Cancel and
+reopen, retained the saved name and354525 background. A readonly check of the
+closed QA database confirmed distinct file/custom UUIDs and the preserved
+future object from the original Drafts source. No uncommitted theme record was
+saved. The only note still contained its exact neutral text.
+
+Choose Folder registered the neutral theme directory and enabled refresh. The
+view reported one loaded file. Reload Folder completed without an error. Turning
+refresh off disabled Reload Folder; both file and imported themes stayed in the
+picker. This does not accept every automatic refresh or replacement scenario.
+
+Add Bookmark selected a neutral folder with the name QA Folder café 🐼. The
+row remained after normal Quit and restart. A second use of that name showed
+an explicit duplicate message and kept Select Folder disabled. Cancel retained
+the existing rows. Forget removed only that neutral bookmark. The old QA Local
+Write Access bookmark stayed. A closed-preference check confirmed both results;
+the neutral input file remained intact on disk. The screenshot has a coordinate
+scale mismatch: one coordinate attempt selected General and changed no value.
+The observed two-to-one mapping allowed the intended Forget button to work.
+Do not treat that screenshot as a valid visual measurement.
+
+### Automatic checks and limits
+
+The existing six Core file-theme methods and14 app methods in six suites passed.
+They cover commands, file application, folder refresh, bookmark names, native
+file API routing and bookmark reopen/recovery. The existing cases already cover
+unknown fields, storage failures, invalid/deleted files and retained selections.
+No duplicate test was added. Local Debug build passed after the focused run.
+The previous complete Core681/app820, Python80, signed Release and matrix0
+results remain unchanged; they were not rerun as new results for this doc batch.
+
+QA quit normally. The exact LaunchServices entry was removed. Its package ZIP
+passed integrity verification before the temporary launch package was removed.
+Neutral inputs were copied beside the archive in local
+DraftlyRecovery/settings-files-20261022-233652. The original neutral inputs and
+QA library/preferences remain. Reusing an archive at another path can require
+reselecting external files; no cross-path bookmark transfer is claimed.
+
+Remaining native work includes theme replacement/reselection, unavailable file
+permissions, bookmark access failures, all Markdown/HTML option bindings, startup
+and login variants, physical keys and valid-scale visual acceptance. Full
+per-syntax font/layout options remain implementation work. Do not reopen the
+known failing Markdown reader or repeat accepted microphone checks. The usual
+app remains unchanged. This batch does not close Settings or synchronization.

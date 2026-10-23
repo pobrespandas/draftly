@@ -4,6 +4,14 @@ Updated: 22 October 2026.
 
 ## Settings and personalization in progress
 
+A separate native QA session accepted file-theme selection/restart, Reload
+error and recovery, imported-theme Save and edit Cancel, folder selection and
+refresh disable, and Unicode bookmark creation/restart/duplicate/Forget. Closed
+QA records retained unknown theme fields, distinct identities and exact neutral
+text. Existing focused Core6/app14 and local Debug passed. No production change
+or new full regression is claimed. File permissions, replacement/reselection
+and other Settings cases remain pending.
+
 The next branch preserves structured indentation fields and organizes Editor
 Settings into Editing, Syntax Settings and Themes. Four new navigation methods
 cover the syntax catalog and local state. Complete Core681/app820, Python80,
