@@ -30,6 +30,8 @@ enum EditorFontOptions {
 struct EditorSettingsView: View {
     @ObservedObject var library: LibraryStore
     @State private var navigation = EditorSettingsNavigation()
+    @State private var syntaxFontError: String?
+    @AppStorage(EditorSyntaxFontPreferences.key) private var syntaxFonts = "{}"
     @AppStorage("editor.fontName") private var fontName = "System"
     @AppStorage("editor.fontSize") private var fontSize = 17.0
     @AppStorage("editor.lineSpacing") private var lineSpacing = 2.0
@@ -44,10 +46,31 @@ struct EditorSettingsView: View {
                 return (family, postScriptName)
             }
     }
-    private var additionalFontOptions: [EditorFontOptions.Choice] {
-        EditorFontOptions.additional(nerdFonts: nerdFontOptions.map {
+    private var syntaxFont: EditorSyntaxFontPreferences.Font {
+        EditorSyntaxFontPreferences.font(for: navigation.syntax, encoded: syntaxFonts,
+            defaultName: fontName, defaultSize: fontSize)
+    }
+
+    private func editSyntaxFont(_ edit: (String) throws -> String) {
+        do { syntaxFonts = try edit(syntaxFonts); syntaxFontError = nil }
+        catch { syntaxFontError = error.localizedDescription }
+    }
+
+    private func fontPicker(selection: Binding<String>) -> some View {
+        let additional = EditorFontOptions.additional(nerdFonts: nerdFontOptions.map {
             EditorFontOptions.Choice(title: $0.family, postScriptName: $0.postScriptName)
-        }, selected: fontName)
+        }, selected: selection.wrappedValue)
+        return Picker("Font", selection: selection) {
+            ForEach(EditorFontOptions.common) { option in
+                Text(option.title).tag(option.postScriptName)
+            }
+            if !additional.isEmpty {
+                Divider()
+                ForEach(additional) { option in
+                    Text(option.title).tag(option.postScriptName)
+                }
+            }
+        }
     }
 
     var body: some View {
@@ -76,22 +99,33 @@ struct EditorSettingsView: View {
                 Form {
                     if navigation.section == .editing {
                         Section("Editor") {
-                            Picker("Font", selection: $fontName) {
-                                ForEach(EditorFontOptions.common) { option in
-                                    Text(option.title).tag(option.postScriptName)
-                                }
-                                if !additionalFontOptions.isEmpty {
-                                    Divider()
-                                    ForEach(additionalFontOptions) { option in
-                                        Text(option.title).tag(option.postScriptName)
-                                    }
-                                }
-                            }
+                            fontPicker(selection: $fontName)
                             HStack { Text("Size"); Slider(value: $fontSize, in: 11...28, step: 1); Text(EditorPreferenceDisplay.wholePointLabel(fontSize)).monospacedDigit() }
                             EditorSpacingPreferences(fontName: fontName, fontSize: fontSize, legacyLineSpacing: lineSpacing)
                         }
-                        Text("Font and layout settings apply to every syntax.")
+                        Text("Default font settings apply unless a syntax overrides them. Layout settings apply to every syntax.")
                             .font(.caption).foregroundStyle(.secondary)
+                    }
+                    if navigation.section == .syntax {
+                        Section("Font") {
+                            Text(navigation.syntax).font(.headline)
+                            fontPicker(selection: Binding(get: { syntaxFont.name }, set: { name in
+                                editSyntaxFont { try EditorSyntaxFontPreferences.settingName(name, for: navigation.syntax, encoded: $0) }
+                            }))
+                            HStack {
+                                Text("Size")
+                                Slider(value: Binding(get: { syntaxFont.size }, set: { size in
+                                    editSyntaxFont { try EditorSyntaxFontPreferences.settingSize(size, for: navigation.syntax, encoded: $0) }
+                                }), in: 11...28, step: 1)
+                                Text(EditorPreferenceDisplay.wholePointLabel(syntaxFont.size)).monospacedDigit()
+                            }
+                            Text("Unchanged values use the default font settings from Editing.")
+                                .font(.caption).foregroundStyle(.secondary)
+                            Button("Reset Font Settings") {
+                                editSyntaxFont { try EditorSyntaxFontPreferences.reset(for: navigation.syntax, encoded: $0) }
+                            }.disabled(!EditorSyntaxFontPreferences.hasOverrides(for: navigation.syntax, encoded: syntaxFonts))
+                            if let syntaxFontError { Text(syntaxFontError).foregroundStyle(.red).textSelection(.enabled) }
+                        }
                     }
                     EditorLayoutPreferences(library: library, section: navigation.section,
                         indentationSyntax: $navigation.syntax)

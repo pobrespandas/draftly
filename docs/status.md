@@ -4,6 +4,14 @@ Updated: 23 October 2026.
 
 ## Settings and personalization in progress
 
+Font and size can now differ by syntax. Missing fields inherit existing global
+values; reset preserves unknown fields. Nerd Font choices remain available.
+Headless EditorBody coverage checks attributes, selection and script Undo.
+Native QA accepted independent Markdown/TaskPaper values, selection, typed
+Undo/Redo, restart and reset. Complete Core682/app830, Python80, matrix0 and
+local Debug pass. Per-syntax layout and the full system font catalog remain
+open. The habitual app is unchanged. See the dated record for exact limits.
+
 Syntax feature edits now preserve malformed saved data instead of replacing it.
 The form reports an explicit error. A Core red/green case and two app cases
 cover invalid roots/slots, unknown fields and persistence. Complete Core682/

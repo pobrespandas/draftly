@@ -526,3 +526,72 @@ Settings paths and visual acceptance remain open. Signed results follow.
 Signed Release and profile verification passed with com.pobrespandas.draftly,
 team NM92LU2KKV and iCloud.com.andrestobelem.draftly. The isolated candidate
 remains in .build/settings-personal. No habitual update or sync claim is made.
+
+## Per-syntax font and size — 23 October 2026
+
+The archived official Editor Settings supplement states that editor settings
+can differ by syntax. Draftly previously used one global font and size. This
+batch adds internal EditorSyntaxFontPreferences and an optional local
+editor.fontBySyntax JSON preference. Missing fields inherit the existing global
+font and size without a migration or a default write. Shared syntax definitions,
+library records, identities and backups do not change. The annotated
+pre-settings-syntax-fonts-2026-10-23 tag retains9b27dce; focused baseline app9
+passed. The existing complete Core682/app825 record remains separate.
+
+Syntax Settings now shows font and size for the selected syntax. Each edit
+writes only its field. Reset Font Settings removes those two fields for that
+syntax and preserves unknown fields and other syntaxes. The existing font
+catalog is reused, including Nerd Fonts and exact unknown selected names.
+Editing retains the defaults; layout controls remain global. Per-syntax
+line/paragraph spacing, margins, monospace options and a complete system font
+selector remain separate work. This is not full Editor Settings parity.
+
+EditorBody resolves the active draft syntax before it passes font and size to
+the existing NativeEditor. Invalid stored values read the current defaults;
+invalid edits report an error and keep saved data. Four pure methods cover
+field inheritance, reset, Unicode, unknown values, invalid edits and reopen.
+The initial compile exposed JSONValue’s Decimal number representation; the
+resolver now converts that value explicitly at the font boundary.
+
+A headless EditorBody test uses injected temporary defaults and an offscreen
+window. It verifies Menlo23 attributes, retained text/Unicode selection and
+script Undo/Redo through a font change. Its first version used direct native
+insertText and UndoManager.undo: native text reverted, but the offscreen session
+did not receive that Undo callback. The test now uses the existing script-edit
+route and makes its narrower contract explicit. Native typed Undo remains a
+separate manual check; no editor mutation rule was changed to hide that result.
+Focused17 app methods in four suites passed. Complete and native results follow.
+
+Complete Core682/app830 passed with matching inventory/XML. Python80,
+structural matrix0 and local Debug passed. No retry or deadline changed. The
+earlier concurrency risk remains documented. The five new methods add contract
+coverage; these totals do not express a compatibility percentage.
+
+Native isolated QA loaded the retained neutral Markdown note and pasted a
+neutral marker. CUA selected café 🐼, opened Syntax Settings, chose Menlo and
+set23 points for Markdown. TaskPaper still showed inherited System19. The three
+installed FiraCode Nerd Font variants remained in the picker. Closing Settings
+retained the selection and exact edited text. Command-Z removed the marker;
+Command-Shift-Z restored it. A final Undo restored the original neutral text.
+This real native sequence passed and is distinct from the offscreen direct
+UndoManager callback limitation recorded above.
+
+After normal Quit and restart, Markdown still showed Menlo23. Reset Font
+Settings restored inherited System19. A closed-preference check retained all
+future fields and the unchanged global size. The absent global font-name key
+stayed absent. The closed QA library retained the original note text exactly.
+The form’s invalid-data error paths have automatic coverage; this session did
+not exercise them natively or claim a complete visual comparison.
+
+QA quit normally. Its exact registration was removed after its ZIP passed
+integrity verification. Recoverable package:
+DraftlyRecovery/syntax-fonts-20261023-021316. Neutral QA library/preferences
+remain. No screenshot or raw log enters Git. The habitual installation remains
+unchanged. The remaining per-syntax layout and font catalog work is listed
+above. HTML/Markdown reader failures, startup/login, physical keys and valid
+scale remain separate pending items. Signed candidate checks follow.
+
+Signed Release and profile verification passed. The candidate retains
+com.pobrespandas.draftly, team NM92LU2KKV and the existing
+iCloud.com.andrestobelem.draftly container. It stays in .build/settings-personal.
+It was not installed or accepted as synchronization evidence.

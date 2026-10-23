@@ -423,3 +423,14 @@ syntax slot returns unchanged data. SettingsOptionEditing converts invalid form
 input into an explicit error, then delegates the patch to Core. The view stores
 the result only after success. Syntax feature errors do not share theme error
 state. Unknown values and other syntax slots retain their existing structure.
+
+
+## Syntax font preferences
+
+EditorSyntaxFontPreferences resolves optional local font and size overrides
+against the existing global defaults. It patches one field or resets only
+those two fields. Unknown fields and other syntax options remain stored.
+Editor Settings reuses the font catalog for both defaults and syntax overrides.
+EditorBody resolves the current draft syntax before it builds NativeEditor.
+The existing native style and Undo rules remain unchanged. Shared syntax
+records and backup formats do not contain these device font preferences.
