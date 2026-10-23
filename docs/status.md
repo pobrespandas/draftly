@@ -2,6 +2,24 @@
 
 Updated: 22 October 2026.
 
+## Settings and personalization in progress
+
+The Settings branch adds two functional corrections with red/green regressions:
+Markdown edits retain unknown JSON and absent defaults; command shortcuts retain
+unknown data and support Clear separately from Reset. General grouping and HTML
+mark fields now follow the observed reference. A new backup-to-presentation test
+checks theme identity, unknown fields, content, selection and focus.
+
+Final Core681/app815 with inventory/XML, Python80 and structural matrix0 pass.
+Local Debug and verified signed Release candidates pass; neither changes the
+remaining native acceptance.
+The first baseline Core promise-lifetime timeouts remain recorded. QA passed
+specific shortcut, editor Undo, Find preference, bookmark Cancel and restored-theme
+render checks. Markdown reader failure, invalid capture scale and remaining
+implementation/native cases prevent full acceptance. QA is retired recoverably.
+The usual app remains the previous inspector installation. See the
+[Settings record](settings-personalization-2026-10-22.md) before resuming.
+
 ## Inspector controls and signed installation
 
 The ten speech/configuration commits are integrated in main. The inspector

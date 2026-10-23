@@ -388,3 +388,14 @@ EditorSyntaxPresentation resolves the assigned grammar with window preferences.
 It returns a definition or a visible error without mutating editor content.
 EditorBody retains its editor view while the notice appears or disappears.
 SyntaxFileAccess keeps bookmark lookup separate from shared syntax records.
+
+
+## Settings option writes
+
+SettingsOptionEditing patches stored Markdown and shortcut JSON. It preserves
+unknown fields and does not fill missing display defaults. Invalid JSON reports
+an edit error and remains unchanged. MarkdownPreferences reads Boolean fields
+without discarding valid siblings when another field has a future value type.
+CommandShortcuts validates each stored override independently. An empty editable
+binding disables that command; Reset removes the override. Fixed commands keep
+their existing defaults. Local and global forms retain their distinct validators.

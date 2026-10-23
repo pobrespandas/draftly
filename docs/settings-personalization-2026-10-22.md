@@ -142,3 +142,42 @@ Editor Settings showed QA Theme day and QA Theme night café 🐼 in their slots
 Loading the retained neutral note rendered the dark-blue restored theme with
 its text. The content stayed intact. Screenshot scale remains invalid for point
 measurements. This is native recovery/render acceptance for that fixture only.
+
+
+## Final regression and remaining acceptance
+
+Complete Swift results match the discovered inventory and XML: Core681/app815.
+Python80 passed with the bundled runtime. Structural matrix check returned0.
+The first baseline Core timeout remains recorded; the final run passed without
+changing a deadline or adding a runner retry. Local Debug builds passed after
+the production batches. A signed Release candidate is prepared separately.
+
+CUA also confirmed TaskPaper can be selected in Editor Settings and that both
+MultiMarkdown and TaskPaper appear in that menu. This is not acceptance of every
+syntax route. Drafts itself has no built-in HTML syntax in the observed sidebar;
+HTML conversion settings are a separate category, not an invented built-in.
+
+QA quit normally. Its exact registration was removed and its package was zipped
+under local DraftlyRecovery. The archive passed its integrity check. Its neutral
+library and preferences remain available. The habitual app was not replaced.
+
+Outstanding implementation: the Escaped line breaks control and its validated
+consumer behavior; the full syntax-oriented Editor Settings presentation and
+controls seen in Drafts. Do not add a fake renderer switch or call these external
+blocks. Remaining native checks include full theme file/import/reload paths,
+bookmark selection/Forget/access failure, all Markdown/HTML option bindings,
+startup variants, login registration and physical global keys. Reuse existing
+accepted evidence; do not repeat mic checks. Restored-theme rendering has the
+specific acceptance above, not blanket acceptance for all theme paths.
+
+Visual acceptance is still pending. Native screenshots have invalid scale, and
+Markdown repeatedly breaks the reader. Do not count these as a three-point
+measurement pass or proof that Settings is complete. A physical Touch Bar also
+needs supported hardware. No new iCloud or engine acceptance is claimed.
+
+The isolated signed Release build passed. Signature and profile verification
+confirmed com.pobrespandas.draftly, team NM92LU2KKV and the unchanged
+iCloud.com.andrestobelem.draftly container in Development. The profile expires
+21 October2027 and includes two devices. No habitual installation occurred:
+mandatory Settings acceptance is not complete. The candidate remains in the
+ignored .build/settings-personal output. Signing is not synchronization proof.

@@ -7,6 +7,15 @@ The sections below are historical records. Their test counts describe each run.
 The user removed session evidence and all screenshots on 19 October 2026.
 Artifact paths in older records are historical and may no longer exist.
 
+## Settings and personalization — 22 October 2026
+
+Complete Core681/app815 passed with XML/discovery matching. Python80 and matrix0
+passed. Baseline Core had three WorkerPromiseEpochTests timeout issues; focused
+characterization passed. Both results are retained. No deadline or retry changed.
+The [Settings record](settings-personalization-2026-10-22.md) lists the functional
+regressions, native shortcut/editor/theme checks and remaining acceptance.
+This is not full Settings, visual, physical-key or iCloud acceptance.
+
 ## Action inspector — 22 October 2026
 
 Core679/app810 passed with XML and discovery inventory checks. Python80, local
