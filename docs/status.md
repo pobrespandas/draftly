@@ -8,7 +8,7 @@ Import as New passed its native create path: duplicate-name Save stayed
 disabled, a unique Unicode name enabled Save, and the original and new UUIDs
 remained distinct. One headless command case also covers backup recovery of
 both themes. HTML Settings closed the CUA reader before observation while QA
-stayed alive. Native HTML and normal QA shutdown remain pending; do not count
+stayed alive. QA is now closed and retired recoverably. Native HTML remains pending; do not count
 that failure as accepted HTML behavior or a confirmed application crash.
 
 Native QA now accepts theme Reselect Cancel, wrong-name rejection, valid

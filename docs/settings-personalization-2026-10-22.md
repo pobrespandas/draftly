@@ -458,3 +458,14 @@ failure. Its package has not been retired. Normal shutdown and exact-path
 unregistration remain pending until the user closes QA. The current package
 path is retained in /tmp/draftly-settings-import-qa-path.txt. Do not remove the
 package while it runs or report this batch as complete Settings acceptance.
+
+### Import QA cleanup completed — 23 October 2026
+
+The user confirmed normal QA closure. The exact process was absent. A readonly
+check of the closed library confirmed five themes, both original/new import
+UUIDs and the exact neutral note text. The package ZIP passed integrity checks.
+Only its exact LaunchServices registration and temporary app package were
+removed. The archive and neutral input copy are in local
+DraftlyRecovery/settings-import-20261023-011732. QA library/preferences remain.
+This completes the pending cleanup, not native HTML or restart acceptance.
+The habitual installation remains unchanged. No source or test changed.
