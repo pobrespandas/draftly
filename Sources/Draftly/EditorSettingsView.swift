@@ -103,7 +103,7 @@ struct EditorSettingsView: View {
                             HStack { Text("Size"); Slider(value: $fontSize, in: 11...28, step: 1); Text(EditorPreferenceDisplay.wholePointLabel(fontSize)).monospacedDigit() }
                             EditorSpacingPreferences(fontName: fontName, fontSize: fontSize, legacyLineSpacing: lineSpacing)
                         }
-                        Text("Default font settings apply unless a syntax overrides them. Layout settings apply to every syntax.")
+                        Text("Default font and layout settings apply unless a syntax overrides them.")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     if navigation.section == .syntax {
@@ -126,6 +126,10 @@ struct EditorSettingsView: View {
                             }.disabled(!EditorSyntaxFontPreferences.hasOverrides(for: navigation.syntax, encoded: syntaxFonts))
                             if let syntaxFontError { Text(syntaxFontError).foregroundStyle(.red).textSelection(.enabled) }
                         }
+                    }
+                    if navigation.section == .syntax {
+                        EditorSyntaxLayoutSettings(syntax: navigation.syntax,
+                            fontName: syntaxFont.name, fontSize: syntaxFont.size, legacyLineSpacing: lineSpacing)
                     }
                     EditorLayoutPreferences(library: library, section: navigation.section,
                         indentationSyntax: $navigation.syntax)

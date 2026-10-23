@@ -4,12 +4,20 @@ Updated: 23 October 2026.
 
 ## Settings and personalization in progress
 
+Per-syntax layout now covers line height, paragraph spacing, margins and
+maximum width. Missing fields inherit global defaults; reset preserves unknown
+fields. Width stays in points and Typewriter stays global. Complete Core 682/
+app 835, Python 80, matrix 0, local Debug and final focused 15 passed. Native QA
+accepted independent syntax values, selection, typed Undo/Redo, restart and
+reset. QA is retired recoverably. Full visual and remaining Settings acceptance
+are pending. The habitual app is unchanged.
+
 Font and size can now differ by syntax. Missing fields inherit existing global
 values; reset preserves unknown fields. Nerd Font choices remain available.
 Headless EditorBody coverage checks attributes, selection and script Undo.
 Native QA accepted independent Markdown/TaskPaper values, selection, typed
 Undo/Redo, restart and reset. Complete Core682/app830, Python80, matrix0 and
-local Debug pass. Per-syntax layout and the full system font catalog remain
+local Debug pass. The full system font catalog remains
 open. The habitual app is unchanged. See the dated record for exact limits.
 
 Syntax feature edits now preserve malformed saved data instead of replacing it.

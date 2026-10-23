@@ -9,6 +9,7 @@ struct EditorBody: View {
     @AppStorage(EditorIndentationPreferences.key) private var indentation = "{}"
     @AppStorage(SyntaxFeaturePreferences.key) private var syntaxFeatures = "{}"
     @AppStorage(EditorSyntaxFontPreferences.key) private var syntaxFonts = "{}"
+    @AppStorage(EditorSyntaxLayoutPreferences.key) private var syntaxLayouts = "{}"
     @ObservedObject var model: WindowModel
     @ObservedObject var session: EditorSession
     var fontName: String; var fontSize: Double; var lineSpacing: Double; var markdown: Bool
@@ -18,6 +19,10 @@ struct EditorBody: View {
         let presentation = EditorSyntaxPresentation(model: model)
         let font = EditorSyntaxFontPreferences.font(for: model.currentNote?.syntax ?? "Markdown",
             encoded: syntaxFonts, defaultName: fontName, defaultSize: fontSize)
+        let layout = EditorSyntaxLayoutPreferences.layout(for: model.currentNote?.syntax ?? "Markdown",
+            encoded: syntaxLayouts, defaults: .init(lineHeightMultiple: lineHeightMultiple,
+                paragraphSpacing: paragraphSpacing, horizontalMargin: horizontalMargin,
+                verticalMargin: verticalMargin, maximumWidth: maximumWidth))
         VStack(spacing: 0) {
             if let error = presentation.error {
                 HStack {
@@ -26,7 +31,7 @@ struct EditorBody: View {
                     if presentation.canAddFile { Button("Add File Syntax…") { model.importSyntax(asFile: true) } }
                 }.padding(8)
             }
-            NativeEditor(session: session, fontName: font.name, fontSize: font.size, lineSpacing: lineSpacing, markdown: presentation.definition != nil && markdown, lineHeightMultiple: lineHeightMultiple, paragraphSpacing: paragraphSpacing, syntax: presentation.definition == nil ? "Plain Text" : model.currentNote?.syntax ?? "Markdown", syntaxDefinition: presentation.definition, horizontalMargin: horizontalMargin, verticalMargin: verticalMargin, maximumWidth: maximumWidth, theme: theme, linksEnabled: model.linksEnabled, isActive: !model.showPreview, showCustomTouchBar: showCustomTouchBar, touchBarModel: model, completionContext: { [weak model] in
+            NativeEditor(session: session, fontName: font.name, fontSize: font.size, lineSpacing: lineSpacing, markdown: presentation.definition != nil && markdown, lineHeightMultiple: layout.lineHeightMultiple, paragraphSpacing: layout.paragraphSpacing, syntax: presentation.definition == nil ? "Plain Text" : model.currentNote?.syntax ?? "Markdown", syntaxDefinition: presentation.definition, horizontalMargin: layout.horizontalMargin, verticalMargin: layout.verticalMargin, maximumWidth: layout.maximumWidth, theme: theme, linksEnabled: model.linksEnabled, isActive: !model.showPreview, showCustomTouchBar: showCustomTouchBar, touchBarModel: model, completionContext: { [weak model] in
                 EditorCompletionContext(currentDraft: model?.currentNote, drafts: model?.library.notes ?? [])
             }, indentation: EditorIndentationPreferences.style(for: model.currentNote?.syntax ?? "Markdown", encoded: indentation).text) { model.contentChanged() }
         }

@@ -434,3 +434,17 @@ Editor Settings reuses the font catalog for both defaults and syntax overrides.
 EditorBody resolves the current draft syntax before it builds NativeEditor.
 The existing native style and Undo rules remain unchanged. Shared syntax
 records and backup formats do not contain these device font preferences.
+
+## Syntax layout preferences
+
+EditorSyntaxLayoutPreferences resolves five optional local layout fields against
+Editing defaults. Each field can inherit independently. Zero line height keeps
+the existing additive line-spacing rule. Zero maximum width stays unlimited.
+Width remains in points. Typewriter scrolling stays global.
+
+EditorSyntaxLayoutSettings writes one field only after validation. Reset removes
+only known layout fields for the selected syntax. Malformed data rejects edits;
+unknown fields and other syntaxes remain stored. EditorBody resolves the current
+syntax before it passes layout to NativeEditor. Text mutation, native style
+application and Undo rules do not change. The preference does not change shared
+syntax records, library formats or backups.

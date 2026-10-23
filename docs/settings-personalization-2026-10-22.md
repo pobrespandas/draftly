@@ -595,3 +595,63 @@ Signed Release and profile verification passed. The candidate retains
 com.pobrespandas.draftly, team NM92LU2KKV and the existing
 iCloud.com.andrestobelem.draftly container. It stays in .build/settings-personal.
 It was not installed or accepted as synchronization evidence.
+
+## 23 October — per-syntax layout
+
+The clean base was 60bf56d. The annotated
+pre-settings-syntax-layout-2026-10-23 tag retains it. Focused baseline font and
+spacing tests passed 10 methods. This batch adds optional local
+editor.layoutBySyntax fields for line height, paragraph spacing, horizontal and
+vertical margins, and maximum width. Missing fields inherit current global
+values independently. Reads do not write defaults. Width remains in points;
+this does not establish parity with Drafts width in characters. Typewriter
+scrolling remains global. No shared record, public API or backup format changes.
+
+Syntax Settings exposes these values and Reset Layout Settings. Each edit
+patches one field. Reset removes only known fields for the selected syntax.
+Unknown data and other syntaxes remain intact. Invalid JSON or syntax slots
+reject edits with an explicit error. EditorBody passes the resolved values to
+the existing native editor. A zero line height preserves legacy line spacing.
+Five new test methods cover inheritance, errors, reset, Unicode, local reopen
+and the real offscreen EditorBody consumer. The consumer case checks paragraph
+attributes, margins, width, text, selection, script Undo/Redo and reset to global
+values. Focused 15 methods passed before its final reset assertions were added.
+Full and manual acceptance results follow when performed.
+
+Complete Core 682/app 835 passed with exact inventory/XML results. Python 80,
+structural matrix 0 and local Debug passed. No deadline or retry changed. The
+prior concurrency risks remain recorded. A final focused 15 run also passed
+with the reset assertions. Manual review found a duplicate visible label in
+the new width field. The field now hides that label while it keeps its
+accessibility description. The final local build and a second QA inspection
+confirmed the correction. No unrelated global layout control changed.
+
+In isolated native QA, Markdown accepted 1.6 line height, 12-point paragraph
+spacing, 24/30-point margins and 240-point maximum width. TaskPaper still showed
+inherited 1.2/0/6/26/0 values. Closing Settings retained the Unicode selection.
+Command-Z removed a neutral typed marker; Command-Shift-Z restored it. A final
+Undo restored the exact original text. After normal Quit and restart, all five
+Markdown values remained. Reset restored the inherited values and disabled its
+button. A closed-data check retained unknown layout fields, global preferences
+and the exact original neutral note. The initial numeric check used exact
+Double equality for the prior 1.2 value; its stored representation is
+1.2000000000000002. The check now uses a small numeric tolerance. No product
+change was needed for that check.
+
+The QA process quit normally. Its exact LaunchServices entry was removed only
+after its ZIP passed integrity verification. Recoverable package:
+DraftlyRecovery/syntax-layout-20261023-022901. Neutral QA data/preferences
+remain. The corrected form was inspected in dark mode. This is not a 3-point
+comparison against Drafts, a light/inactive acceptance, or acceptance of every
+error binding. HTML/Markdown reader blocks, full font catalog, monospace
+options, remaining controls, startup/login and physical keys remain pending.
+The habitual app stays unchanged. Signed candidate verification follows.
+
+Signed Release and profile checks passed. The candidate retains
+com.pobrespandas.draftly, team NM92LU2KKV and the existing
+iCloud.com.andrestobelem.draftly container. The profile covers two registered
+devices and expires on 21 October 2027. The candidate remains in
+.build/settings-personal. It is not installed and does not prove sync.
+
+The final complete Swift run after the field-label change also passed:
+Core 682/app 835, with exact inventory/XML results. No retry was needed.
