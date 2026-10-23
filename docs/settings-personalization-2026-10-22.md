@@ -81,3 +81,34 @@ Opening Settings in fresh Engine QA again closed the CUA native pipe. The QA
 process stayed alive. Rebinding by exact path did not restore observation. This
 is a reader failure, not evidence of an app exit. The user was asked to close
 only QA Settings or quit QA. No preference or personal library was changed.
+
+## Shortcut correction
+
+Two new Core regressions failed before the correction. Empty local overrides
+fell back to the default key. A malformed future entry also discarded valid
+sibling overrides. Editable commands now accept an explicit empty binding;
+fixed macOS commands remain fixed. Each stored command decodes independently.
+
+Settings adds Clear Shortcut, distinct from Reset Command. Clear disables the
+selected command. Reset restores its default. Local and global edits patch known
+fields, retain future fields and siblings, and reject invalid JSON without a
+replacement. Matching recorded physical key codes survive Save. Eight app
+methods and ten Core methods passed. Local build results follow below.
+
+## Native checks on the Markdown correction candidate
+
+The user closed QA Settings and CUA recovered. General opened after the QA
+fixture selected General as its initial page; no habitual preference changed.
+Editor Settings showed persisted17 points and1.1 line height. CUA changed these
+to19 and1.2, enabled typewriter, and reopened the pane to confirm the values.
+The neutral text stayed intact. Undo removed the original insertion; Redo restored
+it. These gestures prove text/Undo for this sequence, not every selection case.
+Find opened Advanced Find after enabling that preference. A new Unicode bookmark
+name followed by Cancel did not add a row or remove the existing QA bookmark.
+
+Entering Markdown again closed the native reader pipe. The user closed that
+window and CUA recovered. Do not repeat the failing observation in this session.
+This does not establish Markdown bindings or a product crash. QA quit normally.
+
+The shortcut correction local Debug build passed. No public signature, action
+shortcut or persisted preference key changed. Native acceptance is separate.

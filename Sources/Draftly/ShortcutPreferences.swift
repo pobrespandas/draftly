@@ -30,7 +30,10 @@ struct ShortcutPreferences: View {
     @State private var selected = "New Draft"
     @State private var key = "n"
     @State private var modifiers = ["command"]
+    @State private var storedBinding: CommandBinding?
+    @State private var editError: String?
     private var conflict: String? {
+        if key.isEmpty { return nil }
         var action = DraftAction(name: "Command", steps: []); action.shortcut = key; action.shortcutModifiers = modifiers
         guard !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return "Enter one key." }
         return ActionShortcut.conflict(for: action, in: app.library?.actions ?? [], commands: CommandShortcuts.bindings(configuration: configuration).filter { $0.0 != selected })
@@ -44,6 +47,7 @@ struct ShortcutPreferences: View {
                 guard selected == recordingCommand else { return }
                 key = binding.key
                 modifiers = binding.modifiers
+                storedBinding = binding
             }
             .id(recordingCommand)
             .frame(width: 180, height: 26)
@@ -54,24 +58,28 @@ struct ShortcutPreferences: View {
                 }
             }
             if let conflict { Text(conflict).foregroundStyle(.red).font(.caption) }
+            if let editError { Text(editError).foregroundStyle(.red).font(.caption) }
             HStack {
                 Button("Save Shortcut") {
-                    var values = (try? JSONDecoder().decode([String: CommandBinding].self, from: Data(configuration.utf8))) ?? [:]
-                    values[selected] = CommandBinding(key: key.lowercased(), modifiers: modifiers)
-                    if let data = try? JSONEncoder().encode(values) { configuration = String(decoding: data, as: UTF8.self) }
+                    let physicalKey = storedBinding?.key.lowercased() == key.lowercased()
+                        && Set(storedBinding?.modifiers ?? []) == Set(modifiers) ? storedBinding?.keyCode : nil
+                    save(CommandBinding(key: key.lowercased(), modifiers: modifiers, keyCode: physicalKey))
                 }.disabled(conflict != nil)
-                Button("Reset Command") {
-                    var values = (try? JSONDecoder().decode([String: CommandBinding].self, from: Data(configuration.utf8))) ?? [:]
-                    values.removeValue(forKey: selected)
-                    if let data = try? JSONEncoder().encode(values) { configuration = String(decoding: data, as: UTF8.self) }
-                    load()
-                }
+                Button("Clear Shortcut") { save(CommandBinding(key: "", modifiers: [])) }
+                Button("Reset Command") { save(nil) }
             }
             Text("Configure global shortcuts in General. Standard macOS editing shortcuts remain fixed.").font(.caption).foregroundStyle(.secondary)
         }.onAppear { load() }
     }
+    private func save(_ binding: CommandBinding?) {
+        do {
+            configuration = try SettingsOptionEditing.command(selected, binding: binding, configuration: configuration)
+            editError = nil
+            load()
+        } catch { editError = "The shortcut could not be saved: " + error.localizedDescription }
+    }
     private func load() {
         let value = CommandShortcuts.binding(selected, configuration: configuration)
-        key = value.key; modifiers = value.modifiers
+        key = value.key; modifiers = value.modifiers; storedBinding = value
     }
 }

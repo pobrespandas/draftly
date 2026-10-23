@@ -64,4 +64,17 @@ struct CommandShortcutTests {
         #expect(CommandShortcuts.binding("Quick Search", configuration: config).key == "f")
         #expect(CommandShortcuts.binding("New Draft", configuration: "invalid").key == "n")
     }
+    @Test func clearingAnEditableCommandDisablesOnlyThatCommand() {
+        let configuration = #"{"Quick Search":{"key":"","modifiers":[]}}"#
+        #expect(CommandShortcuts.binding("Quick Search", configuration: configuration).key.isEmpty)
+        #expect(CommandShortcuts.binding("New Draft", configuration: configuration).key == "n")
+        #expect(CommandShortcuts.binding("Quit", configuration: #"{"Quit":{"key":"","modifiers":[]}}"#).key == "q")
+    }
+
+    @Test func anUnknownMalformedEntryDoesNotDiscardValidShortcutSiblings() {
+        let configuration = #"{"future":{"name":"café 🐼"},"Quick Search":{"key":"k","modifiers":["command","shift"],"keyCode":40,"future":true}}"#
+        #expect(CommandShortcuts.binding("Quick Search", configuration: configuration)
+            == CommandBinding(key: "k", modifiers: ["command", "shift"], keyCode: 40))
+    }
+
 }

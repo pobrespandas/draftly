@@ -46,11 +46,8 @@ struct GlobalShortcutPreferences: View {
             errors[name] = error
             return
         }
-        var values = (try? JSONDecoder().decode([String: CommandBinding].self, from: Data(configuration.utf8))) ?? [:]
-        values[name] = binding
         do {
-            let data = try JSONEncoder().encode(values)
-            configuration = String(decoding: data, as: UTF8.self)
+            configuration = try SettingsOptionEditing.command(name, binding: binding, configuration: configuration)
             errors[name] = nil
         } catch { errors[name] = error.localizedDescription }
     }

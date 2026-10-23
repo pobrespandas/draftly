@@ -31,18 +31,27 @@ public enum CommandShortcuts {
     ]
     public static func bindings(configuration: String? = nil) -> [(String, String, [String])] {
         let text = configuration ?? UserDefaults.standard.string(forKey: storageKey) ?? "{}"
-        let saved = (try? JSONDecoder().decode([String: CommandBinding].self, from: Data(text.utf8))) ?? [:]
+        let saved = storedBindings(text)
         return defaults.map { name, key, modifiers in
-            guard editable.contains(name), let value = saved[name], (value.key.count == 1 || (GlobalShortcuts.names.contains(name) && value.key.isEmpty)),
+            guard editable.contains(name), let value = saved[name], (value.key.count == 1 || value.key.isEmpty),
                   Set(value.modifiers).isSubset(of: ["command", "option", "control", "shift"]) else { return (name, key, modifiers) }
             return (name, value.key.lowercased(), value.modifiers)
         }
     }
     public static func binding(_ name: String, configuration: String) -> CommandBinding {
         let value = bindings(configuration: configuration).first { $0.0 == name }!
-        let saved = (try? JSONDecoder().decode([String: CommandBinding].self, from: Data(configuration.utf8))) ?? [:]
+        let saved = storedBindings(configuration)
         let stored = saved[name]
         let matches = stored?.key.lowercased() == value.1 && Set(stored?.modifiers ?? []) == Set(value.2)
         return CommandBinding(key: value.1, modifiers: value.2, keyCode: matches ? stored?.keyCode : nil)
     }
+    private static func storedBindings(_ configuration: String) -> [String: CommandBinding] {
+        let values = (try? JSONDecoder().decode([String: JSONValue].self,
+            from: Data(configuration.utf8))) ?? [:]
+        return values.compactMapValues { value in
+            guard let data = try? JSONEncoder().encode(value) else { return nil }
+            return try? JSONDecoder().decode(CommandBinding.self, from: data)
+        }
+    }
+
 }
