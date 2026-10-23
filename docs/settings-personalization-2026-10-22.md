@@ -422,3 +422,39 @@ This batch does not close Settings, iCloud acceptance or Draftly.
 
 Local Debug build passed after the focused tests. Structural matrix check
 returned zero errors. No timeout, retry, classification or public API changed.
+
+## Import as New and HTML reader failure — 23 October 2026
+
+This batch starts at a98fe2b. Native QA imported the existing neutral custom
+theme through Import as New. Save remained disabled while its name matched
+the existing theme. A new Unicode name enabled Save. Saving selected
+QA New theme café 🐼. A readonly library snapshot found five themes: the
+original custom UUID stayed1200FC27-B2CA-422C-B956-C4B9C788E7DF; the new
+UUID was87019CD7-53B2-4EEB-9FA0-2D8226716D8B. Both retained263749 and
+the unknown source object. The neutral note text stayed exact. This snapshot
+was read while QA was idle, not after a verified restart.
+
+A specific headless command test now checks importing the same source twice
+with a new identity and name. Preparing the candidate changes no library or
+reference data. Save retains the original, patches the new source fields and
+selects the new identity. Backup restore retains both exact theme records.
+The focused16 app methods and10 Core import methods passed. Production code,
+APIs, stored formats and existing test names did not change.
+
+Entering HTML Settings closed the Computer Use native pipe before a response.
+The QA process remained alive. Sending Command-Q through the old binding failed
+because that binding was inactive. Binding Dock timed out. The user was asked
+to quit only Engine QA normally. No HTML binding or app crash is accepted from
+this result. Do not repeat the HTML or Markdown observation failure in this
+session. The usual installation and personal data remain untouched.
+
+The complete run passed Core681/app823 with matching discovery/XML inventory.
+Python80 and structural matrix0 passed. The earlier concurrency risk remains
+recorded; this run required no deadline or retry change. A local build result
+follows. No new signature, installation or synchronization check is claimed.
+
+Local Debug build passed. QA still runs with HTML Settings after the reader
+failure. Its package has not been retired. Normal shutdown and exact-path
+unregistration remain pending until the user closes QA. The current package
+path is retained in /tmp/draftly-settings-import-qa-path.txt. Do not remove the
+package while it runs or report this batch as complete Settings acceptance.

@@ -204,4 +204,42 @@ struct InstalledThemeCommandsTests {
         }
     }
 
+    @Test func importingTheSameSourceAsNewPreservesTheOriginalAndRestoresBothIdentities() throws {
+        try withCommands { library, defaults, commands in
+            let source: [String: Any] = ["name": "Original café 🐼", "description": "Neutral import",
+                "isDark": true, "colors": ["editor": [:] as [String: String],
+                    "interface": ["textForeground": "#EEEEEE", "textBackground": "#263749"]],
+                "scopes": ["text.normal": ["settings": ["foreground": "#EEEEEE"]]],
+                "future": ["items": [false, "🦊", NSNull()] as [Any]]]
+            let data = try JSONSerialization.data(withJSONObject: source)
+            let first = try DraftsThemeImport.decode(data: data)
+            try commands.saveEditorTheme(first)
+            let original = try #require(library.themes.first)
+            let before = try library.backupData()
+            let references = defaults.data(forKey: EditorThemePreferences.key)
+            var candidate = try DraftsThemeImport.decode(data: data)
+            #expect(candidate.id != original.id)
+            candidate.name = "Imported as new café 🐼"
+            candidate.background = "112233"
+            #expect(try library.backupData() == before)
+            #expect(defaults.data(forKey: EditorThemePreferences.key) == references)
+            try commands.saveEditorTheme(candidate)
+            #expect(library.themes.count == 2)
+            #expect(library.themes.first { $0.id == original.id } == original)
+            let saved = try #require(library.themes.first { $0.id == candidate.id })
+            #expect(saved.name == candidate.name && saved.background == "112233")
+            guard case .object(let fields) = saved.unknownFields["draftsSource"] else {
+                Issue.record("The imported source was lost."); return
+            }
+            #expect(fields["future"] == .object(["items": .array([.bool(false), .string("🦊"), .null])]))
+            #expect(fields["name"] == .string(candidate.name))
+            #expect(EditorThemePreferences(defaults: defaults).reference(dark: true, themes: library.themes)["uuid"] as? String == candidate.id.uuidString)
+            let restored = try LibraryStore(inMemory: true, seed: false)
+            try restored.restore(library.backupData())
+            #expect(restored.themes.count == 2)
+            #expect(restored.themes.first { $0.id == original.id } == original)
+            #expect(restored.themes.first { $0.id == candidate.id } == saved)
+        }
+    }
+
 }
