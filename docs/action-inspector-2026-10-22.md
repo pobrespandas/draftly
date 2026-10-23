@@ -113,3 +113,19 @@ warning remains visible. Save permits the unchanged imported shortcut but still
 rejects a conflicting new/duplicated action or changed shortcut. The global
 shortcut validator and imported data are unchanged. Focused app24/Core9 and
 local Debug build passed. No external shortcut or visible window was used.
+
+
+## Atomic editing-copy Save
+
+The inspector now saves its temporary action through the existing atomic
+saveActions operation. An explicit ActionEditingCopy.save method connects the
+same path to the view and the headless failure test. A failed commit rolls back
+storage and retains the edited copy for retry. Dismiss still happens only after
+success. No public persistence API or library format changed.
+
+The first failure fixture targeted saveAction with a batch-only injection hook;
+that did not simulate a failure. The final fixture uses the actual copy Save
+path and verifies old storage, retained edits and a successful retry. This is
+not a claim that the earlier hook failure proved a production storage defect.
+Focused35 methods in eight suites and local Debug build passed. Existing
+catalog, copy, group, import and backup tests remain; none was removed.

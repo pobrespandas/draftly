@@ -141,7 +141,7 @@ struct ActionEditor: View {
             }.padding(14)
         }.frame(width: 1000, height: 700).onAppear { editingCopy.selectFirstStep() }
     }
-    private func save() { guard blockingShortcutConflict == nil else { return }; do { try library.saveAction(editingCopy.action); dismiss() } catch { self.error = error.localizedDescription } }
+    private func save() { guard blockingShortcutConflict == nil else { return }; do { try editingCopy.save(to: library); dismiss() } catch { self.error = error.localizedDescription } }
     private func export() {
         let panel = NSSavePanel(); panel.nameFieldStringValue = editingCopy.action.name + ".json"
         guard panel.runModal() == .OK, let url = panel.url else { return }

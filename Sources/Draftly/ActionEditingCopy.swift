@@ -19,6 +19,10 @@ struct ActionEditingCopy {
         return ActionShortcut.conflict(for: action, in: actions)
     }
 
+    @MainActor func save(to library: LibraryStore) throws {
+        try library.saveActions([action])
+    }
+
     mutating func selectFirstStep() { selectedStep = action.steps.first?.id }
 
     mutating func addStep(_ type: String) {

@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-import DraftlyCore
+@testable import DraftlyCore
 @testable import Draftly
 
 @Suite("Inspector option editing")
@@ -110,6 +110,23 @@ struct ActionInspectorOptionEditingTests {
         #expect(step.values.isEmpty)
         #expect(ActionStepInspectorFields.limitation(for: ActionStep("future", ["platforms": "3"]))?.contains("not applied") == true)
         #expect(ActionStepInspectorFields.limitation(for: ActionStep("mail"))?.contains("unavailable") == true)
+    }
+
+    @MainActor @Test func failedSaveKeepsTheEditingCopyAndStoredActionForRetry() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let original = DraftAction(name: "Before failed save", steps: [ActionStep("file")])
+        try library.saveAction(original)
+        var copy = ActionEditingCopy(action: original)
+        copy.action.name = "Retained edited café 🐼"
+        ActionStepInspectorFields.setText("append", for: "writeType", in: &copy.action.steps[0])
+        let edited = copy.action
+        library.beforeBatchCommit = { throw DraftlyError.message("Injected inspector save failure") }
+        #expect(throws: (any Error).self) { try copy.save(to: library) }
+        #expect(library.actions == [original] && copy.action == edited)
+        library.beforeBatchCommit = nil
+        try copy.save(to: library)
+        try library.reload()
+        #expect(library.actions == [edited])
     }
 
     @MainActor @Test(arguments: [false, true])
