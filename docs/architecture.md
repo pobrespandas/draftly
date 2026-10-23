@@ -409,3 +409,10 @@ local section and syntax selection. It builds a stable syntax catalog without
 writing preferences. EditorLayoutPreferences renders the selected section and
 retains theme commands, sheets and errors. Font and layout preferences remain
 global. Syntax indentation and feature options retain their existing keys.
+
+
+EditorThemePreferences reads each local theme slot independently. A write
+patches the selected slot in the complete JSON object. Unknown sibling values
+remain stored. Malformed JSON or an invalid storage type rejects the write
+without advancing the theme revision. Reads retain their existing safe fallback
+and do not write defaults. Theme commands retain their persistence ordering.

@@ -320,3 +320,56 @@ and login variants, physical keys and valid-scale visual acceptance. Full
 per-syntax font/layout options remain implementation work. Do not reopen the
 known failing Markdown reader or repeat accepted microphone checks. The usual
 app remains unchanged. This batch does not close Settings or synchronization.
+
+## Device theme reference field preservation
+
+Inspection before the next native batch found a separate persistence defect.
+EditorThemePreferences cast the whole stored object to a dictionary of reference
+objects. An unknown array or scalar discarded otherwise valid light/dark slots
+on read. Editing then replaced those fields. Malformed JSON was also replaced
+by a new pair instead of reporting an error.
+
+The four existing preference methods passed before edits. Two added methods
+failed with17 issues before the correction. Reading now decodes each reference
+slot independently. Writing patches the chosen slot in the full JSON object.
+Unknown arrays, objects, nulls and Unicode remain intact. Invalid JSON and wrong
+storage types reject writes with an explicit error and retain the original data
+and revision. Absent storage still accepts an initial selection. Reads do not
+write missing defaults. Public APIs, preference keys and theme identities stay
+unchanged. The focused25 app methods in six suites passed after the correction.
+No existing case or test name was removed. Full and native results follow.
+
+The first complete Core run failed one existing AsyncHostDrainTests case:
+scriptRequestKeepsLibraryBusyUntilCancelledHostCleanupReturns(timeout: true)
+ended before its host started. This exact failure is recorded before these
+changes in the Cloud QA preparation and editor text mutation records. The
+focused two methods passed, including both timeout variants. No deadline,
+execution rule or runner retry changed. A separate complete confirmation run
+is recorded below; it does not erase the initial failure.
+
+The separate complete confirmation passed Core681/app822 with matching discovery
+and XML results. Python80, structural matrix0 and local Debug passed. No test
+window, permission, sound or personal data was used. The historical Core startup
+fragility remains open. The first failed run remains recorded above.
+
+In isolated QA, the native selectors showed the saved custom identities with
+future array/scalar fields present. Changing only the light slot preserved the
+dark reference and the unknown fields in a closed-preference check. With invalid
+QA JSON, a light-slot change showed the explicit error and left the picker on
+Light. After normal Quit, the invalid bytes and theme revision were unchanged.
+The valid neutral reference data were then restored. These native checks finished
+on23 October; the archived Drafts reference did not change. No file replacement
+or unavailable-file acceptance is inferred from this preference check.
+
+The QA refresh guard caught a missing DraftlyCallbackScheme in the old QA plist.
+Only the temporary QA plist received its existing isolated scheme value before
+refresh. Bundle identity, library ID, URL scheme and disabled Services stayed
+unchanged. QA quit and its exact registration was removed. Its verified ZIP is
+in local DraftlyRecovery/theme-references-20261023-000112. Neutral data remain.
+No screenshots, logs or preference dumps were added to Git. The habitual app
+was not replaced. Remaining native theme cases and the Settings stage stay open.
+
+Signed Release and signature/profile checks passed with com.pobrespandas.draftly,
+team NM92LU2KKV and the existing iCloud.com.andrestobelem.draftly container.
+The candidate remains isolated in .build/settings-personal. This is not an
+installation or synchronization result.

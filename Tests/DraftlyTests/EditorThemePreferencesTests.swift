@@ -88,4 +88,66 @@ struct EditorThemePreferencesTests {
             #expect(defaults.data(forKey: EditorThemePreferences.key) == before)
         }
     }
+    @Test func editingOneSlotRetainsStructuredSiblingsAndUnknownFieldsAfterReopening() throws {
+        let fixture = try TestPreferences(prefix: "Draftly.ThemePair.Fields.")
+        defer { fixture.close() }
+        let defaults = fixture.defaults
+        let night = EditorTheme(name: "Night café 🐼", isDark: true)
+        let fields: [String: Any] = [
+            "dark": ["type": "custom", "uuid": night.id.uuidString,
+                     "future": ["keep": [false, "🦊", NSNull()] as [Any]]],
+            "light": ["type": "builtIn", "name": "Light"],
+            "futureArray": [false, "café 🐼", NSNull()] as [Any],
+            "futureObject": ["nested": ["keep": true]], "futureNumber": 42
+        ]
+        let original = try JSONSerialization.data(withJSONObject: fields, options: [.sortedKeys])
+        defaults.set(original, forKey: EditorThemePreferences.key)
+        defaults.set(7, forKey: EditorThemePreferences.revisionKey)
+        defaults.set("automatic", forKey: "editor.themeMode")
+        let preferences = EditorThemePreferences(defaults: defaults)
+        #expect(preferences.hasConfiguredPair)
+        #expect(preferences.reference(dark: true, themes: [night])["uuid"] as? String == night.id.uuidString)
+        #expect(defaults.data(forKey: EditorThemePreferences.key) == original)
+        #expect(defaults.integer(forKey: EditorThemePreferences.revisionKey) == 7)
+        try preferences.set(reference: ["type": "builtIn", "name": "Dark"], dark: false, themes: [night])
+        let saved = try #require(defaults.data(forKey: EditorThemePreferences.key))
+        let patched = try #require(JSONSerialization.jsonObject(with: saved) as? [String: Any])
+        var expected = fields
+        expected["light"] = ["type": "builtIn", "name": "Dark"]
+        #expect(try JSONSerialization.data(withJSONObject: patched, options: [.sortedKeys]) ==
+            JSONSerialization.data(withJSONObject: expected, options: [.sortedKeys]))
+        #expect(defaults.integer(forKey: EditorThemePreferences.revisionKey) == 8)
+        #expect(defaults.string(forKey: "editor.themeMode") == "automatic")
+        let reopened = try #require(UserDefaults(suiteName: fixture.name))
+        let restored = EditorThemePreferences(defaults: reopened)
+        #expect(restored.reference(dark: true, themes: [night])["uuid"] as? String == night.id.uuidString)
+        #expect(restored.reference(dark: false, themes: [night])["name"] as? String == "Dark")
+        #expect(reopened.data(forKey: EditorThemePreferences.key) == saved)
+    }
+
+    @Test func invalidStoredDataRejectsWritesWithoutChangingDataOrRevision() throws {
+        let fixture = try TestPreferences(prefix: "Draftly.ThemePair.Invalid.")
+        defer { fixture.close() }
+        let defaults = fixture.defaults
+        let preferences = EditorThemePreferences(defaults: defaults)
+        for value: Any in [Data("{invalid".utf8), Data("[]".utf8), Data("null".utf8), "wrong storage type"] {
+            defaults.set(value, forKey: EditorThemePreferences.key)
+            defaults.set(11, forKey: EditorThemePreferences.revisionKey)
+            let before = try #require(defaults.object(forKey: EditorThemePreferences.key) as? NSObject)
+            #expect(!preferences.hasConfiguredPair)
+            #expect(preferences.reference(dark: true, themes: [])["name"] as? String == "Dark")
+            #expect(throws: (any Error).self) {
+                try preferences.set(reference: ["type": "builtIn", "name": "Light"], dark: true, themes: [])
+            }
+            #expect((defaults.object(forKey: EditorThemePreferences.key) as? NSObject)?.isEqual(before) == true)
+            #expect(defaults.integer(forKey: EditorThemePreferences.revisionKey) == 11)
+        }
+        defaults.removeObject(forKey: EditorThemePreferences.key)
+        #expect(!preferences.hasConfiguredPair)
+        #expect(defaults.object(forKey: EditorThemePreferences.key) == nil)
+        try preferences.set(reference: ["type": "builtIn", "name": "Light"], dark: false, themes: [])
+        #expect(preferences.hasConfiguredPair)
+        #expect(defaults.integer(forKey: EditorThemePreferences.revisionKey) == 12)
+    }
+
 }

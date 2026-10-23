@@ -1,8 +1,15 @@
 # Draftly implementation and remaining work
 
-Updated: 22 October 2026.
+Updated: 23 October 2026.
 
 ## Settings and personalization in progress
+
+Theme reference preferences now retain valid slots beside unknown JSON fields.
+Invalid stored data rejects edits without replacement. Two red/green regressions
+and native QA checks cover field preservation and visible errors. Confirmation
+Core681/app822, Python80, matrix0 and local Debug pass. The initial full Core
+run hit the previously recorded AsyncHostDrain startup failure; it remains a
+separate risk. The usual app is unchanged. See the dated record for native limits.
 
 A separate native QA session accepted file-theme selection/restart, Reload
 error and recovery, imported-theme Save and edit Cancel, folder selection and
