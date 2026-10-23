@@ -25,7 +25,10 @@ do not describe the current engine or establish new compatibility acceptance.
 
 ActionEditingCopy owns the temporary action, selected step and step operations.
 ActionEditor renders bindings and owns save, export, shortcut errors and dismissal.
-The editing copy does not persist data. Cancel discards it.
+The editing copy saves through the existing atomic saveActions operation.
+The view dismisses only after success. A failed save retains the copy. Cancel
+discards temporary edits. Imported shortcut conflicts have a separate preservation
+check; assigning a new shortcut still uses the shared validator.
 
 ## Step value boundary
 

@@ -129,3 +129,65 @@ path and verifies old storage, retained edits and a successful retry. This is
 not a claim that the earlier hook failure proved a production storage defect.
 Focused35 methods in eight suites and local Debug build passed. Existing
 catalog, copy, group, import and backup tests remain; none was removed.
+
+
+## Complete regression and manual acceptance
+
+The final source passed Core679 and app810. The runner matched XML results to
+the discovered inventory. Python80, local Debug build and structural matrix0
+passed. No suite deadline, retry or contract classification changed. The strict
+engine gate still reports six partial contracts and18 diagnostics. These counts
+record test runs; they do not measure compatibility.
+
+Computer Use imported scripts/fixtures/action-inspector-options-actions.json in
+a fresh local Engine QA library. It checked the unknown icon and raw field,
+searched Calendar, selected its preview, and edited a description and print
+margin. Cancel followed by reopen retained the original imported values. A
+second edit changed the icon, Unicode description, clipboard mode and margin.
+It moved Print above Clipboard, added a template-tag step and removed that
+unsaved step. Save succeeded with the unchanged conflicting Command-N shortcut.
+Reopen showed the saved values and order. The unknown step stayed disabled.
+
+QA quit normally. A read-only storage check confirmed the three original step
+identities, action identity, unknown action payload, unknown step, platform data
+and extra field. Print stored only the edited top margin, not its display-only
+defaults. No action ran, no external service opened and no microphone activated.
+A stale native menu first blocked CUA. Rebinding by bundle identity and cancelling
+that menu restored the connection. No new screenshot or log entered Git.
+
+This session did not recheck every organization or visibility combination.
+Existing headless catalog, group, shortcut, copy and backup tests cover their
+contracts. Full visual comparison remains blocked by Drafts Pro. Unsupported
+execution options listed above remain separate limits, not accepted controls.
+
+Release built with the existing Mac/VM development profile. The first signing
+command applied a certificate hash to an automatically signed package resource
+target and failed. Using Apple Development resolved that build configuration
+conflict. Signature verification passed for com.pobrespandas.draftly, team
+NM92LU2KKV, the existing iCloud.com.andrestobelem.draftly container, Development
+CloudKit and development push. The profile expires21 October2027 and covers two
+devices. This proves package signing, not synchronization. Installation follows
+only after data and preference preservation checks.
+
+
+## Habitual installation
+
+The previous app, preference domain and a coherent SQLite snapshot were retained
+in the local DraftlyRecovery folder before replacement. SQLite integrity passed.
+The signed package is installed at ~/Applications/Draftly.app. Computer Use
+opened it, observed the existing eight Inbox drafts and restarted it normally.
+A closed-library comparison retained all58 record keys, kinds and payloads
+exactly. Integrity still passed. Existing application preferences were retained;
+only native last-directory and window-frame values changed during the session.
+No QA data or preference domain was copied into the usual app.
+
+QA quit normally. Its exact LaunchServices registration was removed. Its package
+was retained with a disabled extension under DraftlyRecovery; the neutral library
+and preferences remain recoverable. The installed package keeps its existing
+URL scheme and Services declarations. Their end-to-end invocation was not
+repeated in this inspector session. CloudKit convergence was not tested.
+
+Continue with Settings and personalization. Do not treat the unsupported inputs,
+Pro comparison, untested organization/visibility combinations or native Services/
+URL invocation as accepted by the inspector session. Do not repeat the accepted
+microphone checks.

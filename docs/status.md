@@ -2,14 +2,21 @@
 
 Updated: 22 October 2026.
 
-## Inspector completion in progress
+## Inspector controls and signed installation
 
-Main now includes the ten validated speech/configuration commits through616f71c.
-The reference tag pre-inspector-integration-2026-10-22 preserves c82ae79.
-Core679/app797 with XML inventory, Python80, local build and structural matrix0
-passed before fast-forward integration. No habitual app was installed. The
-[inspector record](action-inspector-2026-10-22.md) inventories all25 step types,
-actual missing controls and separate execution/reference limitations.
+The ten speech/configuration commits are integrated in main. The inspector
+record inventories all25 types and separates current controls from unsupported
+execution options and the blocked Pro comparison. New controls preserve absent
+values, aliases and unknown imported data. Symbols are searchable. Unchanged
+imported shortcut conflicts can be retained. Save uses the existing atomic batch.
+
+Core679/app810 with XML inventory, Python80, local Debug, signed Release and
+structural matrix0 passed. Native QA checked symbol search, Cancel, Save,
+reopen and add/move/remove steps. The usual signed app was updated after backup
+and preservation checks. All58 library records stayed exact after restart.
+No full iCloud, native Services/URL rerun or complete visual parity is claimed.
+Strict engine remains six partial contracts and18 diagnostics. See the
+[inspector record](action-inspector-2026-10-22.md) for remaining checks.
 
 ## Speech verification consolidation
 

@@ -7,6 +7,16 @@ The sections below are historical records. Their test counts describe each run.
 The user removed session evidence and all screenshots on 19 October 2026.
 Artifact paths in older records are historical and may no longer exist.
 
+## Action inspector — 22 October 2026
+
+Core679/app810 passed with XML and discovery inventory checks. Python80, local
+Debug and signed Release builds passed. Structural matrix check returned0.
+Strict engine acceptance remains six partial contracts and18 diagnostics.
+Specific control, shortcut and atomic Save cases are in the
+[inspector record](action-inspector-2026-10-22.md). That record also separates
+manual Cancel/Save, symbol search, editing and step-order checks from Pro and
+execution limitations. No accepted microphone check was repeated.
+
 ## Recorded interface check
 
 On 2026-10-18, the local Debug app was checked with Computer Use on macOS 27.0.1.

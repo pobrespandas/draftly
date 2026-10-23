@@ -1,0 +1,45 @@
+[
+  {
+    "uuid": "74CF4912-7116-4DE2-975A-820098D625AD",
+    "name": "QA Inspector Options café",
+    "group": "Inspector acceptance QA",
+    "icon": "symbol||future.imported.symbol",
+    "keyCommand": {
+      "input": "n",
+      "commandKey": true
+    },
+    "actionDescription": "Neutral inspector fixture",
+    "futureAction": {
+      "keep": [
+        false,
+        "café 🐼"
+      ]
+    },
+    "steps": [
+      {
+        "uuid": "887A7321-E4B9-421E-9B29-EA351481E54A",
+        "type": "clipboard",
+        "isEnabled": false,
+        "data": {
+          "text": "Keep café 🐼",
+          "futureOption": "Retain"
+        }
+      },
+      {
+        "uuid": "EF8A205E-9EDB-4D64-AC90-1BD079599D87",
+        "type": "print",
+        "isEnabled": false,
+        "data": {}
+      },
+      {
+        "uuid": "E4073C7D-E0E6-410C-B949-15EC86977F4B",
+        "type": "futureStep",
+        "isEnabled": false,
+        "platforms": 3,
+        "data": {
+          "futureOption": "Do not normalize"
+        }
+      }
+    ]
+  }
+]
