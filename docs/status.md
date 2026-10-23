@@ -4,6 +4,13 @@ Updated: 23 October 2026.
 
 ## Settings and personalization in progress
 
+Native QA now accepts theme Reselect Cancel, wrong-name rejection, valid
+reselection, missing-file Reload and recovery. Custom import Replace preserves
+identity across Save and restart; Cancel does not save. The separate file-theme
+Replace/Cancel alert also passed. Closed QA data retained the four themes and
+exact neutral note. These are specific paths, not OS permission or full theme
+acceptance. See the dated record before repeating any check.
+
 Theme reference preferences now retain valid slots beside unknown JSON fields.
 Invalid stored data rejects edits without replacement. Two red/green regressions
 and native QA checks cover field preservation and visible errors. Confirmation

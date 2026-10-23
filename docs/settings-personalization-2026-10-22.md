@@ -373,3 +373,52 @@ Signed Release and signature/profile checks passed with com.pobrespandas.draftly
 team NM92LU2KKV and the existing iCloud.com.andrestobelem.draftly container.
 The candidate remains isolated in .build/settings-personal. This is not an
 installation or synchronization result.
+
+## Native theme replacement and reselection — 23 October 2026
+
+This documentation batch uses the validated2903882 source. No production code
+or test rule changed. In isolated Engine QA, Cancel in Reselect kept the file
+theme selected. Selecting a definition with another name showed the explicit
+Select the file for theme error and kept the original reference. Selecting a
+new file with the expected name applied263749 and retained the existing UUID.
+
+Only that newly created neutral replacement file was removed, with its bytes
+retained for restoration. Reload reported The file doesn’t exist and kept the
+selection. Restoring its bytes and using Reselect recovered without an error.
+This accepts a missing-file path. It does not prove sandbox, OS permission
+denial or iCloud Drive permission behavior. No personal file was used.
+
+Importing a definition with the existing custom theme name offered Replace,
+Import as New and Cancel. Replace opened the review. Cancel left the original
+354525 background and UUID in a readonly QA snapshot. A second Replace followed
+by Save applied263749 and kept the UUID. After normal Quit and restart, the
+same theme was selected and Edit showed the saved color. Import as New was
+observed as an option but was not executed or accepted by this session.
+
+Use Theme File offered its separate duplicate-name Replace/Cancel alert. Cancel
+kept the custom selection. Replace selected the file theme with its existing
+UUID. Closed-library checks found exactly four themes, both stable replacement
+identities, the replacement source’s unknown future field and the exact neutral
+note text. Unknown array/scalar fields in device theme preferences also stayed.
+No theme duplicate or wrong-name theme was saved.
+
+The existing focused16 app methods and six Core methods passed. Local Debug
+build and structural matrix results follow. Existing full Core681/app822 and
+Python80 results are retained as prior evidence, not rerun totals. No duplicate
+test or automatic UI test was added for these native sequences.
+
+QA quit normally; its exact LaunchServices registration was removed. The ZIP
+passed integrity verification before removing the temporary app package. Its
+neutral input files are also copied to local
+DraftlyRecovery/theme-reselection-20261023-003946. The original neutral inputs
+and QA data remain. The usual installation was not changed. Screenshots and
+logs remain outside Git.
+
+Remaining theme cases include Import as New, explicit OS permission denial,
+other missing-reference paths and full visual acceptance. Other Settings work
+remains: per-syntax controls, Markdown/HTML, startup/login and physical shortcuts.
+The known Markdown reader failure and capture scale block remain distinct.
+This batch does not close Settings, iCloud acceptance or Draftly.
+
+Local Debug build passed after the focused tests. Structural matrix check
+returned zero errors. No timeout, retry, classification or public API changed.
