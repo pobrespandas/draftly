@@ -4,8 +4,20 @@ import DraftlyCore
 struct ActionEditingCopy {
     var action: DraftAction
     var selectedStep: UUID?
+    private let originalShortcut: String
+    private let originalModifiers: [String]?
 
-    init(action: DraftAction) { self.action = action }
+    init(action: DraftAction) {
+        self.action = action
+        originalShortcut = action.shortcut
+        originalModifiers = action.shortcutModifiers
+    }
+
+    func blockingShortcutConflict(in actions: [DraftAction]) -> String? {
+        if actions.contains(where: { $0.id == action.id }),
+           action.shortcut == originalShortcut, action.shortcutModifiers == originalModifiers { return nil }
+        return ActionShortcut.conflict(for: action, in: actions)
+    }
 
     mutating func selectFirstStep() { selectedStep = action.steps.first?.id }
 

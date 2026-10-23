@@ -101,3 +101,15 @@ build passed. No automatic test opened a visible window or external service.
 The first compile placed a numeric UI helper in the wrong view scope; moving it
 to the owning inspector fixed the compile. No runtime/test deadline changed.
 Native binding checks and complete final regression follow separately.
+
+
+## Imported shortcut conflicts
+
+The existing Save guard rejected an unchanged conflicting imported shortcut,
+preventing edits to unrelated options. A new regression failed with the New
+Draft conflict. ActionEditingCopy now distinguishes preservation of an existing
+stored action's original shortcut from assigning a new shortcut. The conflict
+warning remains visible. Save permits the unchanged imported shortcut but still
+rejects a conflicting new/duplicated action or changed shortcut. The global
+shortcut validator and imported data are unchanged. Focused app24/Core9 and
+local Debug build passed. No external shortcut or visible window was used.

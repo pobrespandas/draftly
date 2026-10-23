@@ -154,6 +154,22 @@ struct ActionEditingCopyTests {
         #expect(library.actions.first?.steps.first?.id == original.steps.first?.id)
     }
 
+    @Test func importedConflictingShortcutCanBeKeptWhenEditingOtherOptions() {
+        var imported = DraftAction(name: "Imported conflict", steps: [])
+        imported.shortcut = "n"; imported.shortcutModifiers = ["command"]
+        var copy = ActionEditingCopy(action: imported)
+        copy.action.presentation.description = "Edited café 🐼"
+        #expect(ActionShortcut.conflict(for: copy.action, in: [imported]) != nil)
+        #expect(copy.blockingShortcutConflict(in: [imported]) == nil)
+        #expect(copy.action.shortcut == imported.shortcut && copy.action.shortcutModifiers == imported.shortcutModifiers)
+        var duplicate = imported; duplicate.id = UUID()
+        #expect(ActionEditingCopy(action: duplicate).blockingShortcutConflict(in: [imported]) != nil)
+        copy.action.shortcut = "w"
+        #expect(copy.blockingShortcutConflict(in: [imported]) != nil)
+        copy.action.shortcut = ""
+        #expect(copy.blockingShortcutConflict(in: [imported]) == nil)
+    }
+
     @MainActor @Test func newConfigurationStaysTemporaryUntilSaveAndLeavesImportedConfigurationUntouched() throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         var imported = ActionStep("configurationKey", ["key": "legacy", "defaultValue": "Keep café 🐼"])
