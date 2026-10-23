@@ -112,3 +112,13 @@ This does not establish Markdown bindings or a product crash. QA quit normally.
 
 The shortcut correction local Debug build passed. No public signature, action
 shortcut or persisted preference key changed. Native acceptance is separate.
+
+## Presentation batch
+
+General now places Touch Bar before global shortcuts, as observed in Drafts.
+HTML mark options now use editable text fields, as observed in the reference.
+Existing invalid or unknown stored strings remain visible; the converter retains
+its existing safe fallback. This batch changes no consumer rule or preference
+key. The26 related app methods in seven suites and local Debug build passed.
+There is no claim of measured visual parity. Full Editor Settings structure and
+all remaining native cases in the inventory are still pending.

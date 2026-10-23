@@ -20,9 +20,12 @@ struct HTMLSettingsView: View {
                 Toggle("Paste HTML as Markdown", isOn: $paste)
                 GroupBox("HTML → Markdown") {
                     VStack(alignment: .leading, spacing: 12) {
-                        Picker("Strong Mark", selection: $strong) { Text("**").tag("**"); Text("__").tag("__") }
-                        Picker("Emphasis Mark", selection: $emphasis) { Text("_").tag("_"); Text("*").tag("*") }
-                        Picker("List Mark", selection: $list) { Text("-").tag("-"); Text("*").tag("*") }
+                        TextField("Strong Mark", text: $strong)
+                            .help("Bold characters: ** or __")
+                        TextField("Emphasis Mark", text: $emphasis)
+                            .help("Italic character: * or _")
+                        TextField("List Mark", text: $list)
+                            .help("List character: * or -")
                         Toggle("Inline links", isOn: $inlineLinks)
                         Toggle("Links after each paragraph", isOn: $linksEachParagraph)
                             .disabled(inlineLinks || ignoreLinks)

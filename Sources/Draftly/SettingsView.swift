@@ -158,6 +158,10 @@ struct SettingsView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.leading, 205)
                 }
+                Toggle("Show custom TouchBar in editor (when available)", isOn: $showCustomTouchBar)
+                    .toggleStyle(.checkbox)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.leading, 205)
                 Divider()
                 GlobalShortcutPreferences(app: controller)
                 Divider()
@@ -184,10 +188,6 @@ struct SettingsView: View {
                         }
                     }.labelsHidden().frame(width: 170)
                 }
-                Toggle("Show custom TouchBar in editor (when available)", isOn: $showCustomTouchBar)
-                    .toggleStyle(.checkbox)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.leading, 205)
                 Toggle("Use advanced find panel in editor", isOn: $preferAdvancedFind)
                     .toggleStyle(.checkbox)
                     .frame(maxWidth: .infinity, alignment: .leading)
