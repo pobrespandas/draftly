@@ -180,3 +180,14 @@ Cancel. Actual late recognition delivery, an independent SDK resource-release
 acknowledgement, URL/Intent speech paths and recognition timeout remain pending.
 A reported dictation panel-close attempt has a conflicting Success log and needs
 a controlled repeat; it is not accepted as cancelled. No contract status changed.
+
+
+## Earlier microphone cancellation confirmation
+
+The user confirms that the microphone cancellation check passed earlier and
+its detailed evidence was lost. The Core closure pass in validation.md dated
+19 October already records native dictation insertion, Undo and cancellation.
+Do not request a repeat of that check. The older record does not name the exact
+control/package; the present confirmation is user verification, not a new CUA
+measurement. Permission negatives and route-specific cases retain their own
+scope. The speech record links the recovered evidence and the later discrepancy.

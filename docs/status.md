@@ -8,8 +8,10 @@ Do not repeat the accepted recorder Cancel, neutral recognition, transcription
 selector Cancel/timeout or transcription task-cancel/recovery sessions. A new
 headless boundary test covers cancellation after final recognition but before
 Done, including stale callbacks during a fresh session. It changes no app rule.
-Core679/app797, Python80, local build and matrix0 pass. Live dictation task cancel
-still needs a controlled observation; its prior reported close has a Success log.
+Core679/app797, Python80, local build and matrix0 pass. The user confirms the earlier microphone cancellation check; detailed evidence
+is unavailable. The19 October native record also accepts dictation cancellation.
+Do not request a repeat. The later close/Success discrepancy is a separate
+observation, not grounds to invalidate that earlier check.
 No extra microphone session was started after the user chose to move forward.
 
 ## Native transcription task cancellation

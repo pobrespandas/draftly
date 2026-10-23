@@ -389,3 +389,22 @@ structural matrix0 and diff checks pass. Strict engine remains six partial/18.
 No test requested permission, opened a visible window or used a microphone.
 Swift builds/tests did not overlap. Outputs use /tmp/draftly-dictation-final-cancel-*.
 The user chose to move forward; no extra native result is claimed by this test.
+
+
+## Recovered earlier dictation evidence and user confirmation
+
+The user stated that the microphone cancellation check had already passed and
+that its detailed evidence was lost. A review found an earlier durable entry:
+[Core closure pass — 19 October 2026](../validation.md#core-closure-pass--19-october-2026)
+records native dictation insertion, Undo and cancellation in the isolated Core
+QA library. The earlier entry does not identify the cancellation control or
+current package. Keep its original scope; do not discard it because a later
+session has a different result.
+
+On22 October the user explicitly confirmed the earlier microphone cancellation
+check. Record this as user-verified with detailed evidence unavailable. Do not
+ask the user to repeat it as a missing check. This is not a newly observed CUA
+result, an OS permission-denial observation or acceptance of every entry point.
+The20:33 Success discrepancy remains a separate historical observation; it does
+not invalidate the user's earlier successful check. No implementation, test,
+contract status or permission changed during this evidence reconciliation.

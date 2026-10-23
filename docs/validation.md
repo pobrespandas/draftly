@@ -10269,3 +10269,15 @@ The user noted that native sessions had already run. No new microphone session
 was started. Accepted prior cases remain accepted; live dictation task cancel
 and the recorded close/Success discrepancy remain unresolved, not repeated or
 promoted. See the speech record's consolidation for the bounded next checks.
+
+
+## Recovered dictation acceptance — 22 October 2026
+
+The user confirms an earlier successful microphone cancellation check and says
+its detailed evidence was lost. The existing Core closure pass of19 October
+already records native dictation insertion, Undo and cancellation in Core QA.
+That entry does not identify its cancellation control or the current package.
+Preserve both the dated native record and the present user verification. Do not
+require a repeat of the user's check. No new CUA observation, permission outcome
+or cross-entry contract acceptance is claimed. The later20:33 Success record
+remains separate. See the speech lifetime record for this reconciliation.
