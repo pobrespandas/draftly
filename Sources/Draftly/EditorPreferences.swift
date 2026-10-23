@@ -102,6 +102,11 @@ struct EditorLayoutPreferences: View {
             )) {
                 ForEach(EditorIndentationStyle.allCases, id: \.self) { Text($0.label).tag($0) }
             }
+            .disabled(!EditorIndentationPreferences.isValid(indentation))
+            if !EditorIndentationPreferences.isValid(indentation) {
+                Text("The saved indentation options are invalid. They were kept unchanged.")
+                    .foregroundStyle(.red).textSelection(.enabled)
+            }
         }
         Section("Syntax Features") {
             switch Result(catching: { try library.syntaxDefinition(named: indentationSyntax) }) {

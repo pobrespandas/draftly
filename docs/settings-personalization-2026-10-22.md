@@ -181,3 +181,13 @@ iCloud.com.andrestobelem.draftly container in Development. The profile expires
 21 October2027 and includes two devices. No habitual installation occurred:
 mandatory Settings acceptance is not complete. The candidate remains in the
 ignored .build/settings-personal output. Signing is not synchronization proof.
+
+## Indentation field preservation follow-up
+
+The complete validated source at a54f4f0 is the new stage base. The annotated
+pre-settings-editor-2026-10-22 tag retains it. A failing regression confirmed that
+one future nested JSON field caused valid syntax styles and unknown siblings to
+be discarded on edit. Reading now resolves only the selected string. Writing
+patches that key and retains other JSON values. Invalid JSON remains unchanged;
+the control is disabled with an explicit message. Nine focused app methods and
+local Debug passed. The source signature and preference key remain unchanged.

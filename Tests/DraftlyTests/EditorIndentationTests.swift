@@ -26,6 +26,22 @@ struct EditorIndentationTests {
         #expect(try library.backupData() == before)
     }
 
+    @Test func editingOneSyntaxRetainsUnknownStructuredFieldsAndOtherStyles() throws {
+        let original = #"{"Markdown":"fourSpaces","Future":{"name":"café 🐼","values":[null,4,true]},"TaskPaper":"twoSpaces"}"#
+        #expect(EditorIndentationPreferences.isValid(original))
+        #expect(EditorIndentationPreferences.style(for: "TaskPaper", encoded: original) == .twoSpaces)
+        let edited = EditorIndentationPreferences.setting(.tabs, for: "Markdown", encoded: original)
+        let before = try JSONDecoder().decode([String: JSONValue].self, from: Data(original.utf8))
+        let after = try JSONDecoder().decode([String: JSONValue].self, from: Data(edited.utf8))
+        #expect(after["Future"] == before["Future"])
+        #expect(after["TaskPaper"] == before["TaskPaper"])
+        #expect(EditorIndentationPreferences.style(for: "Markdown", encoded: edited) == .tabs)
+        for invalid in ["invalid", "[]", "null"] {
+            #expect(!EditorIndentationPreferences.isValid(invalid))
+            #expect(EditorIndentationPreferences.setting(.fourSpaces, for: "Markdown", encoded: invalid) == invalid)
+        }
+    }
+
     @Test(arguments: EditorIndentationStyle.allCases, [false, true])
     func editingActionsAndScriptingUseTheCurrentSyntaxPreference(style: EditorIndentationStyle, worker: Bool) async throws {
         let domain = "Draftly.IndentationTests." + UUID().uuidString
