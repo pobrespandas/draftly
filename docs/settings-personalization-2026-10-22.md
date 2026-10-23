@@ -191,3 +191,28 @@ be discarded on edit. Reading now resolves only the selected string. Writing
 patches that key and retains other JSON values. Invalid JSON remains unchanged;
 the control is disabled with an explicit message. Nine focused app methods and
 local Debug passed. The source signature and preference key remain unchanged.
+
+## Escaped-line-break reference comparison
+
+Drafts54.1.1 was confirmed from its installed bundle. CUA created two neutral
+notes and opened the Basic preview. With Escaped line breaks enabled, a trailing
+backslash produced a visible line break. A multiline inline-code span retained
+its slash and collapsed its newline; two trailing spaces also made a break.
+
+CUA disabled the option and verified its checkbox was off. The same preview still
+showed the break. A neutral text edit and reopening the preview did not clarify
+the result. After normal Quit and restart, a new neutral document still rendered
+the trailing backslash as a break with the saved checkbox off. This is a reference
+discrepancy, not proof that a missing implementation should be a no-op toggle.
+No new renderer rule or setting was added. Restore the original enabled state:
+CUA confirmed the checkbox on before closing Settings. Both neutral notes were
+moved individually to recoverable Trash. No other notes or filters changed.
+No clipboard-copy command, microphone or external action ran.
+
+Two official Settings pages consulted on22 October are archived in the separate
+settings-reference directory with URLs, dates and SHA-256 hashes. They supplement
+and do not replace the19 October baseline. The Markdown guide describes an
+escaped trailing backslash as forcing a new line. Context7 resolved MultiMarkdown7;
+its documentation cannot establish a version6 disable-option contract. The
+bundled version6 source has no equivalent extension flag. The disabled-state
+behavior remains unresolved and must not be presented as accepted parity.
