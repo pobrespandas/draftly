@@ -176,4 +176,32 @@ struct InstalledThemeCommandsTests {
             try library.reload(); #expect(library.themes.isEmpty)
         }
     }
+    @Test func restoredThemeRendersThroughItsLocalIdentityWithoutChangingEditorState() throws {
+        try withCommands { source, defaults, commands in
+            var theme = EditorTheme()
+            theme.name = "Restored café 🐼"
+            theme.background = "123456"
+            theme.unknownFields["future"] = .array([.null, .string("retained")])
+            try commands.saveEditorTheme(theme, dark: false)
+            let references = defaults.data(forKey: EditorThemePreferences.key)
+            let restored = try LibraryStore(inMemory: true, seed: false)
+            try restored.restore(source.backupData())
+            let model = WindowModel(library: restored,
+                dependencies: WindowDependencies(preferences: WindowPreferences(defaults: defaults)))
+            let note = try restored.createNote(content: "Keep café 🐼")
+            model.select(note.id)
+            let range = (note.content as NSString).range(of: "🐼")
+            model.editor.selection = range
+            let focus = model.editor.focusToken
+            let presentation = model.editorThemePresentation(systemIsDark: false)
+            #expect(presentation.theme?.id == theme.id)
+            #expect(presentation.theme?.background == "123456")
+            #expect(presentation.theme?.unknownFields == theme.unknownFields)
+            #expect(presentation.error == nil)
+            #expect(defaults.data(forKey: EditorThemePreferences.key) == references)
+            #expect(model.editor.content == note.content && model.editor.selection == range)
+            #expect(model.editor.focusToken == focus)
+        }
+    }
+
 }

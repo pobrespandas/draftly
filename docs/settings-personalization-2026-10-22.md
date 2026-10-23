@@ -122,3 +122,23 @@ its existing safe fallback. This batch changes no consumer rule or preference
 key. The26 related app methods in seven suites and local Debug build passed.
 There is no claim of measured visual parity. Full Editor Settings structure and
 all remaining native cases in the inventory are still pending.
+
+## Restored-theme coverage and shortcut native acceptance
+
+A new headless integration case restores a theme backup, resolves the selected
+local identity through WindowModel, and checks background, unknown fields,
+content, UTF-16 selection, focus and unchanged reference data. It adds coverage
+between persistence and presentation; it does not replace existing tests.
+Fifteen related app methods and five Core methods passed.
+
+CUA verified local Clear shows no assigned key, Reset restores Command-N, and
+Escape exits active recording without replacing the old binding. It recorded
+Control-Option-Command-Y, saved, quit and reopened QA. The same assignment was
+visible after restart; its stored keyCode was16. Reset restored the original
+command. These checks used no global key delivery or private data.
+
+CUA imported scripts/fixtures/app-theme-backup.json into the neutral library.
+Editor Settings showed QA Theme day and QA Theme night café 🐼 in their slots.
+Loading the retained neutral note rendered the dark-blue restored theme with
+its text. The content stayed intact. Screenshot scale remains invalid for point
+measurements. This is native recovery/render acceptance for that fixture only.
