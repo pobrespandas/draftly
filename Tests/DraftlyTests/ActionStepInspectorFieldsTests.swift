@@ -9,15 +9,16 @@ struct ActionStepInspectorFieldsTests {
         let keys = ["url", "template", "script", "source", "name", "data", "parameters", "values", "uuid", "isEnabled", "platforms"]
         let step = ActionStep("script", Dictionary(uniqueKeysWithValues: keys.map { ($0, "value") }))
         let fields = ActionStepInspectorFields.fields(for: step)
-        #expect(fields.map(\.key) == ["name", "script", "source", "template", "url"])
+        #expect(fields.map(\.key) == ["allowAsync", "name", "script", "source", "template", "url"])
         #expect(fields.map(\.id) == fields.map(\.key))
         #expect(fields.filter(\.isMultiline).map(\.key) == ["script", "source", "template"])
         #expect(fields.filter(\.allowsTagInsertion).map(\.key) == ["script", "source", "template"])
-        #expect(fields.map(\.minHeight) == [nil, 360, 360, 180, nil])
+        #expect(fields.map(\.minHeight) == [nil, nil, 360, 360, 180, nil])
     }
 
     @Test func emptyStepsHaveNoFields() {
-        #expect(ActionStepInspectorFields.fields(for: ActionStep("script")).isEmpty)
+        #expect(ActionStepInspectorFields.fields(for: ActionStep("script")).map(\.key) == ["allowAsync", "script"])
+        #expect(ActionStepInspectorFields.fields(for: ActionStep("futureStep")).isEmpty)
     }
 
     @Test func unknownFieldsUseSingleLineEditorsAndKeepExactKeys() {
@@ -61,7 +62,7 @@ struct ActionStepInspectorFieldsTests {
         #expect(ActionStepInspectorFields.fields(for: imported).map(\.key) == ["futureOption", "name", "uuid"])
         #expect(imported == original && imported.id != target)
         #expect(ActionStepInspectorFields.fields(for: ActionStep("includeAction")).map(\.key) == ["name", "uuid"])
-        #expect(ActionStepInspectorFields.fields(for: ActionStep("script", ["uuid": target.uuidString])).isEmpty)
+        #expect(!ActionStepInspectorFields.fields(for: ActionStep("script", ["uuid": target.uuidString])).contains { $0.key == "uuid" })
     }
 
     @Test(arguments: [String?.none, "false", "true", "futureValue"])
@@ -69,7 +70,7 @@ struct ActionStepInspectorFieldsTests {
         var step = ActionStep("createDraft", ["template": "Neutral café 🐼", "futureOption": "Keep"])
         step.values["openInEditor"] = openInEditor
         let original = step
-        #expect(ActionStepInspectorFields.fields(for: step).map(\.key) == ["futureOption", "template"])
+        #expect(ActionStepInspectorFields.fields(for: step).map(\.key) == ["flagType", "flagged", "folder", "futureOption", "syntax", "tags", "template"])
         #expect(step == original)
     }
 

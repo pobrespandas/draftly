@@ -69,3 +69,35 @@ shortcut conflicts when the shortcut itself is unchanged. Add specific tests.
 Run separate neutral QA checks, then prepare the signed habitual update only
 after data, preferences and signature checks. Pro comparison remains blocked.
 The accepted microphone checks stay accepted and will not be repeated.
+
+
+## Inspector controls and symbols
+
+ActionSymbolCatalog retains the original twelve choices and expands to64 stable
+entries. Search matches names, titles and keywords without changing order.
+Manual names and unknown imported symbols stay exact. Search and opening the
+picker do not write the selection. Four symbol tests cover these cases.
+
+All25 types now expose their implemented execution inputs even when missing
+from imported data. Boolean controls retain the existing distinct true/1 and
+non-false policies. Modes use choices; print margins use a numeric adjustment
+and retain invalid imported text for correction. Imported unknown choice values
+remain selectable. Effective aliases stay editable without inserting shadowing
+canonical keys. Inactive imported aliases have distinct labels and raw editors.
+Template tag insertion appends to the visible fallback value.
+
+Prompt, Configure Window, Configured Value and Include Action retain their
+existing specialized controls and tests. Execution limitations are visible for
+message delivery, reminder/event separate inputs, List in Reminders, Shortcut
+Return to Drafts and imported unsupported file/platform data. No platform mask
+semantics or new runtime capability was invented.
+
+The combined focused38 methods passed in nine suites. New cases cover all25
+input sets without writes, alias precedence, Boolean coercion, unknown choices,
+print defaults against the actual native consumer, tag insertion, and legacy/
+worker execution of edited file/clipboard options. The execution case also
+checks raw fields, identity, temporary edits and backup round-trip. Local Debug
+build passed. No automatic test opened a visible window or external service.
+The first compile placed a numeric UI helper in the wrong view scope; moving it
+to the owning inspector fixed the compile. No runtime/test deadline changed.
+Native binding checks and complete final regression follow separately.

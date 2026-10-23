@@ -28,18 +28,13 @@ struct ActionEditor: View {
                         TextField("Name", text: $editingCopy.action.name)
                         TextField("Group", text: $editingCopy.action.group)
                         TextField("Description", text: $editingCopy.action.presentation.description, axis: .vertical).lineLimit(2...4)
-                        TextField("SF Symbol", text: $editingCopy.action.symbol)
+                        ActionSymbolPicker(symbol: $editingCopy.action.symbol)
                         Picker("Color", selection: Binding(get: { editingCopy.action.presentation.tintColor ?? "" },
                             set: { editingCopy.action.presentation.tintColor = $0.isEmpty ? nil : $0 })) {
                             Text("Default").tag("")
                             ForEach(ActionTint.names, id: \.self) { Text($0.capitalized).tag($0) }
                             if let name = editingCopy.action.presentation.tintColor, !ActionTint.names.contains(name) {
                                 Text(name).tag(name)
-                            }
-                        }
-                        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 6)) {
-                            ForEach(["bolt", "doc.on.doc", "square.and.arrow.up", "folder", "checklist", "calendar", "envelope", "message", "terminal", "globe", "wand.and.stars", "pencil"], id: \.self) { symbol in
-                                Button { editingCopy.action.symbol = symbol } label: { Image(systemName: symbol).frame(width: 24, height: 24).foregroundStyle(editingCopy.action.symbol == symbol ? Color.accentColor : .secondary) }.buttonStyle(.plain).help(symbol)
                             }
                         }
                         TextField("Section", text: $editingCopy.action.presentation.section)
@@ -169,6 +164,9 @@ private struct ActionStepInspector: View {
                     if !DraftAction.supportedSteps.contains(step.type) {
                         Label("Unsupported step · preserved on export", systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.orange)
                     }
+                    if let limitation = ActionStepInspectorFields.limitation(for: step) {
+                        Text(limitation).font(.caption).foregroundStyle(.secondary)
+                    }
                     if step.type == "configurationKey" {
                         ActionConfigurationStepEditor(step: $step)
                     }
@@ -200,7 +198,7 @@ private struct ActionStepInspector: View {
                                 if field.allowsTagInsertion {
                                     Menu("Insert Tag") {
                                         ForEach(["draft", "title", "body", "selection", "date", "tags", "uuid"], id: \.self) { tag in
-                                            Button("[[" + tag + "]]") { step.values[key, default: ""] += "[[" + tag + "]]" }
+                                            Button("[[" + tag + "]]") { ActionStepInspectorFields.appendTag(tag, for: key, in: &step) }
                                         }
                                     }.font(.caption).fixedSize()
                                 }
@@ -209,17 +207,43 @@ private struct ActionStepInspector: View {
                                 Text("An Action UUID takes precedence over the name. Leave it empty to use the name template.")
                                     .font(.caption).foregroundStyle(.secondary)
                             }
-                            if field.isMultiline {
+                            if case .toggle = field.control {
+                                Toggle(ActionStepInspectorFields.title(for: key, in: step), isOn: Binding(
+                                    get: { ActionStepInspectorFields.toggleValue(for: field, in: step) },
+                                    set: { step.values[key] = $0 ? "true" : "false" }
+                                ))
+                            } else if case .choice(let options) = field.control {
+                                Picker(ActionStepInspectorFields.title(for: key, in: step), selection: Binding(
+                                    get: { ActionStepInspectorFields.textValue(for: key, in: step) },
+                                    set: { step.values[key] = $0 }
+                                )) {
+                                    ForEach(options, id: \.self) { option in
+                                        Text(option.isEmpty ? "Use Flagged Option" : option).tag(option)
+                                    }
+                                    let current = ActionStepInspectorFields.textValue(for: key, in: step)
+                                    if !options.contains(current) { Text(current).tag(current) }
+                                }
+                            } else if field.isMultiline {
                                 TextEditor(text: Binding(get: { ActionStepInspectorFields.textValue(for: key, in: step) }, set: { step.values[key] = $0 }))
                                     .font(.system(size: 12, design: .monospaced)).frame(minHeight: field.minHeight).border(.quaternary)
                             } else {
                                 TextField(key, text: Binding(get: { ActionStepInspectorFields.textValue(for: key, in: step) }, set: { step.values[key] = $0 })).textFieldStyle(.roundedBorder)
+                                if field.control == .number {
+                                    Stepper("Adjust points", onIncrement: { adjustNumber(key, by: 1) }, onDecrement: { adjustNumber(key, by: -1) })
+                                    if let value = Double(ActionStepInspectorFields.textValue(for: key, in: step)), value.isFinite, value >= 0 {
+                                        Text("Points").font(.caption).foregroundStyle(.secondary)
+                                    } else { Text("Enter a finite nonnegative number.").font(.caption).foregroundStyle(.red) }
+                                }
                             }
                         }
                     }
                 }.padding(16)
             }
         }
+    }
+    private func adjustNumber(_ key: String, by amount: Double) {
+        guard let value = Double(ActionStepInspectorFields.textValue(for: key, in: step)), value.isFinite else { return }
+        step.values[key] = String(max(0, value + amount))
     }
 }
 
