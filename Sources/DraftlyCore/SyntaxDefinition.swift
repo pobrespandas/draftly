@@ -474,7 +474,8 @@ public enum SyntaxFeaturePreferences {
         }
     }
     public static func setting(_ enabled: Bool, feature: String, syntax: String, encoded: String) -> String {
-        var object = (try? JSONSerialization.jsonObject(with: Data(encoded.utf8))) as? [String: Any] ?? [:]
+        guard var object = (try? JSONSerialization.jsonObject(with: Data(encoded.utf8))) as? [String: Any] else { return encoded }
+        if let stored = object[syntax], !(stored is [String: Any]) { return encoded }
         var values = object[syntax] as? [String: Any] ?? [:]
         values[feature] = enabled; object[syntax] = values
         guard let data = try? JSONSerialization.data(withJSONObject: object, options: [.sortedKeys]) else { return encoded }

@@ -58,4 +58,37 @@ struct SettingsOptionEditingTests {
         }
     }
 
+    @Test func syntaxFeatureEditsRetainOtherSyntaxesUnknownFieldsAndAbsentDefaults() throws {
+        let fixture = try TestPreferences(prefix: "Draftly-SyntaxFeatureSettings-")
+        defer { fixture.close() }
+        let source = #"{"Café 🐼":{"tasks":true,"future":{"keep":[null,42,"🦊"]}},"Other":{"tasks":false},"future":[false,3]}"#
+        fixture.defaults.set(source, forKey: SyntaxFeaturePreferences.key)
+        fixture.defaults.set("Keep", forKey: "unrelated")
+        let changed = try SettingsOptionEditing.syntaxFeature("tasks", syntax: "Café 🐼", enabled: false, configuration: source)
+        #expect(fixture.defaults.string(forKey: SyntaxFeaturePreferences.key) == source)
+        var expected = try JSONDecoder().decode([String: JSONValue].self, from: Data(source.utf8))
+        guard case .object(var fields) = expected["Café 🐼"] else { Issue.record("Missing syntax options"); return }
+        fields["tasks"] = .bool(false); expected["Café 🐼"] = .object(fields)
+        #expect(try JSONDecoder().decode([String: JSONValue].self, from: Data(changed.utf8)) == expected)
+        fixture.defaults.set(changed, forKey: SyntaxFeaturePreferences.key)
+        let reopened = try #require(UserDefaults(suiteName: fixture.name))
+        let saved = try #require(reopened.string(forKey: SyntaxFeaturePreferences.key))
+        #expect(SyntaxFeaturePreferences.values(for: "Café 🐼", encoded: saved)["tasks"] == false)
+        #expect(SyntaxFeaturePreferences.values(for: "Other", encoded: saved)["tasks"] == false)
+        #expect(reopened.string(forKey: "unrelated") == "Keep")
+        let initial = try SettingsOptionEditing.syntaxFeature("tasks", syntax: "New", enabled: true, configuration: "{}")
+        #expect(SyntaxFeaturePreferences.values(for: "New", encoded: initial) == ["tasks": true])
+    }
+
+    @Test func invalidSyntaxFeatureEditsReportAnErrorInsteadOfReplacingSavedData() {
+        for source in ["invalid", "[]", "null", #"{"Neutral":[]}"#, #"{"Neutral":null}"#, #"{"Neutral":"future format"}"#] {
+            do {
+                _ = try SettingsOptionEditing.syntaxFeature("tasks", syntax: "Neutral", enabled: false, configuration: source)
+                Issue.record("An invalid syntax configuration was accepted.")
+            } catch {
+                #expect(error.localizedDescription == "The saved syntax feature options are invalid. They were kept unchanged.")
+            }
+        }
+    }
+
 }

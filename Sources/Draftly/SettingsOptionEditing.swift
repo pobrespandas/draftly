@@ -7,6 +7,17 @@ enum SettingsOptionEditing {
         values[key] = .bool(enabled)
         return String(decoding: try JSONEncoder().encode(values), as: UTF8.self)
     }
+    static func syntaxFeature(_ feature: String, syntax: String, enabled: Bool, configuration: String) throws -> String {
+        let failure = DraftlyError.message("The saved syntax feature options are invalid. They were kept unchanged.")
+        guard let fields = try? JSONDecoder().decode([String: JSONValue].self, from: Data(configuration.utf8)) else {
+            throw failure
+        }
+        if let stored = fields[syntax] {
+            guard case .object = stored else { throw failure }
+        }
+        return SyntaxFeaturePreferences.setting(enabled, feature: feature, syntax: syntax, encoded: configuration)
+    }
+
     static func command(_ name: String, binding: CommandBinding?, configuration: String) throws -> String {
         var values = try JSONDecoder().decode([String: JSONValue].self, from: Data(configuration.utf8))
         if let binding {

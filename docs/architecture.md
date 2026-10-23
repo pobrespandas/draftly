@@ -416,3 +416,10 @@ patches the selected slot in the complete JSON object. Unknown sibling values
 remain stored. Malformed JSON or an invalid storage type rejects the write
 without advancing the theme revision. Reads retain their existing safe fallback
 and do not write defaults. Theme commands retain their persistence ordering.
+
+
+SyntaxFeaturePreferences keeps its nonthrowing API. Invalid JSON or a non-object
+syntax slot returns unchanged data. SettingsOptionEditing converts invalid form
+input into an explicit error, then delegates the patch to Core. The view stores
+the result only after success. Syntax feature errors do not share theme error
+state. Unknown values and other syntax slots retain their existing structure.

@@ -279,6 +279,15 @@ struct SyntaxDefinitionTests {
         #expect(SyntaxFeaturePreferences.values(for: syntax.name, encoded: "invalid").isEmpty)
     }
 
+    @Test func featureEditsDoNotReplaceMalformedConfigurationOrSyntaxValues() {
+        for original in ["invalid", "[]", "null", #"{"Neutral":[],"other":{"keep":true}}"#,
+                         #"{"Neutral":null}"#, #"{"Neutral":"future format"}"#, #"{"Neutral":false}"#] {
+            #expect(SyntaxFeaturePreferences.setting(false, feature: "tasks", syntax: "Neutral", encoded: original) == original)
+        }
+        let fresh = SyntaxFeaturePreferences.setting(false, feature: "tasks", syntax: "Neutral", encoded: "{}")
+        #expect(SyntaxFeaturePreferences.values(for: "Neutral", encoded: fresh) == ["tasks": false])
+    }
+
     @Test func staticCompletionUsesUTF16TriggerCurrentTextAndTemplateOptions() throws {
         var object = source()
         object["featureKeys"] = [["id": "suggestions", "name": "Suggestions", "description": "Neutral options", "defaultValue": true]]

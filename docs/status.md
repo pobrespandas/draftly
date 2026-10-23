@@ -4,6 +4,13 @@ Updated: 23 October 2026.
 
 ## Settings and personalization in progress
 
+Syntax feature edits now preserve malformed saved data instead of replacing it.
+The form reports an explicit error. A Core red/green case and two app cases
+cover invalid roots/slots, unknown fields and persistence. Complete Core682/
+app825, Python80, matrix0 and local Debug pass. Native QA confirmed a grammar
+option after restart and visible rejection of an invalid slot without data loss.
+QA is retired recoverably; the usual installation is unchanged.
+
 Import as New passed its native create path: duplicate-name Save stayed
 disabled, a unique Unicode name enabled Save, and the original and new UUIDs
 remained distinct. One headless command case also covers backup recovery of

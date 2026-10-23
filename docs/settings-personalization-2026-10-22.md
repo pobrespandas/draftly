@@ -469,3 +469,60 @@ removed. The archive and neutral input copy are in local
 DraftlyRecovery/settings-import-20261023-011732. QA library/preferences remain.
 This completes the pending cleanup, not native HTML or restart acceptance.
 The habitual installation remains unchanged. No source or test changed.
+
+## Syntax feature preference write protection — 23 October 2026
+
+Baseline at b0777b7: focused app4/Core29 passed. The annotated
+pre-settings-syntax-features-2026-10-23 tag retains that source. A new Core
+regression failed seven invalid cases before the correction. The nonthrowing
+setter had replaced malformed JSON, non-object roots and non-object syntax
+slots with new dictionaries. That could discard retained preference data.
+
+The Core setter now returns the original string for those invalid inputs. Its
+public signature and preference key stay unchanged. SettingsOptionEditing
+validates the form input and reports an explicit error before delegating the
+actual patch to Core. The view retains its stored string when editing fails.
+Syntax option errors have separate local state from theme errors.
+
+Two new app methods cover unknown nested fields, other syntax slots, Unicode,
+absent defaults, reopening local preferences and explicit invalid-data errors.
+The existing syntax test still checks that the stored option changes the real
+task grammar without changing shared definitions or backups. Focused app10 and
+Core30 passed. No existing test or API signature was removed. Full regression
+and native checks follow separately.
+
+Complete Core682/app825 passed with matching discovery/XML inventory. Python80,
+structural matrix0 and local Debug passed. No deadline, retry rule or API matrix
+classification changed. The previously recorded concurrency risk stays open;
+this full run passed without a confirmation retry.
+
+In isolated QA, CUA imported scripts/fixtures/editor-neutral-grammar.draftsSyntax
+through the footer Import Syntax command. The native selector reported an
+offscreen selection and disabled Open while its screenshot showed a blue Open
+button. The observed coordinate mapping allowed the visible button to complete
+the import. This is a reader discrepancy, not a confirmed file-type defect.
+No valid-scale visual acceptance is inferred from that screenshot.
+
+Editor Settings listed Neutral QA grammar and its Suggestions option. CUA
+switched it off. After normal Quit and restart it remained off. Closed-device
+preferences retained the unknown nested field and future sibling array.
+
+A separate QA input made that syntax slot an array. Its option used the defined
+fallback. Clicking it showed the explicit error and retained its visible value.
+After normal Quit, the exact invalid string was still stored. The valid neutral
+configuration was restored. A readonly library check confirmed the exact
+original neutral note text. These checks accept the settings binding and
+persistence, not all syntax behavior, editor selection or Undo combinations.
+The existing automatic consumer cases retain their separate scope.
+
+QA quit and its exact registration was removed. Its ZIP passed integrity
+verification before the temporary launch package was removed. The archive is in
+local DraftlyRecovery/syntax-features-20261023-012721. QA library/preferences
+and the existing neutral fixture remain. No screenshot or raw log enters Git.
+The usual app was not replaced. Do not repeat the known HTML/Markdown reader
+failures or microphone checks. Per-syntax font/layout controls, other native
+Settings paths and visual acceptance remain open. Signed results follow.
+
+Signed Release and profile verification passed with com.pobrespandas.draftly,
+team NM92LU2KKV and iCloud.com.andrestobelem.draftly. The isolated candidate
+remains in .build/settings-personal. No habitual update or sync claim is made.

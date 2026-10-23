@@ -87,6 +87,7 @@ struct EditorLayoutPreferences: View {
     @State private var editingDark: Bool?
     @State private var error: String?
     @AppStorage(SyntaxFeaturePreferences.key) private var syntaxFeatures = "{}"
+    @State private var syntaxFeatureError: String?
     let section: EditorSettingsSection
     @Binding var indentationSyntax: String
     @AppStorage(EditorIndentationPreferences.key) private var indentation = "{}"
@@ -115,11 +116,18 @@ struct EditorLayoutPreferences: View {
                     ForEach(definition.features) { feature in
                         Toggle(feature.name, isOn: Binding(
                             get: { SyntaxFeaturePreferences.values(for: indentationSyntax, encoded: syntaxFeatures)[feature.id] ?? feature.defaultValue },
-                            set: { syntaxFeatures = SyntaxFeaturePreferences.setting($0, feature: feature.id, syntax: indentationSyntax, encoded: syntaxFeatures) }
+                            set: { value in
+                                do {
+                                    syntaxFeatures = try SettingsOptionEditing.syntaxFeature(feature.id,
+                                        syntax: indentationSyntax, enabled: value, configuration: syntaxFeatures)
+                                    syntaxFeatureError = nil
+                                } catch { syntaxFeatureError = error.localizedDescription }
+                            }
                         )).help(feature.description)
                     }
                 case .failure(let failure): Text(failure.localizedDescription).foregroundStyle(.red)
                 }
+                if let syntaxFeatureError { Text(syntaxFeatureError).foregroundStyle(.red).textSelection(.enabled) }
             }
         }
         if section == .editing {
