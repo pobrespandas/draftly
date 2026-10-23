@@ -40,7 +40,11 @@ public enum MarkdownPreferences {
     ]
 
     public static func options(engine: String, json: String) -> [String: Bool] {
-        let stored = (try? JSONDecoder().decode([String: Bool].self, from: Data(json.utf8))) ?? [:]
+        let values = (try? JSONDecoder().decode([String: JSONValue].self, from: Data(json.utf8))) ?? [:]
+        let stored: [String: Bool] = values.compactMapValues { value in
+            if case .bool(let enabled) = value { return enabled }
+            return nil
+        }
         return (engine == "multi" ? multiOptions : githubOptions).reduce(into: stored) {
             if $0[$1.id] == nil { $0[$1.id] = $1.defaultValue }
         }

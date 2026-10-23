@@ -7,6 +7,8 @@ struct MarkdownSettingsView: View {
     @AppStorage(MarkdownPreferences.multiKey) private var multiOptions = "{}"
     @AppStorage(MarkdownPreferences.githubKey) private var githubOptions = "{}"
 
+    @State private var editError: String?
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -15,6 +17,7 @@ struct MarkdownSettingsView: View {
                     Text("MultiMarkdown").tag("multi")
                     Text("GitHub Markdown").tag("github")
                 }.pickerStyle(.radioGroup).labelsHidden()
+                if let editError { Text(editError).foregroundStyle(.red).textSelection(.enabled) }
                 HStack(alignment: .top, spacing: 24) {
                     optionsGroup("MultiMarkdown Options", engine: "multi", options: MarkdownPreferences.multiOptions, json: $multiOptions)
                     optionsGroup("GitHub Markdown Options", engine: "github", options: MarkdownPreferences.githubOptions, json: $githubOptions)
@@ -31,9 +34,13 @@ struct MarkdownSettingsView: View {
                     Toggle(option.title, isOn: Binding(get: {
                         MarkdownPreferences.options(engine: engine, json: json.wrappedValue)[option.id] ?? option.defaultValue
                     }, set: { value in
-                        var values = MarkdownPreferences.options(engine: engine, json: json.wrappedValue)
-                        values[option.id] = value
-                        if let data = try? JSONEncoder().encode(values) { json.wrappedValue = String(decoding: data, as: UTF8.self) }
+                        do {
+                            json.wrappedValue = try SettingsOptionEditing.markdownOption(option.id,
+                                enabled: value, configuration: json.wrappedValue)
+                            editError = nil
+                        } catch {
+                            editError = "The Markdown options could not be saved: " + error.localizedDescription
+                        }
                     })).toggleStyle(.checkbox)
                 }
             }.padding(10).frame(maxWidth: .infinity, alignment: .leading)
