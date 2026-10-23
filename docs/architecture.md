@@ -399,3 +399,13 @@ without discarding valid siblings when another field has a future value type.
 CommandShortcuts validates each stored override independently. An empty editable
 binding disables that command; Reset removes the override. Fixed commands keep
 their existing defaults. Local and global forms retain their distinct validators.
+
+
+## Editor Settings navigation
+
+SettingsView retains Settings routing. EditorSettingsView owns the existing
+font and layout controls and the syntax sidebar. EditorSettingsNavigation owns
+local section and syntax selection. It builds a stable syntax catalog without
+writing preferences. EditorLayoutPreferences renders the selected section and
+retains theme commands, sheets and errors. Font and layout preferences remain
+global. Syntax indentation and feature options retain their existing keys.

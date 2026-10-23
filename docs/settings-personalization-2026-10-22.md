@@ -216,3 +216,42 @@ escaped trailing backslash as forcing a new line. Context7 resolved MultiMarkdow
 its documentation cannot establish a version6 disable-option contract. The
 bundled version6 source has no equivalent extension flag. The disabled-state
 behavior remains unresolved and must not be presented as accepted parity.
+
+## Editor Settings navigation batch
+
+EditorSettingsView now owns the existing font, layout, syntax and theme controls.
+Its Editing, Syntax Settings and Themes sections separate these controls.
+EditorSettingsNavigation keeps built-in syntax order, adds sorted installed names
+and removes exact duplicates. It preserves the selected syntax across sections
+and returns to Markdown if an installed selection disappears. No stored format
+or preference key changed. Fonts and layout remain global, as the caption states.
+This batch does not add per-syntax fonts, autocomplete management or a separate
+native Editor Settings window. Those reference differences remain pending.
+
+Four headless navigation methods cover initial state, Unicode names, duplicate
+names, catalog removal and independent state. The focused26 app methods in six
+suites and local Debug build passed. Existing font tests retain their names.
+
+In isolated QA, CUA selected TaskPaper and set Insert to2 Spaces. Markdown stayed
+on Tab. Both values remained after normal Quit and restart. Theme navigation
+showed the restored day and night identities. Opening Settings, switching to
+Themes and closing retained the neutral note text and the café 🐼 selection.
+This checks these bindings and selection only. The earlier Undo/Redo acceptance
+remains separate. No microphone, external service or personal data was used.
+The Markdown reader failure was not repeated. No scale measurement or visual
+parity acceptance is claimed. Full regression results follow separately.
+
+Complete Swift regression passed Core681/app820. The runner matched discovered
+identities to fresh XML results. Python80 and structural matrix0 passed. Local
+Debug passed. No deadline, retry rule, API matrix classification or contract test
+name changed. QA quit normally. Its exact LaunchServices entry was removed;
+its package passed ZIP integrity verification before removal from the temporary
+launch path. Neutral library and preferences remain. The recoverable archive is
+in local DraftlyRecovery/editor-settings-20261022-232859. The usual app was not
+replaced. Full visual acceptance, per-syntax font/layout options and the native
+checks listed above remain pending. This batch does not close Settings.
+
+The updated signed Release build passed. Signature and profile verification
+confirmed com.pobrespandas.draftly, team NM92LU2KKV and the unchanged
+iCloud.com.andrestobelem.draftly container. The candidate stays in ignored
+.build/settings-personal. It was not installed or used as synchronization proof.

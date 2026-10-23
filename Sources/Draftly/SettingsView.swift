@@ -2,31 +2,6 @@ import SwiftUI
 import AppKit
 import DraftlyCore
 
-enum EditorFontOptions {
-    struct Choice: Identifiable, Equatable, Sendable {
-        let title: String
-        let postScriptName: String
-        var id: String { postScriptName }
-    }
-
-    static let common: [Choice] = [
-        Choice(title: "System", postScriptName: "System"),
-        Choice(title: "SF Mono", postScriptName: "SFMono-Regular"),
-        Choice(title: "Menlo", postScriptName: "Menlo-Regular"),
-        Choice(title: "Helvetica Neue", postScriptName: "HelveticaNeue")
-    ]
-
-    static func additional(nerdFonts: [Choice], selected: String) -> [Choice] {
-        var seen = Set(common.map(\.postScriptName))
-        var result = nerdFonts.filter { seen.insert($0.postScriptName).inserted }
-        if seen.insert(selected).inserted {
-            result.append(Choice(title: selected.isEmpty ? "Configured Font (empty name)" : selected,
-                                 postScriptName: selected))
-        }
-        return result
-    }
-}
-
 struct SettingsView: View {
     @ObservedObject var controller: AppController
     @StateObject private var loginItem = LoginItemPreferences()
@@ -36,27 +11,8 @@ struct SettingsView: View {
     @AppStorage(GeneralPreferences.showMainWindowAtLaunchKey) private var showMainWindowAtLaunch = true
     @AppStorage(GeneralPreferences.advancedFindKey) private var preferAdvancedFind = false
     @AppStorage(GeneralPreferences.showCustomTouchBarKey) private var showCustomTouchBar = true
-    @AppStorage("editor.fontName") private var fontName = "System"
-    @AppStorage("editor.fontSize") private var fontSize = 17.0
-    @AppStorage("editor.lineSpacing") private var lineSpacing = 2.0
     @AppStorage(ActionMoveNavigation.preferenceKey) private var actionMoveNavigation = ActionMoveNavigation.createNew.rawValue
     @AppStorage("capture.newDraftAfter") private var newDraftAfter = 300.0
-    private var nerdFontOptions: [(family: String, postScriptName: String)] {
-        NSFontManager.shared.availableFontFamilies
-            .filter { $0.localizedCaseInsensitiveContains("Nerd Font") }
-            .sorted()
-            .compactMap { family in
-                guard let members = NSFontManager.shared.availableMembers(ofFontFamily: family),
-                      let regular = members.first(where: { ($0[1] as? String) == "Regular" }),
-                      let postScriptName = regular[0] as? String else { return nil }
-                return (family, postScriptName)
-            }
-    }
-    private var additionalFontOptions: [EditorFontOptions.Choice] {
-        EditorFontOptions.additional(nerdFonts: nerdFontOptions.map {
-            EditorFontOptions.Choice(title: $0.family, postScriptName: $0.postScriptName)
-        }, selected: fontName)
-    }
     var body: some View {
         TabView(selection: $selectedTab) {
             generalSettings
@@ -84,25 +40,9 @@ struct SettingsView: View {
         }
     }
 
-    private var editorSettings: some View {
-        Form {
-            Section("Editor") {
-                Picker("Font", selection: $fontName) {
-                    ForEach(EditorFontOptions.common) { option in
-                        Text(option.title).tag(option.postScriptName)
-                    }
-                    if !additionalFontOptions.isEmpty {
-                        Divider()
-                        ForEach(additionalFontOptions) { option in
-                            Text(option.title).tag(option.postScriptName)
-                        }
-                    }
-                }
-                HStack { Text("Size"); Slider(value: $fontSize, in: 11...28, step: 1); Text(EditorPreferenceDisplay.wholePointLabel(fontSize)).monospacedDigit() }
-                EditorSpacingPreferences(fontName: fontName, fontSize: fontSize, legacyLineSpacing: lineSpacing)
-            }
-            if let library = controller.library { EditorLayoutPreferences(library: library) }
-        }.formStyle(.grouped)
+    @ViewBuilder private var editorSettings: some View {
+        if let library = controller.library { EditorSettingsView(library: library) }
+        else { Text("Library unavailable").foregroundStyle(.secondary) }
     }
 
     private var generalSettings: some View {

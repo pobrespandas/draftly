@@ -4,6 +4,15 @@ Updated: 22 October 2026.
 
 ## Settings and personalization in progress
 
+The next branch preserves structured indentation fields and organizes Editor
+Settings into Editing, Syntax Settings and Themes. Four new navigation methods
+cover the syntax catalog and local state. Complete Core681/app820, Python80,
+structural matrix0 and local Debug pass. CUA confirmed TaskPaper indentation
+after restart and retained Unicode selection across theme navigation. The
+escaped-line-break disabled state remains an observed Drafts discrepancy.
+Per-syntax font controls and the remaining native checks are not complete.
+The usual app remains unchanged. See the dated record for precise limits.
+
 The Settings branch adds two functional corrections with red/green regressions:
 Markdown edits retain unknown JSON and absent defaults; command shortcuts retain
 unknown data and support Clear separately from Reset. General grouping and HTML

@@ -87,60 +87,65 @@ struct EditorLayoutPreferences: View {
     @State private var editingDark: Bool?
     @State private var error: String?
     @AppStorage(SyntaxFeaturePreferences.key) private var syntaxFeatures = "{}"
-    @State private var indentationSyntax = "Markdown"
+    let section: EditorSettingsSection
+    @Binding var indentationSyntax: String
     @AppStorage(EditorIndentationPreferences.key) private var indentation = "{}"
     private var themes: [EditorTheme] { library.themes }
     private var themeCommands: InstalledThemeCommands { InstalledThemeCommands(library: library) }
-    var body: some View {
-        Section("Indentation") {
-            Picker("Syntax", selection: $indentationSyntax) {
-                ForEach(Array(Set(ScriptSyntax.names + library.syntaxes.map(\.name))).sorted(), id: \.self) { Text($0).tag($0) }
-            }
-            Picker("Insert", selection: Binding(
-                get: { EditorIndentationPreferences.style(for: indentationSyntax, encoded: indentation) },
-                set: { indentation = EditorIndentationPreferences.setting($0, for: indentationSyntax, encoded: indentation) }
-            )) {
-                ForEach(EditorIndentationStyle.allCases, id: \.self) { Text($0.label).tag($0) }
-            }
-            .disabled(!EditorIndentationPreferences.isValid(indentation))
-            if !EditorIndentationPreferences.isValid(indentation) {
-                Text("The saved indentation options are invalid. They were kept unchanged.")
-                    .foregroundStyle(.red).textSelection(.enabled)
-            }
-        }
-        Section("Syntax Features") {
-            switch Result(catching: { try library.syntaxDefinition(named: indentationSyntax) }) {
-            case .success(let definition):
-                if definition.features.isEmpty { Text("This syntax has no feature options.").foregroundStyle(.secondary) }
-                ForEach(definition.features) { feature in
-                    Toggle(feature.name, isOn: Binding(
-                        get: { SyntaxFeaturePreferences.values(for: indentationSyntax, encoded: syntaxFeatures)[feature.id] ?? feature.defaultValue },
-                        set: { syntaxFeatures = SyntaxFeaturePreferences.setting($0, feature: feature.id, syntax: indentationSyntax, encoded: syntaxFeatures) }
-                    )).help(feature.description)
+    @ViewBuilder var body: some View {
+        if section == .syntax {
+            Section("Indentation") {
+                Text(indentationSyntax).font(.headline)
+                Picker("Insert", selection: Binding(
+                    get: { EditorIndentationPreferences.style(for: indentationSyntax, encoded: indentation) },
+                    set: { indentation = EditorIndentationPreferences.setting($0, for: indentationSyntax, encoded: indentation) }
+                )) {
+                    ForEach(EditorIndentationStyle.allCases, id: \.self) { Text($0.label).tag($0) }
                 }
-            case .failure(let failure): Text(failure.localizedDescription).foregroundStyle(.red)
+                .disabled(!EditorIndentationPreferences.isValid(indentation))
+                if !EditorIndentationPreferences.isValid(indentation) {
+                    Text("The saved indentation options are invalid. They were kept unchanged.")
+                        .foregroundStyle(.red).textSelection(.enabled)
+                }
+            }
+            Section("Syntax Features") {
+                switch Result(catching: { try library.syntaxDefinition(named: indentationSyntax) }) {
+                case .success(let definition):
+                    if definition.features.isEmpty { Text("This syntax has no feature options.").foregroundStyle(.secondary) }
+                    ForEach(definition.features) { feature in
+                        Toggle(feature.name, isOn: Binding(
+                            get: { SyntaxFeaturePreferences.values(for: indentationSyntax, encoded: syntaxFeatures)[feature.id] ?? feature.defaultValue },
+                            set: { syntaxFeatures = SyntaxFeaturePreferences.setting($0, feature: feature.id, syntax: indentationSyntax, encoded: syntaxFeatures) }
+                        )).help(feature.description)
+                    }
+                case .failure(let failure): Text(failure.localizedDescription).foregroundStyle(.red)
+                }
             }
         }
-        Section("Editor Layout") {
-            HStack { Text("Horizontal Margin"); Slider(value: $horizontal, in: 0...80, step: 1); Text(EditorPreferenceDisplay.wholePointLabel(horizontal)) }
-            HStack { Text("Vertical Margin"); Slider(value: $vertical, in: 0...80, step: 1); Text(EditorPreferenceDisplay.wholePointLabel(vertical)) }
-            HStack { Text("Maximum Text Width"); TextField("0 for unlimited", value: $maximum, format: .number).frame(width: 100); Text("pt · 0 = unlimited").font(.caption) }
-            Toggle("Typewriter Scrolling", isOn: $typewriter)
-        }
-        Section("Themes") {
-            themePicker(dark: false)
-            themePicker(dark: true)
-            HStack {
-                Button("New Theme") { editingDark = nil; editing = EditorTheme() }
-                Button("Import Theme…") { importTheme() }
-                Button("Use Theme File…") { useThemeFile() }
+        if section == .editing {
+            Section("Editor Layout") {
+                HStack { Text("Horizontal Margin"); Slider(value: $horizontal, in: 0...80, step: 1); Text(EditorPreferenceDisplay.wholePointLabel(horizontal)) }
+                HStack { Text("Vertical Margin"); Slider(value: $vertical, in: 0...80, step: 1); Text(EditorPreferenceDisplay.wholePointLabel(vertical)) }
+                HStack { Text("Maximum Text Width"); TextField("0 for unlimited", value: $maximum, format: .number).frame(width: 100); Text("pt · 0 = unlimited").font(.caption) }
+                Toggle("Typewriter Scrolling", isOn: $typewriter)
             }
-            ThemeDevelopmentFolderSettings(library: library)
-            if let error { Text(error).foregroundStyle(.red) }
         }
-        .sheet(item: $editing) { value in
-            ThemeSettingsView(theme: value, otherNames: themes.filter { $0.id != value.id && $0.type == "custom" }.map(\.name)) { theme in
-                try themeCommands.saveEditorTheme(theme, dark: editingDark)
+        if section == .themes {
+            Section("Themes") {
+                themePicker(dark: false)
+                themePicker(dark: true)
+                HStack {
+                    Button("New Theme") { editingDark = nil; editing = EditorTheme() }
+                    Button("Import Theme…") { importTheme() }
+                    Button("Use Theme File…") { useThemeFile() }
+                }
+                ThemeDevelopmentFolderSettings(library: library)
+                if let error { Text(error).foregroundStyle(.red) }
+            }
+            .sheet(item: $editing) { value in
+                ThemeSettingsView(theme: value, otherNames: themes.filter { $0.id != value.id && $0.type == "custom" }.map(\.name)) { theme in
+                    try themeCommands.saveEditorTheme(theme, dark: editingDark)
+                }
             }
         }
     }
