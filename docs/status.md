@@ -2,6 +2,15 @@
 
 Updated: 22 October 2026.
 
+## Inspector completion in progress
+
+Main now includes the ten validated speech/configuration commits through616f71c.
+The reference tag pre-inspector-integration-2026-10-22 preserves c82ae79.
+Core679/app797 with XML inventory, Python80, local build and structural matrix0
+passed before fast-forward integration. No habitual app was installed. The
+[inspector record](action-inspector-2026-10-22.md) inventories all25 step types,
+actual missing controls and separate execution/reference limitations.
+
 ## Speech verification consolidation
 
 Do not repeat the accepted recorder Cancel, neutral recognition, transcription
