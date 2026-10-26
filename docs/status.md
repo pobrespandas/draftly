@@ -4,6 +4,14 @@ Updated: 26 October 2026.
 
 ## Settings and personalization in progress
 
+Four text input options now work per syntax: continuous spelling, grammar,
+smart quotes and smart dashes. Missing values keep current defaults. Reset and
+edits retain unknown fields. Core 682/app 840, Python 80, structural matrix,
+local Debug and signed Release checks passed. Native QA verified independent
+syntax switches, restart, reset, Unicode selection and typed Undo/Redo. Actual
+system correction/substitution and full visual acceptance remain separate.
+The habitual app stays unchanged.
+
 The font picker now includes installed families and all available faces, with
 exact stored identities, Nerd Fonts and unknown configured selections retained.
 Core 682/app 836, Python 80, structural matrix and local Debug passed. Native QA

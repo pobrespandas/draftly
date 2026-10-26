@@ -694,3 +694,52 @@ Signed Release and profile checks passed. Bundle com.pobrespandas.draftly,
 team NM92LU2KKV and container iCloud.com.andrestobelem.draftly remain unchanged.
 The candidate stays uninstalled in .build/settings-personal. Signature is not
 sync evidence.
+
+## 26 October — syntax text input options
+
+The clean production base is931ca9b. Existing local skill deletions remain
+untouched. Focused baseline font/layout10 passed before editing. The annotated
+pre-settings-text-input-2026-10-26 tag retains that source.
+
+The archived Mac Editor Settings reference includes continuous spelling,
+grammar, smart quotes and smart dashes. NativeEditor previously fixed these
+values at true/false/false/false. The new optional local
+editor.textInputBySyntax preference keeps those defaults for absent or invalid
+fields. Syntax Settings exposes all four switches and a reset action. Each
+write patches one field; reset removes only known fields. Unknown fields and
+other syntaxes remain. Invalid JSON or non-object syntax slots reject edits
+with an explicit error. This does not change shared syntax definitions or
+library/backup formats.
+
+EditorBody resolves the active syntax. NativeEditor applies the four values
+when creating or updating its NSTextView. It does not mutate text or change
+Undo rules. Automatic correction, text replacement and Writing Tools remain
+separate; this batch does not claim those contracts. Four new test methods
+cover defaults, invalid fields, Unicode, unknown data, independent syntax slots,
+reset, reopen and the actual offscreen EditorBody consumer. The consumer checks
+all four native flags plus text, selection and script Undo/Redo. Focused14
+methods passed. Complete and native checks follow below.
+
+Complete Core 682/app 840 passed with exact inventory/XML results. Python 80,
+structural matrix zero errors, local Debug and signed Release checks passed.
+The bundle, team and existing container remain unchanged. The candidate stays
+uninstalled. No retry or deadline changed. Signature does not prove sync.
+
+Native isolated QA created a new neutral note. After changing all four Markdown
+switches, TaskPaper still showed its original values. Closing Settings retained
+the Unicode selection and text. Command-Z removed the initial paste; Redo
+restored it. All four Markdown values remained after normal Quit and restart.
+Reset restored the defaults. Closed preferences retained the prepared unknown
+fields. A readonly check of the closed QA library confirmed the exact original
+neutral text after restart and reset.
+
+This verifies bindings, per-syntax independence, persistence, reset and editing
+preservation. Automatic tests verify native NSTextView flags. This session does
+not claim the system's linguistic correction quality, smart substitution typing
+or complete reference visual acceptance. Those checks remain distinct.
+
+QA quit normally. Its exact LaunchServices entry was removed after ZIP integrity
+verification. Recoverable package:
+DraftlyRecovery/text-input-20261026-045342. Neutral QA data/preferences remain.
+The habitual app is unchanged. Autocorrection, Writing Tools, monospace, other
+editor controls and the previously listed native/visual checks remain pending.

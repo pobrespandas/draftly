@@ -454,3 +454,14 @@ families. Catalog construction is pure and accepts family members as input.
 The view owns AppKit discovery. Stored PostScript names remain the identities;
 labels do not determine selection. Common choices and unknown selected names
 remain available through the existing picker rules.
+
+## Syntax text input options
+
+EditorTextInputPreferences owns four local options: continuous spelling,
+grammar, smart quotes and smart dashes. Missing values keep Draftly's existing
+native defaults. The resolver reads one syntax slot. Edits patch one known field;
+reset retains unknown fields and other syntaxes. Invalid saved structures reject
+writes. Editor Settings owns bindings and errors. EditorBody resolves the active
+syntax and NativeEditor applies the configuration during creation and updates.
+These changes do not call a text mutation or clear Undo. Automatic correction,
+text replacement and Writing Tools are separate system options.

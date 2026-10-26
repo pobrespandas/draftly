@@ -45,6 +45,8 @@ enum EditorFontOptions {
 struct EditorSettingsView: View {
     @ObservedObject var library: LibraryStore
     @State private var navigation = EditorSettingsNavigation()
+    @AppStorage(EditorTextInputPreferences.key) private var textInputOptions = "{}"
+    @State private var textInputError: String?
     @State private var syntaxFontError: String?
     @AppStorage(EditorSyntaxFontPreferences.key) private var syntaxFonts = "{}"
     @AppStorage("editor.fontName") private var fontName = "System"
@@ -141,6 +143,26 @@ struct EditorSettingsView: View {
                     if navigation.section == .syntax {
                         EditorSyntaxLayoutSettings(syntax: navigation.syntax,
                             fontName: syntaxFont.name, fontSize: syntaxFont.size, legacyLineSpacing: lineSpacing)
+                        Section("Text Input") {
+                            ForEach(EditorTextInputPreferences.Option.allCases) { option in
+                                Toggle(option.title, isOn: Binding(
+                                    get: { EditorTextInputPreferences.value(option, for: navigation.syntax, encoded: textInputOptions) },
+                                    set: { enabled in
+                                        do {
+                                            textInputOptions = try EditorTextInputPreferences.setting(option,
+                                                enabled: enabled, for: navigation.syntax, encoded: textInputOptions)
+                                            textInputError = nil
+                                        } catch { textInputError = error.localizedDescription }
+                                    }))
+                            }
+                            Button("Reset Text Input Settings") {
+                                do {
+                                    textInputOptions = try EditorTextInputPreferences.reset(for: navigation.syntax, encoded: textInputOptions)
+                                    textInputError = nil
+                                } catch { textInputError = error.localizedDescription }
+                            }.disabled(!EditorTextInputPreferences.hasOverrides(for: navigation.syntax, encoded: textInputOptions))
+                            if let textInputError { Text(textInputError).foregroundStyle(.red).textSelection(.enabled) }
+                        }
                     }
                     EditorLayoutPreferences(library: library, section: navigation.section,
                         indentationSyntax: $navigation.syntax)

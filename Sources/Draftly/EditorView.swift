@@ -22,6 +22,7 @@ struct NativeEditor: NSViewRepresentable {
     var isActive = true
     var showCustomTouchBar = true
     var touchBarModel: WindowModel?
+    var textInput = EditorTextInputPreferences.Configuration()
     var completionContext: (@MainActor () -> EditorCompletionContext)?
     var indentation = "\t"
     var onChange: () -> Void
@@ -31,9 +32,8 @@ struct NativeEditor: NSViewRepresentable {
         let scroll = NSScrollView(); scroll.hasVerticalScroller = true; scroll.autohidesScrollers = true
         scroll.drawsBackground = true
         let text = DraftTextView(frame: .zero)
-        text.isRichText = false; text.isAutomaticQuoteSubstitutionEnabled = false
-        text.isAutomaticDashSubstitutionEnabled = false; text.isAutomaticTextReplacementEnabled = true
-        text.isGrammarCheckingEnabled = false; text.isContinuousSpellCheckingEnabled = true
+        text.isRichText = false; text.isAutomaticTextReplacementEnabled = true
+        configureTextInput(text)
         text.allowsUndo = true; text.usesFindBar = true; text.isIncrementalSearchingEnabled = true
         text.drawsBackground = true; text.textContainerInset = NSSize(width: 17, height: 17)
         text.isVerticallyResizable = true; text.isHorizontallyResizable = false
@@ -49,8 +49,16 @@ struct NativeEditor: NSViewRepresentable {
         }
         return scroll
     }
+    private func configureTextInput(_ text: NSTextView) {
+        text.isContinuousSpellCheckingEnabled = textInput.spelling
+        text.isGrammarCheckingEnabled = textInput.grammar
+        text.isAutomaticQuoteSubstitutionEnabled = textInput.smartQuotes
+        text.isAutomaticDashSubstitutionEnabled = textInput.smartDashes
+    }
+
     func updateNSView(_ scroll: NSScrollView, context: Context) {
         guard let text = scroll.documentView as? NSTextView else { return }
+        configureTextInput(text)
         let coordinator = context.coordinator; coordinator.parent = self; coordinator.updating = true
         defer { coordinator.updating = false }
         if let text = text as? DraftTextView {
