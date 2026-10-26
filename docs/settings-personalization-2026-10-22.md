@@ -655,3 +655,42 @@ devices and expires on 21 October 2027. The candidate remains in
 
 The final complete Swift run after the field-label change also passed:
 Core 682/app 835, with exact inventory/XML results. No retry was needed.
+
+## 26 October — installed font catalog
+
+The branch starts at aa9452d. Existing local skill deletions remain separate.
+The font picker now includes installed families and all their available faces.
+The existing common choices keep their labels and stored names. Nerd Fonts
+remain available. Each face uses its exact PostScript name. The catalog removes
+repeated identities and keeps an unknown configured font selectable. Both the
+global and syntax font pickers use the same catalog. Reading it does not write
+preferences. No text mutation, theme, library or backup format changes.
+
+One new pure test covers all faces, deterministic ordering, Unicode family
+labels, duplicate families, empty identities and unknown selection. Existing
+font tests keep their names and coverage. The first attempted baseline was
+contaminated: editing started before discovery/build finished. Its missing
+member error is not a pre-existing product failure or baseline evidence. The
+subsequent isolated focused run passed nine methods. Full checks and native
+acceptance are recorded separately below.
+
+Complete Core 682/app 836 passed with exact inventory/XML results. Python 80,
+structural matrix zero errors and local Debug passed. No timeout or retry
+changed. Native isolated QA showed the expanded catalog and FiraCode Nerd Font
+faces. Courier New Italic could be selected and remained selected after normal
+Quit and restart. System was selected again before cleanup. This verifies the
+picker and persistence path, not every installed font's rendering or visual
+parity. The older temporary QA library was absent in this session. No prior
+neutral-note retention check is claimed for this session.
+
+QA quit normally. Its exact LaunchServices entry was removed after ZIP integrity
+verification. The recoverable package is in
+DraftlyRecovery/font-catalog-20261026-044518. QA preferences remain. The habitual
+app was not replaced. Monospace-specific options, remaining editor controls,
+startup/login, physical keys, HTML/Markdown native acceptance and the valid
+visual comparison remain pending. This does not close Settings.
+
+Signed Release and profile checks passed. Bundle com.pobrespandas.draftly,
+team NM92LU2KKV and container iCloud.com.andrestobelem.draftly remain unchanged.
+The candidate stays uninstalled in .build/settings-personal. Signature is not
+sync evidence.

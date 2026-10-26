@@ -27,4 +27,20 @@ struct EditorFontOptionsTests {
         #expect(options.last?.postScriptName == selected)
         #expect(options.last?.title == (selected.isEmpty ? "Configured Font (empty name)" : selected))
     }
+    @Test func installedCatalogIncludesAllFacesAndPreservesExactIdentities() {
+        let options = EditorFontOptions.installed(families: ["Nerd 🐼", "Café", "Empty", "Café"]) { family in
+            switch family {
+            case "Café": [("Cafe-Italic", "Italic"), ("Cafe-Regular", "Regular"), ("", "Invalid")]
+            case "Nerd 🐼": [("Nerd-Bold", "Bold"), ("Nerd-Regular", "Regular")]
+            default: []
+            }
+        }
+        #expect(options.map(\.postScriptName) == ["Cafe-Italic", "Cafe-Regular", "Nerd-Bold", "Nerd-Regular"])
+        #expect(options.first?.title == "Café — Italic")
+        #expect(options[1].title == "Café")
+        #expect(Set(options.map(\.id)).count == options.count)
+        let selected = EditorFontOptions.additional(nerdFonts: options, selected: "Absent 🐼")
+        #expect(selected.last?.postScriptName == "Absent 🐼")
+    }
+
 }

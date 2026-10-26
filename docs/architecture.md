@@ -448,3 +448,9 @@ unknown fields and other syntaxes remain stored. EditorBody resolves the current
 syntax before it passes layout to NativeEditor. Text mutation, native style
 application and Undo rules do not change. The preference does not change shared
 syntax records, library formats or backups.
+
+The editor font catalog includes all faces returned by the installed font
+families. Catalog construction is pure and accepts family members as input.
+The view owns AppKit discovery. Stored PostScript names remain the identities;
+labels do not determine selection. Common choices and unknown selected names
+remain available through the existing picker rules.

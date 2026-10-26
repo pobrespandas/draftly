@@ -1,8 +1,15 @@
 # Draftly implementation and remaining work
 
-Updated: 23 October 2026.
+Updated: 26 October 2026.
 
 ## Settings and personalization in progress
+
+The font picker now includes installed families and all available faces, with
+exact stored identities, Nerd Fonts and unknown configured selections retained.
+Core 682/app 836, Python 80, structural matrix and local Debug passed. Native QA
+verified Courier New Italic selection and restart, then restored System. QA is
+retired recoverably. Rendering every face and full Settings acceptance remain
+pending. Existing local skill deletions are outside this change.
 
 Per-syntax layout now covers line height, paragraph spacing, margins and
 maximum width. Missing fields inherit global defaults; reset preserves unknown
@@ -17,8 +24,8 @@ values; reset preserves unknown fields. Nerd Font choices remain available.
 Headless EditorBody coverage checks attributes, selection and script Undo.
 Native QA accepted independent Markdown/TaskPaper values, selection, typed
 Undo/Redo, restart and reset. Complete Core682/app830, Python80, matrix0 and
-local Debug pass. The full system font catalog remains
-open. The habitual app is unchanged. See the dated record for exact limits.
+local Debug pass. The installed font catalog is now available; its later acceptance is recorded
+above. The habitual app is unchanged. See the dated record for exact limits.
 
 Syntax feature edits now preserve malformed saved data instead of replacing it.
 The form reports an explicit error. A Core red/green case and two app cases

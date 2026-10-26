@@ -16,6 +16,21 @@ enum EditorFontOptions {
         Choice(title: "Helvetica Neue", postScriptName: "HelveticaNeue")
     ]
 
+    static func installed(families: [String], members: (String) -> [(name: String, face: String)]) -> [Choice] {
+        var seen = Set<String>()
+        return families.sorted().flatMap { family in
+            members(family).sorted {
+                if $0.face == $1.face { return $0.name < $1.name }
+                return $0.face < $1.face
+            }.compactMap { member in
+                guard !member.name.isEmpty, seen.insert(member.name).inserted else { return nil }
+                let title = member.face == "Regular" || member.face.isEmpty
+                    ? family : family + " — " + member.face
+                return Choice(title: title, postScriptName: member.name)
+            }
+        }
+    }
+
     static func additional(nerdFonts: [Choice], selected: String) -> [Choice] {
         var seen = Set(common.map(\.postScriptName))
         var result = nerdFonts.filter { seen.insert($0.postScriptName).inserted }
@@ -35,16 +50,14 @@ struct EditorSettingsView: View {
     @AppStorage("editor.fontName") private var fontName = "System"
     @AppStorage("editor.fontSize") private var fontSize = 17.0
     @AppStorage("editor.lineSpacing") private var lineSpacing = 2.0
-    private var nerdFontOptions: [(family: String, postScriptName: String)] {
-        NSFontManager.shared.availableFontFamilies
-            .filter { $0.localizedCaseInsensitiveContains("Nerd Font") }
-            .sorted()
-            .compactMap { family in
-                guard let members = NSFontManager.shared.availableMembers(ofFontFamily: family),
-                      let regular = members.first(where: { ($0[1] as? String) == "Regular" }),
-                      let postScriptName = regular[0] as? String else { return nil }
-                return (family, postScriptName)
+    private var installedFontOptions: [EditorFontOptions.Choice] {
+        EditorFontOptions.installed(families: NSFontManager.shared.availableFontFamilies) { family in
+            (NSFontManager.shared.availableMembers(ofFontFamily: family) ?? []).compactMap { member in
+                guard member.count >= 2, let name = member[0] as? String,
+                      let face = member[1] as? String else { return nil }
+                return (name, face)
             }
+        }
     }
     private var syntaxFont: EditorSyntaxFontPreferences.Font {
         EditorSyntaxFontPreferences.font(for: navigation.syntax, encoded: syntaxFonts,
@@ -57,9 +70,7 @@ struct EditorSettingsView: View {
     }
 
     private func fontPicker(selection: Binding<String>) -> some View {
-        let additional = EditorFontOptions.additional(nerdFonts: nerdFontOptions.map {
-            EditorFontOptions.Choice(title: $0.family, postScriptName: $0.postScriptName)
-        }, selected: selection.wrappedValue)
+        let additional = EditorFontOptions.additional(nerdFonts: installedFontOptions, selected: selection.wrappedValue)
         return Picker("Font", selection: selection) {
             ForEach(EditorFontOptions.common) { option in
                 Text(option.title).tag(option.postScriptName)
