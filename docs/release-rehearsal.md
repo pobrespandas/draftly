@@ -255,3 +255,17 @@ not create or overwrite another release. Inspect the existing release and the
 live site, then rerun the checks with the same verified assets. A live site
 change stops the process; restaging may be required. A verified public GitHub
 release alone does not authorize Firebase promotion.
+
+## Credential state on 29 October 2026
+
+A Developer ID identity and a matching Production profile are installed on the
+local Mac. An isolated archive passed notarization and Gatekeeper after Sparkle's
+helpers were signed. A Sparkle release key was created locally. Its private
+seed has no verified recovery copy outside this Mac. Do not enable public
+updates until key recovery is tested.
+
+The public GitHub repository currently has no protected `main` branch and no
+release environment. Its only active ruleset protects version tags from updates
+and deletion. Do not store signing, notarization, or Sparkle secrets as
+repository-wide secrets until release workflow changes and secret access are
+restricted and tested. The signing and staging jobs remain disabled.
