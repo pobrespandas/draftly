@@ -3,6 +3,10 @@ import DraftlyCore
 
 // Presentation keeps imported separators in the catalog without executable rows.
 enum ActionCatalogPresentation {
+    static func groupSymbol(_ name: String, groups: [ActionGroupRecord], searching: Bool = false) -> String {
+        if searching { return "magnifyingglass" }
+        return groups.first { $0.name == name }?.symbol ?? "arrow.up.right.square"
+    }
     struct Entry: Identifiable {
         enum Kind: Equatable { case action, separator }
         let source: DraftAction

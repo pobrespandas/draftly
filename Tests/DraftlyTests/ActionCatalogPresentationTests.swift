@@ -5,6 +5,12 @@ import DraftlyCore
 
 @Suite("Action catalog presentation")
 struct ActionCatalogPresentationTests {
+    @Test func groupHeaderAndBarUseTheSameSymbolWhileSearchUsesItsOwnIcon() {
+        var group = ActionGroupRecord(name: "Basic"); group.symbol = "arrow.up.forward.app"
+        #expect(ActionCatalogPresentation.groupSymbol("Basic", groups: [group]) == "arrow.up.forward.app")
+        #expect(ActionCatalogPresentation.groupSymbol("Basic", groups: [group], searching: true) == "magnifyingglass")
+        #expect(ActionCatalogPresentation.groupSymbol("Missing", groups: [group]) == "arrow.up.right.square")
+    }
     @Test func importedTintNamesUseSharedColorsAndUnknownNamesKeepSurfaceDefaults() {
         #expect(ActionTint.color("green") == .green)
         #expect(ActionTint.color("orange") == .orange)

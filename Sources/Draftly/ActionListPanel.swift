@@ -49,7 +49,7 @@ struct ActionListPanel: View {
                     .frame(height: 28).padding(.horizontal, 10).padding(.bottom, 8)
             }
             HStack(spacing: 9) {
-                Image(systemName: model.actionQuery.isEmpty ? "arrow.up.right.square" : "magnifyingglass").font(.system(size: 18, weight: model.actionQuery.isEmpty ? .regular : .semibold)).foregroundStyle(.blue)
+                Image(systemName: ActionCatalogPresentation.groupSymbol(model.actionGroup, groups: library.actionGroups, searching: !model.actionQuery.isEmpty)).font(.system(size: 18, weight: model.actionQuery.isEmpty ? .regular : .semibold)).foregroundStyle(.blue)
                 Text(model.actionQuery.isEmpty ? model.actionGroup : "Search").font(.system(size: 22, weight: .regular)).foregroundStyle(.secondary)
                 Spacer()
             }.padding(.horizontal, 13).frame(height: 38)
@@ -99,7 +99,7 @@ struct ActionListPanel: View {
                     HStack(spacing: 20) {
                         ForEach(Array(groups.enumerated()), id: \.element) { index, group in
                             Button { model.actionGroup = group } label: {
-                                Image(systemName: library.actionGroups.first(where: { $0.name == group })?.symbol ?? "arrow.up.right.square")
+                                Image(systemName: ActionCatalogPresentation.groupSymbol(group, groups: library.actionGroups))
                                     .font(.system(size: 18)).foregroundStyle(model.actionGroup == group ? Color.blue : .secondary)
                             }.buttonStyle(.plain).help(group).accessibilityLabel(group)
                         }

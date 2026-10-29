@@ -10797,3 +10797,19 @@ the original run did not exercise MainActor or the full test workload. The
 updated test sends all 24 clipboard calls through MainActor and confirms that
 they run on the main thread. It passed in isolation. Neither result proves the
 intermittent failures under the full test workload are resolved.
+
+### Directory group import in isolated QA — 29 October 2026
+
+A local ad-hoc QA bundle used a separate testing library and no Services entries.
+The import screen loaded the official Basic Directory page over the network. It
+showed the group and 31 entries, including the Services and Apps separators.
+Save installed the group. After a normal quit and restart, Basic retained the
+same order and separators. No imported action was executed.
+
+The first build showed a generic group header while the group bar showed the
+imported symbol. After the header fix, QA showed `arrow.up.forward.app` in both
+places. Searching for Copy changed the header to `magnifyingglass`. The focused
+presentation suite and local Debug build passed. The QA app quit, its individual
+LaunchServices registration was removed, and the app moved to Trash. Its isolated
+library remains. This does not verify group replacement review, unsupported step
+execution, or a group exported from Drafts itself.
