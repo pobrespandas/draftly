@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   macos:
-    name: Build and test on macOS
+    name: "${{ github.event_name == 'workflow_dispatch' && inputs.diagnostic != '' && inputs.diagnostic != 'all' && format('Diagnostic: {0}', inputs.diagnostic) || 'Build and test on macOS' }}"
     runs-on: macos-26
     timeout-minutes: 60
     steps:
