@@ -10829,3 +10829,11 @@ The QA app was quit, unregistered, and moved to Trash. Its test library remains.
 The focused library management and action-group persistence suites passed. The
 local Debug build passed. These tests do not exercise the SwiftUI sheet binding;
 the manual QA check covers the observed regression.
+
+### XML-RPC response depth — 29 October 2026
+
+The response parser already limits XML element depth to 64. A focused test
+confirms that a response with 19 nested arrays succeeds and one with 20 nested
+arrays fails with an error and no parameters. Array wrappers add XML elements,
+so this limit differs from the request encoder's value-depth limit. The XML-RPC
+contract suite passed. No product behavior changed.

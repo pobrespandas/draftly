@@ -4,6 +4,19 @@ import Testing
 
 @Suite("XML-RPC contracts")
 struct XMLRPCTests {
+    @Test func responseNestingIsBoundedByTheXMLParser() {
+        func response(depth: Int) -> [String: Any] {
+            let value = String(repeating: "<value><array><data>", count: depth)
+                + "<value><string>ok</string></value>"
+                + String(repeating: "</data></array></value>", count: depth)
+            return ScriptXMLRPC.response(Data("<methodResponse><params><param>\(value)</param></params></methodResponse>".utf8), statusCode: 200)
+        }
+        #expect(response(depth: 19)["success"] as? Bool == true)
+        let rejected = response(depth: 20)
+        #expect(rejected["success"] as? Bool == false)
+        #expect((rejected["params"] as? [Any])?.isEmpty == true)
+        #expect(!(rejected["error"] as? String ?? "").isEmpty)
+    }
     @Test func dateMetadataRequiresAValidExistingPath() throws {
         for values: [String: Any] in [
             ["params": ["not a date"], "__draftlyDatePaths": ["/params/0"]],
