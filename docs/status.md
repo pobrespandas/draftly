@@ -3913,3 +3913,7 @@ Hosted full CI run 40966067211 passed on macOS 26 at commit 5d2c7af. It ran
 Python, website, matrix and complete Swift inventory checks, built the local
 app and checked package metadata and signature. This does not prove public
 Developer ID signing, site publication, updating or CloudKit synchronization.
+
+Draft pull request 1 presents the release branch for review against main. It
+does not enable publication. Full release security, coordinated site writes,
+public update acceptance and CloudKit Production remain pending.
