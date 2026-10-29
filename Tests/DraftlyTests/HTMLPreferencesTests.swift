@@ -39,6 +39,13 @@ struct HTMLPreferencesTests {
         #expect(!result.contains("wrong"))
     }
 
+    @Test func ignoredLinksAndImageAttributesHandleQuotedGreaterThan() throws {
+        let html = "<p><a title='a > b' href='neutral'>Café</a> <img alt='a > b' src='neutral.png'></p>"
+        let converter = NativeHTMLConversion()
+        #expect(try converter.htmlToMarkdown(html, options: ["ignoreLinks": true]) == "Café ![a > b](neutral.png)")
+        #expect(try converter.htmlToMarkdown(html, options: ["ignoreLinks": true, "ignoreImages": true]) == "Café")
+    }
+
     @Test func marksAndIgnoreOptionsReachTheConverter() throws {
         let host = NativeActionHost()
         let html = "<p><strong>Café 🐼</strong> <em>text</em> <a href='https://example.com'>link</a><img src='neutral.png'></p><ul><li>item</li></ul>"

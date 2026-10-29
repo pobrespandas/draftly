@@ -31,6 +31,8 @@ URL edge cases need separate checks.
 Inline and reference links now use the href attribute rather than data-href,
 including unquoted values and quoted attributes containing `>`. Focused tests
 cover both forms. Other HTML grammar and Drafts parity remain open.
+Ignoring links and converting or ignoring images also handles `>` inside quoted
+attributes, with focused regression coverage.
 
 [Engine acceptance cases](engine-acceptance-cases-2026-10-22.md) assigns case IDs,
 entries, outcomes, cleanup and affected contracts to the remaining work. It

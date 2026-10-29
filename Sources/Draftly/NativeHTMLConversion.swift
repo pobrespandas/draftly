@@ -38,7 +38,7 @@ struct NativeHTMLConversion {
             if let range = Range(match.range, in: result) { result.replaceSubrange(range, with: "\n\n" + token + "\n\n") }
         }
         for level in 1...6 { replace("(?s)<h\(level)\\b[^>]*>(.*?)</h\(level)>", "\n" + String(repeating: "#", count: level) + " $1\n") }
-        if options["ignoreLinks"] as? Bool == true { replace("(?s)<a\\b[^>]*>(.*?)</a>", "$1") }
+        if options["ignoreLinks"] as? Bool == true { replace(#"(?s)<a\b(?:[^'">]|"[^"]*"|'[^']*')*>(.*?)</a\s*>"#, "$1") }
         else {
             let inline = options["inlineLinks"] as? Bool ?? true
             let expression = try NSRegularExpression(pattern: #"<a\b(?:(?:[^'">]|"[^"]*"|'[^']*')*?\s)href\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))(?:(?:[^'">]|"[^"]*"|'[^']*')*)>(.*?)</a\s*>"#, options: [.caseInsensitive, .dotMatchesLineSeparators])
@@ -76,9 +76,10 @@ struct NativeHTMLConversion {
                 result = converted + "\n\n" + definitions.joined(separator: "\n")
             }
         }
-        if options["ignoreImages"] as? Bool == true { replace("<img\\b[^>]*>", "") }
+        let imagePattern = #"<img\b(?:[^'">]|"[^"]*"|'[^']*')*>"#
+        if options["ignoreImages"] as? Bool == true { replace(imagePattern, "") }
         else {
-            let images = try NSRegularExpression(pattern: "<img\\b[^>]*>", options: .caseInsensitive)
+            let images = try NSRegularExpression(pattern: imagePattern, options: .caseInsensitive)
             let attributes = try NSRegularExpression(pattern: #"\s+(src|alt)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))"#, options: .caseInsensitive)
             let source = result as NSString
             for match in images.matches(in: result, range: NSRange(location: 0, length: source.length)).reversed() {
