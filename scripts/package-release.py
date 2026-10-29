@@ -4,6 +4,7 @@
 import argparse
 import base64
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 import plistlib
@@ -18,6 +19,9 @@ TEAM = "NM92LU2KKV"
 BUNDLE = "com.pobrespandas.draftly"
 CONTAINER = "iCloud.com.andrestobelem.draftly"
 FEED = "https://draftly.pobrespandas.com/appcast.xml"
+toolchain_spec = importlib.util.spec_from_file_location("release_toolchain", ROOT / "scripts/release-toolchain.py")
+toolchain = importlib.util.module_from_spec(toolchain_spec)
+toolchain_spec.loader.exec_module(toolchain)
 
 
 def validate_key(value):
@@ -99,6 +103,7 @@ def package(output, profile, notary_profile, tag, *, public_key=None, runner=sub
             or tag != "v" + version):
         raise ValueError("The candidate tag must match the source version.")
     commit = source_commit(tag, runner)
+    toolchain.check(runner)
     output.parent.mkdir(parents=True, exist_ok=True)
     # This fails if the destination exists. Never overwrite a previous candidate.
     output.mkdir()

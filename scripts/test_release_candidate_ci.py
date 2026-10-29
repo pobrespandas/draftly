@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import plistlib
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -19,6 +20,7 @@ class ReleaseCandidateCITests(unittest.TestCase):
         self.tools = self.root / "tools"
         self.tools.mkdir()
         (self.root / "scripts").mkdir()
+        shutil.copyfile(Path(__file__).with_name("release-toolchain.py"), self.root / "scripts/release-toolchain.py")
         self.runner = self.root / "runner"
         self.runner.mkdir()
         self.profiles = self.root / "profiles"

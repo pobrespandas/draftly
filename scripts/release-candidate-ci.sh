@@ -20,17 +20,7 @@ if [[ ! "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]
     echo "The release tag is invalid." >&2
     exit 1
 fi
-sdk_version="$(xcrun --sdk macosx --show-sdk-version)"
-if [[ ! "$sdk_version" =~ ^([0-9]+)(\.[0-9]+)*$ ]] || (( 10#${BASH_REMATCH[1]} < 27 )); then
-    echo "Release signing requires the macOS 27 SDK to preserve all supported features." >&2
-    exit 1
-fi
-swift_version="$(swiftc --version)"
-if [[ ! "$swift_version" =~ Apple\ Swift\ version\ ([0-9]+)\.([0-9]+) ]] || \
-    (( 10#${BASH_REMATCH[1]} < 6 || (10#${BASH_REMATCH[1]} == 6 && 10#${BASH_REMATCH[2]} < 4) )); then
-    echo "Release signing requires Swift 6.4 or later to preserve all supported features." >&2
-    exit 1
-fi
+python3 scripts/release-toolchain.py
 python3 - <<'PY'
 import base64, os
 try:

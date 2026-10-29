@@ -39,6 +39,10 @@ class FakeRunner:
             output = " M example\n" if self.dirty or (self.built and self.dirty_after_build) else ""
         elif command[:2] == ["git", "rev-parse"]:
             output = (self.tag_commit if command[-1].startswith("refs/tags/") else COMMIT) + "\n"
+        elif command == ["xcrun", "--sdk", "macosx", "--show-sdk-version"]:
+            output = "27.0\n"
+        elif command == ["swiftc", "--version"]:
+            output = "Apple Swift version 6.4\n"
         elif command[0] == "xcodebuild":
             self.built = True
             archive = Path(command[command.index("-archivePath") + 1])
@@ -66,6 +70,12 @@ class FakeRunner:
 
 
 class PackageReleaseTests(unittest.TestCase):
+    def test_toolchain_gate_rejects_older_or_unknown_toolchains(self):
+        for sdk, swift in (("26.6", "Apple Swift version 6.4"), ("27.0", "Apple Swift version 6.3"),
+                           ("invalid", "Apple Swift version 6.4"), ("27.0", "unknown")):
+            with self.subTest(sdk=sdk, swift=swift), self.assertRaises(ValueError):
+                release.toolchain.validate(sdk, swift)
+        release.toolchain.validate("27.1", "Apple Swift version 6.4 (swiftlang-6.4)")
     def test_candidate_gates_archive_signing_notary_stapling_and_gatekeeper(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "candidate"
