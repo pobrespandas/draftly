@@ -5,6 +5,12 @@
 - To resume the current Draftly work, read `docs/claude-handoff.md` first.
   It records the unfinished contract review, test evidence, and next checks.
 
+## Product decisions
+
+- For product, design, or architecture decisions, read `PRODUCT.md`,
+  `MISSION.md`, `VISION.md`, `VALUES.md`, and `CONSTITUTION.md`. They provide
+  revisable direction, values, and decision principles.
+
 ## Commits
 
 - Use Conventional Commits with a required scope: `type(scope): description`.
