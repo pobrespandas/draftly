@@ -127,6 +127,8 @@ Automated tests also check each Mac visibility bit after reopening a disk
 library and restoring a backup. These tests do not verify a native app restart
 or the precedence between group and action visibility in Drafts.
 Populated groups, separators, and their presentation remain unverified.
+On 29 October, the Drafts Add Items menu still disabled New Action and New
+Separator. This did not produce a populated export or verify its format.
 
 On 29 October, each Mac visibility checkbox was changed separately on the same
 neutral empty group and exported by Drafts 54.1.1. With all six Mac and iOS

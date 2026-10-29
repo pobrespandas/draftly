@@ -5,6 +5,35 @@ import DraftlyCore
 
 @Suite("File theme application") @MainActor
 struct FileThemeApplicationTests {
+    @Test func importedDraftsThemeAppliesThroughWorkspaceAndSurvivesBackup() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let domain = "Draftly.ImportedTheme.Workspace.\(UUID())"
+        let defaults = try #require(UserDefaults(suiteName: domain))
+        defer { defaults.removePersistentDomain(forName: domain) }
+        let source: [String: Any] = ["name": "Neutral imported", "description": "Neutral", "isDark": true,
+            "colors": ["editor": [:], "interface": ["textForeground": "#FFFFFF", "textBackground": "#123456"]], "scopes": [:],
+            "future": ["keep": true]]
+        let file = root.appendingPathComponent("Neutral.draftsTheme")
+        try JSONSerialization.data(withJSONObject: source).write(to: file)
+        let prepared = try ThemeFileAccess.prepare(file)
+        let library = try LibraryStore(inMemory: true, seed: false)
+        try ThemeFileAccess.install(prepared, in: library, defaults: defaults)
+        let restored = try LibraryStore(inMemory: true, seed: false)
+        try restored.restore(library.backupData())
+        let model = WindowModel(library: restored, dependencies: WindowDependencies(preferences: WindowPreferences(defaults: defaults)))
+        let note = try restored.createNote(content: "Keep café 🐼"); model.select(note.id)
+        model.editor.selection = NSRange(location: 5, length: 4)
+        var workspace = Workspace(name: "Imported theme")
+        workspace.scriptMetadata = ["api": String(decoding: try JSONSerialization.data(withJSONObject:
+            ["preferredDarkTheme": ["type": "file", "uuid": prepared.definition.id.uuidString]]), as: UTF8.self)]
+        try model.applyScriptWorkspace(workspace)
+        let applied = model.editorThemePresentation(systemIsDark: true)
+        #expect(applied.theme?.id == prepared.definition.id && applied.theme?.background == "123456")
+        #expect(restored.themes.first?.unknownFields["draftsSource"] != nil)
+        #expect(model.editor.content == note.content && model.editor.selection == NSRange(location: 5, length: 4))
+    }
     @Test func fileReferencesReloadForAppAndWorkspaceWithoutEditingTheDraft() async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)

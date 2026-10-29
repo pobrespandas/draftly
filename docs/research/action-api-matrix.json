@@ -5136,7 +5136,7 @@
           ],
           "errors": "Host and storage errors throw JavaScript errors.",
           "limitations": [
-            "Built-in names and saved Draftly themes are accepted. Drafts theme import is not implemented.",
+            "Built-in names and saved themes are accepted. Drafts theme import is implemented; a dark file theme was tested through Workspace after backup restore. Full preferred-theme defaults, errors, and native acceptance remain open.",
             "The recorded regression test does not cover every documented default and error. The member contract is not closed."
           ],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
@@ -5173,7 +5173,7 @@
           ],
           "errors": "Host and storage errors throw JavaScript errors.",
           "limitations": [
-            "Built-in names and saved Draftly themes are accepted. Drafts theme import is not implemented.",
+            "Built-in names and saved themes are accepted. Drafts theme import is implemented; a dark file theme was tested through Workspace after backup restore. Full preferred-theme defaults, errors, and native acceptance remain open.",
             "The recorded regression test does not cover every documented default and error. The member contract is not closed."
           ],
           "evidenceLevel": "Targeted regression coverage. This is not an exhaustive contract proof.",
