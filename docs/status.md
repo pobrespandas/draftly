@@ -3461,3 +3461,10 @@ preferences domain was set to a 23-point default font before updating from
 showed 23 pt. The neutral draft remained in the temporary library. QA exited
 normally, the local server stopped, and its app registration was removed. This
 checks one preference, not all settings or the production installation.
+
+A throttled loopback server allowed cancellation during the QA ZIP download.
+The 0.1.0 app stayed signed and kept the neutral draft. A later manual check
+successfully downloaded and installed 0.2.0; the draft and the 23-point QA
+preference remained. QA exited and its registration was removed. This covers
+user cancellation during transfer and subsequent recovery, not a network drop
+or interruption while replacing the production app.
