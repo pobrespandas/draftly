@@ -11293,3 +11293,14 @@ This controlled host reply is not an observed late macOS Prompt response. The
 separate system-delivered Stop observation is above; keyboard recovery in a new
 Prompt remains open. The QA window in use was not touched. No production code
 changed.
+
+### Late included Prompt reply and queued action — 29 October 2026
+
+The direct Intent cleanup test now runs with a Prompt in the root script and in
+an included child. Both variants queue a recovery action before waiting. After
+cancellation, a controlled host delays cleanup and returns an accepted reply.
+The library remains busy until release, the root and child tails and queued run
+do not execute, prior text remains, and a separately requested recovery works.
+The Intent suite passed. An initial test assertion assumed history was oldest
+first; it was corrected to identify the recovery by action ID. This is not a
+native late Prompt response. No production code changed.

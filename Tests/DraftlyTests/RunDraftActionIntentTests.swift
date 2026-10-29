@@ -152,17 +152,22 @@ struct RunDraftActionIntentTests {
         #expect(library.runs.count == 1 && library.runs.first?.status == "Cancelled")
     }
 
-    @Test func cancelledIntentWaitsForLatePromptCleanupBeforeAnotherAction() async throws {
+    @Test(arguments: [false, true])
+    func cancelledIntentWaitsForLatePromptCleanupBeforeAnotherAction(included: Bool) async throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let note = try library.createNote(content: "Neutral")
         let host = IntentLatePromptHost()
+        let promptScript = "if(trace!=='root')throw Error('missing context');var p=Prompt.create();p.addButton('Accept');p.show();editor.setText('ERROR: late prompt');"
+        let child = DraftAction(name: "Intent prompt child", steps: [ActionStep("script", ["script": promptScript])])
+        let next = DraftAction(name: "Intent prompt recovery", steps: [ActionStep("script", ["script": "editor.setText('Recovered');"])])
+        try library.saveAction(child); try library.saveAction(next)
         var action = DraftAction(name: "Intent late prompt", steps: [
-            ActionStep("script", ["script": "editor.setText('Retained before prompt');draft.update();var p=Prompt.create();p.addButton('Accept');p.show();editor.setText('ERROR: late prompt');"]),
+            ActionStep("script", ["script": "var trace='root';editor.setText('Retained before prompt');draft.update();app.queueAction(Action.find('Intent prompt recovery'),draft);" + (included ? "" : promptScript)]),
+        ] + (included ? [ActionStep("includeAction", ["uuid": child.id.uuidString])] : []) + [
             ActionStep("script", ["script": "editor.setText('ERROR: tail');"])
         ])
         action.afterSuccess = "archive"
-        let next = DraftAction(name: "Intent prompt recovery", steps: [ActionStep("script", ["script": "editor.setText('Recovered');"])])
-        try library.saveAction(action); try library.saveAction(next)
+        try library.saveAction(action)
         let request = intent(action, note: note, library: library, host: host)
         let task = Task { try await request.perform() }
         defer { task.cancel(); host.release() }
@@ -183,6 +188,7 @@ struct RunDraftActionIntentTests {
         #expect(library.runs.count == 1 && library.runs.first?.status == "Cancelled")
         _ = try await intent(next, note: note, library: library, host: host).perform()
         #expect(library.notes.first?.content == "Recovered")
+        #expect(library.runs.count == 2 && library.runs.first { $0.actionID == next.id }?.status == "Success")
     }
 
     @Test func explicitScriptFailureRetainsCompletedEffectsAndStopsSuccessDisposition() async throws {
