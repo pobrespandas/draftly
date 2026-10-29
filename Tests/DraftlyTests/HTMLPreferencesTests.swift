@@ -6,6 +6,12 @@ import Testing
 struct HTMLPreferencesTests {
     init() { _ = NSApplication.shared }
 
+    @Test func codeBlocksPreserveBlankLinesAndMarkupAsText() throws {
+        let html = "<p>Before</p><pre><code>let a = &lt;tag&gt;\n\n\nlet b = &amp;value;\n```\nend</code></pre><p>After</p>"
+        let result = try NativeHTMLConversion().htmlToMarkdown(html, options: [:])
+        #expect(result == "Before\n\n````\nlet a = <tag>\n\n\nlet b = &value;\n```\nend\n````\n\nAfter")
+    }
+
     @Test func marksAndIgnoreOptionsReachTheConverter() throws {
         let host = NativeActionHost()
         let html = "<p><strong>Café 🐼</strong> <em>text</em> <a href='https://example.com'>link</a><img src='neutral.png'></p><ul><li>item</li></ul>"

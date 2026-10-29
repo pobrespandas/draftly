@@ -25,7 +25,18 @@ struct NativeHTMLConversion {
         var result = text
         func replace(_ pattern: String, _ replacement: String) { result = result.replacingOccurrences(of: pattern, with: replacement, options: [.regularExpression, .caseInsensitive]) }
         replace("(?s)<(?:script|style)\\b[^>]*>.*?</(?:script|style)>", "")
-        replace("(?s)<pre\\b[^>]*>\\s*<code\\b[^>]*>(.*?)</code>\\s*</pre>", "\n```\n$1\n```\n")
+        let blocks = try NSRegularExpression(pattern: "<pre\\b[^>]*>\\s*<code\\b[^>]*>(.*?)</code>\\s*</pre>", options: [.caseInsensitive, .dotMatchesLineSeparators])
+        let source = result as NSString
+        var codeBlocks: [(String, String)] = []
+        for match in blocks.matches(in: result, range: NSRange(location: 0, length: source.length)).reversed() {
+            let code = try decodeHTML(source.substring(with: match.range(at: 1)))
+            let runs = code.split(whereSeparator: { $0 != "`" }).map(\.count).max() ?? 0
+            let fence = String(repeating: "`", count: max(3, runs + 1))
+            let token = "DRAFTLYCODE" + UUID().uuidString.replacingOccurrences(of: "-", with: "")
+            let block = fence + "\n" + code + (code.hasSuffix("\n") ? "" : "\n") + fence
+            codeBlocks.append((token, block))
+            if let range = Range(match.range, in: result) { result.replaceSubrange(range, with: "\n\n" + token + "\n\n") }
+        }
         for level in 1...6 { replace("(?s)<h\(level)\\b[^>]*>(.*?)</h\(level)>", "\n" + String(repeating: "#", count: level) + " $1\n") }
         if options["ignoreLinks"] as? Bool == true { replace("(?s)<a\\b[^>]*>(.*?)</a>", "$1") }
         else if options["inlineLinks"] as? Bool ?? true {
@@ -68,6 +79,8 @@ struct NativeHTMLConversion {
         replace("<li\\b[^>]*>", "\n" + (options["ulItemMark"] as? String ?? "*") + " ")
         replace("<(?:br|hr)\\s*/?>", "\n"); replace("</(?:p|div|ul|ol|blockquote)>", "\n\n")
         replace("<[^>]+>", ""); replace("\n{3,}", "\n\n")
-        return try decodeHTML(result).trimmingCharacters(in: .whitespacesAndNewlines)
+        result = try decodeHTML(result).trimmingCharacters(in: .whitespacesAndNewlines)
+        for (token, block) in codeBlocks { result = result.replacingOccurrences(of: token, with: block) }
+        return result
     }
 }

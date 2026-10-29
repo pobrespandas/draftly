@@ -20,6 +20,9 @@ Malformed base64 in an XML-RPC response now returns an error instead of a
 successful value, including inside arrays. Tests cover invalid padding, empty
 data and XML whitespace. Valid base64 remains a string; its script type mapping
 is still unverified.
+The HTML-to-Markdown converter preserves blank lines and decoded text inside
+`pre`/`code` blocks. It selects a fence longer than any backtick run in the
+block. The preference suite passed; Drafts comparison remains separate.
 
 [Engine acceptance cases](engine-acceptance-cases-2026-10-22.md) assigns case IDs,
 entries, outcomes, cleanup and affected contracts to the remaining work. It
