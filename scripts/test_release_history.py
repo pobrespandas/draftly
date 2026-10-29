@@ -1,5 +1,7 @@
 """Tests for release ordering against GitHub and Sparkle history."""
 import importlib.util
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import threading
 import json
 from pathlib import Path
 import subprocess
@@ -104,6 +106,37 @@ class ReleaseHistoryTests(unittest.TestCase):
             handler = make_opener.call_args.args[0]
             self.assertIsNone(handler.redirect_request(Mock(), Mock(), 302, "redirect", {}, "https://other.example/feed"))
             make_opener.return_value.open.assert_called_once()
+
+
+    def test_real_http_redirect_does_not_request_its_target(self):
+        requests = []
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                requests.append(self.path)
+                if self.path == "/appcast.xml":
+                    self.send_response(302)
+                    self.send_header("Location", "/redirect-target")
+                else:
+                    self.send_response(404)
+                self.end_headers()
+
+            def log_message(self, format, *args):
+                pass
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        worker = threading.Thread(target=server.serve_forever, daemon=True)
+        worker.start()
+        try:
+            with patch.object(history, "FEED_URL", f"http://127.0.0.1:{server.server_port}/appcast.xml"):
+                with self.assertRaises(HTTPError) as failure:
+                    history.fetch_appcast()
+                self.assertEqual(failure.exception.code, 302)
+            self.assertEqual(requests, ["/appcast.xml"])
+        finally:
+            server.shutdown()
+            worker.join()
+            server.server_close()
 
 
 if __name__ == "__main__":

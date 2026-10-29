@@ -3505,3 +3505,14 @@ CI dependency environment. The live history check passed without publishing.
 The system Python run could not import the required cryptography and Pillow
 dependencies; it is not a full test result. This change does not enable release
 publishing or resolve the hosted Swift failure.
+
+A local process experiment confirmed that a child can remain in the original
+process group after its parent is no longer queryable with `getpgid`. The group
+remained queryable until the neutral child was stopped. An ESRCH result for the
+parent alone cannot establish that cleanup is complete. The hosted CI failure
+remains open.
+
+The appcast redirect check also passed against a local HTTP server: the server
+recorded the initial request and no request to the redirect target. All 179
+Python tests passed in the isolated CI dependency environment. No production
+site or release was changed.
