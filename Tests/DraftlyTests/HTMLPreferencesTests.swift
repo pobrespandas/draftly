@@ -20,6 +20,12 @@ struct HTMLPreferencesTests {
         #expect(try converter.htmlToMarkdown(html, options: ["ignoreImages": true]).isEmpty)
     }
 
+    @Test func imageMarkdownEscapesDecodedLabelsAndDestinations() throws {
+        let html = "<img alt='Café &#93; &amp; *panda*' src='folder/a(b).png?x=1&amp;y=2'>"
+        let result = try NativeHTMLConversion().htmlToMarkdown(html, options: [:])
+        #expect(result == #"![Café \] & \*panda\*](folder/a\(b\).png?x=1&y=2)"#)
+    }
+
     @Test func marksAndIgnoreOptionsReachTheConverter() throws {
         let host = NativeActionHost()
         let html = "<p><strong>Café 🐼</strong> <em>text</em> <a href='https://example.com'>link</a><img src='neutral.png'></p><ul><li>item</li></ul>"

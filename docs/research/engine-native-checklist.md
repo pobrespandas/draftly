@@ -25,8 +25,9 @@ The HTML-to-Markdown converter preserves blank lines and decoded text inside
 block. The preference suite passed; Drafts comparison remains separate.
 HTML image conversion retains alt text and recognizes quoted and unquoted src
 attributes without confusing data-src with src. The preference suite covers these
-cases and ignoreImages. Markdown-special characters and Drafts comparison need
-separate checks.
+cases and ignoreImages. Decoded image labels escape Markdown punctuation, and
+destinations escape parentheses and backslashes. Drafts comparison and other
+URL edge cases need separate checks.
 
 [Engine acceptance cases](engine-acceptance-cases-2026-10-22.md) assigns case IDs,
 entries, outcomes, cleanup and affected contracts to the remaining work. It

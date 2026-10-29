@@ -27,14 +27,14 @@ struct NativeHTMLConversion {
         replace("(?s)<(?:script|style)\\b[^>]*>.*?</(?:script|style)>", "")
         let blocks = try NSRegularExpression(pattern: "<pre\\b[^>]*>\\s*<code\\b[^>]*>(.*?)</code>\\s*</pre>", options: [.caseInsensitive, .dotMatchesLineSeparators])
         let source = result as NSString
-        var codeBlocks: [(String, String)] = []
+        var protectedFragments: [(String, String)] = []
         for match in blocks.matches(in: result, range: NSRange(location: 0, length: source.length)).reversed() {
             let code = try decodeHTML(source.substring(with: match.range(at: 1)))
             let runs = code.split(whereSeparator: { $0 != "`" }).map(\.count).max() ?? 0
             let fence = String(repeating: "`", count: max(3, runs + 1))
             let token = "DRAFTLYCODE" + UUID().uuidString.replacingOccurrences(of: "-", with: "")
             let block = fence + "\n" + code + (code.hasSuffix("\n") ? "" : "\n") + fence
-            codeBlocks.append((token, block))
+            protectedFragments.append((token, block))
             if let range = Range(match.range, in: result) { result.replaceSubrange(range, with: "\n\n" + token + "\n\n") }
         }
         for level in 1...6 { replace("(?s)<h\(level)\\b[^>]*>(.*?)</h\(level)>", "\n" + String(repeating: "#", count: level) + " $1\n") }
@@ -85,7 +85,18 @@ struct NativeHTMLConversion {
                         values[key] = tag.substring(with: attribute.range(at: group))
                     }
                 }
-                let replacement = values["src"].map { "![" + (values["alt"] ?? "") + "](" + $0 + ")" } ?? ""
+                var replacement = ""
+                if let src = values["src"] {
+                    let label = try decodeHTML(values["alt"] ?? "").map { character in
+                        "\\[]*_`".contains(character) ? "\\" + String(character) : String(character)
+                    }.joined()
+                    let destination = try decodeHTML(src).map { character in
+                        "\\()".contains(character) ? "\\" + String(character) : String(character)
+                    }.joined()
+                    let token = "DRAFTLYIMAGE" + UUID().uuidString.replacingOccurrences(of: "-", with: "")
+                    protectedFragments.append((token, "![" + label + "](" + destination + ")"))
+                    replacement = token
+                }
                 if let range = Range(match.range, in: result) { result.replaceSubrange(range, with: replacement) }
             }
         }
@@ -97,7 +108,7 @@ struct NativeHTMLConversion {
         replace("<(?:br|hr)\\s*/?>", "\n"); replace("</(?:p|div|ul|ol|blockquote)>", "\n\n")
         replace("<[^>]+>", ""); replace("\n{3,}", "\n\n")
         result = try decodeHTML(result).trimmingCharacters(in: .whitespacesAndNewlines)
-        for (token, block) in codeBlocks { result = result.replacingOccurrences(of: token, with: block) }
+        for (token, fragment) in protectedFragments { result = result.replacingOccurrences(of: token, with: fragment) }
         return result
     }
 }
