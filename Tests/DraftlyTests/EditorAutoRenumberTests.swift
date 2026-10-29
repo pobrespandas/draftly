@@ -263,4 +263,20 @@ struct EditorAutoRenumberTests {
         #expect(session.content == "1) Unox\n9) Dos")
         #expect(message?.contains("Your edit was kept") == true && !window.isVisible)
     }
+
+    @Test func markedTextRemainsIntactDuringComposition() throws {
+        let text = DraftTextView(frame: .zero)
+        text.isRichText = false; text.autoRenumber = true
+        text.syntaxDefinition = try ScriptSyntax.definition("Markdown")
+        text.string = "1. Uno\n9. Dos"
+        let cursor = (text.string as NSString).range(of: "Uno").upperBound
+        text.setSelectedRange(NSRange(location: cursor, length: 0))
+        text.setMarkedText("に", selectedRange: NSRange(location: 1, length: 0), replacementRange: text.selectedRange())
+        #expect(text.hasMarkedText())
+        #expect(text.string == "1. Unoに\n9. Dos")
+        text.insertText("日本", replacementRange: text.markedRange())
+        #expect(!text.hasMarkedText())
+        #expect(text.string.hasPrefix("1. Uno日本\n") && text.string.hasSuffix(". Dos"))
+        #expect(text.window == nil)
+    }
 }

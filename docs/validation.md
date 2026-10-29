@@ -10610,3 +10610,19 @@ repeating the alert. Typing showed the alert and kept the added character.
 QA quit, its exact LaunchServices entry was removed, and its temporary app and
 syntax file moved to Trash. The imported syntax and neutral draft remain in the
 separate QA library. The usual app was not updated.
+
+### Marked text and list numbering — 29 October 2026
+
+A headless test simulates marked text in an irregular list. It checks that
+composition stays intact and the committed text remains in the editor. In
+this simulation, the list number did not change after composition. This does
+not establish Drafts parity or validate a real input method. On the current
+keyboard layout, the attempted Option-E input produced a direct euro symbol,
+so it did not provide a valid marked-text comparison. The Drafts Markdown
+renumbering preference was restored after preparing the comparison.
+
+One complete Swift run stopped in `URLActionInstallationTests` without a
+complete report. That suite passed separately. A subsequent complete serial
+run passed (699 Core, 874 app), as did the focused composition test and local
+Debug build. The reason for the interrupted run is not established. No test
+timeout or retry policy changed. Native input-method behavior remains pending.
