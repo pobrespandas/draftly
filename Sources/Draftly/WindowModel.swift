@@ -100,6 +100,7 @@ final class WindowModel: ObservableObject {
     var openQuickSearch: (String) -> Void
     let dependencies: WindowDependencies
     private var saveTask: Task<Void, Never>?
+    private var pendingSaveConflict: (() -> Bool)?
     @Published var actionPending = false
     @Published private(set) var libraryActionBusy = false
     private var actionExecutionSubscription: AnyCancellable?
@@ -317,9 +318,19 @@ final class WindowModel: ObservableObject {
             guard !Task.isCancelled else { return }; _ = self?.flush()
         }
     }
-    func pausePendingAutosave() { saveTask?.cancel(); saveTask = nil }
+    func pausePendingAutosave(whileConflicted check: @escaping () -> Bool) {
+        saveTask?.cancel(); saveTask = nil
+        pendingSaveConflict = check
+    }
     @discardableResult func flush() -> Bool {
         saveTask?.cancel()
+        if let pendingSaveConflict {
+            guard !pendingSaveConflict() else {
+                library.error = "Multiple windows have conflicting unsaved edits. Resolve them before saving."
+                return false
+            }
+            self.pendingSaveConflict = nil
+        }
         do {
             if var note = scratchNote, note.id == editor.noteID {
                 note.content = editor.content

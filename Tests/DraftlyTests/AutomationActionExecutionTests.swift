@@ -25,6 +25,17 @@ struct AutomationActionExecutionTests {
         #expect(first.editor.content == "First pending 🐼" && first.hasUnsavedChanges)
         #expect(second.editor.content == "Second pending café" && second.hasUnsavedChanges)
         #expect(library.notes.first?.content == "Stored" && library.runs.isEmpty)
+        first.editor.content = "First continued 🐼"; first.contentChanged()
+        try await Task.sleep(for: .milliseconds(650))
+        #expect(first.editor.content == "First continued 🐼" && first.hasUnsavedChanges)
+        #expect(second.editor.content == "Second pending café" && second.hasUnsavedChanges)
+        #expect(library.notes.first?.content == "Stored")
+        #expect(!first.flush())
+        #expect(library.notes.first?.content == "Stored")
+        second.editor.content = first.editor.content; second.contentChanged()
+        #expect(first.flush())
+        #expect(second.flush())
+        #expect(library.notes.first?.content == "First continued 🐼")
     }
     @Test func identicalPendingEditorsCanRunAutomation() async throws {
         let library = try LibraryStore(inMemory: true, seed: false)
@@ -37,6 +48,26 @@ struct AutomationActionExecutionTests {
         let output = try await AutomationActionExecution.run(action, noteID: note.id, library: library, models: [first, second], host: first.host)
         #expect(output.report.reason == .success)
         #expect(library.notes.first?.content == "Same 🐼 done")
+    }
+    @Test func initiallyCleanWindowCannotOverwriteAConflictAfterTyping() async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Stored")
+        let first = WindowModel(library: library), second = WindowModel(library: library), third = WindowModel(library: library)
+        for model in [first, second, third] { model.select(note.id) }
+        first.editor.content = "First"; first.contentChanged()
+        second.editor.content = "Second"; second.contentChanged()
+        let action = DraftAction(name: "Must not run", steps: [])
+        do {
+            _ = try await AutomationActionExecution.run(action, noteID: note.id, library: library,
+                                                        models: [first, second, third], host: first.host)
+            Issue.record("Automation started with conflicting pending editors.")
+        } catch { #expect(error.localizedDescription.contains("conflicting")) }
+        third.editor.content = "Third"; third.contentChanged()
+        try await Task.sleep(for: .milliseconds(650))
+        #expect(library.notes.first?.content == "Stored")
+        #expect(third.hasUnsavedChanges)
+        #expect(!third.flush())
+        #expect(library.notes.first?.content == "Stored")
     }
     private func delayedAction() -> DraftAction {
         DraftAction(name: "Delayed automation", steps: [

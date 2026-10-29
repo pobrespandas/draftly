@@ -11088,3 +11088,20 @@ script context, this cancellation path and recovery. It does not establish
 Drafts configuration precedence, an authentic Drafts export, success callback
 parameters, execution IDs, or URL and system-delivered App Intent execution.
 The six strict engine contracts remain partial.
+
+### Autosave after an automation edit conflict — 29 October 2026
+
+A regression showed that typing after automation rejected conflicting editor
+contents scheduled a new autosave and overwrote the stored draft. After this
+rejection, the open models for that draft now share a conflict check. Autosave
+and explicit flush refuse to write while their unsaved contents differ. Once the
+contents agree, flush can save them. An initially clean open model also receives
+the check, so later typing in that model cannot bypass it. The check uses weak
+model references and does not persist an unresolved conflict across restart.
+
+The regression failed before the change and passed afterward for both model
+orders. Focused automation and Intent tests passed, as did related WindowModel
+suites and the local Debug build. This is headless model evidence. It does not
+prove system-delivered URL or Intent behavior or native window close/restart
+behavior. It is not a general merge interface. Windows opened after detection
+and other independent library writers are not covered by this check.

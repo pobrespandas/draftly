@@ -24,6 +24,27 @@ import DraftlyCore
         }
     }
 
+    @MainActor private final class PendingEditorConflict {
+        private final class WeakModel {
+            weak var value: WindowModel?
+            init(_ value: WindowModel) { self.value = value }
+        }
+        private let noteID: UUID
+        private let models: [WeakModel]
+
+        init(noteID: UUID, models: [WindowModel]) {
+            self.noteID = noteID
+            self.models = models.map(WeakModel.init)
+        }
+
+        var exists: Bool {
+            let contents = models.compactMap(\.value).filter {
+                $0.hasUnsavedChanges && $0.editor.noteID == noteID
+            }.map { $0.editor.content }
+            return Set(contents).count > 1
+        }
+    }
+
     static func registerOwnerClose(_ model: WindowModel, close: @escaping @MainActor () -> Void) -> (@MainActor () -> Void) {
         guard let window = model.window else { return {} }
         let subscription = NotificationCenter.default.publisher(for: NSWindow.willCloseNotification, object: window).sink { _ in
@@ -82,8 +103,12 @@ import DraftlyCore
         }
         let conflicts = Set(pending.filter { $0.value.count > 1 }.map(\.key))
         if !conflicts.isEmpty {
-            for model in models where model.hasUnsavedChanges && model.editor.noteID.map(conflicts.contains) == true {
-                model.pausePendingAutosave()
+            for id in conflicts {
+                let affected = models.filter { $0.editor.noteID == id }
+                let conflict = PendingEditorConflict(noteID: id, models: affected)
+                for model in affected {
+                    model.pausePendingAutosave { conflict.exists }
+                }
             }
             throw DraftlyError.message("Multiple windows have conflicting unsaved edits. Resolve them before running the action.")
         }
