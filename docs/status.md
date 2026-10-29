@@ -3817,3 +3817,8 @@ identity check. The archive is in Documents with owner-only permissions. An
 Apple Passwords entry for its base64-encoded encrypted bytes is being prepared;
 its saved contents and off-device recovery are not yet verified. The archive
 password must be recovered separately.
+
+Automated workflow policy tests now check the release environment, job
+prerequisites and enablement gates. All 237 Python tests passed locally. These
+static tests do not establish GitHub environment enforcement or protect the
+workflow against changes by an authorized writer.
