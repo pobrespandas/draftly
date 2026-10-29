@@ -11205,3 +11205,21 @@ a callback cannot arrive beyond the observation window, system-delivered App
 Intent behavior or Drafts configuration precedence. QA and the helper quit,
 their exact registrations were removed, and their bundles moved to Trash. The
 isolated library remains. No production code changed.
+
+### Included success parameters through URL — 29 October 2026
+
+An isolated Engine QA run resolved an included child by a template tag. The
+root, child and tail shared a trace; the tail verified `root|child|tail` and
+wrote `URL include success`. The root added `root=before`, the child added
+`child=café 🐼` and `position=child`, and the tail changed `position` to `tail`.
+The callback URL already contained `position=old` and `existing=preserved`.
+The local helper observed one success callback with `root=before`, the exact
+Unicode child value, one `position=tail` and the preserved existing parameter.
+The UI and closed QA store showed one Success root run, with no separate child
+run. The recorded run ID is not the execution ID.
+
+This proves only this URL inclusion and callback path during the observation
+window. Drafts configuration precedence, later callbacks and system-delivered
+App Intents remain separate. QA and the helper quit; their exact registrations
+were removed and their bundles moved to Trash. The isolated library remains. No
+production code changed.
