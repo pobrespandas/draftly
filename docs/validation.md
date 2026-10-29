@@ -10975,3 +10975,13 @@ readJSON returned undefined and set lastError for a missing file and malformed
 JSON. It then read a valid Unicode array with null and cleared the error. The
 focused file suites and matrix structural check passed. No production code
 changed. Native permission, bookmark, cloud and Drafts checks remain separate.
+
+### FileManager tag input — 29 October 2026
+
+Invalid setTags input previously became an empty array and could erase existing
+file tags. A regression failed before the correction. The adapter now requires
+an array of strings and reports an error otherwise. An explicit empty array
+still clears tags. Both runners exercised a Unicode tag on an isolated local
+file and checked preservation after invalid input. The focused file and
+bookmark suites, matrix structural check and local Debug build passed. Sandbox,
+bookmark, cloud and Drafts comparisons remain separate.

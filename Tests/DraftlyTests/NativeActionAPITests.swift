@@ -5,6 +5,26 @@ import DraftlyCore
 
 @Suite("Native action API") @MainActor
 struct NativeActionAPITests {
+    @Test(arguments: [false, true]) func invalidFileTagsDoNotEraseExistingTags(worker: Bool) async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let editor = EditorSession(); editor.load(try library.createNote(content: "Neutral"), focusEditor: false)
+        let host = NativeActionHost(); host.testFileRoot = root
+        let runner = ActionRunner(library: library, editor: editor, host: host)
+        let action = DraftAction(name: "File tags", steps: [ActionStep("script", ["script": """
+        const fm=FileManager.createLocal();
+        if (!fm.writeString('/note.txt','Neutral') || !fm.setTags('/note.txt',['Café'])) throw Error('setup');
+        for (const tags of [undefined, ['valid',42]]) {
+            if (fm.setTags('/note.txt',tags)!==false || typeof fm.lastError!=='string') throw Error('invalid accepted');
+            if (fm.getTags('/note.txt').join(',')!=='Café') throw Error('tags changed');
+        }
+        if (!fm.setTags('/note.txt',[]) || fm.getTags('/note.txt').length!==0) throw Error('explicit clear');
+        """])])
+        if worker { #expect(await runner.runAsync(action).result.succeeded, Comment(rawValue: runner.message ?? "")) }
+        else { #expect(runner.run(action), Comment(rawValue: runner.message ?? "")) }
+    }
     @Test(arguments: [false, true]) func readJSONReportsInvalidOrMissingFilesAndRecovers(worker: Bool) async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)

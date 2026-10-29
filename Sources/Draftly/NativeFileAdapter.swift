@@ -225,7 +225,12 @@ struct NativeFileAdapter {
             guard let date = APIValues.parseDate(values["date"]) else { throw DraftlyError.message("The file date is invalid.") }
             try manager.setAttributes([values["operation"] as? String == "setCreationDate" ? .creationDate : .modificationDate: date], ofItemAtPath: target.path); return true
         case "getTags": return try target.resourceValues(forKeys: [.tagNamesKey]).tagNames ?? []
-        case "setTags": var url = target; var resource = URLResourceValues(); resource.tagNames = values["tags"] as? [String] ?? []; try url.setResourceValues(resource); return true
+        case "setTags":
+            guard let tags = values["tags"] as? [String] else {
+                throw DraftlyError.message("File tags must be an array of strings.")
+            }
+            var url = target; var resource = URLResourceValues(); resource.tagNames = tags
+            try url.setResourceValues(resource); return true
         default: throw DraftlyError.message("The file operation is invalid.")
         }
     }
