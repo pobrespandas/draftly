@@ -111,6 +111,39 @@ struct LibrarySplitViewTests {
         }
     }
 
+    @Test func initialDividerOperationsCanBeMeasuredWithoutShowingAWindow() async throws {
+        _ = NSApplication.shared
+        for count in 0...3 {
+            let model = WindowModel(library: try LibraryStore(inMemory: true, seed: false))
+            model.setFiltersVisible(true)
+            model.showActions = true
+            let controller = LibrarySplitController(model: model, panels: (0..<4).map { _ in AnyView(Color.clear) })
+            let allConstraints: [NSLayoutConstraint] = controller.splitViewItems.flatMap { $0.viewController.view.constraints }
+            let constraints = allConstraints.filter {
+                $0.firstAttribute == .width && $0.secondItem == nil && $0.priority == NSLayoutConstraint.Priority.defaultHigh && $0.isActive
+            }
+            let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 850, height: 600),
+                styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+            window.contentViewController = controller
+            controller.view.layoutSubtreeIfNeeded()
+            NSLayoutConstraint.deactivate(constraints)
+            let split = controller.splitView
+            if count >= 1 { split.setPosition(240 + 280 + split.dividerThickness, ofDividerAt: 1) }
+            if count >= 2 {
+                let remaining = controller.splitViewItems.dropFirst().filter { !$0.isCollapsed }.reduce(CGFloat(0)) { $0 + $1.minimumThickness }
+                split.setPosition(min(240, split.bounds.width - remaining - split.dividerThickness * 3), ofDividerAt: 0)
+            }
+            if count >= 3 { split.setPosition(split.bounds.width - 260 - split.dividerThickness, ofDividerAt: 2) }
+            await settleLayout(controller)
+            window.setContentSize(NSSize(width: 850, height: 600))
+            window.layoutIfNeeded()
+            controller.view.layoutSubtreeIfNeeded()
+            print("Panel divider diagnostic operations=\(count) frame=\(window.frame) content=\(window.contentView?.frame ?? .zero) split=\(split.frame) panels=\(split.arrangedSubviews.map(\.frame))")
+            #expect(!window.isVisible)
+            window.contentViewController = nil
+        }
+    }
+
     @Test func togglingPanelsDoesNotResetTheWindowTitle() async throws {
         _ = NSApplication.shared
         let model = WindowModel(library: try LibraryStore(inMemory: true, seed: false))

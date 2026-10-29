@@ -3693,3 +3693,11 @@ four visible panels stayed at 850 points. With filters, draft list, editor and
 Actions visible, content expanded to 1032 points. The sidebar measured eight
 points wider than the requested 240 in the visible-filter configurations. This
 narrows the reproduction but does not establish the cause or a safe fix.
+
+The user confirmed that the Sparkle private seed was saved in Apple Passwords.
+Recovery from another device remains unverified. The Developer ID private key
+and notarization API key still need verified recovery copies.
+
+An offscreen diagnostic now measures initial divider operations separately.
+The focused suite passed on macOS 27. A hosted macOS 26 run is still required;
+this diagnostic does not modify the app or establish a fix.
