@@ -201,6 +201,11 @@ See [window and daily flows](ui-flows-2026-10-21.md) and
 
 ## Data, iCloud and distribution
 
+The repository includes a macOS CI workflow for pull requests and pushes to
+main. It runs the Python checks, the Actions matrix structural check, the Swift
+test inventory, and an unsigned local app build. CI does not publish a release.
+The workflow has not yet been verified on a GitHub-hosted runner.
+
 The library uses the existing generic Core Data schema. Backups include shared
 themes and action execution history with compatibility checks. Development
 signing and isolated cloud QA exist. Earlier Mac-plus-VM checks confirmed
