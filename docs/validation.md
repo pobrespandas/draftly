@@ -10527,3 +10527,19 @@ quit, its specific LaunchServices entry was removed, and its temporary app
 was moved to Trash. This does not verify file or rich-text paste variants,
 deletion, input methods, or the rest of list parity. The usual app was not
 updated.
+
+### Ordered-list deletion — 29 October 2026
+
+In Drafts 54.1.1, deleting a list item's text left the following numbers as
+they were while a blank line separated them. Deleting that line ending joined
+the lists and renumbered the following items. Draftly now plans the deletion
+and renumbering as one edit when the affected list needs new numbers. It keeps
+the native deletion path when no renumbering is needed. Headless tests cover
+backward and forward deletion, Unicode, LF, CRLF, Undo and Redo. The complete
+serial Swift inventory passed (696 Core, 870 app), and the local build passed.
+
+In isolated Engine QA, Backspace joined the lists and produced the observed
+Drafts numbers. One Undo and one Redo restored each state. QA quit, its exact
+LaunchServices entry was removed, and the temporary app moved to Trash. This
+does not verify every deletion command, input method or list grammar. The usual
+app was not updated.

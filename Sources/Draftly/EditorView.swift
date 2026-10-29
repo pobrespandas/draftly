@@ -267,6 +267,42 @@ final class DraftTextView: NSTextView {
         super.insertText(insertString, replacementRange: replacementRange)
         if !insertingSyntaxCompletion { refreshSyntaxCompletions() }
     }
+
+    override func deleteBackward(_ sender: Any?) {
+        if !deleteWithRenumbering(backward: true) { super.deleteBackward(sender) }
+    }
+
+    override func deleteForward(_ sender: Any?) {
+        if !deleteWithRenumbering(backward: false) { super.deleteForward(sender) }
+    }
+
+    private func deleteWithRenumbering(backward: Bool) -> Bool {
+        guard autoRenumber, isEditable, !hasMarkedText(), undoManager?.isUndoing != true,
+              undoManager?.isRedoing != true, let syntaxDefinition else { return false }
+        let selection = selectedRange(), source = string as NSString
+        guard selection.location != NSNotFound, selection.location >= 0, selection.length >= 0,
+              selection.location <= source.length,
+              selection.length <= source.length - selection.location else { return false }
+        let range: NSRange
+        if selection.length > 0 { range = selection }
+        else if backward, selection.location > 0 {
+            let index = selection.location - 1
+            if index > 0 && source.character(at: index) == 10 && source.character(at: index - 1) == 13 {
+                range = NSRange(location: index - 1, length: 2)
+            } else { range = source.rangeOfComposedCharacterSequence(at: index) }
+        } else if !backward, selection.location < source.length {
+            let index = selection.location
+            if index + 1 < source.length && source.character(at: index) == 13 && source.character(at: index + 1) == 10 {
+                range = NSRange(location: index, length: 2)
+            } else { range = source.rangeOfComposedCharacterSequence(at: index) }
+        } else { return false }
+        guard let plan = try? syntaxDefinition.orderedListEdit(in: string, replacing: range, with: ""),
+              plan.range != range || !plan.text.isEmpty else { return false }
+        super.insertText(plan.text, replacementRange: plan.range)
+        setSelectedRange(plan.selection)
+        if !insertingSyntaxCompletion { refreshSyntaxCompletions() }
+        return true
+    }
     func cancelSyntaxCompletions() {
         completionRevision &+= 1
         syntaxCompletions.dismiss()

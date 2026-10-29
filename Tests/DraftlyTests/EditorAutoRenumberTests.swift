@@ -125,4 +125,44 @@ struct EditorAutoRenumberTests {
         text.autoRenumber = false
         #expect(!text.pasteRenumberedText(from: board))
     }
+
+    @Test(arguments: [false, true], ["\n", "\r\n"])
+    func deletingListBoundaryRenumbersAsOneUndoableEdit(forward: Bool, separator: String) throws {
+        let text = DraftTextView(frame: .zero)
+        text.isRichText = false; text.allowsUndo = true; text.autoRenumber = true
+        text.syntaxDefinition = try ScriptSyntax.definition("Markdown")
+        let window = OffscreenTestWindow(contentRect: .zero, styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = text
+        defer { window.contentView = nil }
+        let undo = try #require(text.undoManager)
+        undo.groupsByEvent = false
+        let original = "1. 🐼" + separator + separator + "3. Tres" + separator + "4. Cuatro"
+        text.string = original
+        let next = (original as NSString).range(of: "3. Tres").location
+        let boundary = next - separator.utf16.count
+        text.setSelectedRange(NSRange(location: forward ? boundary : next, length: 0))
+        undo.beginUndoGrouping()
+        if forward { text.deleteForward(nil) } else { text.deleteBackward(nil) }
+        undo.endUndoGrouping()
+        let expected = "1. 🐼" + separator + "2. Tres" + separator + "3. Cuatro"
+        #expect(text.string == expected)
+        #expect(text.selectedRange() == NSRange(location: boundary, length: 0))
+        undo.undo()
+        #expect(text.string == original)
+        undo.redo()
+        #expect(text.string == expected && !window.isVisible)
+    }
+
+    @Test func deletingUnicodeCharacterKeepsItsSequenceIntact() throws {
+        let text = DraftTextView(frame: .zero)
+        text.isRichText = false; text.autoRenumber = true
+        text.syntaxDefinition = try ScriptSyntax.definition("Markdown")
+        text.string = "1. 🐼a\n9. Dos"
+        let panda = (text.string as NSString).range(of: "🐼")
+        text.setSelectedRange(NSRange(location: panda.upperBound, length: 0))
+        text.deleteBackward(nil)
+        #expect(text.string == "1. a\n2. Dos")
+        #expect(text.selectedRange() == NSRange(location: panda.location, length: 0))
+        #expect(text.window == nil)
+    }
 }
