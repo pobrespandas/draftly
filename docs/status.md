@@ -3721,3 +3721,8 @@ has not been entered or verified by this check.
 An offscreen test compares panel restoration with and without temporary width
 constraints. Both cases kept 850-point content in the local macOS 27 run. The
 focused suite passed. Hosted macOS 26 comparison remains required.
+
+The user reported that the seed recovered from the Apple Passwords entry did
+not match the release public key. A local check confirmed that the existing
+local seed does match that public key. The external copy is not accepted as a
+recovery backup. Do not replace or discard either copy before investigating.
