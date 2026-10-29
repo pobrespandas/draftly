@@ -10892,3 +10892,12 @@ still reported 18 diagnostics across six partial contracts. This run does not
 replace their native checks or prove compatibility with Drafts. The local Debug
 build passed separately after the file containment change. Previous concurrent
 Core timing failures remain recorded; one passing run does not resolve them.
+
+### Subscription compatibility property — 29 October 2026
+
+Draftly has no paid tier. Imported actions must remain available regardless of
+Drafts subscription metadata. The compatibility property app.isPro always
+returns true. A regression showed that scripts could overwrite it. It is now
+read-only. Tests cover both runners, assignment in strict and non-strict code,
+and imported metadata with both values. The focused suite, matrix structural
+check and local Debug build passed. Native action execution remains separate.

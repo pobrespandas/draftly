@@ -43,6 +43,23 @@ struct ActionTests {
             #expect(editor.content == "Available")
         }
     }
+    @Test(arguments: [false, true]) func proCompatibilityPropertyCannotDisableFeatures(asynchronous: Bool) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let editor = EditorSession()
+        editor.load(try library.createNote(content: "Before"))
+        let runner = ActionRunner(library: library, editor: editor, host: TestHost())
+        let action = ScriptTestAction.make("""
+        if (app.isPro !== true) throw new Error('Compatibility property is false');
+        app.isPro = false;
+        if (app.isPro !== true) throw new Error('Compatibility property was overwritten');
+        let rejected = false;
+        try { (function(){ 'use strict'; app.isPro = false; })(); } catch (_) { rejected = true; }
+        if (!rejected || app.isPro !== true) throw new Error('Property must be read-only');
+        editor.setText('Available');
+        """, name: "Compatibility")
+        #expect(await ActionTestExecution.succeeds(action, runner: runner, worker: asynchronous), Comment(rawValue: runner.message ?? ""))
+        #expect(editor.content == "Available")
+    }
     @Test(arguments: [false, true]) func createFromOriginalTemplateAction(asynchronous: Bool) async throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         _ = try library.createNote(content: "# Meeting\nNotes for [[date|yyyy]]\n<|name>", tags: ["template", "work"])

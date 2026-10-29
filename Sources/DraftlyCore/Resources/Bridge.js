@@ -289,7 +289,7 @@ var context = {configuredValues:{},callbackResponses:[],appleScriptResponses:[],
     cancel:message=>{if(message)__call('message',{message:String(message)});__cancelled=true;},fail:message=>{__failure=message||'Action failed';},addSuccessParameter:(name,value)=>{__call('successParameter',{name,value});context.successParameters[name]=value;}};
 __define(context,'isCancelled',()=>__cancelled);
 var app = {
-    isPro:true,version:'0.1.0',areLiveActivitiesSupported:false,
+    version:'0.1.0',areLiveActivitiesSupported:false,
     startLiveActivity:()=>{throw new Error('Live Activities are unavailable on macOS.');},
     stopLiveActivity:()=>{throw new Error('Live Activities are unavailable on macOS.');},
     displayInfoMessage:message=>{__call('displayMessage',{message,severity:'info'});},displaySuccessMessage:message=>{__call('displayMessage',{message,severity:'success'});},
@@ -310,6 +310,7 @@ var app = {
     },
     openInNewWindow:d=>__call('ui',{operation:'openInNewWindow',draft:d}),lookup:text=>__call('lookup',{text})
 };
+Object.defineProperty(app,'isPro',{get:()=>true,enumerable:true});
 for(let name of ['showActionList','hideActionList','showDraftList','hideDraftList','showDraftInfo','showQuickSearch','loadActionBarGroup','loadActionGroup','loadKeyboardActionGroup']) app[name]=value=>__call('ui',{operation:name,value});
 for(let key of ['isActionListVisible','isDraftListVisible','isIdleDisabled','currentThemeMode','themeMode','darkTheme','lightTheme']) __define(app,key,()=>{const value=__call('ui',{operation:'get',key});return key==='darkTheme'||key==='lightTheme'?Object.assign(new Theme(),value):value;},value=>__call('ui',{operation:'set',key,value}));
 __define(app,'currentWorkspace',()=>new Workspace(__call('currentWorkspace')));

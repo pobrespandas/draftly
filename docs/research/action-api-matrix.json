@@ -8452,10 +8452,25 @@
             "isPro: boolean"
           ],
           "contract": "Returns true if app has an active Drafts Pro subscription.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "reviewed-partial",
+          "automatedTest": {
+            "suite": "ActionTests",
+            "test": "proCompatibilityPropertyCannotDisableFeatures"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-29",
+          "implementationEvidence": {
+            "file": "Sources/DraftlyCore/Resources/Bridge.js",
+            "symbol": "app.isPro"
+          },
+          "defaults": "Draftly has no paid tier; the compatibility value is always true.",
+          "result": "Returns true and does not accept assignment.",
+          "errors": "Assignment throws in strict JavaScript and is ignored otherwise.",
+          "limitations": [
+            "Draftly does not report a Drafts subscription. Native action execution has not been checked for this property."
+          ],
+          "evidenceLevel": "Member-specific assertions on the legacy and worker runners."
         },
         {
           "member": "version",
