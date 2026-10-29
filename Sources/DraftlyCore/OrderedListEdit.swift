@@ -26,24 +26,20 @@ extension SyntaxDefinition {
         }
         let result = NSMutableString(string: proposed)
         for edit in edits.reversed() { result.replaceCharacters(in: edit.range, with: edit.text) }
-        let final = result as String
-        var prefix = 0
-        var left = source.startIndex, right = final.startIndex
-        while left < source.endIndex, right < final.endIndex,
-              String(source[left]).utf8.elementsEqual(String(final[right]).utf8) {
-            prefix += String(source[left]).utf16.count
-            source.formIndex(after: &left); final.formIndex(after: &right)
+        // Map each sequence edit back through the original replacement.
+        func originalPosition(_ position: Int, upper: Bool) -> Int {
+            if position <= insertedRange.location { return position }
+            if position >= NSMaxRange(insertedRange) { return position - insertedRange.length + range.length }
+            return upper ? NSMaxRange(range) : range.location
         }
-        var oldEnd = source.endIndex, newEnd = final.endIndex
-        var suffix = 0
-        while oldEnd > left, newEnd > right {
-            let previousOld = source.index(before: oldEnd), previousNew = final.index(before: newEnd)
-            guard String(source[previousOld]).utf8.elementsEqual(String(final[previousNew]).utf8) else { break }
-            suffix += String(source[previousOld]).utf16.count
-            oldEnd = previousOld; newEnd = previousNew
+        var start = range.location, end = NSMaxRange(range)
+        for edit in edits {
+            start = min(start, originalPosition(edit.range.location, upper: false))
+            end = max(end, originalPosition(NSMaxRange(edit.range), upper: true))
         }
-        let replacement = (final as NSString).substring(with: NSRange(location: prefix, length: final.utf16.count - prefix - suffix))
-        return (NSRange(location: prefix, length: original.length - prefix - suffix), replacement,
+        let suffix = original.length - end
+        let replacement = result.substring(with: NSRange(location: start, length: result.length - start - suffix))
+        return (NSRange(location: start, length: end - start), replacement,
                 NSRange(location: cursor, length: 0))
     }
 }

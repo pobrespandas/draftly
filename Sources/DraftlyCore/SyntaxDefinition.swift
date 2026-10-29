@@ -360,6 +360,7 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
             }
             return (nil, nil)
         }
+        var scanStart = 0, scanEnd = source.length
         if let affectedRange, source.length > 0 {
             // Only groups that intersect the affected lines can produce edits.
             let start = min(affectedRange.location, source.length - 1)
@@ -374,11 +375,27 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
                 scan = NSMaxRange(lineRange)
             }
             if !containsListItem { return [] }
+            scanStart = source.lineRange(for: NSRange(location: start, length: 0)).location
+            scanEnd = NSMaxRange(source.lineRange(for: NSRange(location: end - 1, length: 0)))
+            while scanStart > 0 {
+                let previous = source.lineRange(for: NSRange(location: scanStart - 1, length: 0))
+                let line = source.substring(with: previous).trimmingCharacters(in: .newlines)
+                let matched = matchLine(line)
+                guard matched.ordered != nil || matched.unordered != nil else { break }
+                scanStart = previous.location
+            }
+            while scanEnd < source.length {
+                let next = source.lineRange(for: NSRange(location: scanEnd, length: 0))
+                let line = source.substring(with: next).trimmingCharacters(in: .newlines)
+                let matched = matchLine(line)
+                guard matched.ordered != nil || matched.unordered != nil else { break }
+                scanEnd = NSMaxRange(next)
+            }
         }
-        var offset = 0, levels: [Level] = []
+        var offset = scanStart, levels: [Level] = []
         var groups: [Group] = []
         var inGroup = false
-        while offset < source.length {
+        while offset < scanEnd {
             let lineRange = source.lineRange(for: NSRange(location: offset, length: 0))
             let line = source.substring(with: lineRange).trimmingCharacters(in: .newlines)
             let lineSource = line as NSString

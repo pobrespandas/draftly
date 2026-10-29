@@ -10568,3 +10568,28 @@ calculation measurements, not end-to-end editor latency or acceptance limits.
 Editing within a list can still scan the document. The complete serial Swift
 inventory passed (697 Core, 871 app), and the local Debug build passed. Real
 editor performance and large-list performance remain pending.
+
+### List edits in long documents — 29 October 2026
+
+The calculation now scans the affected list groups instead of surrounding
+unrelated paragraphs. The editor plan maps changed UTF-16 ranges back to the
+original edit instead of comparing the whole document character by character.
+Tests cover replacement across a sequence marker, changes before the caret,
+Unicode representations and unrelated text.
+
+On the same M2 Max, a temporary Debug probe planned ten insertions in a short
+list surrounded by a 102,514 UTF-16 unit document. One run took 315.5 ms
+before and 2.5 ms after. These are individual calculation measurements, not
+end-to-end editor latency or acceptance thresholds. A single long contiguous
+list can still require a full scan of that list.
+
+The complete serial Swift inventory passed (698 Core, 871 app), and the local
+Debug build passed. In isolated Engine QA, a neutral 102,514-character draft
+was pasted, its central list was edited, and Undo and Redo restored the text.
+This is a functional check, not a timed measurement. QA quit, its specific
+LaunchServices entry was removed, and the temporary app was moved to Trash.
+The usual app was not updated.
+
+After the complete run, an additional focused test checked planned replacement
+against direct sequence edits across many insertion and deletion ranges. It
+passed; the complete inventory count above predates that added test.
