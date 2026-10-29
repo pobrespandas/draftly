@@ -10432,3 +10432,25 @@ rules and integer overflow. The local build and complete serial Swift
 inventory passed (687 Core, 861 app). This calculation is not connected to
 the editor. Paste, typing, selection, Undo/Redo and native parity are not yet
 implemented or accepted. More boundaries need comparison before applying edits.
+
+Drafts also retained the parent sequence when an unordered child followed the
+new item. The internal calculation now handles that case and treats an
+unordered item at the same level as a new group. A focused test covers both
+cases and a nested sequence. The calculation remains disconnected from the
+editor; this observation does not establish full mixed-list parity.
+The focused renumbering suite and local build passed. A complete Swift run
+failed in the previously recorded XML-RPC interruption timeout; its focused
+suite passed separately. This does not turn the complete run into a pass.
+Before connecting the calculation, address excessive custom sequence padding,
+edit scope, composition, selection, and Undo/Redo.
+
+With renumbering enabled, typing in an irregular first list corrected that list
+but left a separate irregular list unchanged. The internal calculation now
+accepts an affected UTF-16 range and limits edits to intersecting list groups.
+Focused tests cover a caret, multiple groups, invalid ranges, CRLF, and Unicode.
+Scope for other edits and native editor behavior still require validation.
+Editing an unordered item immediately before an irregular ordered list also
+renumbered that contiguous list in Drafts. The focused test covers that case.
+After the scope change, the complete serial inventory passed (690 Core, 861
+app); the focused suite and local build also passed. A final extra assertion
+was checked by the focused suite after the complete run.

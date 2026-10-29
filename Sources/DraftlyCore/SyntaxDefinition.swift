@@ -310,7 +310,7 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
     }
 
     /// Finds ordered-list number edits using this syntax's enabled completion rules.
-    func orderedListRenumbering(in text: String) -> [(range: NSRange, text: String)] {
+    func orderedListRenumbering(in text: String, affectedRange: NSRange? = nil) -> [(range: NSRange, text: String)] {
         struct Rule {
             let expression: NSRegularExpression
             let captures: [String: String]
@@ -321,29 +321,54 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
             let rule: Int
             var next: Int?
         }
-        let orderedRules: [Rule] = rules("listCompletionDefinitions").compactMap { definition in
-            guard let captures = definition["captures"] as? [String: String], captures["sequence"] != nil,
+        struct Group {
+            var range: NSRange
+            var edits: [(range: NSRange, text: String)] = []
+        }
+        let listRules: [Rule] = rules("listCompletionDefinitions").compactMap { definition in
+            guard let captures = definition["captures"] as? [String: String],
                   let pattern = definition["match"] as? String,
                   let expression = try? NSRegularExpression(pattern: pattern, options: [.anchorsMatchLines]) else { return nil }
             return Rule(expression: expression, captures: captures,
                 padding: max(0, Int(definition["sequencePadding"] as? String ?? "0") ?? 0))
         }
-        guard !orderedRules.isEmpty else { return [] }
+        guard listRules.contains(where: { $0.captures["sequence"] != nil }) else { return [] }
         let source = text as NSString
+        if let affectedRange, (affectedRange.location == NSNotFound || affectedRange.location < 0 ||
+            affectedRange.length < 0 || affectedRange.location > source.length ||
+            affectedRange.length > source.length - affectedRange.location) { return [] }
         var offset = 0, levels: [Level] = []
-        var edits: [(range: NSRange, text: String)] = []
+        var groups: [Group] = []
+        var inGroup = false
         while offset < source.length {
             let lineRange = source.lineRange(for: NSRange(location: offset, length: 0))
             let line = source.substring(with: lineRange).trimmingCharacters(in: .newlines)
             let lineSource = line as NSString
             var matched: (rule: Int, indent: String, sequence: NSRange, number: Int)?
-            for (index, rule) in orderedRules.enumerated() {
+            var unorderedIndent: String?
+            for (index, rule) in listRules.enumerated() {
                 guard let match = rule.expression.firstMatch(in: line, range: NSRange(location: 0, length: lineSource.length)),
-                      match.range.location == 0, let indent = capture(match, rule.captures["indent"]),
+                      match.range.location == 0, let indent = capture(match, rule.captures["indent"]) else { continue }
+                if rule.captures["sequence"] == nil {
+                    unorderedIndent = lineSource.substring(with: indent)
+                    break
+                }
+                guard
                       let sequence = capture(match, rule.captures["sequence"]),
                       let number = Int(lineSource.substring(with: sequence)) else { continue }
                 matched = (index, lineSource.substring(with: indent), sequence, number)
                 break
+            }
+            if matched != nil || unorderedIndent != nil {
+                if inGroup { groups[groups.count - 1].range.length = NSMaxRange(lineRange) - groups[groups.count - 1].range.location }
+                else { groups.append(Group(range: lineRange)); inGroup = true }
+            } else { inGroup = false }
+            if let indent = unorderedIndent {
+                while let level = levels.last, !indent.hasPrefix(level.indent) || indent == level.indent {
+                    levels.removeLast()
+                }
+                offset = NSMaxRange(lineRange)
+                continue
             }
             guard let item = matched else { levels.removeAll(); offset = NSMaxRange(lineRange); continue }
             while let level = levels.last, !item.indent.hasPrefix(level.indent) { levels.removeLast() }
@@ -352,15 +377,23 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
                 levels.append(Level(indent: item.indent, rule: item.rule, next: item.number == Int.max ? nil : item.number + 1))
             } else if let next = levels[levels.count - 1].next {
                 let digits = String(next)
-                let replacement = String(repeating: "0", count: max(0, orderedRules[item.rule].padding + 1 - digits.count)) + digits
+                let replacement = String(repeating: "0", count: max(0, listRules[item.rule].padding + 1 - digits.count)) + digits
                 if lineSource.substring(with: item.sequence) != replacement {
-                    edits.append((NSRange(location: offset + item.sequence.location, length: item.sequence.length), replacement))
+                    groups[groups.count - 1].edits.append((NSRange(location: offset + item.sequence.location, length: item.sequence.length), replacement))
                 }
                 levels[levels.count - 1].next = next == Int.max ? nil : next + 1
             }
             offset = NSMaxRange(lineRange)
         }
-        return edits
+        guard let affectedRange else { return groups.flatMap(\.edits) }
+        return groups.filter { group in
+            if affectedRange.length == 0 {
+                return affectedRange.location >= group.range.location &&
+                    (affectedRange.location < NSMaxRange(group.range) ||
+                     (affectedRange.location == source.length && NSMaxRange(group.range) == source.length))
+            }
+            return NSIntersectionRange(group.range, affectedRange).length > 0
+        }.flatMap(\.edits)
     }
 
     public func listContinuation(in text: String, selection: NSRange) -> (range: NSRange, text: String)? {
