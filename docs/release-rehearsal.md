@@ -1,11 +1,11 @@
 # Release rehearsal
 
-The Release rehearsal workflow checks a candidate source tree. It does not
-create a release, sign a distribution app, or deploy the website. It has no
-access to signing secrets or write permissions.
+The release workflow checks a candidate source tree when a version tag is
+pushed or when it is started manually. Its rehearsal job has read-only
+permissions. It does not create a release or deploy the website.
 
-Start it manually with an existing tag in the form `vMAJOR.MINOR.PATCH`. The
-tag must identify the current `main` commit. It must match
+Use an existing tag in the form `vMAJOR.MINOR.PATCH`. The tag must identify the
+current `main` commit. It must match
 `CFBundleShortVersionString`. `CFBundleVersion` must be a positive integer.
 The workflow runs the test suites, matrix structural check, and local build.
 It checks the built app identity and URL scheme. The local build uses an ad hoc
@@ -43,6 +43,30 @@ or publish either source.
 
 Do not use the rehearsal as evidence that a public release is ready. A tag
 push does not start a publication in this version of the workflow.
+
+## CI signing candidate
+
+The optional candidate job runs after a successful rehearsal. It is disabled
+unless the repository variable `DRAFTLY_RELEASE_SIGNING_ENABLED` is `true`.
+Leave it disabled until the Developer ID profile and credentials are ready.
+The job runs only on a GitHub-hosted macOS runner. It creates a temporary
+Keychain, installs one profile without replacing an existing profile, imports
+the certificate, and stores notarytool credentials in that Keychain. It removes
+the temporary Keychain and its own installed profile at the end of the step.
+
+Configure the repository variables `DRAFTLY_DEVELOPER_ID_PROFILE` and
+`DRAFTLY_SPARKLE_PUBLIC_KEY`. Configure the protected secrets
+`APPLE_DEVELOPER_ID_P12_B64`, `APPLE_DEVELOPER_ID_P12_PASSWORD`,
+`APPLE_DEVELOPER_ID_PROFILE_B64`, `APPLE_NOTARY_API_KEY_B64`, and
+`APPLE_NOTARY_KEY_ID`. Team API keys also need `APPLE_NOTARY_ISSUER_ID`.
+The P12, profile, and `.p8` values are base64-encoded file contents. The
+workflow does not pass the original secret values into the package process.
+Do not put these values in the repository or job logs.
+
+A successful candidate is uploaded as a GitHub Actions artifact, not as a
+GitHub Release. If notarization fails after submission, the job preserves the
+submitted ZIP and receipt as a recovery artifact. The job has only been tested
+with simulated tools; it has not signed or notarized a real candidate.
 
 ## Local signed candidate
 

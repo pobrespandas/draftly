@@ -241,6 +241,10 @@ A gated GitHub publisher verifies the staged Firebase version, publishes a
 matching draft, and checks each public asset before writing a receipt. It does
 not promote Firebase. Publication has only been exercised with fake services;
 the flag remains disabled and no release has been published.
+The release workflow also runs its rehearsal for version tags. An optional,
+disabled signing job prepares a candidate on an ephemeral GitHub-hosted macOS
+runner and preserves notarization recovery artifacts. Its Keychain setup has
+only been tested with simulated tools. The job has not run on GitHub.
 
 The library uses the existing generic Core Data schema. Backups include shared
 themes and action execution history with compatibility checks. Development
