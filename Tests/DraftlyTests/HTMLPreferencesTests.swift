@@ -84,6 +84,13 @@ struct HTMLPreferencesTests {
         #expect(try NativeHTMLConversion().htmlToMarkdown(quoted, options: [:]) == "1. One\n7. Seven")
     }
 
+    @Test func reversedOrderedListsCountDirectItemsAndKeepNestedCounters() throws {
+        let html = "<ol reversed><li>Three<ul><li>Nested</li></ul></li><li value=8>Eight</li><li>Seven</li></ol>"
+        let converter = NativeHTMLConversion()
+        #expect(try converter.htmlToMarkdown(html, options: [:]) == "3. Three\n    * Nested\n8. Eight\n7. Seven")
+        #expect(try converter.htmlToMarkdown("<ol reversed start='5'><li>Five</li><li>Four</li></ol>", options: [:]) == "5. Five\n4. Four")
+    }
+
     @Test func marksAndIgnoreOptionsReachTheConverter() throws {
         let host = NativeActionHost()
         let html = "<p><strong>Café 🐼</strong> <em>text</em> <a href='https://example.com'>link</a><img src='neutral.png'></p><ul><li>item</li></ul>"

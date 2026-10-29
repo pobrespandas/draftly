@@ -10862,3 +10862,12 @@ items. The converter now updates that list's counter and keeps nested counters
 separate. It reads start and value as attributes, not text inside quoted values.
 The HTML preference suite and local Debug build passed. Drafts comparison and
 other HTML list variants remain pending.
+
+### Reversed HTML lists — 29 October 2026
+
+The converter now writes descending source markers for reversed ordered lists.
+An explicit start and item value update the correct list counter. Without a
+start, only direct items determine the initial number. The regression failed
+before the change. The HTML preference suite and local Debug build passed.
+Markdown renderers can renumber ordered items; this test checks source text,
+not rendered parity. Drafts comparison remains pending.

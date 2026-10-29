@@ -16,7 +16,7 @@ struct NativeHTMLConversion {
         }.joined()
     }
     private func convertLists(_ input: String, mark: String) throws -> String {
-        struct List { var ordered: Bool; var next: Int }
+        struct List { var ordered: Bool; var next: Int; var step: Int }
         let tags = try NSRegularExpression(pattern: #"<(/?)(ul|ol|li)\b(?:[^'">]|"[^"]*"|'[^']*')*>"#, options: .caseInsensitive)
         let attributes = try NSRegularExpression(pattern: #"\s+([^\s=/>]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?"#)
         func integerAttribute(_ tag: NSString, named name: String) -> Int? {
@@ -27,10 +27,26 @@ struct NativeHTMLConversion {
             }
             return nil
         }
+        func hasAttribute(_ tag: NSString, named name: String) -> Bool {
+            attributes.matches(in: tag as String, range: NSRange(location: 0, length: tag.length))
+                .contains { tag.substring(with: $0.range(at: 1)).lowercased() == name }
+        }
         let source = input as NSString
         let output = NSMutableString()
+        let matches = tags.matches(in: input, range: NSRange(location: 0, length: source.length))
+        var directCounts: [Int: Int] = [:], openLists: [Int] = []
+        for (index, match) in matches.enumerated() {
+            let name = source.substring(with: match.range(at: 2)).lowercased()
+            let closing = match.range(at: 1).length > 0
+            if name == "li", !closing, let parent = openLists.last {
+                directCounts[parent, default: 0] += 1
+            } else if name != "li" {
+                if closing { if !openLists.isEmpty { openLists.removeLast() } }
+                else { openLists.append(index) }
+            }
+        }
         var stack: [List] = [], offset = 0
-        for match in tags.matches(in: input, range: NSRange(location: 0, length: source.length)) {
+        for (matchIndex, match) in matches.enumerated() {
             output.append(source.substring(with: NSRange(location: offset, length: match.range.location - offset)))
             let closing = match.range(at: 1).length > 0
             let name = source.substring(with: match.range(at: 2)).lowercased()
@@ -42,7 +58,8 @@ struct NativeHTMLConversion {
                         stack[index].next = number
                     }
                     marker = "\(stack[index].next)."
-                    if stack[index].next < Int.max { stack[index].next += 1 }
+                    let (next, overflow) = stack[index].next.addingReportingOverflow(stack[index].step)
+                    if !overflow { stack[index].next = next }
                 }
                 output.append("\n" + String(repeating: "    ", count: max(0, stack.count - 1)) + marker + " ")
             } else if name != "li", closing {
@@ -50,8 +67,9 @@ struct NativeHTMLConversion {
                 if stack.isEmpty { output.append("\n\n") }
             } else if name != "li" {
                 let tag = source.substring(with: match.range) as NSString
-                let initial = integerAttribute(tag, named: "start") ?? 1
-                stack.append(List(ordered: name == "ol", next: initial))
+                let reversed = name == "ol" && hasAttribute(tag, named: "reversed")
+                let initial = integerAttribute(tag, named: "start") ?? (reversed ? directCounts[matchIndex, default: 0] : 1)
+                stack.append(List(ordered: name == "ol", next: initial, step: reversed ? -1 : 1))
             }
             offset = match.range.location + match.range.length
         }
