@@ -3708,3 +3708,7 @@ separator operations without the controller appearance callback; all retained
 850-point content. The full appearance path still expands with four panels.
 This rules out those calls alone in that fixture, not their interaction with
 appearance, toolbar, or asynchronous layout. No production fix was made.
+
+The user confirmed that the Sparkle entry appears in Apple Passwords on
+another device. The entry contents have not been checked against the release
+public key. Full recovery is still pending.
