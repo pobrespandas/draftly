@@ -3562,3 +3562,10 @@ macOS 27 the attached window widths were 1022 and 822 points respectively;
 both scenarios settled at the requested 850-point content width. All 11 local
 panel tests and the local build passed. The test does not change production
 layout or establish the macOS 26 result.
+
+Hosted LargeDisplayPanels26 run 40947635402 failed the existing panel
+assertions. The temporary comparison measured an attached window width of
+1030 points with initial constraints active and 830 with them deferred. Both
+settled at a 1032-point content width after the 850-point resize request.
+Deferring activation only during attachment does not resolve the hosted
+behavior. The sidebar inset and other geometry failures remain open.
