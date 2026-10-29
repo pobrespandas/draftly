@@ -100,6 +100,11 @@ at their original level. Known typed fields take priority over collisions.
 It does not claim
 compatibility with every Drafts export version or extension type.
 
+The importer reads the real empty `.draftsActionGroup` export from Drafts 54.1.1.
+It validates the zlib stream and preserves group metadata in backups. Imported
+icon, visibility and disposition metadata do not yet affect presentation. Real
+populated groups and separators remain unverified.
+
 Templates support draft content, title, body, safe title, selection, tags,
 hashtags, UUID, permalink, dates, and custom tags. Unknown tags stay in the text.
 File templates can load local template files. Service wrappers, custom syntaxes,

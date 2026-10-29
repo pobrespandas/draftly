@@ -29,7 +29,23 @@ public struct ActionGroupRecord: Codable, Equatable, Identifiable {
     public var name: String
     public var symbol = "arrow.up.right.square"
     public var order = 0
+    var importedMetadata: [String: JSONValue] = [:]
     public init(name: String) { self.name = name; id = Self.identifier(for: name) }
+    private enum CodingKeys: String, CodingKey { case id, name, symbol, order, importedMetadata }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        name = try c.decode(String.self, forKey: .name)
+        symbol = try c.decode(String.self, forKey: .symbol)
+        order = try c.decode(Int.self, forKey: .order)
+        importedMetadata = try c.decodeIfPresent([String: JSONValue].self, forKey: .importedMetadata) ?? [:]
+    }
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id); try c.encode(name, forKey: .name)
+        try c.encode(symbol, forKey: .symbol); try c.encode(order, forKey: .order)
+        if !importedMetadata.isEmpty { try c.encode(importedMetadata, forKey: .importedMetadata) }
+    }
     public static func identifier(for name: String) -> UUID {
         var bytes = [UInt8](repeating: 0, count: 16)
         for (index, value) in name.utf8.enumerated() { bytes[index % 16] = bytes[index % 16] &* 31 &+ value }

@@ -22,6 +22,20 @@ import Foundation
     }
 
     public static func apply(_ data: Data, fileExtension: String, to library: LibraryStore) throws {
+        if fileExtension.lowercased() == "draftsactiongroup" {
+            let (group, actions) = try DraftsActionGroupImport.decode(data)
+            guard Set(actions.map(\.id)).count == actions.count else { throw DraftlyError.message("The action group has duplicate action identities.") }
+            let identities = library.actionGroupIdentifiers
+            guard (identities[group.name] == nil || identities[group.name] == group.id),
+                  !identities.contains(where: { $0.key != group.name && $0.value == group.id }),
+                  !library.actionGroups.contains(where: { $0.id == group.id && $0 != group }),
+                  !actions.contains(where: { incoming in library.actions.contains { $0.id == incoming.id && $0 != incoming } }) else {
+                throw DraftlyError.message("The action group conflicts with installed data. Review it before importing.")
+            }
+            let backup = Backup(notes: [], revisions: [], workspaces: [], actions: actions, actionGroups: [group])
+            try library.restore(JSONEncoder().encode(backup))
+            return
+        }
         if fileExtension.lowercased() == "draftssyntax" {
             let definition = try SyntaxDefinition(data: data)
             if let existing = library.syntaxes.first(where: { $0.name == definition.name }) {

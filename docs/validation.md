@@ -10709,6 +10709,17 @@ group. It passed after the atomic rename. Eleven focused action link tests and
 the serial app suite (884 tests) passed. The local Debug build passed. Native
 confirmation was pending at that point; implicit group conflicts remain open.
 
+### Drafts action group file import — 29 October 2026
+
+Five focused tests passed for the real empty export, corrupt input, output size
+limit, conflict, rollback, retry and backup. The serial Core run passed 702 tests
+before the last two focused cases; the serial app run passed 886 tests. Local
+Debug build, 80 Python tests and matrix structure check passed. Native QA used
+File > Import on the real fixture and showed its group in Library Organization.
+QA quit normally, its exact registration was removed, and its temporary app
+moved to Trash. Imported QA data remains isolated. No real populated group or
+separator was tested. Metadata is retained but its visual options are not applied.
+
 Native Engine QA imported a neutral group and one action. Its installation link
 renamed the group. The confirmation named the group and action. Cancel retained
 the original group UUID and membership. Replace retained the UUID and moved the

@@ -105,9 +105,12 @@ Manage Action Groups > Share Group > Export as File. The 227-byte
 The neutral export is in `Tests/DraftlyCoreTests/Fixtures/` for future import
 tests. It contains group UUID, name, icon, visibility, disposition, timestamps,
 and an empty actions array. It does not show separator or populated-group data.
-Draftly does not yet import this compressed file. Add bounded decompression,
-validate the wrapper and payload, preserve group metadata and unknown fields,
-and test atomic import before accepting the format.
+Draftly now imports this empty compressed file with bounded decompression and
+wrapper, checksum, and payload validation. It retains the metadata in the group
+record and backup. Automated tests cover corrupt data, size limits, conflicts,
+rollback and restore. Native QA imported the real file and displayed the empty
+group. The icon, visibility and disposition are retained but not applied.
+Populated groups, separators, and their presentation remain unverified.
 
 Generic native UI, URL and actual App Intent sessions already cover final
 success/failure/cancel/timeout, queues, owner close, library exclusion and

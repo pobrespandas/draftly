@@ -3215,3 +3215,11 @@ An action link no longer changes an existing implicit group identity silently.
 It rejects conflicting names or UUIDs before saving. A link with the same name
 and UUID remains valid. A user-facing merge choice and native error check are
 still pending. The usual app is unchanged.
+
+### Drafts action group file — 29 October 2026
+
+The real empty Drafts group export imports through File > Import in QA. The
+group ID and metadata are retained; backup and rollback have automated coverage.
+The import limits and validates zlib data. The group icon, visibility and
+disposition are retained but not applied. Populated group and separator files
+still need a real reference. The usual app is unchanged.
