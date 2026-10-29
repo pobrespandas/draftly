@@ -69,7 +69,9 @@ class PublicationTests(unittest.TestCase):
                       "candidate.json": self.candidate / "candidate.json", "appcast.xml": self.staged / "appcast.xml"}
         self.client = FinalizedHosting()
         self.client.staged_config = self.client.config
-        digest = hashlib.sha256(publisher.firebase.compress_feed(b"signed feed")).hexdigest()
+        compressed = publisher.firebase.compress_feed(b"signed feed")
+        publisher.firebase.payload_path(self.staged / "firebase-journal.json").write_bytes(compressed)
+        digest = hashlib.sha256(compressed).hexdigest()
         self.client.staged_files = dict(self.client.live_files, **{"/appcast.xml": digest})
         self.receipt = {"baseVersion": OLD, "stagedVersion": NEW,
                         "preservedFiles": len(self.client.live_files), "appcastHash": digest}
@@ -97,6 +99,20 @@ class PublicationTests(unittest.TestCase):
         self.assertEqual(self.github.calls, [])
         self.assertEqual(self.client.calls, [])
 
+    def test_rejects_missing_or_tampered_staged_payload_before_publication(self):
+        payload = publisher.firebase.payload_path(self.staged / "firebase-journal.json")
+        original = payload.read_bytes()
+        for value in (b"invalid", publisher.firebase.compress_feed(b"different feed")):
+            payload.write_bytes(value)
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                self.run_publish()
+            self.assertNotIn("publish", self.github.calls)
+        payload.unlink()
+        with self.assertRaises((ValueError, OSError)):
+            self.run_publish()
+        self.assertNotIn("publish", self.github.calls)
+        payload.write_bytes(original)
+
     def test_publishes_only_after_site_check_and_verifies_all_public_assets(self):
         result = self.run_publish()
         self.assertEqual(result["releaseId"], 42)
@@ -106,6 +122,11 @@ class PublicationTests(unittest.TestCase):
                             for url, _, _ in self.downloads))
         self.assertEqual(json.loads((self.candidate / "PUBLIC_VERIFIED.json").read_text()), result)
         self.assertFalse(any("/releases" in path for _, path, _, _ in self.client.calls))
+
+    def test_publication_uses_saved_payload_without_recompression(self):
+        with patch.object(publisher.firebase, "compress_feed", side_effect=AssertionError("must use saved bytes")):
+            result = self.run_publish()
+        self.assertEqual(result["releaseId"], 42)
 
     def test_interrupted_public_download_can_resume_without_republishing(self):
         def fail(url, size, digest):

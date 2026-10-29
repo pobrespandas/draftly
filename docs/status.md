@@ -3602,3 +3602,11 @@ header and a staged feed checked by the publication verifier. All 182 Python
 tests passed. This does not guarantee identical compressed data with different
 zlib versions. Preserving the original compressed payload for recovery remains
 pending. Nothing was published.
+
+Firebase staging now saves its original compressed appcast next to the
+journal. Recovery and GitHub publication verify the saved hash and decoded
+feed rather than recompressing it. Missing, changed or unrelated payloads stop
+the operation; an existing payload is not overwritten. Tests cover recovery
+without recompression and publication refusal. The staging command requires a journal. All 189 Python tests passed
+with fake services. Old checkpoints without the payload need inspection and
+restaging. This does not enable publication or prove live recovery.

@@ -19,6 +19,7 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 import uuid
+import zlib
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
@@ -218,6 +219,28 @@ def compress_feed(feed):
     return output.getvalue()
 
 
+def payload_path(journal):
+    journal = Path(journal)
+    return journal.with_name(journal.name + ".feed.gz")
+
+
+def read_payload(path, feed, expected_digest):
+    path = Path(path)
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > history.MAX_FEED_BYTES + 65536:
+        raise ValueError("The saved compressed appcast is missing or invalid.")
+    data = path.read_bytes()
+    if not isinstance(expected_digest, str) or hashlib.sha256(data).hexdigest() != expected_digest:
+        raise ValueError("The saved compressed appcast does not match the staging receipt.")
+    try:
+        with gzip.GzipFile(fileobj=io.BytesIO(data), mode="rb") as stream:
+            decoded = stream.read(len(feed) + 1)
+    except (OSError, EOFError, zlib.error) as error:
+        raise ValueError("The saved compressed appcast is invalid.") from error
+    if decoded != feed:
+        raise ValueError("The saved compressed appcast does not match the feed.")
+    return data
+
+
 def stage(client, expected_version, feed, public_key, *, releases=None, current_feed=None, journal=None, resume=False):
     if resume and journal is None:
         raise ValueError("Recovery needs a Firebase staging journal.")
@@ -252,7 +275,10 @@ def stage(client, expected_version, feed, public_key, *, releases=None, current_
                              resume_candidate=resume)
     if (current_feed is None) != ("/appcast.xml" not in live["files"]):
         raise ValueError("The live appcast and Firebase file list do not agree.")
-    compressed = compress_feed(feed)
+    if resume:
+        compressed = read_payload(payload_path(journal), feed, checkpoint.get("appcastHash"))
+    else:
+        compressed = compress_feed(feed)
     digest = hashlib.sha256(compressed).hexdigest()
     files = dict(live["files"])
     files["/appcast.xml"] = digest
@@ -268,7 +294,19 @@ def stage(client, expected_version, feed, public_key, *, releases=None, current_
         checkpoint = {"state": "creating", "operation": operation, "baseVersion": live["version"],
                       "preservedFiles": len(live["files"]), "appcastHash": digest}
         if journal is not None:
-            write_journal(journal, checkpoint, new=True)
+            payload = payload_path(journal)
+            saved = payload.open("xb")
+            try:
+                with saved:
+                    saved.write(compressed)
+            except BaseException:
+                payload.unlink(missing_ok=True)
+                raise
+            try:
+                write_journal(journal, checkpoint, new=True)
+            except BaseException:
+                payload.unlink(missing_ok=True)
+                raise
         created = client.request("POST", SITE + "/versions", {"config": live["config"],
                                  "labels": {"draftly-operation": operation}})
         staged = created.get("name")
@@ -334,8 +372,8 @@ def main():
             live = snapshot(client)
             result = {"liveVersion": live["version"], "fileCount": len(live["files"]), "hasAppcast": "/appcast.xml" in live["files"]}
         else:
-            if not args.appcast or not args.public_key or not args.expected_version:
-                raise ValueError("Staging needs an appcast, public key, and expected live version.")
+            if not args.appcast or not args.public_key or not args.expected_version or not args.journal:
+                raise ValueError("Staging needs an appcast, public key, expected live version, and journal.")
             result = stage(client, args.expected_version, Path(args.appcast).read_bytes(), args.public_key,
                            journal=args.journal, resume=args.resume)
         print(json.dumps(result, indent=2))

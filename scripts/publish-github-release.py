@@ -35,7 +35,7 @@ class PublishingGitHub(github_stage.GitHub):
             raise ValueError("GitHub did not confirm publication. Reinspect the release.")
 
 
-def validate_site(client, receipt, feed):
+def validate_site(client, receipt, feed, compressed):
     if not isinstance(receipt, dict):
         raise ValueError("The Firebase staging receipt is invalid.")
     base, staged, digest = receipt.get("baseVersion"), receipt.get("stagedVersion"), receipt.get("appcastHash")
@@ -43,7 +43,7 @@ def validate_site(client, receipt, feed):
             or not isinstance(staged, str) or not firebase.VERSION_PATTERN.fullmatch(staged) or staged == base
             or not isinstance(digest, str) or not firebase.HASH_PATTERN.fullmatch(digest)):
         raise ValueError("The Firebase staging receipt is invalid.")
-    actual_digest = hashlib.sha256(firebase.compress_feed(feed)).hexdigest()
+    actual_digest = hashlib.sha256(compressed).hexdigest()
     if actual_digest != digest:
         raise ValueError("The staged appcast differs from the Firebase receipt.")
     live = firebase.snapshot(client)
@@ -120,14 +120,16 @@ def publish(candidate, staged, notes, secret, receipt, client, *, enabled, githu
         raise ValueError("Public release is disabled until distribution acceptance is complete.")
     candidate, staged = Path(candidate), Path(staged)
     feed = (staged / "appcast.xml").read_bytes()
+    payload = firebase.payload_path(staged / "firebase-journal.json")
+    compressed = firebase.read_payload(payload, feed, receipt.get("appcastHash") if isinstance(receipt, dict) else None)
     github_stage.inspect_inputs(candidate, staged, secret, notes)
-    site_status = validate_site(client, receipt, feed)
+    site_status = validate_site(client, receipt, feed, compressed)
     github = github or PublishingGitHub()
     result = stage_draft(candidate, staged, notes, secret, github=github)
     tag, digest = result["tag"], result["sha256"]
     if (staged / "appcast.xml").read_bytes() != feed:
         raise ValueError("The staged appcast changed during verification.")
-    site_status = validate_site(client, receipt, feed)
+    site_status = validate_site(client, receipt, feed, compressed)
     release = github_stage.find_release(github.releases(), tag)
     if release is None:
         raise ValueError("The verified GitHub release no longer exists.")
@@ -164,7 +166,9 @@ def publish(candidate, staged, notes, secret, receipt, client, *, enabled, githu
         raise ValueError("A candidate asset changed during public verification.")
     if github.refs(tag) != (commit, commit) or github_stage.prepare.release.source_commit(tag, github_stage.secret_free_run) != commit:
         raise ValueError("The source commit or remote refs changed after publication.")
-    validate_site(client, receipt, feed)
+    if firebase.read_payload(payload, feed, receipt["appcastHash"]) != compressed:
+        raise ValueError("The saved compressed appcast changed during publication.")
+    validate_site(client, receipt, feed, compressed)
     result = {"tag": tag, "sha256": digest, "releaseId": published.get("id"),
               "firebaseBaseVersion": receipt["baseVersion"], "firebaseStagedVersion": receipt["stagedVersion"]}
     marker = candidate / "PUBLIC_VERIFIED.json"

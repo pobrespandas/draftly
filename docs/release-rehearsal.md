@@ -156,18 +156,20 @@ version. It rejects missing files, changed historical release items, unsafe
 upload URLs, and a live version that changes during staging. It also checks the
 public appcast ETag against the live Firebase file hash.
 
-Use `--journal PATH` to record the staging operation before the Firebase
-request. Keep this journal with the candidate and feed. Use `--resume` with
+Staging requires `--journal` before it can change Firebase. Use the staging
+directory path `firebase-journal.json`. Keep this journal with the candidate and feed. Use `--resume` with
 the same journal to continue an existing staged version. Recovery checks the
 live base, feed hash, operation label, and staged files before it proceeds.
 It can also verify a finalized version after an interrupted run. An existing
 draft or public GitHub release is accepted only during recovery.
 
-The feed uses a gzip header with no filename and a zero timestamp. This avoids
-the header differences observed between Python versions. Recovery still
-recompresses the feed. Different compression libraries could produce different
-bytes, so preserving and verifying the original compressed payload remains a
-release requirement. Do not promote a version on a hash mismatch.
+The feed uses a gzip header with no filename and a zero timestamp. Staging
+saves the original compressed bytes next to its journal as
+`firebase-journal.json.feed.gz`. Keep the payload with the journal and feed.
+Recovery and publication verify its hash and decoded content. They do not
+recompress it. A missing or changed payload stops recovery and publication.
+Older checkpoints without this payload require inspection and restaging; they
+cannot use automatic recovery.
 
 If the journal says `creating`, the result of the create request is unknown.
 Inspect Firebase for the operation label before taking further action. Do not
