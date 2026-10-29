@@ -1,6 +1,41 @@
 import AppKit
 
 struct NativeHTMLConversion {
+    private func convertLists(_ input: String, mark: String) throws -> String {
+        struct List { var ordered: Bool; var next: Int }
+        let tags = try NSRegularExpression(pattern: #"<(/?)(ul|ol|li)\b(?:[^'">]|"[^"]*"|'[^']*')*>"#, options: .caseInsensitive)
+        let start = try NSRegularExpression(pattern: #"\s+start\s*=\s*(?:"(-?\d+)"|'(-?\d+)'|(-?\d+))"#, options: .caseInsensitive)
+        let source = input as NSString
+        let output = NSMutableString()
+        var stack: [List] = [], offset = 0
+        for match in tags.matches(in: input, range: NSRange(location: 0, length: source.length)) {
+            output.append(source.substring(with: NSRange(location: offset, length: match.range.location - offset)))
+            let closing = match.range(at: 1).length > 0
+            let name = source.substring(with: match.range(at: 2)).lowercased()
+            if name == "li", !closing {
+                var marker = mark
+                if let index = stack.indices.last, stack[index].ordered {
+                    marker = "\(stack[index].next)."
+                    if stack[index].next < Int.max { stack[index].next += 1 }
+                }
+                output.append("\n" + String(repeating: "    ", count: max(0, stack.count - 1)) + marker + " ")
+            } else if name != "li", closing {
+                if !stack.isEmpty { stack.removeLast() }
+                if stack.isEmpty { output.append("\n\n") }
+            } else if name != "li" {
+                let tag = source.substring(with: match.range) as NSString
+                let match = start.firstMatch(in: tag as String, range: NSRange(location: 0, length: tag.length))
+                var initial = 1
+                if let match, let group = (1...3).first(where: { match.range(at: $0).location != NSNotFound }) {
+                    initial = Int(tag.substring(with: match.range(at: group))) ?? 1
+                }
+                stack.append(List(ordered: name == "ol", next: initial))
+            }
+            offset = match.range.location + match.range.length
+        }
+        output.append(source.substring(from: offset))
+        return output as String
+    }
     func decodeHTML(_ text: String) throws -> String {
         guard text.contains("&") else { return text }
         let pattern = try NSRegularExpression(pattern: "&(?:#[xX][0-9A-Fa-f]+|#[0-9]+|[A-Za-z][A-Za-z0-9]*);?")
@@ -111,7 +146,7 @@ struct NativeHTMLConversion {
         replace("(?s)<(?:strong|b)\\b[^>]*>(.*?)</(?:strong|b)>", options["ignoreEmphasis"] as? Bool == true ? "$1" : strong + "$1" + strong)
         replace("(?s)<(?:em|i)\\b[^>]*>(.*?)</(?:em|i)>", options["ignoreEmphasis"] as? Bool == true ? "$1" : emphasis + "$1" + emphasis)
         replace("(?s)<code\\b[^>]*>(.*?)</code>", "`$1`")
-        replace("<li\\b[^>]*>", "\n" + (options["ulItemMark"] as? String ?? "*") + " ")
+        result = try convertLists(result, mark: options["ulItemMark"] as? String ?? "*")
         replace("<(?:br|hr)\\s*/?>", "\n"); replace("</(?:p|div|ul|ol|blockquote)>", "\n\n")
         replace("<[^>]+>", ""); replace("\n{3,}", "\n\n")
         result = try decodeHTML(result).trimmingCharacters(in: .whitespacesAndNewlines)

@@ -33,6 +33,9 @@ including unquoted values and quoted attributes containing `>`. Focused tests
 cover both forms. Other HTML grammar and Drafts parity remain open.
 Ignoring links and converting or ignoring images also handles `>` inside quoted
 attributes, with focused regression coverage.
+Ordered HTML lists now retain numbering and start values, and mixed nested
+lists retain indentation and unordered markers. Tests cover both nesting
+directions. Other list grammar and Drafts comparison remain open.
 
 [Engine acceptance cases](engine-acceptance-cases-2026-10-22.md) assigns case IDs,
 entries, outcomes, cleanup and affected contracts to the remaining work. It

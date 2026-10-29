@@ -46,6 +46,14 @@ struct HTMLPreferencesTests {
         #expect(try converter.htmlToMarkdown(html, options: ["ignoreLinks": true, "ignoreImages": true]) == "Café")
     }
 
+    @Test func orderedAndNestedListsKeepTheirMarkersAndStart() throws {
+        let html = "<ul><li>Parent<ol start='3'><li>First 🐼</li><li>Second</li></ol></li><li>Next</li></ul>"
+        let result = try NativeHTMLConversion().htmlToMarkdown(html, options: ["ulItemMark": "-"])
+        #expect(result == "- Parent\n    3. First 🐼\n    4. Second\n- Next")
+        let reverse = "<ol start=9><li>One<ul><li>Child</li></ul></li><li>Two</li></ol>"
+        #expect(try NativeHTMLConversion().htmlToMarkdown(reverse, options: [:]) == "9. One\n    * Child\n10. Two")
+    }
+
     @Test func marksAndIgnoreOptionsReachTheConverter() throws {
         let host = NativeActionHost()
         let html = "<p><strong>Café 🐼</strong> <em>text</em> <a href='https://example.com'>link</a><img src='neutral.png'></p><ul><li>item</li></ul>"
