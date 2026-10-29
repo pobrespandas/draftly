@@ -3610,3 +3610,14 @@ the operation; an existing payload is not overwritten. Tests cover recovery
 without recompression and publication refusal. The staging command requires a journal. All 189 Python tests passed
 with fake services. Old checkpoints without the payload need inspection and
 restaging. This does not enable publication or prove live recovery.
+
+On 29 October 2026, a real Firebase QA used a neutral feed and a separate QA
+signing key. Staging finalized version `48a9bc23eb75e052` without promoting
+it. Recovery reused that version and its saved gzip while recompression was
+blocked in the test. The publication site verifier accepted the staged
+receipt. Before and after snapshots matched: live version
+`1b4a91b81d597449`, 26 files and the same configuration. The QA version and
+checkpoint remain available for inspection. The test used local Google
+credentials, not GitHub Workload Identity Federation. It did not publish a
+GitHub release or promote a site, and it does not validate production keys or
+an interrupted network request.
