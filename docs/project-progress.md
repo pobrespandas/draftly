@@ -220,6 +220,17 @@ Remaining work:
 - Before replacing the habitual app, verify library and preferences, keep the
   prior package, install the signed candidate, and check restart, Services,
   URLs and data. A signed build is not a sync test.
+- Design and implement an update mechanism before distributing Draftly. The
+  current personal ZIP is a package, not an automatic update system. Decide how
+  the app checks for updates, presents them, and installs them. Define version
+  and build ordering, trusted release metadata, signature verification, failure
+  recovery, and behavior when no network is available. Do not change the app
+  identity, team, URL scheme, or existing CloudKit container as a shortcut.
+  Test updates between different signed executables on copies of existing
+  libraries and preferences, including interrupted installation and recovery.
+  Verify backups, unknown fields, notes, actions, and editor state as applicable.
+  Validate development-signed updates on registered Macs. Keep Developer ID,
+  notarization, and public distribution as a separate later decision.
 - Measure 10,000-draft list/search/selection and 100,000-character editing,
   search, Undo and save. Record conditions and typical/max times. Fix stalls
   and data loss without inventing an acceptance threshold.
