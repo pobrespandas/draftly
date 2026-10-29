@@ -14,6 +14,9 @@ to move their writing into other workflows.
 Draftly brings writing, capture, organization, and actions together in a native
 Mac app. A person can start with text and choose what to do with it later.
 
+Draftly has no Pro tier. Do not restrict or label features as Pro. Imported
+Drafts actions retain their original data and scripts for compatibility.
+
 ## Priorities
 
 1. Make writing clear, comfortable, and dependable.

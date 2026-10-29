@@ -28,6 +28,21 @@ struct ActionTests {
         let url = try #require(Bundle.module.url(forResource: id, withExtension: "json", subdirectory: "Fixtures"))
         return try #require(ActionImporter.decode(Data(contentsOf: url), source: "https://actions.getdrafts.com/a/" + id).first)
     }
+    @Test(arguments: [false, true]) func importedProFlagDoesNotRestrictActions(asynchronous: Bool) async throws {
+        for flag in [false, true] {
+            let library = try LibraryStore(inMemory: true, seed: false)
+            let editor = EditorSession()
+            editor.load(try library.createNote(content: "Before"))
+            let runner = ActionRunner(library: library, editor: editor, host: TestHost())
+            let source = Data("""
+            {"name":"Imported action","shouldRequirePro":\(flag),"steps":[{"type":"script","data":{"script":"if (!app.isPro) throw new Error('Unavailable'); editor.setText('Available');"}}]}
+            """.utf8)
+            let action = try #require(ActionImporter.decode(source).first)
+            #expect(action.rawPayload?.contains("\"shouldRequirePro\":\(flag)") == true)
+            #expect(await ActionTestExecution.succeeds(action, runner: runner, worker: asynchronous))
+            #expect(editor.content == "Available")
+        }
+    }
     @Test(arguments: [false, true]) func createFromOriginalTemplateAction(asynchronous: Bool) async throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         _ = try library.createNote(content: "# Meeting\nNotes for [[date|yyyy]]\n<|name>", tags: ["template", "work"])
