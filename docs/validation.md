@@ -11040,3 +11040,13 @@ with distinct run IDs and the same neutral action and note IDs. Run IDs are not
 execution IDs. Drafts 54.1.1 showed only the empty existing QA group; adding an
 action opened the Drafts Pro screen. No purchase or action was made. A genuine
 populated group export and its comparison remain blocked by that reference.
+
+### Included action timeout isolation — 29 October 2026
+
+A headless test exercises an included asynchronous script that times out after a
+root step saves text and queues another action. It checks UUID and templated
+name inclusion on both runners. The completed text remains; the queue, later
+steps, success parameters and Archive do not run. A following action succeeds
+with a different execution ID. The old timer cannot change its result after its
+deadline. The focused inclusion, async runner and worker suites passed. This is
+controlled test evidence, not a native callback or a Drafts precedence comparison.

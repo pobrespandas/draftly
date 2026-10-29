@@ -4,6 +4,33 @@ import Testing
 
 @Suite("Engine inclusion acceptance") @MainActor
 struct EngineInclusionAcceptanceTests {
+    @Test(arguments: [false, true], ["uuid", "template"])
+    func includedTimeoutKeepsCompletedEffectsAndCannotLeakIntoTheNextExecution(asynchronous: Bool, reference: String) async throws {
+        let f = try ScriptTestFixture(content: "Original 🐼", host: APIContractHost())
+        f.runner.scriptTimeout = 0.05
+        let queued = ScriptTestAction.make("editor.setText('Queued late');", name: "Queued after timeout")
+        let child = ScriptTestAction.make("setTimeout(()=>{editor.setText('Old timer');script.complete();},150);", name: "Slow child", allowAsync: true)
+        try f.library.saveAction(queued); try f.library.saveAction(child)
+        let referenceValues = reference == "uuid" ? ["uuid": child.id.uuidString] : ["name": "[[selected]]"]
+        var root = DraftAction(name: "Root timeout", steps: [
+            ActionStep("script", ["script": "editor.setText('Retained 🐼');draft.update();draft.setTemplateTag('selected','Slow child');context.addSuccessParameter('drop','yes');app.queueAction(Action.find('Queued after timeout'),draft);"]),
+            ActionStep("includeAction", referenceValues),
+            ActionStep("script", ["script": "editor.setText('Root late');"])
+        ])
+        root.afterSuccess = "archive"
+        let report = asynchronous ? await f.runner.runAsync(root) : f.runner.runReport(root)
+        #expect(report.reason == .timeout && report.successParameters.isEmpty)
+        #expect(f.editor.content == "Retained 🐼" && f.library.notes.first?.content == "Retained 🐼")
+        #expect(f.library.notes.first?.isArchived == false && f.runner.queued.isEmpty)
+        #expect(f.library.runs.count == 1 && f.library.runs.first?.actionID == root.id && f.library.runs.first?.status == "Error")
+        let recovery = asynchronous
+            ? await f.runner.runAsync(ScriptTestAction.make("editor.setText('Recovery 🐼');", name: "Recovery"))
+            : f.runner.runReport(ScriptTestAction.make("editor.setText('Recovery 🐼');", name: "Recovery"))
+        #expect(recovery.reason == .success && recovery.executionID != report.executionID)
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(f.editor.content == "Recovery 🐼" && f.library.notes.first?.content == "Recovery 🐼")
+        #expect(f.library.runs.count == 2)
+    }
     @Test(arguments: [false, true])
     func repeatedSiblingIncludesReuseGlobalsWithoutSharingAncestry(asynchronous: Bool) async throws {
         let f = try ScriptTestFixture(content: "Source", host: APIContractHost())
