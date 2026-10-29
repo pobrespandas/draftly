@@ -10,6 +10,10 @@ on:
         description: Existing release tag on the current main commit
         required: true
         type: string
+      resume_run_id:
+        description: Run ID that contains the original candidate artifact, for recovery
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -20,6 +24,7 @@ concurrency:
 
 env:
   RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+  RESUME_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.resume_run_id || '' }}
 
 jobs:
   rehearsal:
@@ -36,10 +41,23 @@ jobs:
           python-version: '3.12'
       - name: Check tag, version, and main
         run: python scripts/release-preflight.py "$RELEASE_TAG"
+      - name: Validate recovery run ID
+        shell: bash
+        run: |
+          if [[ -n "$RESUME_RUN_ID" && ! "$RESUME_RUN_ID" =~ ^[1-9][0-9]*$ ]]; then
+            echo 'Invalid recovery run ID.' >&2
+            exit 1
+          fi
       - name: Check published version and build history
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python scripts/release-history.py
+        shell: bash
+        run: |
+          if [[ -n "$RESUME_RUN_ID" ]]; then
+            python scripts/release-history.py --resume-candidate
+          else
+            python scripts/release-history.py
+          fi
       - name: Install Python test dependency
         run: python -m pip install 'Pillow>=10,<13' 'cryptography>=44,<46'
       - name: Resolve Sparkle tools
@@ -65,9 +83,12 @@ jobs:
   candidate:
     name: Sign and notarize a candidate
     needs: rehearsal
-    if: ${{ vars.DRAFTLY_RELEASE_SIGNING_ENABLED == 'true' }}
+    if: ${{ vars.DRAFTLY_RELEASE_SIGNING_ENABLED == 'true' || (github.event_name == 'workflow_dispatch' && inputs.resume_run_id != '') }}
     runs-on: macos-26
     timeout-minutes: 60
+    permissions:
+      contents: read
+      actions: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -80,6 +101,7 @@ jobs:
       - name: Recheck tag and source
         run: python scripts/release-preflight.py "$RELEASE_TAG"
       - name: Build the signed candidate
+        if: ${{ env.RESUME_RUN_ID == '' }}
         env:
           DRAFTLY_DEVELOPER_ID_PROFILE: ${{ vars.DRAFTLY_DEVELOPER_ID_PROFILE }}
           DRAFTLY_SPARKLE_PUBLIC_KEY: ${{ vars.DRAFTLY_SPARKLE_PUBLIC_KEY }}
@@ -89,7 +111,29 @@ jobs:
           APPLE_NOTARY_API_KEY_B64: ${{ secrets.APPLE_NOTARY_API_KEY_B64 }}
           APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
           APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
-        run: bash scripts/release-candidate-ci.sh
+        shell: bash
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" != push || "$GITHUB_RUN_ATTEMPT" != 1 ]]; then
+            echo 'Use the original candidate artifact for recovery; do not build another candidate.' >&2
+            exit 1
+          fi
+          bash scripts/release-candidate-ci.sh
+      - name: Restore the original candidate
+        if: ${{ env.RESUME_RUN_ID != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: draftly-release-candidate-${{ env.RELEASE_TAG }}
+          path: .build/release-candidates/${{ env.RELEASE_TAG }}
+          github-token: ${{ github.token }}
+          run-id: ${{ env.RESUME_RUN_ID }}
+      - name: Install candidate verification dependency
+        if: ${{ env.RESUME_RUN_ID != '' }}
+        run: python -m pip install 'cryptography>=44,<46'
+      - name: Verify the restored candidate
+        if: ${{ env.RESUME_RUN_ID != '' }}
+        env:
+          DRAFTLY_SPARKLE_PUBLIC_KEY: ${{ vars.DRAFTLY_SPARKLE_PUBLIC_KEY }}
+        run: python scripts/verify-release-candidate.py --candidate ".build/release-candidates/$RELEASE_TAG" --tag "$RELEASE_TAG" --public-key "$DRAFTLY_SPARKLE_PUBLIC_KEY"
       - name: Save verified candidate for review
         uses: actions/upload-artifact@v4
         with:

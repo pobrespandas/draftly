@@ -72,6 +72,12 @@ with simulated tools; it has not signed or notarized a real candidate.
 tag, source commit, checksum, update key, app metadata, signature, notarization,
 and Gatekeeper. It does not sign or publish the candidate. Restore the original
 artifact for a recovery; do not build a different ZIP under the same version.
+For workflow recovery, dispatch the release workflow with the same tag and the
+run ID that contains the original candidate artifact. The workflow downloads
+and verifies that artifact. It does not run the signing job again. A rerun of
+the original signing job is rejected. A missing artifact or failed verification
+stops recovery. Protect release tags from replacement and inspect an interrupted
+signing run before taking further action.
 
 ## Local signed candidate
 
