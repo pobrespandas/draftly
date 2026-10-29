@@ -52,7 +52,7 @@ struct LibrarySplitViewTests {
 
     @Test func initialPanelConstraintLayoutCanBeMeasuredWithoutShowingAWindow() async throws {
         _ = NSApplication.shared
-        for mode in ["active", "deferred", "inactive"] {
+        for mode in ["active", "deferred", "inactive", "noToolbar", "noAppearance"] {
             let model = WindowModel(library: try LibraryStore(inMemory: true, seed: false))
             model.setFiltersVisible(true)
             model.showActions = true
@@ -71,7 +71,12 @@ struct LibrarySplitViewTests {
             window.contentViewController = controller
             let attached = window.frame
             if mode == "deferred" { NSLayoutConstraint.activate(constraints) }
-            controller.viewDidAppear()
+            if mode == "noToolbar" {
+                model.referenceToolbar = ReferenceToolbar(model: model, window: window, splitView: controller.splitView)
+                window.toolbar = nil
+                while !window.titlebarAccessoryViewControllers.isEmpty { window.removeTitlebarAccessoryViewController(at: 0) }
+            }
+            if mode != "noAppearance" { controller.viewDidAppear() }
             await settleLayout(controller)
             window.setContentSize(NSSize(width: 850, height: 600))
             window.layoutIfNeeded()

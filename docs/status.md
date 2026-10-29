@@ -3588,3 +3588,8 @@ and inactive constraints produced 830 points. All three still settled at a
 alone do not explain the final width. The suite failed the same ten geometry
 assertions. A local experiment that removed those constraints and applied panel
 positions later did not preserve all existing panel assertions and was reverted.
+
+The offscreen panel diagnostic now also measures layout without a toolbar and
+without the appearance callback. Both cases settled at 850 points on macOS 27.
+The focused suite and local build passed. The macOS 26 comparison remains
+pending; this does not establish the cause of its geometry failures.
