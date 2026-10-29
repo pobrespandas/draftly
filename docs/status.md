@@ -3278,6 +3278,11 @@ Core and 925 application tests. All 167 Python tests, the matrix structural
 check, and the local app build passed. This does not publish the site or prove
 Developer ID signing, Sparkle updates, or CloudKit Production.
 
+A later read-only Hosting comparison found 26 live files. All 24 files in the
+merged repository site matched their public bytes. The remaining two live
+paths are Firebase initialization resources. The site had no appcast. This
+does not authorize an uncoordinated deploy or prove future feed preservation.
+
 The integrated commit was fast-forwarded to remote `main`. The first hosted CI
 run failed to compile macOS 27 SDK APIs with Xcode 26.6. The separate local `main` checkout
 has uncommitted changes and was not modified; it is behind the remote branch.

@@ -161,9 +161,12 @@ If the journal says `creating`, the result of the create request is unknown.
 Inspect Firebase for the operation label before taking further action. Do not
 create another version automatically. A journal does not lock the live site.
 
-On 29 October 2026 the live site contained 26 files; this branch's website
-directory contained only three. Do not deploy that directory directly over the
-live site. The Hosting release API does not document an atomic condition on
+On 29 October 2026 the live site contained 26 files. After the action catalog
+was merged from `main`, all 24 repository site files matched the public bytes.
+The two additional live paths were `/__/firebase/init.js` and
+`/__/firebase/init.json`. This comparison does not authorize a direct deploy:
+it must also preserve future update feeds and coordinate other site writers.
+The Hosting release API does not document an atomic condition on
 the previous live version. Before adding promotion, route every site writer
 through a shared serialization mechanism and verify the live version and
 public release assets. The staged version alone is not safe publication or
