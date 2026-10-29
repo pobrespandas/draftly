@@ -11160,3 +11160,30 @@ and passed afterward. Automation, direct Intent and related WindowModel suites
 passed, as did the local Debug build. These are headless model tests. Native
 window close/restart and independent library writers remain separate. This does
 not provide a merge interface or persist pending edits across restart.
+
+### Included cancellation through URL and callback — 29 October 2026
+
+A development-signed Engine QA app used the current local Debug executable and
+an isolated library. A local callback helper sent an external runAction URL to
+that exact app. The root saved `Intent retained`, queued a recovery action and
+included a child by name. The child checked the root context and cancelled.
+After confirmation, the draft stayed in Inbox and the history showed Cancelled.
+No child, tail or queued run appeared. A subsequent recovery URL succeeded and
+changed the draft to `Intent recovered`.
+
+The first helper bundle was in a temporary location and macOS had no default
+handler for its callback scheme. Those runs had no observable callback and do
+not prove a callback failure. After the helper was placed in Applications and
+registered, the system resolved its scheme to that exact bundle. A new
+cancellation produced one `which=cancel` callback. A later recovery produced one
+`which=success` callback. History and the closed isolated store contain three
+Cancelled root records and two explicitly requested Success recovery records,
+with distinct run IDs and the same note ID. Run IDs are not execution IDs.
+The callback counter resets for each helper request; it does not prove absence of
+a delayed callback beyond the observation window.
+
+One initial URL encoded spaces as plus signs and did not reach the action; the
+observed executions used percent-encoded spaces. The two QA apps quit, their
+exact registrations were removed and their bundles moved to Trash. The QA
+library remains. This session does not prove system-delivered App Intents,
+Drafts configuration precedence or other cancellation and callback paths.
