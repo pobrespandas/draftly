@@ -1,0 +1,54 @@
+name: Release rehearsal
+
+# This workflow cannot publish. Release signing and publishing need acceptance.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag on the current main commit
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-rehearsal
+  cancel-in-progress: false
+
+jobs:
+  rehearsal:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check tag, version, and main
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: python scripts/release-preflight.py "$RELEASE_TAG"
+      - name: Install Python test dependency
+        run: python -m pip install 'Pillow>=10,<13'
+      - name: Run Python checks
+        run: python -m unittest discover -s scripts -p 'test_*.py'
+      - name: Check Actions matrix structure
+        run: python scripts/audit-action-api.py --check
+      - name: Run Swift tests and verify inventory
+        run: python scripts/run-swift-tests.py --output-dir "$RUNNER_TEMP/draftly-release-rehearsal"
+      - name: Build local app
+        run: scripts/build-app.sh --local
+      - name: Verify local app identity
+        shell: bash
+        run: |
+          app=.build/xcode/Build/Products/Debug/Draftly.app
+          test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$app/Contents/Info.plist")" = com.pobrespandas.draftly
+          test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleURLTypes:0:CFBundleURLSchemes:0' "$app/Contents/Info.plist")" = draftly
+          codesign --verify --deep --strict "$app"
+      - name: Report rehearsal scope
+        run: echo 'Rehearsal only. No signed release, appcast, GitHub Release, or site was published.'

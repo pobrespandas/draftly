@@ -206,6 +206,13 @@ main. It runs the Python checks, the Actions matrix structural check, the Swift
 test inventory, and an unsigned local app build. CI does not publish a release.
 The workflow has not yet been verified on a GitHub-hosted runner.
 
+Sparkle 2 is linked in the app. Update checks are disabled unless the main app
+has an explicit build setting, a valid public key, and the configured HTTPS
+feed. Do not enable them yet. Update safety during active Actions, Developer
+ID signing, notarization, release publishing, and real update acceptance are
+still pending. The manual release rehearsal has read-only permissions and does
+not publish.
+
 The library uses the existing generic Core Data schema. Backups include shared
 themes and action execution history with compatibility checks. Development
 signing and isolated cloud QA exist. Earlier Mac-plus-VM checks confirmed
