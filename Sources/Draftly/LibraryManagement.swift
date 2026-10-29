@@ -5,13 +5,18 @@ enum LibraryManagementSection: String, CaseIterable {
     case groups = "Groups", actions = "Actions", workspaces = "Workspaces"
 }
 
+private struct GroupEditingRequest: Identifiable {
+    let group: ActionGroupRecord
+    let previousName: String?
+    var id: UUID { group.id }
+}
+
 struct LibraryManagementView: View {
     @ObservedObject var model: WindowModel
     @ObservedObject var library: LibraryStore
     @Environment(\.dismiss) private var dismiss
     @AppStorage(WorkspaceDefaults.key) private var defaultWorkspaceID = ""
-    @State private var group: ActionGroupRecord?
-    @State private var oldGroupName: String?
+    @State private var group: GroupEditingRequest?
     @State private var workspace: Workspace?
     @State private var action: DraftAction?
     @State private var selectedGroup = ""
@@ -37,8 +42,7 @@ struct LibraryManagementView: View {
                                 HStack {
                                     Text(name).font(.headline); Spacer()
                                     Button("Edit") {
-                                        oldGroupName = name
-                                        group = library.actionGroupRecord(named: name)
+                                        group = GroupEditingRequest(group: library.actionGroupRecord(named: name), previousName: name)
                                     }
                                     Button("↑") { reorderGroups(name, offset: -1) }.disabled(index == 0)
                                     Button("↓") { reorderGroups(name, offset: 1) }.disabled(index + 1 == library.groupNames.count)
@@ -49,7 +53,7 @@ struct LibraryManagementView: View {
                             }
                         }.padding(12)
                     }
-                    HStack { Button("New Group") { oldGroupName = nil; var value = ActionGroupRecord(name: "New Group"); value.order = library.groupNames.count; group = value }; Spacer() }.padding()
+                    HStack { Button("New Group") { var value = ActionGroupRecord(name: "New Group"); value.order = library.groupNames.count; group = GroupEditingRequest(group: value, previousName: nil) }; Spacer() }.padding()
                 }
             case .actions:
                 VStack {
@@ -93,7 +97,7 @@ struct LibraryManagementView: View {
             }
         }.frame(width: 720, height: 520).onAppear { selectedGroup = library.groupNames.first ?? "General" }
             .sheet(item: $action) { value in ActionEditor(action: value, library: library) }
-            .sheet(item: $group) { value in GroupSettingsView(group: value, previousName: oldGroupName, library: library) }
+            .sheet(item: $group) { value in GroupSettingsView(group: value.group, previousName: value.previousName, library: library) }
             .sheet(item: $workspace) { value in
                 WorkspaceSettingsView(workspace: value, library: library, defaultListOptions: model.dependencies.preferences.listOptions)
             }

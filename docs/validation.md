@@ -10813,3 +10813,19 @@ presentation suite and local Debug build passed. The QA app quit, its individual
 LaunchServices registration was removed, and the app moved to Trash. Its isolated
 library remains. This does not verify group replacement review, unsupported step
 execution, or a group exported from Drafts itself.
+
+### Group editing and replacement review — 29 October 2026
+
+An isolated local QA app used a separate test library. Editing the imported Basic
+folder and saving a different symbol initially failed with a duplicate-name error.
+The group editor now presents the group and its previous name as one request.
+The same edit then saved and retained the symbol after reopening the editor.
+
+The official Basic Directory group was loaded again. Cancel in the replacement
+alert retained the edited symbol. Replace restored the imported symbol. These
+checks did not execute the imported actions or verify their external services.
+The QA app was quit, unregistered, and moved to Trash. Its test library remains.
+
+The focused library management and action-group persistence suites passed. The
+local Debug build passed. These tests do not exercise the SwiftUI sheet binding;
+the manual QA check covers the observed regression.
