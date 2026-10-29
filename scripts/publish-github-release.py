@@ -6,6 +6,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import urllib.error
@@ -61,6 +62,19 @@ def validate_site(client, receipt, feed, compressed):
     staged_files = firebase.list_files(client, staged)
     expected = dict(base_files)
     expected["/appcast.xml"] = digest
+    website = receipt.get("websiteHashes", {})
+    if not isinstance(website, dict) or len(website) > 100:
+        raise ValueError("The Firebase website receipt is invalid.")
+    for path, value in website.items():
+        if not firebase.site_overlay.valid_path(path) or (value is not None and
+                (not isinstance(value, str) or not firebase.HASH_PATTERN.fullmatch(value))):
+            raise ValueError("The Firebase website receipt is invalid.")
+        if value is None:
+            expected.pop(path, None)
+        else:
+            expected[path] = value
+    if "/index.html" not in expected:
+        raise ValueError("The staged website has no index page.")
     if staged_files != expected:
         raise ValueError("The staged Firebase version does not preserve the live files.")
     details = client.request("GET", staged)
@@ -72,6 +86,37 @@ def validate_site(client, receipt, feed, compressed):
     if firebase.snapshot(client)["version"] != live["version"]:
         raise ValueError("The live Firebase version changed during verification.")
     return "promoted" if live["version"] == staged else "staged"
+
+
+def verify_website_checkpoint(staged, receipt, commit):
+    website = receipt.get("websiteHashes")
+    if not isinstance(website, dict) or len(website) > 100:
+        raise ValueError("The Firebase website receipt is invalid.")
+    journal = staged / "firebase-journal.json"
+    if journal.is_symlink() or not journal.is_file() or journal.stat().st_size > 24 * 1024 * 1024:
+        raise ValueError("The website staging journal is invalid.")
+    checkpoint = json.loads(journal.read_text())
+    if (not isinstance(checkpoint, dict) or checkpoint.get("state") != "finalized"
+            or checkpoint.get("baseVersion") != receipt.get("baseVersion")
+            or checkpoint.get("stagedVersion") != receipt.get("stagedVersion")):
+        raise ValueError("The website staging journal does not match the receipt.")
+    saved = checkpoint.get("websitePayloads")
+    if not isinstance(saved, dict) or set(saved) != set(website):
+        raise ValueError("The saved website payloads do not match the receipt.")
+    source = firebase.site_overlay.read_git_tree(ROOT, commit)
+    for path, digest in website.items():
+        if not firebase.site_overlay.valid_path(path):
+            raise ValueError("The Firebase website receipt is invalid.")
+        entry = saved[path]
+        if digest is None:
+            if entry is not None or path in source:
+                raise ValueError("The website deletion does not match the source.")
+        else:
+            if not isinstance(digest, str) or not firebase.HASH_PATTERN.fullmatch(digest) or path not in source:
+                raise ValueError("The saved website payload does not match the source.")
+            firebase.decode_website_payload(entry, source[path])
+            if entry["hash"] != digest:
+                raise ValueError("The saved website payload does not match the receipt.")
 
 
 DOWNLOAD_HOSTS = {"github.com", "release-assets.githubusercontent.com", "objects.githubusercontent.com",
@@ -122,6 +167,11 @@ def publish(candidate, staged, notes, secret, receipt, client, *, enabled, githu
     feed = (staged / "appcast.xml").read_bytes()
     payload = firebase.payload_path(staged / "firebase-journal.json")
     compressed = firebase.read_payload(payload, feed, receipt.get("appcastHash") if isinstance(receipt, dict) else None)
+    metadata = json.loads((candidate / "candidate.json").read_text())
+    commit = metadata.get("sourceCommit") if isinstance(metadata, dict) else None
+    if not isinstance(commit, str) or not re.fullmatch(r"[a-f0-9]{40}", commit):
+        raise ValueError("The candidate source commit is invalid.")
+    verify_website_checkpoint(staged, receipt, commit)
     github_stage.inspect_inputs(candidate, staged, secret, notes)
     site_status = validate_site(client, receipt, feed, compressed)
     github = github or PublishingGitHub()
@@ -142,8 +192,6 @@ def publish(candidate, staged, notes, secret, receipt, client, *, enabled, githu
     hashes = {name: (path.stat().st_size, github_stage.file_digest(path)) for name, path in paths.items()}
     if hashes["Draftly.zip"][1] != "sha256:" + digest:
         raise ValueError("The candidate ZIP changed before publication.")
-    metadata = json.loads((candidate / "candidate.json").read_text())
-    commit = metadata.get("sourceCommit")
     if release["draft"]:
         if site_status == "promoted":
             raise ValueError("The appcast is already live but the GitHub release is still a draft.")
@@ -168,6 +216,7 @@ def publish(candidate, staged, notes, secret, receipt, client, *, enabled, githu
         raise ValueError("The source commit or remote refs changed after publication.")
     if firebase.read_payload(payload, feed, receipt["appcastHash"]) != compressed:
         raise ValueError("The saved compressed appcast changed during publication.")
+    verify_website_checkpoint(staged, receipt, commit)
     validate_site(client, receipt, feed, compressed)
     result = {"tag": tag, "sha256": digest, "releaseId": published.get("id"),
               "firebaseBaseVersion": receipt["baseVersion"], "firebaseStagedVersion": receipt["stagedVersion"]}

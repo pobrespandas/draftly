@@ -89,6 +89,29 @@ def read_git_tree(root, commit):
     return files
 
 
+def fetch_public(no_redirect, path, digest):
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+
+    if not valid_path(path):
+        raise ValueError("The public website path is invalid.")
+    request = urllib.request.Request("https://draftly.pobrespandas.com" + urllib.parse.quote(path, safe="/"),
+        headers={"Accept-Encoding": "identity", "Cache-Control": "no-cache"})
+    try:
+        with urllib.request.build_opener(no_redirect()).open(request, timeout=20) as response:
+            if response.headers.get("Content-Encoding", "identity") != "identity":
+                raise ValueError("A public website file has an unexpected content encoding.")
+            if response.headers.get("ETag", "").strip('"') != digest:
+                raise ValueError("A public website file does not match the live Firebase snapshot.")
+            data = response.read(2 * 1024 * 1024 + 1)
+    except (urllib.error.HTTPError, urllib.error.URLError) as error:
+        raise ValueError("A public website file could not be read.") from error
+    if len(data) > 2 * 1024 * 1024:
+        raise ValueError("A public website file is too large.")
+    return data
+
+
 def main():
     import argparse
     import importlib.util
@@ -96,9 +119,6 @@ def main():
     import os
     from pathlib import Path
     import subprocess
-    import urllib.error
-    import urllib.parse
-    import urllib.request
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base", required=True, help="Full commit of the site source deployed before these changes.")
@@ -112,20 +132,7 @@ def main():
         base, target = read_git_tree(root, args.base), read_git_tree(root, args.target)
         client = firebase.HostingClient(os.environ.get("DRAFTLY_FIREBASE_ACCESS_TOKEN"))
         def fetch(path, digest):
-            request = urllib.request.Request("https://draftly.pobrespandas.com" + urllib.parse.quote(path, safe="/"),
-                headers={"Accept-Encoding": "identity", "Cache-Control": "no-cache"})
-            try:
-                with urllib.request.build_opener(firebase.NoRedirect()).open(request, timeout=20) as response:
-                    if response.headers.get("Content-Encoding", "identity") != "identity":
-                        raise ValueError("A public website file has an unexpected content encoding.")
-                    if response.headers.get("ETag", "").strip('"') != digest:
-                        raise ValueError("A public website file does not match the live Firebase snapshot.")
-                    data = response.read(2 * 1024 * 1024 + 1)
-            except (urllib.error.HTTPError, urllib.error.URLError) as error:
-                raise ValueError("A public website file could not be read.") from error
-            if len(data) > 2 * 1024 * 1024:
-                raise ValueError("A public website file is too large.")
-            return data
+            return fetch_public(firebase.NoRedirect, path, digest)
         result = inspect(client, base, target, snapshot=firebase.snapshot, fetch=fetch)
         result.update({"baseCommit": args.base, "targetCommit": args.target})
         print(json.dumps(result, indent=2))

@@ -157,7 +157,8 @@ It rejects redirects, invalid paths, symlinks, and a public ETag that differs
 from the Firebase snapshot. The output lists the changes and deletions.
 
 This inspection is not a lock. A writer can change the site after it finishes.
-The release staging and promotion workflow does not yet consume its result.
+Release staging uses the same comparison when given site source commits. It
+stages the intended changes with the appcast. Promotion is not implemented.
 Route all site writers through an enforced shared coordinator before relying on
 this check for publication.
 
@@ -170,8 +171,11 @@ Firebase access token in `DRAFTLY_FIREBASE_ACCESS_TOKEN`; do not print or save
 the token. Supply the expected live version and the app's public key to stage.
 
 The staging check verifies the feed signature and version history, reads all
-live file hashes and the live configuration, and preserves them in the staged
-version. It rejects missing files, changed historical release items, unsafe
+live file hashes and the live configuration, and preserves files outside the
+intended website changes. With `--site-base` and `--site-target`, it checks the
+committed website changes against the live files and stages them with the feed.
+The target must be the checked-out commit. The journal retains compressed
+website payloads and recovery checks them against the same source. It rejects missing files, changed historical release items, unsafe
 upload URLs, and a live version that changes during staging. It also checks the
 public appcast ETag against the live Firebase file hash.
 
@@ -211,8 +215,9 @@ The optional staging job is disabled by default. It runs only when
 `DRAFTLY_RELEASE_STAGING_ENABLED` is `true` and the candidate job succeeds.
 It requires the signed candidate, `docs/releases/vVERSION.txt`, the Sparkle
 key, and Firebase Workload Identity Federation. Set
-`DRAFTLY_GCP_WIF_PROVIDER` and `DRAFTLY_GCP_SERVICE_ACCOUNT` as repository
-variables. Store `DRAFTLY_SPARKLE_PRIVATE_KEY` as a secret. Restrict the Google
+`DRAFTLY_GCP_WIF_PROVIDER`, `DRAFTLY_GCP_SERVICE_ACCOUNT`, and
+`DRAFTLY_SITE_BASE_COMMIT` as repository variables. The site base must identify
+the committed site source last deployed to the live site. Store `DRAFTLY_SPARKLE_PRIVATE_KEY` as a secret. Restrict the Google
 identity to this repository and the trusted release workflow. Do not enable the
 job until its effective Firebase permissions have been tested. Firebase lists
 `firebasehosting.sites.update` for changes to Hosting resources, but its public
@@ -221,8 +226,9 @@ that can stage may also be able to publish. If so, use a controlled mediator or
 another enforced boundary before granting access. See the [Firebase Hosting
 permission reference](https://docs.cloud.google.com/iam/docs/roles-permissions/firebasehosting).
 
-The job verifies the candidate, signs the feed, stages a Firebase version,
-saves its journal and receipt, and prepares a GitHub draft. It does not publish
+The job verifies the candidate, signs the feed, stages a Firebase version with
+the checked website changes, saves its journal and receipt, and prepares a
+GitHub draft. It does not publish
 the release or promote the Firebase version. Recovery downloads the staging
 artifact from the same run as the original candidate. It requires the journal;
 an absent journal or an unknown create outcome stops for inspection. Artifacts

@@ -3646,3 +3646,20 @@ Against the real site, base a955f00 and target 7ece377 produced two changes:
 planner tests, all 199 Python tests, three website tests, and the matrix check
 passed. This check does not lock the site and is not connected to staging or
 promotion. Shared writer coordination remains required.
+
+Firebase staging can now combine the signed feed and checked website changes
+in one finalized version. The website comparison rejects independent changes,
+preserves unrelated live files, and records compressed payloads for recovery.
+The GitHub publication check verifies those payloads against the candidate's
+committed website source. Missing website checkpoints stop publication. The
+staging workflow requires the last deployed site commit as configuration.
+All 209 Python tests, three Node tests, and the matrix check passed.
+
+A real Firebase rehearsal staged a neutral QA-signed feed with `/index.html`
+and `/release.mjs` as version `b776fdaeffe7f15a`. Recovery reused the saved
+payloads, the site verifier passed, and before and after live snapshots
+matched version `1b4a91b81d597449`, 26 files, and configuration. The staging
+CLI also recovered that version. This used local Google credentials and QA
+keys. It did not publish GitHub assets or promote Firebase. Shared writer
+coordination, protected credentials, production validation, and CI remain
+required before enabling publication.
