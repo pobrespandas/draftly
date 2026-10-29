@@ -3846,3 +3846,9 @@ sidebar had a 240-point container and 232-point content. The same diagnostic
 on macOS 27 reported equal widths. This establishes an AppKit geometry
 difference in this setup; it does not by itself resolve window expansion or
 validate a production fix.
+
+A candidate panel change measures divider positions and saved widths in split
+container coordinates. AppKit creates those containers when the view loads, so
+initial constraints are installed at that point. The local panel suite passed
+all 15 cases, and the local app build passed. macOS 26 and real-window behavior
+remain unverified. Do not treat this candidate as release acceptance.

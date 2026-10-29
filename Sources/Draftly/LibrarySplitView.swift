@@ -43,7 +43,6 @@ final class LibrarySplitController: NSSplitViewController {
         splitView.setFrameSize(NSSize(width: 1200, height: 700))
         let minimums: [CGFloat] = [160, 220, 240, 200]
         let maximums: [CGFloat] = [320, 400, 0, 400]
-        let widths: [CGFloat] = [240, 280, 0, 260]
         for (index, host) in hosts.enumerated() {
             host.sizingOptions = []
             host.sceneBridgingOptions = []
@@ -58,15 +57,19 @@ final class LibrarySplitController: NSSplitViewController {
             item.collapseBehavior = .preferResizingSiblingsWithFixedSplitView
             item.isCollapsed = index == 0 ? !model.showFilters : index == 1 ? !model.showDraftList : index == 3 ? !model.showActions : false
             addSplitViewItem(item)
-            if index != 2 && !item.isCollapsed {
-                let width = host.view.widthAnchor.constraint(equalToConstant: widths[index])
-                width.priority = .defaultHigh
-                width.isActive = true
-                initialWidthConstraints.append(width)
-            }
         }
     }
     required init?(coder: NSCoder) { fatalError("Use init(model:panels:).") }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        for index in splitViewItems.indices where index != 2 && !splitViewItems[index].isCollapsed {
+            let width = splitView.arrangedSubviews[index].widthAnchor.constraint(equalToConstant: panelWidths[index])
+            width.priority = .defaultHigh
+            width.isActive = true
+            initialWidthConstraints.append(width)
+        }
+    }
 
     override func viewDidAppear() {
         super.viewDidAppear()
@@ -120,7 +123,7 @@ final class LibrarySplitController: NSSplitViewController {
             pendingDivider = nil
             return position
         }
-        pendingDivider = (dividerIndex, splitViewItems.map { $0.viewController.view.frame.width })
+        pendingDivider = (dividerIndex, splitView.arrangedSubviews.map { $0.frame.width })
         return position
     }
 
@@ -135,13 +138,13 @@ final class LibrarySplitController: NSSplitViewController {
             return
         }
         let affected = [pending.index, pending.index + 1].filter { splitViewItems.indices.contains($0) && $0 != 2 }
-        guard affected.contains(where: { abs(splitViewItems[$0].viewController.view.frame.width - pending.widths[$0]) > 0.5 }) else { return }
+        guard affected.contains(where: { abs(splitView.arrangedSubviews[$0].frame.width - pending.widths[$0]) > 0.5 }) else { return }
         pendingDivider = nil
         // Record native results only for the panels next to the moved divider.
         for index in affected {
             let item = splitViewItems[index]
             guard !item.isCollapsed else { continue }
-            let width = item.viewController.view.frame.width
+            let width = splitView.arrangedSubviews[index].frame.width
             if width.isFinite && width > 0 { panelWidths[index] = width }
         }
     }
@@ -187,7 +190,7 @@ final class LibrarySplitController: NSSplitViewController {
                 restoredMinimumThickness[index] = item.minimumThickness
                 // Set the native expansion target before animation starts.
                 item.minimumThickness = target
-                let width = item.viewController.view.widthAnchor.constraint(equalToConstant: target)
+                let width = splitView.arrangedSubviews[index].widthAnchor.constraint(equalToConstant: target)
                 width.priority = .defaultHigh
                 width.isActive = true
                 restoredWidthConstraints.append(width)
@@ -221,7 +224,7 @@ final class LibrarySplitController: NSSplitViewController {
         defer { applyingPanelPositions = wasApplying }
         // Keep the other fixed panels in place while AppKit moves each divider.
         let widthsToHold = splitViewItems.indices.filter { $0 != 2 && !collapsed[$0] }.map { index in
-            let constraint = splitViewItems[index].viewController.view.widthAnchor.constraint(equalToConstant: widths[index])
+            let constraint = splitView.arrangedSubviews[index].widthAnchor.constraint(equalToConstant: widths[index])
             constraint.priority = .defaultHigh
             return constraint
         }

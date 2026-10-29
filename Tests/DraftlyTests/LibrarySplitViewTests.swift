@@ -90,7 +90,8 @@ struct LibrarySplitViewTests {
             model.showActions = true
             let panels = (0..<4).map { _ in AnyView(Color.clear) }
             let controller = LibrarySplitController(model: model, panels: panels)
-            let allConstraints: [NSLayoutConstraint] = controller.splitViewItems.flatMap { $0.viewController.view.constraints }
+            _ = controller.view
+            let allConstraints: [NSLayoutConstraint] = controller.splitView.arrangedSubviews.flatMap(\.constraints)
             let constraints = allConstraints.filter { constraint in
                 constraint.firstAttribute == .width && constraint.secondItem == nil
                     && constraint.priority == NSLayoutConstraint.Priority.defaultHigh && constraint.isActive
@@ -150,7 +151,8 @@ struct LibrarySplitViewTests {
             model.setFiltersVisible(true)
             model.showActions = true
             let controller = LibrarySplitController(model: model, panels: (0..<4).map { _ in AnyView(Color.clear) })
-            let allConstraints: [NSLayoutConstraint] = controller.splitViewItems.flatMap { $0.viewController.view.constraints }
+            _ = controller.view
+            let allConstraints: [NSLayoutConstraint] = controller.splitView.arrangedSubviews.flatMap(\.constraints)
             let constraints = allConstraints.filter {
                 $0.firstAttribute == .width && $0.secondItem == nil && $0.priority == NSLayoutConstraint.Priority.defaultHigh && $0.isActive
             }
@@ -183,7 +185,8 @@ struct LibrarySplitViewTests {
             model.setFiltersVisible(true)
             model.showActions = true
             let controller = LibrarySplitController(model: model, panels: (0..<4).map { _ in AnyView(Color.clear) })
-            let allConstraints: [NSLayoutConstraint] = controller.splitViewItems.flatMap { $0.viewController.view.constraints }
+            _ = controller.view
+            let allConstraints: [NSLayoutConstraint] = controller.splitView.arrangedSubviews.flatMap(\.constraints)
             let initial = allConstraints.filter {
                 $0.firstAttribute == .width && $0.secondItem == nil && $0.priority == NSLayoutConstraint.Priority.defaultHigh && $0.isActive
             }
@@ -258,13 +261,13 @@ struct LibrarySplitViewTests {
         let filterToggle = try #require(window.toolbar?.items.first { $0.itemIdentifier.rawValue == "filters" })
         #expect(filterToggle.isEnabled)
         let originalControllers = controller.splitViewItems.map(\.viewController)
-        let widths = controller.splitViewItems.prefix(2).map { $0.viewController.view.frame.width }
+        let widths = controller.splitView.arrangedSubviews.prefix(2).map { $0.frame.width }
         #expect(abs(widths[0] - 240) < 1, Comment(rawValue: "Panel widths: \(widths); window: \(window.frame); content min: \(window.contentMinSize); screen: \(window.screen?.visibleFrame ?? .zero); split: \(controller.splitView.frame); arranged frames: \(controller.splitView.arrangedSubviews.map(\.frame)); divider: \(controller.splitView.dividerThickness)"))
         #expect(abs(widths[1] - 280) < 1)
-        #expect(controller.splitViewItems[2].viewController.view.frame.width >= 240)
+        #expect(controller.splitView.arrangedSubviews[2].frame.width >= 240)
         controller.splitView.setPosition(260, ofDividerAt: 0)
         controller.view.layoutSubtreeIfNeeded()
-        let resizedWidths = controller.splitViewItems.prefix(2).map { $0.viewController.view.frame.width }
+        let resizedWidths = controller.splitView.arrangedSubviews.prefix(2).map { $0.frame.width }
         #expect(abs(resizedWidths[0] - 260) < 1, Comment(rawValue: "Resized panel widths: \(resizedWidths); split: \(controller.splitView.frame); divider: \(controller.splitView.dividerThickness)"))
 
         model.setDraftListVisible(false)
@@ -279,7 +282,7 @@ struct LibrarySplitViewTests {
         await withCheckedContinuation { continuation in DispatchQueue.main.async { continuation.resume() } }
         controller.view.layoutSubtreeIfNeeded()
         for index in 0..<2 {
-            #expect(abs(controller.splitViewItems[index].viewController.view.frame.width - resizedWidths[index]) <= 1, "Panel \(index) must restore width \(resizedWidths[index]) within one point.")
+            #expect(abs(controller.splitView.arrangedSubviews[index].frame.width - resizedWidths[index]) <= 1, "Panel \(index) must restore width \(resizedWidths[index]) within one point.")
         }
         for (item, original) in zip(controller.splitViewItems, originalControllers) {
             #expect(item.viewController === original)
@@ -294,7 +297,7 @@ struct LibrarySplitViewTests {
         controller.view.layoutSubtreeIfNeeded()
         #expect(!controller.splitViewItems[0].isCollapsed && !controller.splitViewItems[1].isCollapsed)
         for index in 0..<2 {
-            #expect(abs(controller.splitViewItems[index].viewController.view.frame.width - resizedWidths[index]) <= 1)
+            #expect(abs(controller.splitView.arrangedSubviews[index].frame.width - resizedWidths[index]) <= 1)
         }
     }
 
@@ -311,9 +314,9 @@ struct LibrarySplitViewTests {
         controller.viewDidAppear()
         await settleLayout(controller)
         #expect(abs(controller.splitView.bounds.width - 1115) <= 1)
-        #expect(abs(controller.splitViewItems[0].viewController.view.frame.width - 240) <= 1)
-        #expect(abs(controller.splitViewItems[1].viewController.view.frame.width - 280) <= 1)
-        #expect(abs(controller.splitViewItems[3].viewController.view.frame.width - 260) <= 1)
+        #expect(abs(controller.splitView.arrangedSubviews[0].frame.width - 240) <= 1)
+        #expect(abs(controller.splitView.arrangedSubviews[1].frame.width - 280) <= 1)
+        #expect(abs(controller.splitView.arrangedSubviews[3].frame.width - 260) <= 1)
     }
 
     @Test func actionsOpensAtItsDefaultWidthWithoutACompletionResize() async throws {
@@ -333,14 +336,14 @@ struct LibrarySplitViewTests {
         controller.update(panels: panels)
         window.layoutIfNeeded()
         controller.view.layoutSubtreeIfNeeded()
-        let beforeCompletion = controller.splitViewItems[3].viewController.view.frame.width
+        let beforeCompletion = controller.splitView.arrangedSubviews[3].frame.width
         #expect(abs(controller.splitView.bounds.width - 1115) <= 1)
         #expect(abs(beforeCompletion - 260) <= 1, "Actions width: \(beforeCompletion), split width: \(controller.splitView.bounds.width)")
         await settleLayout(controller)
-        #expect(abs(controller.splitViewItems[3].viewController.view.frame.width - beforeCompletion) <= 1)
+        #expect(abs(controller.splitView.arrangedSubviews[3].frame.width - beforeCompletion) <= 1)
         #expect(controller.splitViewItems[3].minimumThickness == 200)
-        #expect(abs(controller.splitViewItems[0].viewController.view.frame.width - 240) <= 1)
-        #expect(abs(controller.splitViewItems[1].viewController.view.frame.width - 280) <= 1)
+        #expect(abs(controller.splitView.arrangedSubviews[0].frame.width - 240) <= 1)
+        #expect(abs(controller.splitView.arrangedSubviews[1].frame.width - 280) <= 1)
     }
 
     @Test func allUserPanelWidthsSurviveHideAndShowWithoutACompletionResize() async throws {
@@ -363,7 +366,7 @@ struct LibrarySplitViewTests {
         controller.splitView.setPosition(controller.splitView.bounds.width - 310 - controller.splitView.dividerThickness, ofDividerAt: 2)
         controller.view.layoutSubtreeIfNeeded()
         let indices = [0, 1, 3]
-        let chosen = indices.map { controller.splitViewItems[$0].viewController.view.frame.width }
+        let chosen = indices.map { controller.splitView.arrangedSubviews[$0].frame.width }
         #expect(abs(chosen[2] - 310) <= 1)
         #expect(chosen[0] >= 160 && chosen[1] >= 220)
         model.setDraftListVisible(false); model.showActions = false
@@ -374,12 +377,12 @@ struct LibrarySplitViewTests {
         controller.update(panels: panels)
         window.layoutIfNeeded()
         controller.view.layoutSubtreeIfNeeded()
-        let beforeCompletion = indices.map { controller.splitViewItems[$0].viewController.view.frame.width }
+        let beforeCompletion = indices.map { controller.splitView.arrangedSubviews[$0].frame.width }
         for (actual, expected) in zip(beforeCompletion, chosen) { #expect(abs(actual - expected) <= 1, "Restored width: \(actual), chosen native width: \(expected)") }
         await settleLayout(controller)
-        let afterCompletion = indices.map { controller.splitViewItems[$0].viewController.view.frame.width }
+        let afterCompletion = indices.map { controller.splitView.arrangedSubviews[$0].frame.width }
         for (actual, expected) in zip(afterCompletion, beforeCompletion) { #expect(abs(actual - expected) <= 1) }
-        #expect(controller.splitViewItems[2].viewController.view.frame.width >= 240)
+        #expect(controller.splitView.arrangedSubviews[2].frame.width >= 240)
         #expect(controller.splitViewItems[0].minimumThickness == 160)
         #expect(controller.splitViewItems[1].minimumThickness == 220)
         #expect(controller.splitViewItems[3].minimumThickness == 200)
@@ -409,7 +412,7 @@ struct LibrarySplitViewTests {
         controller.view.layoutSubtreeIfNeeded()
         controller.splitView.setPosition(255 + 300 + controller.splitView.dividerThickness, ofDividerAt: 1)
         controller.view.layoutSubtreeIfNeeded()
-        let chosen = controller.splitViewItems.prefix(2).map { $0.viewController.view.frame.width }
+        let chosen = controller.splitView.arrangedSubviews.prefix(2).map { $0.frame.width }
         #expect(abs(chosen[0] - 255) <= 1 && abs(chosen[1] - 300) <= 1)
 
         window.setContentSize(NSSize(width: 850, height: 600))
@@ -420,17 +423,17 @@ struct LibrarySplitViewTests {
         await settleLayout(controller)
         #expect(abs(controller.splitView.bounds.width - 850) <= 1)
         #expect(!controller.splitViewItems[3].isCollapsed)
-        #expect(controller.splitViewItems[2].viewController.view.frame.width >= 240)
+        #expect(controller.splitView.arrangedSubviews[2].frame.width >= 240)
 
         window.setContentSize(NSSize(width: 1200, height: 800))
         controller.view.setFrameSize(NSSize(width: 1200, height: 800))
         await settleLayout(controller)
         #expect(abs(controller.splitView.bounds.width - 1200) <= 1)
         for index in 0..<2 {
-            #expect(abs(controller.splitViewItems[index].viewController.view.frame.width - chosen[index]) <= 1,
+            #expect(abs(controller.splitView.arrangedSubviews[index].frame.width - chosen[index]) <= 1,
                 "Panel \(index) must recover its chosen width after temporary compression.")
         }
-        #expect(abs(controller.splitViewItems[3].viewController.view.frame.width - 260) <= 1)
+        #expect(abs(controller.splitView.arrangedSubviews[3].frame.width - 260) <= 1)
 
         model.showActions = false
         controller.update(panels: panels)
@@ -439,15 +442,15 @@ struct LibrarySplitViewTests {
         controller.update(panels: panels)
         await settleLayout(controller)
         for index in 0..<2 {
-            #expect(abs(controller.splitViewItems[index].viewController.view.frame.width - chosen[index]) <= 1)
+            #expect(abs(controller.splitView.arrangedSubviews[index].frame.width - chosen[index]) <= 1)
         }
-        #expect(abs(controller.splitViewItems[3].viewController.view.frame.width - 260) <= 1)
+        #expect(abs(controller.splitView.arrangedSubviews[3].frame.width - 260) <= 1)
 
-        controller.splitView.setPosition(controller.splitViewItems[0].viewController.view.frame.width + controller.splitView.dividerThickness + 320, ofDividerAt: 1)
+        controller.splitView.setPosition(controller.splitView.arrangedSubviews[0].frame.width + controller.splitView.dividerThickness + 320, ofDividerAt: 1)
         controller.view.layoutSubtreeIfNeeded()
         controller.splitView.setPosition(controller.splitView.bounds.width - 290 - controller.splitView.dividerThickness, ofDividerAt: 2)
         controller.view.layoutSubtreeIfNeeded()
-        let updated = [0, 1, 3].map { controller.splitViewItems[$0].viewController.view.frame.width }
+        let updated = [0, 1, 3].map { controller.splitView.arrangedSubviews[$0].frame.width }
         #expect(abs(updated[0] - chosen[0]) <= 1 && abs(updated[1] - 320) <= 1 && abs(updated[2] - 290) <= 1)
         window.setContentSize(NSSize(width: 850, height: 600))
         controller.view.setFrameSize(NSSize(width: 850, height: 600))
@@ -462,7 +465,7 @@ struct LibrarySplitViewTests {
         controller.view.setFrameSize(NSSize(width: 1200, height: 800))
         await settleLayout(controller)
         for (index, width) in zip([0, 1, 3], updated) {
-            #expect(abs(controller.splitViewItems[index].viewController.view.frame.width - width) <= 1,
+            #expect(abs(controller.splitView.arrangedSubviews[index].frame.width - width) <= 1,
                 "A new divider position must survive another narrow window and panel toggle.")
         }
         #expect(model.editor.noteID == note.id && model.editor.content == note.content)
@@ -492,7 +495,7 @@ struct LibrarySplitViewTests {
         controller.view.layoutSubtreeIfNeeded()
         controller.splitView.setPosition(1200 - 310 - controller.splitView.dividerThickness, ofDividerAt: 2)
         controller.view.layoutSubtreeIfNeeded()
-        var expected = controller.splitViewItems.map { $0.viewController.view.frame.width }
+        var expected = controller.splitView.arrangedSubviews.map { $0.frame.width }
         window.setContentSize(NSSize(width: 850, height: 600))
         controller.view.setFrameSize(NSSize(width: 850, height: 600))
         await settleLayout(controller)
@@ -501,13 +504,13 @@ struct LibrarySplitViewTests {
         controller.splitView.setPosition(currentPosition + (divider == 1 ? -2 : 2), ofDividerAt: divider)
         controller.view.layoutSubtreeIfNeeded()
         for index in [divider, divider + 1] where index != 2 {
-            expected[index] = controller.splitViewItems[index].viewController.view.frame.width
+            expected[index] = controller.splitView.arrangedSubviews[index].frame.width
         }
         window.setContentSize(NSSize(width: 1200, height: 800))
         controller.view.setFrameSize(NSSize(width: 1200, height: 800))
         await settleLayout(controller)
         for index in [0, 1, 3] {
-            #expect(abs(controller.splitViewItems[index].viewController.view.frame.width - expected[index]) <= 1,
+            #expect(abs(controller.splitView.arrangedSubviews[index].frame.width - expected[index]) <= 1,
                 "Divider \(divider) must preserve the preferences of unrelated panel \(index).")
         }
     }
@@ -536,7 +539,7 @@ struct LibrarySplitViewTests {
         defer { window.contentViewController = nil }
         controller.viewDidAppear()
         await settleLayout(controller)
-        let chosen = controller.splitViewItems.prefix(2).map { $0.viewController.view.frame.width }
+        let chosen = controller.splitView.arrangedSubviews.prefix(2).map { $0.frame.width }
         #expect(abs(chosen[0] - 240) <= 1 && abs(chosen[1] - 280) <= 1)
         window.setContentSize(NSSize(width: 850, height: 600))
         controller.view.setFrameSize(NSSize(width: 850, height: 600))
@@ -548,7 +551,7 @@ struct LibrarySplitViewTests {
         controller.view.setFrameSize(NSSize(width: 1200, height: 800))
         await settleLayout(controller)
         for index in 0..<2 {
-            #expect(abs(controller.splitViewItems[index].viewController.view.frame.width - chosen[index]) <= 1,
+            #expect(abs(controller.splitView.arrangedSubviews[index].frame.width - chosen[index]) <= 1,
                 "Real panel \(index) must recover its width after temporary compression.")
         }
     }
