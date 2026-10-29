@@ -66,8 +66,9 @@ Do not put these values in the repository or job logs.
 The release signing job requires the macOS 27 SDK and Swift 6.4 or later.
 Older SDK builds cannot include the macOS 27 Private Cloud Compute integration.
 The macOS 26 hosted runner was observed using Xcode 26.6. The candidate job
-selects GitHub's `xcode-27` preview image instead. This image has not yet been
-validated for a real signed candidate. The rehearsal continues on macOS 26.
+selects GitHub's `xcode-27` preview image instead. GitHub diagnostic run
+40932376170 passed the toolchain gate with Xcode 27.1 and Swift 6.4. The image
+has not yet produced a real signed candidate. The rehearsal continues on macOS 26.
 See the [GitHub runner image list](https://github.com/actions/runner-images#available-images).
 The manual candidate packager uses the same toolchain check before building.
 
