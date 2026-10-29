@@ -3822,3 +3822,9 @@ Automated workflow policy tests now check the release environment, job
 prerequisites and enablement gates. All 237 Python tests passed locally. These
 static tests do not establish GitHub environment enforcement or protect the
 workflow against changes by an authorized writer.
+
+The saved Apple Passwords entry for the encrypted Developer ID PKCS#12 matched
+the local archive byte for byte. The Mac clipboard was cleared. A separate
+entry for the archive password and recovery from another device remain pending.
+Hosted Toolchain27 run 40961973061 passed; it does not validate macOS 26 or
+public release.
