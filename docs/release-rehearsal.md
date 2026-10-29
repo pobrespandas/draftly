@@ -116,3 +116,30 @@ the previous live version. Before adding promotion, route every site writer
 through a shared serialization mechanism and verify the live version and
 public release assets. The staged version alone is not safe publication or
 proof of a working update.
+
+## Stage a GitHub draft
+
+`scripts/stage-github-release.py` can create a draft release and upload the
+candidate ZIP, checksum, candidate metadata, and signed appcast. It does not
+publish the draft. It requires the candidate, appcast, and the same release
+notes used for the appcast. The caller supplies the Sparkle signing seed in
+`DRAFTLY_SPARKLE_PRIVATE_KEY` and authenticates `gh` with release write access.
+
+```sh
+python3 scripts/stage-github-release.py --candidate .build/release-candidates/example \
+  --appcast .build/release-appcasts/example --notes release-notes.txt
+```
+
+The command verifies the ZIP paths, extracts into a temporary directory, and
+checks Developer ID signing, production entitlements, the stapled ticket, and
+Gatekeeper. It checks the signed feed and archive signature, then confirms the
+tag and current remote main point to the candidate source. It checks them
+again before creating or uploading. It checks asset size and GitHub's SHA-256
+digest after upload. It does not overwrite an existing asset. After an
+interruption it accepts matching draft assets and uploads only missing ones;
+it stops if an asset, release title, or notes differ.
+
+This command has been tested with a fake GitHub client and disposable keys.
+No real candidate has passed its signing checks. Do not publish a draft until
+public asset download, coordinated Firebase promotion, update installation,
+and CloudKit Production have been verified independently.

@@ -233,6 +233,10 @@ without promoting a version. The live snapshot was inspected read-only; staging
 has only been exercised with a fake API. Promotion must coordinate all site
 writers because Firebase Hosting does not document an atomic live-version
 precondition.
+A GitHub draft staging tool can verify a local signed candidate and resume an
+interrupted upload without replacing assets. It does not publish. GitHub reads
+were checked against the repository, but candidate validation and uploads have
+only been exercised with fake services.
 
 The library uses the existing generic Core Data schema. Backups include shared
 themes and action execution history with compatibility checks. Development
