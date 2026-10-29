@@ -3345,3 +3345,10 @@ Those assertions now accept one point inclusively, within the agreed three-point
 visual tolerance and consistent with the other panel checks. The ten focused
 panel tests passed locally. A new hosted full run is required. The larger
 macOS 26 fixture and panel geometry differences remain unresolved.
+
+Hosted run 40933403504 showed a 240-point native sidebar container with a
+232-point content view on macOS 26. The 850-point fixture had resized only the
+controller view, while its window content remained 1037 points wide. The test
+now resizes the window and keeps the existing width assertions. Ten focused
+panel tests passed locally; hosted validation and the sidebar geometry contract
+remain pending.

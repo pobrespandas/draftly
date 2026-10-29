@@ -32,7 +32,8 @@ struct LibrarySplitViewTests {
             window.contentViewController = controller
             controller.viewDidAppear()
             await withCheckedContinuation { continuation in DispatchQueue.main.async { continuation.resume() } }
-            controller.view.setFrameSize(NSSize(width: width, height: 600))
+            window.setContentSize(NSSize(width: width, height: 600))
+            window.layoutIfNeeded()
             controller.view.layoutSubtreeIfNeeded()
             let frames = controller.splitViewItems.map { $0.viewController.view.frame }
             let diagnostic = Comment(rawValue: "Requested width: \(width); window: \(window.frame); content: \(window.contentView?.frame ?? .zero); content min: \(window.contentMinSize); screen: \(window.screen?.visibleFrame ?? .zero); split: \(controller.splitView.frame); panel frames: \(frames); arranged frames: \(controller.splitView.arrangedSubviews.map(\.frame)); divider: \(controller.splitView.dividerThickness)")
