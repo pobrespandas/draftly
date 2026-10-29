@@ -4,6 +4,7 @@ import DraftlyCore
 @MainActor struct EditorSyntaxStyler {
     let fontName: String
     let fontSize: Double
+    var monospaceFontName = "System Monospace"
     let lineSpacing: Double
     let markdown: Bool
     let lineHeightMultiple: Double
@@ -27,7 +28,7 @@ import DraftlyCore
         var baseAttributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: foreground, .paragraphStyle: paragraph]
         if var style = theme?.scopeStyle(named: "text.normal") {
             style.foreground = nil
-            baseAttributes.merge(ThemeTextAttributes.make(style, currentFont: font, baseFont: baseFont)) { _, new in new }
+            baseAttributes.merge(ThemeTextAttributes.make(style, currentFont: font, baseFont: baseFont, monospaceFontName: monospaceFontName)) { _, new in new }
             font = baseAttributes[.font] as? NSFont ?? font
         }
         storage.beginEditing()
@@ -66,9 +67,9 @@ import DraftlyCore
                 for scope in scopeList.split(separator: ",").map({ $0.trimmingCharacters(in: .whitespaces) }) {
                     var attributes: [NSAttributedString.Key: Any] = [:]
                     var currentFont = storage.attribute(.font, at: range.location, effectiveRange: nil) as? NSFont ?? font
-                    if scope.contains("monospace"), !currentFont.isFixedPitch {
+                    if scope.contains("monospace"), !currentFont.isFixedPitch || monospaceFontName != "System Monospace" {
                         let traits = NSFontManager.shared.traits(of: currentFont).intersection([.boldFontMask, .italicFontMask])
-                        currentFont = NSFontManager.shared.convert(NSFont.monospacedSystemFont(ofSize: currentFont.pointSize, weight: .regular), toHaveTrait: traits)
+                        currentFont = NSFontManager.shared.convert(ThemeTextAttributes.monospaceFont(name: monospaceFontName, size: currentFont.pointSize), toHaveTrait: traits)
                     }
                     if scope.contains("heading"), foregroundAllowed { attributes[.foregroundColor] = heading }
                     if scope.contains("bold") { currentFont = NSFontManager.shared.convert(currentFont, toHaveTrait: .boldFontMask) }
@@ -109,7 +110,7 @@ import DraftlyCore
                 if !foregroundAllowed { style.foreground = nil }
                 storage.enumerateAttribute(.font, in: range) { value, run, _ in
                     let current = value as? NSFont ?? font
-                    storage.addAttributes(ThemeTextAttributes.make(style, currentFont: current, baseFont: baseFont), range: run)
+                    storage.addAttributes(ThemeTextAttributes.make(style, currentFont: current, baseFont: baseFont, monospaceFontName: monospaceFontName), range: run)
                 }
             }
             if markdown {
@@ -146,7 +147,7 @@ import DraftlyCore
         }
         view.linkTextAttributes = defaultLinkAttributes
         if linksEnabled, let activeScope, let style = theme?.scopeStyle(named: activeScope) {
-            let attributes = ThemeTextAttributes.make(style, currentFont: font, baseFont: baseFont)
+            let attributes = ThemeTextAttributes.make(style, currentFont: font, baseFont: baseFont, monospaceFontName: monospaceFontName)
             var presentation = defaultLinkAttributes ?? [:]
             for key in [NSAttributedString.Key.foregroundColor, .backgroundColor, .underlineStyle, .strikethroughStyle] {
                 if let value = attributes[key] { presentation[key] = value }
@@ -158,12 +159,12 @@ import DraftlyCore
                 var metrics: [NSAttributedString.Key: Any] = [.font: font, .paragraphStyle: paragraph]
                 for scope in indentation.scope.split(separator: ",").map({ $0.trimmingCharacters(in: .whitespaces) }) {
                     var metricFont = metrics[.font] as? NSFont ?? font
-                    if scope.contains("monospace"), !metricFont.isFixedPitch { metricFont = NSFont.monospacedSystemFont(ofSize: metricFont.pointSize, weight: .regular) }
+                    if scope.contains("monospace"), !metricFont.isFixedPitch || monospaceFontName != "System Monospace" { metricFont = ThemeTextAttributes.monospaceFont(name: monospaceFontName, size: metricFont.pointSize) }
                     if scope.contains("bold") { metricFont = NSFontManager.shared.convert(metricFont, toHaveTrait: .boldFontMask) }
                     if scope.contains("italic") { metricFont = NSFontManager.shared.convert(metricFont, toHaveTrait: .italicFontMask) }
                     metrics[.font] = metricFont
                     if let style = theme?.scopeStyle(named: scope) {
-                        metrics.merge(ThemeTextAttributes.make(style, currentFont: metrics[.font] as? NSFont ?? font, baseFont: baseFont)) { _, new in new }
+                        metrics.merge(ThemeTextAttributes.make(style, currentFont: metrics[.font] as? NSFont ?? font, baseFont: baseFont, monospaceFontName: monospaceFontName)) { _, new in new }
                     }
                 }
                 let prefix = (view.string as NSString).substring(with: indentation.prefix)

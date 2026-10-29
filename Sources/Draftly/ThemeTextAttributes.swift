@@ -2,15 +2,20 @@ import AppKit
 import DraftlyCore
 
 @MainActor enum ThemeTextAttributes {
-    static func make(_ style: ThemeScopeStyle, currentFont: NSFont, baseFont: NSFont) -> [NSAttributedString.Key: Any] {
+    static func monospaceFont(name: String, size: CGFloat) -> NSFont {
+        if name != "System Monospace", let font = NSFont(name: name, size: size) { return font }
+        return NSFont.monospacedSystemFont(ofSize: size, weight: .regular)
+    }
+
+    static func make(_ style: ThemeScopeStyle, currentFont: NSFont, baseFont: NSFont, monospaceFontName: String = "System Monospace") -> [NSAttributedString.Key: Any] {
         var attributes: [NSAttributedString.Key: Any] = [:]
         if let value = style.foreground.flatMap(EditorTheme.color) { attributes[.foregroundColor] = value }
         if let value = style.background.flatMap(EditorTheme.color) { attributes[.backgroundColor] = value }
         var font = currentFont
         if let styles = style.fontStyles {
             if styles.isEmpty { font = baseFont }
-            if styles.contains("monospace"), !font.isFixedPitch {
-                font = NSFont.monospacedSystemFont(ofSize: font.pointSize, weight: .regular)
+            if styles.contains("monospace"), !font.isFixedPitch || monospaceFontName != "System Monospace" {
+                font = monospaceFont(name: monospaceFontName, size: font.pointSize)
             }
             font = styles.contains("italic")
                 ? NSFontManager.shared.convert(font, toHaveTrait: .italicFontMask)

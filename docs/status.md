@@ -4,6 +4,13 @@ Updated: 26 October 2026.
 
 ## Settings and personalization in progress
 
+Monospace font selection is available globally and per syntax. Syntax and theme
+scopes and indentation metrics use the resolved choice. Core 682/app 843,
+Python 80 and matrix checks passed; focused 25 and local Debug passed after a
+small picker cleanup. Native QA verified independent selection, restart and
+reset before that cleanup. Final visual and remaining editor options are pending.
+The usual app remains unchanged.
+
 Autocorrection and Writing Tools have per-syntax System Default, Enabled and
 Disabled choices. Native QA checked persistence and Reset. Actual system
 correction and a Writing Tools session remain separate acceptance checks. The

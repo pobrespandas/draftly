@@ -9,6 +9,7 @@ struct EditorBody: View {
     @AppStorage(EditorIndentationPreferences.key) private var indentation = "{}"
     @AppStorage(SyntaxFeaturePreferences.key) private var syntaxFeatures = "{}"
     @AppStorage(EditorSyntaxFontPreferences.key) private var syntaxFonts = "{}"
+    @AppStorage("editor.monospaceFontName") private var monospaceFontName = "System Monospace"
     @AppStorage(EditorSyntaxLayoutPreferences.key) private var syntaxLayouts = "{}"
     @AppStorage(EditorTextInputPreferences.key) private var textInputOptions = "{}"
     @ObservedObject var model: WindowModel
@@ -32,7 +33,7 @@ struct EditorBody: View {
                     if presentation.canAddFile { Button("Add File Syntax…") { model.importSyntax(asFile: true) } }
                 }.padding(8)
             }
-            NativeEditor(session: session, fontName: font.name, fontSize: font.size, lineSpacing: lineSpacing, markdown: presentation.definition != nil && markdown, lineHeightMultiple: layout.lineHeightMultiple, paragraphSpacing: layout.paragraphSpacing, syntax: presentation.definition == nil ? "Plain Text" : model.currentNote?.syntax ?? "Markdown", syntaxDefinition: presentation.definition, horizontalMargin: layout.horizontalMargin, verticalMargin: layout.verticalMargin, maximumWidth: layout.maximumWidth, theme: theme, linksEnabled: model.linksEnabled, isActive: !model.showPreview, showCustomTouchBar: showCustomTouchBar, touchBarModel: model, textInput: EditorTextInputPreferences.configuration(for: model.currentNote?.syntax ?? "Markdown", encoded: textInputOptions), completionContext: { [weak model] in
+            NativeEditor(session: session, fontName: font.name, fontSize: font.size, monospaceFontName: EditorSyntaxFontPreferences.monospace(for: model.currentNote?.syntax ?? "Markdown", encoded: syntaxFonts, defaultName: monospaceFontName), lineSpacing: lineSpacing, markdown: presentation.definition != nil && markdown, lineHeightMultiple: layout.lineHeightMultiple, paragraphSpacing: layout.paragraphSpacing, syntax: presentation.definition == nil ? "Plain Text" : model.currentNote?.syntax ?? "Markdown", syntaxDefinition: presentation.definition, horizontalMargin: layout.horizontalMargin, verticalMargin: layout.verticalMargin, maximumWidth: layout.maximumWidth, theme: theme, linksEnabled: model.linksEnabled, isActive: !model.showPreview, showCustomTouchBar: showCustomTouchBar, touchBarModel: model, textInput: EditorTextInputPreferences.configuration(for: model.currentNote?.syntax ?? "Markdown", encoded: textInputOptions), completionContext: { [weak model] in
                 EditorCompletionContext(currentDraft: model?.currentNote, drafts: model?.library.notes ?? [])
             }, indentation: EditorIndentationPreferences.style(for: model.currentNote?.syntax ?? "Markdown", encoded: indentation).text) { model.contentChanged() }
         }

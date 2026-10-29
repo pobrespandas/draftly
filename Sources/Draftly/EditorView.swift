@@ -8,6 +8,7 @@ struct NativeEditor: NSViewRepresentable {
     @ObservedObject var session: EditorSession
     var fontName: String
     var fontSize: Double
+    var monospaceFontName = "System Monospace"
     var lineSpacing: Double
     var markdown: Bool
     var lineHeightMultiple = 0.0
@@ -98,12 +99,12 @@ struct NativeEditor: NSViewRepresentable {
         text.insertionPointColor = theme?.interfaceColor(named: "textCaret").flatMap(EditorTheme.color)
             ?? theme.flatMap { EditorTheme.color($0.foreground) } ?? .textColor
         let changedNote = coordinator.noteID != session.noteID || coordinator.style.isEmpty
-        let changedStyle = coordinator.theme != theme || coordinator.style != "\(fontName):\(fontSize):\(lineSpacing):\(lineHeightMultiple):\(paragraphSpacing):\(markdown):\(syntax):\(linksEnabled):\(syntaxDefinition?.source ?? ""):\(syntaxDefinition?.featureState ?? ""):\(theme?.foreground ?? ""):\(theme?.heading ?? "")"
+        let changedStyle = coordinator.theme != theme || coordinator.style != "\(fontName):\(fontSize):\(monospaceFontName):\(lineSpacing):\(lineHeightMultiple):\(paragraphSpacing):\(markdown):\(syntax):\(linksEnabled):\(syntaxDefinition?.source ?? ""):\(syntaxDefinition?.featureState ?? ""):\(theme?.foreground ?? ""):\(theme?.heading ?? "")"
         let changedText = coordinator.replaceSessionText(in: text, changedNote: changedNote)
         if changedText || changedStyle || changedNote {
             coordinator.highlight()
             coordinator.theme = theme
-            coordinator.style = "\(fontName):\(fontSize):\(lineSpacing):\(lineHeightMultiple):\(paragraphSpacing):\(markdown):\(syntax):\(linksEnabled):\(syntaxDefinition?.source ?? ""):\(syntaxDefinition?.featureState ?? ""):\(theme?.foreground ?? ""):\(theme?.heading ?? "")"
+            coordinator.style = "\(fontName):\(fontSize):\(monospaceFontName):\(lineSpacing):\(lineHeightMultiple):\(paragraphSpacing):\(markdown):\(syntax):\(linksEnabled):\(syntaxDefinition?.source ?? ""):\(syntaxDefinition?.featureState ?? ""):\(theme?.foreground ?? ""):\(theme?.heading ?? "")"
         }
         if changedText || changedNote { coordinator.invalidateDisplay() }
         if text.selectedRange() != session.safeSelection { text.setSelectedRange(session.safeSelection); text.scrollRangeToVisible(session.safeSelection) }
@@ -175,7 +176,7 @@ struct NativeEditor: NSViewRepresentable {
         func highlight() {
             guard let view = textView, view.textStorage != nil else { return }
             if !capturedLinkAttributes { defaultLinkAttributes = view.linkTextAttributes; capturedLinkAttributes = true }
-            EditorSyntaxStyler(fontName: parent.fontName, fontSize: parent.fontSize,
+            EditorSyntaxStyler(fontName: parent.fontName, fontSize: parent.fontSize, monospaceFontName: parent.monospaceFontName,
                 lineSpacing: parent.lineSpacing, markdown: parent.markdown,
                 lineHeightMultiple: parent.lineHeightMultiple, paragraphSpacing: parent.paragraphSpacing,
                 syntax: parent.syntax, syntaxDefinition: parent.syntaxDefinition,

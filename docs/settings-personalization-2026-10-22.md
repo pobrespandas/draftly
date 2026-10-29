@@ -798,3 +798,39 @@ intermittent risk and is not counted as a passing run.
 Signed Release and profile verification passed with the existing bundle, team
 and CloudKit container. The candidate remains uninstalled. The signature check
 does not verify synchronization.
+
+## 28 October — monospace font
+
+The baseline is b775ddd, retained by the annotated
+pre-settings-monospace-2026-10-28 tag. The focused baseline passed 19 methods.
+Existing local skill deletions remain separate. Editor Settings now exposes a
+local default monospace font and a per-syntax override. The existing font
+catalog supplies installed fonts, including Nerd Fonts. A missing font falls
+back to system monospace. Reset Font Settings removes the selected syntax's
+known font fields and preserves unknown fields and other syntaxes.
+
+EditorBody resolves the active syntax. NativeEditor includes the selected name
+in its style identity. Syntax scopes, theme scopes and indentation metrics use
+the same font resolver. The System Monospace choice retains the prior behavior
+for a base font that is already fixed-pitch. No shared record, public API or
+backup format changed. Focused 21 methods passed, including new checks for
+inheritance, invalid data, reset, themed code and syntax scopes with Unicode
+selection. Full and native checks follow below.
+
+Complete Core 682/app 843 passed with exact inventory/XML results. Python 80,
+the structural matrix check and local Debug passed. In isolated QA, Markdown
+accepted Menlo while TaskPaper inherited System Monospace. The Markdown choice
+persisted after normal restart; Reset restored the inherited choice. After the
+full run, a duplicate System choice was removed from the monospace picker.
+Focused 25 and a fresh local Debug build passed after that small UI change.
+Native QA was performed before the duplicate choice was removed; that final
+picker change has not been checked in use real.
+
+QA quit normally. Its exact LaunchServices entry was removed after ZIP integrity
+verification. The recoverable package is
+DraftlyRecovery/monospace-20261028-234803. QA preferences remain. The usual app
+was not updated. Full visual parity and other editor options remain pending.
+
+Signed Release and profile verification passed with the existing bundle, team
+and CloudKit container. The candidate remains uninstalled. This does not prove
+synchronization.

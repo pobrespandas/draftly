@@ -472,3 +472,13 @@ native values once when it creates the text view. Reset or a syntax without an
 override restores those values. Explicit Writing Tools enablement requests the
 system default behavior; disablement requests none. This configures the editor,
 not model installation, authorization or hardware availability.
+
+## Monospace font selection
+
+Editor Settings provides a local default monospace font and an optional override
+per syntax. EditorSyntaxFontPreferences owns the syntax override and retains
+unknown fields. EditorBody resolves the active choice. NativeEditor includes the
+choice in its style identity. ThemeTextAttributes resolves the selected font for
+syntax, theme and indentation metrics. A missing font falls back to the system
+monospace font. The system default preserves the prior fixed-pitch behavior.
+These settings do not change shared syntax records or backups.

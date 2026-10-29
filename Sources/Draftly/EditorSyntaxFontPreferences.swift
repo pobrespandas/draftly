@@ -23,9 +23,19 @@ enum EditorSyntaxFontPreferences {
         return Font(name: name, size: size)
     }
 
+    static func monospace(for syntax: String, encoded: String, defaultName: String) -> String {
+        let fields = try? fields(for: syntax, encoded: encoded)
+        if case .string(let stored) = fields?["monospaceFontName"] { return stored }
+        return defaultName
+    }
+
+    static func settingMonospace(_ name: String, for syntax: String, encoded: String) throws -> String {
+        try edit(syntax, encoded: encoded) { $0["monospaceFontName"] = .string(name) }
+    }
+
     static func hasOverrides(for syntax: String, encoded: String) -> Bool {
         guard let fields = try? fields(for: syntax, encoded: encoded) else { return false }
-        return fields["fontName"] != nil || fields["fontSize"] != nil
+        return fields["fontName"] != nil || fields["fontSize"] != nil || fields["monospaceFontName"] != nil
     }
 
     static func settingName(_ name: String, for syntax: String, encoded: String) throws -> String {
@@ -43,6 +53,7 @@ enum EditorSyntaxFontPreferences {
         try edit(syntax, encoded: encoded) {
             $0.removeValue(forKey: "fontName")
             $0.removeValue(forKey: "fontSize")
+            $0.removeValue(forKey: "monospaceFontName")
         }
     }
 

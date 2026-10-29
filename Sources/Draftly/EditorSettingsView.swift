@@ -50,6 +50,7 @@ struct EditorSettingsView: View {
     @State private var syntaxFontError: String?
     @AppStorage(EditorSyntaxFontPreferences.key) private var syntaxFonts = "{}"
     @AppStorage("editor.fontName") private var fontName = "System"
+    @AppStorage("editor.monospaceFontName") private var monospaceFontName = "System Monospace"
     @AppStorage("editor.fontSize") private var fontSize = 17.0
     @AppStorage("editor.lineSpacing") private var lineSpacing = 2.0
     private var installedFontOptions: [EditorFontOptions.Choice] {
@@ -71,10 +72,11 @@ struct EditorSettingsView: View {
         catch { syntaxFontError = error.localizedDescription }
     }
 
-    private func fontPicker(selection: Binding<String>) -> some View {
-        let additional = EditorFontOptions.additional(nerdFonts: installedFontOptions, selected: selection.wrappedValue)
-        return Picker("Font", selection: selection) {
-            ForEach(EditorFontOptions.common) { option in
+    private func fontPicker(_ label: String = "Font", selection: Binding<String>, monospace: Bool = false) -> some View {
+        let additional = EditorFontOptions.additional(nerdFonts: installedFontOptions, selected: selection.wrappedValue).filter { !monospace || $0.postScriptName != "System Monospace" }
+        return Picker(label, selection: selection) {
+            if monospace { Text("System Monospace").tag("System Monospace") }
+            ForEach(EditorFontOptions.common.filter { !monospace || $0.postScriptName != "System" }) { option in
                 Text(option.title).tag(option.postScriptName)
             }
             if !additional.isEmpty {
@@ -113,6 +115,7 @@ struct EditorSettingsView: View {
                     if navigation.section == .editing {
                         Section("Editor") {
                             fontPicker(selection: $fontName)
+                            fontPicker("Monospace", selection: $monospaceFontName, monospace: true)
                             HStack { Text("Size"); Slider(value: $fontSize, in: 11...28, step: 1); Text(EditorPreferenceDisplay.wholePointLabel(fontSize)).monospacedDigit() }
                             EditorSpacingPreferences(fontName: fontName, fontSize: fontSize, legacyLineSpacing: lineSpacing)
                         }
@@ -125,6 +128,12 @@ struct EditorSettingsView: View {
                             fontPicker(selection: Binding(get: { syntaxFont.name }, set: { name in
                                 editSyntaxFont { try EditorSyntaxFontPreferences.settingName(name, for: navigation.syntax, encoded: $0) }
                             }))
+                            fontPicker("Monospace", selection: Binding(get: {
+                                EditorSyntaxFontPreferences.monospace(for: navigation.syntax, encoded: syntaxFonts,
+                                    defaultName: monospaceFontName)
+                            }, set: { name in
+                                editSyntaxFont { try EditorSyntaxFontPreferences.settingMonospace(name, for: navigation.syntax, encoded: $0) }
+                            }), monospace: true)
                             HStack {
                                 Text("Size")
                                 Slider(value: Binding(get: { syntaxFont.size }, set: { size in

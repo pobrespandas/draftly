@@ -24,6 +24,28 @@ struct ThemeRenderingTests {
         let color = try #require((value as? NSColor)?.usingColorSpace(.sRGB))
         return String(format: "%02X%02X%02X", Int((color.redComponent * 255).rounded()), Int((color.greenComponent * 255).rounded()), Int((color.blueComponent * 255).rounded()))
     }
+    @Test func monospaceChoiceAppliesToThemeAndSyntaxWithoutChangingTextOrSelection() throws {
+        let text = "café 🐼 `code` <<mark>>"
+        let syntax = try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: [
+            "name": "Neutral monospace", "patterns": [["match": "<<mark>>",
+                "captures": ["0": ["scope": "text.monospace"]]]],
+            "navigationPatterns": [], "indentationPatterns": [], "taskMarkDefinitions": [], "linkDefinitions": []]))
+        let session = EditorSession(); session.load(Note(content: text), focusEditor: false)
+        let selection = (text as NSString).range(of: "café 🐼"); session.selection = selection
+        let editor = NativeEditor(session: session, fontName: "System", fontSize: 17,
+            monospaceFontName: "Menlo-Regular", lineSpacing: 2, markdown: true,
+            syntaxDefinition: syntax, theme: try theme(), onChange: {})
+        let coordinator = editor.makeCoordinator(); let view = NSTextView(frame: .zero)
+        view.string = text; view.setSelectedRange(selection); coordinator.textView = view; coordinator.highlight()
+        let storage = try #require(view.textStorage)
+        for fragment in ["`code`", "<<mark>>"] {
+            let range = (text as NSString).range(of: fragment)
+            let font = try #require(storage.attribute(.font, at: range.location, effectiveRange: nil) as? NSFont)
+            #expect(font.fontName == "Menlo-Regular")
+        }
+        #expect(view.string == text && view.selectedRange() == selection && session.content == text)
+    }
+
     @Test func customSyntaxLinksRespectLinkModeAndCapturedUTF16Range() throws {
         let text = "🐼 <<web:café &/>>"
         let syntax = try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: [

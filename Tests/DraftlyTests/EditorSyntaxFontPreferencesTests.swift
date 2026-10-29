@@ -33,6 +33,18 @@ struct EditorSyntaxFontPreferencesTests {
         #expect(try EditorSyntaxFontPreferences.reset(for: "HTML", encoded: sizeOnly) == "{}")
     }
 
+    @Test func monospaceInheritsAndResetPreservesUnknownFields() throws {
+        let source = #"{"Markdown":{"future":[null,"🐼"]},"TaskPaper":{"monospaceFontName":"Other"}}"#
+        #expect(EditorSyntaxFontPreferences.monospace(for: "Markdown", encoded: source, defaultName: "System Monospace") == "System Monospace")
+        let changed = try EditorSyntaxFontPreferences.settingMonospace("Menlo-Regular", for: "Markdown", encoded: source)
+        #expect(EditorSyntaxFontPreferences.monospace(for: "Markdown", encoded: changed, defaultName: "Other") == "Menlo-Regular")
+        #expect(EditorSyntaxFontPreferences.monospace(for: "TaskPaper", encoded: changed, defaultName: "Other") == "Other")
+        #expect(EditorSyntaxFontPreferences.hasOverrides(for: "Markdown", encoded: changed))
+        let reset = try EditorSyntaxFontPreferences.reset(for: "Markdown", encoded: changed)
+        #expect(try JSONDecoder().decode([String: JSONValue].self, from: Data(reset.utf8)) == JSONDecoder().decode([String: JSONValue].self, from: Data(source.utf8)))
+        #expect(throws: (any Error).self) { try EditorSyntaxFontPreferences.settingMonospace("Menlo", for: "Markdown", encoded: #"{"Markdown":[]}"#) }
+    }
+
     @Test func invalidEditsRejectBeforeChangingStoredValues() throws {
         for encoded in ["invalid", "[]", "null", #"{"Markdown":null}"#] {
             #expect(throws: (any Error).self) { try EditorSyntaxFontPreferences.settingName("Menlo-Regular", for: "Markdown", encoded: encoded) }
