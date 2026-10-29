@@ -146,7 +146,7 @@ struct LibrarySplitViewTests {
 
     @Test func temporaryPanelWidthConstraintsCanBeMeasuredWithoutShowingAWindow() async throws {
         _ = NSApplication.shared
-        for holdWidths in [false, true] {
+        for mode in ["none", "content", "container"] {
             let model = WindowModel(library: try LibraryStore(inMemory: true, seed: false))
             model.setFiltersVisible(true)
             model.showActions = true
@@ -164,11 +164,12 @@ struct LibrarySplitViewTests {
             controller.view.layoutSubtreeIfNeeded()
             let widths: [CGFloat] = [170.8, 228.1, 0, 208.1]
             let constraints = [0, 1, 3].map { index in
-                let constraint = controller.splitViewItems[index].viewController.view.widthAnchor.constraint(equalToConstant: widths[index])
+                let target = mode == "container" ? controller.splitView.arrangedSubviews[index] : controller.splitViewItems[index].viewController.view
+                let constraint = target.widthAnchor.constraint(equalToConstant: widths[index])
                 constraint.priority = .defaultHigh
                 return constraint
             }
-            if holdWidths { NSLayoutConstraint.activate(constraints) }
+            if mode != "none" { NSLayoutConstraint.activate(constraints) }
             window.layoutIfNeeded()
             controller.view.layoutSubtreeIfNeeded()
             let split = controller.splitView
@@ -178,7 +179,7 @@ struct LibrarySplitViewTests {
             controller.view.layoutSubtreeIfNeeded()
             split.setPosition(widths[0], ofDividerAt: 0)
             controller.view.layoutSubtreeIfNeeded()
-            print("Panel hold diagnostic enabled=\(holdWidths) frame=\(window.frame) content=\(window.contentView?.frame ?? .zero) split=\(split.frame) panels=\(split.arrangedSubviews.map(\.frame))")
+            print("Panel hold diagnostic mode=\(mode) frame=\(window.frame) content=\(window.contentView?.frame ?? .zero) split=\(split.frame) panels=\(split.arrangedSubviews.map(\.frame))")
             NSLayoutConstraint.deactivate(constraints)
             #expect(!window.isVisible)
             window.contentViewController = nil

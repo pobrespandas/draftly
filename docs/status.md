@@ -3742,3 +3742,8 @@ issues. In the isolated hold-width diagnostic, the window stayed at 850 points
 without temporary constraints and expanded to 857 with them. This supports an
 interaction with those constraints on macOS 26; it does not establish that they
 explain the full 1032-point expansion or the remaining failures.
+
+The macOS 26 failure log shows a sidebar container eight points wider than
+its hosted content. The offscreen hold-width diagnostic now compares holding
+the container and the content. The focused suite passed locally; the hosted
+comparison is pending. No production layout change was made.
