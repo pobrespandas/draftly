@@ -49,6 +49,13 @@ struct LibrarySplitViewTests {
             print("Native split diagnostic sidebar=\(sidebar) window=\(window.frame) container=\(container) content=\(content) divider=\(controller.splitView.dividerThickness)")
             #expect(!window.isVisible)
             #expect(container.width > 0 && content.width > 0)
+            for minimum in [240.0, 232.0] {
+                item.minimumThickness = minimum
+                controller.splitView.setPosition(240, ofDividerAt: 0)
+                window.layoutIfNeeded()
+                controller.view.layoutSubtreeIfNeeded()
+                print("Native minimum diagnostic sidebar=\(sidebar) minimum=\(minimum) window=\(window.frame) container=\(controller.splitView.arrangedSubviews[0].frame) content=\(first.view.frame)")
+            }
         }
     }
 

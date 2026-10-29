@@ -3871,3 +3871,8 @@ restoration passed, but visibility restoration and compressed window resizing
 still failed. Several restored sidebar widths differed by eight points; one
 narrow window was seven points too wide. The local pass does not establish
 macOS 26 compatibility. The candidate is not accepted for release.
+
+The offscreen native split diagnostic now also measures the effect of 240- and
+232-point minimum thickness values on a 240-point divider. The local panel
+suite passed all 15 cases. Both settings retained 240-point container and
+content widths on macOS 27. A macOS 26 comparison is pending.
