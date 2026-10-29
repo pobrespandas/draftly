@@ -214,6 +214,9 @@ still pending. App termination now waits for Actions in the active library and
 then saves open windows. Automated tests cover a pending Action and save
 failure. A real Sparkle installation during an Action remains unverified. The
 manual release rehearsal has read-only permissions and does not publish.
+The rehearsal also checks version and build ordering against GitHub releases
+and the public appcast. It requires both sources to contain the same stable
+history. It has not yet run on a GitHub-hosted runner.
 
 The library uses the existing generic Core Data schema. Backups include shared
 themes and action execution history with compatibility checks. Development

@@ -33,6 +33,10 @@ jobs:
         env:
           RELEASE_TAG: ${{ inputs.tag }}
         run: python scripts/release-preflight.py "$RELEASE_TAG"
+      - name: Check published version and build history
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/release-history.py
       - name: Install Python test dependency
         run: python -m pip install 'Pillow>=10,<13'
       - name: Run Python checks
