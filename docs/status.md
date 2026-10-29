@@ -3569,3 +3569,8 @@ assertions. The temporary comparison measured an attached window width of
 settled at a 1032-point content width after the 850-point resize request.
 Deferring activation only during attachment does not resolve the hosted
 behavior. The sidebar inset and other geometry failures remain open.
+
+The offscreen panel diagnostic now also keeps the initial width constraints
+inactive until after layout. All three scenarios settled at 850 points on
+macOS 27. The focused local suite and build passed. The macOS 26 result is
+needed before deciding whether those constraints cause the larger width.

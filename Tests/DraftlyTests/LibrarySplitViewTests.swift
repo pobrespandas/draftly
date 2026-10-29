@@ -52,7 +52,7 @@ struct LibrarySplitViewTests {
 
     @Test func initialPanelConstraintLayoutCanBeMeasuredWithoutShowingAWindow() async throws {
         _ = NSApplication.shared
-        for deferred in [false, true] {
+        for mode in ["active", "deferred", "inactive"] {
             let model = WindowModel(library: try LibraryStore(inMemory: true, seed: false))
             model.setFiltersVisible(true)
             model.showActions = true
@@ -64,19 +64,19 @@ struct LibrarySplitViewTests {
                     && constraint.priority == NSLayoutConstraint.Priority.defaultHigh && constraint.isActive
             }
             #expect(constraints.count == 3)
-            if deferred { NSLayoutConstraint.deactivate(constraints) }
+            if mode != "active" { NSLayoutConstraint.deactivate(constraints) }
             let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 850, height: 600),
                 styleMask: [.titled, .resizable], backing: .buffered, defer: false)
             let initial = window.frame
             window.contentViewController = controller
             let attached = window.frame
-            if deferred { NSLayoutConstraint.activate(constraints) }
+            if mode == "deferred" { NSLayoutConstraint.activate(constraints) }
             controller.viewDidAppear()
             await settleLayout(controller)
             window.setContentSize(NSSize(width: 850, height: 600))
             window.layoutIfNeeded()
             controller.view.layoutSubtreeIfNeeded()
-            print("Panel constraint diagnostic deferred=\(deferred) initial=\(initial) attached=\(attached) final=\(window.frame) content=\(window.contentView?.frame ?? .zero) split=\(controller.splitView.frame) panels=\(controller.splitView.arrangedSubviews.map(\.frame))")
+            print("Panel constraint diagnostic mode=\(mode) initial=\(initial) attached=\(attached) final=\(window.frame) content=\(window.contentView?.frame ?? .zero) split=\(controller.splitView.frame) panels=\(controller.splitView.arrangedSubviews.map(\.frame))")
             #expect(!window.isVisible)
             window.contentViewController = nil
         }
