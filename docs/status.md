@@ -3474,3 +3474,20 @@ and errno at an isolation failure. The default execution behavior and timeout
 are unchanged. The focused local process suites and local app build passed.
 Hosted validation is needed to identify the observed failure; this diagnostic
 does not fix it or make CI green.
+
+Hosted FullOn27 run 40942498032 reproduced the native-process test failure.
+The diagnostic observed `getpgid` returning -1 with errno 3 (ESRCH) for the
+process at the isolation check. This identifies the observation, not its cause
+or a safe fix. The run failed; release CI is not accepted.
+
+A separate HTTPS updater QA used a Firebase Hosting preview channel, two
+Developer ID-signed QA executables, a QA signing key and an isolated library.
+The 0.1.0 app found 0.2.0 and displayed its notes. After confirmation, it
+downloaded the signed archive over HTTPS, installed it and restarted. The
+installed bundle reported 0.2.0 and its executable matched the second build.
+A neutral draft reopened with its full text. The QA app closed and its specific
+LaunchServices registration was removed. The QA builds were not notarized and
+used a separate identity and feed. This is not acceptance of the production
+update, CI publication, CloudKit migration or all preferences. The preview
+channel expires on 30 October 2026. The live site version and files were
+unchanged after the preview deployment.
