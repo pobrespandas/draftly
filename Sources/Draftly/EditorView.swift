@@ -152,7 +152,7 @@ struct NativeEditor: NSViewRepresentable {
                 let glyphs = layout.glyphRange(forCharacterRange: textView.selectedRange(), actualCharacterRange: nil)
                 let rect = layout.boundingRect(forGlyphRange: glyphs, in: container)
                 let y = max(0, rect.midY + textView.textContainerInset.height - scroll.contentView.bounds.height / 2)
-                scroll.contentView.scroll(to: NSPoint(x: 0, y: y)); scroll.reflectScrolledClipView(scroll.contentView)
+                scroll.contentView.scroll(to: EditorTypewriterScrolling.origin(current: scroll.contentView.bounds.origin, vertical: y)); scroll.reflectScrolledClipView(scroll.contentView)
             }
         }
         func invalidateDisplay() {
@@ -198,6 +198,12 @@ struct NativeEditor: NSViewRepresentable {
                 theme: parent.theme, linksEnabled: parent.linksEnabled)
                 .apply(to: view, defaultLinkAttributes: defaultLinkAttributes)
         }
+    }
+}
+
+enum EditorTypewriterScrolling {
+    static func origin(current: NSPoint, vertical: CGFloat) -> NSPoint {
+        NSPoint(x: current.x, y: vertical)
     }
 }
 

@@ -10389,3 +10389,13 @@ the full left edge. The cause is not established. A first offscreen attempt
 did not reproduce the clipping and is not evidence of a fix. Keep this as an
 open regression; do not install this build as the usual app. The QA bundle was
 closed, archived, and unregistered. The test note remains in QA storage.
+
+A temporary geometry probe identified the ruler clipping cause: typewriter
+scrolling reset the clip view's horizontal origin to zero. With the ruler, the
+normal origin was -38 points. The editor now preserves that origin while it
+centers the selected line. A focused calculation test covers negative and zero
+origins. In Engine QA, the same 120-paragraph edit, Undo, and Redo kept the
+full text and ruler labels visible. The temporary probe is not in the source.
+The local build and complete serial Swift inventory passed (682 Core, 861 app).
+Python ran 80 tests and the matrix structure check had no errors. QA was
+closed, archived, and unregistered. Light-mode comparison remains pending.

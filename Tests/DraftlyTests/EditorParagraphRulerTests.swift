@@ -64,4 +64,9 @@ struct EditorParagraphRulerTests {
         #expect(text.string == "first\nsecond\nthird")
     }
 
+    @Test func typewriterScrollingPreservesHorizontalOrigin() {
+        #expect(EditorTypewriterScrolling.origin(current: NSPoint(x: -38, y: 10), vertical: 70) == NSPoint(x: -38, y: 70))
+        #expect(EditorTypewriterScrolling.origin(current: NSPoint(x: 0, y: 10), vertical: 70) == NSPoint(x: 0, y: 70))
+    }
+
 }
