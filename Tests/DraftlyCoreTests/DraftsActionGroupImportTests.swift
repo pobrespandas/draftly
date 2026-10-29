@@ -110,4 +110,34 @@ struct DraftsActionGroupImportTests {
             }
         }
     }
+
+    @Test(arguments: [128, 256, 1024])
+    func visibilitySurvivesLibraryReopenAndBackup(bit: Int) throws {
+        let surface: ActionSurface = bit == 128 ? .list : bit == 256 ? .bar : .search
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let library = try LibraryStore(directory: directory, seed: false)
+        try LibraryFileImport.apply(fixture(), fileExtension: "draftsActionGroup", to: library)
+        var group = try #require(library.actionGroups.first)
+        group.importedMetadata["visibility"] = .number(Decimal(2016 - bit))
+        try library.saveActionGroup(group)
+        var action = DraftAction(name: "Neutral action", steps: [])
+        action.group = group.name
+        try library.saveAction(action)
+
+        let reopened = try LibraryStore(directory: directory, seed: false)
+        let restored = try LibraryStore(inMemory: true, seed: false)
+        try restored.restore(library.backupData())
+        for store in [reopened, restored] {
+            #expect(store.actionGroups == [group])
+            #expect(store.actionGroupIdentifiers[group.name] == group.id)
+            #expect(store.orderedActions() == [action])
+            #expect(!store.groupNames(on: surface).contains(group.name))
+            #expect(store.orderedActions(on: surface).isEmpty)
+            for other in [ActionSurface.list, .bar, .search] where other != surface {
+                #expect(store.groupNames(on: other).contains(group.name))
+                #expect(store.orderedActions(on: other) == [action])
+            }
+        }
+    }
 }

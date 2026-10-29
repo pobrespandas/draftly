@@ -111,6 +111,9 @@ record and backup. Automated tests cover corrupt data, size limits, conflicts,
 rollback and restore. Native QA imported the real file and displayed the empty
 group. The icon and disposition are retained but not applied. The observed Mac
 visibility bits now filter the list, bar and search surfaces.
+Automated tests also check each Mac visibility bit after reopening a disk
+library and restoring a backup. These tests do not verify a native app restart
+or the precedence between group and action visibility in Drafts.
 Populated groups, separators, and their presentation remain unverified.
 
 On 29 October, each Mac visibility checkbox was changed separately on the same
