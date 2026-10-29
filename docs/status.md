@@ -3368,3 +3368,12 @@ Hosted Display26 run 40935851588 listed a 1920-by-1080 display mode. A separate
 diagnostic can select it for the disposable GitHub-hosted session before panel
 tests. The script rejects non-hosted environments. Its hosted result and the
 macOS 26 panel behavior remain pending.
+
+### Developer ID certificate — 29 October 2026
+
+The user approved creation of a signing key and certificate request. Apple
+issued a Developer ID Application certificate for team `NM92LU2KKV` and the
+login Keychain reports a valid matching signing identity. A provisioning profile
+for `com.pobrespandas.draftly` is prepared but has not been generated. The
+user's confirmation is pending. No release was signed, notarized, or published.
+CloudKit Production and update acceptance remain separate.
