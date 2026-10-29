@@ -10687,3 +10687,11 @@ An additional action link test checks an imported action edit, unknown fields,
 an unrelated group, and backup restoration after the group rename. All twelve
 focused action link tests and the local Debug build passed. This test does not
 replace the pending native confirmation.
+
+### Published main integration — 29 October 2026
+
+Merged published main commit 536eb82 into the editor work branch without
+conflicts. The serial Swift suites passed 699 Core and 885 app tests. The local
+Debug build, 80 Python tests, and matrix structure check passed. The separate
+main checkout had uncommitted website and fixture work; it was not changed.
+The prior parallel Core timing failures and native checks remain open.
