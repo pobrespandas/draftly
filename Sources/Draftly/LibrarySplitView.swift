@@ -221,7 +221,7 @@ final class LibrarySplitController: NSSplitViewController {
         defer { applyingPanelPositions = wasApplying }
         // Keep the other fixed panels in place while AppKit moves each divider.
         let widthsToHold = splitViewItems.indices.filter { $0 != 2 && !collapsed[$0] }.map { index in
-            let constraint = splitView.arrangedSubviews[index].widthAnchor.constraint(equalToConstant: widths[index])
+            let constraint = splitViewItems[index].viewController.view.widthAnchor.constraint(equalToConstant: widths[index])
             constraint.priority = .defaultHigh
             return constraint
         }

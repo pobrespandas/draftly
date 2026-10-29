@@ -3757,3 +3757,9 @@ expanded the offscreen macOS 26 window from 850 to 857 points when applied to
 hosted content. Constraints on the split containers retained 850 points. The
 restoration path now holds the containers. The focused suite and local build
 passed on macOS 27. The complete macOS 26 behavior and CI still need validation.
+
+Hosted run 40957924439 tested container constraints in the restoration path.
+The 850-point fit test passed, but the suite had twelve issues, including new
+failures in compressed divider restoration. The production adjustment was
+reverted. The focused suite passed locally after the revert. macOS 26 CI stays
+unresolved; the diagnostic comparison remains for investigation.
