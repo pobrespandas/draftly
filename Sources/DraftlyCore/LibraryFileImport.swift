@@ -29,10 +29,11 @@ import Foundation
             guard (identities[group.name] == nil || identities[group.name] == group.id),
                   !identities.contains(where: { $0.key != group.name && $0.value == group.id }),
                   !library.actionGroups.contains(where: { $0.id == group.id && $0 != group }),
-                  !actions.contains(where: { incoming in library.actions.contains { $0.id == incoming.id && $0 != incoming } }) else {
+                  !actions.contains(where: { incoming in library.actions.contains { $0.id == incoming.id && !equivalentImportedActions($0, incoming) } }) else {
                 throw DraftlyError.message("The action group conflicts with installed data. Review it before importing.")
             }
-            let backup = Backup(notes: [], revisions: [], workspaces: [], actions: actions, actionGroups: [group])
+            let existingIDs = Set(library.actions.map(\.id))
+            let backup = Backup(notes: [], revisions: [], workspaces: [], actions: actions.filter { !existingIDs.contains($0.id) }, actionGroups: [group])
             try library.restore(JSONEncoder().encode(backup))
             return
         }
@@ -66,6 +67,23 @@ import Foundation
         } else {
             throw DraftlyError.message("This file is not a Draftly backup, Drafts export, or action file.")
         }
+    }
+
+    private static func equivalentImportedActions(_ left: DraftAction, _ right: DraftAction) -> Bool {
+        func normalized(_ action: DraftAction) -> DraftAction {
+            var result = action
+            for index in result.steps.indices {
+                for key in ["data", "parameters", "values"] {
+                    guard let value = result.steps[index].values[key],
+                          let object = try? JSONSerialization.jsonObject(with: Data(value.utf8)),
+                          JSONSerialization.isValidJSONObject(object),
+                          let data = try? JSONSerialization.data(withJSONObject: object, options: [.sortedKeys]) else { continue }
+                    result.steps[index].values[key] = String(decoding: data, as: UTF8.self)
+                }
+            }
+            return result
+        }
+        return normalized(left) == normalized(right)
     }
 
     private static func applyNotes(_ notes: [Note], to library: LibraryStore) throws {

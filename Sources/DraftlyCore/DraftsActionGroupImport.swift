@@ -15,10 +15,17 @@ enum DraftsActionGroupImport {
         }
         let actionData = try JSONEncoder().encode(JSONValue.array(entries))
         var actions = try ActionImporter.decode(actionData)
-        for index in actions.indices { actions[index].group = name }
+        for index in actions.indices {
+            actions[index].group = name
+            var options = actions[index].options ?? ActionPresentation()
+            options.order = index
+            actions[index].options = options
+        }
         var group = ActionGroupRecord(name: name); group.id = id
         if fields["icon"] == .string("action_circle2") {
             group.symbol = "circle.circle"
+        } else if case .string(let icon) = fields["icon"], icon.hasPrefix("symbol||"), icon.count > 8 {
+            group.symbol = String(icon.dropFirst(8))
         }
         fields.removeValue(forKey: "actions")
         group.importedMetadata = fields

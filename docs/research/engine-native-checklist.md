@@ -153,10 +153,20 @@ visibility bits now filter the list, bar and search surfaces.
 Automated tests also check each Mac visibility bit after reopening a disk
 library and restoring a backup. These tests do not verify a native app restart
 or the precedence between group and action visibility in Drafts.
-Populated groups, separators, and their presentation remain unverified.
+On 29 October, the official Drafts Directory Basic group installation link
+provided a payload with 31 entries and two separators. The payload came from
+https://actions.getdrafts.com/g/1BG and had SHA-256
+`311f80fbf4605b7970a1f2ce3f38dbc8be4a8b2898a4639171a64008078826c3`.
+The test fixture wraps that payload in locally generated zlib; it is not an
+export from the Drafts app. Its SHA-256 is
+`141e7b7c29e0b56e3543f3c5d916b7dbdf1a74230a2e8cd9d4d3e7f3d97e519e`.
+Import tests check order, separator identity, group symbol, visibility,
+backup and repeated import. Native presentation and an actual populated export
+remain unverified.
 Nested imported step objects now use stable JSON key order. This prevents
 new imports from differing only because object keys were serialized in a
-different order. Older stored representations need separate compatibility checks.
+different order. Group reimport compares older step metadata by JSON content
+and preserves matching installed actions. A changed action remains a conflict.
 On 29 October, the Drafts Add Items menu still disabled New Action and New
 Separator. This did not produce a populated export or verify its format.
 

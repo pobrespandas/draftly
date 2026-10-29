@@ -1,9 +1,55 @@
 import Foundation
+import CryptoKit
 import Testing
 @_spi(DraftlyInternal) @testable import DraftlyCore
 
 @Suite("Drafts action group file import") @MainActor
 struct DraftsActionGroupImportTests {
+    @Test func legacyStepMetadataFormattingDoesNotCauseConflict() throws {
+        let url = try #require(Bundle.module.url(forResource: "drafts-directory-basic-2026-10-29.synthetic", withExtension: "draftsActionGroup", subdirectory: "Fixtures"))
+        let data = try Data(contentsOf: url)
+        let library = try LibraryStore(inMemory: true, seed: false)
+        try LibraryFileImport.apply(data, fileExtension: "draftsActionGroup", to: library)
+        var action = try #require(library.actions.first { $0.name == "Message" })
+        let original = try #require(action.steps[0].values["data"])
+        let object = try JSONSerialization.jsonObject(with: Data(original.utf8))
+        let legacy = String(decoding: try JSONSerialization.data(withJSONObject: object, options: [.prettyPrinted]), as: UTF8.self)
+        action.steps[0].values["data"] = legacy
+        try library.saveAction(action)
+        try LibraryFileImport.apply(data, fileExtension: "draftsActionGroup", to: library)
+        #expect(library.actions.first { $0.id == action.id } == action)
+        action.steps[0].values["subjectTemplate"] = "Local edit"
+        try library.saveAction(action)
+        #expect(throws: (any Error).self) { try LibraryFileImport.apply(data, fileExtension: "draftsActionGroup", to: library) }
+        #expect(library.actions.first { $0.id == action.id } == action)
+    }
+    @Test func officialPopulatedPayloadKeepsOrderSeparatorsAndGroupSymbol() throws {
+        let url = try #require(Bundle.module.url(forResource: "drafts-directory-basic-2026-10-29.synthetic", withExtension: "draftsActionGroup", subdirectory: "Fixtures"))
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let data = try Data(contentsOf: url)
+        #expect(SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined() == "141e7b7c29e0b56e3543f3c5d916b7dbdf1a74230a2e8cd9d4d3e7f3d97e519e")
+        try LibraryFileImport.apply(data, fileExtension: "draftsActionGroup", to: library)
+        let group = try #require(library.actionGroups.first)
+        #expect(group.id.uuidString == "078CF5D6-AD76-419C-AF19-A7EC3236F21B")
+        #expect(group.symbol == "arrow.up.forward.app")
+        let expected = ["Copy", "Share", "Mail", "Message", "Post to Mastodon", "Google Search", "Event", "Send to Reminders", "List in Reminders", "Print - Plain Text", "Services", "Save to Files", "Save to Files as...", "Save to iCloud Drive", "Append to iCloud Journal", "Save to Dropbox", "Append to Dropbox Journal", "Save to Google Drive", "Save as Google Doc", "Append to Google Drive Journal", "Save to OneDrive", "Append to OneDrive Journal", "Save to OneNote", "Append to OneNote Journal", "Post to WordPress", "Post to Ghost", "Save to Box", "Append to Box Journal", "AI", "Using ChatGPT & AI", "Apps"]
+        #expect(library.orderedActions().map(\.name) == expected)
+        #expect(library.orderedActions().filter(\.isSeparator).map(\.name) == ["Services", "Apps"])
+        #expect(library.groupNames(on: .list).contains(group.name))
+        #expect(!library.groupNames(on: .bar).contains(group.name))
+        let (_, decoded) = try DraftsActionGroupImport.decode(data)
+        for action in decoded {
+            let stored = try #require(library.actions.first { $0.id == action.id })
+            #expect(stored == action, Comment(rawValue: "Mismatch: \(action.name)"))
+        }
+        try LibraryFileImport.apply(data, fileExtension: "draftsActionGroup", to: library)
+        #expect(library.orderedActions().map(\.name) == expected)
+        let restored = try LibraryStore(inMemory: true, seed: false)
+        try restored.restore(library.backupData())
+        #expect(restored.orderedActions().map(\.name) == expected)
+        #expect(restored.actionGroups == [group])
+        #expect(restored.orderedActions().allSatisfy { $0.rawPayload != nil })
+    }
     private func fixture() throws -> Data {
         let url = try #require(Bundle.module.url(forResource: "drafts-54-empty-action-group", withExtension: "draftsActionGroup", subdirectory: "Fixtures"))
         return try Data(contentsOf: url)
