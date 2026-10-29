@@ -7,9 +7,11 @@ import Testing
     var clipboardResult = true
     var promptFields: [String: Any]? = [:]
     var callbackStatus = "success"
+    var failingOperation: String?
     var calls: [(String, [String: Any])] = []
     func perform(_ operation: String, values: [String: Any]) throws -> Any? {
         calls.append((operation, values))
+        if operation == failingOperation { throw NSError(domain: "WritingActionHost", code: 1) }
         if operation == "selectPrompt" { return choice.map { ["index": $0] } }
         if operation == "prompt" { return promptFields.map { ["index": 0, "fields": $0] } }
         if operation == "callbackURL" { return ["status": callbackStatus, "parameters": [:]] }
@@ -28,11 +30,11 @@ struct OwnWritingActionsTests {
     @Test func actionFilesImportIntoLibrary() throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        for name in ["template", "transform", "rich-text", "sort-lines", "append-lines", "markdown-bold", "markdown-italic", "copy-html", "print-pdf", "things-draft", "things-taskpaper", "things-markdown", "add-to-list"] {
+        for name in ["template", "transform", "rich-text", "sort-lines", "append-lines", "markdown-bold", "markdown-italic", "copy-html", "print-pdf", "things-draft", "things-taskpaper", "things-markdown", "add-to-list", "obsidian-save", "obsidian-daily"] {
             let data = try Data(contentsOf: root.appendingPathComponent("website/public/actions/\(name).json"))
             try LibraryFileImport.apply(data, fileExtension: "json", to: library)
         }
-        #expect(library.actions.count == 13)
+        #expect(library.actions.count == 15)
         #expect(library.actions.allSatisfy { $0.unsupportedSteps.isEmpty })
     }
 
@@ -307,5 +309,35 @@ struct OwnWritingActionsTests {
         #expect(!(await ActionTestExecution.succeeds(try action("add-to-list"), runner: runner, worker: worker)))
         #expect(library.notes.count == before)
         #expect(library.notes.first { $0.id == editor.noteID }?.isArchived == false)
+    }
+
+    @Test(arguments: [false, true], ["obsidian-save", "obsidian-daily"]) func obsidianExport(worker: Bool, name: String) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let source = try library.createNote(content: "# Meeting café\nNotes 🐼")
+        let editor = EditorSession(); editor.load(source)
+        let host = WritingActionHost(); let runner = ActionRunner(library: library, editor: editor, host: host)
+        #expect(await ActionTestExecution.succeeds(try action(name), runner: runner, worker: worker), Comment(rawValue: runner.message ?? ""))
+        let call = try #require(host.calls.first { $0.0 == "saveFile" })
+        #expect(call.1["bookmark"] as? String == "Obsidian Vault")
+        #expect(call.1["folder"] as? String == "")
+        #expect(call.1["mode"] as? String == (name == "obsidian-save" ? "create" : "append"))
+        #expect(call.1["text"] as? String == (name == "obsidian-save" ? "# Meeting café\nNotes 🐼" : "\n\n# Meeting café\nNotes 🐼"))
+        if name == "obsidian-save" { #expect(call.1["name"] as? String == "Meeting café.md") }
+        else {
+            let filename = try #require(call.1["name"] as? String)
+            #expect(filename.range(of: #"^\d{4}-\d{2}-\d{2}\.md$"#, options: .regularExpression) != nil)
+        }
+        #expect(editor.content == source.content)
+    }
+
+    @Test(arguments: [false, true], ["obsidian-save", "obsidian-daily"]) func obsidianExportFailurePreservesDraft(worker: Bool, name: String) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let source = try library.createNote(content: "# Keep café\n🐼")
+        let editor = EditorSession(); editor.load(source)
+        let host = WritingActionHost(); host.failingOperation = "saveFile"
+        let runner = ActionRunner(library: library, editor: editor, host: host)
+        #expect(!(await ActionTestExecution.succeeds(try action(name), runner: runner, worker: worker)))
+        #expect(editor.content == source.content)
+        #expect(library.notes.first { $0.id == source.id }?.isArchived == false)
     }
 }

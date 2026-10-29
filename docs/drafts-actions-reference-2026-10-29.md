@@ -113,3 +113,27 @@ Focused tests cover existing and new lists, Unicode, source archive, cancellatio
 empty input, and invalid names on both action runners. `swift test --filter
 OwnWritingActionsTests` passed twenty-two methods. Native dialogs and Undo for
 this action remain unverified.
+
+## Obsidian export actions
+
+Two independent actions use the `Obsidian Vault` folder bookmark. Save Draft
+in Obsidian Vault creates a Markdown file in the selected folder. It uses the
+safe draft title and fails if that name already exists. Append Draft to
+Obsidian Daily Note appends to `YYYY-MM-DD.md` in the selected folder, using
+the current date. It creates the file if it is absent. It does not locate a
+custom daily-note folder or change the draft after success.
+
+References downloaded for local research:
+
+- Save in Obsidian Vault: https://directory.getdrafts.com/a/1qn, SHA-256
+  `1d80acc814b0fd8d1d1063baca4bcc3feaa2569e9b18bf816bbb63f96b0247f8`.
+- Add to Obsidian Daily Note: https://directory.getdrafts.com/a/2EO, SHA-256
+  `4d6d4af4ca25feee44da71936534889c1fa569aa9c0ded0bcfded9f34a37c394`.
+
+The `OwnWritingActionsTests` suite passed twenty-four methods. It checks action
+import, both runners, file names, contents, write modes, and failure with a
+simulated host. The separate native adapter test
+`bookmarkedExportPreservesAllWriteModesAndCreateProtection` passed with a
+temporary folder. It checks create, append, prepend, replace, and existing-file
+protection. These tests do not verify a real Obsidian vault, folder selection,
+or Obsidian's daily-note configuration.

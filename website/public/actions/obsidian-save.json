@@ -1,0 +1,18 @@
+{
+  "uuid": "D46F0001-0000-4000-8000-000000000014",
+  "name": "Save Draft in Obsidian Vault",
+  "group": "Draftly",
+  "steps": [
+    {
+      "type": "file",
+      "data": {
+        "template": "[[draft]]",
+        "fileNameTemplate": "[[safe_title]].md",
+        "useBookmark": "true",
+        "bookmarkName": "Obsidian Vault",
+        "folderTemplate": "",
+        "writeType": "create"
+      }
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "uuid": "D46F0001-0000-4000-8000-000000000015",
+  "name": "Append Draft to Obsidian Daily Note",
+  "group": "Draftly",
+  "steps": [
+    {
+      "type": "file",
+      "data": {
+        "template": "\n\n[[draft]]",
+        "fileNameTemplate": "[[date|%Y-%m-%d]].md",
+        "useBookmark": "true",
+        "bookmarkName": "Obsidian Vault",
+        "folderTemplate": "",
+        "writeType": "append"
+      }
+    }
+  ]
+}

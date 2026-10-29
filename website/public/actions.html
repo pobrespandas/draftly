@@ -73,6 +73,12 @@
     <article><span class="category">Things · Prototype</span><h2>Send TaskPaper to Things</h2><p>Send supported projects, tasks, headings, notes, checklist items, and tags. Basic Mustache prompts are supported. Unsupported expressions and syntax are rejected.</p><a href="actions/things-taskpaper.json" download>Download action file</a></article>
     <article><span class="category">Things · Prototype</span><h2>Send Markdown Outline to Things</h2><p>Prepare projects, tasks, headings, notes, checklist items, tags, and dates for Things. Delivery and callbacks remain unverified.</p><a href="actions/things-markdown.json" download>Download action file</a></article>
   </div>
+  <h2>Obsidian</h2>
+  <p>These independent actions use a folder bookmark named <code>Obsidian Vault</code>. Select your vault folder when Draftly asks. Tests cover both action runners and the native file adapter in a temporary folder; your vault access and Obsidian behavior have not been verified.</p>
+  <div class="catalog" aria-label="Obsidian actions">
+    <article><span class="category">Export · Draftly</span><h2>Save Draft in Obsidian Vault</h2><p>Save the current draft as a Markdown file in the vault root. The file name comes from the draft title.</p><p class="detail">This action creates a file and reports an error if a file with that name already exists.</p><a href="actions/obsidian-save.json" download>Download action file</a></article>
+    <article><span class="category">Organize · Draftly</span><h2>Append Draft to Obsidian Daily Note</h2><p>Append the draft to <code>YYYY-MM-DD.md</code> in the vault root, using today's date. The file is created if missing.</p><p class="detail"><strong>This action changes an existing daily file.</strong> It does not use a custom daily-note folder.</p><a href="actions/obsidian-daily.json" download>Download action file</a></article>
+  </div>
   <h2>Drafts community references</h2>
   <div class="catalog" aria-label="Curated actions from Drafts">
     <article><span class="category">Create</span><h2>New Draft with Template</h2><p>Create a draft from a template and select a placeholder to begin writing.</p><p class="detail">Tested: template selection, tags, date rendering, and placeholder selection.</p><a href="https://actions.getdrafts.com/a/1VL">View original action and import URL</a></article>
