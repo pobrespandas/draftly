@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Explore actions tested with Draftly and learn how to import them.">
+  <title>Explore Actions — Draftly</title>
+  <link rel="icon" href="icon.png">
+  <style>
+    :root { color-scheme: light dark; --bg: #fafafa; --surface: #fff; --text: #1d1d1f; --muted: #626269; --line: #dcdce0; --accent: #0067d5; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    a { color: var(--accent); }
+    .wrap { max-width: 1120px; padding: 0 28px; margin: auto; }
+    header { border-bottom: 1px solid var(--line); }
+    nav { min-height: 72px; display: flex; gap: 20px; align-items: center; justify-content: space-between; }
+    .brand { display: flex; gap: 10px; align-items: center; color: var(--text); font-weight: 650; text-decoration: none; }
+    .brand img { width: 32px; height: 32px; }
+    .back { font-size: 14px; }
+    .hero { padding: 72px 0 44px; max-width: 740px; }
+    .eyebrow { color: var(--accent); font-size: 13px; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; }
+    h1 { font-size: clamp(40px, 6vw, 64px); line-height: 1.08; letter-spacing: -.05em; margin: 14px 0 18px; }
+    .lead { color: var(--muted); font-size: 19px; }
+    .notice { border-left: 3px solid var(--accent); padding: 0 0 0 18px; margin: 24px 0 0; color: var(--muted); }
+    .catalog { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; padding-bottom: 70px; }
+    article { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 24px; }
+    article h2 { font-size: 21px; line-height: 1.2; letter-spacing: -.02em; margin: 8px 0 12px; }
+    article p { color: var(--muted); margin: 0 0 14px; }
+    .category { color: var(--accent); font-size: 12px; font-weight: 650; text-transform: uppercase; letter-spacing: .05em; }
+    .detail { font-size: 14px; }
+    .instructions { border-top: 1px solid var(--line); padding: 50px 0 65px; }
+    .instructions h2 { font-size: 30px; letter-spacing: -.03em; }
+    .instructions li { margin: 8px 0; }
+    footer { border-top: 1px solid var(--line); padding: 25px 0; font-size: 13px; color: var(--muted); }
+    @media (max-width: 700px) { .catalog { grid-template-columns: 1fr; } .hero { padding-top: 50px; } }
+    @media (prefers-color-scheme: dark) { :root { --bg: #111113; --surface: #1d1d20; --text: #f4f4f6; --muted: #aaaab1; --line: #38383e; --accent: #69adff; } }
+  </style>
+</head>
+<body>
+<header><nav class="wrap" aria-label="Main navigation"><a class="brand" href="/"><img src="icon.png" alt="">Draftly</a><a class="back" href="/">Back to Draftly</a></nav></header>
+<main class="wrap">
+  <div class="hero">
+    <div class="eyebrow">A curated starting point</div>
+    <h1>Actions for your words.</h1>
+    <p class="lead">Explore ways to shape, organize, and use your writing. These actions come from the Drafts community and are available to import into Draftly for Mac.</p>
+    <p class="notice">Draftly is in development. Automated tests cover specific behavior in saved versions of these actions, using simulated services. The source actions can change. Review each action before saving or running it; native services and permissions still need verification.</p>
+  </div>
+  <div class="catalog" aria-label="Curated actions">
+    <article><span class="category">Create</span><h2>New Draft with Template</h2><p>Create a draft from a template and select a placeholder to begin writing.</p><p class="detail">Tested: template selection, tags, date rendering, and placeholder selection.</p><a href="https://actions.getdrafts.com/a/1VL">View original action and import URL</a></article>
+    <article><span class="category">Organize</span><h2>Add to List</h2><p>Add items from the current draft to a selected list. The action archives the source draft after success.</p><p class="detail">Tested: list selection, item insertion, and source archive.</p><a href="https://actions.getdrafts.com/a/1Ga">View original action and import URL</a></article>
+    <article><span class="category">Edit</span><h2>Text Modifier…</h2><p>Choose a transformation for selected text.</p><p class="detail">Tested: selection, an uppercase transformation, and cursor placement.</p><a href="https://actions.getdrafts.com/a/1Bg">View original action and import URL</a></article>
+    <article><span class="category">Share</span><h2>Copy as Rich Text</h2><p>Render Markdown and copy it as rich text.</p><p class="detail">Tested: Markdown rendering and the simulated clipboard operation. The native clipboard is not covered by this test.</p><a href="https://actions.getdrafts.com/a/1DM">View original action and import URL</a></article>
+    <article><span class="category">Export</span><h2>Save in Obsidian Vault</h2><p>Save a draft as a Markdown file in a chosen vault folder.</p><p class="detail">Tested: file name, content, and folder bookmark with a simulated file operation. Access to your folder requires separate setup and verification.</p><a href="https://actions.getdrafts.com/a/1qn">View original action and import URL</a></article>
+  </div>
+  <section class="instructions" aria-labelledby="import-title"><h2 id="import-title">Import an action</h2><ol><li>Open an action's original page and copy its page URL.</li><li>In Draftly for Mac, choose Actions → Import from Directory.</li><li>Paste the URL and select Load. Review the action's steps, then select Save Actions.</li></ol><p>These are third-party actions. Review their steps and any effects on your drafts, files, or other services before running them.</p></section>
+</main>
+<footer><div class="wrap">© Pobres Pandas · Draftly is in development</div></footer>
+</body>
+</html>
