@@ -10399,3 +10399,19 @@ full text and ruler labels visible. The temporary probe is not in the source.
 The local build and complete serial Swift inventory passed (682 Core, 861 app).
 Python ran 80 tests and the matrix structure check had no errors. QA was
 closed, archived, and unregistered. Light-mode comparison remains pending.
+
+### Ordered-list reference — 29 October 2026
+
+In Drafts 54.1.1 with Markdown Auto-renumber lists enabled, pressing Return
+at the end of `1. Uno` in `1. Uno / 2. Dos / 3. Tres` inserted `2. ` and
+changed the following numbers to `3.` and `4.`. Starting from `7. siete /
+8. ocho / 9. nueve` produced `7., 8., 9., 10.` in the same operation. Pressing
+Return on the empty inserted item removed its marker; the following `3.` and
+`4.` remained unchanged. With Auto-renumber lists disabled, insertion still
+created `2. `, but the following items remained `2.` and `3.`. Restored the
+original enabled setting. These are observed examples, not a complete grammar
+or an implementation acceptance.
+
+The QA Light Theme selector timed out during another attempt to select Light.
+After the selector recovered, its value was still Dark. QA was closed, archived,
+and unregistered. The light-mode check remains pending.
