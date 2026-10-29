@@ -3833,3 +3833,8 @@ The password copied from the separate Apple Passwords Developer ID entry opened
 the encrypted PKCS#12 backup. The identity matched the public certificate. The
 clipboard was cleared. Recovery of both entries from another device remains
 unverified.
+
+An offscreen AppKit diagnostic compares a native sidebar with a regular split
+item without Draftly's split controller. The local panel suite passed all 15
+cases. Both native item types reported equal container and content widths on
+macOS 27. A hosted macOS 26 run is needed to compare the same setup.

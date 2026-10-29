@@ -20,6 +20,38 @@ struct LibrarySplitViewTests {
         #expect(controller.splitViewItems[1].behavior == .default)
     }
 
+    @Test func nativeSidebarAndRegularSplitItemsReportTheirWidthsOffscreen() throws {
+        _ = NSApplication.shared
+        for sidebar in [false, true] {
+            let controller = NSSplitViewController()
+            controller.splitView.isVertical = true
+            controller.splitView.dividerStyle = .thin
+            let first = NSViewController()
+            first.view = NSView()
+            let item = sidebar ? NSSplitViewItem(sidebarWithViewController: first) : NSSplitViewItem(viewController: first)
+            item.allowsFullHeightLayout = sidebar
+            item.minimumThickness = 160
+            controller.addSplitViewItem(item)
+            let second = NSViewController()
+            second.view = NSView()
+            controller.addSplitViewItem(NSSplitViewItem(viewController: second))
+            let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 850, height: 600),
+                                             styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+            window.contentViewController = controller
+            defer { window.contentViewController = nil }
+            window.setContentSize(NSSize(width: 850, height: 600))
+            window.layoutIfNeeded()
+            controller.view.layoutSubtreeIfNeeded()
+            controller.splitView.setPosition(240, ofDividerAt: 0)
+            controller.view.layoutSubtreeIfNeeded()
+            let container = controller.splitView.arrangedSubviews[0].frame
+            let content = first.view.frame
+            print("Native split diagnostic sidebar=\(sidebar) window=\(window.frame) container=\(container) content=\(content) divider=\(controller.splitView.dividerThickness)")
+            #expect(!window.isVisible)
+            #expect(container.width > 0 && content.width > 0)
+        }
+    }
+
     @Test func allPanelsFitTheSupportedWindowWidths() async throws {
         _ = NSApplication.shared
         for width in [850.0, 1033.0, 1200.0] {
