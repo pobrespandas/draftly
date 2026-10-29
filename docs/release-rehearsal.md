@@ -293,12 +293,11 @@ release alone does not authorize Firebase promotion.
 
 A Developer ID identity and a matching Production profile are installed on the
 local Mac. An isolated archive passed notarization and Gatekeeper after Sparkle's
-helpers were signed. A Sparkle release key was created locally. Its private
-seed has no verified recovery copy outside this Mac. Do not enable public
-updates until key recovery is tested.
+helpers were signed. A Sparkle release key was created locally. The user
+recovered the seed from Google Password Manager on a second device and verified
+it against the public key on the Mac. This does not complete release acceptance.
 
-The user later confirmed that the Sparkle entry appears on another device.
-To verify its contents, use `scripts/verify-recovered-sparkle-key.py` in a
+To verify a recovered seed, use `scripts/verify-recovered-sparkle-key.py` in a
 private terminal with Python and the `cryptography` package. Pass the saved
 public key file with `--public-key-file`. Paste the recovered seed only at the
 hidden prompt, never as an argument or in chat. The command checks the derived
@@ -313,6 +312,15 @@ from the trusted local Keychain, not a certificate supplied by the backup. The
 tool requests the archive password with hidden terminal input. It checks the
 certificate fingerprint, team, and matching private key. It does not import the
 identity, validate Apple trust or prove recovery on another device.
+
+The encrypted Developer ID archive and its password are stored in separate
+Apple Passwords entries. On the Mac, the stored archive matched the local file
+byte for byte, and the stored password opened it and passed the identity check.
+Recovery of those entries from another device has not been verified. The Apple
+Passwords notarization key also matched its local file on the Mac; its
+second-device recovery has not been verified. Keep the local originals until
+those recovery checks succeed. Never put recovered credentials in command
+arguments, logs, Git, or chat.
 
 The public GitHub repository has active rulesets that protect version tags and
 prevent deletion and non-fast-forward updates of `main`. Fast-forward pushes to
