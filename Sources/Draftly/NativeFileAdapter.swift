@@ -196,8 +196,11 @@ struct NativeFileAdapter {
         case "baseURL": return root.absoluteString
         case "readString": return try String(contentsOf: target, encoding: .utf8)
         case "writeString":
+            guard let text = values["text"] as? String else {
+                throw DraftlyError.message("File content must be a string.")
+            }
             try manager.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
-            try (values["text"] as? String ?? "").write(to: target, atomically: true, encoding: .utf8); return true
+            try text.write(to: target, atomically: true, encoding: .utf8); return true
         case "exists": return manager.fileExists(atPath: target.path)
         case "isDirectory": var isDirectory: ObjCBool = false; return manager.fileExists(atPath: target.path, isDirectory: &isDirectory) && isDirectory.boolValue
         case "createDirectory":

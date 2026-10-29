@@ -14325,10 +14325,17 @@
             "writeString(path: string, content: string): boolean"
           ],
           "contract": "Write the contents of the file at the path. Returns true if successful, false if the file could not be written successfully. This will override existing files!",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "reviewed-partial",
+          "automatedTest": {"suite": "NativeActionAPITests", "test": "writeStringRejectsInvalidContentWithoutReplacingFile"},
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-29",
+          "implementationEvidence": {"file": "Sources/Draftly/NativeFileAdapter.swift", "symbol": "NativeFileAdapter.fileAPI"},
+          "defaults": "No content default is documented; an explicit empty string is accepted.",
+          "result": "Returns true after a successful UTF-8 write and false on invalid content or a storage failure.",
+          "errors": "Invalid content and storage failures set lastError.",
+          "limitations": ["Native sandbox, bookmark and cloud failures and comparison with Drafts remain unverified."],
+          "evidenceLevel": "Both runners test invalid content, preservation and an explicit empty write in an isolated local root."
         }
       ]
     },

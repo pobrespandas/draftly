@@ -10985,3 +10985,12 @@ still clears tags. Both runners exercised a Unicode tag on an isolated local
 file and checked preservation after invalid input. The focused file and
 bookmark suites, matrix structural check and local Debug build passed. Sandbox,
 bookmark, cloud and Drafts comparisons remain separate.
+
+### FileManager text input — 29 October 2026
+
+writeString previously converted missing or non-string content to empty text.
+A regression showed that this could overwrite an existing file. The adapter now
+rejects invalid content before writing. An explicit empty string remains valid.
+Both runners checked preservation and recovery in an isolated local root. The
+focused file and bookmark suites, matrix structural check and local Debug build
+passed. Sandbox, bookmark, cloud and Drafts checks remain separate.
