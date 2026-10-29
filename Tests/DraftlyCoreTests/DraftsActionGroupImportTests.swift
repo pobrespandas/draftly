@@ -17,6 +17,7 @@ struct DraftsActionGroupImportTests {
         #expect(group.name == "QA Included Configuration 20261022")
         #expect(group.id.uuidString == "0D1CD9D7-CA91-40E0-8600-0B79D6E642F4")
         #expect(group.importedMetadata["icon"] == .string("action_circle2"))
+        #expect(group.symbol == "circle.circle")
         #expect(group.importedMetadata["visibility"] == .number(2016))
         #expect(library.actions.isEmpty)
         try LibraryFileImport.apply(data, fileExtension: "draftsActionGroup", to: library)

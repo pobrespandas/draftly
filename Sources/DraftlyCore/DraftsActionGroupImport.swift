@@ -17,6 +17,9 @@ enum DraftsActionGroupImport {
         var actions = try ActionImporter.decode(actionData)
         for index in actions.indices { actions[index].group = name }
         var group = ActionGroupRecord(name: name); group.id = id
+        if fields["icon"] == .string("action_circle2") {
+            group.symbol = "circle.circle"
+        }
         fields.removeValue(forKey: "actions")
         group.importedMetadata = fields
         return (group, actions)

@@ -109,7 +109,10 @@ Draftly now imports this empty compressed file with bounded decompression and
 wrapper, checksum, and payload validation. It retains the metadata in the group
 record and backup. Automated tests cover corrupt data, size limits, conflicts,
 rollback and restore. Native QA imported the real file and displayed the empty
-group. The icon and disposition are retained but not applied. The observed Mac
+group. The observed `action_circle2` group icon appears as concentric circles
+in Drafts. Draftly maps it to the `circle.circle` system symbol and retains the
+original value. Other group icons and disposition are retained but not applied.
+The symbol mapping still needs a side-by-side check in Draftly QA. The observed Mac
 visibility bits now filter the list, bar and search surfaces.
 Automated tests also check each Mac visibility bit after reopening a disk
 library and restoring a backup. These tests do not verify a native app restart
