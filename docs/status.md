@@ -3892,3 +3892,8 @@ remain pending.
 The full local Swift inventory passed after the sidebar inset adjustment:
 759 Core and 933 app tests. The focused toolbar suite also passed its five
 cases. Hosted macOS 26 and real-window acceptance remain pending.
+
+Hosted LargeDisplayPanels26 run 40965273480 passed the complete 15-case panel
+suite with the measured sidebar inset. The local full Swift inventory also
+passed. This focused hosted run does not establish full macOS 26 CI or real
+window behavior; those checks remain pending.
