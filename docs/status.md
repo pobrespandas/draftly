@@ -3811,3 +3811,9 @@ The user copied the new Sparkle entry from Apple Passwords. Its seed matched
 the release public key, and the clipboard was cleared. Both the Sparkle and
 notarization Apple entries have now been checked on this Mac. Second-device
 recovery of these Apple entries has not been verified.
+
+The user confirmed that the exported Developer ID PKCS#12 passed the local
+identity check. The archive is in Documents with owner-only permissions. An
+Apple Passwords entry for its base64-encoded encrypted bytes is being prepared;
+its saved contents and off-device recovery are not yet verified. The archive
+password must be recovered separately.
