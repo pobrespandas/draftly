@@ -14,18 +14,19 @@ on:
           - all
           - LibrarySplitViewTests
           - TypewriterScrollingTests
+          - Toolchain27
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && inputs.diagnostic || 'all' }}
   cancel-in-progress: true
 
 jobs:
   macos:
     name: "${{ github.event_name == 'workflow_dispatch' && inputs.diagnostic != '' && inputs.diagnostic != 'all' && format('Diagnostic: {0}', inputs.diagnostic) || 'Build and test on macOS' }}"
-    runs-on: macos-26
+    runs-on: ${{ github.event_name == 'workflow_dispatch' && inputs.diagnostic == 'Toolchain27' && 'xcode-27' || 'macos-26' }}
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
@@ -48,10 +49,13 @@ jobs:
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.diagnostic == 'all' || inputs.diagnostic == '' }}
         run: python scripts/run-swift-tests.py --output-dir "$RUNNER_TEMP/draftly-test-results"
       - name: Run one suite for diagnosis
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.diagnostic != 'all' && inputs.diagnostic != '' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && (inputs.diagnostic == 'LibrarySplitViewTests' || inputs.diagnostic == 'TypewriterScrollingTests') }}
         env:
           DIAGNOSTIC_SUITE: ${{ inputs.diagnostic }}
         run: python scripts/run-swift-tests.py --output-dir "$RUNNER_TEMP/draftly-test-results" --diagnostic-suite "$DIAGNOSTIC_SUITE"
+      - name: Check the release toolchain
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.diagnostic == 'Toolchain27' }}
+        run: python scripts/release-toolchain.py
       - name: Build local application
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.diagnostic == 'all' || inputs.diagnostic == '' }}
         run: scripts/build-app.sh --local

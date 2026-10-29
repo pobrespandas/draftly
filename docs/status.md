@@ -3299,6 +3299,9 @@ Seven focused tests used simulated tools and passed. This prevents an older
 runner from signing a public build without the macOS 27 model integration.
 The candidate job selects GitHub's `xcode-27` preview image. A real hosted
 signing run is still required to verify the toolchain and notarization.
+An independent manual diagnostic can check this runner's SDK and compiler
+without accessing signing credentials or publishing. Its result does not
+replace the full CI run or a real signed candidate.
 The manual candidate packager and CI signing setup now share this check.
 All 171 Python tests and the matrix structural check passed with simulated
 signing tools. A real signed candidate remains unverified.
