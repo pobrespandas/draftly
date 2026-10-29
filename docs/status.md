@@ -3409,3 +3409,11 @@ the app suite. The earlier full run passed. The recorded assertion does not
 include the thrown error, so its cause is unknown. The test now reports the
 error without changing deadlines or retrying. Its focused local run passed.
 This does not establish a full CI pass or explain the hosted failure.
+
+A real isolated Developer ID archive was submitted to Apple. The first
+submission was invalid because Sparkle's inner helpers retained ad hoc
+signatures. The release packager now signs each helper, then the framework and
+app, with Developer ID and secure timestamps. A copied archive signed with the
+same procedure was accepted by Apple. Stapling, ticket validation, strict deep
+signature verification, and Gatekeeper assessment passed. This archive had
+updates disabled. It is not a published candidate or an update acceptance.

@@ -125,12 +125,26 @@ class PackageReleaseTests(unittest.TestCase):
                 self.assertIn(setting, build)
             self.assertFalse(any(arg.startswith("CODE_SIGN_IDENTITY=") for arg in build))
             self.assertNotIn("-allowProvisioningUpdates", build)
+            signed = [command for command in commands if command[0] == "codesign" and "--force" in command]
+            self.assertEqual(len(signed), 6)
+            self.assertTrue(all("--timestamp" in command and "--options" in command for command in signed))
+            self.assertTrue(signed[-1][-1].endswith("/Draftly.app"))
+            self.assertLess(commands.index(signed[-1]), next(i for i, command in enumerate(commands) if "verify-cloud-signing.py" in command[1]))
             verify = next(command for command in commands if "verify-cloud-signing.py" in command[1])
             self.assertIn("--require-developer-id", verify)
             self.assertLess(next(i for i, command in enumerate(commands) if command[:3] == ["xcrun", "notarytool", "wait"]),
                             next(i for i, command in enumerate(commands) if command[:3] == ["xcrun", "stapler", "staple"]))
             self.assertLess(next(i for i, command in enumerate(commands) if command[0] == "spctl"),
                             max(i for i, command in enumerate(commands) if command[0] == "ditto"))
+
+    def test_embedded_signing_failure_stops_before_notary_submission(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "candidate"
+            runner = FakeRunner(fail_command=["codesign"])
+            with self.assertRaises(subprocess.CalledProcessError):
+                release.package(output, "QA profile", "QA notary", TAG, runner=runner)
+            self.assertFalse((output / "READY").exists())
+            self.assertFalse(any(command[:3] == ["xcrun", "notarytool", "submit"] for command in runner.commands))
 
     def test_notary_failure_preserves_receipt_but_never_marks_ready(self):
         with tempfile.TemporaryDirectory() as directory:

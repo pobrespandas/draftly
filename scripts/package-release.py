@@ -79,6 +79,17 @@ def read_json(output, description):
     return value
 
 
+def sign_embedded_sparkle(app, runner):
+    """Sign Sparkle helpers before sealing the framework and app."""
+    framework = app / "Contents/Frameworks/Sparkle.framework/Versions/B"
+    targets = [framework / "Updater.app", framework / "Autoupdate",
+               framework / "XPCServices/Downloader.xpc", framework / "XPCServices/Installer.xpc",
+               framework, app]
+    for target in targets:
+        run_command(["codesign", "--force", "--sign", "Developer ID Application", "--options", "runtime",
+                     "--timestamp", "--preserve-metadata=identifier,entitlements,flags", str(target)], runner=runner)
+
+
 def source_commit(tag, runner):
     if run_command(["git", "status", "--porcelain", "--untracked-files=normal"], runner=runner, capture=True).strip():
         raise ValueError("The source tree must be clean before building a candidate.")
@@ -122,6 +133,7 @@ def package(output, profile, notary_profile, tag, *, public_key=None, runner=sub
         run_command(command, runner=runner)
         if source_commit(tag, runner) != commit:
             raise ValueError("The source commit changed during the build.")
+        sign_embedded_sparkle(app, runner)
         built = plistlib.loads((app / "Contents/Info.plist").read_bytes())
         version, build = validate_metadata(source, built, public_key=public_key)
         signing = read_json(run_command([sys.executable, str(ROOT / "scripts/verify-cloud-signing.py"), str(app),
