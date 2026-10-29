@@ -37,7 +37,7 @@ struct ApplicationURLRouter {
                     if installed { show() }
                 }
             } catch { report(error) }
-        case "action":
+        case "action", "actionGroup", "actiongroup":
             do {
                 let installed = try Self.installActions(url, library: library) { actions, groups in
                     let alert = NSAlert()

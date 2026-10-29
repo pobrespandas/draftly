@@ -6,7 +6,10 @@ enum DraftsActionGroupImport {
     private static let maximumBytes = 16 * 1024 * 1024
 
     static func decode(_ data: Data) throws -> (ActionGroupRecord, [DraftAction]) {
-        let json = try decompress(data)
+        try decodeJSON(decompress(data))
+    }
+
+    static func decodeJSON(_ json: Data) throws -> (ActionGroupRecord, [DraftAction]) {
         guard case .object(var fields) = try JSONDecoder().decode(JSONValue.self, from: json),
               case .string(let name) = fields["name"], !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               case .string(let uuid) = fields["uuid"], let id = UUID(uuidString: uuid),
@@ -32,7 +35,7 @@ enum DraftsActionGroupImport {
         return (group, actions)
     }
 
-    private static func decompress(_ data: Data) throws -> Data {
+    static func decompress(_ data: Data) throws -> Data {
         let bytes = [UInt8](data)
         guard bytes.count >= 6, bytes.count <= maximumBytes,
               bytes[0] & 0x0f == 8, bytes[0] >> 4 <= 7,

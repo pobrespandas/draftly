@@ -163,6 +163,10 @@ export from the Drafts app. Its SHA-256 is
 Import tests check order, separator identity, group symbol, visibility,
 backup and repeated import. Native presentation and an actual populated export
 remain unverified.
+The same directory payload can be installed through a `draftly://actionGroup`
+link. Tests cover the official payload and atomic installation with a neutral
+group. Opening the link from another app and native replacement review remain
+separate checks. Draftly does not register the original Drafts URL scheme.
 Nested imported step objects now use stable JSON key order. This prevents
 new imports from differing only because object keys were serialized in a
 different order. Group reimport compares older step metadata by JSON content

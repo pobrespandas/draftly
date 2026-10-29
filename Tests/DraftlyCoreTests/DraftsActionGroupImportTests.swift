@@ -5,6 +5,21 @@ import Testing
 
 @Suite("Drafts action group file import") @MainActor
 struct DraftsActionGroupImportTests {
+    @Test func officialGroupPayloadInInstallationLinkKeepsGroupAndOrder() throws {
+        let fixture = try #require(Bundle.module.url(forResource: "drafts-directory-basic-2026-10-29.synthetic", withExtension: "draftsActionGroup", subdirectory: "Fixtures"))
+        let json = try DraftsActionGroupImport.decompress(Data(contentsOf: fixture))
+        var link = URLComponents(); link.scheme = "draftly"; link.host = "actionGroup"
+        link.queryItems = [URLQueryItem(name: "data", value: String(decoding: json, as: UTF8.self))]
+        let result = try ActionImporter.installationData(#require(link.url))
+        let backup = try JSONDecoder().decode(Backup.self, from: result)
+        let group = try #require(backup.actionGroups?.first)
+        let actions = try #require(backup.actions)
+        #expect(group.id.uuidString == "078CF5D6-AD76-419C-AF19-A7EC3236F21B")
+        #expect(group.symbol == "arrow.up.forward.app")
+        #expect(actions.count == 31 && actions.first?.name == "Copy")
+        #expect(actions.filter(\.isSeparator).map(\.name) == ["Services", "Apps"])
+        #expect(actions.enumerated().allSatisfy { $0.element.options?.order == $0.offset })
+    }
     @Test func legacyStepMetadataFormattingDoesNotCauseConflict() throws {
         let url = try #require(Bundle.module.url(forResource: "drafts-directory-basic-2026-10-29.synthetic", withExtension: "draftsActionGroup", subdirectory: "Fixtures"))
         let data = try Data(contentsOf: url)

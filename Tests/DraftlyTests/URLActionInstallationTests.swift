@@ -5,6 +5,28 @@ import Testing
 
 @Suite("Atomic action URL installation") @MainActor
 struct URLActionInstallationTests {
+    @Test func draftlyGroupLinkInstallsGroupAndOrderedActionsAtomically() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let groupID = UUID(), firstID = UUID(), separatorID = UUID()
+        let payload: [String: Any] = ["name": "Neutral group", "uuid": groupID.uuidString,
+            "icon": "symbol||star", "visibility": 2016, "future": ["keep": true],
+            "actions": [["name": "First", "uuid": firstID.uuidString, "steps": []],
+                        ["name": "Section", "uuid": separatorID.uuidString, "steps": [], "backingIsSeparator": true]]]
+        var link = URLComponents(); link.scheme = "draftly"; link.host = "actionGroup"
+        link.queryItems = [URLQueryItem(name: "data", value: String(decoding: try JSONSerialization.data(withJSONObject: payload), as: UTF8.self))]
+        let url = try #require(link.url)
+        library.beforeBatchCommit = { throw DraftlyError.message("Injected failure") }
+        #expect(throws: (any Error).self) { try ApplicationURLRouter.installActions(url, library: library) }
+        library.beforeBatchCommit = nil
+        #expect(library.actionGroups.isEmpty && library.actions.isEmpty)
+        #expect(try ApplicationURLRouter.installActions(url, library: library))
+        #expect(library.actionGroups.first?.id == groupID && library.actionGroups.first?.symbol == "star")
+        #expect(library.orderedActions().map(\.name) == ["First", "Section"])
+        #expect(library.orderedActions().last?.isSeparator == true)
+        let restored = try LibraryStore(inMemory: true, seed: false)
+        try restored.restore(library.backupData())
+        #expect(restored.actionGroups == library.actionGroups && restored.orderedActions() == library.orderedActions())
+    }
     private func link(_ entries: [[String: Any]]) throws -> URL {
         let data = try JSONSerialization.data(withJSONObject: entries)
         var url = URLComponents(); url.scheme = "draftly"; url.host = "action"

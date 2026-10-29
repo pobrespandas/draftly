@@ -94,6 +94,12 @@ public enum ActionImporter {
                     return try JSONEncoder().encode(Backup(notes: [], revisions: [], workspaces: [],
                         actions: actions, actionGroups: backup.actionGroups))
                 }
+                if case .object(let object) = try? JSONDecoder().decode(JSONValue.self, from: data),
+                   case .array = object["actions"], object["uuid"] != nil, object["steps"] == nil {
+                    let (group, groupActions) = try DraftsActionGroupImport.decodeJSON(data)
+                    return try JSONEncoder().encode(Backup(notes: [], revisions: [], workspaces: [],
+                        actions: groupActions, actionGroups: [group]))
+                }
                 return data
             }
         }
