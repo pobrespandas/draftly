@@ -3838,3 +3838,11 @@ An offscreen AppKit diagnostic compares a native sidebar with a regular split
 item without Draftly's split controller. The local panel suite passed all 15
 cases. Both native item types reported equal container and content widths on
 macOS 27. A hosted macOS 26 run is needed to compare the same setup.
+
+Hosted LargeDisplayPanels26 run 40962550202 failed the panel suite with ten
+issues. The isolated native diagnostic passed: at a 240-point divider, a
+regular split item had 240-point container and content widths. A full-height
+sidebar had a 240-point container and 232-point content. The same diagnostic
+on macOS 27 reported equal widths. This establishes an AppKit geometry
+difference in this setup; it does not by itself resolve window expansion or
+validate a production fix.
