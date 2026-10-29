@@ -905,3 +905,16 @@ The usual application was not replaced.
 
 Signed Release and profile verification passed for the existing bundle, team
 and container. The candidate remains uninstalled; signature is not sync evidence.
+
+## 29 October — list load restart and keyboard
+
+After normal Quit and restart, isolated QA retained Focus Editor enabled and
+Place Cursor set to Top. A second neutral draft was created. With the list
+focused, a simulated Down key selected the next draft and moved focus to its
+editor. A neutral paste appeared at the beginning. Command-Z restored its
+original text. This verifies one keyboard navigation path on this Mac; it does
+not establish all keyboard layouts or multi-selection behavior.
+
+QA quit normally. Its exact LaunchServices entry was removed after ZIP integrity
+verification. Recovery: DraftlyRecovery/list-restart-20261029-010327. The two
+neutral QA drafts and local QA preferences remain. The usual app was unchanged.

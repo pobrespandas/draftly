@@ -7,8 +7,8 @@ Updated: 26 October 2026.
 List selection now supports Focus Editor and Last, Top or Bottom cursor
 placement. Defaults retain the previous focus and stored selection behavior.
 Focused tests cover Unicode offsets and failed access; isolated QA checked Top,
-Bottom, focus and Undo. Native restart and keyboard navigation remain pending.
-The usual app is unchanged.
+Bottom, focus and Undo. Native QA also checked restart and one Down-key navigation path. Other
+keyboard layouts and multi-selection remain pending. The usual app is unchanged.
 
 Auto-match is available per syntax for direct key events. It wraps Unicode
 selections, and excludes Command and Control shortcuts. Option input is
