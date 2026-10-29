@@ -87,6 +87,30 @@ struct LibrarySplitViewTests {
         }
     }
 
+    @Test func initialLayoutReportsEachPanelConfigurationWithoutShowingAWindow() async throws {
+        _ = NSApplication.shared
+        for (filters, list, actions) in [(false, false, false), (false, true, false),
+                                          (true, true, false), (false, true, true),
+                                          (true, true, true)] {
+            let model = WindowModel(library: try LibraryStore(inMemory: true, seed: false))
+            model.setDraftListVisible(list)
+            model.setFiltersVisible(filters)
+            model.showActions = actions
+            let controller = LibrarySplitController(model: model, panels: (0..<4).map { _ in AnyView(Color.clear) })
+            let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 850, height: 600),
+                styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+            window.contentViewController = controller
+            controller.viewDidAppear()
+            await settleLayout(controller)
+            window.setContentSize(NSSize(width: 850, height: 600))
+            window.layoutIfNeeded()
+            controller.view.layoutSubtreeIfNeeded()
+            print("Panel configuration diagnostic filters=\(filters) list=\(list) actions=\(actions) frame=\(window.frame) content=\(window.contentView?.frame ?? .zero) split=\(controller.splitView.frame) panels=\(controller.splitView.arrangedSubviews.map(\.frame))")
+            #expect(!window.isVisible)
+            window.contentViewController = nil
+        }
+    }
+
     @Test func togglingPanelsDoesNotResetTheWindowTitle() async throws {
         _ = NSApplication.shared
         let model = WindowModel(library: try LibraryStore(inMemory: true, seed: false))

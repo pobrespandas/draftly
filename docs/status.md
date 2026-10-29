@@ -3681,3 +3681,8 @@ Project IAM inspection on 29 October found a human project owner and Firebase
 service agents. The owner can publish without the lock. A Cloud Storage bucket
 list returned no buckets for the project. Inherited effective permissions were
 not audited. No IAM or storage resources were changed.
+
+The offscreen panel diagnostic now reports five initial visibility
+configurations. The focused suite and local build passed on macOS 27. A hosted
+macOS 26 run is required to compare the configurations and identify which
+layout path causes the expansion. This diagnostic does not change app behavior.
