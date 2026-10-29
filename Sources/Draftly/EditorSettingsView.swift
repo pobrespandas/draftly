@@ -50,6 +50,8 @@ struct EditorSettingsView: View {
     @State private var syntaxFontError: String?
     @AppStorage(EditorSyntaxFontPreferences.key) private var syntaxFonts = "{}"
     @AppStorage("editor.fontName") private var fontName = "System"
+    @AppStorage(EditorSyntaxDisplayPreferences.key) private var displayOptions = "{}"
+    @State private var displayOptionsError: String?
     @AppStorage("editor.highlightInsertionPoint") private var highlightInsertionPoint = false
     @AppStorage("editor.monospaceFontName") private var monospaceFontName = "System Monospace"
     @AppStorage("editor.fontSize") private var fontSize = 17.0
@@ -122,9 +124,6 @@ struct EditorSettingsView: View {
                             HStack { Text("Size"); Slider(value: $fontSize, in: 11...28, step: 1); Text(EditorPreferenceDisplay.wholePointLabel(fontSize)).monospacedDigit() }
                             EditorSpacingPreferences(fontName: fontName, fontSize: fontSize, legacyLineSpacing: lineSpacing)
                         }
-                        Section("Display") {
-                            Toggle("Highlight Insertion Point", isOn: $highlightInsertionPoint)
-                        }
                         Section("When Draft Is Loaded") {
                             Toggle("Focus Editor", isOn: $focusOnListSelection)
                             Picker("Place Cursor", selection: Binding(
@@ -164,6 +163,23 @@ struct EditorSettingsView: View {
                                 editSyntaxFont { try EditorSyntaxFontPreferences.reset(for: navigation.syntax, encoded: $0) }
                             }.disabled(!EditorSyntaxFontPreferences.hasOverrides(for: navigation.syntax, encoded: syntaxFonts))
                             if let syntaxFontError { Text(syntaxFontError).foregroundStyle(.red).textSelection(.enabled) }
+                        }
+                    }
+                    if navigation.section == .syntax {
+                        Section("Display") {
+                            ForEach(EditorSyntaxDisplayPreferences.Option.allCases) { option in
+                                Toggle(option.title, isOn: Binding(
+                                    get: { EditorSyntaxDisplayPreferences.value(option, for: navigation.syntax,
+                                        encoded: displayOptions, legacyHighlight: highlightInsertionPoint) },
+                                    set: { enabled in
+                                        do {
+                                            displayOptions = try EditorSyntaxDisplayPreferences.setting(option,
+                                                enabled: enabled, for: navigation.syntax, encoded: displayOptions)
+                                            displayOptionsError = nil
+                                        } catch { displayOptionsError = error.localizedDescription }
+                                    }))
+                            }
+                            if let displayOptionsError { Text(displayOptionsError).foregroundStyle(.red).textSelection(.enabled) }
                         }
                     }
                     if navigation.section == .syntax {

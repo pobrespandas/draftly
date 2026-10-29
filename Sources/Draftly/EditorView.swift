@@ -23,6 +23,7 @@ struct NativeEditor: NSViewRepresentable {
     var isActive = true
     var showCustomTouchBar = true
     var highlightInsertionPoint = false
+    var showParagraphNumbers = false
     var touchBarModel: WindowModel?
     var textInput = EditorTextInputPreferences.Configuration()
     var completionContext: (@MainActor () -> EditorCompletionContext)?
@@ -42,6 +43,8 @@ struct NativeEditor: NSViewRepresentable {
         text.autoresizingMask = [.width]; text.textContainer?.widthTracksTextView = true
         text.textContainer?.containerSize = NSSize(width: 0, height: CGFloat.greatestFiniteMagnitude)
         text.delegate = context.coordinator; scroll.documentView = text
+        scroll.verticalRulerView = EditorParagraphRuler(scrollView: scroll, textView: text)
+        scroll.hasVerticalRuler = true; scroll.rulersVisible = showParagraphNumbers
         context.coordinator.textView = text
         session.synchronizeScriptEdit = { [weak coordinator = context.coordinator] in coordinator?.synchronizeScriptEdit() }
         session.performUndo = { [weak text] redo in if redo { text?.undoManager?.redo() } else { text?.undoManager?.undo() } }
@@ -70,6 +73,8 @@ struct NativeEditor: NSViewRepresentable {
     func updateNSView(_ scroll: NSScrollView, context: Context) {
         guard let text = scroll.documentView as? NSTextView else { return }
         configureTextInput(text, coordinator: context.coordinator)
+        if scroll.rulersVisible != showParagraphNumbers { scroll.rulersVisible = showParagraphNumbers }
+        scroll.verticalRulerView?.needsDisplay = true
         let coordinator = context.coordinator; coordinator.parent = self; coordinator.updating = true
         defer { coordinator.updating = false }
         if let text = text as? DraftTextView {
@@ -138,7 +143,7 @@ struct NativeEditor: NSViewRepresentable {
             guard !updating, let textView else { return }
             parent.session.content = textView.string
             parent.session.selection = textView.selectedRange()
-            highlight(); parent.onChange()
+            highlight(); textView.enclosingScrollView?.verticalRulerView?.needsDisplay = true; parent.onChange()
         }
         func textViewDidChangeSelection(_ notification: Notification) {
             guard !updating, let textView else { return }; parent.session.selection = textView.selectedRange()
@@ -153,6 +158,7 @@ struct NativeEditor: NSViewRepresentable {
         func invalidateDisplay() {
             guard let view = textView else { return }
             view.needsDisplay = true
+            view.enclosingScrollView?.verticalRulerView?.needsDisplay = true
             view.enclosingScrollView?.contentView.needsDisplay = true
             view.enclosingScrollView?.needsDisplay = true
         }

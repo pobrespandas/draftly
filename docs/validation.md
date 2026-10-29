@@ -10351,3 +10351,30 @@ does not replace the pending visible light-mode check.
 A focused offscreen test now checks wrapped visual-line geometry with Unicode.
 It confirms that the indicator follows the selected visual fragment rather
 than the paragraph start. The focused suite and local build passed.
+
+### Editor paragraph numbers — 29 October 2026
+
+Drafts 54.1.1 showed Paragraph numbers and Highlight insertion point as
+syntax-specific settings. Enabling them for Markdown did not enable them for
+Plain Text. A neutral sample showed one number per paragraph, including an
+empty paragraph, without numbers on wrapped visual lines. The original Drafts
+settings were restored after the comparison.
+
+Draftly now stores both display options by syntax. Existing global highlight
+settings remain the fallback when a syntax has no override. A native ruler
+numbers paragraphs without modifying the document. It uses UTF-16 offsets and
+handles CRLF, Unicode paragraph separators, and a trailing empty paragraph.
+The ruler draws within its bounds and keeps the editor text visible.
+
+Focused tests cover index boundaries, drawing, Unicode, separate syntax values,
+unknown fields, legacy fallback, and invalid preference data. The local Xcode
+build passed. The complete serial Swift inventory verified 682 Core and 860 app
+tests. Python ran 80 tests. The matrix structure check reported no errors.
+
+In Engine QA, Markdown retained paragraph numbers after restart, while Plain
+Text remained off. The same neutral sample showed four numbers, including the
+empty paragraph. A drawing regression in an intermediate build covered the
+editor; clipping the ruler fixed the observed issue in the next build. The QA
+bundle was archived and unregistered. Light appearance, long-document scroll,
+full selection/Undo coverage, and measured visual comparison remain pending.
+No screenshots are tracked.
