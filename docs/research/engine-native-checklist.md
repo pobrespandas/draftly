@@ -154,6 +154,9 @@ Automated tests also check each Mac visibility bit after reopening a disk
 library and restoring a backup. These tests do not verify a native app restart
 or the precedence between group and action visibility in Drafts.
 Populated groups, separators, and their presentation remain unverified.
+Nested imported step objects now use stable JSON key order. This prevents
+new imports from differing only because object keys were serialized in a
+different order. Older stored representations need separate compatibility checks.
 On 29 October, the Drafts Add Items menu still disabled New Action and New
 Separator. This did not produce a populated export or verify its format.
 

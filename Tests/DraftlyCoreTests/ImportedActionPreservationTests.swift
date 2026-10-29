@@ -4,6 +4,11 @@ import Testing
 
 @Suite("Imported action payload recovery") @MainActor
 struct ImportedActionPreservationTests {
+    @Test func nestedStepMetadataHasStableKeyOrder() throws {
+        let source = Data(#"{"name":"Neutral","steps":[{"type":"future","data":{"z":"last","a":{"y":2,"b":1}}}]}"#.utf8)
+        let action = try #require(ActionImporter.decode(source).first)
+        #expect(action.steps.first?.values["data"] == #"{"a":{"b":1,"y":2},"z":"last"}"#)
+    }
     @Test func disabledUnknownPayloadSurvivesExportBackupAndRestore() async throws {
         let source = Data(#"{"name":"Future disabled","unknown":{"nullable":null,"unicode":"café 🐼","values":[1,true]},"steps":[{"type":"futureStep","isEnabled":false,"data":{"nested":{"keep":["x",null]},"futureOption":true}},{"type":"script","data":{"script":"context.addSuccessParameter('retained','yes');"}}]}"#.utf8)
         let action = try #require(ActionImporter.decode(source).first)

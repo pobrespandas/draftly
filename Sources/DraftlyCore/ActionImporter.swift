@@ -26,7 +26,7 @@ public enum ActionImporter {
                 let nested = raw["data"] as? [String: Any] ?? raw["parameters"] as? [String: Any] ?? raw["values"] as? [String: Any] ?? [:]
                 for (key, value) in raw.merging(nested, uniquingKeysWith: { _, new in new }) where key != "type" {
                     if let text = value as? String { values[key] = text }
-                    else if JSONSerialization.isValidJSONObject(value), let json = try? JSONSerialization.data(withJSONObject: value) { values[key] = String(data: json, encoding: .utf8) }
+                    else if JSONSerialization.isValidJSONObject(value), let json = try? JSONSerialization.data(withJSONObject: value, options: [.sortedKeys]) { values[key] = String(data: json, encoding: .utf8) }
                     else { values[key] = String(describing: value) }
                 }
                 if type == "includeAction", nested["uuid"] == nil {
