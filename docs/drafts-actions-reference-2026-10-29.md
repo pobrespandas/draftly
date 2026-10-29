@@ -182,3 +182,18 @@ https://dayoneapp.com/guides/tips-and-tutorials/day-one-url-scheme/.
 cases cover both runners, URL encoding, callback success, cancellation and
 error, dates, tags, empty drafts, and source retention with simulated hosts.
 Bear and Day One delivery, permissions, and saved entries remain unverified.
+
+## OmniFocus actions
+
+Send Draft to OmniFocus sends the title and body as a task name and note.
+Send TaskPaper to OmniFocus sends the full draft to the inbox. OmniFocus
+interprets the TaskPaper content. Both actions keep the source draft and do
+not confirm that OmniFocus saved the content.
+
+References: https://actions.getdrafts.com/a/1QO and
+https://forums.getdrafts.com/t/using-omnifocus-with-drafts/26. The URL format
+is documented at https://inside.omnifocus.com/url-schemes.
+
+`swift test --filter OwnWritingActionsTests` passed thirty methods. Tests use
+simulated hosts for both runners. They cover URL encoding, empty drafts, open
+failures, and source retention. OmniFocus delivery remains unverified.

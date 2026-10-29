@@ -32,11 +32,11 @@ struct OwnWritingActionsTests {
     @Test func actionFilesImportIntoLibrary() throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        for name in ["template", "transform", "rich-text", "sort-lines", "append-lines", "markdown-bold", "markdown-italic", "copy-html", "print-pdf", "things-draft", "things-taskpaper", "things-markdown", "add-to-list", "obsidian-save", "obsidian-daily", "notion-copy", "dayone-send", "bear-send", "dayone-daily"] {
+        for name in ["template", "transform", "rich-text", "sort-lines", "append-lines", "markdown-bold", "markdown-italic", "copy-html", "print-pdf", "things-draft", "things-taskpaper", "things-markdown", "add-to-list", "obsidian-save", "obsidian-daily", "notion-copy", "dayone-send", "bear-send", "dayone-daily", "omnifocus-task", "omnifocus-tasks"] {
             let data = try Data(contentsOf: root.appendingPathComponent("website/public/actions/\(name).json"))
             try LibraryFileImport.apply(data, fileExtension: "json", to: library)
         }
-        #expect(library.actions.count == 19)
+        #expect(library.actions.count == 21)
         #expect(library.actions.allSatisfy { $0.unsupportedSteps.isEmpty })
     }
 
@@ -372,7 +372,7 @@ struct OwnWritingActionsTests {
         #expect(editor.content == source.content && library.notes.first { $0.id == source.id }?.isArchived == false)
     }
 
-    @Test(arguments: [false, true], ["notion-copy", "dayone-send", "bear-send", "dayone-daily"]) func externalActionsRejectEmptyDraft(worker: Bool, name: String) async throws {
+    @Test(arguments: [false, true], ["notion-copy", "dayone-send", "bear-send", "dayone-daily", "omnifocus-task", "omnifocus-tasks"]) func externalActionsRejectEmptyDraft(worker: Bool, name: String) async throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let editor = EditorSession(); editor.load(try library.createNote(content: " \n"))
         let host = WritingActionHost(); let runner = ActionRunner(library: library, editor: editor, host: host)
@@ -412,4 +412,27 @@ struct OwnWritingActionsTests {
         #expect(url.queryItems?.first { $0.name == "tags" }?.value == "Daily,Notes")
         #expect(editor.content == source.content && library.notes.first { $0.id == source.id }?.isArchived == false)
     }
+    @Test(arguments: [false, true], ["omnifocus-task", "omnifocus-tasks"]) func omniFocusURLsPreserveContentAndHandleFailure(worker: Bool, name: String) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let source = try library.createNote(content: "Title café & tea\n- Task 🐼 ?")
+        let editor = EditorSession(); editor.load(source)
+        let host = WritingActionHost(); let runner = ActionRunner(library: library, editor: editor, host: host)
+        #expect(await ActionTestExecution.succeeds(try action(name), runner: runner, worker: worker), Comment(rawValue: runner.message ?? ""))
+        let address = try #require(host.calls.first { $0.0 == "openURL" }?.1["url"] as? String)
+        let url = try #require(URLComponents(string: address))
+        #expect(url.scheme == "omnifocus")
+        if name == "omnifocus-task" {
+            #expect(url.path == "/add")
+            #expect(url.queryItems?.first { $0.name == "name" }?.value == "Title café & tea")
+            #expect(url.queryItems?.first { $0.name == "note" }?.value == "- Task 🐼 ?")
+        } else {
+            #expect(url.path == "/paste")
+            #expect(url.queryItems?.first { $0.name == "content" }?.value == source.content)
+        }
+        #expect(editor.content == source.content && library.notes.first { $0.id == source.id }?.isArchived == false)
+        host.falseOperation = "openURL"
+        #expect(!(await ActionTestExecution.succeeds(try action(name), runner: runner, worker: worker)))
+        #expect(editor.content == source.content && library.notes.first { $0.id == source.id }?.isArchived == false)
+    }
+
 }
