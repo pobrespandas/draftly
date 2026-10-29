@@ -11116,3 +11116,24 @@ no Archive, no success parameters, no child or root tail, and no queued action.
 A later Intent succeeds with a different execution ID. The focused Intent suite
 passed. This does not prove system-delivered App Intent dispatch, URL callback
 delivery, or Drafts configuration precedence. No production code changed.
+
+### Included action through Shortcuts: delivery unresolved — 29 October 2026
+
+A separate QA build used bundle ID `com.andrestobelem.draftly.engine-qa`, a new
+isolated library, and the local Debug source at `9b22e82`. Xcode extracted App
+Intents metadata for that ID. The bundle was signed with the development team
+and verified. QA contained a neutral note and three locally imported actions for
+included cancellation and recovery.
+
+The earlier disposable QA Shortcut showed an unknown action before and after
+QA launched. A new Shortcut named `Draftly QA Include — disposable` listed a
+`Run Draft Action` search result without a visible provider. Running that result
+opened the usual Draftly app while QA's note and history stayed unchanged. The
+Shortcut remained running and was stopped; no final Intent result was observed.
+The target UUID was created in the isolated library. This attempt does not prove
+which process received the Intent or that the usual library was unchanged. It
+does not accept system-delivered QA execution. Do not reuse that search result
+without identifying its provider. The new Shortcut remains in Shortcuts; the
+older Shortcut was not edited. Both exact QA bundles were unregistered and moved
+to Trash after QA quit. The test library remains. The usual Draftly app was
+opened by this attempt and was left running.
