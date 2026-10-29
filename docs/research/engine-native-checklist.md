@@ -98,6 +98,17 @@ actions; current mixed-container tests do not establish outer group metadata
 parity. Preserve group identity, options, separators, order and unknown fields;
 test rollback and backup recovery once the actual format is established.
 
+On 29 October, Drafts 54.1.1 exported the existing neutral empty group through
+Manage Action Groups > Share Group > Export as File. The 227-byte
+`.draftsActionGroup` file uses a zlib wrapper around JSON. Its SHA-256 is
+`c2ff072b77babb9d957ba508c5490f0287fa7fb68c4b3845a3297ae1dc01d56b`.
+The neutral export is in `Tests/DraftlyCoreTests/Fixtures/` for future import
+tests. It contains group UUID, name, icon, visibility, disposition, timestamps,
+and an empty actions array. It does not show separator or populated-group data.
+Draftly does not yet import this compressed file. Add bounded decompression,
+validate the wrapper and payload, preserve group metadata and unknown fields,
+and test atomic import before accepting the format.
+
 Generic native UI, URL and actual App Intent sessions already cover final
 success/failure/cancel/timeout, queues, owner close, library exclusion and
 same-draft two-window ownership. Keep those results. For the unresolved routes
