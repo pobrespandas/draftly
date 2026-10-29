@@ -4,6 +4,21 @@ import Testing
 
 @Suite("HTTP loopback contracts")
 struct ScriptHTTPLocalServerTests {
+    @Test(arguments: [false, true]) @MainActor
+    func xmlRPCDateAndBinaryCurrentMapping(worker: Bool) async throws {
+        let server = try LoopbackHTTPServer(); defer { server.stop() }
+        let fixture = try ScriptTestFixture(content: "Neutral", host: APIContractHost())
+        let action = ScriptTestAction.make("""
+        const result=XMLRPC.request('\(server.url("/xml-echo"))','echo',
+          [new Date('2026-10-19T12:34:56.000Z'),new Uint8Array([0,128,255])]);
+        check(result.success,'request succeeds');
+        check(typeof result.params[0]==='string' && result.params[0]==='2026-10-19T12:34:56.000Z','date becomes string');
+        check(result.params[1]['0']===0 && result.params[1]['1']===128 && result.params[1]['2']===255,'binary becomes record');
+        """, name: "XML-RPC value observation")
+        #expect(await ActionTestExecution.succeeds(action, runner: fixture.runner, worker: worker),
+                Comment(rawValue: fixture.runner.message ?? ""))
+        #expect(try server.event()["path"] as? String == "/xml-echo")
+    }
     private func request(_ values: [String: Any], worker: Bool) async throws -> [String: Any] {
         if !worker { return ScriptHTTP.request(values) }
         let payload = String(decoding: try JSONSerialization.data(withJSONObject: values), as: UTF8.self)

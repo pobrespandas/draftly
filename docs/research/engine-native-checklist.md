@@ -11,6 +11,11 @@ only that operation, outcome and entry point.
 The XML-RPC encoder rejects non-finite numeric parameters, including nested
 values. Both script execution paths reject them before JSON serialization can
 change them to null. Regression tests passed with the XML-RPC transport suites.
+An isolated loopback characterization also shows that both script paths send a
+JavaScript Date as a string and Uint8Array as a record with numeric keys. This
+is current behavior, not an accepted Drafts contract. The archived reference
+does not define the mapping. Replace the characterization when that mapping is
+verified and implemented.
 
 [Engine acceptance cases](engine-acceptance-cases-2026-10-22.md) assigns case IDs,
 entries, outcomes, cleanup and affected contracts to the remaining work. It
