@@ -4,7 +4,7 @@ import Testing
 
 @Suite("Script worker host lifetime") @MainActor
 struct ActionScriptWorkerTests {
-    @Test func concurrentWorkersCompleteIndependentHostRequests() async {
+    @Test func concurrentWorkersCompleteMainActorHostRequests() async {
         let counter = WorkerRequestCounter()
         let results = await withTaskGroup(of: Bool.self, returning: [Bool].self) { group in
             for _ in 0..<24 {
@@ -30,7 +30,7 @@ struct ActionScriptWorkerTests {
             return results
         }
         #expect(results.count == 24 && results.allSatisfy { $0 })
-        #expect(await counter.count == 24)
+        #expect(counter.count == 24 && counter.onMainThread)
     }
     @Test func cancellingAHostWaitReleasesTheWorkerAndCancelsItsRequestTask() async throws {
         let gate = WorkerHostGate()
@@ -70,9 +70,10 @@ struct ActionScriptWorkerTests {
     }
 }
 
-private actor WorkerRequestCounter {
+@MainActor private final class WorkerRequestCounter {
     private(set) var count = 0
-    func record() { count += 1 }
+    private(set) var onMainThread = true
+    func record() { count += 1; onMainThread = onMainThread && Thread.isMainThread }
 }
 
 @MainActor private final class WorkerHostGate {
