@@ -61,13 +61,13 @@ def verify_results(expected, reports):
     return Counter(name.split(".", 1)[0] for name in actual)
 
 
-def run_target(module, expected, output, *, concurrent_app=False):
+def run_target(module, expected, output, *, concurrent_app=False, test_filter=None):
     output.mkdir(parents=True, exist_ok=True)
     reports = [output / "results.xml", output / "results-swift-testing.xml"]
     for report in reports:
         report.unlink(missing_ok=True)
     with (output / "tests.log").open("w") as log:
-        command = ["swift", "test", "--filter", module, "--xunit-output", str(reports[0])]
+        command = ["swift", "test", "--filter", test_filter or module, "--xunit-output", str(reports[0])]
         if module != "DraftlyTests" or not concurrent_app:
             command.append("--no-parallel")
         process = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT)
@@ -76,20 +76,27 @@ def run_target(module, expected, output, *, concurrent_app=False):
     return verify_results(expected, reports)
 
 
-def run(output, *, concurrent_app=False):
+def run(output, *, concurrent_app=False, diagnostic_suite=None):
     output.mkdir(parents=True, exist_ok=True)
     inventory = subprocess.run(["swift", "test", "list"], capture_output=True, text=True)
     (output / "inventory.log").write_text(inventory.stdout + inventory.stderr)
     if inventory.returncode:
         raise ValueError("Swift test discovery failed. See inventory.log.")
     expected = test_inventory(inventory.stdout)
+    if diagnostic_suite:
+        prefix = "DraftlyTests." + diagnostic_suite + "/"
+        expected = {name for name in expected if name.startswith(prefix)}
+        if not expected:
+            raise ValueError("The diagnostic suite has no discovered cases.")
     counts = Counter()
     # Keep target reports separate. Core tests also share limited runner resources.
     for module in sorted({name.split(".", 1)[0] for name in expected}):
         selected = {name for name in expected if name.startswith(module + ".")}
         if not selected:
             raise ValueError("The test inventory has no cases for " + module)
-        counts.update(run_target(module, selected, output / module, concurrent_app=concurrent_app))
+        test_filter = "DraftlyTests." + diagnostic_suite if diagnostic_suite else None
+        counts.update(run_target(module, selected, output / module, concurrent_app=concurrent_app,
+                                 test_filter=test_filter))
     print("Verified complete Swift results: " + ", ".join(
         name + " " + str(count) for name, count in sorted(counts.items())))
 
@@ -100,11 +107,13 @@ def main():
                         help="Keep logs and XML in this directory. Default: temporary files.")
     parser.add_argument("--concurrent-app", action="store_true",
                         help="Diagnose concurrent AppKit tests. Default: serial app tests.")
+    parser.add_argument("--diagnostic-suite", choices=["LibrarySplitViewTests", "TypewriterScrollingTests"],
+                        help="Run one suite for diagnosis, not release acceptance.")
     args = parser.parse_args()
     temporary = args.output_dir is None
     folder = Path(tempfile.mkdtemp(prefix="Draftly-Tests-")) if temporary else args.output_dir
     try:
-        run(folder.resolve(), concurrent_app=args.concurrent_app)
+        run(folder.resolve(), concurrent_app=args.concurrent_app, diagnostic_suite=args.diagnostic_suite)
     except (ValueError, OSError, ET.ParseError) as error:
         print("Swift verification failed: " + str(error))
         print("Diagnostic files retained in " + str(folder.resolve()))

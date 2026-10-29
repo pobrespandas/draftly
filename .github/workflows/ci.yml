@@ -5,6 +5,15 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      diagnostic:
+        description: Run the full CI or diagnose one macOS suite
+        type: choice
+        default: all
+        options:
+          - all
+          - LibrarySplitViewTests
+          - TypewriterScrollingTests
 
 permissions:
   contents: read
@@ -36,10 +45,18 @@ jobs:
       - name: Check Actions matrix structure
         run: python scripts/audit-action-api.py --check
       - name: Run Swift tests and verify inventory
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.diagnostic == 'all' || inputs.diagnostic == '' }}
         run: python scripts/run-swift-tests.py --output-dir "$RUNNER_TEMP/draftly-test-results"
+      - name: Run one suite for diagnosis
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.diagnostic != 'all' && inputs.diagnostic != '' }}
+        env:
+          DIAGNOSTIC_SUITE: ${{ inputs.diagnostic }}
+        run: python scripts/run-swift-tests.py --output-dir "$RUNNER_TEMP/draftly-test-results" --diagnostic-suite "$DIAGNOSTIC_SUITE"
       - name: Build local application
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.diagnostic == 'all' || inputs.diagnostic == '' }}
         run: scripts/build-app.sh --local
       - name: Check local package metadata
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.diagnostic == 'all' || inputs.diagnostic == '' }}
         shell: bash
         run: |
           app=.build/xcode/Build/Products/Debug/Draftly.app

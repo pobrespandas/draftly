@@ -3312,3 +3312,7 @@ macOS 26 runner reported panel geometry failures and left an incomplete Swift
 Testing XML report. The test runner rejects this report and now identifies the
 file and log to inspect. These failures need investigation on macOS 26; they
 are not waived by the passing macOS 27 local suite.
+
+The CI workflow can run either affected suite as a manual diagnostic. It still
+requires the complete inventory for normal CI and release acceptance. Both
+diagnostic modes passed locally on macOS 27; macOS 26 results remain pending.

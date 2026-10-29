@@ -89,6 +89,15 @@ class SwiftResultVerificationTests(unittest.TestCase):
                 self.assertEqual(command.call_count, 1)
                 self.assertIn("--no-parallel", command.call_args.args[0])
 
+    def test_diagnostic_suite_is_forwarded_without_retries(self):
+        with patch.object(runner.subprocess, "run", return_value=CompletedProcess([], 7)) as command:
+            with self.assertRaisesRegex(ValueError, "Swift tests failed"):
+                runner.run_target("DraftlyTests", self.expected, Path(self.folder.name),
+                                  test_filter="DraftlyTests.TypewriterScrollingTests")
+            args = command.call_args.args[0]
+            self.assertEqual(args[args.index("--filter") + 1], "DraftlyTests.TypewriterScrollingTests")
+            self.assertEqual(command.call_count, 1)
+
     def test_inventory_ignores_build_noise_but_requires_unique_test_ids(self):
         output = "Building for debugging...\n" + "\n".join(sorted(self.expected))
         self.assertEqual(runner.test_inventory(output), self.expected)
