@@ -3792,3 +3792,8 @@ On 29 October 2026, GitHub ruleset 26163655 was activated for main. The branch
 rules API reports deletion and non-fast-forward protections. Fast-forward pushes
 remain allowed; workflow changes and release secrets are not yet protected.
 The release environment remains absent and publication remains disabled.
+
+A GitHub environment named release now exists. Its deployment reference
+policies allow the main branch and v* tags. No secrets were added, and the
+workflow is not connected to it. Workflow-change protection, environment access
+validation, and publication acceptance remain pending.

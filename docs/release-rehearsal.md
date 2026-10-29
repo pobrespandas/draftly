@@ -316,8 +316,9 @@ identity, validate Apple trust or prove recovery on another device.
 
 The public GitHub repository has active rulesets that protect version tags and
 prevent deletion and non-fast-forward updates of `main`. Fast-forward pushes to
-`main` remain allowed, and no release environment is configured. These rules do
-not protect workflow changes or secrets. Do not store signing, notarization, or
+`main` remain allowed. A `release` environment exists with `main` and `v*`
+reference policies, but the workflow does not use it yet and it holds no
+secrets. These rules do not protect workflow changes or secrets. Do not store signing, notarization, or
 Sparkle secrets as repository-wide secrets until release workflow changes and
 secret access are restricted and tested. The signing and staging jobs remain
 disabled.
