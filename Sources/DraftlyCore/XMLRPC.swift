@@ -185,6 +185,9 @@ public enum ScriptXMLRPC {
                       let value = member.children.first(where: { $0.name == "value" }) else {
                     throw DraftlyError.message("An XML-RPC member must contain one name and one value.")
                 }
+                guard values[name.text] == nil else {
+                    throw DraftlyError.message("An XML-RPC struct contains a duplicate member name.")
+                }
                 values[name.text] = try decode(value)
             }
             return values

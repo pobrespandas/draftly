@@ -4,6 +4,17 @@ import Testing
 
 @Suite("XML-RPC contracts")
 struct XMLRPCTests {
+    @Test func duplicateStructNamesDoNotSilentlyDiscardValues() {
+        let member = "<member><name>key</name><value><string>value</string></value></member>"
+        let record = "<value><struct>" + member + member + "</struct></value>"
+        for value in [record, "<value><array><data>" + record + "</data></array></value>"] {
+            let xml = "<methodResponse><params><param>" + value + "</param></params></methodResponse>"
+            let result = ScriptXMLRPC.response(Data(xml.utf8), statusCode: 200)
+            #expect(result["success"] as? Bool == false)
+            #expect((result["params"] as? [Any])?.isEmpty == true)
+            #expect(!(result["error"] as? String ?? "").isEmpty)
+        }
+    }
     @Test func responseNestingIsBoundedByTheXMLParser() {
         func response(depth: Int) -> [String: Any] {
             let value = String(repeating: "<value><array><data>", count: depth)

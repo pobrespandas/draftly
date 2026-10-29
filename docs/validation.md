@@ -10846,3 +10846,11 @@ code during conversion and selects a longer delimiter when needed. The test
 covers backticks, entities and Markdown emphasis characters. The HTML preference
 suite and local Debug build passed. A native comparison with Drafts and broader
 HTML grammar coverage remain pending.
+
+### XML-RPC duplicate response members — 29 October 2026
+
+A response struct with duplicate member names previously reported success and
+silently discarded a value. A regression test failed before the correction.
+The decoder now returns an error for duplicate names, including inside arrays.
+The focused XML-RPC, async transport and loopback suites passed. The local Debug
+build passed. Drafts behavior for this malformed response remains unverified.
