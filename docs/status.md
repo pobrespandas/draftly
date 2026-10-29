@@ -3904,3 +3904,7 @@ returned to the 239.5-point divider position and the draft list to about 280
 points after toggling. The editor retained focus. QA quit normally; its library
 was preserved. Dragged widths, rapid transitions, resizing and a real macOS 26
 window were not checked in this session.
+
+The manual QA divider drag did not change the accessibility-reported position.
+It did not verify width restoration after dragging. QA quit normally. The
+previous toggle checks remain valid; manual drag and resizing remain pending.
