@@ -3436,3 +3436,13 @@ isolated` for the 9-second case; the deadline itself was not exceeded in the
 fixture. The exact group and process state at failure remain unknown. Do not
 claim that the process had already exited or change the test deadline. All 925
 app methods ran; this is a failed full CI run.
+
+A separate manual Sparkle QA used two Developer ID-signed executables with
+verified different unsigned bytes, a separate QA bundle ID, test key, local HTTP
+feed, and temporary library. The 0.1.0 app displayed the 0.2.0 update and notes.
+After confirmation, Sparkle downloaded and installed it, then relaunched the
+updated executable. A neutral draft remained in the temporary library and its
+full text reopened. QA was closed and its LaunchServices registration removed.
+This fixture changes the feed and bundle checks for local QA and is not
+notarized. It does not establish public HTTPS, production updates, settings
+preservation, failure paths, or CloudKit migration.
