@@ -3637,3 +3637,12 @@ the signed feed and public asset before promotion. Three Node tests, all 189
 Python tests, and the matrix check passed. A local browser check showed both a
 neutral release fixture and the missing-feed fallback. The site was not
 deployed. A coordinated site deployment is still required.
+
+A read-only website overlay inspection compares committed base and target
+files against the live Firebase version. It reports independent edits as
+conflicts and checks that the live snapshot did not change during inspection.
+Against the real site, base a955f00 and target 7ece377 produced two changes:
+`/index.html` and `/release.mjs`. No Firebase write was made. Ten focused
+planner tests, all 199 Python tests, three website tests, and the matrix check
+passed. This check does not lock the site and is not connected to staging or
+promotion. Shared writer coordination remains required.

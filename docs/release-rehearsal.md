@@ -142,6 +142,25 @@ each update.
 The appcast tool does not enable update checks. Real update acceptance and key
 recovery remain pending.
 
+## Inspect website changes before staging
+
+`scripts/site-overlay.py` compares two committed website trees with the public
+site. Supply their full commit hashes in `--base` and `--target`, and provide a
+short-lived Firebase token in `DRAFTLY_FIREBASE_ACCESS_TOKEN`. The base must
+represent the site source that was deployed. The command reads Firebase and
+public files. It does not write to Firebase or publish anything.
+
+For each changed path, it checks that the live bytes match either the base or
+the target. An independent change is a conflict. Unchanged paths are not
+replaced. The command checks the Firebase snapshot before and after reading.
+It rejects redirects, invalid paths, symlinks, and a public ETag that differs
+from the Firebase snapshot. The output lists the changes and deletions.
+
+This inspection is not a lock. A writer can change the site after it finishes.
+The release staging and promotion workflow does not yet consume its result.
+Route all site writers through an enforced shared coordinator before relying on
+this check for publication.
+
 ## Stage the site without publishing
 
 `scripts/firebase-stage-appcast.py` can inspect the live Firebase Hosting
