@@ -1,0 +1,7 @@
+{
+  "hosting": {
+    "site": "draftly-pobrespandas",
+    "public": "public",
+    "ignore": ["firebase.json", "**/.*"]
+  }
+}
