@@ -39,19 +39,24 @@ struct NativeHTMLConversion {
         }
         for level in 1...6 { replace("(?s)<h\(level)\\b[^>]*>(.*?)</h\(level)>", "\n" + String(repeating: "#", count: level) + " $1\n") }
         if options["ignoreLinks"] as? Bool == true { replace("(?s)<a\\b[^>]*>(.*?)</a>", "$1") }
-        else if options["inlineLinks"] as? Bool ?? true {
-            replace("(?s)<a\\b[^>]*href=[\"']([^\"']*)[\"'][^>]*>(.*?)</a>", "[$2]($1)")
-        } else {
-            let expression = try NSRegularExpression(pattern: "<a\\b[^>]*href=[\"']([^\"']*)[\"'][^>]*>(.*?)</a>", options: [.caseInsensitive, .dotMatchesLineSeparators])
+        else {
+            let inline = options["inlineLinks"] as? Bool ?? true
+            let expression = try NSRegularExpression(pattern: #"<a\b(?:(?:[^'">]|"[^"]*"|'[^']*')*?\s)href\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))(?:(?:[^'">]|"[^"]*"|'[^']*')*)>(.*?)</a\s*>"#, options: [.caseInsensitive, .dotMatchesLineSeparators])
             var reference = 0
             func convertLinks(_ source: String) -> (String, [String]) {
                 let text = source as NSString
                 let matches = expression.matches(in: source, range: NSRange(location: 0, length: text.length))
                 var replacements: [(NSRange, String)] = [], definitions: [String] = []
                 for match in matches {
-                    reference += 1
-                    replacements.append((match.range, "[" + text.substring(with: match.range(at: 2)) + "][\(reference)]"))
-                    definitions.append("[\(reference)]: " + text.substring(with: match.range(at: 1)))
+                    guard let group = (1...3).first(where: { match.range(at: $0).location != NSNotFound }) else { continue }
+                    let target = text.substring(with: match.range(at: group))
+                    let label = text.substring(with: match.range(at: 4))
+                    if inline { replacements.append((match.range, "[" + label + "](" + target + ")")) }
+                    else {
+                        reference += 1
+                        replacements.append((match.range, "[" + label + "][\(reference)]"))
+                        definitions.append("[\(reference)]: " + target)
+                    }
                 }
                 var converted = source
                 for (range, value) in replacements.reversed() {
@@ -59,7 +64,8 @@ struct NativeHTMLConversion {
                 }
                 return (converted, definitions)
             }
-            if options["linksEachParagraph"] as? Bool == true {
+            if inline { result = convertLinks(result).0 }
+            else if options["linksEachParagraph"] as? Bool == true {
                 replace("</p\\s*>", "</p>")
                 result = result.components(separatedBy: "</p>").map { paragraph in
                     let (converted, definitions) = convertLinks(paragraph)

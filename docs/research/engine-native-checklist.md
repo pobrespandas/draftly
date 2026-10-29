@@ -28,6 +28,9 @@ attributes without confusing data-src with src. The preference suite covers thes
 cases and ignoreImages. Decoded image labels escape Markdown punctuation, and
 destinations escape parentheses and backslashes. Drafts comparison and other
 URL edge cases need separate checks.
+Inline and reference links now use the href attribute rather than data-href,
+including unquoted values and quoted attributes containing `>`. Focused tests
+cover both forms. Other HTML grammar and Drafts parity remain open.
 
 [Engine acceptance cases](engine-acceptance-cases-2026-10-22.md) assigns case IDs,
 entries, outcomes, cleanup and affected contracts to the remaining work. It

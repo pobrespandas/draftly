@@ -26,6 +26,19 @@ struct HTMLPreferencesTests {
         #expect(result == #"![Café \] & \*panda\*](folder/a\(b\).png?x=1&y=2)"#)
     }
 
+    @Test(arguments: [false, true])
+    func linkConversionReadsHrefRatherThanDataHref(inline: Bool) throws {
+        let html = "<p><a data-href='wrong' href=actual>Uno 🐼</a> <a title='a > b' href = 'two'>Dos</a></p>"
+        let result = try NativeHTMLConversion().htmlToMarkdown(html, options: ["inlineLinks": inline])
+        if inline {
+            #expect(result == "[Uno 🐼](actual) [Dos](two)")
+        } else {
+            #expect(result.contains("[Uno 🐼][1] [Dos][2]"))
+            #expect(result.contains("[1]: actual") && result.contains("[2]: two"))
+        }
+        #expect(!result.contains("wrong"))
+    }
+
     @Test func marksAndIgnoreOptionsReachTheConverter() throws {
         let host = NativeActionHost()
         let html = "<p><strong>Café 🐼</strong> <em>text</em> <a href='https://example.com'>link</a><img src='neutral.png'></p><ul><li>item</li></ul>"
