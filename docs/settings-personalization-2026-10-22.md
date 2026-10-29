@@ -743,3 +743,58 @@ verification. Recoverable package:
 DraftlyRecovery/text-input-20261026-045342. Neutral QA data/preferences remain.
 The habitual app is unchanged. Autocorrection, Writing Tools, monospace, other
 editor controls and the previously listed native/visual checks remain pending.
+
+## 26 October — system text input overrides
+
+The base is007b5ff. Focused text-input baseline4 passed before editing. The
+annotated pre-settings-system-input-2026-10-26 tag retains that source. Local
+skill deletions remain separate.
+
+Syntax Settings now exposes System Default, Enabled and Disabled for automatic
+spelling correction and Writing Tools. Missing or invalid fields inherit the
+native state. The coordinator captures that state before applying overrides.
+Reset and a syntax without overrides restore it. This avoids inventing a fixed
+system preference or leaving the previous syntax's explicit value active.
+Both fields use the existing local text input JSON preference. Unknown fields
+and other syntaxes remain. No public API, shared record or backup format changes.
+
+The implementation checked the installed AppKit headers and current Apple API
+documentation through find-docs/Context7. References:
+https://developer.apple.com/documentation/appkit/nstextview/writingtoolsbehavior
+https://developer.apple.com/documentation/appkit/customizing-writing-tools-behavior-for-system-views
+The October19 Drafts behavior reference remains unchanged. Explicit enablement
+requests NSWritingToolsBehavior.default; disablement requests none. The system
+still controls availability. No model is installed or run by changing the option.
+
+One new pure test covers optional values, invalid fields and edits, Unicode,
+unknown fields, persistence, individual inheritance and reset. The existing
+EditorBody test keeps its name and now checks correction override, Writing Tools
+disablement and restoration of initial values with text and script Undo retained.
+Focused5 passed. A later assertion checks explicit enablement against the same
+system request on a separate offscreen view. Complete results follow below.
+
+## 28 October — native selector verification
+
+The local Debug build succeeded. In isolated QA, both Markdown selectors started
+at System Default. Disabled values persisted after normal Quit and restart.
+Writing Tools also accepted Enabled. Reset restored both selectors to System
+Default. This checks the UI bindings and persistence. It does not verify a real
+Writing Tools session, model availability or correction quality. The existing
+headless editor test covers the NSTextView flags and restoration of its initial
+values. No model was invoked during this check.
+
+QA quit normally. Its exact LaunchServices entry was removed after ZIP integrity
+verification. The recoverable package is
+DraftlyRecovery/system-input-20261028-234102. QA preferences remain. The usual
+application was not replaced. Existing local skill deletions remain separate.
+
+The first complete verification on 28 October failed with three timeouts in the
+previously recorded WorkerPromiseEpochTests. The focused suite then passed two
+tests. A separate complete confirmation passed Core 682 and app 841 with exact
+inventory/XML results. Python 80 and the structural matrix check passed. No
+retry policy or timeout was changed. The initial failure remains an open
+intermittent risk and is not counted as a passing run.
+
+Signed Release and profile verification passed with the existing bundle, team
+and CloudKit container. The candidate remains uninstalled. The signature check
+does not verify synchronization.

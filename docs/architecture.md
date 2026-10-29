@@ -465,3 +465,10 @@ writes. Editor Settings owns bindings and errors. EditorBody resolves the active
 syntax and NativeEditor applies the configuration during creation and updates.
 These changes do not call a text mutation or clear Undo. Automatic correction,
 text replacement and Writing Tools are separate system options.
+
+Autocorrection and Writing Tools use optional overrides in the same syntax
+preference. A missing value means System Default. The coordinator captures the
+native values once when it creates the text view. Reset or a syntax without an
+override restores those values. Explicit Writing Tools enablement requests the
+system default behavior; disablement requests none. This configures the editor,
+not model installation, authorization or hardware availability.

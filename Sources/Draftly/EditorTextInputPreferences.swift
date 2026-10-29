@@ -18,11 +18,24 @@ enum EditorTextInputPreferences {
         var defaultValue: Bool { self == .spelling }
     }
 
+    enum SystemOption: String, CaseIterable, Identifiable {
+        case autocorrection, writingTools
+        var id: String { rawValue }
+        var title: String {
+            switch self {
+            case .autocorrection: "Correct spelling automatically"
+            case .writingTools: "Writing Tools"
+            }
+        }
+    }
+
     struct Configuration: Equatable {
         var spelling = true
         var grammar = false
         var smartQuotes = false
         var smartDashes = false
+        var autocorrection: Bool?
+        var writingTools: Bool?
     }
 
     static func value(_ option: Option, for syntax: String, encoded: String) -> Bool {
@@ -35,21 +48,38 @@ enum EditorTextInputPreferences {
         Configuration(spelling: value(.spelling, for: syntax, encoded: encoded),
             grammar: value(.grammar, for: syntax, encoded: encoded),
             smartQuotes: value(.smartQuotes, for: syntax, encoded: encoded),
-            smartDashes: value(.smartDashes, for: syntax, encoded: encoded))
+            smartDashes: value(.smartDashes, for: syntax, encoded: encoded),
+            autocorrection: override(.autocorrection, for: syntax, encoded: encoded),
+            writingTools: override(.writingTools, for: syntax, encoded: encoded))
     }
 
     static func setting(_ option: Option, enabled: Bool, for syntax: String, encoded: String) throws -> String {
         try edit(syntax, encoded: encoded) { $0[option.rawValue] = .bool(enabled) }
     }
 
+    static func override(_ option: SystemOption, for syntax: String, encoded: String) -> Bool? {
+        guard let fields = try? fields(for: syntax, in: object(encoded)),
+              case .bool(let value) = fields[option.rawValue] else { return nil }
+        return value
+    }
+
+    static func setting(_ option: SystemOption, enabled: Bool?, for syntax: String, encoded: String) throws -> String {
+        try edit(syntax, encoded: encoded) { fields in
+            if let enabled { fields[option.rawValue] = .bool(enabled) }
+            else { fields.removeValue(forKey: option.rawValue) }
+        }
+    }
+
     static func hasOverrides(for syntax: String, encoded: String) -> Bool {
         guard let fields = try? fields(for: syntax, in: object(encoded)) else { return false }
         return Option.allCases.contains { fields[$0.rawValue] != nil }
+            || SystemOption.allCases.contains { fields[$0.rawValue] != nil }
     }
 
     static func reset(for syntax: String, encoded: String) throws -> String {
         try edit(syntax, encoded: encoded) { fields in
             for option in Option.allCases { fields.removeValue(forKey: option.rawValue) }
+            for option in SystemOption.allCases { fields.removeValue(forKey: option.rawValue) }
         }
     }
 

@@ -4,6 +4,11 @@ Updated: 26 October 2026.
 
 ## Settings and personalization in progress
 
+Autocorrection and Writing Tools have per-syntax System Default, Enabled and
+Disabled choices. Native QA checked persistence and Reset. Actual system
+correction and a Writing Tools session remain separate acceptance checks. The
+usual application remains unchanged.
+
 Four text input options now work per syntax: continuous spelling, grammar,
 smart quotes and smart dashes. Missing values keep current defaults. Reset and
 edits retain unknown fields. Core 682/app 840, Python 80, structural matrix,

@@ -33,7 +33,7 @@ struct NativeEditor: NSViewRepresentable {
         scroll.drawsBackground = true
         let text = DraftTextView(frame: .zero)
         text.isRichText = false; text.isAutomaticTextReplacementEnabled = true
-        configureTextInput(text)
+        configureTextInput(text, coordinator: context.coordinator)
         text.allowsUndo = true; text.usesFindBar = true; text.isIncrementalSearchingEnabled = true
         text.drawsBackground = true; text.textContainerInset = NSSize(width: 17, height: 17)
         text.isVerticallyResizable = true; text.isHorizontallyResizable = false
@@ -49,7 +49,16 @@ struct NativeEditor: NSViewRepresentable {
         }
         return scroll
     }
-    private func configureTextInput(_ text: NSTextView) {
+    private func configureTextInput(_ text: NSTextView, coordinator: Coordinator) {
+        if coordinator.systemTextInputDefaults == nil {
+            coordinator.systemTextInputDefaults = (text.isAutomaticSpellingCorrectionEnabled, text.writingToolsBehavior)
+        }
+        if let defaults = coordinator.systemTextInputDefaults {
+            text.isAutomaticSpellingCorrectionEnabled = textInput.autocorrection ?? defaults.autocorrection
+            text.writingToolsBehavior = textInput.writingTools.map {
+                $0 ? NSWritingToolsBehavior.default : NSWritingToolsBehavior.none
+            } ?? defaults.writingTools
+        }
         text.isContinuousSpellCheckingEnabled = textInput.spelling
         text.isGrammarCheckingEnabled = textInput.grammar
         text.isAutomaticQuoteSubstitutionEnabled = textInput.smartQuotes
@@ -58,7 +67,7 @@ struct NativeEditor: NSViewRepresentable {
 
     func updateNSView(_ scroll: NSScrollView, context: Context) {
         guard let text = scroll.documentView as? NSTextView else { return }
-        configureTextInput(text)
+        configureTextInput(text, coordinator: context.coordinator)
         let coordinator = context.coordinator; coordinator.parent = self; coordinator.updating = true
         defer { coordinator.updating = false }
         if let text = text as? DraftTextView {
@@ -114,6 +123,7 @@ struct NativeEditor: NSViewRepresentable {
         var defaultSelectionAttributes: [NSAttributedString.Key: Any]?
         var defaultLinkAttributes: [NSAttributedString.Key: Any]?
         var capturedLinkAttributes = false
+        var systemTextInputDefaults: (autocorrection: Bool, writingTools: NSWritingToolsBehavior)?
         var focusToken: UUID?
         init(_ parent: NativeEditor) { self.parent = parent; noteID = parent.session.noteID }
         func textDidChange(_ notification: Notification) {

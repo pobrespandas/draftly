@@ -52,6 +52,41 @@ struct EditorTextInputPreferencesTests {
         #expect(EditorTextInputPreferences.configuration(for: "Markdown", encoded: source).smartDashes)
         #expect(EditorTextInputPreferences.configuration(for: "TaskPaper", encoded: source) == .init())
     }
+    @Test func systemOptionsInheritWithoutWritesAndPersistExplicitChoices() throws {
+        let fixture = try TestPreferences(prefix: "Draftly-SystemInput-")
+        defer { fixture.close() }
+        for option in EditorTextInputPreferences.SystemOption.allCases {
+            for source in ["{}", "invalid", "[]", #"{"Markdown":[]}"#,
+                           #"{"Markdown":{"autocorrection":0,"writingTools":"true"}}"#] {
+                #expect(EditorTextInputPreferences.override(option, for: "Markdown", encoded: source) == nil)
+            }
+            let source = #"{"Markdown":{"future":[null,"café 🐼"]},"TaskPaper":{"spelling":false},"future":42}"#
+            for enabled in [false, true] {
+                let edited = try EditorTextInputPreferences.setting(option, enabled: enabled, for: "Markdown", encoded: source)
+                fixture.defaults.set(edited, forKey: EditorTextInputPreferences.key)
+                let reopened = try #require(UserDefaults(suiteName: fixture.name))
+                let stored = reopened.string(forKey: EditorTextInputPreferences.key) ?? "{}"
+                #expect(EditorTextInputPreferences.override(option, for: "Markdown", encoded: stored) == enabled)
+                #expect(EditorTextInputPreferences.override(option, for: "TaskPaper", encoded: stored) == nil)
+                #expect(EditorTextInputPreferences.hasOverrides(for: "Markdown", encoded: stored))
+                let inherited = try EditorTextInputPreferences.setting(option, enabled: nil, for: "Markdown", encoded: stored)
+                let reset = try EditorTextInputPreferences.reset(for: "Markdown", encoded: stored)
+                for restored in [inherited, reset] {
+                    #expect(try JSONDecoder().decode([String: JSONValue].self, from: Data(restored.utf8)) ==
+                        JSONDecoder().decode([String: JSONValue].self, from: Data(source.utf8)))
+                }
+            }
+            for source in ["invalid", "[]", #"{"Markdown":false}"#] {
+                #expect(throws: (any Error).self) {
+                    try EditorTextInputPreferences.setting(option, enabled: true, for: "Markdown", encoded: source)
+                }
+                #expect(throws: (any Error).self) {
+                    try EditorTextInputPreferences.setting(option, enabled: nil, for: "Markdown", encoded: source)
+                }
+            }
+        }
+    }
+
     @Test @MainActor func changingTextInputOptionsPreservesSelectionContentAndScriptUndo() async throws {
         _ = NSApplication.shared
         let fixture = try TestPreferences(prefix: "Draftly-TextInputEditor-")
@@ -82,6 +117,8 @@ struct EditorTextInputPreferencesTests {
             return view.subviews.lazy.compactMap { textView($0) }.first
         }
         let text = try #require(textView(host))
+        let initialCorrection = text.isAutomaticSpellingCorrectionEnabled
+        let initialWritingTools = text.writingToolsBehavior
         window.makeFirstResponder(text)
         let undo = try #require(text.undoManager)
         undo.groupsByEvent = false
@@ -101,10 +138,16 @@ struct EditorTextInputPreferencesTests {
             options = try EditorTextInputPreferences.setting(option, enabled: !option.defaultValue,
                 for: "Markdown", encoded: options)
         }
+        options = try EditorTextInputPreferences.setting(.autocorrection, enabled: !initialCorrection,
+            for: "Markdown", encoded: options)
+        options = try EditorTextInputPreferences.setting(.writingTools, enabled: false,
+            for: "Markdown", encoded: options)
         fixture.defaults.set(options, forKey: EditorTextInputPreferences.key)
         host.rootView = editor()
         host.layoutSubtreeIfNeeded()
         await TestMainQueue.drain()
+        #expect(text.isAutomaticSpellingCorrectionEnabled == !initialCorrection)
+        #expect(text.writingToolsBehavior == .none)
         #expect(!text.isContinuousSpellCheckingEnabled && text.isGrammarCheckingEnabled)
         #expect(text.isAutomaticQuoteSubstitutionEnabled && text.isAutomaticDashSubstitutionEnabled)
         #expect(text.string == edited && model.editor.content == edited)
@@ -117,6 +160,22 @@ struct EditorTextInputPreferencesTests {
         undo.redo()
         await TestMainQueue.drain()
         #expect(text.string == edited && model.editor.content == edited)
+        options = try EditorTextInputPreferences.setting(.writingTools, enabled: true, for: "Markdown", encoded: options)
+        fixture.defaults.set(options, forKey: EditorTextInputPreferences.key)
+        host.rootView = editor()
+        host.layoutSubtreeIfNeeded()
+        await TestMainQueue.drain()
+        let systemView = NSTextView()
+        systemView.writingToolsBehavior = .default
+        #expect(text.writingToolsBehavior == systemView.writingToolsBehavior)
+        fixture.defaults.set(try EditorTextInputPreferences.reset(for: "Markdown", encoded: options),
+            forKey: EditorTextInputPreferences.key)
+        host.rootView = editor()
+        host.layoutSubtreeIfNeeded()
+        await TestMainQueue.drain()
+        #expect(text.isAutomaticSpellingCorrectionEnabled == initialCorrection)
+        #expect(text.writingToolsBehavior == initialWritingTools)
+        #expect(text.string == edited && model.editor.content == edited && undo.canUndo)
     }
 
 

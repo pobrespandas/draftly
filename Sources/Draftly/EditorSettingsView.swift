@@ -155,6 +155,23 @@ struct EditorSettingsView: View {
                                         } catch { textInputError = error.localizedDescription }
                                     }))
                             }
+                            ForEach(EditorTextInputPreferences.SystemOption.allCases) { option in
+                                Picker(option.title, selection: Binding<Bool?>(
+                                    get: { EditorTextInputPreferences.override(option, for: navigation.syntax, encoded: textInputOptions) },
+                                    set: { enabled in
+                                        do {
+                                            textInputOptions = try EditorTextInputPreferences.setting(option,
+                                                enabled: enabled, for: navigation.syntax, encoded: textInputOptions)
+                                            textInputError = nil
+                                        } catch { textInputError = error.localizedDescription }
+                                    })) {
+                                    Text("System Default").tag(Optional<Bool>.none)
+                                    Text("Enabled").tag(Optional(true))
+                                    Text("Disabled").tag(Optional(false))
+                                }
+                            }
+                            Text("Writing Tools requires system support. Enabling it does not install models or grant permissions.")
+                                .font(.caption).foregroundStyle(.secondary)
                             Button("Reset Text Input Settings") {
                                 do {
                                     textInputOptions = try EditorTextInputPreferences.reset(for: navigation.syntax, encoded: textInputOptions)
