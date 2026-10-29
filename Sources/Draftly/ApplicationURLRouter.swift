@@ -8,6 +8,10 @@ struct ApplicationURLRouter {
     private func show(_ id: UUID? = nil) { controller.show(id) }
     private func newDraft(content: String) { controller.newDraft(content: content) }
     private func capture(content: String) { controller.capture(content: content) }
+    private func report(_ error: Error) {
+        if let library { library.error = error.localizedDescription }
+        else { NSApp.presentError(error) }
+    }
 
     func handle(_ url: URL) {
         if ActionCallbackRouter.receive(url) { return }
@@ -32,10 +36,7 @@ struct ApplicationURLRouter {
                     }
                     if installed { show() }
                 }
-            } catch {
-                if let library { library.error = error.localizedDescription }
-                else { NSApp.presentError(error) }
-            }
+            } catch { report(error) }
         case "action":
             do {
                 let installed = try Self.installActions(url, library: library) { actions, groups in
@@ -48,10 +49,7 @@ struct ApplicationURLRouter {
                     return alert.runModal() == .alertFirstButtonReturn
                 }
                 if installed { show() }
-            } catch {
-                if let library { library.error = error.localizedDescription }
-                else { NSApp.presentError(error) }
-            }
+            } catch { report(error) }
         case "theme":
             do {
                 let installed = try Self.installTheme(url, library: library) { existing in
@@ -63,20 +61,14 @@ struct ApplicationURLRouter {
                     return alert.runModal() == .alertFirstButtonReturn
                 }
                 if installed { show() }
-            } catch { library?.error = error.localizedDescription }
+            } catch { report(error) }
         case "syntax":
             do {
                 if let data = parameter("data") {
-                    let incoming = try SyntaxDefinition(data: Data(data.utf8))
-                    guard let library else { throw DraftlyError.message("The library is unavailable.") }
-                    if library.syntaxes.contains(where: { $0.name == incoming.name && $0.type == "custom" && $0.source == incoming.source }) {
-                        show(); return
-                    }
-                    guard let syntax = try SyntaxImportReview.resolve(incoming, library: library) else { return }
-                    try library.saveSyntax(syntax); show()
+                    if try Self.installSyntax(Data(data.utf8), library: library, review: SyntaxImportReview.resolve) { show() }
                 } else if let name = parameter("name"), ScriptSyntax.names.contains(name) { show() }
                 else { throw DraftlyError.message("The syntax link is invalid.") }
-            } catch { library?.error = error.localizedDescription }
+            } catch { report(error) }
         case "create": newDraft(content: parameter("text") ?? "")
         case "capture": capture(content: parameter("text") ?? "")
         case "open":
@@ -160,6 +152,19 @@ struct ApplicationURLRouter {
             }
         }
         try library.saveWorkspace(incoming)
+        return true
+    }
+
+    @discardableResult
+    static func installSyntax(_ data: Data, library: LibraryStore?,
+                              review: (SyntaxDefinition, LibraryStore) throws -> SyntaxDefinition?) throws -> Bool {
+        let incoming = try SyntaxDefinition(data: data)
+        guard let library else { throw DraftlyError.message("The library is unavailable.") }
+        if library.syntaxes.contains(where: { $0.name == incoming.name && $0.type == "custom" && $0.source == incoming.source }) {
+            return true
+        }
+        guard let syntax = try review(incoming, library) else { return false }
+        try library.saveSyntax(syntax)
         return true
     }
 

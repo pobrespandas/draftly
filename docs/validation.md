@@ -10661,3 +10661,10 @@ tests. The local Debug build, 80 Python tests, and matrix structure check passed
 The normal parallel Core run failed in asynchronous window, XML-RPC, and host
 cleanup timing tests. No timeout changed. Native confirmation and replacement
 are pending. The usual app was not updated.
+
+### Syntax and theme link errors — 29 October 2026
+
+Five syntax import choice tests passed, including link installation and save
+failure. The serial app suite passed 882 tests. The local Debug build passed.
+Native error presentation and syntax link replacement remain pending. The
+prior parallel Core timing failures remain recorded above.

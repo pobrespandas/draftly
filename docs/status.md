@@ -3180,3 +3180,10 @@ Action links review changes to installed actions and groups before replacing
 them. Cancel and concurrent changes leave the import batch unchanged. Tests
 cover identities, storage failures, and unknown data. Native confirmation is
 not yet verified. The usual app is unchanged.
+
+### Syntax and theme link errors — 29 October 2026
+
+Syntax and theme link errors now remain visible when the library is not
+available. Syntax link tests cover identical data, cancellation, a failed save,
+and replacement with the same identity. Native error presentation remains
+unverified. The usual app is unchanged.

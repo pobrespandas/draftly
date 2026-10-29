@@ -61,4 +61,35 @@ struct SyntaxImportPreparationTests {
         try library.saveSyntax(copy)
         #expect(Set(library.syntaxes.map(\.id)) == [original.id, copy.id])
     }
+
+    @Test func linkInstallationHandlesIdenticalCancelledAndFailedWrites() throws {
+        enum Failure: Error { case storage }
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let original = try definition(); try library.saveSyntax(original)
+        let data = Data(original.source.utf8)
+        #expect(throws: (any Error).self) {
+            try ApplicationURLRouter.installSyntax(data, library: nil) { incoming, _ in incoming }
+        }
+        #expect(try ApplicationURLRouter.installSyntax(data, library: library) { _, _ in
+            Issue.record("An identical syntax must not require review"); return nil
+        })
+        var object = original.object; object["future"] = ["keep": false]
+        let replacement = try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])
+        #expect(try !ApplicationURLRouter.installSyntax(replacement, library: library) { _, _ in nil })
+        try library.reload(); #expect(library.syntaxes == [original])
+        library.beforeBatchCommit = { throw Failure.storage }
+        #expect(throws: Failure.storage) {
+            try ApplicationURLRouter.installSyntax(replacement, library: library) { incoming, store in
+                try SyntaxImportPreparation.prepare(incoming, installed: store.syntaxes, choice: .replace)
+            }
+        }
+        library.beforeBatchCommit = nil
+        try library.reload(); #expect(library.syntaxes == [original])
+        #expect(try ApplicationURLRouter.installSyntax(replacement, library: library) { incoming, store in
+            try SyntaxImportPreparation.prepare(incoming, installed: store.syntaxes, choice: .replace)
+        })
+        try library.reload()
+        #expect(library.syntaxes.first?.id == original.id)
+        #expect(library.syntaxes.first?.source == String(decoding: replacement, as: UTF8.self))
+    }
 }
