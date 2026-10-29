@@ -3555,3 +3555,10 @@ window widths even on macOS 27, so a proposed attachment-width assertion was
 invalid. The existing tests do not prove that deferred activation fixes macOS 26
 or preserves visible transitions. Production source and assertions were
 restored. The hosted geometry issue remains open.
+
+A headless panel diagnostic now compares the existing initial constraints with
+the same constraints temporarily disabled during controller attachment. On
+macOS 27 the attached window widths were 1022 and 822 points respectively;
+both scenarios settled at the requested 850-point content width. All 11 local
+panel tests and the local build passed. The test does not change production
+layout or establish the macOS 26 result.
