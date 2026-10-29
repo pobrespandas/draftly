@@ -3271,3 +3271,9 @@ without rewriting either history. The complete Swift inventory passed: 759
 Core and 925 application tests. All 167 Python tests, the matrix structural
 check, and the local app build passed. This does not publish the site or prove
 Developer ID signing, Sparkle updates, or CloudKit Production.
+
+The integrated commit was fast-forwarded to remote `main`. The first hosted CI
+run started. Its final result is pending. The separate local `main` checkout
+has uncommitted changes and was not modified; it is behind the remote branch.
+The available signing identities are Apple Development identities. A Developer
+ID identity and hosted release credentials have not been established.

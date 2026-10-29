@@ -9,12 +9,13 @@ Preview it from this directory:
 python3 -m http.server 8000 --directory public
 ```
 
-To publish, sign in to Firebase CLI with an account that can deploy to the
-project, then run:
-
-```sh
-firebase deploy --only hosting
-```
+Do not deploy this directory directly. A Firebase Hosting deployment replaces
+the live file set. It could remove the update feed or files from another site
+writer. The release staging process preserves the current live files and
+configuration, but it does not promote a version. See
+[`docs/release-rehearsal.md`](../docs/release-rehearsal.md) for its checks and
+the remaining publication requirements. Coordinate all site writers before
+enabling publication.
 
 The custom domain is `draftly.pobrespandas.com`. Its DNS and certificate
 must be configured in Firebase Hosting and Cloudflare.
