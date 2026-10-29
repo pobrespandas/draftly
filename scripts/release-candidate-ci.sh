@@ -73,9 +73,15 @@ if [[ -e "$profile_path" || -L "$profile_path" ]]; then
     exit 1
 fi
 python3 - "$workdir/profile.provisionprofile" "$profile_path" <<'PY'
-import shutil, sys
-with open(sys.argv[1], 'rb') as source, open(sys.argv[2], 'xb') as target:
-    shutil.copyfileobj(source, target)
+import os, shutil, sys
+with open(sys.argv[1], 'rb') as source:
+    target = open(sys.argv[2], 'xb')
+    try:
+        with target:
+            shutil.copyfileobj(source, target)
+    except BaseException:
+        os.unlink(sys.argv[2])
+        raise
 PY
 profile_owned=1
 

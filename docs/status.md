@@ -3574,3 +3574,9 @@ The offscreen panel diagnostic now also keeps the initial width constraints
 inactive until after layout. All three scenarios settled at 850 points on
 macOS 27. The focused local suite and build passed. The macOS 26 result is
 needed before deciding whether those constraints cause the larger width.
+
+The CI signing setup now removes a newly created partial profile if the copy
+fails. A pre-existing profile is still rejected and preserved. A regression
+test reproduced the leftover file before the fix. The signing setup tests and
+all 180 Python tests passed with injected tools and temporary files. This does
+not cover a runner killed without cleanup or enable release signing.

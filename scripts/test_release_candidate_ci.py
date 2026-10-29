@@ -127,6 +127,24 @@ class ReleaseCandidateCITests(unittest.TestCase):
         self.assertFalse(any(call[0] == "package" for call in self.calls()))
         self.assertIn(["security", "delete-keychain"], self.calls())
 
+    def test_failed_profile_copy_removes_partial_destination(self):
+        custom = self.root / "injected"
+        custom.mkdir()
+        (custom / "sitecustomize.py").write_text(
+            "import shutil\n"
+            "def fail_copy(source, target, length=0):\n"
+            "    target.write(b'partial')\n"
+            "    raise OSError('fixture copy failure')\n"
+            "shutil.copyfileobj = fail_copy\n"
+        )
+        result = self.run_script(PYTHONPATH=str(custom))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("fixture copy failure", result.stderr)
+        self.assertFalse((self.profiles / (self.uuid + ".provisionprofile")).exists())
+        self.assertEqual(list(self.runner.iterdir()), [])
+        self.assertFalse(any(call[0] == "package" for call in self.calls()))
+        self.assertIn(["security", "delete-keychain"], self.calls())
+
     def test_failed_build_still_removes_only_temporary_signing_material(self):
         result = self.run_script(TEST_PACKAGE_FAIL="1")
         self.assertNotEqual(result.returncode, 0)
