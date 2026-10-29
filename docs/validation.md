@@ -10651,3 +10651,13 @@ failed in separate timing-sensitive Core tests: XML-RPC transport in the first,
 and asynchronous runner waits in the second. Both focused suites passed. A
 separate complete serial Core run passed (699 methods). These diagnostics do
 not turn the normal parallel Core runs into passes. No timeout was changed.
+
+### Action link replacement — 29 October 2026
+
+The focused action installation suite passed nine tests. It covers cancel,
+replacement, identical groups, duplicate identities, concurrent edits, unknown
+fields, and storage failure. Full serial Swift runs passed 699 Core and 881 app
+tests. The local Debug build, 80 Python tests, and matrix structure check passed.
+The normal parallel Core run failed in asynchronous window, XML-RPC, and host
+cleanup timing tests. No timeout changed. Native confirmation and replacement
+are pending. The usual app was not updated.

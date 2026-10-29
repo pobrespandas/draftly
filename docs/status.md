@@ -3173,3 +3173,10 @@ cover storage failure, unknown fields, reload and backup. Native QA confirmed
 Cancel; Replace remains unverified. Full normal Core runs had timing failures;
 both focused suites and a separate serial Core run passed. App inventory and
 local build passed with the limits in validation. The usual app is unchanged.
+
+### Action link replacement — 29 October 2026
+
+Action links review changes to installed actions and groups before replacing
+them. Cancel and concurrent changes leave the import batch unchanged. Tests
+cover identities, storage failures, and unknown data. Native confirmation is
+not yet verified. The usual app is unchanged.

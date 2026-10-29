@@ -59,6 +59,11 @@ before they replace different local settings. Identical links do not replace
 the record. Cancellation and a concurrent change retain the installed record.
 Native QA has verified cancellation; native replacement remains to be checked.
 
+Action installation links ask before they replace changed actions or groups
+with the same identity. Cancel keeps the whole batch unchanged. Duplicate
+identities and changes made during confirmation stop the import. Automated
+tests cover these paths; native confirmation remains to be checked.
+
 The JavaScript runtime applies a ten-second CPU execution limit when macOS exports
 the JavaScriptCore limit function. Synchronous native dialogs wait for user input.
 This limit uses a runtime symbol and is intended for personal distribution.

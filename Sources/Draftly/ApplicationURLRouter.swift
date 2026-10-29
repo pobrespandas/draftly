@@ -37,8 +37,21 @@ struct ApplicationURLRouter {
                 else { NSApp.presentError(error) }
             }
         case "action":
-            do { try Self.installActions(url, library: library); show() }
-            catch { library?.error = error.localizedDescription }
+            do {
+                let installed = try Self.installActions(url, library: library) { actions, groups in
+                    let alert = NSAlert()
+                    alert.messageText = "Replace installed actions or groups?"
+                    let names = actions.map { "Action: \($0.name)" } + groups.map { "Group: \($0.name)" }
+                    alert.informativeText = names.joined(separator: "\n")
+                    alert.addButton(withTitle: "Replace"); alert.addButton(withTitle: "Cancel")
+                    alert.buttons.last?.keyEquivalent = "\u{1b}"
+                    return alert.runModal() == .alertFirstButtonReturn
+                }
+                if installed { show() }
+            } catch {
+                if let library { library.error = error.localizedDescription }
+                else { NSApp.presentError(error) }
+            }
         case "theme":
             do {
                 let installed = try Self.installTheme(url, library: library) { existing in
@@ -178,9 +191,27 @@ struct ApplicationURLRouter {
         }
     }
 
-    static func installActions(_ url: URL, library: LibraryStore?) throws {
+    @discardableResult
+    static func installActions(_ url: URL, library: LibraryStore?,
+                               confirmReplacement: ([DraftAction], [ActionGroupRecord]) -> Bool = { _, _ in false }) throws -> Bool {
         guard let library else { throw DraftlyError.message("The library is unavailable.") }
-        try LibraryFileImport.apply(ActionImporter.installationData(url), fileExtension: "json", to: library)
+        let data = try ActionImporter.installationData(url)
+        let actions = try ActionImporter.decode(data)
+        let groups = (try? JSONDecoder().decode(Backup.self, from: data))?.actionGroups ?? []
+        guard Set(actions.map(\.id)).count == actions.count, Set(groups.map(\.id)).count == groups.count else {
+            throw DraftlyError.message("The action link contains duplicate identifiers.")
+        }
+        let oldActions = library.actions, oldGroups = library.actionGroups
+        let replacements = oldActions.filter { existing in actions.contains { $0.id == existing.id && $0 != existing } }
+        let groupReplacements = oldGroups.filter { existing in groups.contains { $0.id == existing.id && $0 != existing } }
+        if !replacements.isEmpty || !groupReplacements.isEmpty {
+            guard confirmReplacement(replacements, groupReplacements) else { return false }
+            guard library.actions == oldActions, library.actionGroups == oldGroups else {
+                throw DraftlyError.message("The installed actions or groups changed. Open the link again to review the replacement.")
+            }
+        }
+        try LibraryFileImport.apply(data, fileExtension: "json", to: library)
+        return true
     }
 
     enum OpenTargetError: Error, Equatable {

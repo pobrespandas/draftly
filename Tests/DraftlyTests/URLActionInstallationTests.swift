@@ -31,7 +31,7 @@ struct URLActionInstallationTests {
         let url = try link([["name": "Replacement", "uuid": existing.id.uuidString, "steps": []], ["name": "New action", "steps": []]])
         library.beforeBatchCommit = { throw Failure.commit }
         defer { library.beforeBatchCommit = nil }
-        #expect(throws: Failure.commit) { try ApplicationURLRouter.installActions(url, library: library) }
+        #expect(throws: Failure.commit) { try ApplicationURLRouter.installActions(url, library: library) { _, _ in true } }
         #expect(library.actions == [existing])
         try library.reload()
         #expect(library.actions == [existing])
@@ -80,5 +80,73 @@ struct URLActionInstallationTests {
     @Test func missingLibraryFailsExplicitly() throws {
         let url = try link([["name": "Neutral", "steps": []]])
         #expect(throws: (any Error).self) { try ApplicationURLRouter.installActions(url, library: nil) }
+    }
+
+    @Test func replacementRequiresConfirmationAndKeepsBatchAtomic() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let original = DraftAction(name: "Original", steps: [])
+        try library.saveAction(original)
+        var replacement = original; replacement.name = "Changed 🐼"
+        let added = DraftAction(name: "New", steps: [])
+        let data = try JSONEncoder().encode([replacement, added])
+        var components = URLComponents(); components.scheme = "draftly"; components.host = "action"
+        components.queryItems = [URLQueryItem(name: "data", value: String(decoding: data, as: UTF8.self))]
+        let url = try #require(components.url)
+        let cancelled = try ApplicationURLRouter.installActions(url, library: library) { actions, groups in
+            #expect(actions == [original]); #expect(groups.isEmpty); return false
+        }
+        #expect(!cancelled)
+        try library.reload(); #expect(library.actions == [original])
+        #expect(try ApplicationURLRouter.installActions(url, library: library) { _, _ in true })
+        try library.reload()
+        #expect(Set(library.actions.map(\.id)) == Set([original.id, added.id]))
+        #expect(library.actions.first(where: { $0.id == original.id }) == replacement)
+    }
+
+    @Test func concurrentChangeDuringConfirmationAbortsInstallation() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let original = DraftAction(name: "Original", steps: [])
+        try library.saveAction(original)
+        let url = try link([["name": "Incoming", "uuid": original.id.uuidString, "steps": []]])
+        var concurrent = original; concurrent.name = "Changed during review"
+        #expect(throws: (any Error).self) {
+            try ApplicationURLRouter.installActions(url, library: library) { _, _ in
+                try! library.saveAction(concurrent); return true
+            }
+        }
+        try library.reload(); #expect(library.actions == [concurrent])
+    }
+
+    @Test func groupReplacementAndIdenticalLinkAreReviewedCorrectly() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let original = ActionGroupRecord(name: "Original group")
+        try library.saveActionGroup(original)
+        var changed = original; changed.symbol = "star"
+        func url(_ group: ActionGroupRecord) throws -> URL {
+            let backup = Backup(notes: [], revisions: [], workspaces: [], actions: [], actionGroups: [group])
+            var components = URLComponents(); components.scheme = "draftly"; components.host = "action"
+            components.queryItems = [URLQueryItem(name: "data", value: try JSONEncoder().encode(backup).base64EncodedString())]
+            return try #require(components.url)
+        }
+        let same = try url(original)
+        #expect(try ApplicationURLRouter.installActions(same, library: library) { _, _ in
+            Issue.record("Identical records must not require confirmation"); return false
+        })
+        let changedURL = try url(changed)
+        let cancelled = try ApplicationURLRouter.installActions(changedURL, library: library) { actions, groups in
+            #expect(actions.isEmpty); #expect(groups == [original]); return false
+        }
+        #expect(!cancelled); try library.reload(); #expect(library.actionGroups == [original])
+        #expect(try ApplicationURLRouter.installActions(changedURL, library: library) { _, _ in true })
+        try library.reload(); #expect(library.actionGroups == [changed])
+    }
+
+    @Test func duplicateActionIdentitiesAreRejectedBeforeMutation() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let id = UUID().uuidString
+        let url = try link([["name": "First", "uuid": id, "steps": []],
+                            ["name": "Second", "uuid": id, "steps": []]])
+        #expect(throws: (any Error).self) { try ApplicationURLRouter.installActions(url, library: library) }
+        #expect(library.actions.isEmpty)
     }
 }
