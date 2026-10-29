@@ -10837,3 +10837,12 @@ confirms that a response with 19 nested arrays succeeds and one with 20 nested
 arrays fails with an error and no parameters. Array wrappers add XML elements,
 so this limit differs from the request encoder's value-depth limit. The XML-RPC
 contract suite passed. No product behavior changed.
+
+### Inline HTML code conversion — 29 October 2026
+
+Inline code with backticks previously produced ambiguous Markdown delimiters.
+A regression test failed before the change. The converter now protects inline
+code during conversion and selects a longer delimiter when needed. The test
+covers backticks, entities and Markdown emphasis characters. The HTML preference
+suite and local Debug build passed. A native comparison with Drafts and broader
+HTML grammar coverage remain pending.

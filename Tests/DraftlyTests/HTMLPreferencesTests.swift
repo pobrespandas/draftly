@@ -6,6 +6,11 @@ import Testing
 struct HTMLPreferencesTests {
     init() { _ = NSApplication.shared }
 
+    @Test func inlineCodePreservesBackticksEntitiesAndMarkdownSyntax() throws {
+        let html = "<p>Use <code>`a` &amp; *b*</code> and <code>x``y</code>.</p>"
+        let result = try NativeHTMLConversion().htmlToMarkdown(html, options: [:])
+        #expect(result == "Use `` `a` & *b* `` and ```x``y```.")
+    }
     @Test func codeBlocksPreserveBlankLinesAndMarkupAsText() throws {
         let html = "<p>Before</p><pre><code>let a = &lt;tag&gt;\n\n\nlet b = &amp;value;\n```\nend</code></pre><p>After</p>"
         let result = try NativeHTMLConversion().htmlToMarkdown(html, options: [:])

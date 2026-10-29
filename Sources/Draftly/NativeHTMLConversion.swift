@@ -88,6 +88,20 @@ struct NativeHTMLConversion {
             protectedFragments.append((token, block))
             if let range = Range(match.range, in: result) { result.replaceSubrange(range, with: "\n\n" + token + "\n\n") }
         }
+        let inlineCode = try NSRegularExpression(pattern: #"<code\b(?:[^'">]|"[^"]*"|'[^']*')*>(.*?)</code\s*>"#, options: [.caseInsensitive, .dotMatchesLineSeparators])
+        let inlineSource = result as NSString
+        for match in inlineCode.matches(in: result, range: NSRange(location: 0, length: inlineSource.length)).reversed() {
+            let raw = inlineSource.substring(with: match.range(at: 1)).replacingOccurrences(
+                of: #"<[^>]+>"#, with: "", options: .regularExpression)
+            let code = try decodeHTML(raw)
+            let longest = code.split(whereSeparator: { $0 != "`" }).map(\.count).max() ?? 0
+            let fence = String(repeating: "`", count: longest + 1)
+            let padding = code.hasPrefix("`") || code.hasSuffix("`") ||
+                (code.hasPrefix(" ") && code.hasSuffix(" ") && !code.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            let token = "DRAFTLYCODE" + UUID().uuidString.replacingOccurrences(of: "-", with: "")
+            protectedFragments.append((token, fence + (padding ? " " : "") + code + (padding ? " " : "") + fence))
+            if let range = Range(match.range, in: result) { result.replaceSubrange(range, with: token) }
+        }
         for level in 1...6 { replace("(?s)<h\(level)\\b[^>]*>(.*?)</h\(level)>", "\n" + String(repeating: "#", count: level) + " $1\n") }
         if options["ignoreLinks"] as? Bool == true { replace(#"(?s)<a\b(?:[^'">]|"[^"]*"|'[^']*')*>(.*?)</a\s*>"#, "$1") }
         else {
@@ -161,7 +175,6 @@ struct NativeHTMLConversion {
         let emphasis = options["emphasisMark"] as? String ?? "_", strong = options["strongMark"] as? String ?? "**"
         replace("(?s)<(?:strong|b)\\b[^>]*>(.*?)</(?:strong|b)>", options["ignoreEmphasis"] as? Bool == true ? "$1" : strong + "$1" + strong)
         replace("(?s)<(?:em|i)\\b[^>]*>(.*?)</(?:em|i)>", options["ignoreEmphasis"] as? Bool == true ? "$1" : emphasis + "$1" + emphasis)
-        replace("(?s)<code\\b[^>]*>(.*?)</code>", "`$1`")
         result = try convertLists(result, mark: options["ulItemMark"] as? String ?? "*")
         replace("<(?:br|hr)\\s*/?>", "\n"); replace("</(?:p|div|ul|ol|blockquote)>", "\n\n")
         replace("<[^>]+>", ""); replace("\n{3,}", "\n\n")
