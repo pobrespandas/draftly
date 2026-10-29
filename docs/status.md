@@ -3300,6 +3300,8 @@ runner from signing a public build without the macOS 27 model integration.
 The manual candidate packager and CI signing setup now share this check.
 All 171 Python tests and the matrix structural check passed with simulated
 signing tools. A real signed candidate remains unverified.
+The toolchain subprocesses do not inherit the configured release credentials.
+Focused tests cover this environment boundary with simulated secrets.
 
 Hosted CI run 40928632019 compiled with Xcode 26.6, then failed Core tests
 under concurrent load. Several waits expired before their work started. The

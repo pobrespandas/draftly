@@ -3,11 +3,13 @@ import base64
 import importlib.util
 import hashlib
 import json
+import os
 from pathlib import Path
 import plistlib
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location("package_release", Path(__file__).with_name("package-release.py"))
 release = importlib.util.module_from_spec(spec)
@@ -70,6 +72,20 @@ class FakeRunner:
 
 
 class PackageReleaseTests(unittest.TestCase):
+    def test_toolchain_checks_do_not_inherit_release_secrets(self):
+        seen = []
+        def runner(command, **options):
+            seen.append(options["env"])
+            value = "27.0" if command[0] == "xcrun" else "Apple Swift version 6.4"
+            return subprocess.CompletedProcess(command, 0, stdout=value)
+        with patch.dict(os.environ, {"APPLE_DEVELOPER_ID_P12_PASSWORD": "fixture",
+                                     "DRAFTLY_SPARKLE_PRIVATE_KEY": "fixture", "GH_TOKEN": "fixture"}):
+            release.toolchain.check(runner)
+        self.assertEqual(len(seen), 2)
+        for environment in seen:
+            self.assertNotIn("APPLE_DEVELOPER_ID_P12_PASSWORD", environment)
+            self.assertNotIn("DRAFTLY_SPARKLE_PRIVATE_KEY", environment)
+            self.assertNotIn("GH_TOKEN", environment)
     def test_toolchain_gate_rejects_older_or_unknown_toolchains(self):
         for sdk, swift in (("26.6", "Apple Swift version 6.4"), ("27.0", "Apple Swift version 6.3"),
                            ("invalid", "Apple Swift version 6.4"), ("27.0", "unknown")):

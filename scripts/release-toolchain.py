@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Reject release toolchains that omit supported macOS 27 features."""
 import re
+import os
 import subprocess
 
 
@@ -14,8 +15,14 @@ def validate(sdk, swift):
 
 
 def check(runner=subprocess.run):
+    environment = dict(os.environ)
+    for name in ("APPLE_DEVELOPER_ID_P12_B64", "APPLE_DEVELOPER_ID_P12_PASSWORD",
+                 "APPLE_DEVELOPER_ID_PROFILE_B64", "APPLE_NOTARY_API_KEY_B64",
+                 "APPLE_NOTARY_KEY_ID", "APPLE_NOTARY_ISSUER_ID", "DRAFTLY_SPARKLE_PRIVATE_KEY",
+                 "DRAFTLY_FIREBASE_ACCESS_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"):
+        environment.pop(name, None)
     def output(command):
-        return runner(command, check=True, text=True, capture_output=True).stdout
+        return runner(command, check=True, text=True, capture_output=True, env=environment).stdout
     validate(output(["xcrun", "--sdk", "macosx", "--show-sdk-version"]), output(["swiftc", "--version"]))
 
 
