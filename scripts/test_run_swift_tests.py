@@ -58,7 +58,7 @@ class SwiftResultVerificationTests(unittest.TestCase):
 
     def test_truncated_xml_and_inconsistent_summary_are_rejected(self):
         self.report.write_text('<testsuites><testsuite tests="2">')
-        with self.assertRaises(runner.ET.ParseError):
+        with self.assertRaisesRegex(ValueError, "report is incomplete or invalid"):
             runner.verify_results(self.expected, [self.report])
         self.write_report(self.cases(), count=3)
         with self.assertRaisesRegex(ValueError, "count"):

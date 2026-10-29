@@ -25,7 +25,11 @@ def verify_results(expected, reports):
         if not path.exists():
             continue
         found = True
-        root = ET.parse(path).getroot()
+        try:
+            root = ET.parse(path).getroot()
+        except ET.ParseError as error:
+            raise ValueError("The Swift test report is incomplete or invalid: " + str(path)
+                             + ". Check the test log for failures or an interrupted process.") from error
         if root.tag not in {"testsuites", "testsuite"}:
             raise ValueError("The test report has an invalid root element.")
         for suite in (node for node in root.iter() if node.tag in {"testsuite", "testsuites"}):

@@ -3306,3 +3306,9 @@ under concurrent load. Several waits expired before their work started. The
 test runner now executes Core serially, without retries or deadline changes.
 The complete local serial inventory passed: 759 Core and 925 app tests. Hosted
 validation of this change is pending.
+
+Hosted serial CI run 40929687887 passed Core but failed the app stage. The
+macOS 26 runner reported panel geometry failures and left an incomplete Swift
+Testing XML report. The test runner rejects this report and now identifies the
+file and log to inspect. These failures need investigation on macOS 26; they
+are not waived by the passing macOS 27 local suite.
