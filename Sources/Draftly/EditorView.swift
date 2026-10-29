@@ -28,6 +28,7 @@ struct NativeEditor: NSViewRepresentable {
     var textInput = EditorTextInputPreferences.Configuration()
     var completionContext: (@MainActor () -> EditorCompletionContext)?
     var indentation = "\t"
+    var onListEditingError: (String) -> Void = { _ in }
     var onChange: () -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -82,6 +83,7 @@ struct NativeEditor: NSViewRepresentable {
             text.currentLineColor = theme?.interfaceColor(named: "textCaret").flatMap(EditorTheme.color)?.withAlphaComponent(0.08)
             text.autoMatch = textInput.autoMatch
             text.autoRenumber = textInput.autoRenumber
+            text.onListEditingError = onListEditingError
             text.indentation = indentation
             text.configureTouchBar(model: touchBarModel, showCustom: showCustomTouchBar)
             if text.syntaxDefinition?.source != syntaxDefinition?.source || text.syntaxDefinition?.featureState != syntaxDefinition?.featureState || text.syntaxDefinition?.type != syntaxDefinition?.type {
@@ -223,6 +225,8 @@ final class DraftTextView: NSTextView {
     var completionProvider: ((String, NSRange) -> SyntaxCompletionRequest?)?
     var autoMatch = false
     var autoRenumber = false
+    var onListEditingError: (String) -> Void = { _ in }
+    private let listEditingError = "The list could not be updated because the syntax requires too much output. Your edit was kept."
     private var completionRevision = 0
     override func keyDown(with event: NSEvent) {
         completionRevision &+= 1
@@ -257,23 +261,36 @@ final class DraftTextView: NSTextView {
         let range = replacementRange.location == NSNotFound ? selectedRange() : replacementRange
         if autoRenumber, isEditable, !hasMarkedText(), undoManager?.isUndoing != true,
            undoManager?.isRedoing != true, let inserted = insertString as? String,
-           let syntaxDefinition,
-           let plan = try? syntaxDefinition.orderedListEdit(in: string, replacing: range, with: inserted) {
-            super.insertText(plan.text, replacementRange: plan.range)
-            setSelectedRange(plan.selection)
-            if !insertingSyntaxCompletion { refreshSyntaxCompletions() }
-            return
+           let syntaxDefinition {
+            do {
+                if let plan = try syntaxDefinition.orderedListEdit(in: string, replacing: range, with: inserted) {
+                    super.insertText(plan.text, replacementRange: plan.range)
+                    setSelectedRange(plan.selection)
+                    if !insertingSyntaxCompletion { refreshSyntaxCompletions() }
+                    return
+                }
+            } catch {
+                super.insertText(insertString, replacementRange: replacementRange)
+                if !insertingSyntaxCompletion { refreshSyntaxCompletions() }
+                onListEditingError(listEditingError)
+                return
+            }
         }
         super.insertText(insertString, replacementRange: replacementRange)
         if !insertingSyntaxCompletion { refreshSyntaxCompletions() }
     }
 
+    private var listDeletionFailed = false
     override func deleteBackward(_ sender: Any?) {
+        listDeletionFailed = false
         if !deleteWithRenumbering(backward: true) { super.deleteBackward(sender) }
+        if listDeletionFailed { onListEditingError(listEditingError) }
     }
 
     override func deleteForward(_ sender: Any?) {
+        listDeletionFailed = false
         if !deleteWithRenumbering(backward: false) { super.deleteForward(sender) }
+        if listDeletionFailed { onListEditingError(listEditingError) }
     }
 
     private func deleteWithRenumbering(backward: Bool) -> Bool {
@@ -296,8 +313,12 @@ final class DraftTextView: NSTextView {
                 range = NSRange(location: index, length: 2)
             } else { range = source.rangeOfComposedCharacterSequence(at: index) }
         } else { return false }
-        guard let plan = try? syntaxDefinition.orderedListEdit(in: string, replacing: range, with: ""),
-              plan.range != range || !plan.text.isEmpty else { return false }
+        let plan: (range: NSRange, text: String, selection: NSRange)
+        do {
+            guard let candidate = try syntaxDefinition.orderedListEdit(in: string, replacing: range, with: ""),
+                  candidate.range != range || !candidate.text.isEmpty else { return false }
+            plan = candidate
+        } catch { listDeletionFailed = true; return false }
         super.insertText(plan.text, replacementRange: plan.range)
         setSelectedRange(plan.selection)
         if !insertingSyntaxCompletion { refreshSyntaxCompletions() }
@@ -417,13 +438,22 @@ final class DraftTextView: NSTextView {
     }
 
     override func insertNewline(_ sender: Any?) {
+        guard isEditable else { super.insertNewline(sender); return }
         let selection = selectedRange()
-        if let change = syntaxDefinition?.listContinuation(in: string, selection: selection) {
-            insertText(change.text, replacementRange: change.range)
-            if selection.length == 0 && change.range.length > 0 && (change.text.isEmpty || change.text == "\n") {
-                setSelectedRange(NSRange(location: change.range.location, length: 0))
+        if let syntaxDefinition {
+            do {
+                if let change = try syntaxDefinition.checkedListContinuation(in: string, selection: selection) {
+                    insertText(change.text, replacementRange: change.range)
+                    if selection.length == 0 && change.range.length > 0 && (change.text.isEmpty || change.text == "\n") {
+                        setSelectedRange(NSRange(location: change.range.location, length: 0))
+                    }
+                    return
+                }
+            } catch {
+                super.insertNewline(sender)
+                onListEditingError(listEditingError)
+                return
             }
-            return
         }
         super.insertNewline(sender)
     }

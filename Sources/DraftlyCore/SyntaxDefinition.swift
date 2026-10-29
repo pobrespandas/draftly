@@ -456,7 +456,8 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
         try? checkedListContinuation(in: text, selection: selection)
     }
 
-    func checkedListContinuation(in text: String, selection: NSRange) throws -> (range: NSRange, text: String)? {
+    @_spi(EditorImplementation)
+    public func checkedListContinuation(in text: String, selection: NSRange) throws -> (range: NSRange, text: String)? {
         let source = text as NSString
         guard selection.location >= 0, selection.length >= 0, selection.location <= source.length,
               selection.length <= source.length - selection.location else { return nil }

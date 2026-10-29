@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import DraftlyCore
+@_spi(EditorImplementation) @testable import DraftlyCore
 
 @Suite("Syntax ordered list renumbering")
 struct OrderedListRenumberingTests {

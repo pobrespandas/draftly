@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 import Testing
 import DraftlyCore
 @testable import Draftly
@@ -182,5 +183,84 @@ struct EditorAutoRenumberTests {
         #expect(text.string == "1. a\n2. Dos")
         #expect(text.selectedRange() == NSRange(location: panda.location, length: 0))
         #expect(text.window == nil)
+    }
+
+    @Test func excessivePaddingReportsAfterKeepingUserEdit() throws {
+        let rule: [String: Any] = ["match": #"^(\h*)((\d+)\) )(.*)$"#,
+            "captures": ["indent": "1", "prefix": "2", "sequence": "3", "line": "4"],
+            "sequencePadding": String(Int.max - 1)]
+        let syntax = try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: [
+            "name": "Large padding QA", "patterns": [], "navigationPatterns": [],
+            "linkDefinitions": [], "taskMarkDefinitions": [], "indentationPatterns": [],
+            "listCompletionDefinitions": [rule]]))
+        let text = DraftTextView(frame: .zero)
+        text.isRichText = false; text.allowsUndo = true; text.autoRenumber = true; text.syntaxDefinition = syntax
+        let window = OffscreenTestWindow(contentRect: .zero, styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = text
+        defer { window.contentView = nil }
+        let undo = try #require(text.undoManager)
+        undo.groupsByEvent = false
+        text.string = "1) Uno\n9) Dos"
+        let cursor = (text.string as NSString).range(of: "Uno").upperBound
+        text.setSelectedRange(NSRange(location: cursor, length: 0))
+        var reports: [(String, String)] = []
+        text.onListEditingError = { [weak text] in reports.append(($0, text?.string ?? "")) }
+        undo.beginUndoGrouping()
+        text.insertText("x", replacementRange: text.selectedRange())
+        undo.endUndoGrouping()
+        #expect(text.string == "1) Unox\n9) Dos")
+        #expect(reports.count == 1 && reports[0].1 == text.string)
+        #expect(reports.first?.0.contains("list") == true && !window.isVisible)
+        undo.undo()
+        #expect(text.string == "1) Uno\n9) Dos")
+        undo.redo()
+        #expect(text.string == "1) Unox\n9) Dos" && reports.count == 1)
+        text.string = "1) Uno\n\n9) Dos"
+        let next = (text.string as NSString).range(of: "9) Dos").location
+        text.setSelectedRange(NSRange(location: next, length: 0))
+        undo.beginUndoGrouping()
+        text.deleteBackward(nil)
+        undo.endUndoGrouping()
+        #expect(text.string == "1) Uno\n9) Dos")
+        #expect(reports.count == 2 && reports[1].1 == text.string)
+        text.string = "1) Uno"
+        text.setSelectedRange(NSRange(location: text.string.utf16.count, length: 0))
+        undo.beginUndoGrouping()
+        text.insertNewline(nil)
+        undo.endUndoGrouping()
+        #expect(text.string == "1) Uno\n")
+        #expect(reports.count == 3 && reports[2].1 == text.string)
+    }
+
+    @Test func editorConnectsListFailureToItsErrorHandler() async throws {
+        let rule: [String: Any] = ["match": #"^(\h*)((\d+)\) )(.*)$"#,
+            "captures": ["indent": "1", "prefix": "2", "sequence": "3", "line": "4"],
+            "sequencePadding": String(Int.max - 1)]
+        let syntax = try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: [
+            "name": "Large padding QA", "patterns": [], "navigationPatterns": [],
+            "linkDefinitions": [], "taskMarkDefinitions": [], "indentationPatterns": [],
+            "listCompletionDefinitions": [rule]]))
+        let session = EditorSession()
+        session.load(Note(content: "1) Uno\n9) Dos"), focusEditor: false)
+        var message: String?
+        let editor = NativeEditor(session: session, fontName: "System", fontSize: 17, lineSpacing: 2,
+            markdown: false, syntaxDefinition: syntax, onListEditingError: { message = $0 }, onChange: {})
+        let host = NSHostingView(rootView: editor)
+        let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 400, height: 300),
+            styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = host
+        defer { window.contentView = nil }
+        host.layoutSubtreeIfNeeded()
+        await TestMainQueue.drain()
+        func findText(_ view: NSView) -> DraftTextView? {
+            if let text = view as? DraftTextView { return text }
+            return view.subviews.lazy.compactMap { findText($0) }.first
+        }
+        let text = try #require(findText(host))
+        let cursor = (text.string as NSString).range(of: "Uno").upperBound
+        text.setSelectedRange(NSRange(location: cursor, length: 0))
+        text.insertText("x", replacementRange: text.selectedRange())
+        #expect(session.content == "1) Unox\n9) Dos")
+        #expect(message?.contains("Your edit was kept") == true && !window.isVisible)
     }
 }

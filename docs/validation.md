@@ -10593,3 +10593,20 @@ The usual app was not updated.
 After the complete run, an additional focused test checked planned replacement
 against direct sequence edits across many insertion and deletion ranges. It
 passed; the complete inventory count above predates that added test.
+
+### List editing resource errors — 29 October 2026
+
+If sequence output exceeds the internal limit, typing and deletion now keep
+the user's edit and report the error through the existing library alert. Return
+falls back to a normal newline and reports the same error. The existing public
+optional continuation method remains compatible; an internal editor interface
+exposes the error. Headless tests cover the three operations, error delivery,
+Undo/Redo and the editor callback. The complete serial Swift inventory passed
+(699 Core, 873 app), and the local Debug build passed.
+
+In isolated Engine QA, a neutral custom syntax with excessive padding showed
+the alert after paste and preserved the text. Undo and Redo worked without
+repeating the alert. Typing showed the alert and kept the added character.
+QA quit, its exact LaunchServices entry was removed, and its temporary app and
+syntax file moved to Trash. The imported syntax and neutral draft remain in the
+separate QA library. The usual app was not updated.
