@@ -75,6 +75,12 @@ struct OrderedListRenumberingTests {
         #expect(throws: SyntaxDefinition.ListRenumberingError.sequenceOutputLimit) {
             try syntax.orderedListRenumbering(in: source)
         }
+        let continuation = "1) first"
+        let caret = NSRange(location: continuation.utf16.count, length: 0)
+        #expect(throws: SyntaxDefinition.ListRenumberingError.sequenceOutputLimit) {
+            try syntax.checkedListContinuation(in: continuation, selection: caret)
+        }
+        #expect(syntax.listContinuation(in: continuation, selection: caret) == nil)
         let unrelated = (source as NSString).range(of: "other")
         #expect(try syntax.orderedListRenumbering(in: source, affectedRange: unrelated).map(\.text) == ["2"])
         #expect(source == "1) first\n9) second\n\n1. other\n9. last")

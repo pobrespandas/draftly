@@ -312,6 +312,7 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
     enum ListRenumberingError: Error, Equatable {
         case sequenceOutputLimit
     }
+    private static let listSequenceOutputLimit = 1_048_576
 
     /// Finds ordered-list number edits using this syntax's enabled completion rules.
     func orderedListRenumbering(in text: String, affectedRange: NSRange? = nil) throws -> [(range: NSRange, text: String)] {
@@ -405,7 +406,7 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
             return NSIntersectionRange(group.range, affectedRange).length > 0
         }
         // Bound generated output before allocating it. Preserve the input if it exceeds the limit.
-        let outputLimit = 1_048_576
+        let outputLimit = Self.listSequenceOutputLimit
         var outputSize = 0
         var edits: [(range: NSRange, text: String)] = []
         for item in selectedGroups.flatMap(\.edits) {
@@ -421,6 +422,10 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
     }
 
     public func listContinuation(in text: String, selection: NSRange) -> (range: NSRange, text: String)? {
+        try? checkedListContinuation(in: text, selection: selection)
+    }
+
+    func checkedListContinuation(in text: String, selection: NSRange) throws -> (range: NSRange, text: String)? {
         let source = text as NSString
         guard selection.location >= 0, selection.length >= 0, selection.location <= source.length,
               selection.length <= source.length - selection.location else { return nil }
@@ -443,6 +448,7 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
                let number = Int(lineSource.substring(with: sequence)), number < Int.max {
                 let next = String(number + 1)
                 let padding = Int(rule["sequencePadding"] as? String ?? "0") ?? 0
+                guard padding < Self.listSequenceOutputLimit else { throw ListRenumberingError.sequenceOutputLimit }
                 let digits = String(repeating: "0", count: max(0, padding + 1 - next.count)) + next
                 prefix = (prefix as NSString).replacingCharacters(in: NSRange(location: sequence.location - prefixRange.location, length: sequence.length), with: digits)
             }

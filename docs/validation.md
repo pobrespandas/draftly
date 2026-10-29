@@ -10468,3 +10468,11 @@ The focused suite, complete serial Swift inventory (692 Core, 861 app), and
 local Debug build passed after the resource limit change.
 The focused suite also passed after extending the unrelated-list test to
 confirm that a normal list can still be renumbered beside an oversized rule.
+
+The existing list-continuation path now checks the same output limit before
+allocating padding. Its internal checked form reports the limit error. The
+existing public optional interface returns no continuation in that case, so
+the editor inserts a normal newline. A headless editor test checks that the
+original Unicode text remains. The focused syntax and editor tests, complete
+serial Swift inventory (692 Core, 861 app before the new editor test), and
+local Debug build passed. User-facing error presentation remains pending.

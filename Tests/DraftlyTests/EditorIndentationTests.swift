@@ -113,4 +113,22 @@ struct EditorIndentationTests {
         #expect(text.selectedRange() == NSRange(location: 2 + style.text.utf16.count, length: 0))
         #expect(text.window == nil)
     }
+
+    @Test func excessiveSequencePaddingFallsBackToNewlineWithoutLosingText() throws {
+        let rule: [String: Any] = ["match": #"^(\h*)((\d+)\) )(.*)$"#,
+            "captures": ["indent": "1", "prefix": "2", "sequence": "3", "line": "4"],
+            "sequencePadding": String(Int.max - 1)]
+        let syntax = try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: [
+            "name": "Large padding QA", "patterns": [], "navigationPatterns": [],
+            "linkDefinitions": [], "taskMarkDefinitions": [], "indentationPatterns": [],
+            "listCompletionDefinitions": [rule]]))
+        let text = DraftTextView(frame: .zero)
+        text.isRichText = false
+        text.syntaxDefinition = syntax
+        text.string = "1) café 🐼"
+        text.setSelectedRange(NSRange(location: text.string.utf16.count, length: 0))
+        text.insertNewline(nil)
+        #expect(text.string == "1) café 🐼\n")
+        #expect(text.window == nil)
+    }
 }
