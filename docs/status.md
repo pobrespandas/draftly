@@ -3726,3 +3726,9 @@ The user reported that the seed recovered from the Apple Passwords entry did
 not match the release public key. A local check confirmed that the existing
 local seed does match that public key. The external copy is not accepted as a
 recovery backup. Do not replace or discard either copy before investigating.
+
+The user authorized linking the pobrespandas billing account to
+pobrespandas-home for Secret Manager. Google rejected the link because the
+account's project quota was exceeded; five projects were already linked. No
+project was unlinked, no secret was created, and no key was uploaded. The
+choice between a quota increase and another recovery destination is pending.
