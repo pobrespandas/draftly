@@ -3787,3 +3787,8 @@ an independently supplied public certificate and team. It requires hidden
 terminal password entry and checks that the private key matches. Five focused
 and 235 total Python tests passed with temporary test identities. No real backup
 has been verified; the user reported an export but its path is not yet known.
+
+On 29 October 2026, GitHub ruleset 26163655 was activated for main. The branch
+rules API reports deletion and non-fast-forward protections. Fast-forward pushes
+remain allowed; workflow changes and release secrets are not yet protected.
+The release environment remains absent and publication remains disabled.

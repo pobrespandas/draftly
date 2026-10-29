@@ -314,11 +314,13 @@ tool requests the archive password with hidden terminal input. It checks the
 certificate fingerprint, team, and matching private key. It does not import the
 identity, validate Apple trust or prove recovery on another device.
 
-The public GitHub repository currently has no protected `main` branch and no
-release environment. Its only active ruleset protects version tags from updates
-and deletion. Do not store signing, notarization, or Sparkle secrets as
-repository-wide secrets until release workflow changes and secret access are
-restricted and tested. The signing and staging jobs remain disabled.
+The public GitHub repository has active rulesets that protect version tags and
+prevent deletion and non-fast-forward updates of `main`. Fast-forward pushes to
+`main` remain allowed, and no release environment is configured. These rules do
+not protect workflow changes or secrets. Do not store signing, notarization, or
+Sparkle secrets as repository-wide secrets until release workflow changes and
+secret access are restricted and tested. The signing and staging jobs remain
+disabled.
 
 ## Site writer lock component
 
