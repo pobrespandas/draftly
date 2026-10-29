@@ -3732,3 +3732,13 @@ pobrespandas-home for Secret Manager. Google rejected the link because the
 account's project quota was exceeded; five projects were already linked. No
 project was unlinked, no secret was created, and no key was uploaded. The
 choice between a quota increase and another recovery destination is pending.
+
+The user confirmed that the seed recovered from Google Password Manager passed
+its public-key check on this Mac. Recovery on a separate device and Google
+account synchronization remain unverified. The clipboard was cleared.
+
+Hosted LargeDisplayPanels26 run 40956255642 reproduced ten existing panel
+issues. In the isolated hold-width diagnostic, the window stayed at 850 points
+without temporary constraints and expanded to 857 with them. This supports an
+interaction with those constraints on macOS 26; it does not establish that they
+explain the full 1032-point expansion or the remaining failures.
