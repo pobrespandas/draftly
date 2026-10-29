@@ -11321,3 +11321,19 @@ The existing QA Shortcut's original fields were restored. After the user said
 QA could be closed, QA quit, its exact registration was removed and its bundle
 moved to Trash. Its library, including the user's additional note, remains.
 No production code changed.
+
+### Save panel cancellation through App Intent — 29 October 2026
+
+A system-delivered QA Intent saved `Retained before save`, queued a recovery
+and opened a native Save panel. Computer Use chose the neutral temporary folder
+`/tmp/draftly-intent-save-qa-20261029` and cancelled the panel. Shortcuts showed
+`QA Intent Cancel Save cancelled`. The target filename was absent after cancel
+and after QA closed. The prior text stayed in Inbox; history showed one
+Cancelled root and no queued or tail run. A separately requested Intent then
+completed. The two closed-store records have distinct run IDs and the same note
+ID; run IDs are not execution IDs.
+
+The existing Shortcut fields were restored. QA quit, its exact registration was
+removed and its bundle moved to Trash; its isolated library remains. This covers
+the local save panel's Cancel path, not a late panel callback or all file
+permissions. No production code changed.
