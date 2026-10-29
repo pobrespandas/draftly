@@ -3797,3 +3797,8 @@ A GitHub environment named release now exists. Its deployment reference
 policies allow the main branch and v* tags. No secrets were added, and the
 workflow is not connected to it. Workflow-change protection, environment access
 validation, and publication acceptance remain pending.
+
+The disabled candidate and staging jobs now reference the empty release
+GitHub environment. Its policies admit main and v*; these policies have not
+been exercised by an actual job. YAML parsing passed. Workflow-change
+protection, credential restrictions, and release acceptance remain open.

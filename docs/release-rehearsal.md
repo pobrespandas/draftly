@@ -317,11 +317,17 @@ identity, validate Apple trust or prove recovery on another device.
 The public GitHub repository has active rulesets that protect version tags and
 prevent deletion and non-fast-forward updates of `main`. Fast-forward pushes to
 `main` remain allowed. A `release` environment exists with `main` and `v*`
-reference policies, but the workflow does not use it yet and it holds no
+reference policies. The candidate and staging jobs use it, but it holds no
 secrets. These rules do not protect workflow changes or secrets. Do not store signing, notarization, or
 Sparkle secrets as repository-wide secrets until release workflow changes and
 secret access are restricted and tested. The signing and staging jobs remain
 disabled.
+
+The environment accepts `main` for recovery dispatches and `v*` tags for
+release runs. The workflow must still verify the exact tag and source commit.
+Reference policies alone do not protect a workflow that can be changed by a
+direct push to `main`. Test the environment rules and protect workflow changes
+before adding credentials or enabling either job.
 
 ## Site writer lock component
 
