@@ -52,6 +52,10 @@
     <article><span class="category">Edit · Draftly</span><h2>Transform Selected Text</h2><p>Change selected text to uppercase or lowercase.</p><p class="detail">Tested: Unicode text, empty selection, and cancellation.</p><a href="actions/transform.json" download>Download action file</a></article>
     <article><span class="category">Share · Draftly</span><h2>Copy Markdown as Rich Text</h2><p>Render the current draft as Markdown and copy the result as rich text.</p><p class="detail">Tested: rendering and simulated clipboard success and failure. Mac QA also pasted accented text with bold formatting in TextEdit.</p><a href="actions/rich-text.json" download>Download action file</a></article>
   </div>
+  <h2>Lists</h2>
+  <div class="catalog" aria-label="List actions">
+    <article><span class="category">Organize · Draftly</span><h2>Add Draft to List</h2><p>Add each nonempty line of the current draft as a task in a draft tagged <code>list</code>. Choose an existing list or create one.</p><p class="detail"><strong>After success, the source draft is archived.</strong> Automated tests cover both action runners, list creation, cancellation, and invalid input. Native dialogs and Undo remain unverified.</p><a href="actions/add-to-list.json" download>Download action file</a></article>
+  </div>
   <h2>More writing actions</h2>
   <p>These independent Draftly actions are inspired by Drafts. They passed focused automated tests. Native dialogs, Undo, and clipboard output remain to be checked.</p>
   <div class="catalog" aria-label="More writing actions">

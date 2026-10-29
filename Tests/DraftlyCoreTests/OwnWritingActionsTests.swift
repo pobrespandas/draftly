@@ -28,11 +28,11 @@ struct OwnWritingActionsTests {
     @Test func actionFilesImportIntoLibrary() throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        for name in ["template", "transform", "rich-text", "sort-lines", "append-lines", "markdown-bold", "markdown-italic", "copy-html", "print-pdf", "things-draft", "things-taskpaper", "things-markdown"] {
+        for name in ["template", "transform", "rich-text", "sort-lines", "append-lines", "markdown-bold", "markdown-italic", "copy-html", "print-pdf", "things-draft", "things-taskpaper", "things-markdown", "add-to-list"] {
             let data = try Data(contentsOf: root.appendingPathComponent("website/public/actions/\(name).json"))
             try LibraryFileImport.apply(data, fileExtension: "json", to: library)
         }
-        #expect(library.actions.count == 12)
+        #expect(library.actions.count == 13)
         #expect(library.actions.allSatisfy { $0.unsupportedSteps.isEmpty })
     }
 
@@ -267,4 +267,45 @@ struct OwnWritingActionsTests {
         #expect(editor.content == "- Meet {{name}}")
     }
 
+    @Test(arguments: [false, true]) func addToExistingListAndArchiveSource(worker: Bool) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let list = try library.createNote(content: "# Shopping", tags: ["list"])
+        let source = try library.createNote(content: " café 🐼 \n\ntea")
+        let editor = EditorSession(); editor.load(source)
+        let host = WritingActionHost(); let runner = ActionRunner(library: library, editor: editor, host: host)
+        #expect(await ActionTestExecution.succeeds(try action("add-to-list"), runner: runner, worker: worker), Comment(rawValue: runner.message ?? ""))
+        #expect(library.notes.first { $0.id == list.id }?.content == "# Shopping\n- [ ] café 🐼\n- [ ] tea")
+        #expect(library.notes.first { $0.id == source.id }?.isArchived == true)
+    }
+
+    @Test(arguments: [false, true]) func addToNewListAndCancel(worker: Bool) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let source = try library.createNote(content: "Tea")
+        let editor = EditorSession(); editor.load(source)
+        let host = WritingActionHost(); host.promptFields = nil
+        let runner = ActionRunner(library: library, editor: editor, host: host)
+        #expect(!(await ActionTestExecution.succeeds(try action("add-to-list"), runner: runner, worker: worker)))
+        #expect(library.notes.count == 1 && library.notes.first?.isArchived == false)
+        host.promptFields = ["name": "Weekend"]
+        #expect(await ActionTestExecution.succeeds(try action("add-to-list"), runner: runner, worker: worker), Comment(rawValue: runner.message ?? ""))
+        let created = try #require(library.notes.first { $0.id != source.id })
+        #expect(created.content == "# Weekend\n- [ ] Tea")
+        #expect(created.tags == ["list"] && created.isArchived)
+        #expect(library.notes.first { $0.id == source.id }?.isArchived == true)
+    }
+
+    @Test(arguments: [false, true]) func addToListRejectsEmptyInputAndInvalidName(worker: Bool) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let source = try library.createNote(content: "  \n")
+        let editor = EditorSession(); editor.load(source)
+        let host = WritingActionHost(); let runner = ActionRunner(library: library, editor: editor, host: host)
+        #expect(!(await ActionTestExecution.succeeds(try action("add-to-list"), runner: runner, worker: worker)))
+        #expect(!host.calls.contains { $0.0 == "selectPrompt" })
+        #expect(library.notes.first { $0.id == source.id }?.isArchived == false)
+        editor.load(try library.createNote(content: "Item")); host.promptFields = ["name": "\n"]
+        let before = library.notes.count
+        #expect(!(await ActionTestExecution.succeeds(try action("add-to-list"), runner: runner, worker: worker)))
+        #expect(library.notes.count == before)
+        #expect(library.notes.first { $0.id == editor.noteID }?.isArchived == false)
+    }
 }

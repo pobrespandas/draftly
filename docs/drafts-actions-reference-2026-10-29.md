@@ -99,3 +99,17 @@ neutral QA library remains under UUID `97A27A01-0C61-4083-B227-EC21806552C3`.
 changes. One earlier run failed because two test assertions selected the wrong
 host operation; the corrected tests passed. This is focused evidence, not full
 compatibility or a complete regression run.
+
+## Add Draft to List
+
+`add-to-list.json` is an independent action inspired by Add to List
+(https://directory.getdrafts.com/a/1Ga). It appends nonempty source lines as
+unchecked tasks to a selected `list` draft, or creates an archived list with
+that tag. It excludes the current draft from destinations. After success it
+archives the source draft. Empty input, invalid new names, and cancellation do
+not archive the source. The two dialogs differ from the original action.
+
+Focused tests cover existing and new lists, Unicode, source archive, cancellation,
+empty input, and invalid names on both action runners. `swift test --filter
+OwnWritingActionsTests` passed twenty-two methods. Native dialogs and Undo for
+this action remain unverified.
