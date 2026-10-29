@@ -3287,3 +3287,9 @@ not expose the Private Cloud Compute mode.
 The CI signing setup now rejects SDKs before macOS 27 and Swift before 6.4.
 Seven focused tests used simulated tools and passed. This prevents an older
 runner from signing a public build without the macOS 27 model integration.
+
+Hosted CI run 40928632019 compiled with Xcode 26.6, then failed Core tests
+under concurrent load. Several waits expired before their work started. The
+test runner now executes Core serially, without retries or deadline changes.
+The complete local serial inventory passed: 759 Core and 925 app tests. Hosted
+validation of this change is pending.
