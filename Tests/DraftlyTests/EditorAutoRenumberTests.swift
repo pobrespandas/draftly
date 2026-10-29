@@ -126,6 +126,24 @@ struct EditorAutoRenumberTests {
         #expect(!text.pasteRenumberedText(from: board))
     }
 
+    @Test func filePasteboardRemainsOnNativePastePath() throws {
+        let board = NSPasteboard.withUniqueName()
+        defer { board.releaseGlobally() }
+        let item = NSPasteboardItem()
+        #expect(item.setString("file:///tmp/draftly-neutral.txt", forType: .fileURL))
+        #expect(item.setString("1. Uno\n9. Dos", forType: .string))
+        #expect(board.writeObjects([item]))
+        let text = DraftTextView(frame: .zero)
+        text.autoRenumber = true
+        text.syntaxDefinition = try ScriptSyntax.definition("Markdown")
+        text.string = "Keep 🐼"
+        text.setSelectedRange(NSRange(location: 5, length: 0))
+        #expect(!text.pasteRenumberedText(from: board))
+        #expect(text.string == "Keep 🐼")
+        #expect(text.selectedRange() == NSRange(location: 5, length: 0))
+        #expect(board.string(forType: .string) == "1. Uno\n9. Dos")
+    }
+
     @Test(arguments: [false, true], ["\n", "\r\n"])
     func deletingListBoundaryRenumbersAsOneUndoableEdit(forward: Bool, separator: String) throws {
         let text = DraftTextView(frame: .zero)

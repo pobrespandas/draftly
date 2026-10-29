@@ -10543,3 +10543,13 @@ Drafts numbers. One Undo and one Redo restored each state. QA quit, its exact
 LaunchServices entry was removed, and the temporary app moved to Trash. This
 does not verify every deletion command, input method or list grammar. The usual
 app was not updated.
+
+### File paste routing — 29 October 2026
+
+When a pasteboard contains a file URL as well as plain text, the list
+renumbering paste handler now leaves it to the native paste path. A headless
+test verifies that this handler does not change the editor selection, text, or
+pasteboard in that case. The complete serial Swift inventory passed (696 Core,
+871 app), and the local Debug build passed. This checks routing only; an actual
+file paste and rich-text variants still need native verification. The usual app
+was not updated.

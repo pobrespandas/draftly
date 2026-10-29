@@ -365,6 +365,7 @@ final class DraftTextView: NSTextView {
     @discardableResult
     func pasteRenumberedText(from pasteboard: NSPasteboard) -> Bool {
         guard autoRenumber, isEditable, !hasMarkedText(),
+              pasteboard.types?.contains(.fileURL) != true,
               let value = pasteboard.string(forType: .string) else { return false }
         insertText(value, replacementRange: selectedRange())
         return true
