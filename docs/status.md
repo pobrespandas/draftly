@@ -3859,3 +3859,8 @@ The app suite ran 933 tests and reported one failure in
 The focused case later passed. The failed assertion did not record the caught
 error, so its cause is unknown. This remains an unresolved failure; a passing
 focused run does not replace the full run. No timeout was changed.
+
+The native process deadline test now reports the caught error and process-group
+isolation details if that assertion fails again. The focused native-process
+suite passed all 18 cases. The earlier full-suite failure remains unexplained;
+this diagnostic does not establish a fix.
