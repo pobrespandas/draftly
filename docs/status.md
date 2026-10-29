@@ -3321,3 +3321,9 @@ are not waived by the passing macOS 27 local suite.
 The CI workflow can run either affected suite as a manual diagnostic. It still
 requires the complete inventory for normal CI and release acceptance. Both
 diagnostic modes passed locally on macOS 27; macOS 26 results remain pending.
+
+The isolated macOS 26 panel diagnostic reproduced the geometry failures. The
+affected assertions now report the window, split, panel and divider dimensions
+to distinguish platform layout behavior from fixture setup. The ten panel
+tests passed locally on macOS 27. The macOS 26 dimensions and the separate
+typewriter diagnostic remain pending.

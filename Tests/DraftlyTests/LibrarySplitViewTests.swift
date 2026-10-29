@@ -35,9 +35,10 @@ struct LibrarySplitViewTests {
             controller.view.setFrameSize(NSSize(width: width, height: 600))
             controller.view.layoutSubtreeIfNeeded()
             let frames = controller.splitViewItems.map { $0.viewController.view.frame }
+            let diagnostic = Comment(rawValue: "Requested width: \(width); window: \(window.frame); content: \(window.contentView?.frame ?? .zero); split: \(controller.splitView.frame); panel frames: \(frames); divider: \(controller.splitView.dividerThickness)")
             #expect(frames.allSatisfy { $0.width >= 159 })
-            #expect(frames.reduce(0) { $0 + $1.width } <= width)
-            #expect(abs(controller.splitView.frame.width - width) < 1)
+            #expect(frames.reduce(0) { $0 + $1.width } <= width, diagnostic)
+            #expect(abs(controller.splitView.frame.width - width) < 1, diagnostic)
             window.contentViewController = nil
         }
     }
@@ -82,13 +83,13 @@ struct LibrarySplitViewTests {
         #expect(filterToggle.isEnabled)
         let originalControllers = controller.splitViewItems.map(\.viewController)
         let widths = controller.splitViewItems.prefix(2).map { $0.viewController.view.frame.width }
-        #expect(abs(widths[0] - 240) < 1)
+        #expect(abs(widths[0] - 240) < 1, Comment(rawValue: "Panel widths: \(widths); split: \(controller.splitView.frame); divider: \(controller.splitView.dividerThickness)"))
         #expect(abs(widths[1] - 280) < 1)
         #expect(controller.splitViewItems[2].viewController.view.frame.width >= 240)
         controller.splitView.setPosition(260, ofDividerAt: 0)
         controller.view.layoutSubtreeIfNeeded()
         let resizedWidths = controller.splitViewItems.prefix(2).map { $0.viewController.view.frame.width }
-        #expect(abs(resizedWidths[0] - 260) < 1)
+        #expect(abs(resizedWidths[0] - 260) < 1, Comment(rawValue: "Resized panel widths: \(resizedWidths); split: \(controller.splitView.frame); divider: \(controller.splitView.dividerThickness)"))
 
         model.setDraftListVisible(false)
         controller.update(panels: panels)
