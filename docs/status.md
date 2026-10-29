@@ -3243,3 +3243,10 @@ operation label, live base, and feed before recovery. An unknown create result
 stops for inspection. Focused tests and all 161 Python tests passed with fake
 services. The Actions matrix structural check passed. Real Firebase staging,
 publication, updater installation, and CloudKit Production remain unverified.
+
+### Release candidate recovery — 29 October 2026
+
+A restored candidate can be checked against its source, tag, checksum, update
+key, signature, notarization, and Gatekeeper before reuse. Six focused tests
+used a simulated signature verifier. All 167 Python tests and the matrix
+structural check passed. Real Developer ID artifacts remain unverified.

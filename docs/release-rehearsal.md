@@ -68,6 +68,11 @@ GitHub Release. If notarization fails after submission, the job preserves the
 submitted ZIP and receipt as a recovery artifact. The job has only been tested
 with simulated tools; it has not signed or notarized a real candidate.
 
+`scripts/verify-release-candidate.py` checks a restored candidate against its
+tag, source commit, checksum, update key, app metadata, signature, notarization,
+and Gatekeeper. It does not sign or publish the candidate. Restore the original
+artifact for a recovery; do not build a different ZIP under the same version.
+
 ## Local signed candidate
 
 `scripts/package-release.py` prepares a candidate without publishing it. It
