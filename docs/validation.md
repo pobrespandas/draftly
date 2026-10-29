@@ -11264,3 +11264,18 @@ The QA Shortcut's original fields were restored. QA quit, its exact registration
 was removed and its bundle moved to Trash; the isolated library remains. This
 covers this dynamic two-action cycle and recovery, not every include identity,
 Drafts precedence or every Intent path. No production code changed.
+
+### Pending Prompt cancellation through App Intent — 29 October 2026
+
+In isolated Engine QA, a system-delivered App Intent saved `Retained before
+prompt`, queued another action and opened a neutral Prompt. Shortcuts showed
+Stop while the Prompt was open. Stop dismissed it. The QA list kept the prior
+text in Inbox. History showed one Cancelled root and no tail or queued action.
+A separately requested recovery Intent completed. The Shortcut's original action
+name and draft UUID were restored.
+
+This is evidence for task cancellation while this Prompt is pending. It does not
+prove a final cancellation message in Shortcuts, keyboard recovery in a new
+Prompt, late native responses or other Prompt entry paths. QA remained open
+because new user activity appeared in its window. Its library was preserved.
+No production code changed.
