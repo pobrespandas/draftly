@@ -121,6 +121,73 @@ struct NativeProcessExecutorTests {
         #expect(process.terminationHandler == nil)
     }
 
+    @Test(arguments: [9.0, 10.0])
+    func exitedParentWithoutGroupStillUsesTheFinalDeadline(elapsed: Double) async throws {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/true")
+        let start = Date(timeIntervalSinceReferenceDate: 100)
+        var reads = 0
+        var sawMissingParent = false
+        do {
+            let status = try await NativeProcessExecutor.run(process, timeout: 10, now: {
+                defer { reads += 1 }
+                return reads == 0 ? start : start.addingTimeInterval(elapsed)
+            }, afterLaunch: { pid in
+                let deadline = ContinuousClock.now + .seconds(2)
+                while getpgid(pid) != -1, ContinuousClock.now < deadline { usleep(1000) }
+                sawMissingParent = getpgid(pid) == -1 && errno == ESRCH
+            })
+            #expect(elapsed < 10 && status == 0)
+        } catch {
+            #expect(elapsed >= 10 && error as? ActionExecutionInterruption == .timeout)
+        }
+        #expect(sawMissingParent)
+        #expect(!process.isRunning && process.terminationHandler == nil)
+    }
+
+    @Test func cancellationAfterParentAndGroupExitDoesNotReturnSuccess() async throws {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/true")
+        var task: Task<Int32, Error>?
+        var sawMissingParent = false
+        task = Task {
+            try await NativeProcessExecutor.run(process, timeout: 10, afterLaunch: { pid in
+                let deadline = ContinuousClock.now + .seconds(2)
+                while getpgid(pid) != -1, ContinuousClock.now < deadline { usleep(1000) }
+                sawMissingParent = getpgid(pid) == -1 && errno == ESRCH
+                task?.cancel()
+            })
+        }
+        do { _ = try await #require(task).value; Issue.record("A cancelled execution returned success.") }
+        catch { #expect(error is CancellationError) }
+        #expect(sawMissingParent)
+        #expect(!process.isRunning && process.terminationHandler == nil)
+    }
+
+    @Test func exitedParentWithLiveGroupStillCleansDescendantOnTimeout() async throws {
+        let fixture = try ParentExitFixture(); defer { fixture.clean() }
+        let start = Date(timeIntervalSinceReferenceDate: 100)
+        var reads = 0
+        var sawGroupAfterParentExit = false
+        do {
+            _ = try await NativeProcessExecutor.run(fixture.process, timeout: 10, now: {
+                defer { reads += 1 }
+                return reads == 0 ? start : start.addingTimeInterval(10)
+            }, afterLaunch: { pid in
+                let deadline = ContinuousClock.now + .seconds(2)
+                while getpgid(pid) != -1, ContinuousClock.now < deadline { usleep(1000) }
+                sawGroupAfterParentExit = getpgid(pid) == -1 && errno == ESRCH && Darwin.kill(-pid, 0) == 0
+            })
+            Issue.record("An expired parent exit returned success.")
+        } catch { #expect(error as? ActionExecutionInterruption == .timeout) }
+        #expect(sawGroupAfterParentExit)
+        let child = try #require(Int32(String(contentsOf: fixture.childFile, encoding: .utf8)))
+        let deadline = ContinuousClock.now + .seconds(2)
+        while getpgid(child) != -1, ContinuousClock.now < deadline { await Task.yield() }
+        #expect(getpgid(child) == -1)
+        #expect(!fixture.process.isRunning && fixture.process.terminationHandler == nil)
+    }
+
     @Test func expiredParentExitStopsItsRemainingDescendantBeforeReturning() async throws {
         let fixture = try ParentExitFixture(); defer { fixture.clean() }
         let process = fixture.process, childFile = fixture.childFile

@@ -21,19 +21,24 @@ final class NativeProcessExecutor {
     private var interruption: Error?
     private var finished = false
     private var parentExited = false
+    private var parentAndGroupMissing = false
     private var cleanupPending = false
     private var isolatedProcessGroup: pid_t?
     private var onExit: (() -> Void)?
+    private let afterLaunch: (@MainActor (pid_t) -> Void)?
 
     init(process: Process, now: @escaping @MainActor () -> Date = Date.init,
-         onIsolationFailure: (@MainActor (pid_t, pid_t, Int32) -> Void)? = nil) {
+         onIsolationFailure: (@MainActor (pid_t, pid_t, Int32) -> Void)? = nil,
+         afterLaunch: (@MainActor (pid_t) -> Void)? = nil) {
         self.process = process; self.now = now; self.onIsolationFailure = onIsolationFailure
+        self.afterLaunch = afterLaunch
     }
 
     static func run(_ process: Process, timeout: TimeInterval,
                     now: @escaping @MainActor () -> Date = Date.init,
-                    onIsolationFailure: (@MainActor (pid_t, pid_t, Int32) -> Void)? = nil) async throws -> Int32 {
-        let executor = NativeProcessExecutor(process: process, now: now, onIsolationFailure: onIsolationFailure)
+                    onIsolationFailure: (@MainActor (pid_t, pid_t, Int32) -> Void)? = nil,
+                    afterLaunch: (@MainActor (pid_t) -> Void)? = nil) async throws -> Int32 {
+        let executor = NativeProcessExecutor(process: process, now: now, onIsolationFailure: onIsolationFailure, afterLaunch: afterLaunch)
         return try await executor.run(timeout: timeout)
     }
 
@@ -56,10 +61,24 @@ final class NativeProcessExecutor {
         }
         try process.run()
         let pid = process.processIdentifier
+        afterLaunch?(pid)
         let group = getpgid(pid)
         let groupError = group == -1 ? errno : 0
         if group == pid, pid != getpgrp() { isolatedProcessGroup = pid }
-        else if process.isRunning {
+        else if group == -1, groupError == ESRCH, pid > 0, pid != getpgrp() {
+            // The parent may exit before Foundation delivers its termination callback.
+            // Its process group can still contain descendants.
+            let groupStatus = Darwin.kill(-pid, 0)
+            let probeError = groupStatus == -1 ? errno : 0
+            if groupStatus == 0 { isolatedProcessGroup = pid }
+            else if probeError == ESRCH { parentAndGroupMissing = true }
+            else {
+                onIsolationFailure?(pid, group, groupError)
+                let error = DraftlyError.message("The process group could not be isolated.")
+                interrupt(error)
+                throw error
+            }
+        } else if process.isRunning {
             onIsolationFailure?(pid, group, groupError)
             let error = DraftlyError.message("The process group could not be isolated.")
             interrupt(error)
@@ -90,6 +109,10 @@ final class NativeProcessExecutor {
     private func interrupt(_ error: Error) {
         guard !finished, interruption == nil else { return }
         interruption = error
+        if parentAndGroupMissing {
+            if parentExited { finish() }
+            return
+        }
         if let group = isolatedProcessGroup {
             signalGroup(group, SIGTERM)
         } else if process.isRunning {

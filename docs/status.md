@@ -3516,3 +3516,12 @@ The appcast redirect check also passed against a local HTTP server: the server
 recorded the initial request and no request to the redirect target. All 179
 Python tests passed in the isolated CI dependency environment. No production
 site or release was changed.
+
+Native process execution now checks the original process group when the parent
+is already gone at launch inspection. A surviving group remains available for
+timeout or cancellation cleanup. When both parent and group are absent, the
+executor waits for Foundation's termination delivery instead of treating its
+stale running state as an isolation failure. Other probe failures remain errors.
+Tests cover the missing group, deadline, cancellation and a surviving child
+that ignores SIGTERM. The local build and complete Swift inventory passed: 759
+Core and 928 application tests. Hosted CI has not yet validated this change.
