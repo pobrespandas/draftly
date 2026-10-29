@@ -1,0 +1,13 @@
+{
+  "uuid": "D46F0001-0000-4000-8000-000000000019",
+  "name": "Send Daily Notes to Day One",
+  "group": "Draftly",
+  "steps": [
+    {
+      "type": "script",
+      "data": {
+        "script": "if (!draft.content.trim()) { context.fail('The draft is empty.'); }\nelse {\n  const date = draft.processTemplate('[[date|%Y-%m-%d]]');\n  const body = draft.processTemplate('[[body]]');\n  const entry = '# Notes for ' + date + (body ? '\\n' + body : '');\n  const url = 'dayone://post?entry=' + encodeURIComponent(entry) + '&tags=' + encodeURIComponent('Daily,Notes');\n  if (!app.openURL(url)) context.fail('Could not open Day One.');\n}"
+      }
+    }
+  ]
+}

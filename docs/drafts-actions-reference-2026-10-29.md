@@ -161,3 +161,24 @@ References downloaded for local research:
 cases check both runners, Unicode and URL encoding, empty drafts, clipboard and
 URL failures, and source retention with simulated hosts. No external app was
 opened, and no native clipboard or external delivery is accepted by this test.
+
+## Bear and daily journal actions
+
+Send Draft to Bear uses a callback URL to create a note from the first line and
+body. Send Daily Notes to Day One sends a dated heading and the draft body with
+Daily and Notes tags. Both keep the source draft. Unlike the Drafts Daily Notes
+reference, the Day One action uses the default journal and does not archive.
+
+References downloaded for local research:
+
+- Send to Bear: https://directory.getdrafts.com/a/1CZ, SHA-256
+  `13cfd8fc9757846e4dd0e79332c62c54b5c8e213d3de57289ec7a25a97459ad0`.
+- Daily Notes: https://directory.getdrafts.com/a/1Ij, SHA-256
+  `c07747b845fc9fa875518659cc007b426b6ee88f420f8753ba4697be4b7766fb`.
+
+URL references: https://bear.app/faq/x-callback-url-scheme-documentation/ and
+https://dayoneapp.com/guides/tips-and-tutorials/day-one-url-scheme/.
+`swift test --filter OwnWritingActionsTests` passed twenty-nine methods. New
+cases cover both runners, URL encoding, callback success, cancellation and
+error, dates, tags, empty drafts, and source retention with simulated hosts.
+Bear and Day One delivery, permissions, and saved entries remain unverified.

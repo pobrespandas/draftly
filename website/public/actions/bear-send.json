@@ -1,0 +1,13 @@
+{
+  "uuid": "D46F0001-0000-4000-8000-000000000018",
+  "name": "Send Draft to Bear",
+  "group": "Draftly",
+  "steps": [
+    {
+      "type": "script",
+      "data": {
+        "script": "if (!draft.content.trim()) { context.fail('The draft is empty.'); }\nelse {\n  const title = draft.title, body = draft.processTemplate('[[body]]');\n  const callback = CallbackURL.create();\n  callback.baseURL = 'bear://x-callback-url/create?title=' + encodeURIComponent(title) + '&text=' + encodeURIComponent(body);\n  if (!callback.open()) {\n    if (callback.status === 'cancelled') context.cancel();\n    else context.fail('Bear did not confirm the new note.');\n  }\n}"
+      }
+    }
+  ]
+}

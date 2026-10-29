@@ -32,11 +32,11 @@ struct OwnWritingActionsTests {
     @Test func actionFilesImportIntoLibrary() throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        for name in ["template", "transform", "rich-text", "sort-lines", "append-lines", "markdown-bold", "markdown-italic", "copy-html", "print-pdf", "things-draft", "things-taskpaper", "things-markdown", "add-to-list", "obsidian-save", "obsidian-daily", "notion-copy", "dayone-send"] {
+        for name in ["template", "transform", "rich-text", "sort-lines", "append-lines", "markdown-bold", "markdown-italic", "copy-html", "print-pdf", "things-draft", "things-taskpaper", "things-markdown", "add-to-list", "obsidian-save", "obsidian-daily", "notion-copy", "dayone-send", "bear-send", "dayone-daily"] {
             let data = try Data(contentsOf: root.appendingPathComponent("website/public/actions/\(name).json"))
             try LibraryFileImport.apply(data, fileExtension: "json", to: library)
         }
-        #expect(library.actions.count == 17)
+        #expect(library.actions.count == 19)
         #expect(library.actions.allSatisfy { $0.unsupportedSteps.isEmpty })
     }
 
@@ -372,11 +372,44 @@ struct OwnWritingActionsTests {
         #expect(editor.content == source.content && library.notes.first { $0.id == source.id }?.isArchived == false)
     }
 
-    @Test(arguments: [false, true], ["notion-copy", "dayone-send"]) func externalActionsRejectEmptyDraft(worker: Bool, name: String) async throws {
+    @Test(arguments: [false, true], ["notion-copy", "dayone-send", "bear-send", "dayone-daily"]) func externalActionsRejectEmptyDraft(worker: Bool, name: String) async throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let editor = EditorSession(); editor.load(try library.createNote(content: " \n"))
         let host = WritingActionHost(); let runner = ActionRunner(library: library, editor: editor, host: host)
         #expect(!(await ActionTestExecution.succeeds(try action(name), runner: runner, worker: worker)))
-        #expect(!host.calls.contains { $0.0 == "clipboard" || $0.0 == "openURL" })
+        #expect(!host.calls.contains { $0.0 == "clipboard" || $0.0 == "openURL" || $0.0 == "callbackURL" })
+    }
+
+    @Test(arguments: [false, true]) func sendToBearEncodesContentAndPreservesDraft(worker: Bool) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let source = try library.createNote(content: "Hello café & tea\nNotes 🐼 ?")
+        let editor = EditorSession(); editor.load(source)
+        let host = WritingActionHost(); let runner = ActionRunner(library: library, editor: editor, host: host)
+        #expect(await ActionTestExecution.succeeds(try action("bear-send"), runner: runner, worker: worker), Comment(rawValue: runner.message ?? ""))
+        let address = try #require(host.calls.first { $0.0 == "callbackURL" }?.1["url"] as? String)
+        let url = try #require(URLComponents(string: address))
+        #expect(url.scheme == "bear" && url.host == "x-callback-url" && url.path == "/create")
+        #expect(url.queryItems?.first { $0.name == "title" }?.value == "Hello café & tea")
+        #expect(url.queryItems?.first { $0.name == "text" }?.value == "Notes 🐼 ?")
+        #expect(library.notes.first { $0.id == source.id }?.isArchived == false)
+        for status in ["cancelled", "error"] {
+            host.callbackStatus = status
+            #expect(!(await ActionTestExecution.succeeds(try action("bear-send"), runner: runner, worker: worker)))
+            #expect(editor.content == source.content)
+        }
+    }
+
+    @Test(arguments: [false, true]) func dayOneDailyFormatsBodyAndTags(worker: Bool) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let source = try library.createNote(content: "Title\nBody café 🐼 & tea")
+        let editor = EditorSession(); editor.load(source)
+        let host = WritingActionHost(); let runner = ActionRunner(library: library, editor: editor, host: host)
+        #expect(await ActionTestExecution.succeeds(try action("dayone-daily"), runner: runner, worker: worker), Comment(rawValue: runner.message ?? ""))
+        let address = try #require(host.calls.first { $0.0 == "openURL" }?.1["url"] as? String)
+        let url = try #require(URLComponents(string: address))
+        let entry = try #require(url.queryItems?.first { $0.name == "entry" }?.value)
+        #expect(entry.range(of: #"^# Notes for \d{4}-\d{2}-\d{2}\nBody café 🐼 & tea$"#, options: .regularExpression) != nil)
+        #expect(url.queryItems?.first { $0.name == "tags" }?.value == "Daily,Notes")
+        #expect(editor.content == source.content && library.notes.first { $0.id == source.id }?.isArchived == false)
     }
 }
