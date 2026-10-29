@@ -3701,3 +3701,10 @@ and notarization API key still need verified recovery copies.
 An offscreen diagnostic now measures initial divider operations separately.
 The focused suite passed on macOS 27. A hosted macOS 26 run is still required;
 this diagnostic does not modify the app or establish a fix.
+
+Hosted LargeDisplayPanels26 run 40954905141 reproduced ten existing panel
+issues. A separate offscreen diagnostic applied zero through three initial
+separator operations without the controller appearance callback; all retained
+850-point content. The full appearance path still expands with four panels.
+This rules out those calls alone in that fixture, not their interaction with
+appearance, toolbar, or asynchronous layout. No production fix was made.
