@@ -306,6 +306,14 @@ public key and prints only a match or failure. Clear any clipboard used for the
 transfer. A matching result confirms the recovered seed; this check does not
 verify Developer ID or notarization key recovery.
 
+After exporting the Developer ID identity as an encrypted PKCS#12 file, use
+`scripts/verify-developer-id-backup.py` with `--backup` and `--certificate`.
+The certificate argument must be the expected public Developer ID certificate
+from the trusted local Keychain, not a certificate supplied by the backup. The
+tool requests the archive password with hidden terminal input. It checks the
+certificate fingerprint, team, and matching private key. It does not import the
+identity, validate Apple trust or prove recovery on another device.
+
 The public GitHub repository currently has no protected `main` branch and no
 release environment. Its only active ruleset protects version tags from updates
 and deletion. Do not store signing, notarization, or Sparkle secrets as

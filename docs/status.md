@@ -3781,3 +3781,9 @@ cleared. Recovery from another device is still pending.
 Hosted FullOn27 run 40959080405 passed the complete Swift inventory, Python,
 website and matrix checks, local app build and package identity checks at commit
 6976e7d. This does not replace macOS 26 CI or validate publication.
+
+A local Developer ID backup verifier checks an encrypted PKCS#12 file against
+an independently supplied public certificate and team. It requires hidden
+terminal password entry and checks that the private key matches. Five focused
+and 235 total Python tests passed with temporary test identities. No real backup
+has been verified; the user reported an export but its path is not yet known.
