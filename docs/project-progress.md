@@ -237,6 +237,10 @@ A GitHub draft staging tool can verify a local signed candidate and resume an
 interrupted upload without replacing assets. It does not publish. GitHub reads
 were checked against the repository, but candidate validation and uploads have
 only been exercised with fake services.
+A gated GitHub publisher verifies the staged Firebase version, publishes a
+matching draft, and checks each public asset before writing a receipt. It does
+not promote Firebase. Publication has only been exercised with fake services;
+the flag remains disabled and no release has been published.
 
 The library uses the existing generic Core Data schema. Backups include shared
 themes and action execution history with compatibility checks. Development

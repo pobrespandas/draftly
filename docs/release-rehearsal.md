@@ -143,3 +143,30 @@ This command has been tested with a fake GitHub client and disposable keys.
 No real candidate has passed its signing checks. Do not publish a draft until
 public asset download, coordinated Firebase promotion, update installation,
 and CloudKit Production have been verified independently.
+
+## Publish the verified GitHub draft
+
+`scripts/publish-github-release.py` checks the candidate and signed feed again,
+then checks that a finalized Firebase staging receipt still preserves the live
+site. It can publish a matching draft and download each public asset without
+credentials. It checks every downloaded size and SHA-256 digest. It writes
+`PUBLIC_VERIFIED.json` only after the assets and Firebase staging still match.
+It does not promote the Firebase version.
+
+The command requires `DRAFTLY_RELEASE_PUBLISH_ENABLED=YES`, the Firebase
+access token, the Sparkle signing seed, GitHub write access, and the receipt
+from Firebase staging. Do not enable it before the real signed-candidate,
+update, and CloudKit Production acceptance checks. The default workflow does
+not set this flag. The command has only been tested against fake services.
+
+```sh
+python3 scripts/publish-github-release.py --candidate .build/release-candidates/example \
+  --appcast .build/release-appcasts/example --notes release-notes.txt \
+  --firebase-receipt .build/release-site/example.json
+```
+
+If an upload or public download fails after GitHub publishes the release, do
+not create or overwrite another release. Inspect the existing release and the
+live site, then rerun the checks with the same verified assets. A live site
+change stops the process; restaging may be required. A verified public GitHub
+release alone does not authorize Firebase promotion.
