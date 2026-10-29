@@ -3772,3 +3772,8 @@ write, and publication remains disabled until all writers are coordinated.
 The user confirmed that the seed recovered from Google Password Manager on a
 second device also matches the release public key. The clipboard was cleared on
 the Mac. Developer ID and notarization key recovery remain separate checks.
+
+The user saved a base64-encoded copy of the Apple notarization key in Google
+Password Manager. The first recovery check did not match; a second copy from
+that named entry matched the local file byte for byte. The Mac clipboard was
+cleared. Recovery from another device is still pending.
