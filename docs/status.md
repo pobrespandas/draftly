@@ -3164,3 +3164,12 @@ Native Notes sharing timed out with one error while retaining its38-byte file.
 A new action succeeded before the old dialog was cancelled. Late provider Cancel
 removed the old file without another callback or changed result. Closed history
 matched. App17/Core2 and local build passed. QA retired; usual app unchanged.
+
+### Workspace link replacement — 29 October 2026
+
+Workspace links now ask before replacing changed data for an existing identity.
+Cancel and concurrent edits preserve the installed workspace. Focused tests
+cover storage failure, unknown fields, reload and backup. Native QA confirmed
+Cancel; Replace remains unverified. Full normal Core runs had timing failures;
+both focused suites and a separate serial Core run passed. App inventory and
+local build passed with the limits in validation. The usual app is unchanged.

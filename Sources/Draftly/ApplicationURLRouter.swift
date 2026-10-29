@@ -22,11 +22,20 @@ struct ApplicationURLRouter {
                     guard parameter("data") == nil else { throw DraftlyError.message("The workspace link has conflicting destinations.") }
                     controller.openWorkspace(try Self.namedWorkspace(parameter("name"), library: library))
                 } else {
-                    let workspace = try WorkspaceInstallation.decode(url)
-                    try library?.saveWorkspace(workspace)
-                    show()
+                    let installed = try Self.installWorkspace(url, library: library) { existing in
+                        let alert = NSAlert()
+                        alert.messageText = "Replace workspace “\(existing.name)”?"
+                        alert.informativeText = "Replace keeps the existing workspace identity."
+                        alert.addButton(withTitle: "Replace"); alert.addButton(withTitle: "Cancel")
+                        alert.buttons.last?.keyEquivalent = "\u{1b}"
+                        return alert.runModal() == .alertFirstButtonReturn
+                    }
+                    if installed { show() }
                 }
-            } catch { library?.error = error.localizedDescription }
+            } catch {
+                if let library { library.error = error.localizedDescription }
+                else { NSApp.presentError(error) }
+            }
         case "action":
             do { try Self.installActions(url, library: library); show() }
             catch { library?.error = error.localizedDescription }
@@ -124,6 +133,21 @@ struct ApplicationURLRouter {
               var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
         components.scheme = "draftly"
         return components.url
+    }
+
+    static func installWorkspace(_ url: URL, library: LibraryStore?,
+                                 confirmReplacement: (Workspace) -> Bool) throws -> Bool {
+        guard let library else { throw DraftlyError.message("The library is unavailable.") }
+        let incoming = try WorkspaceInstallation.decode(url)
+        if let existing = library.workspaces.first(where: { $0.id == incoming.id }) {
+            if existing == incoming { return true }
+            guard confirmReplacement(existing) else { return false }
+            guard library.workspaces.first(where: { $0.id == incoming.id }) == existing else {
+                throw DraftlyError.message("The installed workspace changed. Open the link again to review the replacement.")
+            }
+        }
+        try library.saveWorkspace(incoming)
+        return true
     }
 
     static func installTheme(_ url: URL, library: LibraryStore?,

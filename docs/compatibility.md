@@ -54,6 +54,11 @@ FileManager paths refer to the Draftly Library folder. Named export bookmarks
 refer to folders chosen on this Mac. Credentials and folder permissions are not
 imported from Drafts.
 
+Workspace installation links with an existing identity require confirmation
+before they replace different local settings. Identical links do not replace
+the record. Cancellation and a concurrent change retain the installed record.
+Native QA has verified cancellation; native replacement remains to be checked.
+
 The JavaScript runtime applies a ten-second CPU execution limit when macOS exports
 the JavaScriptCore limit function. Synchronous native dialogs wait for user input.
 This limit uses a runtime symbol and is intended for personal distribution.

@@ -10626,3 +10626,28 @@ complete report. That suite passed separately. A subsequent complete serial
 run passed (699 Core, 874 app), as did the focused composition test and local
 Debug build. The reason for the interrupted run is not established. No test
 timeout or retry policy changed. Native input-method behavior remains pending.
+
+### Workspace link replacement — 29 October 2026
+
+A workspace installation link now requests confirmation before it replaces a
+different workspace with the same identity. An identical link does not ask.
+Cancel leaves the library unchanged. A change to that workspace during the
+confirmation prevents replacement. A missing library is an error. Tests cover
+new and identical links, cancellation, replacement, unknown fields, reload,
+backup, a concurrent edit and an injected storage failure.
+
+In isolated Engine QA, a neutral action delivered a link with the QA scheme.
+The replacement dialog appeared. Cancel kept the original workspace in the
+workspace menu. The native Replace path was not confirmed: the second attempt
+lost the expected dialog in Computer Use, and the user closed QA. Its exact
+LaunchServices entry was removed. The temporary app and action fixture moved to
+Trash; the neutral action, draft and workspace remain in the QA library. The
+usual app and the `drafts://` scheme were not changed.
+
+The focused workspace tests and local Debug build passed. The complete serial
+app inventory passed (877 methods) before the final missing-library alert
+change; the focused suite and build passed after it. Two normal full runs
+failed in separate timing-sensitive Core tests: XML-RPC transport in the first,
+and asynchronous runner waits in the second. Both focused suites passed. A
+separate complete serial Core run passed (699 methods). These diagnostics do
+not turn the normal parallel Core runs into passes. No timeout was changed.
