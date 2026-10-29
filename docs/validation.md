@@ -10901,3 +10901,13 @@ returns true. A regression showed that scripts could overwrite it. It is now
 read-only. Tests cover both runners, assignment in strict and non-strict code,
 and imported metadata with both values. The focused suite, matrix structural
 check and local Debug build passed. Native action execution remains separate.
+
+### Subscription compatibility action in QA — 29 October 2026
+
+An isolated ad-hoc QA app used a separate local test library and no Services
+entries. A neutral action created in its inspector checked that app.isPro was
+true, attempted to assign false, checked it again, and changed the editor text.
+The action ran from the Actions menu. The editor showed the expected Unicode
+text and the completion message. This confirms the observed UI execution path;
+it does not check a Drafts subscription. QA quit normally. Its exact app
+registration was removed and its bundle moved to Trash. The test library remains.

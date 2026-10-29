@@ -8457,7 +8457,7 @@
             "suite": "ActionTests",
             "test": "proCompatibilityPropertyCannotDisableFeatures"
           },
-          "liveCheck": null,
+          "liveCheck": "2026-10-29: An isolated QA app ran a neutral action from the Actions menu. It read true, ignored a non-strict assignment, and updated the editor.",
           "compatibilityStatus": "partial",
           "reviewDate": "2026-10-29",
           "implementationEvidence": {
@@ -8468,7 +8468,7 @@
           "result": "Returns true and does not accept assignment.",
           "errors": "Assignment throws in strict JavaScript and is ignored otherwise.",
           "limitations": [
-            "Draftly does not report a Drafts subscription. Native action execution has not been checked for this property."
+            "Draftly does not report a Drafts subscription. This is an intentional product difference."
           ],
           "evidenceLevel": "Member-specific assertions on the legacy and worker runners."
         },
