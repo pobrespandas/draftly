@@ -4,6 +4,14 @@ import Testing
 
 @Suite("XML-RPC contracts")
 struct XMLRPCTests {
+    @Test func nonFiniteNumbersCannotProduceAnInvalidRequest() throws {
+        for value in [Double.nan, Double.infinity, -Double.infinity] {
+            #expect(throws: (any Error).self) {
+                try ScriptXMLRPC.requestBody(method: "test", params: [["nested": [value]]])
+            }
+        }
+        #expect(try ScriptXMLRPC.requestBody(method: "test", params: [1.5]).contains("<double>1.5</double>"))
+    }
     @Test func nestedValuesEscapeAndRoundTrip() throws {
         let body = try ScriptXMLRPC.requestBody(method: "example<&", params: [true, 7, 1.5, "ñ<&", ["items": ["🐼", false]]])
         #expect(body.contains("<methodName>example&lt;&amp;</methodName>"))

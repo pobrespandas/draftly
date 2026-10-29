@@ -98,7 +98,10 @@ public enum ScriptXMLRPC {
         case is NSNull: inner = "<nil/>"
         case let number as NSNumber:
             if CFGetTypeID(number) == CFBooleanGetTypeID() { inner = "<boolean>\(number.boolValue ? 1 : 0)</boolean>" }
-            else if CFNumberIsFloatType(number) { inner = "<double>\(number.doubleValue)</double>" }
+            else if CFNumberIsFloatType(number) {
+                guard number.doubleValue.isFinite else { throw DraftlyError.message("An XML-RPC number must be finite.") }
+                inner = "<double>\(number.doubleValue)</double>"
+            }
             else { inner = "<i8>\(number.int64Value)</i8>" }
         case let string as String: inner = "<string>\(escape(string))</string>"
         case let date as Date: inner = "<dateTime.iso8601>\(APIValues.date(date))</dateTime.iso8601>"

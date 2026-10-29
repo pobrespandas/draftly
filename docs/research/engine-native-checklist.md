@@ -8,6 +8,10 @@ only that operation, outcome and entry point.
 
 ## Current case inventory
 
+The XML-RPC encoder rejects non-finite native numeric parameters, including
+nested values. Its regression test passed with the XML-RPC transport suites.
+This does not verify how each scripting path serializes non-finite numbers.
+
 [Engine acceptance cases](engine-acceptance-cases-2026-10-22.md) assigns case IDs,
 entries, outcomes, cleanup and affected contracts to the remaining work. It
 separates actionable checks from reference, permission and system blocks.
