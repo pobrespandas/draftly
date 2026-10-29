@@ -3768,3 +3768,7 @@ The release lock now has a read-only ownership check for a future coordinator.
 Tests reject missing, replaced, released, and wrong-scope locks. All 230 Python
 tests passed with fake stores. The check is not atomic with a later Hosting
 write, and publication remains disabled until all writers are coordinated.
+
+The user confirmed that the seed recovered from Google Password Manager on a
+second device also matches the release public key. The clipboard was cleared on
+the Mac. Developer ID and notarization key recovery remain separate checks.
