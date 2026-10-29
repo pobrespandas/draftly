@@ -11337,3 +11337,15 @@ The existing Shortcut fields were restored. QA quit, its exact registration was
 removed and its bundle moved to Trash; its isolated library remains. This covers
 the local save panel's Cancel path, not a late panel callback or all file
 permissions. No production code changed.
+
+### Interactive HTML through App Intent — 29 October 2026
+
+An isolated Engine QA action opened an interactive HTML preview from the
+system-delivered QA Shortcut. Computer Use pasted `café 🐼` into the HTML input
+and selected Send. The page returned that text and a null field. The following
+script checked null and saved `HTML: café 🐼` to the neutral target draft. The
+QA list displayed that text and Shortcuts reported completion. This used paste,
+not physical typing. The result was not checked in the closed store or history.
+The Shortcut fields were restored. QA remained open after new user activity in
+its window; preserve its library and extra notes. Other HTML paths and late
+responses remain separate. No production code changed.

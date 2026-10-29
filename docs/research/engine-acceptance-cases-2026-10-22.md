@@ -112,7 +112,7 @@ where scene dispatch differs. Do not substitute a direct Intent.perform call.
 | SCENE-02 | Open/tab, system-delivered App Intent | Cancel/timeout during creation; concurrent opens | Correlation preserved; no wrong destination | H,C,E | READY |
 | SCENE-03 | Scene restoration after normal restart | Restored scene IDs and source ownership | No duplicate scene or wrong draft | E | READY |
 | ENTRY-PROMPT | Prompt, system-delivered Intent | Stop while the prompt is pending; then check keyboard recovery | One cancelled result, no tail or success effect; keyboard recovery | W,H,C,E | Stop, later action and later Prompt Return OBSERVED; native late responses remain separate |
-| ENTRY-HTML | HTML, system-delivered Intent | Typed Unicode return | Exact response and one success in caller/history | W,H,E | READY |
+| ENTRY-HTML | HTML, system-delivered Intent | Unicode return | Exact response and one success in caller/history | W,H,E | Unicode paste and caller completion OBSERVED; closed-store history remains to check |
 | ENTRY-ARRANGE | Arrangement, system-delivered Intent | User Cancel | No committed arrangement; one cancelled result | H,C,E | READY |
 | ENTRY-SAVE | Save file, system-delivered Intent | Picker Cancel | Target absent; no tail or second result | H,C,E | OBSERVED for a local save panel and following recovery; late callbacks remain separate |
 | ENTRY-BOOKMARK | Bookmark file API, system-delivered Intent after restart | Reuse the authorized bookmark | Exact neutral bytes, scope released and one success | H,E | PERMISSION if authorization is absent |
