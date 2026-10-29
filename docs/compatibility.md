@@ -66,6 +66,8 @@ tests cover these paths; native confirmation remains to be checked.
 An incoming group with the same name as another stored group and a different
 identity is rejected before any part of the link is saved. This does not yet
 define a merge policy for that conflict.
+When a link renames a stored group by identity, its existing actions move to
+the new name in the same transaction. The confirmation includes those actions.
 
 The JavaScript runtime applies a ten-second CPU execution limit when macOS exports
 the JavaScriptCore limit function. Synchronous native dialogs wait for user input.

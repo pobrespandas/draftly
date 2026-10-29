@@ -10675,3 +10675,10 @@ Ten focused action URL installation tests passed. They include a Unicode group
 name collision and verify that the action batch is unchanged after reload. The
 serial app suite passed 883 tests. The local Debug build passed. Native error
 presentation and a conflict merge policy remain pending.
+
+### Action group link rename — 29 October 2026
+
+The new regression first failed because existing actions stayed in the old
+group. It passed after the atomic rename. Eleven focused action link tests and
+the serial app suite (884 tests) passed. The local Debug build passed. Native
+confirmation and conflicts with implicit groups remain pending.

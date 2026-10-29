@@ -3194,3 +3194,10 @@ An action link cannot create a second stored group with the same name and a
 different identity. It reports an error before it saves any action or group.
 Automated tests cover the conflict and the unchanged batch. Native handling and
 a merge policy remain pending. The usual app is unchanged.
+
+### Action group link rename — 29 October 2026
+
+Replacing a group with a new name now moves its existing actions in the same
+transaction. Cancel and save failure retain the original membership. Automated
+tests cover the regression; native confirmation remains pending. Conflicts with
+implicit groups need a separate policy. The usual app is unchanged.

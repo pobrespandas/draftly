@@ -200,9 +200,10 @@ struct ApplicationURLRouter {
     static func installActions(_ url: URL, library: LibraryStore?,
                                confirmReplacement: ([DraftAction], [ActionGroupRecord]) -> Bool = { _, _ in false }) throws -> Bool {
         guard let library else { throw DraftlyError.message("The library is unavailable.") }
-        let data = try ActionImporter.installationData(url)
-        let actions = try ActionImporter.decode(data)
-        let groups = (try? JSONDecoder().decode(Backup.self, from: data))?.actionGroups ?? []
+        var data = try ActionImporter.installationData(url)
+        var actions = try ActionImporter.decode(data)
+        var backup = try? JSONDecoder().decode(Backup.self, from: data)
+        let groups = backup?.actionGroups ?? []
         guard Set(actions.map(\.id)).count == actions.count, Set(groups.map(\.id)).count == groups.count else {
             throw DraftlyError.message("The action link contains duplicate identifiers.")
         }
@@ -217,6 +218,24 @@ struct ApplicationURLRouter {
             }
         }
         let oldActions = library.actions, oldGroups = library.actionGroups
+        let renames = groups.compactMap { incoming -> (String, String)? in
+            guard let existing = oldGroups.first(where: { $0.id == incoming.id }), existing.name != incoming.name else { return nil }
+            return (existing.name, incoming.name)
+        }
+        guard Set(renames.map { $0.0 }).count == renames.count else {
+            throw DraftlyError.message("The installed action groups have ambiguous names.")
+        }
+        let renamedGroups = Dictionary(uniqueKeysWithValues: renames)
+        if !renamedGroups.isEmpty {
+            let incomingIDs = Set(actions.map(\.id))
+            actions += oldActions.filter { !incomingIDs.contains($0.id) && renamedGroups[$0.group] != nil }
+            for index in actions.indices {
+                if let newName = renamedGroups[actions[index].group] { actions[index].group = newName }
+            }
+            backup?.actions = actions
+            guard let backup else { throw DraftlyError.message("The action group link is invalid.") }
+            data = try JSONEncoder().encode(backup)
+        }
         let replacements = oldActions.filter { existing in actions.contains { $0.id == existing.id && $0 != existing } }
         let groupReplacements = oldGroups.filter { existing in groups.contains { $0.id == existing.id && $0 != existing } }
         if !replacements.isEmpty || !groupReplacements.isEmpty {

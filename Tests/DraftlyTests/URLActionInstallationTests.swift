@@ -166,4 +166,29 @@ struct URLActionInstallationTests {
         try library.reload()
         #expect(library.actionGroups == [existing]); #expect(library.actions.isEmpty)
     }
+
+    @Test func replacingRenamedGroupKeepsExistingMembershipAndIsAtomic() throws {
+        enum Failure: Error { case commit }
+        let library = try LibraryStore(inMemory: true, seed: false)
+        try library.saveActionGroup(ActionGroupRecord(name: "Original"))
+        var member = DraftAction(name: "Existing", steps: []); member.group = "Original"
+        try library.saveAction(member)
+        let original = try #require(library.actionGroups.first)
+        var renamed = original; renamed.name = "Renamed 🐼"
+        let backup = Backup(notes: [], revisions: [], workspaces: [], actions: [], actionGroups: [renamed])
+        var components = URLComponents(); components.scheme = "draftly"; components.host = "action"
+        components.queryItems = [URLQueryItem(name: "data", value: try JSONEncoder().encode(backup).base64EncodedString())]
+        let url = try #require(components.url)
+        let cancelled = try ApplicationURLRouter.installActions(url, library: library) { _, _ in false }
+        #expect(!cancelled); #expect(library.actions == [member]); #expect(library.actionGroups == [original])
+        library.beforeBatchCommit = { throw Failure.commit }
+        #expect(throws: Failure.commit) { try ApplicationURLRouter.installActions(url, library: library) { _, _ in true } }
+        library.beforeBatchCommit = nil
+        try library.reload(); #expect(library.actions == [member]); #expect(library.actionGroups == [original])
+        #expect(try ApplicationURLRouter.installActions(url, library: library) { _, _ in true })
+        try library.reload()
+        member.group = renamed.name
+        #expect(library.actions == [member]); #expect(library.actionGroups == [renamed])
+        #expect(library.actionGroupIdentifiers[renamed.name] == original.id)
+    }
 }
