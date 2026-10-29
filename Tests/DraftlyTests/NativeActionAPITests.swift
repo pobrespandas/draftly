@@ -5,6 +5,29 @@ import DraftlyCore
 
 @Suite("Native action API") @MainActor
 struct NativeActionAPITests {
+    @Test(arguments: [false, true]) func writeJSONRejectsUnserializableValuesWithoutChangingFile(worker: Bool) async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let editor = EditorSession(); editor.load(try library.createNote(content: "Neutral"), focusEditor: false)
+        let host = NativeActionHost(); host.testFileRoot = root
+        let runner = ActionRunner(library: library, editor: editor, host: host)
+        let action = DraftAction(name: "JSON files", steps: [ActionStep("script", ["script": """
+        const fm=FileManager.createLocal();
+        if (!fm.writeJSON('/value.json',{text:'café 🐼'})) throw Error('initial write');
+        const before=fm.readString('/value.json');
+        let cyclic={}; cyclic.self=cyclic;
+        for (const value of [undefined, cyclic]) {
+            if (fm.writeJSON('/value.json',value)!==false || typeof fm.lastError!=='string') throw Error('invalid value');
+            if (fm.readString('/value.json')!==before) throw Error('original changed');
+        }
+        if (!fm.writeJSON('/value.json',{text:'recovered'}) || fm.lastError!==undefined) throw Error('recovery');
+        if (fm.readJSON('/value.json').text!=='recovered') throw Error('read');
+        """])])
+        if worker { #expect(await runner.runAsync(action).result.succeeded, Comment(rawValue: runner.message ?? "")) }
+        else { #expect(runner.run(action), Comment(rawValue: runner.message ?? "")) }
+    }
     @Test(.enabled(if: getuid() != 0)) func unreadableSourceRestoresExistingCopyDestination() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)

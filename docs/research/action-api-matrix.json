@@ -14289,10 +14289,17 @@
             "writeJSON(path: string, content: object): boolean"
           ],
           "contract": "Write the contents to the path in JSON format. Returns true if successful, false if the file could not be written successfully. This will override existing files!",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "reviewed-partial",
+          "automatedTest": {"suite": "NativeActionAPITests", "test": "writeJSONRejectsUnserializableValuesWithoutChangingFile"},
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-29",
+          "implementationEvidence": {"file": "Sources/DraftlyCore/Resources/Bridge.js", "symbol": "FileManager.writeJSON"},
+          "defaults": "No content default is documented. An unserializable value fails without writing.",
+          "result": "Returns true on a successful JSON write and false on serialization or write failure.",
+          "errors": "Serialization and storage errors populate lastError. A later successful operation clears it.",
+          "limitations": ["Native sandbox, bookmark and cloud failures and comparison with Drafts remain unverified."],
+          "evidenceLevel": "Both runners test valid Unicode data, undefined and cyclic values, preservation and recovery in an isolated local root."
         },
         {
           "member": "writeString",

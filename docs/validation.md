@@ -10956,3 +10956,14 @@ restores the source permissions before cleanup and is disabled for root users.
 The native file and bookmark suites and matrix structural check passed. This
 checks one local POSIX failure, not sandbox, bookmark or iCloud permissions.
 No production source changed; the previous local Debug build remains applicable.
+
+### FileManager JSON serialization failure — 29 October 2026
+
+writeJSON previously passed an undefined serialization result to the host,
+which could replace a file with empty text and report success. A circular value
+also threw before the file manager could report its error. A regression failed
+before the correction. The method now returns false and sets lastError when JSON
+serialization fails, without writing. Both runners preserve an existing file
+and recover on a valid Unicode write in an isolated root. Focused file suites,
+matrix structure and the local Debug build passed. Native permission, cloud and
+Drafts comparison remain open.

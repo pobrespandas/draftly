@@ -351,7 +351,13 @@ class FileManager {
     get basePath(){return this._op('basePath');}get baseURL(){return this._op('baseURL');}
     readString(path){return this._op('readString',{path});}writeString(path,text){return this._op('writeString',{path,text})===true;}
     readJSON(path){let text=this.readString(path);if(text===undefined)return undefined;try{return JSON.parse(text);}catch(e){this.lastError=e.message;return undefined;}}
-    writeJSON(path,value){return this.writeString(path,JSON.stringify(value));}
+    writeJSON(path,value){
+        let text;
+        try { text=JSON.stringify(value); }
+        catch(e) { this.lastError=e && e.message ? String(e.message) : String(e); return false; }
+        if (text===undefined) { this.lastError='The value cannot be serialized as JSON.'; return false; }
+        return this.writeString(path,text);
+    }
     exists(path){return this._op('exists',{path})===true;}isDirectory(path){return this._op('isDirectory',{path})===true;}
     listContents(path){return this._op('listContents',{path});}createDirectory(name,path){return this._op('createDirectory',path===undefined?{path:name}:{name,path})===true;}
     copyItem(source,destination,overwrite=false){return this._op('copyItem',{path:source,destination,overwrite})===true;}moveItem(source,destination,overwrite=false){return this._op('moveItem',{path:source,destination,overwrite})===true;}
