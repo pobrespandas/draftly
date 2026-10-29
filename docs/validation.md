@@ -11279,3 +11279,17 @@ prove a final cancellation message in Shortcuts, keyboard recovery in a new
 Prompt, late native responses or other Prompt entry paths. QA remained open
 because new user activity appeared in its window. Its library was preserved.
 No production code changed.
+
+### Late Prompt reply during direct Intent cancellation — 29 October 2026
+
+A headless direct `RunDraftActionIntent.perform()` test suspends a prompt host,
+then cancels the Intent. The host observes cancellation but returns an accepted
+Prompt response only after a controlled cleanup gate opens. A second Intent is
+busy until that gate opens. The first Intent then reports cancellation, retains
+its earlier text, does not run the script tail or Archive, and records one
+Cancelled run. A later Intent succeeds. The focused Intent suite passed.
+
+This controlled host reply is not an observed late macOS Prompt response. The
+separate system-delivered Stop observation is above; keyboard recovery in a new
+Prompt remains open. The QA window in use was not touched. No production code
+changed.

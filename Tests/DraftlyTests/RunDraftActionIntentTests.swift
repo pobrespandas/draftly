@@ -152,6 +152,39 @@ struct RunDraftActionIntentTests {
         #expect(library.runs.count == 1 && library.runs.first?.status == "Cancelled")
     }
 
+    @Test func cancelledIntentWaitsForLatePromptCleanupBeforeAnotherAction() async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Neutral")
+        let host = IntentLatePromptHost()
+        var action = DraftAction(name: "Intent late prompt", steps: [
+            ActionStep("script", ["script": "editor.setText('Retained before prompt');draft.update();var p=Prompt.create();p.addButton('Accept');p.show();editor.setText('ERROR: late prompt');"]),
+            ActionStep("script", ["script": "editor.setText('ERROR: tail');"])
+        ])
+        action.afterSuccess = "archive"
+        let next = DraftAction(name: "Intent prompt recovery", steps: [ActionStep("script", ["script": "editor.setText('Recovered');"])])
+        try library.saveAction(action); try library.saveAction(next)
+        let request = intent(action, note: note, library: library, host: host)
+        let task = Task { try await request.perform() }
+        defer { task.cancel(); host.release() }
+        var starts = host.started.stream.makeAsyncIterator()
+        #expect(await starts.next() == true)
+        task.cancel()
+        var cancellations = host.cancelled.stream.makeAsyncIterator()
+        #expect(await cancellations.next() == true)
+        do {
+            _ = try await intent(next, note: note, library: library, host: host).perform()
+            Issue.record("The next Intent ran before prompt cleanup.")
+        } catch { #expect(try #require(error as? AutomationActionError).reason == .busy) }
+        #expect(library.notes.first?.content == "Retained before prompt")
+        host.release()
+        do { _ = try await task.value; Issue.record("The cancelled Intent completed successfully.") }
+        catch { #expect(try #require(error as? AutomationActionError).reason == .cancelled) }
+        #expect(library.notes.first?.content == "Retained before prompt" && library.notes.first?.isArchived == false)
+        #expect(library.runs.count == 1 && library.runs.first?.status == "Cancelled")
+        _ = try await intent(next, note: note, library: library, host: host).perform()
+        #expect(library.notes.first?.content == "Recovered")
+    }
+
     @Test func explicitScriptFailureRetainsCompletedEffectsAndStopsSuccessDisposition() async throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let note = try library.createNote(content: "Neutral")
@@ -327,4 +360,28 @@ struct RunDraftActionIntentTests {
         if operation == "clipboard" { started.continuation.yield(true); return true }
         throw DraftlyError.message("Unexpected intent test host operation: " + operation)
     }
+}
+
+@MainActor private final class IntentLatePromptHost: ActionHost {
+    let started = AsyncStream.makeStream(of: Bool.self)
+    let cancelled = AsyncStream.makeStream(of: Bool.self)
+    private var gate: CheckedContinuation<Void, Never>?
+    private var released = false
+    func supportsAsync(_ operation: String) -> Bool { operation == "prompt" }
+    func perform(_ operation: String, values: [String: Any]) throws -> Any? {
+        throw DraftlyError.message("Unexpected operation: " + operation)
+    }
+    func performAsync(_ operation: String, payload: String) async throws -> String {
+        guard operation == "prompt" else { throw DraftlyError.message("Unexpected operation: " + operation) }
+        started.continuation.yield(true)
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                if released { continuation.resume() } else { gate = continuation }
+            }
+        } onCancel: {
+            Task { @MainActor in self.cancelled.continuation.yield(true) }
+        }
+        return #"{"value":{"success":true,"buttonPressed":"Accept","fieldValues":{}}}"#
+    }
+    func release() { released = true; gate?.resume(); gate = nil }
 }
