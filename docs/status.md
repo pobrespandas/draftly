@@ -3335,3 +3335,6 @@ typewriter diagnostic remain pending.
 Hosted run 40931935413 passed the isolated typewriter suite on Xcode 26.6.
 The incomplete report in the full app run remains unexplained; the isolated
 pass does not establish that all app tests complete together.
+The workflow also supports a complete manual run on the hosted `xcode-27`
+image. It has a separate diagnostic check name and does not replace the
+required macOS 26 CI run.
