@@ -30,6 +30,8 @@ struct HTMLPreferencesTests {
         let html = "<img alt='Café &#93; &amp; *panda*' src='folder/a(b).png?x=1&amp;y=2'>"
         let result = try NativeHTMLConversion().htmlToMarkdown(html, options: [:])
         #expect(result == #"![Café \] & \*panda\*](folder/a\(b\).png?x=1&y=2)"#)
+        let spaced = try NativeHTMLConversion().htmlToMarkdown("<img src='a b&lt;c&gt;.png'>", options: [:])
+        #expect(spaced == "![](a%20b%3Cc%3E.png)")
     }
 
     @Test(arguments: [false, true])
@@ -43,6 +45,15 @@ struct HTMLPreferencesTests {
             #expect(result.contains("[1]: actual") && result.contains("[2]: two"))
         }
         #expect(!result.contains("wrong"))
+    }
+
+    @Test(arguments: [false, true])
+    func linkDestinationsPreserveEscapedCharacters(inline: Bool) throws {
+        let html = "<a href='folder/a(b) c?x=1&amp;y=2'>Link 🐼</a>"
+        let result = try NativeHTMLConversion().htmlToMarkdown(html, options: ["inlineLinks": inline])
+        let target = #"folder/a\(b\)%20c?x=1&y=2"#
+        if inline { #expect(result == "[Link 🐼](\(target))") }
+        else { #expect(result == "[Link 🐼][1]\n\n[1]: \(target)") }
     }
 
     @Test func ignoredLinksAndImageAttributesHandleQuotedGreaterThan() throws {

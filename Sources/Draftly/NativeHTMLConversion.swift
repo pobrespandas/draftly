@@ -1,6 +1,20 @@
 import AppKit
 
 struct NativeHTMLConversion {
+    private func markdownDestination(_ raw: String) throws -> String {
+        try decodeHTML(raw).unicodeScalars.map { scalar in
+            switch scalar.value {
+            case 9: return "%09"
+            case 10: return "%0A"
+            case 13: return "%0D"
+            case 32: return "%20"
+            case 60: return "%3C"
+            case 62: return "%3E"
+            case 40, 41, 92: return "\\" + String(scalar)
+            default: return String(scalar)
+            }
+        }.joined()
+    }
     private func convertLists(_ input: String, mark: String) throws -> String {
         struct List { var ordered: Bool; var next: Int }
         let tags = try NSRegularExpression(pattern: #"<(/?)(ul|ol|li)\b(?:[^'">]|"[^"]*"|'[^']*')*>"#, options: .caseInsensitive)
@@ -80,19 +94,21 @@ struct NativeHTMLConversion {
             let inline = options["inlineLinks"] as? Bool ?? true
             let expression = try NSRegularExpression(pattern: #"<a\b(?:(?:[^'">]|"[^"]*"|'[^']*')*?\s)href\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))(?:(?:[^'">]|"[^"]*"|'[^']*')*)>(.*?)</a\s*>"#, options: [.caseInsensitive, .dotMatchesLineSeparators])
             var reference = 0
-            func convertLinks(_ source: String) -> (String, [String]) {
+            func convertLinks(_ source: String) throws -> (String, [String]) {
                 let text = source as NSString
                 let matches = expression.matches(in: source, range: NSRange(location: 0, length: text.length))
                 var replacements: [(NSRange, String)] = [], definitions: [String] = []
                 for match in matches {
                     guard let group = (1...3).first(where: { match.range(at: $0).location != NSNotFound }) else { continue }
-                    let target = text.substring(with: match.range(at: group))
+                    let target = try markdownDestination(text.substring(with: match.range(at: group)))
+                    let token = "DRAFTLYLINK" + UUID().uuidString.replacingOccurrences(of: "-", with: "")
+                    protectedFragments.append((token, target))
                     let label = text.substring(with: match.range(at: 4))
-                    if inline { replacements.append((match.range, "[" + label + "](" + target + ")")) }
+                    if inline { replacements.append((match.range, "[" + label + "](" + token + ")")) }
                     else {
                         reference += 1
                         replacements.append((match.range, "[" + label + "][\(reference)]"))
-                        definitions.append("[\(reference)]: " + target)
+                        definitions.append("[\(reference)]: " + token)
                     }
                 }
                 var converted = source
@@ -101,15 +117,15 @@ struct NativeHTMLConversion {
                 }
                 return (converted, definitions)
             }
-            if inline { result = convertLinks(result).0 }
+            if inline { result = try convertLinks(result).0 }
             else if options["linksEachParagraph"] as? Bool == true {
                 replace("</p\\s*>", "</p>")
-                result = result.components(separatedBy: "</p>").map { paragraph in
-                    let (converted, definitions) = convertLinks(paragraph)
+                result = try result.components(separatedBy: "</p>").map { paragraph in
+                    let (converted, definitions) = try convertLinks(paragraph)
                     return converted + "\n\n" + definitions.joined(separator: "\n")
                 }.joined(separator: "\n\n")
             } else {
-                let (converted, definitions) = convertLinks(result)
+                let (converted, definitions) = try convertLinks(result)
                 result = converted + "\n\n" + definitions.joined(separator: "\n")
             }
         }
@@ -134,9 +150,7 @@ struct NativeHTMLConversion {
                     let label = try decodeHTML(values["alt"] ?? "").map { character in
                         "\\[]*_`".contains(character) ? "\\" + String(character) : String(character)
                     }.joined()
-                    let destination = try decodeHTML(src).map { character in
-                        "\\()".contains(character) ? "\\" + String(character) : String(character)
-                    }.joined()
+                    let destination = try markdownDestination(src)
                     let token = "DRAFTLYIMAGE" + UUID().uuidString.replacingOccurrences(of: "-", with: "")
                     protectedFragments.append((token, "![" + label + "](" + destination + ")"))
                     replacement = token

@@ -35,6 +35,9 @@ URL edge cases need separate checks.
 Inline and reference links now use the href attribute rather than data-href,
 including unquoted values and quoted attributes containing `>`. Focused tests
 cover both forms. Other HTML grammar and Drafts parity remain open.
+Link and image destinations share escaping for spaces, angle brackets,
+parentheses and backslashes after HTML entity decoding. Focused tests cover
+inline and reference links and an image destination.
 Ignoring links and converting or ignoring images also handles `>` inside quoted
 attributes, with focused regression coverage.
 Ordered HTML lists now retain numbering and start values, and mixed nested
