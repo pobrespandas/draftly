@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import subprocess
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from urllib.error import HTTPError
 
 spec = importlib.util.spec_from_file_location("release_history", Path(__file__).with_name("release-history.py"))
@@ -87,12 +87,23 @@ class ReleaseHistoryTests(unittest.TestCase):
     def test_only_a_404_means_the_appcast_is_absent(self):
         for status in (404, 503):
             error = HTTPError(history.FEED_URL, status, "fixture", {}, None)
-            with self.subTest(status=status), patch.object(history.urllib.request, "urlopen", side_effect=error):
+            with self.subTest(status=status), patch.object(history.urllib.request, "build_opener") as make_opener:
+                make_opener.return_value.open.side_effect = error
                 if status == 404:
                     self.assertIsNone(history.fetch_appcast())
                 else:
                     with self.assertRaises(HTTPError):
                         history.fetch_appcast()
+
+    def test_appcast_rejects_redirects_before_following_them(self):
+        response = HTTPError(history.FEED_URL, 302, "redirect", {"Location": "https://other.example/feed"}, None)
+        with patch.object(history.urllib.request, "build_opener") as make_opener:
+            make_opener.return_value.open.side_effect = response
+            with self.assertRaises(HTTPError):
+                history.fetch_appcast()
+            handler = make_opener.call_args.args[0]
+            self.assertIsNone(handler.redirect_request(Mock(), Mock(), 302, "redirect", {}, "https://other.example/feed"))
+            make_opener.return_value.open.assert_called_once()
 
 
 if __name__ == "__main__":

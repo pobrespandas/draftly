@@ -3498,3 +3498,10 @@ cases Foundation still reported `isRunning` as true. This demonstrates that
 the two observations can disagree on this Mac. It does not prove that no
 descendant remains or establish a safe cleanup policy. The hosted failure
 remains unresolved; do not treat ESRCH alone as successful execution.
+
+The release history check now rejects HTTP redirects before following them.
+Its redirect and 404 tests passed, as did all 178 Python tests in the isolated
+CI dependency environment. The live history check passed without publishing.
+The system Python run could not import the required cryptography and Pillow
+dependencies; it is not a full test result. This change does not enable release
+publishing or resolve the hosted Swift failure.

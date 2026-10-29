@@ -116,10 +116,15 @@ def fetch_releases():
     return [release for page in pages for release in page]
 
 
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, fp, code, message, headers, new_url):
+        return None
+
+
 def fetch_appcast():
     request = urllib.request.Request(FEED_URL, headers={"Cache-Control": "no-cache"})
     try:
-        with urllib.request.urlopen(request, timeout=20) as response:
+        with urllib.request.build_opener(NoRedirect()).open(request, timeout=20) as response:
             if response.geturl() != FEED_URL:
                 raise ValueError("The appcast URL redirected.")
             data = response.read(MAX_FEED_BYTES + 1)
