@@ -3852,3 +3852,10 @@ container coordinates. AppKit creates those containers when the view loads, so
 initial constraints are installed at that point. The local panel suite passed
 all 15 cases, and the local app build passed. macOS 26 and real-window behavior
 remain unverified. Do not treat this candidate as release acceptance.
+
+The full local Swift run after the panel candidate passed all 759 Core tests.
+The app suite ran 933 tests and reported one failure in
+`exitedParentWithoutGroupStillUsesTheFinalDeadline` at simulated 9 seconds.
+The focused case later passed. The failed assertion did not record the caught
+error, so its cause is unknown. This remains an unresolved failure; a passing
+focused run does not replace the full run. No timeout was changed.
