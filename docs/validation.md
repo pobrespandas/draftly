@@ -10759,3 +10759,18 @@ conflicts. The serial Swift suites passed 699 Core and 885 app tests. The local
 Debug build, 80 Python tests, and matrix structure check passed. The separate
 main checkout had uncommitted website and fixture work; it was not changed.
 The prior parallel Core timing failures and native checks remain open.
+
+### Integrated branch verification — 29 October 2026
+
+At commit 4474d96, the normal inventory runner failed in parallel Core tests:
+`libraryExclusionCoversLegacyAndAsyncRunnersWithoutBlockingOtherLibraries` and
+`cancellationReleasesAnIdleScriptAndPreservesCompletedEffects` missed their wait
+conditions. These failures are not accepted as product regressions or dismissed
+as noise. Parallel timing fragility was recorded before this run. Both serial
+suites passed, and their XML reports matched the discovered inventory: 712 Core
+and 890 app cases. This does not explain the parallel failures.
+
+The system Python lacked Pillow and could not import the visual capture tests.
+The bundled Python with Pillow passed all 80 script tests. The matrix structural
+check passed. The most recent local Debug build passed before this integration
+run. These results do not accept native behavior or the strict parity gates.
