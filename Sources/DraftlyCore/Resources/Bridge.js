@@ -1,7 +1,11 @@
 // Keep one JavaScript context for all steps in an action.
 var __cancelled = false, __failure = null, __completed = false, __tags = Object.create(null), __draftCache = Object.create(null);
 function __call(op, value) {
-    var result = JSON.parse(__host(op, JSON.stringify(value === undefined ? {} : value)));
+    const replacer = op === 'xmlrpc' ? function(key, item) {
+        if (typeof item === 'number' && !Number.isFinite(item)) throw new Error('An XML-RPC number must be finite.');
+        return item;
+    } : undefined;
+    var result = JSON.parse(__host(op, JSON.stringify(value === undefined ? {} : value, replacer)));
     if (result.error) {
         const error = new Error(result.error);
         if (result.termination) error.__draftlyTermination = result.termination;

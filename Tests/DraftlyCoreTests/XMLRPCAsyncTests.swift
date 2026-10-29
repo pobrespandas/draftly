@@ -17,6 +17,22 @@ private func xmlRPCIsMainThread() -> Bool { Thread.isMainThread }
 
 @Suite("Async XML-RPC transport") @MainActor
 struct XMLRPCAsyncTests {
+    @Test(arguments: [false, true])
+    func scriptRejectsNonFiniteNumbersBeforeTransport(worker: Bool) async throws {
+        let (_, editor, _, runner) = try makeAPIContext("Before")
+        runner.httpTransport = { _ in #"{"error":"Unexpected transport"}"# }
+        let action = makeAPIAction(#"""
+        for (const value of [NaN, Infinity, -Infinity]) {
+            let rejected = false;
+            try { XMLRPC.request('https://fixture.invalid/rpc', 'test', [{nested:[value]}]); }
+            catch (error) { rejected = error.message.includes('finite'); }
+            check(rejected, 'non-finite number was not rejected');
+        }
+        editor.setText('Rejected without a request');
+        """#)
+        #expect(await ActionTestExecution.succeeds(action, runner: runner, worker: worker))
+        #expect(editor.content == "Rejected without a request")
+    }
     private func value(_ text: String) throws -> [String: Any] {
         let decoded = try JSONSerialization.jsonObject(with: Data(text.utf8))
         return try #require((decoded as? [String: Any])?["value"] as? [String: Any])
