@@ -10785,3 +10785,8 @@ later parallel Core run, both runners were active with no final report when the
 clipboard wait expired. Two promise-lifetime tests also reported timeouts in
 that run. The focused async runner suite passed. This narrows the observation;
 it does not identify whether scheduling or execution caused the delays.
+
+A further parallel Core run passed those two tests but failed the timeout case
+of `cancellationAndTimeoutDrainTheOpeningWaitBeforeReturning`. The focused
+async runner and window opening suites passed together. The failures vary with
+the full concurrent workload. The cause and product impact remain unproven.

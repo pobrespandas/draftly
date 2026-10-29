@@ -59,7 +59,7 @@ struct AsyncActionRunnerTests {
         let task = Task { let report = await f.runner.runAsync(action); finalReport = report; return report }
         defer { task.cancel() }
         try await waitUntil({ f.host.clipboard == "Completed" || finalReport != nil },
-            diagnostic: { "Wait expired; runner active: \(f.runner.isRunning), report: \(String(describing: finalReport))" })
+            diagnostic: { "Wait expired; runner active: \(f.runner.isRunning), step: \(String(describing: f.runner.activeSession?.currentStep?.type)), host calls: \(f.host.calls.map(\.0)), report: \(String(describing: finalReport))" })
         try #require(f.host.clipboard == "Completed", Comment(rawValue: "Execution ended before the clipboard write: \(String(describing: finalReport))"))
         task.cancel()
         let report = await task.value
@@ -107,7 +107,7 @@ struct AsyncActionRunnerTests {
         }
         defer { task.cancel() }
         try await waitUntil({ f.host.clipboard == "Started" || finalReport != nil },
-            diagnostic: { "Wait expired; runner active: \(f.runner.isRunning), report: \(String(describing: finalReport))" })
+            diagnostic: { "Wait expired; runner active: \(f.runner.isRunning), step: \(String(describing: f.runner.activeSession?.currentStep?.type)), host calls: \(f.host.calls.map(\.0)), report: \(String(describing: finalReport))" })
         try #require(f.host.clipboard == "Started", Comment(rawValue: "Execution ended before the clipboard write: \(String(describing: finalReport))"))
         #expect(other.runReport(ScriptTestAction.make("", name: "Legacy")).reason == .busy)
         #expect(await other.runAsync(ScriptTestAction.make("", name: "Other")).reason == .busy)
