@@ -3273,3 +3273,6 @@ check, and the local app build passed. This does not publish the site or prove
 Developer ID signing, Sparkle updates, or CloudKit Production.
 The macOS 27-only model and menu APIs require the compiler that provides them.
 Builds made with the older SDK do not expose Private Cloud Compute mode.
+
+Core tests run serially on hosted CI because concurrent load caused unrelated
+waits and loopback requests to expire. No retry or deadline change is used.

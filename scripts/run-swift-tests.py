@@ -64,7 +64,7 @@ def run_target(module, expected, output, *, concurrent_app=False):
         report.unlink(missing_ok=True)
     with (output / "tests.log").open("w") as log:
         command = ["swift", "test", "--filter", module, "--xunit-output", str(reports[0])]
-        if module == "DraftlyTests" and not concurrent_app:
+        if module != "DraftlyTests" or not concurrent_app:
             command.append("--no-parallel")
         process = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT)
     if process.returncode:
@@ -80,7 +80,7 @@ def run(output, *, concurrent_app=False):
         raise ValueError("Swift test discovery failed. See inventory.log.")
     expected = test_inventory(inventory.stdout)
     counts = Counter()
-    # Keep target reports separate. AppKit tests share process-wide state.
+    # Keep target reports separate. Core tests also share limited runner resources.
     for module in sorted({name.split(".", 1)[0] for name in expected}):
         selected = {name for name in expected if name.startswith(module + ".")}
         if not selected:
