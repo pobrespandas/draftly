@@ -3802,3 +3802,7 @@ The disabled candidate and staging jobs now reference the empty release
 GitHub environment. Its policies admit main and v*; these policies have not
 been exercised by an actual job. YAML parsing passed. Workflow-change
 protection, credential restrictions, and release acceptance remain open.
+
+The user saved the notarization key in Apple Passwords. A copy from that
+entry matched the local p8 bytes. The clipboard was cleared. Recovery from a
+second device has not been verified.
