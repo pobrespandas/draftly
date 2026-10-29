@@ -3346,6 +3346,11 @@ visual tolerance and consistent with the other panel checks. The ten focused
 panel tests passed locally. A new hosted full run is required. The larger
 macOS 26 fixture and panel geometry differences remain unresolved.
 
+Hosted FullOn27 run 40934676660 then passed all 759 Core and 925 app test
+methods, 175 Python tests, the matrix structural check, and the local app
+build and metadata checks. It does not replace macOS 26 CI, signed release,
+or update acceptance.
+
 Hosted run 40933403504 showed a 240-point native sidebar container with a
 232-point content view on macOS 26. The 850-point fixture had resized only the
 controller view, while its window content remained 1037 points wide. The test
