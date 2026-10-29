@@ -10967,3 +10967,11 @@ serialization fails, without writing. Both runners preserve an existing file
 and recover on a valid Unicode write in an isolated root. Focused file suites,
 matrix structure and the local Debug build passed. Native permission, cloud and
 Drafts comparison remain open.
+
+### FileManager JSON reading — 29 October 2026
+
+Both script runners used the native file adapter with an isolated local root.
+readJSON returned undefined and set lastError for a missing file and malformed
+JSON. It then read a valid Unicode array with null and cleared the error. The
+focused file suites and matrix structural check passed. No production code
+changed. Native permission, bookmark, cloud and Drafts checks remain separate.

@@ -5,6 +5,26 @@ import DraftlyCore
 
 @Suite("Native action API") @MainActor
 struct NativeActionAPITests {
+    @Test(arguments: [false, true]) func readJSONReportsInvalidOrMissingFilesAndRecovers(worker: Bool) async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let editor = EditorSession(); editor.load(try library.createNote(content: "Neutral"), focusEditor: false)
+        let host = NativeActionHost(); host.testFileRoot = root
+        let runner = ActionRunner(library: library, editor: editor, host: host)
+        let action = DraftAction(name: "JSON reading", steps: [ActionStep("script", ["script": """
+        const fm=FileManager.createLocal();
+        if (fm.readJSON('/missing.json')!==undefined || typeof fm.lastError!=='string') throw Error('missing');
+        if (!fm.writeString('/invalid.json','{bad')) throw Error('setup');
+        if (fm.readJSON('/invalid.json')!==undefined || typeof fm.lastError!=='string') throw Error('invalid');
+        if (!fm.writeJSON('/valid.json',[{text:'café 🐼'},null])) throw Error('valid write');
+        const value=fm.readJSON('/valid.json');
+        if (!Array.isArray(value) || value[0].text!=='café 🐼' || value[1]!==null || fm.lastError!==undefined) throw Error('recovery');
+        """])])
+        if worker { #expect(await runner.runAsync(action).result.succeeded, Comment(rawValue: runner.message ?? "")) }
+        else { #expect(runner.run(action), Comment(rawValue: runner.message ?? "")) }
+    }
     @Test(arguments: [false, true]) func writeJSONRejectsUnserializableValuesWithoutChangingFile(worker: Bool) async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)

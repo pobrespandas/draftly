@@ -14259,10 +14259,17 @@
             "readJSON(path: string): object | undefined"
           ],
           "contract": "Reads the contents of a JSON formatted file at the path. Returns undefined value if the file does not exist or could not be read and parsed as JSON. Contents could be an object, array of objects, etc., depending on the content of the JSON file.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "reviewed-partial",
+          "automatedTest": {"suite": "NativeActionAPITests", "test": "readJSONReportsInvalidOrMissingFilesAndRecovers"},
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-29",
+          "implementationEvidence": {"file": "Sources/DraftlyCore/Resources/Bridge.js", "symbol": "FileManager.readJSON"},
+          "defaults": "No path default is documented.",
+          "result": "Returns the parsed JSON value, or undefined if reading or parsing fails.",
+          "errors": "Reading and parsing failures set lastError; a later successful operation clears it.",
+          "limitations": ["Native permission, bookmark and cloud failures, and comparison with Drafts remain unverified."],
+          "evidenceLevel": "Both runners check missing and malformed files and recovery with Unicode arrays in an isolated local root."
         },
         {
           "member": "readString",
