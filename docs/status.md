@@ -3828,3 +3828,8 @@ the local archive byte for byte. The Mac clipboard was cleared. A separate
 entry for the archive password and recovery from another device remain pending.
 Hosted Toolchain27 run 40961973061 passed; it does not validate macOS 26 or
 public release.
+
+The password copied from the separate Apple Passwords Developer ID entry opened
+the encrypted PKCS#12 backup. The identity matched the public certificate. The
+clipboard was cleared. Recovery of both entries from another device remains
+unverified.
