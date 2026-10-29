@@ -3446,3 +3446,11 @@ full text reopened. QA was closed and its LaunchServices registration removed.
 This fixture changes the feed and bundle checks for local QA and is not
 notarized. It does not establish public HTTPS, production updates, settings
 preservation, failure paths, or CloudKit migration.
+
+The separate local updater QA also covered three negative paths. Postponing the
+0.2.0 update left the 0.1.0 app and neutral draft in place. Altering one byte of
+the ZIP after signing produced Sparkle's invalid-signature error and left the
+same version and draft. Stopping the loopback server produced a retrieval error
+without replacing the app. QA closed normally and its registration was removed.
+The last case tests an unavailable server, not the Mac's full offline state.
+The QA build and feed differ from production as described above.
