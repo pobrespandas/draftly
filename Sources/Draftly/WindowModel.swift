@@ -281,6 +281,18 @@ final class WindowModel: ObservableObject {
         }
         else { editor.noteID = nil; editor.content = ""; tagsText = "" }
     }
+    func selectFromList(_ id: UUID?) {
+        guard let id, id != editor.noteID else { return }
+        let defaults = dependencies.preferences.defaults
+        select(id, focusEditor: defaults.bool(forKey: "editor.focusOnListSelection"))
+        guard editor.noteID == id else { return }
+        switch defaults.string(forKey: "editor.cursorOnListSelection") {
+        case "top": editor.selection = NSRange(location: 0, length: 0)
+        case "bottom": editor.selection = NSRange(location: editor.content.utf16.count, length: 0)
+        default: break
+        }
+    }
+
     @discardableResult
     func restoreEditorDraft(_ identifier: String) -> Bool {
         guard editor.noteID == nil, let id = UUID(uuidString: identifier),

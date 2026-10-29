@@ -208,7 +208,7 @@ struct NativeDraftTable: NSViewRepresentable {
         func tableViewSelectionDidChange(_ notification: Notification) {
             guard let table, !synchronizingSelection else { return }
             parent.selection = Set(table.selectedRowIndexes.compactMap { notes.indices.contains($0) ? notes[$0].id : nil })
-            if parent.selection.count == 1 { parent.model.select(parent.selection.first, focusEditor: false) }
+            if parent.selection.count == 1 { parent.model.selectFromList(parent.selection.first) }
             table.window?.makeFirstResponder(table)
         }
         func tableView(_ tableView: NSTableView, rowActionsForRow row: Int, edge: NSTableView.RowActionEdge) -> [NSTableViewRowAction] {

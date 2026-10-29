@@ -53,6 +53,8 @@ struct EditorSettingsView: View {
     @AppStorage("editor.monospaceFontName") private var monospaceFontName = "System Monospace"
     @AppStorage("editor.fontSize") private var fontSize = 17.0
     @AppStorage("editor.lineSpacing") private var lineSpacing = 2.0
+    @AppStorage("editor.focusOnListSelection") private var focusOnListSelection = false
+    @AppStorage("editor.cursorOnListSelection") private var cursorOnListSelection = "last"
     private var installedFontOptions: [EditorFontOptions.Choice] {
         EditorFontOptions.installed(families: NSFontManager.shared.availableFontFamilies) { family in
             (NSFontManager.shared.availableMembers(ofFontFamily: family) ?? []).compactMap { member in
@@ -118,6 +120,17 @@ struct EditorSettingsView: View {
                             fontPicker("Monospace", selection: $monospaceFontName, monospace: true)
                             HStack { Text("Size"); Slider(value: $fontSize, in: 11...28, step: 1); Text(EditorPreferenceDisplay.wholePointLabel(fontSize)).monospacedDigit() }
                             EditorSpacingPreferences(fontName: fontName, fontSize: fontSize, legacyLineSpacing: lineSpacing)
+                        }
+                        Section("When Draft Is Loaded") {
+                            Toggle("Focus Editor", isOn: $focusOnListSelection)
+                            Picker("Place Cursor", selection: Binding(
+                                get: { ["last", "top", "bottom"].contains(cursorOnListSelection) ? cursorOnListSelection : "last" },
+                                set: { cursorOnListSelection = $0 }
+                            )) {
+                                Text("Last").tag("last")
+                                Text("Top").tag("top")
+                                Text("Bottom").tag("bottom")
+                            }
                         }
                         Text("Default font and layout settings apply unless a syntax overrides them.")
                             .font(.caption).foregroundStyle(.secondary)

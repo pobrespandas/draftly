@@ -877,3 +877,31 @@ other Editor Settings work.
 Final signed Release/profile verification passed with the existing bundle, team
 and CloudKit container. The candidate remains uninstalled. Signature is not
 sync evidence.
+
+## 29 October — list selection focus and cursor
+
+The archived Drafts editor reference describes Focus Editor and Place Cursor
+with Last, Top and Bottom. Draftly previously loaded list selections without
+editor focus and restored the stored selection. Editor Settings now exposes
+these local options. Their absent values preserve the previous behavior.
+Invalid cursor strings read as Last without overwriting the stored value.
+
+The list-specific load route applies the preferences only after successful
+selection. Restore and other entry points keep their existing behavior. Top and
+Bottom use UTF-16 offsets. A failed access write leaves the prior editor state
+unchanged. Focused six methods cover top, bottom, stored Unicode selection,
+focus, defaults, invalid values and failed access. Complete Core 682/app 847
+passed before the final invalid-picker handling and the additional focused test.
+Local Debug and Python 80 passed after those changes; the structural matrix
+check reported zero errors.
+
+In isolated native QA, Bottom loaded the neutral Unicode draft with editor focus;
+a pasted marker appeared at the end. Top loaded it with editor focus and a
+marker appeared at the beginning. Undo restored the original neutral text in
+each case. QA quit normally and its exact LaunchServices entry was removed after
+ZIP verification. Recovery: DraftlyRecovery/list-load-20261029-010138. Native
+restart persistence and physical keyboard navigation remain separate checks.
+The usual application was not replaced.
+
+Signed Release and profile verification passed for the existing bundle, team
+and container. The candidate remains uninstalled; signature is not sync evidence.

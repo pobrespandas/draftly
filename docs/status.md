@@ -4,6 +4,12 @@ Updated: 26 October 2026.
 
 ## Settings and personalization in progress
 
+List selection now supports Focus Editor and Last, Top or Bottom cursor
+placement. Defaults retain the previous focus and stored selection behavior.
+Focused tests cover Unicode offsets and failed access; isolated QA checked Top,
+Bottom, focus and Undo. Native restart and keyboard navigation remain pending.
+The usual app is unchanged.
+
 Auto-match is available per syntax for direct key events. It wraps Unicode
 selections, and excludes Command and Control shortcuts. Option input is
 supported. Core 682/app 846 and Python 80 passed. Native QA checked simulated
