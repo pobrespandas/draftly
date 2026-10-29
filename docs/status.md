@@ -3628,3 +3628,12 @@ initial constraints inactive and no toolbar, the content still expanded to
 points. This isolates a difference in the appearance/layout path, but does not
 identify the exact operation or resolve the sidebar inset. No production layout
 change was made.
+
+The website source can now show a download, minimum macOS version, and release
+notes from the live appcast. It keeps the development message when the feed is
+missing or invalid and accepts only the expected GitHub asset URL. This page
+checks feed metadata, not its signature; the release pipeline must still verify
+the signed feed and public asset before promotion. Three Node tests, all 189
+Python tests, and the matrix check passed. A local browser check showed both a
+neutral release fixture and the missing-feed fallback. The site was not
+deployed. A coordinated site deployment is still required.

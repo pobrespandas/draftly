@@ -64,6 +64,8 @@ jobs:
         run: swift package resolve
       - name: Run Python checks
         run: python -m unittest discover -s scripts -p 'test_*.py'
+      - name: Check website release availability
+        run: node --test website/release.test.mjs
       - name: Check Actions matrix structure
         run: python scripts/audit-action-api.py --check
       - name: Run Swift tests and verify inventory
