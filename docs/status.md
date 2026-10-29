@@ -3373,7 +3373,17 @@ macOS 26 panel behavior remain pending.
 
 The user approved creation of a signing key and certificate request. Apple
 issued a Developer ID Application certificate for team `NM92LU2KKV` and the
-login Keychain reports a valid matching signing identity. A provisioning profile
-for `com.pobrespandas.draftly` is prepared but has not been generated. The
-user's confirmation is pending. No release was signed, notarized, or published.
+login Keychain reports a valid matching signing identity. The user approved a Developer ID profile for `com.pobrespandas.draftly`. The
+profile includes the existing iCloud container and Production entitlements.
+An isolated archive found that a global signing identity conflicts with a Swift
+package resource target. The release packager now scopes its identity to the
+app. A second isolated archive succeeded with Developer ID. Strict signature
+verification confirmed the expected app, team, container, and Production
+entitlements. The local build and 14 focused packager tests passed. No release
+was notarized or published.
 CloudKit Production and update acceptance remain separate.
+
+Hosted LargeDisplayPanels26 run 40936190973 used a 1920-by-1080 display but
+the panel suite still failed, including eight-point sidebar differences. The
+larger display reduced the narrow-window discrepancy, but does not resolve the
+macOS 26 failures. This diagnostic does not establish visual parity.

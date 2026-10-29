@@ -3,4 +3,6 @@ DRAFTLY_CLOUDKIT_CONTAINER = iCloud.com.andrestobelem.draftly
 DRAFTLY_CLOUDKIT_ENVIRONMENT = Development
 DRAFTLY_APS_ENVIRONMENT = development
 DRAFTLY_CODE_SIGN_STYLE = Automatic
+DRAFTLY_CODE_SIGN_IDENTITY = Apple Development
+CODE_SIGN_IDENTITY = $(DRAFTLY_CODE_SIGN_IDENTITY)
 #include? "Signing.xcconfig"

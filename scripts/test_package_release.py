@@ -121,8 +121,9 @@ class PackageReleaseTests(unittest.TestCase):
             build = next(command for command in commands if command[0] == "xcodebuild")
             for setting in ("DRAFTLY_CLOUDKIT_ENVIRONMENT=Production", "DRAFTLY_APS_ENVIRONMENT=production",
                             "DRAFTLY_CODE_SIGN_STYLE=Manual", "DEVELOPMENT_TEAM=" + release.TEAM,
-                            "DRAFTLY_UPDATES_ENABLED=YES"):
+                            "DRAFTLY_UPDATES_ENABLED=YES", "DRAFTLY_CODE_SIGN_IDENTITY=Developer ID Application"):
                 self.assertIn(setting, build)
+            self.assertFalse(any(arg.startswith("CODE_SIGN_IDENTITY=") for arg in build))
             self.assertNotIn("-allowProvisioningUpdates", build)
             verify = next(command for command in commands if "verify-cloud-signing.py" in command[1])
             self.assertIn("--require-developer-id", verify)

@@ -116,7 +116,7 @@ def package(output, profile, notary_profile, tag, *, public_key=None, runner=sub
                    "-configuration", "Release", "-destination", "generic/platform=macOS",
                    "-archivePath", str(archive), "DEVELOPMENT_TEAM=" + TEAM,
                    "DRAFTLY_CODE_SIGN_STYLE=Manual", "DRAFTLY_PROVISIONING_PROFILE=" + profile,
-                   "CODE_SIGN_IDENTITY=Developer ID Application", "DRAFTLY_CLOUDKIT_ENVIRONMENT=Production",
+                   "DRAFTLY_CODE_SIGN_IDENTITY=Developer ID Application", "DRAFTLY_CLOUDKIT_ENVIRONMENT=Production",
                    "DRAFTLY_APS_ENVIRONMENT=production", "DRAFTLY_UPDATES_ENABLED=" + ("YES" if public_key else "NO"),
                    "DRAFTLY_SPARKLE_PUBLIC_KEY=" + (public_key or ""), "archive"]
         run_command(command, runner=runner)
