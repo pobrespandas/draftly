@@ -3357,3 +3357,9 @@ controller view, while its window content remained 1037 points wide. The test
 now resizes the window and keeps the existing width assertions. Ten focused
 panel tests passed locally; hosted validation and the sidebar geometry contract
 remain pending.
+
+Hosted run 40935152594 showed that resizing the fixture window restored the
+requested height, but the 850-point width expanded to 1032 points. The native
+sidebar container and its inner content continued to differ by eight points.
+The cause of the enforced width and the app's macOS 26 behavior are not yet
+established. These failures remain open.
