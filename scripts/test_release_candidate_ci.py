@@ -33,8 +33,12 @@ class ReleaseCandidateCITests(unittest.TestCase):
                     "if sys.argv[1] == 'cms': sys.stdout.buffer.write(pathlib.Path(os.environ['TEST_PROFILE_PLIST']).read_bytes())\n")
         xcrun = (f"#!{sys.executable}\n"
                  "import json, os, sys\n"
-                 "with open(os.environ['TEST_CALL_LOG'], 'a') as out: out.write(json.dumps(['xcrun', *sys.argv[1:3]]) + '\\n')\n")
-        for name, body in (("security", security), ("xcrun", xcrun)):
+                 "with open(os.environ['TEST_CALL_LOG'], 'a') as out: out.write(json.dumps(['xcrun', *sys.argv[1:3]]) + '\\n')\n"
+                 "if sys.argv[1:] == ['--sdk', 'macosx', '--show-sdk-version']: print(os.environ.get('TEST_CI_SDK_VERSION', '27.0'))\n")
+        swiftc = (f"#!{sys.executable}\n"
+                  "import os\n"
+                  "print('Apple Swift version ' + os.environ.get('TEST_CI_SWIFT_VERSION', '6.4'))\n")
+        for name, body in (("security", security), ("xcrun", xcrun), ("swiftc", swiftc)):
             path = self.tools / name
             path.write_text(body)
             path.chmod(0o755)
@@ -92,7 +96,19 @@ class ReleaseCandidateCITests(unittest.TestCase):
         result = self.run_script(DRAFTLY_SPARKLE_PUBLIC_KEY="invalid")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("public key", result.stderr)
-        self.assertEqual(self.calls(), [])
+        self.assertFalse(any(call[0] == 'security' for call in self.calls()))
+
+    def test_old_sdk_is_rejected_before_keychain_setup(self):
+        result = self.run_script(TEST_CI_SDK_VERSION="26.6")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("macOS 27 SDK", result.stderr)
+        self.assertFalse(any(call[0] == "security" for call in self.calls()))
+
+    def test_old_compiler_is_rejected_before_keychain_setup(self):
+        result = self.run_script(TEST_CI_SWIFT_VERSION="6.3")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Swift 6.4", result.stderr)
+        self.assertFalse(any(call[0] == "security" for call in self.calls()))
 
     def test_existing_profile_is_preserved(self):
         existing = self.profiles / (self.uuid + ".provisionprofile")

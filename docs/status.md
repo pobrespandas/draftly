@@ -3283,3 +3283,7 @@ The macOS 27-only model and menu APIs are now conditional on the compiler that
 provides them. Xcode 27.1 passed the model tests and local app build. Validation
 with the hosted Xcode 26.6 runner is pending. Builds made with the older SDK do
 not expose the Private Cloud Compute mode.
+
+The CI signing setup now rejects SDKs before macOS 27 and Swift before 6.4.
+Seven focused tests used simulated tools and passed. This prevents an older
+runner from signing a public build without the macOS 27 model integration.

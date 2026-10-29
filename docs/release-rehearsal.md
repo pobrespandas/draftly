@@ -63,6 +63,11 @@ The P12, profile, and `.p8` values are base64-encoded file contents. The
 workflow does not pass the original secret values into the package process.
 Do not put these values in the repository or job logs.
 
+The release signing job requires the macOS 27 SDK and Swift 6.4 or later.
+Older SDK builds cannot include the macOS 27 Private Cloud Compute integration.
+The current hosted runner was observed using Xcode 26.6, so it cannot create
+the public candidate until a suitable toolchain is available and selected.
+
 A successful candidate is uploaded as a GitHub Actions artifact, not as a
 GitHub Release. If notarization fails after submission, the job preserves the
 submitted ZIP and receipt as a recovery artifact. The job has only been tested
