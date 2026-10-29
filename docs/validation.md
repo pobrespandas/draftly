@@ -10415,3 +10415,20 @@ or an implementation acceptance.
 The QA Light Theme selector timed out during another attempt to select Light.
 After the selector recovered, its value was still Dark. QA was closed, archived,
 and unregistered. The light-mode check remains pending.
+
+### Ordered-list calculation — 29 October 2026
+
+Drafts normalized irregular Markdown numbering on paste and after a manual
+number edit. In the observed nested example, a new parent item changed later
+parent numbers and retained the nested sequence. A new child item changed the
+next child and retained the parent sequence. The two syntax preferences were
+independent in the tested Markdown and Plain Text settings. Their original
+values were restored.
+
+An internal calculation now finds ordered-list number edits using enabled
+list-completion rules from the assigned syntax. Focused tests cover start
+numbers, separate lists, nested levels, UTF-16, a custom padded rule, disabled
+rules and integer overflow. The local build and complete serial Swift
+inventory passed (687 Core, 861 app). This calculation is not connected to
+the editor. Paste, typing, selection, Undo/Redo and native parity are not yet
+implemented or accepted. More boundaries need comparison before applying edits.

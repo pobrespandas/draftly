@@ -309,6 +309,60 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
             length: before.length - candidate.0), items: items)
     }
 
+    /// Finds ordered-list number edits using this syntax's enabled completion rules.
+    func orderedListRenumbering(in text: String) -> [(range: NSRange, text: String)] {
+        struct Rule {
+            let expression: NSRegularExpression
+            let captures: [String: String]
+            let padding: Int
+        }
+        struct Level {
+            let indent: String
+            let rule: Int
+            var next: Int?
+        }
+        let orderedRules: [Rule] = rules("listCompletionDefinitions").compactMap { definition in
+            guard let captures = definition["captures"] as? [String: String], captures["sequence"] != nil,
+                  let pattern = definition["match"] as? String,
+                  let expression = try? NSRegularExpression(pattern: pattern, options: [.anchorsMatchLines]) else { return nil }
+            return Rule(expression: expression, captures: captures,
+                padding: max(0, Int(definition["sequencePadding"] as? String ?? "0") ?? 0))
+        }
+        guard !orderedRules.isEmpty else { return [] }
+        let source = text as NSString
+        var offset = 0, levels: [Level] = []
+        var edits: [(range: NSRange, text: String)] = []
+        while offset < source.length {
+            let lineRange = source.lineRange(for: NSRange(location: offset, length: 0))
+            let line = source.substring(with: lineRange).trimmingCharacters(in: .newlines)
+            let lineSource = line as NSString
+            var matched: (rule: Int, indent: String, sequence: NSRange, number: Int)?
+            for (index, rule) in orderedRules.enumerated() {
+                guard let match = rule.expression.firstMatch(in: line, range: NSRange(location: 0, length: lineSource.length)),
+                      match.range.location == 0, let indent = capture(match, rule.captures["indent"]),
+                      let sequence = capture(match, rule.captures["sequence"]),
+                      let number = Int(lineSource.substring(with: sequence)) else { continue }
+                matched = (index, lineSource.substring(with: indent), sequence, number)
+                break
+            }
+            guard let item = matched else { levels.removeAll(); offset = NSMaxRange(lineRange); continue }
+            while let level = levels.last, !item.indent.hasPrefix(level.indent) { levels.removeLast() }
+            if let level = levels.last, level.indent == item.indent, level.rule != item.rule { levels.removeLast() }
+            if levels.last?.indent != item.indent {
+                levels.append(Level(indent: item.indent, rule: item.rule, next: item.number == Int.max ? nil : item.number + 1))
+            } else if let next = levels[levels.count - 1].next {
+                let digits = String(next)
+                let replacement = String(repeating: "0", count: max(0, orderedRules[item.rule].padding + 1 - digits.count)) + digits
+                if lineSource.substring(with: item.sequence) != replacement {
+                    edits.append((NSRange(location: offset + item.sequence.location, length: item.sequence.length), replacement))
+                }
+                levels[levels.count - 1].next = next == Int.max ? nil : next + 1
+            }
+            offset = NSMaxRange(lineRange)
+        }
+        return edits
+    }
+
     public func listContinuation(in text: String, selection: NSRange) -> (range: NSRange, text: String)? {
         let source = text as NSString
         guard selection.location >= 0, selection.length >= 0, selection.location <= source.length,
