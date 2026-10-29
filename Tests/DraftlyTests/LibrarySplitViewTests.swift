@@ -144,6 +144,47 @@ struct LibrarySplitViewTests {
         }
     }
 
+    @Test func temporaryPanelWidthConstraintsCanBeMeasuredWithoutShowingAWindow() async throws {
+        _ = NSApplication.shared
+        for holdWidths in [false, true] {
+            let model = WindowModel(library: try LibraryStore(inMemory: true, seed: false))
+            model.setFiltersVisible(true)
+            model.showActions = true
+            let controller = LibrarySplitController(model: model, panels: (0..<4).map { _ in AnyView(Color.clear) })
+            let allConstraints: [NSLayoutConstraint] = controller.splitViewItems.flatMap { $0.viewController.view.constraints }
+            let initial = allConstraints.filter {
+                $0.firstAttribute == .width && $0.secondItem == nil && $0.priority == NSLayoutConstraint.Priority.defaultHigh && $0.isActive
+            }
+            NSLayoutConstraint.deactivate(initial)
+            let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 850, height: 600),
+                styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+            window.contentViewController = controller
+            window.setContentSize(NSSize(width: 850, height: 600))
+            window.layoutIfNeeded()
+            controller.view.layoutSubtreeIfNeeded()
+            let widths: [CGFloat] = [170.8, 228.1, 0, 208.1]
+            let constraints = [0, 1, 3].map { index in
+                let constraint = controller.splitViewItems[index].viewController.view.widthAnchor.constraint(equalToConstant: widths[index])
+                constraint.priority = .defaultHigh
+                return constraint
+            }
+            if holdWidths { NSLayoutConstraint.activate(constraints) }
+            window.layoutIfNeeded()
+            controller.view.layoutSubtreeIfNeeded()
+            let split = controller.splitView
+            split.setPosition(split.bounds.width - widths[3] - split.dividerThickness, ofDividerAt: 2)
+            controller.view.layoutSubtreeIfNeeded()
+            split.setPosition(widths[0] + split.dividerThickness + widths[1], ofDividerAt: 1)
+            controller.view.layoutSubtreeIfNeeded()
+            split.setPosition(widths[0], ofDividerAt: 0)
+            controller.view.layoutSubtreeIfNeeded()
+            print("Panel hold diagnostic enabled=\(holdWidths) frame=\(window.frame) content=\(window.contentView?.frame ?? .zero) split=\(split.frame) panels=\(split.arrangedSubviews.map(\.frame))")
+            NSLayoutConstraint.deactivate(constraints)
+            #expect(!window.isVisible)
+            window.contentViewController = nil
+        }
+    }
+
     @Test func togglingPanelsDoesNotResetTheWindowTitle() async throws {
         _ = NSApplication.shared
         let model = WindowModel(library: try LibraryStore(inMemory: true, seed: false))

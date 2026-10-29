@@ -3717,3 +3717,7 @@ A local recovery check compares a hidden Sparkle seed with its public key.
 It refuses nonterminal input and an echo-enabled fallback. Four focused tests
 and all 228 Python tests passed with disposable keys. The real recovered seed
 has not been entered or verified by this check.
+
+An offscreen test compares panel restoration with and without temporary width
+constraints. Both cases kept 850-point content in the local macOS 27 run. The
+focused suite passed. Hosted macOS 26 comparison remains required.
