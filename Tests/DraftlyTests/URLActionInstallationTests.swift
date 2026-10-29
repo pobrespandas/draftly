@@ -167,6 +167,35 @@ struct URLActionInstallationTests {
         #expect(library.actionGroups == [existing]); #expect(library.actions.isEmpty)
     }
 
+    @Test func implicitGroupIdentityConflictDoesNotChangeMembershipOrIdentity() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        var member = DraftAction(name: "Existing implicit member", steps: []); member.group = "QA implicit café"
+        try library.saveAction(member)
+        #expect(library.actionGroups.isEmpty)
+        let oldID = try #require(library.actionGroupIdentifiers[member.group])
+        var incoming = ActionGroupRecord(name: member.group); incoming.id = UUID()
+        let backup = Backup(notes: [], revisions: [], workspaces: [], actions: [], actionGroups: [incoming])
+        var components = URLComponents(); components.scheme = "draftly"; components.host = "action"
+        components.queryItems = [URLQueryItem(name: "data", value: try JSONEncoder().encode(backup).base64EncodedString())]
+        let url = try #require(components.url)
+        #expect(throws: (any Error).self) { try ApplicationURLRouter.installActions(url, library: library) { _, _ in true } }
+        try library.reload()
+        #expect(library.actionGroupIdentifiers[member.group] == oldID)
+        #expect(library.actionGroups.isEmpty); #expect(library.actions == [member])
+        incoming.name = "Another group"; incoming.id = oldID
+        let conflictingID = Backup(notes: [], revisions: [], workspaces: [], actions: [], actionGroups: [incoming])
+        components.queryItems = [URLQueryItem(name: "data", value: try JSONEncoder().encode(conflictingID).base64EncodedString())]
+        #expect(throws: (any Error).self) {
+            try ApplicationURLRouter.installActions(#require(components.url), library: library) { _, _ in true }
+        }
+        incoming.name = member.group
+        let sameIdentity = Backup(notes: [], revisions: [], workspaces: [], actions: [], actionGroups: [incoming])
+        components.queryItems = [URLQueryItem(name: "data", value: try JSONEncoder().encode(sameIdentity).base64EncodedString())]
+        #expect(try ApplicationURLRouter.installActions(#require(components.url), library: library) { _, _ in true })
+        try library.reload()
+        #expect(library.actionGroupIdentifiers[member.group] == oldID && library.actions == [member])
+    }
+
     @Test func replacingRenamedGroupKeepsExistingMembershipAndIsAtomic() throws {
         enum Failure: Error { case commit }
         let library = try LibraryStore(inMemory: true, seed: false)

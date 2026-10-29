@@ -216,6 +216,15 @@ struct ApplicationURLRouter {
                   existingNames.isDisjoint(with: groupNames) else {
                 throw DraftlyError.message("The action link contains a group name that conflicts with an installed group.")
             }
+            let storedNames = Set(library.actionGroups.map(\.name))
+            let implicitGroups = library.actionGroupIdentifiers.filter { !storedNames.contains($0.key) }
+            for group in groups {
+                if implicitGroups.contains(where: { name, id in
+                    (name == group.name && id != group.id) || (name != group.name && id == group.id)
+                }) {
+                    throw DraftlyError.message("The action link conflicts with an existing implicit group identity.")
+                }
+            }
         }
         let oldActions = library.actions, oldGroups = library.actionGroups
         let renames = groups.compactMap { incoming -> (String, String)? in

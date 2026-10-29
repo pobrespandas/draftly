@@ -10717,6 +10717,12 @@ This does not cover implicit group conflicts or all import formats. QA quit
 normally, its exact registration was removed, and its app and fixtures moved
 to Trash. The isolated QA records remain.
 
+An implicit-group regression first showed that importing the same name with a
+different UUID changed the existing identity. The link now rejects that case
+and a different name with the same UUID. A matching name and UUID still installs.
+Thirteen focused action URL tests, the serial app suite (886 tests), and the
+local Debug build passed. Native error presentation is pending.
+
 An additional action link test checks an imported action edit, unknown fields,
 an unrelated group, and backup restoration after the group rename. All twelve
 focused action link tests and the local Debug build passed. This test does not

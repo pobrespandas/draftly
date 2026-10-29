@@ -3208,3 +3208,10 @@ transaction. Cancel and save failure retain the original membership. Automated
 tests cover the regression. Native QA verified Cancel and Replace for a group
 with one action, including identity and membership after restart. Conflicts with
 implicit groups need a separate policy. The usual app is unchanged.
+
+### Implicit group link conflicts — 29 October 2026
+
+An action link no longer changes an existing implicit group identity silently.
+It rejects conflicting names or UUIDs before saving. A link with the same name
+and UUID remains valid. A user-facing merge choice and native error check are
+still pending. The usual app is unchanged.

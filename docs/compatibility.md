@@ -70,6 +70,8 @@ restart.
 An incoming group with the same name as another stored group and a different
 identity is rejected before any part of the link is saved. This does not yet
 define a merge policy for that conflict.
+Links also reject conflicts between an incoming group and an implicit group's
+existing name or identity. A matching name and identity can be installed.
 When a link renames a stored group by identity, its existing actions move to
 the new name in the same transaction. The confirmation includes those actions.
 
