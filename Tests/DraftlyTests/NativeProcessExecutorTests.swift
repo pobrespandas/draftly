@@ -103,16 +103,19 @@ struct NativeProcessExecutorTests {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/true")
         var reads = 0
+        var isolation = "not recorded"
         let start = Date(timeIntervalSinceReferenceDate: 100)
         do {
             let status = try await NativeProcessExecutor.run(process, timeout: 10, now: {
                 defer { reads += 1 }
                 return reads == 0 ? start : start.addingTimeInterval(elapsed)
+            }, onIsolationFailure: { pid, group, error in
+                isolation = "pid=\(pid), group=\(group), errno=\(error)"
             })
             #expect(elapsed < 10 && status == 0)
         } catch {
             #expect(elapsed >= 10 && error as? ActionExecutionInterruption == .timeout,
-                    Comment(rawValue: "Unexpected process error at \(elapsed) seconds: \(String(reflecting: error))"))
+                    Comment(rawValue: "Unexpected process error at \(elapsed) seconds: \(String(reflecting: error)); \(isolation)"))
         }
         #expect(!process.isRunning)
         #expect(process.terminationHandler == nil)

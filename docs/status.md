@@ -3468,3 +3468,9 @@ successfully downloaded and installed 0.2.0; the draft and the 23-point QA
 preference remained. QA exited and its registration was removed. This covers
 user cancellation during transfer and subsequent recovery, not a network drop
 or interruption while replacing the production app.
+
+The native-process deadline test now records the process ID, observed group ID,
+and errno at an isolation failure. The default execution behavior and timeout
+are unchanged. The focused local process suites and local app build passed.
+Hosted validation is needed to identify the observed failure; this diagnostic
+does not fix it or make CI green.

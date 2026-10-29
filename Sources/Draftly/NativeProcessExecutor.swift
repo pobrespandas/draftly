@@ -13,6 +13,7 @@ final class NativeProcessExecutor {
     private let cancellation = CancellationState()
     private let process: Process
     private let now: @MainActor () -> Date
+    private let onIsolationFailure: (@MainActor (pid_t, pid_t, Int32) -> Void)?
     private var deadline = Date.distantFuture
     private var continuation: CheckedContinuation<Int32, Error>?
     private var timeoutTask: Task<Void, Never>?
@@ -24,13 +25,15 @@ final class NativeProcessExecutor {
     private var isolatedProcessGroup: pid_t?
     private var onExit: (() -> Void)?
 
-    init(process: Process, now: @escaping @MainActor () -> Date = Date.init) {
-        self.process = process; self.now = now
+    init(process: Process, now: @escaping @MainActor () -> Date = Date.init,
+         onIsolationFailure: (@MainActor (pid_t, pid_t, Int32) -> Void)? = nil) {
+        self.process = process; self.now = now; self.onIsolationFailure = onIsolationFailure
     }
 
     static func run(_ process: Process, timeout: TimeInterval,
-                    now: @escaping @MainActor () -> Date = Date.init) async throws -> Int32 {
-        let executor = NativeProcessExecutor(process: process, now: now)
+                    now: @escaping @MainActor () -> Date = Date.init,
+                    onIsolationFailure: (@MainActor (pid_t, pid_t, Int32) -> Void)? = nil) async throws -> Int32 {
+        let executor = NativeProcessExecutor(process: process, now: now, onIsolationFailure: onIsolationFailure)
         return try await executor.run(timeout: timeout)
     }
 
@@ -53,8 +56,11 @@ final class NativeProcessExecutor {
         }
         try process.run()
         let pid = process.processIdentifier
-        if getpgid(pid) == pid, pid != getpgrp() { isolatedProcessGroup = pid }
+        let group = getpgid(pid)
+        let groupError = group == -1 ? errno : 0
+        if group == pid, pid != getpgrp() { isolatedProcessGroup = pid }
         else if process.isRunning {
+            onIsolationFailure?(pid, group, groupError)
             let error = DraftlyError.message("The process group could not be isolated.")
             interrupt(error)
             throw error
