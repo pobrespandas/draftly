@@ -10454,3 +10454,17 @@ renumbered that contiguous list in Drafts. The focused test covers that case.
 After the scope change, the complete serial inventory passed (690 Core, 861
 app); the focused suite and local build also passed. A final extra assertion
 was checked by the focused suite after the complete run.
+
+The internal calculation now reports `sequenceOutputLimit` if selected list
+edits would generate more than 1 MiB of sequence digits. It checks the affected
+groups before allocating padding and returns no partial edits on error. Tests
+cover an extreme custom padding value, an unrelated edit, and the cumulative
+limit. This is a Draftly resource limit, not a documented Drafts grammar rule.
+The editor does not yet call this calculation. Its error presentation and the
+separate existing list-continuation path still need review before integration.
+In the contiguous bullet and ordered-list example, one Undo restored both the
+typed character and the prior irregular number. Redo restored both changes.
+The focused suite, complete serial Swift inventory (692 Core, 861 app), and
+local Debug build passed after the resource limit change.
+The focused suite also passed after extending the unrelated-list test to
+confirm that a normal list can still be renumbered beside an oversized rule.

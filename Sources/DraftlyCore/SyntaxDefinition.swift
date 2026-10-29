@@ -309,8 +309,12 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
             length: before.length - candidate.0), items: items)
     }
 
+    enum ListRenumberingError: Error, Equatable {
+        case sequenceOutputLimit
+    }
+
     /// Finds ordered-list number edits using this syntax's enabled completion rules.
-    func orderedListRenumbering(in text: String, affectedRange: NSRange? = nil) -> [(range: NSRange, text: String)] {
+    func orderedListRenumbering(in text: String, affectedRange: NSRange? = nil) throws -> [(range: NSRange, text: String)] {
         struct Rule {
             let expression: NSRegularExpression
             let captures: [String: String]
@@ -321,9 +325,15 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
             let rule: Int
             var next: Int?
         }
+        struct PendingEdit {
+            let range: NSRange
+            let digits: String
+            let original: String
+            let padding: Int
+        }
         struct Group {
             var range: NSRange
-            var edits: [(range: NSRange, text: String)] = []
+            var edits: [PendingEdit] = []
         }
         let listRules: [Rule] = rules("listCompletionDefinitions").compactMap { definition in
             guard let captures = definition["captures"] as? [String: String],
@@ -377,23 +387,37 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
                 levels.append(Level(indent: item.indent, rule: item.rule, next: item.number == Int.max ? nil : item.number + 1))
             } else if let next = levels[levels.count - 1].next {
                 let digits = String(next)
-                let replacement = String(repeating: "0", count: max(0, listRules[item.rule].padding + 1 - digits.count)) + digits
-                if lineSource.substring(with: item.sequence) != replacement {
-                    groups[groups.count - 1].edits.append((NSRange(location: offset + item.sequence.location, length: item.sequence.length), replacement))
-                }
+                groups[groups.count - 1].edits.append(PendingEdit(
+                    range: NSRange(location: offset + item.sequence.location, length: item.sequence.length),
+                    digits: digits, original: lineSource.substring(with: item.sequence),
+                    padding: listRules[item.rule].padding))
                 levels[levels.count - 1].next = next == Int.max ? nil : next + 1
             }
             offset = NSMaxRange(lineRange)
         }
-        guard let affectedRange else { return groups.flatMap(\.edits) }
-        return groups.filter { group in
+        let selectedGroups = groups.filter { group in
+            guard let affectedRange else { return true }
             if affectedRange.length == 0 {
                 return affectedRange.location >= group.range.location &&
                     (affectedRange.location < NSMaxRange(group.range) ||
                      (affectedRange.location == source.length && NSMaxRange(group.range) == source.length))
             }
             return NSIntersectionRange(group.range, affectedRange).length > 0
-        }.flatMap(\.edits)
+        }
+        // Bound generated output before allocating it. Preserve the input if it exceeds the limit.
+        let outputLimit = 1_048_576
+        var outputSize = 0
+        var edits: [(range: NSRange, text: String)] = []
+        for item in selectedGroups.flatMap(\.edits) {
+            let width = max(item.padding + 1, item.digits.count)
+            if item.original.utf8.count == width, item.original.hasSuffix(item.digits),
+               item.original.utf8.prefix(width - item.digits.utf8.count).allSatisfy({ $0 == 48 }) { continue }
+            guard width <= outputLimit - outputSize else { throw ListRenumberingError.sequenceOutputLimit }
+            outputSize += width
+            let replacement = String(repeating: "0", count: width - item.digits.count) + item.digits
+            edits.append((item.range, replacement))
+        }
+        return edits
     }
 
     public func listContinuation(in text: String, selection: NSRange) -> (range: NSRange, text: String)? {
