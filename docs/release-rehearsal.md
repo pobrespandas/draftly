@@ -297,6 +297,15 @@ helpers were signed. A Sparkle release key was created locally. Its private
 seed has no verified recovery copy outside this Mac. Do not enable public
 updates until key recovery is tested.
 
+The user later confirmed that the Sparkle entry appears on another device.
+To verify its contents, use `scripts/verify-recovered-sparkle-key.py` in a
+private terminal with Python and the `cryptography` package. Pass the saved
+public key file with `--public-key-file`. Paste the recovered seed only at the
+hidden prompt, never as an argument or in chat. The command checks the derived
+public key and prints only a match or failure. Clear any clipboard used for the
+transfer. A matching result confirms the recovered seed; this check does not
+verify Developer ID or notarization key recovery.
+
 The public GitHub repository currently has no protected `main` branch and no
 release environment. Its only active ruleset protects version tags from updates
 and deletion. Do not store signing, notarization, or Sparkle secrets as

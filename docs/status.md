@@ -3712,3 +3712,8 @@ appearance, toolbar, or asynchronous layout. No production fix was made.
 The user confirmed that the Sparkle entry appears in Apple Passwords on
 another device. The entry contents have not been checked against the release
 public key. Full recovery is still pending.
+
+A local recovery check compares a hidden Sparkle seed with its public key.
+It refuses nonterminal input and an echo-enabled fallback. Four focused tests
+and all 228 Python tests passed with disposable keys. The real recovered seed
+has not been entered or verified by this check.
