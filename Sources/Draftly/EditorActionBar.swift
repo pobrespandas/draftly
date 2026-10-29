@@ -1,6 +1,6 @@
 import SwiftUI
 import AppKit
-import DraftlyCore
+@_spi(DraftlyInternal) import DraftlyCore
 
 struct ActionBarLabel: Equatable {
     let text: String
@@ -19,7 +19,7 @@ struct EditorActionBar: View {
     @ObservedObject var model: WindowModel
     @ObservedObject var session: EditorSession
     @ObservedObject var library: LibraryStore
-    private var groups: [String] { ["Editing"] + library.groupNames.filter { $0 != "Editing" } }
+    private var groups: [String] { ["Editing"] + library.groupNames(on: .bar).filter { $0 != "Editing" } }
     var body: some View {
         ScrollView(.horizontal) {
             HStack(spacing: 20) {
@@ -33,7 +33,7 @@ struct EditorActionBar: View {
                         barButton(command.title, command.symbol) { command.perform(model: model, session: session) }
                     }
                 }
-                ForEach(ActionCatalogPresentation.entries(library.orderedActions(), on: .bar, group: model.actionBarGroup)) { entry in
+                ForEach(ActionCatalogPresentation.entries(library.orderedActions(on: .bar), on: .bar, group: model.actionBarGroup)) { entry in
                     if entry.kind == .separator {
                         Divider().frame(height: 18).help(entry.source.name)
                     } else if let action = entry.runnableAction {
@@ -44,6 +44,9 @@ struct EditorActionBar: View {
             }.padding(.horizontal, 12).frame(height: MainWindowStyle.editingBarHeight)
         }.scrollIndicators(.visible).frame(height: MainWindowStyle.editingBarHeight)
             .onChange(of: library.actions) { _, _ in
+                if !groups.contains(model.actionBarGroup) { model.actionBarGroup = "Editing" }
+            }
+            .onChange(of: library.actionGroups) { _, _ in
                 if !groups.contains(model.actionBarGroup) { model.actionBarGroup = "Editing" }
             }
     }

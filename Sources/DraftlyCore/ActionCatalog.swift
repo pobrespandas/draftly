@@ -19,6 +19,10 @@ struct ActionCatalog {
         ActionGroupIdentity.identifiers(names: groupNames, records: groups)
     }
 
+    func groupNames(on surface: ActionSurface) -> [String] {
+        groupNames.filter { groupRecord(named: $0).appears(on: surface) }
+    }
+
     func groupRecord(named name: String) -> ActionGroupRecord {
         if let record = groups.first(where: { $0.name == name }) { return record }
         var record = ActionGroupRecord(name: name)
@@ -29,8 +33,11 @@ struct ActionCatalog {
 
     func orderedActions(on surface: ActionSurface?) -> [DraftAction] {
         let names = groupNames
+        let visibleGroups = surface.map { Set(groupNames(on: $0)) }
         let preferred = ["Copy", "Share", "Add to Reminders", "Add Calendar Event", "Save to File", "Markdown Preview"]
-        return actions.filter { action in surface.map { action.appears(on: $0) } ?? true }.sorted { a, b in
+        return actions.filter { action in
+            surface.map { action.appears(on: $0) && visibleGroups?.contains(action.group) == true } ?? true
+        }.sorted { a, b in
             let ga = names.firstIndex(of: a.group) ?? Int.max, gb = names.firstIndex(of: b.group) ?? Int.max
             if ga != gb { return ga < gb }
             let x = a.options?.order ?? preferred.firstIndex(of: a.name) ?? 100

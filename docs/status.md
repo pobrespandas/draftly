@@ -3220,6 +3220,15 @@ still pending. The usual app is unchanged.
 
 The real empty Drafts group export imports through File > Import in QA. The
 group ID and metadata are retained; backup and rollback have automated coverage.
-The import limits and validates zlib data. The group icon, visibility and
-disposition are retained but not applied. Populated group and separator files
+The import limits and validates zlib data. At that checkpoint, the group icon,
+visibility and disposition were retained but not applied. Populated and separator files
 still need a real reference. The usual app is unchanged.
+
+### Imported group visibility — 29 October 2026
+
+Observed Mac visibility bits now filter the list, bar and search surfaces.
+Management and scripting keep the full catalog. Missing or invalid metadata
+keeps the previous visible default. Native QA checked an empty group hidden in
+the list while still available in the bar and management. The relation between
+group and action visibility, application menus and other surfaces needs a Drafts
+comparison. The usual app is unchanged.

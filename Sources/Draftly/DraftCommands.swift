@@ -111,7 +111,7 @@ extension WindowModel {
     }
     func promptAction(_ ids: [UUID]) {
         guard !actionPending, !runner.isRunning else { return }
-        let actions = ActionCatalogPresentation.actions(library.orderedActions(), on: .search)
+        let actions = ActionCatalogPresentation.actions(library.orderedActions(on: .search), on: .search)
         guard !actions.isEmpty else { return }
         do { _ = try checkedDrafts(ids) } catch { library.error = error.localizedDescription; return }
         let alert = NSAlert(); alert.messageText = "Run Action"

@@ -208,6 +208,7 @@ public final class LibraryStore: ObservableObject {
     }
 
     public var groupNames: [String] { actionCatalog.groupNames }
+    @_spi(DraftlyInternal) public func groupNames(on surface: ActionSurface) -> [String] { actionCatalog.groupNames(on: surface) }
     public var actionGroupIdentifiers: [String: UUID] { actionCatalog.groupIdentifiers }
 
     public func actionGroupRecord(named name: String) -> ActionGroupRecord {

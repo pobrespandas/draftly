@@ -35,7 +35,7 @@ import DraftlyCore
     }
     private var entries: [ActionCatalogPresentation.Entry] {
         guard let model else { return [] }
-        return ActionCatalogPresentation.entries(model.library.orderedActions(), on: .bar, group: model.actionBarGroup)
+        return ActionCatalogPresentation.entries(model.library.orderedActions(on: .bar), on: .bar, group: model.actionBarGroup)
     }
     func makeTouchBar() -> NSTouchBar {
         let bar = NSTouchBar()

@@ -30,6 +30,15 @@ public struct ActionGroupRecord: Codable, Equatable, Identifiable {
     public var symbol = "arrow.up.right.square"
     public var order = 0
     var importedMetadata: [String: JSONValue] = [:]
+    func appears(on surface: ActionSurface) -> Bool {
+        guard case .number(let raw) = importedMetadata["visibility"],
+              raw >= 0, raw <= Decimal(Int32.max),
+              Decimal(NSDecimalNumber(decimal: raw).intValue) == raw else { return true }
+        let flags = NSDecimalNumber(decimal: raw).intValue
+        let bit: Int
+        switch surface { case .list: bit = 128; case .bar: bit = 256; case .search: bit = 1024 }
+        return flags & bit != 0
+    }
     public init(name: String) { self.name = name; id = Self.identifier(for: name) }
     private enum CodingKeys: String, CodingKey { case id, name, symbol, order, importedMetadata }
     public init(from decoder: Decoder) throws {

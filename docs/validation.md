@@ -10720,6 +10720,19 @@ QA quit normally, its exact registration was removed, and its temporary app
 moved to Trash. Imported QA data remains isolated. No real populated group or
 separator was tested. Metadata is retained but its visual options are not applied.
 
+### Imported group visibility — 29 October 2026
+
+Core tests cover the observed Mac flags, independent surfaces, invalid values,
+full catalog, identity and backup. The serial runs passed 706 Core and 886 app
+tests before the final internal module-access adjustment. The local Debug build
+and seven focused tests passed after that adjustment. The first Xcode build found
+that package-only access did not work for the app target; internal SPI fixed the
+build. In isolated QA, a synthetic empty group using the real List-off value was
+absent from the list group bar, present in the editor bar selector and present
+in Library Organization. QA quit, was unregistered and its temporary app and
+fixture moved to Trash. Action-level precedence, search and native restart remain
+unverified. The usual app was not updated.
+
 Native Engine QA imported a neutral group and one action. Its installation link
 renamed the group. The confirmation named the group and action. Cancel retained
 the original group UUID and membership. Replace retained the UUID and moved the

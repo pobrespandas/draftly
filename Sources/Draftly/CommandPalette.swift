@@ -7,7 +7,7 @@ struct CommandPalette: View {
     @ObservedObject var library: LibraryStore
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focused: Bool
-    private var actions: [DraftAction] { ActionCatalogPresentation.actions(library.orderedActions(), on: .search, query: model.paletteQuery) }
+    private var actions: [DraftAction] { ActionCatalogPresentation.actions(library.orderedActions(on: .search), on: .search, query: model.paletteQuery) }
     var body: some View {
         VStack(spacing: 0) {
             HStack {

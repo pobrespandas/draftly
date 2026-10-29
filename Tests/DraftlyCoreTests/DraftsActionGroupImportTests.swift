@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import DraftlyCore
+@_spi(DraftlyInternal) @testable import DraftlyCore
 
 @Suite("Drafts action group file import") @MainActor
 struct DraftsActionGroupImportTests {
@@ -69,5 +69,45 @@ struct DraftsActionGroupImportTests {
         #expect(throws: (any Error).self) { try LibraryFileImport.apply(fixture(), fileExtension: "draftsActionGroup", to: library) }
         try library.reload()
         #expect(library.actionGroups == [existing] && library.actions.isEmpty)
+    }
+
+    @Test func observedMacVisibilityFlagsFilterSurfacesButKeepCatalogAndIdentity() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let (original, _) = try DraftsActionGroupImport.decode(fixture())
+        var action = DraftAction(name: "Neutral action", steps: []); action.group = original.name
+        try library.saveAction(action)
+        for (surface, bit) in [(ActionSurface.list, 128), (.bar, 256), (.search, 1024)] {
+            var group = original
+            group.importedMetadata["visibility"] = .number(Decimal(2016 - bit))
+            try library.saveActionGroup(group)
+            #expect(!library.groupNames(on: surface).contains(group.name))
+            #expect(library.orderedActions(on: surface).isEmpty)
+            #expect(library.groupNames.contains(group.name))
+            #expect(library.orderedActions() == [action])
+            #expect(library.actionGroupIdentifiers[group.name] == group.id)
+            for other in [ActionSurface.list, .bar, .search] where other != surface {
+                #expect(library.groupNames(on: other).contains(group.name))
+                #expect(library.orderedActions(on: other) == [action])
+            }
+        }
+        let restored = try LibraryStore(inMemory: true, seed: false)
+        try restored.restore(library.backupData())
+        #expect(!restored.groupNames(on: .search).contains(original.name))
+        #expect(restored.orderedActions() == [action])
+    }
+
+    @Test func absentAndInvalidVisibilityRetainExistingDefaults() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        var group = ActionGroupRecord(name: "Neutral")
+        var action = DraftAction(name: "Visible", steps: []); action.group = group.name
+        try library.saveAction(action)
+        for value: JSONValue? in [nil, .string("unknown"), .number(-1), .number(1.5)] {
+            group.importedMetadata["visibility"] = value
+            try library.saveActionGroup(group)
+            for surface in [ActionSurface.list, .bar, .search] {
+                #expect(library.groupNames(on: surface).contains(group.name))
+                #expect(library.orderedActions(on: surface) == [action])
+            }
+        }
     }
 }

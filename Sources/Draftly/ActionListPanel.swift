@@ -1,15 +1,15 @@
 import SwiftUI
 import AppKit
-import DraftlyCore
+@_spi(DraftlyInternal) import DraftlyCore
 
 struct ActionListPanel: View {
     @AppStorage("actions.showGroupBar") private var showGroupBar = true
     @AppStorage("actions.showKeyboardShortcuts") private var showKeyboardShortcuts = false
     @ObservedObject var model: WindowModel
     @ObservedObject var library: LibraryStore
-    private var groups: [String] { library.groupNames }
+    private var groups: [String] { library.groupNames(on: .list) }
     private var entries: [ActionCatalogPresentation.Entry] {
-        ActionCatalogPresentation.entries(library.orderedActions(), on: model.actionQuery.isEmpty ? .list : .search,
+        ActionCatalogPresentation.entries(library.orderedActions(on: model.actionQuery.isEmpty ? .list : .search), on: model.actionQuery.isEmpty ? .list : .search,
             group: model.actionQuery.isEmpty && model.actionGroup != "All Actions" ? model.actionGroup : nil,
             query: model.actionQuery)
     }
@@ -107,7 +107,8 @@ struct ActionListPanel: View {
                 }.scrollIndicators(.hidden)
             }
         }.background(Color(nsColor: .textBackgroundColor))
-        .onChange(of: library.actions) { _, _ in if !groups.contains(model.actionGroup), model.actionGroup != "All Actions" { model.actionGroup = groups.first ?? "General" } }
+        .onChange(of: library.actions) { _, _ in if !groups.contains(model.actionGroup), model.actionGroup != "All Actions" { model.actionGroup = groups.first ?? "All Actions" } }
+        .onChange(of: library.actionGroups) { _, _ in if !groups.contains(model.actionGroup), model.actionGroup != "All Actions" { model.actionGroup = groups.first ?? "All Actions" } }
     }
     private func toggleSearch() {
         model.showActionSearch.toggle()

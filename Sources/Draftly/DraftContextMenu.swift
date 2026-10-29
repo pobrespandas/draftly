@@ -47,7 +47,7 @@ extension WindowModel {
             add(name, to: syntax, checked: !notes.isEmpty && notes.allSatisfy { $0.syntax == name }) { self.modifyDrafts(ids) { $0.syntax = name } }
         }
         menu.addItem(.separator())
-        add("Run Action…", to: menu, enabled: !runner.isRunning && !ActionCatalogPresentation.actions(library.orderedActions(), on: .search).isEmpty) { self.promptAction(ids) }
+        add("Run Action…", to: menu, enabled: !runner.isRunning && !ActionCatalogPresentation.actions(library.orderedActions(on: .search), on: .search).isEmpty) { self.promptAction(ids) }
         add("Merge…", to: menu, enabled: ids.count >= 2) { self.mergeDrafts(ids) }
         add("Duplicate", to: menu) { self.duplicateDrafts(ids) }
         menu.addItem(.separator())

@@ -109,7 +109,8 @@ Draftly now imports this empty compressed file with bounded decompression and
 wrapper, checksum, and payload validation. It retains the metadata in the group
 record and backup. Automated tests cover corrupt data, size limits, conflicts,
 rollback and restore. Native QA imported the real file and displayed the empty
-group. The icon, visibility and disposition are retained but not applied.
+group. The icon and disposition are retained but not applied. The observed Mac
+visibility bits now filter the list, bar and search surfaces.
 Populated groups, separators, and their presentation remain unverified.
 
 On 29 October, each Mac visibility checkbox was changed separately on the same
