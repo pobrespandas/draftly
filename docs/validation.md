@@ -11137,3 +11137,14 @@ without identifying its provider. The new Shortcut remains in Shortcuts; the
 older Shortcut was not edited. Both exact QA bundles were unregistered and moved
 to Trash after QA quit. The test library remains. The usual Draftly app was
 opened by this attempt and was left running.
+
+### Included failure through direct App Intent — 29 October 2026
+
+The headless included-action Intent test now also covers a child calling
+`context.fail()` after the root saves text and queues an action. UUID and
+reference-template variants both propagate the exact error and execution ID.
+They retain the completed text, suppress Archive and success parameters, stop
+both tails and the queue, and allow a later Intent to succeed with a new ID.
+The focused Intent suite passed. The test shares its fixture with the existing
+cancellation case. It does not prove system-delivered Intent or URL behavior.
+No production code changed.
