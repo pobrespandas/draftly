@@ -55,9 +55,12 @@ struct AsyncActionRunnerTests {
         var action = ScriptTestAction.make("app.setClipboard('Completed');setTimeout(()=>{editor.setText('Late');script.complete();},10000);", name: "Cancel", allowAsync: true)
         action.steps.append(ActionStep("insertText", ["template": "Must not run"]))
         action.afterSuccess = "archive"
-        let task = Task { await f.runner.runAsync(action) }
+        var finalReport: ActionExecutionReport?
+        let task = Task { let report = await f.runner.runAsync(action); finalReport = report; return report }
         defer { task.cancel() }
-        try await waitUntil { f.host.clipboard == "Completed" }
+        try await waitUntil({ f.host.clipboard == "Completed" || finalReport != nil },
+            diagnostic: { "Wait expired; runner active: \(f.runner.isRunning), report: \(String(describing: finalReport))" })
+        try #require(f.host.clipboard == "Completed", Comment(rawValue: "Execution ended before the clipboard write: \(String(describing: finalReport))"))
         task.cancel()
         let report = await task.value
         #expect(report.result == .cancelled && report.reason == .cancelled)
@@ -97,9 +100,15 @@ struct AsyncActionRunnerTests {
     @Test func libraryExclusionCoversLegacyAndAsyncRunnersWithoutBlockingOtherLibraries() async throws {
         let f = try ScriptTestFixture(content: "Source", host: APIContractHost())
         let other = ActionRunner(library: f.library, editor: f.editor, host: f.host)
-        let task = Task { await f.runner.runAsync(ScriptTestAction.make("app.setClipboard('Started');setTimeout(()=>script.complete(),100);", name: "Hold", allowAsync: true)) }
+        var finalReport: ActionExecutionReport?
+        let task = Task {
+            let report = await f.runner.runAsync(ScriptTestAction.make("app.setClipboard('Started');setTimeout(()=>script.complete(),100);", name: "Hold", allowAsync: true))
+            finalReport = report; return report
+        }
         defer { task.cancel() }
-        try await waitUntil { f.host.clipboard == "Started" }
+        try await waitUntil({ f.host.clipboard == "Started" || finalReport != nil },
+            diagnostic: { "Wait expired; runner active: \(f.runner.isRunning), report: \(String(describing: finalReport))" })
+        try #require(f.host.clipboard == "Started", Comment(rawValue: "Execution ended before the clipboard write: \(String(describing: finalReport))"))
         #expect(other.runReport(ScriptTestAction.make("", name: "Legacy")).reason == .busy)
         #expect(await other.runAsync(ScriptTestAction.make("", name: "Other")).reason == .busy)
         let independent = try ScriptTestFixture(content: "Independent", host: APIContractHost())
@@ -199,12 +208,12 @@ struct AsyncActionRunnerTests {
         #expect(await f.runner.runAsync(action).result == .success)
         #expect(f.host.clipboard == "Allowed" && action.steps.first?.values["payload"] == "Keep")
     }
-    private func waitUntil(_ condition: () -> Bool) async throws {
+    private func waitUntil(_ condition: () -> Bool, diagnostic: () -> String) async throws {
         let deadline = ContinuousClock.now + .seconds(10)
         while !condition(), ContinuousClock.now < deadline {
             try await Task.sleep(for: .milliseconds(1))
         }
-        try #require(condition())
+        try #require(condition(), Comment(rawValue: diagnostic()))
     }
 
 }

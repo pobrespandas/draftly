@@ -10779,3 +10779,9 @@ The two affected tests now cancel their owned tasks if an assertion exits early.
 The focused async runner suite passed. A further parallel Core run still failed
 at the same two wait conditions. The cleanup change does not resolve or explain
 the parallel failures; keep them open.
+
+Additional diagnostics distinguish early completion from an active runner. In a
+later parallel Core run, both runners were active with no final report when the
+clipboard wait expired. Two promise-lifetime tests also reported timeouts in
+that run. The focused async runner suite passed. This narrows the observation;
+it does not identify whether scheduling or execution caused the delays.
