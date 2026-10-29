@@ -11105,3 +11105,14 @@ suites and the local Debug build. This is headless model evidence. It does not
 prove system-delivered URL or Intent behavior or native window close/restart
 behavior. It is not a general merge interface. Windows opened after detection
 and other independent library writers are not covered by this check.
+
+### Included cancellation through direct App Intent — 29 October 2026
+
+A headless test calls `RunDraftActionIntent.perform()` with a neutral in-memory
+library. It includes a child by UUID and by a template-resolved name. The child
+checks the root JavaScript context and cancels. The Intent throws a typed
+cancellation with the runner's execution ID. The test checks retained text,
+no Archive, no success parameters, no child or root tail, and no queued action.
+A later Intent succeeds with a different execution ID. The focused Intent suite
+passed. This does not prove system-delivered App Intent dispatch, URL callback
+delivery, or Drafts configuration precedence. No production code changed.

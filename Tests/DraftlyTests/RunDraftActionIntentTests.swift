@@ -173,6 +173,46 @@ struct RunDraftActionIntentTests {
         #expect(library.runs.count == 1 && library.runs.first?.status == "Error")
     }
 
+    @Test(arguments: [false, true])
+    func includedCancellationStopsQueueAndAllowsFollowingIntent(template: Bool) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Neutral")
+        let model = WindowModel(library: library); model.select(note.id)
+        let child = DraftAction(name: "Intent child café", steps: [
+            ActionStep("script", ["script": "if (trace !== 'root') throw Error('missing context'); context.cancel();"]),
+            ActionStep("script", ["script": "editor.setText('ERROR: child tail');"])
+        ])
+        let queued = DraftAction(name: "Intent queued sentinel", steps: [ActionStep("script", ["script": "editor.setText('ERROR: queue');"])])
+        try library.saveAction(child); try library.saveAction(queued)
+        let reference = template ? ["name": "[[child]]"] : ["uuid": child.id.uuidString]
+        var root = DraftAction(name: "Intent include cancellation", steps: [
+            ActionStep("script", ["script": "var trace='root';draft.setTemplateTag('child','Intent child café');editor.setText('Retained café 🐼');draft.update();app.queueAction(Action.find('Intent queued sentinel'),draft);context.addSuccessParameter('discard','yes');"]),
+            ActionStep("includeAction", reference),
+            ActionStep("script", ["script": "editor.setText('ERROR: root tail');"])
+        ])
+        root.afterSuccess = "archive"
+        try library.saveAction(root)
+        do {
+            _ = try await intent(root, note: note, library: library, models: [model], host: IntentMarkerHost()).perform()
+            Issue.record("The included cancellation must reach the intent.")
+        } catch {
+            let error = try #require(error as? AutomationActionError)
+            #expect(error.reason == .cancelled && error.executionID == model.runner.lastReport?.executionID)
+        }
+        let cancelled = try #require(model.runner.lastReport)
+        #expect(cancelled.successParameters.isEmpty)
+        let retained = try #require(library.notes.first { $0.id == note.id })
+        #expect(retained.content == "Retained café 🐼" && !retained.isArchived)
+        #expect(library.runs.count == 1 && library.runs.first?.status == "Cancelled")
+        let recovery = DraftAction(name: "Intent after include", steps: [ActionStep("script", ["script": "editor.setText('Recovered');"])])
+        try library.saveAction(recovery)
+        _ = try await intent(recovery, note: retained, library: library, models: [model], host: IntentMarkerHost()).perform()
+        #expect(model.runner.lastReport?.reason == .success)
+        #expect(model.runner.lastReport?.executionID != cancelled.executionID)
+        #expect(library.notes.first { $0.id == note.id }?.content == "Recovered")
+        #expect(library.runs.count == 2)
+    }
+
     @Test(arguments: ["Promise.reject(new Error('Neutral rejection'));", "script.complete();context.fail('Neutral failure');"])
     func failedCompletionRetainsPriorWritesStopsTailAndAllowsFollowingIntent(_ source: String) async throws {
         let library = try LibraryStore(inMemory: true, seed: false)
