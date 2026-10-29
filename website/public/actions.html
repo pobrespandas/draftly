@@ -46,11 +46,28 @@
     <p class="notice">Draftly is in development. Automated tests cover specific behavior using simulated services. For community actions, tests cover saved versions; source actions can change. Review each action before saving or running it; native services and permissions still need verification.</p>
   </div>
   <h2>Actions by Draftly</h2>
-  <p>Download an action file and import it in Draftly with File → Import. These versions passed automated tests on both action runners. Isolated Mac QA checked template and transform dialogs, transform Undo, and rich-text paste in TextEdit.</p>
+  <p>Download an action file and import it in Draftly with File → Import. These actions passed automated tests. Mac QA checked the template and text transform dialogs, transform Undo, and rich-text paste in TextEdit. The newer actions have not yet been checked in native QA.</p>
   <div class="catalog" aria-label="Actions by Draftly">
     <article><span class="category">Create · Draftly</span><h2>New Draft from Template</h2><p>Choose a draft tagged <code>template</code> to create a new draft. Other tags are copied.</p><p class="detail">Tested: creation, copied tags, missing templates, and cancellation.</p><a href="actions/template.json" download>Download action file</a></article>
     <article><span class="category">Edit · Draftly</span><h2>Transform Selected Text</h2><p>Change selected text to uppercase or lowercase.</p><p class="detail">Tested: Unicode text, empty selection, and cancellation.</p><a href="actions/transform.json" download>Download action file</a></article>
     <article><span class="category">Share · Draftly</span><h2>Copy Markdown as Rich Text</h2><p>Render the current draft as Markdown and copy the result as rich text.</p><p class="detail">Tested: rendering and simulated clipboard success and failure. Mac QA also pasted accented text with bold formatting in TextEdit.</p><a href="actions/rich-text.json" download>Download action file</a></article>
+  </div>
+  <h2>More writing actions</h2>
+  <p>These independent Draftly actions are inspired by Drafts. They passed focused automated tests. Native dialogs, Undo, and clipboard output remain to be checked.</p>
+  <div class="catalog" aria-label="More writing actions">
+    <article><span class="category">Edit · Draftly</span><h2>Sort Selected Lines</h2><p>Sort the selected lines in ascending or descending order. The original Drafts action offers additional options.</p><a href="actions/sort-lines.json" download>Download action file</a></article>
+    <article><span class="category">Edit · Draftly</span><h2>Append Text to Selected Lines</h2><p>Enter text to append to each selected line.</p><a href="actions/append-lines.json" download>Download action file</a></article>
+    <article><span class="category">Markdown · Draftly</span><h2>Make Selection Bold</h2><p>Wrap selected text in Markdown bold markers.</p><a href="actions/markdown-bold.json" download>Download action file</a></article>
+    <article><span class="category">Markdown · Draftly</span><h2>Emphasize Selection</h2><p>Wrap selected text in Markdown emphasis markers.</p><a href="actions/markdown-italic.json" download>Download action file</a></article>
+    <article><span class="category">Share · Draftly</span><h2>Copy Markdown as HTML</h2><p>Render the current draft as Markdown and copy the resulting HTML as plain text.</p><a href="actions/copy-html.json" download>Download action file</a></article>
+  </div>
+  <h2>Integration prototypes</h2>
+  <p>These actions cover a small part of the original Drafts actions. Automated tests use simulated services. Mac QA verified Save as PDF through the print dialog. Things integration has not been verified in native use.</p>
+  <div class="catalog" aria-label="Integration prototypes">
+    <article><span class="category">Export · Prototype</span><h2>Print Markdown to PDF</h2><p>Open the Mac print dialog with rendered Markdown. Choose Save as PDF in the dialog.</p><a href="actions/print-pdf.json" download>Download action file</a></article>
+    <article><span class="category">Things · Prototype</span><h2>Send Draft to Things</h2><p>Use the first line as a task title and the remaining text as notes. Opens Things Quick Entry; it does not parse project outlines.</p><a href="actions/things-draft.json" download>Download action file</a></article>
+    <article><span class="category">Things · Prototype</span><h2>Send TaskPaper to Things</h2><p>Send supported projects, tasks, headings, notes, checklist items, and tags. Basic Mustache prompts are supported. Unsupported expressions and syntax are rejected.</p><a href="actions/things-taskpaper.json" download>Download action file</a></article>
+    <article><span class="category">Things · Prototype</span><h2>Send Markdown Outline to Things</h2><p>Prepare projects, tasks, headings, notes, checklist items, tags, and dates for Things. Delivery and callbacks remain unverified.</p><a href="actions/things-markdown.json" download>Download action file</a></article>
   </div>
   <h2>Drafts community references</h2>
   <div class="catalog" aria-label="Curated actions from Drafts">

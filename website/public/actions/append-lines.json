@@ -1,0 +1,13 @@
+{
+  "uuid": "D46F0001-0000-4000-8000-000000000005",
+  "name": "Append Text to Selected Lines",
+  "group": "Draftly",
+  "steps": [
+    {
+      "type": "script",
+      "data": {
+        "script": "const range = editor.getSelectedLineRange();\nconst text = editor.getTextInRange(range[0], range[1]);\nif (!text.trim()) { context.fail('Select lines to change.'); }\nelse {\n  const prompt = Prompt.create(); prompt.title = 'Append text to lines';\n  prompt.addTextField('suffix', 'Text to append', ''); prompt.addButton('Append');\n  if (!prompt.show()) { context.cancel(); }\n  else {\n    const suffix = prompt.fieldValues.suffix;\n    if (suffix) {\n      const newline = text.endsWith('\\n');\n      const lines = (newline ? text.slice(0, -1) : text).split('\\n');\n      editor.setTextInRange(range[0], range[1], lines.map(line => line + suffix).join('\\n') + (newline ? '\\n' : ''));\n    }\n  }\n}"
+      }
+    }
+  ]
+}

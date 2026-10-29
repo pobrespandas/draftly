@@ -1,0 +1,13 @@
+{
+  "uuid": "D46F0001-0000-4000-8000-000000000010",
+  "name": "Send Draft to Things",
+  "group": "Draftly",
+  "steps": [
+    {
+      "type": "script",
+      "data": {
+        "script": "const lines = draft.content.replace(/\\r\\n?/g, '\\n').split('\\n');\nconst title = lines.shift().trim();\nif (!title) { context.fail('The first line must contain a task title.'); }\nelse {\n  const notes = lines.join('\\n').trim();\n  if (title.length > 4000 || notes.length > 10000) { context.fail('The draft exceeds Things URL limits.'); }\n  else {\n    const url = 'things:///add?show-quick-entry=true&title=' + encodeURIComponent(title) + '&notes=' + encodeURIComponent(notes);\n    if (!app.openURL(url)) { context.fail('Could not open Things.'); }\n  }\n}"
+      }
+    }
+  ]
+}

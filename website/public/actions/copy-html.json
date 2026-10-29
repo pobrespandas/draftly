@@ -1,0 +1,13 @@
+{
+  "uuid": "D46F0001-0000-4000-8000-000000000008",
+  "name": "Copy Markdown as HTML",
+  "group": "Draftly",
+  "steps": [
+    {
+      "type": "script",
+      "data": {
+        "script": "const html = MultiMarkdown.create().render(draft.content);\napp.setClipboard(html);"
+      }
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "uuid": "D46F0001-0000-4000-8000-000000000009",
+  "name": "Print Markdown to PDF",
+  "group": "Draftly",
+  "steps": [
+    {
+      "type": "script",
+      "data": {
+        "script": "const html = MultiMarkdown.create().render(draft.content);\ndraft.setTemplateTag('draftlyPrintHTML', '<html><head><meta charset=\"utf-8\"></head><body>' + html + '</body></html>');"
+      }
+    },
+    {
+      "type": "print",
+      "data": {
+        "template": "[[draftlyPrintHTML]]",
+        "format": "html"
+      }
+    }
+  ]
+}
