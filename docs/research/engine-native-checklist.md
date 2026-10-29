@@ -23,6 +23,8 @@ is still unverified.
 The HTML-to-Markdown converter preserves blank lines and decoded text inside
 `pre`/`code` blocks. It selects a fence longer than any backtick run in the
 block. The preference suite passed; Drafts comparison remains separate.
+Syntax-highlight spans inside code blocks are removed before HTML entities are
+decoded. A focused test preserves encoded markup and blank lines.
 HTML image conversion retains alt text and recognizes quoted and unquoted src
 attributes without confusing data-src with src. The preference suite covers these
 cases and ignoreImages. Decoded image labels escape Markdown punctuation, and

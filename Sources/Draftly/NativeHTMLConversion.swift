@@ -64,7 +64,9 @@ struct NativeHTMLConversion {
         let source = result as NSString
         var protectedFragments: [(String, String)] = []
         for match in blocks.matches(in: result, range: NSRange(location: 0, length: source.length)).reversed() {
-            let code = try decodeHTML(source.substring(with: match.range(at: 1)))
+            let rawCode = source.substring(with: match.range(at: 1)).replacingOccurrences(
+                of: #"</?span\b(?:[^'">]|"[^"]*"|'[^']*')*>"#, with: "", options: [.regularExpression, .caseInsensitive])
+            let code = try decodeHTML(rawCode)
             let runs = code.split(whereSeparator: { $0 != "`" }).map(\.count).max() ?? 0
             let fence = String(repeating: "`", count: max(3, runs + 1))
             let token = "DRAFTLYCODE" + UUID().uuidString.replacingOccurrences(of: "-", with: "")

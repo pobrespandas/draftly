@@ -12,6 +12,12 @@ struct HTMLPreferencesTests {
         #expect(result == "Before\n\n````\nlet a = <tag>\n\n\nlet b = &value;\n```\nend\n````\n\nAfter")
     }
 
+    @Test func highlightedCodeDropsPresentationTagsButKeepsEscapedMarkup() throws {
+        let html = "<pre><code><span class='keyword'>let</span> a = &lt;tag&gt;\n\n<span title='x > y'>🐼</span></code></pre>"
+        let result = try NativeHTMLConversion().htmlToMarkdown(html, options: [:])
+        #expect(result == "```\nlet a = <tag>\n\n🐼\n```")
+    }
+
     @Test func imageConversionPreservesAlternateTextAndAttributeOrder() throws {
         let html = "<p><img alt='Café &amp; 🐼' src='neutral.png'><img data-src='wrong.png' src=actual.png alt=Diagram></p>"
         let converter = NativeHTMLConversion()
