@@ -15820,7 +15820,8 @@
           "liveCheck": null,
           "compatibilityStatus": "partial",
           "automatedTestHistory": [
-            "ActionAPITests.mustacheDirectoryLoadsNamedTemplateAndPartials"
+            "ActionAPITests.mustacheDirectoryLoadsNamedTemplateAndPartials",
+            "NativeActionAPITests.directoryMustacheReadsRealLocalFilesAndPartials"
           ],
           "reviewDate": "2026-10-20",
           "implementationEvidence": {
@@ -15832,12 +15833,12 @@
             "reason": "Real iCloud Drive, persistent folder permissions, and Drafts behavior comparison remain unverified."
           },
           "limitations": [
-            "Host-fixture tests cover both runners. Native directory access, persistent permissions, and per-member comparison with Drafts remain pending."
+            "The local filesystem test substitutes local storage for the requested cloud root. Real iCloud Drive, persistent permissions, and comparison with Drafts remain pending."
           ],
           "defaults": "A fresh object defaults to HTML contentType. The reference specifies no default for the required input.",
           "result": "A new MustacheTemplate. Instance methods and existing static entry points are available.",
           "errors": "createWithPath rejects parent traversal. Parsing and file access happen when rendering; remaining invalid-input cases are not closed.",
-          "evidenceLevel": "Specific instance factories, static compatibility, HTML/text output, prototype-named files/partials, missing templates, and rejected traversal paths on legacy and worker routes."
+          "evidenceLevel": "Both runners cover factories, HTML/text output, prototype names and path errors. A local filesystem adapter test checks Unicode template and partial names in composed and decomposed forms."
         },
         {
           "member": "createWithTemplate",

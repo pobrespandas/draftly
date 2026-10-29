@@ -11003,3 +11003,13 @@ root. Both runners list and reuse Unicode file and directory paths from root and
 nested folders, and recover after a missing directory. Focused Actions and
 Mustache tests, matrix structure and the local Debug build passed. Exact Drafts
 path formatting, native permissions, bookmarks and cloud access remain open.
+
+### Directory Mustache Unicode names — 29 October 2026
+
+A local filesystem regression showed that decomposed macOS filenames did not
+match composed template and partial names. Directory Mustache now accepts both
+Unicode forms without changing template content. Both runners read real files
+through the native adapter in an isolated local root. The test substitutes local
+storage for the requested cloud root. Template and worker suites, matrix
+structure and the local Debug build passed. Real iCloud Drive and Drafts
+comparison remain open.

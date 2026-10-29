@@ -5,6 +5,29 @@ import DraftlyCore
 
 @Suite("Native action API") @MainActor
 struct NativeActionAPITests {
+    @Test(arguments: [false, true]) func directoryMustacheReadsRealLocalFilesAndPartials(worker: Bool) async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let folder = root.appendingPathComponent("Library/Templates/QA")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try "Hello {{name}} {{>Café}}".write(to: folder.appendingPathComponent("main.mustache"), atomically: true, encoding: .utf8)
+        try "{{>Cafe\u{301}}}".write(to: folder.appendingPathComponent("decomposed.mustache"), atomically: true, encoding: .utf8)
+        try "🐼 {{name}}".write(to: folder.appendingPathComponent("Café.mustache"), atomically: true, encoding: .utf8)
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let editor = EditorSession(); editor.load(try library.createNote(content: "Neutral"), focusEditor: false)
+        let host = LocalMustacheFileHost(root: root)
+        let runner = ActionRunner(library: library, editor: editor, host: host)
+        let action = DraftAction(name: "Mustache files", steps: [ActionStep("script", ["script": """
+        const template=MustacheTemplate.createWithPath('QA');
+        template.contentType='text';
+        if (template.renderTemplate('main',{name:'Andrés'})!=='Hello Andrés 🐼 Andrés') throw Error('partial');
+        if (template.renderTemplate('Café',{name:'Andrés'})!=='🐼 Andrés') throw Error('unicode name');
+        if (template.renderTemplate('Cafe\u{301}',{name:'Andrés'})!=='🐼 Andrés') throw Error('decomposed name');
+        if (template.renderTemplate('decomposed',{name:'Andrés'})!=='🐼 Andrés') throw Error('decomposed partial');
+        """])])
+        if worker { #expect(await runner.runAsync(action).result.succeeded, Comment(rawValue: runner.message ?? "")) }
+        else { #expect(runner.run(action), Comment(rawValue: runner.message ?? "")) }
+    }
     @Test(arguments: [false, true]) func listContentsReturnsUsablePathsAndRecoversFromMissingDirectory(worker: Bool) async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
@@ -259,5 +282,18 @@ struct NativeActionAPITests {
         #expect(result["stdout"] as? String == argument)
         #expect(result["stderr"] as? String == "diagnostic")
         #expect(result["status"] as? Int == 7)
+    }
+}
+
+@MainActor private final class LocalMustacheFileHost: ActionHost {
+    let adapter: NativeFileAdapter
+    init(root: URL) { adapter = NativeFileAdapter(testFileRoot: root) }
+    func perform(_ operation: String, values: [String: Any]) throws -> Any? {
+        guard operation == "fileAPI", values["storage"] as? String == "cloud" else {
+            throw DraftlyError.message("Unexpected test operation.")
+        }
+        var local = values
+        local["storage"] = "local"
+        return try adapter.fileAPI(local)
     }
 }

@@ -442,9 +442,10 @@ class MustacheTemplate {
         if(this.path===undefined)throw new Error('Use createWithPath before renderTemplate.');
         if(String(name).includes('/')||String(name).includes('..'))throw new Error('Use a template name without a path.');
         let fm=FileManager.createCloud(),root='/Library/Templates/'+this.path.replace(/^\/+|\/+$/g,'');
-        let partials=Object.create(null);for(let file of fm.listContents(root)){if(file.endsWith('.mustache')){let key=file.split('/').pop().slice(0,-9);partials[key]=fm.readString(file);}}
-        if(!Object.prototype.hasOwnProperty.call(partials,name))throw new Error('The Mustache template was not found: '+name);
-        return __renderMustache(partials[name],data,partials,this.contentType);
+        let partials=Object.create(null);for(let file of fm.listContents(root)){if(file.endsWith('.mustache')){let key=file.split('/').pop().slice(0,-9), value=fm.readString(file);partials[key.normalize('NFC')]=value;partials[key.normalize('NFD')]=value;}}
+        const key=String(name).normalize('NFC');
+        if(!Object.prototype.hasOwnProperty.call(partials,key))throw new Error('The Mustache template was not found: '+name);
+        return __renderMustache(partials[key],data,partials,this.contentType);
     }
     static renderTemplate(template,data,partials={}){let t=new MustacheTemplate(template);t.partials=partials;return t.render(data);}
     render(data){return __renderMustache(this.template,data,this.partials||{},this.contentType);}
