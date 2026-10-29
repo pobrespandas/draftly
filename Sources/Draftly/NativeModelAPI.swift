@@ -29,7 +29,9 @@ import DraftlyCore
     func perform(_ operation: String, _ values: [String: Any]) throws -> Any {
         var modes: [String] = []
         if FoundationModels.SystemLanguageModel.default.isAvailable { modes.append("onDevice") }
+        #if compiler(>=6.4)
         if #available(macOS 27, *), PrivateCloudComputeLanguageModel().isAvailable { modes.append("pcc") }
+        #endif
         if operation == "modelModes" { return modes }
         let mode = values["mode"] as? String ?? "onDevice"
         guard modes.contains(mode) else { throw DraftlyError.message("The selected Apple Intelligence model is unavailable on this Mac.") }
@@ -81,8 +83,12 @@ import DraftlyCore
                 })
             }
             if mode == "pcc" {
+                #if compiler(>=6.4)
                 if #available(macOS 27, *) { session = LanguageModelSession(model: PrivateCloudComputeLanguageModel(), tools: tools, instructions: instructions) }
                 else { throw DraftlyError.message("Private Cloud Compute requires macOS 27.") }
+                #else
+                throw DraftlyError.message("Private Cloud Compute is unavailable in this build.")
+                #endif
             } else { session = LanguageModelSession(model: FoundationModels.SystemLanguageModel.default, tools: tools, instructions: instructions) }
             toolLifetimes[id] = lifetime
             sessions[id] = session
@@ -108,7 +114,9 @@ import DraftlyCore
         if let backend { return backend.modes() }
         var modes: [String] = []
         if FoundationModels.SystemLanguageModel.default.isAvailable { modes.append("onDevice") }
+        #if compiler(>=6.4)
         if #available(macOS 27, *), PrivateCloudComputeLanguageModel().isAvailable { modes.append("pcc") }
+        #endif
         return modes
     }
 

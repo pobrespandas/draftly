@@ -32,7 +32,9 @@ final class StatusMenuController: NSObject {
         menu.addItem(clipboardDraft); clipboardDraftItem = clipboardDraft
         menu.addItem(.separator())
         let recentItem = NSMenuItem(title: "Recent Drafts", action: nil, keyEquivalent: "")
+        #if compiler(>=6.4)
         if #available(macOS 27.0, *) { recentItem.preferredImageVisibility = .visible }
+        #endif
         recentItem.image = statusMenuImage("clock.arrow.circlepath", description: "Recent Drafts")
         let recentMenu = NSMenu(title: "Recent Drafts")
         recentMenu.delegate = self
@@ -84,7 +86,9 @@ final class StatusMenuController: NSObject {
         item.target = self
         item.keyEquivalentModifierMask = modifiers
         item.image = statusMenuImage(symbol, description: title)
+        #if compiler(>=6.4)
         if #available(macOS 27.0, *) { item.preferredImageVisibility = .visible }
+        #endif
         return item
     }
     private func statusMenuImage(_ symbol: String, description: String) -> NSImage? {
@@ -123,7 +127,9 @@ extension StatusMenuController: NSMenuDelegate {
             let item = NSMenuItem(title: note.title, action: #selector(openRecentDraft(_:)), keyEquivalent: "")
             item.target = self
             item.image = statusMenuImage("doc.text", description: note.title)
+            #if compiler(>=6.4)
             if #available(macOS 27.0, *) { item.preferredImageVisibility = .visible }
+            #endif
             item.representedObject = note.id.uuidString
             menu.addItem(item)
         }
