@@ -16,6 +16,7 @@ on:
           - TypewriterScrollingTests
           - Toolchain27
           - FullOn27
+          - Display26
 
 permissions:
   contents: read
@@ -57,6 +58,10 @@ jobs:
       - name: Check the release toolchain
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.diagnostic == 'Toolchain27' }}
         run: python scripts/release-toolchain.py
+      - name: Inspect available display modes
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.diagnostic == 'Display26' }}
+        run: |
+          swift -e 'import CoreGraphics; let d = CGMainDisplayID(); let modes = (CGDisplayCopyAllDisplayModes(d, nil) as? [CGDisplayMode]) ?? []; print("Display modes:", Array(Set(modes.map { "\($0.width)x\($0.height)" })).sorted().joined(separator: ", "))'
       - name: Build local application
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.diagnostic == 'all' || inputs.diagnostic == '' || inputs.diagnostic == 'FullOn27' }}
         run: scripts/build-app.sh --local
