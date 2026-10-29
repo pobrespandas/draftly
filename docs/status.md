@@ -3806,3 +3806,8 @@ protection, credential restrictions, and release acceptance remain open.
 The user saved the notarization key in Apple Passwords. A copy from that
 entry matched the local p8 bytes. The clipboard was cleared. Recovery from a
 second device has not been verified.
+
+The user copied the new Sparkle entry from Apple Passwords. Its seed matched
+the release public key, and the clipboard was cleared. Both the Sparkle and
+notarization Apple entries have now been checked on this Mac. Second-device
+recovery of these Apple entries has not been verified.
