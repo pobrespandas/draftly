@@ -10323,3 +10323,9 @@ cursor from the third line to the second. Editing, Undo, and Redo preserved
 the neutral Unicode text. This check used dark appearance. Drafts comparison,
 light appearance, wrapped lines, and a restart check remain pending. No
 screenshots are stored in Git. QA was closed and its bundle was archived.
+
+After a normal restart, Engine QA retained the enabled preference. A neutral
+long paragraph wrapped across five visual lines. Moving the insertion point
+changed the highlighted visual line without changing the text. The light-mode
+check remains pending: the QA appearance picker remained on System after the
+attempt. The Drafts visual comparison also remains pending.
