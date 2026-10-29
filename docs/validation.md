@@ -10790,3 +10790,8 @@ A further parallel Core run passed those two tests but failed the timeout case
 of `cancellationAndTimeoutDrainTheOpeningWaitBeforeReturning`. The focused
 async runner and window opening suites passed together. The failures vary with
 the full concurrent workload. The cause and product impact remain unproven.
+
+One subsequent parallel Core run passed. A focused stress test also completed
+24 independent workers and their host calls. Its host only yields and returns;
+it does not exercise MainActor or the full test workload. Neither result proves
+the intermittent failures are resolved.

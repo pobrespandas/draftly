@@ -4,6 +4,34 @@ import Testing
 
 @Suite("Script worker host lifetime") @MainActor
 struct ActionScriptWorkerTests {
+    @Test func concurrentWorkersCompleteIndependentHostRequests() async {
+        let counter = WorkerRequestCounter()
+        let results = await withTaskGroup(of: Bool.self, returning: [Bool].self) { group in
+            for _ in 0..<24 {
+                group.addTask {
+                    let worker = ActionScriptWorker(executionID: UUID(), stepID: UUID(), hostTimeout: 10) { request in
+                        await Task.yield()
+                        if request.operation == "clipboard" { await counter.record() }
+                        return request.operation == "device" ? "{\"value\":{}}" : "{\"value\":true}"
+                    }
+                    do {
+                        try await worker.start("")
+                        let result = try await worker.run(source: "app.setClipboard('Neutral');", stepID: UUID(), asynchronous: false, timeout: 10, synchronousTimeout: 10)
+                        await worker.close()
+                        return result
+                    } catch {
+                        await worker.close()
+                        return false
+                    }
+                }
+            }
+            var results: [Bool] = []
+            for await result in group { results.append(result) }
+            return results
+        }
+        #expect(results.count == 24 && results.allSatisfy { $0 })
+        #expect(await counter.count == 24)
+    }
     @Test func cancellingAHostWaitReleasesTheWorkerAndCancelsItsRequestTask() async throws {
         let gate = WorkerHostGate()
         let worker = ActionScriptWorker(executionID: UUID(), stepID: UUID(), hostTimeout: 120) { request in
@@ -40,6 +68,11 @@ struct ActionScriptWorkerTests {
         #expect(result)
         await worker.close()
     }
+}
+
+private actor WorkerRequestCounter {
+    private(set) var count = 0
+    func record() { count += 1 }
 }
 
 @MainActor private final class WorkerHostGate {
