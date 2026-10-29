@@ -11025,3 +11025,18 @@ one Success entry. This checks the visible UI route only; execution identities,
 other entry points and other engine contracts remain separate. No production
 code changed. The QA app quit, its registration was removed and its bundle was
 moved to Trash. Its separate test library remains.
+
+### Confirmation cancellation and reference group — 29 October 2026
+
+A controlled async host retained a pending confirmation after runner
+cancellation. While cleanup was pending, another runner in the same library
+returned busy. A late acceptance did not run the action or apply Archive. The
+cancelled run finished once, and a following run succeeded with a different
+execution ID. The focused async host, action runner and inclusion suites passed.
+This is not an OS-delivered late confirmation callback.
+
+The closed CONFIRM-01 QA library contains one Cancelled and one Success run,
+with distinct run IDs and the same neutral action and note IDs. Run IDs are not
+execution IDs. Drafts 54.1.1 showed only the empty existing QA group; adding an
+action opened the Drafts Pro screen. No purchase or action was made. A genuine
+populated group export and its comparison remain blocked by that reference.

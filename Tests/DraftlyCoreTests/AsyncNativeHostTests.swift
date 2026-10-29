@@ -4,6 +4,30 @@ import Testing
 
 @Suite("Asynchronous native action host") @MainActor
 struct AsyncNativeHostTests {
+    @Test func cancelledConfirmationIgnoresLateAcceptanceAndKeepsLibraryReservedUntilCleanup() async throws {
+        let f = try ScriptTestFixture(content: "Keep 🐼", host: ConfirmationGateHost())
+        var action = DraftAction(name: "Pending confirmation", steps: [ActionStep("insertText", ["template": "Late"])])
+        action.presentation.confirmBeforeRun = true
+        action.afterSuccess = "archive"
+        let task = Task { await f.runner.runAsync(action) }
+        defer { task.cancel(); f.host.release() }
+        var iterator = f.host.started.stream.makeAsyncIterator()
+        _ = await iterator.next()
+        let competing = ActionRunner(library: f.library, editor: f.editor, host: f.host)
+        f.runner.cancel()
+        let busy = await competing.runAsync(DraftAction(name: "Competing", steps: []))
+        #expect(busy.reason == .busy)
+        #expect(f.editor.content == "Keep 🐼" && f.library.notes.first?.isArchived == false)
+        f.host.release()
+        let report = await task.value
+        #expect(report.reason == .cancelled && report.successParameters.isEmpty)
+        #expect(f.host.observedCancellation && f.host.finishes == 1)
+        #expect(f.editor.content == "Keep 🐼" && f.library.notes.first?.isArchived == false)
+        #expect(f.library.runs.count == 1 && f.library.runs.first?.status == "Cancelled")
+        let next = await f.runner.runAsync(DraftAction(name: "Recovery", steps: [ActionStep("insertText", ["template": "Next"]) ]))
+        #expect(next.reason == .success && next.executionID != report.executionID)
+        #expect(f.library.runs.count == 2)
+    }
     @Test func callbackStepSuspendsAndSharesItsResponseWithTheNextScript() async throws {
         let f = try ScriptTestFixture(content: "Keep", host: WaitingNativeHost())
         let task = Task { await f.runner.runAsync(DraftAction(name: "Callback", steps: [
@@ -53,6 +77,27 @@ struct AsyncNativeHostTests {
         #expect(report.reason == .success)
         #expect(f.editor.content == "café 🐼" && f.host.syncCalls == 0)
     }
+}
+
+@MainActor private final class ConfirmationGateHost: ActionHost {
+    let started = AsyncStream.makeStream(of: Bool.self)
+    private var continuation: CheckedContinuation<String, Never>?
+    private(set) var observedCancellation = false
+    private(set) var finishes = 0
+    func supportsAsync(_ operation: String) -> Bool { operation == "confirmAction" }
+    func perform(_ operation: String, values: [String: Any]) throws -> Any? {
+        throw DraftlyError.message("Unexpected synchronous operation.")
+    }
+    func performAsync(_ operation: String, payload: String) async throws -> String {
+        let result = await withCheckedContinuation { continuation in
+            self.continuation = continuation
+            started.continuation.yield(true)
+        }
+        observedCancellation = Task.isCancelled
+        return result
+    }
+    func release() { continuation?.resume(returning: #"{"value":true}"#); continuation = nil }
+    func finishAction() { finishes += 1 }
 }
 
 @MainActor private final class WaitingNativeHost: ActionHost {
