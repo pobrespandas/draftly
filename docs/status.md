@@ -3876,3 +3876,8 @@ The offscreen native split diagnostic now also measures the effect of 240- and
 232-point minimum thickness values on a 240-point divider. The local panel
 suite passed all 15 cases. Both settings retained 240-point container and
 content widths on macOS 27. A macOS 26 comparison is pending.
+
+A subsequent local full Swift run with the improved native-process diagnostic
+passed the complete inventory: 759 Core and 933 app tests. The prior deadline
+failure did not recur, so its underlying cause remains unknown. No timeout or
+retry was added.
