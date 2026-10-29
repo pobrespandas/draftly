@@ -1,5 +1,8 @@
 # Draftly implementation and remaining work
 
+For the current consolidated snapshot, read [project progress](project-progress.md).
+This file also retains historical checkpoints.
+
 Updated: 26 October 2026.
 
 ## Settings and personalization in progress
