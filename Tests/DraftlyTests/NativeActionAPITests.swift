@@ -1,9 +1,43 @@
 import Foundation
 import Testing
+import DraftlyCore
 @testable import Draftly
 
 @Suite("Native action API") @MainActor
 struct NativeActionAPITests {
+    @Test(arguments: [false, true]) func scriptCreatesNamedDirectoryInIsolatedRoot(worker: Bool) async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let editor = EditorSession()
+        editor.load(try library.createNote(content: "Neutral"), focusEditor: false)
+        let host = NativeActionHost(); host.testFileRoot = root
+        let runner = ActionRunner(library: library, editor: editor, host: host)
+        let action = DraftAction(name: "Directory QA", steps: [ActionStep("script", ["script": """
+        const fm=FileManager.create(true);
+        if (!fm.createDirectory('Café 🐼','/parent')) throw new Error(fm.lastError);
+        if (!fm.isDirectory('/parent/Café 🐼')) throw new Error('Directory missing');
+        """])])
+        if worker { #expect(await runner.runAsync(action).result.succeeded) }
+        else { #expect(runner.run(action)) }
+        var directory: ObjCBool = false
+        #expect(FileManager.default.fileExists(atPath: root.appendingPathComponent("parent/Café 🐼").path, isDirectory: &directory))
+        #expect(directory.boolValue)
+    }
+    @Test func namedDirectoryIsCreatedInsideItsParent() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let adapter = NativeFileAdapter(testFileRoot: root)
+        #expect(try adapter.fileAPI(["operation": "createDirectory", "path": "/parent", "name": "Café 🐼"]) as? Bool == true)
+        var isDirectory: ObjCBool = false
+        #expect(FileManager.default.fileExists(atPath: root.appendingPathComponent("parent/Café 🐼").path, isDirectory: &isDirectory))
+        #expect(isDirectory.boolValue)
+        #expect(throws: (any Error).self) {
+            try adapter.fileAPI(["operation": "createDirectory", "path": "/parent", "name": "../../outside"])
+        }
+    }
     @Test func legacyFileOperationsRejectSymbolicLinkEscapes() throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let root = folder.appendingPathComponent("Library")

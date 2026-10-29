@@ -345,7 +345,7 @@ class Bookmark {
 }
 class FileManager {
     constructor(storage='local',bookmark){this.storage=storage;this.bookmark=bookmark;this.lastError=undefined;}
-    static create(){return FileManager.createLocal();}static createLocal(){return new FileManager();}static createCloud(){return new FileManager('cloud');}
+    static create(isLocal=true){return isLocal === false ? FileManager.createCloud() : FileManager.createLocal();}static createLocal(){return new FileManager();}static createCloud(){return new FileManager('cloud');}
     static createForBookmark(bookmark){return new FileManager('bookmark',typeof bookmark==='string'?bookmark:bookmark.name);}
     _op(operation,values={}){try{let v=__call('fileAPI',{operation,storage:this.storage,bookmark:this.bookmark,...values});this.lastError=undefined;return v;}catch(e){this.lastError=e.message;return undefined;}}
     get basePath(){return this._op('basePath');}get baseURL(){return this._op('baseURL');}
@@ -353,7 +353,7 @@ class FileManager {
     readJSON(path){let text=this.readString(path);if(text===undefined)return undefined;try{return JSON.parse(text);}catch(e){this.lastError=e.message;return undefined;}}
     writeJSON(path,value){return this.writeString(path,JSON.stringify(value));}
     exists(path){return this._op('exists',{path})===true;}isDirectory(path){return this._op('isDirectory',{path})===true;}
-    listContents(path){return this._op('listContents',{path});}createDirectory(path){return this._op('createDirectory',{path})===true;}
+    listContents(path){return this._op('listContents',{path});}createDirectory(name,path){return this._op('createDirectory',path===undefined?{path:name}:{name,path})===true;}
     copyItem(source,destination){return this._op('copyItem',{path:source,destination})===true;}moveItem(source,destination){return this._op('moveItem',{path:source,destination})===true;}
     getCreationDate(path){return __date(this._op('getCreationDate',{path}));}getModificationDate(path){return __date(this._op('getModificationDate',{path}));}
     setCreationDate(path,date){return this._op('setCreationDate',{path,date})===true;}setModificationDate(path,date){return this._op('setModificationDate',{path,date})===true;}

@@ -10911,3 +10911,15 @@ The action ran from the Actions menu. The editor showed the expected Unicode
 text and the completion message. This confirms the observed UI execution path;
 it does not check a Drafts subscription. QA quit normally. Its exact app
 registration was removed and its bundle moved to Trash. The test library remains.
+
+### FileManager factory and directory creation — 29 October 2026
+
+The archived reference specifies create(isLocal) and createDirectory(name, path).
+Draftly ignored the factory argument and the directory parent. Regressions failed
+before the correction. False now selects cloud storage; true selects local. A
+named directory is created under its parent. The earlier omitted factory argument
+and single-path directory call remain supported. Invalid directory names fail.
+Both script runners and the native adapter passed isolated local filesystem tests.
+The focused file suites, matrix structural check and local Debug build passed.
+Actual iCloud Drive access, native permission failures and Drafts comparison
+remain pending.

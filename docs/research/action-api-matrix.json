@@ -14015,10 +14015,20 @@
             "create(isLocal: boolean): FileManager"
           ],
           "contract": "Creates a new FileManager object.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "reviewed-partial",
+          "automatedTest": {
+            "suite": "FileManagerCreationContractTests",
+            "test": "factoryAndDirectoryArgumentsReachHost"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-29",
+          "implementationEvidence": {"file": "Sources/DraftlyCore/Resources/Bridge.js", "symbol": "FileManager.create"},
+          "defaults": "Omission retains the existing Draftly local default.",
+          "result": "Returns a local manager for true and a cloud manager for false.",
+          "errors": "The factory does not access storage; later operations report storage errors.",
+          "limitations": ["Actual iCloud Drive access and the omitted-argument behavior in Drafts remain unverified."],
+          "evidenceLevel": "Both runners check the selected storage in host requests."
         },
         {
           "member": "createCloud",
@@ -14150,10 +14160,20 @@
             "createDirectory(name: string, path: string): boolean"
           ],
           "contract": "Create a directory with the specified name in the specified path. Returns true if directory successfully created.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "reviewed-partial",
+          "automatedTest": {
+            "suite": "NativeActionAPITests",
+            "test": "scriptCreatesNamedDirectoryInIsolatedRoot"
+          },
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-29",
+          "implementationEvidence": {"file": "Sources/Draftly/NativeFileAdapter.swift", "symbol": "NativeFileAdapter.fileAPI"},
+          "defaults": "A single argument retains the earlier Draftly full-path behavior.",
+          "result": "Creates the named directory below the selected parent and returns true on success.",
+          "errors": "Invalid names and filesystem failures return false and populate lastError through the script bridge.",
+          "limitations": ["Native permission denial, cloud storage, and Drafts comparison remain unverified."],
+          "evidenceLevel": "Both runners create and inspect a Unicode directory in an isolated local root."
         },
         {
           "member": "exists",

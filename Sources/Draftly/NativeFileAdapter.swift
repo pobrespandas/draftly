@@ -200,7 +200,16 @@ struct NativeFileAdapter {
             try (values["text"] as? String ?? "").write(to: target, atomically: true, encoding: .utf8); return true
         case "exists": return manager.fileExists(atPath: target.path)
         case "isDirectory": var isDirectory: ObjCBool = false; return manager.fileExists(atPath: target.path, isDirectory: &isDirectory) && isDirectory.boolValue
-        case "createDirectory": try manager.createDirectory(at: target, withIntermediateDirectories: true); return true
+        case "createDirectory":
+            var directory = target
+            if let name = values["name"] as? String {
+                guard !name.isEmpty, name != ".", name != "..", !name.contains("/") else {
+                    throw DraftlyError.message("The directory name must be a single path component.")
+                }
+                directory = try containedTarget(target.appendingPathComponent(name), root: canonical,
+                                                message: "The path must stay inside the selected file root.")
+            }
+            try manager.createDirectory(at: directory, withIntermediateDirectories: true); return true
         case "listContents": return try manager.contentsOfDirectory(at: target, includingPropertiesForKeys: nil).map { $0.path.replacingOccurrences(of: canonical.path, with: "", options: .anchored) }.sorted()
         case "copyItem": try manager.copyItem(at: target, to: resolve(values["destination"] as? String ?? "")); return true
         case "moveItem": try manager.moveItem(at: target, to: resolve(values["destination"] as? String ?? "")); return true
