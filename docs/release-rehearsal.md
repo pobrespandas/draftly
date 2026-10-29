@@ -71,3 +71,26 @@ final stapled package. If the wait fails, inspect that submission with
 `xcrun notarytool info` before deciding whether to submit again. A candidate
 without `READY` must not be published. This workflow and its mocks have not
 yet produced a real Developer ID package.
+
+## Prepare a signed appcast
+
+Run `swift package resolve` to obtain the pinned Sparkle signing tool. Install
+the Python `cryptography` dependency in the release environment. Give
+`scripts/prepare-appcast.py` the candidate directory, a new output directory,
+and a UTF-8 release notes file. Supply the 32-byte Ed25519 seed as base64 in
+the protected `DRAFTLY_SPARKLE_PRIVATE_KEY` environment variable. Never put it
+in a command argument, repository file, or log.
+
+The command checks the candidate checksum, app metadata, update settings, and
+embedded public key. It checks the public release history, verifies any current
+signed feed, preserves its stable entries, signs the archive and the new feed,
+and verifies the feed with Sparkle. The appcast output has a `READY` marker only
+after these checks pass. It points to the future GitHub Release URL and does
+not upload anything. It must not be deployed until the release workflow also
+independently validates the signed candidate and verifies the public ZIP.
+
+The app requires signed feeds and verifies update archives before extraction.
+It does not allow Sparkle's automatic installation option; the user confirms
+each update.
+The appcast tool does not enable update checks. Real update acceptance and key
+recovery remain pending.

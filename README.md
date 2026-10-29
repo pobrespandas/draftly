@@ -185,9 +185,11 @@ Use the [core audit](docs/research/core-actions-audit.md) and
 [VM checklist](docs/utm-icloud-validation.md) for signed builds and sync checks.
 The local handoff is `docs/claude-handoff.md`. It is not tracked by Git.
 
-Run the Python checks with a Python environment that provides Pillow:
+Run the Python checks with a Python environment that provides Pillow and
+cryptography. Resolve the pinned Sparkle package first for the signing tests:
 
 ```sh
+swift package resolve
 python3 -m unittest discover -s scripts -p 'test_*.py'
 ```
 

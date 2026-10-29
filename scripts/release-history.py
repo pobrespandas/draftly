@@ -3,6 +3,7 @@
 
 import argparse
 import json
+import os
 from pathlib import Path
 import plistlib
 import re
@@ -101,7 +102,9 @@ def validate_history(version, build, releases, appcast):
 
 def fetch_releases():
     command = ["gh", "api", "--paginate", "--slurp", "repos/pobrespandas/draftly/releases?per_page=100"]
-    result = subprocess.run(command, check=True, capture_output=True, text=True, timeout=60)
+    environment = dict(os.environ)
+    environment.pop("DRAFTLY_SPARKLE_PRIVATE_KEY", None)
+    result = subprocess.run(command, check=True, capture_output=True, text=True, timeout=60, env=environment)
     pages = json.loads(result.stdout)
     if not isinstance(pages, list) or any(not isinstance(page, list) for page in pages):
         raise ValueError("GitHub returned invalid release pages.")

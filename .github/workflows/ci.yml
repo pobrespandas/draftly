@@ -24,7 +24,9 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install Python test dependency
-        run: python -m pip install 'Pillow>=10,<13'
+        run: python -m pip install 'Pillow>=10,<13' 'cryptography>=44,<46'
+      - name: Resolve Sparkle tools
+        run: swift package resolve
       - name: Check toolchain
         run: |
           xcodebuild -version

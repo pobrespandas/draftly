@@ -225,6 +225,9 @@ A local release candidate packager now checks distribution signing, notarizes,
 staples, and checks Gatekeeper before marking a ZIP ready. Its control flow has
 only been tested with simulated tools. It does not publish, and a real
 Developer ID candidate remains unverified.
+An appcast preparer signs the candidate archive and feed, checks the embedded
+public key, and preserves the stable feed history. It does not publish. Tests
+use disposable keys and Sparkle's signing tool; no production key was used.
 
 The library uses the existing generic Core Data schema. Backups include shared
 themes and action execution history with compatibility checks. Development
