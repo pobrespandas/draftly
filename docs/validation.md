@@ -10343,3 +10343,7 @@ leave the indicator without contrast. The default color now resolves when the
 background is drawn. The focused tests check both Aqua and Dark Aqua, and the
 local build passed. Visual verification in a light QA window is still pending.
 The QA theme selector stopped responding during that check.
+
+The full serial Swift regression also passed after the draw-time color fix.
+The inventory check verified 682 Core and 853 app tests. This automated run
+does not replace the pending visible light-mode check.
