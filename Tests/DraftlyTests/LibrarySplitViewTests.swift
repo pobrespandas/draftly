@@ -29,14 +29,20 @@ struct LibrarySplitViewTests {
             let panels = (0..<4).map { _ in AnyView(Color.clear) }
             let controller = LibrarySplitController(model: model, panels: panels)
             let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: width, height: 600), styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+            let initialFrame = window.frame
             window.contentViewController = controller
+            let attachedFrame = window.frame
             controller.viewDidAppear()
+            let appearedFrame = window.frame
             await withCheckedContinuation { continuation in DispatchQueue.main.async { continuation.resume() } }
+            let settledFrame = window.frame
+            let settledConstraints = controller.view.constraints.filter { $0.isActive }.map { $0.description }
             window.setContentSize(NSSize(width: width, height: 600))
+            let resizedFrame = window.frame
             window.layoutIfNeeded()
             controller.view.layoutSubtreeIfNeeded()
             let frames = controller.splitViewItems.map { $0.viewController.view.frame }
-            let diagnostic = Comment(rawValue: "Requested width: \(width); window: \(window.frame); content: \(window.contentView?.frame ?? .zero); content min: \(window.contentMinSize); screen: \(window.screen?.visibleFrame ?? .zero); split: \(controller.splitView.frame); panel frames: \(frames); arranged frames: \(controller.splitView.arrangedSubviews.map(\.frame)); divider: \(controller.splitView.dividerThickness)")
+            let diagnostic = Comment(rawValue: "Requested width: \(width); initial: \(initialFrame); attached: \(attachedFrame); appeared: \(appearedFrame); settled: \(settledFrame); resized: \(resizedFrame); window: \(window.frame); min: \(window.minSize); max: \(window.maxSize); content: \(window.contentView?.frame ?? .zero); content min: \(window.contentMinSize); screen: \(window.screen?.visibleFrame ?? .zero); split: \(controller.splitView.frame); panel frames: \(frames); arranged frames: \(controller.splitView.arrangedSubviews.map(\.frame)); divider: \(controller.splitView.dividerThickness); toolbar: \(window.toolbar?.items.map { $0.itemIdentifier.rawValue } ?? []); active controller constraints: \(settledConstraints)")
             #expect(frames.allSatisfy { $0.width >= 159 })
             #expect(frames.reduce(0) { $0 + $1.width } <= width, diagnostic)
             #expect(abs(controller.splitView.frame.width - width) < 1, diagnostic)
