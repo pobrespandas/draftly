@@ -79,6 +79,12 @@
     <article><span class="category">Export · Draftly</span><h2>Save Draft in Obsidian Vault</h2><p>Save the current draft as a Markdown file in the vault root. The file name comes from the draft title.</p><p class="detail">This action creates a file and reports an error if a file with that name already exists.</p><a href="actions/obsidian-save.json" download>Download action file</a></article>
     <article><span class="category">Organize · Draftly</span><h2>Append Draft to Obsidian Daily Note</h2><p>Append the draft to <code>YYYY-MM-DD.md</code> in the vault root, using today's date. The file is created if missing.</p><p class="detail"><strong>This action changes an existing daily file.</strong> It does not use a custom daily-note folder.</p><a href="actions/obsidian-daily.json" download>Download action file</a></article>
   </div>
+  <h2>Notion and Day One</h2>
+  <p>These actions need the respective Mac app. Automated tests use simulated clipboard and URL hosts. Opening the apps and receiving content have not been verified.</p>
+  <div class="catalog" aria-label="Notion and Day One actions">
+    <article><span class="category">Notion · Draftly</span><h2>Copy Draft and Open Notion</h2><p>Copy the current draft as plain text, then open Notion so you can paste it. This action does not archive the draft.</p><p class="detail">If Notion cannot open after copying, the text remains on the clipboard.</p><a href="actions/notion-copy.json" download>Download action file</a></article>
+    <article><span class="category">Day One · Draftly</span><h2>Send Draft to Day One</h2><p>Open Day One with the current draft as the text of a new journal entry. This action does not archive the draft.</p><p class="detail"><strong>Day One may create a new entry.</strong> Draftly cannot confirm that Day One saved it.</p><a href="actions/dayone-send.json" download>Download action file</a></article>
+  </div>
   <h2>Drafts community references</h2>
   <div class="catalog" aria-label="Curated actions from Drafts">
     <article><span class="category">Create</span><h2>New Draft with Template</h2><p>Create a draft from a template and select a placeholder to begin writing.</p><p class="detail">Tested: template selection, tags, date rendering, and placeholder selection.</p><a href="https://actions.getdrafts.com/a/1VL">View original action and import URL</a></article>

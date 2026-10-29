@@ -1,0 +1,13 @@
+{
+  "uuid": "D46F0001-0000-4000-8000-000000000016",
+  "name": "Copy Draft and Open Notion",
+  "group": "Draftly",
+  "steps": [
+    {
+      "type": "script",
+      "data": {
+        "script": "if (!draft.content.trim()) { context.fail('The draft is empty.'); }\nelse if (!app.setClipboard(draft.content)) { context.fail('Could not copy the draft.'); }\nelse if (!app.openURL('notion://')) { context.fail('The draft was copied, but Notion could not be opened.'); }"
+      }
+    }
+  ]
+}

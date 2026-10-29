@@ -1,0 +1,13 @@
+{
+  "uuid": "D46F0001-0000-4000-8000-000000000017",
+  "name": "Send Draft to Day One",
+  "group": "Draftly",
+  "steps": [
+    {
+      "type": "script",
+      "data": {
+        "script": "if (!draft.content.trim()) { context.fail('The draft is empty.'); }\nelse if (!app.openURL('dayone://post?entry=' + encodeURIComponent(draft.content))) { context.fail('Could not open Day One.'); }"
+      }
+    }
+  ]
+}

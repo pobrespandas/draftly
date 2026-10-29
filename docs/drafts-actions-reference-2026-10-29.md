@@ -137,3 +137,27 @@ simulated host. The separate native adapter test
 temporary folder. It checks create, append, prepend, replace, and existing-file
 protection. These tests do not verify a real Obsidian vault, folder selection,
 or Obsidian's daily-note configuration.
+
+## Notion and Day One actions
+
+Copy Draft and Open Notion copies the complete draft as plain text and opens
+`notion://`. It does not archive the source, unlike the reference action. If
+opening fails after copying, the copied text remains on the clipboard. The
+Notion destination and receipt were not checked with the app.
+
+Send Draft to Day One opens `dayone://post?entry=` with the encoded draft. It
+keeps the source draft. A successful URL opening does not confirm an entry was
+saved. The Day One URL format is documented at
+https://dayoneapp.com/guides/tips-and-tutorials/day-one-url-scheme/.
+
+References downloaded for local research:
+
+- Copy to Notion: https://directory.getdrafts.com/a/1JO, SHA-256
+  `aa52b1a8ec3be93d29ac8368e43e3dfe02ff7435cae5ffedcf803a5e9b80fde9`.
+- Send to Day One: https://directory.getdrafts.com/a/1CR, SHA-256
+  `262f3cc79df844a92bf1fd1f0f57a267d00b0e2e56400a318154b4dc46c21747`.
+
+`swift test --filter OwnWritingActionsTests` passed twenty-seven methods. New
+cases check both runners, Unicode and URL encoding, empty drafts, clipboard and
+URL failures, and source retention with simulated hosts. No external app was
+opened, and no native clipboard or external delivery is accepted by this test.

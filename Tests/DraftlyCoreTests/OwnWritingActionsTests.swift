@@ -8,10 +8,12 @@ import Testing
     var promptFields: [String: Any]? = [:]
     var callbackStatus = "success"
     var failingOperation: String?
+    var falseOperation: String?
     var calls: [(String, [String: Any])] = []
     func perform(_ operation: String, values: [String: Any]) throws -> Any? {
         calls.append((operation, values))
         if operation == failingOperation { throw NSError(domain: "WritingActionHost", code: 1) }
+        if operation == falseOperation { return false }
         if operation == "selectPrompt" { return choice.map { ["index": $0] } }
         if operation == "prompt" { return promptFields.map { ["index": 0, "fields": $0] } }
         if operation == "callbackURL" { return ["status": callbackStatus, "parameters": [:]] }
@@ -30,11 +32,11 @@ struct OwnWritingActionsTests {
     @Test func actionFilesImportIntoLibrary() throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        for name in ["template", "transform", "rich-text", "sort-lines", "append-lines", "markdown-bold", "markdown-italic", "copy-html", "print-pdf", "things-draft", "things-taskpaper", "things-markdown", "add-to-list", "obsidian-save", "obsidian-daily"] {
+        for name in ["template", "transform", "rich-text", "sort-lines", "append-lines", "markdown-bold", "markdown-italic", "copy-html", "print-pdf", "things-draft", "things-taskpaper", "things-markdown", "add-to-list", "obsidian-save", "obsidian-daily", "notion-copy", "dayone-send"] {
             let data = try Data(contentsOf: root.appendingPathComponent("website/public/actions/\(name).json"))
             try LibraryFileImport.apply(data, fileExtension: "json", to: library)
         }
-        #expect(library.actions.count == 15)
+        #expect(library.actions.count == 17)
         #expect(library.actions.allSatisfy { $0.unsupportedSteps.isEmpty })
     }
 
@@ -339,5 +341,42 @@ struct OwnWritingActionsTests {
         #expect(!(await ActionTestExecution.succeeds(try action(name), runner: runner, worker: worker)))
         #expect(editor.content == source.content)
         #expect(library.notes.first { $0.id == source.id }?.isArchived == false)
+    }
+
+    @Test(arguments: [false, true]) func copyToNotionPreservesDraft(worker: Bool) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let source = try library.createNote(content: "café 🐼\n& ideas")
+        let editor = EditorSession(); editor.load(source)
+        let host = WritingActionHost(); let runner = ActionRunner(library: library, editor: editor, host: host)
+        #expect(await ActionTestExecution.succeeds(try action("notion-copy"), runner: runner, worker: worker), Comment(rawValue: runner.message ?? ""))
+        #expect(host.calls.first { $0.0 == "clipboard" }?.1["text"] as? String == source.content)
+        #expect(host.calls.first { $0.0 == "openURL" }?.1["url"] as? String == "notion://")
+        #expect(library.notes.first { $0.id == source.id }?.isArchived == false)
+        host.calls.removeAll(); host.falseOperation = "clipboard"
+        #expect(!(await ActionTestExecution.succeeds(try action("notion-copy"), runner: runner, worker: worker)))
+        #expect(!host.calls.contains { $0.0 == "openURL" })
+    }
+
+    @Test(arguments: [false, true]) func dayOneEncodesDraftAndHandlesFailure(worker: Bool) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let source = try library.createNote(content: "café 🐼 & ?\ntext")
+        let editor = EditorSession(); editor.load(source)
+        let host = WritingActionHost(); let runner = ActionRunner(library: library, editor: editor, host: host)
+        #expect(await ActionTestExecution.succeeds(try action("dayone-send"), runner: runner, worker: worker), Comment(rawValue: runner.message ?? ""))
+        let address = try #require(host.calls.first { $0.0 == "openURL" }?.1["url"] as? String)
+        let url = try #require(URLComponents(string: address))
+        #expect(url.scheme == "dayone" && url.host == "post")
+        #expect(url.queryItems?.first { $0.name == "entry" }?.value == source.content)
+        host.calls.removeAll(); host.falseOperation = "openURL"
+        #expect(!(await ActionTestExecution.succeeds(try action("dayone-send"), runner: runner, worker: worker)))
+        #expect(editor.content == source.content && library.notes.first { $0.id == source.id }?.isArchived == false)
+    }
+
+    @Test(arguments: [false, true], ["notion-copy", "dayone-send"]) func externalActionsRejectEmptyDraft(worker: Bool, name: String) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let editor = EditorSession(); editor.load(try library.createNote(content: " \n"))
+        let host = WritingActionHost(); let runner = ActionRunner(library: library, editor: editor, host: host)
+        #expect(!(await ActionTestExecution.succeeds(try action(name), runner: runner, worker: worker)))
+        #expect(!host.calls.contains { $0.0 == "clipboard" || $0.0 == "openURL" })
     }
 }
