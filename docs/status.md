@@ -3621,3 +3621,10 @@ checkpoint remain available for inspection. The test used local Google
 credentials, not GitHub Workload Identity Federation. It did not publish a
 GitHub release or promote a site, and it does not validate production keys or
 an interrupted network request.
+
+Hosted LargeDisplayPanels26 run 40949939848 reproduced ten panel issues. With
+initial constraints inactive and no toolbar, the content still expanded to
+1032 points. Without the controller appearance callback it stayed at 850
+points. This isolates a difference in the appearance/layout path, but does not
+identify the exact operation or resolve the sidebar inset. No production layout
+change was made.
