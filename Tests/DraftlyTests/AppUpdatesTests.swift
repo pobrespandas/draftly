@@ -9,20 +9,30 @@ struct AppUpdatesTests {
     private let key = Data(repeating: 42, count: 32).base64EncodedString()
     private let feed = "https://draftly.pobrespandas.com/appcast.xml"
 
+    private func available(enabled: String?, bundleID: String?, publicKey: String?, feed: String?,
+                           signedFeed: Bool = true, verifyBeforeExtraction: Bool = true,
+                           allowsAutomaticUpdates: Bool = false) -> Bool {
+        AppUpdateConfiguration.isAvailable(enabled: enabled, bundleID: bundleID, publicKey: publicKey, feed: feed,
+            signedFeed: signedFeed, verifyBeforeExtraction: verifyBeforeExtraction, allowsAutomaticUpdates: allowsAutomaticUpdates)
+    }
+
     @Test func enablesOnlyTheConfiguredMainApp() {
-        #expect(AppUpdateConfiguration.isAvailable(enabled: "YES", bundleID: "com.pobrespandas.draftly", publicKey: key, feed: feed))
-        #expect(!AppUpdateConfiguration.isAvailable(enabled: nil, bundleID: "com.pobrespandas.draftly", publicKey: key, feed: feed))
-        #expect(!AppUpdateConfiguration.isAvailable(enabled: "YES", bundleID: "com.example.qa", publicKey: key, feed: feed))
-        #expect(!AppUpdateConfiguration.isAvailable(enabled: "YES", bundleID: nil, publicKey: key, feed: feed))
+        #expect(available(enabled: "YES", bundleID: "com.pobrespandas.draftly", publicKey: key, feed: feed))
+        #expect(!available(enabled: nil, bundleID: "com.pobrespandas.draftly", publicKey: key, feed: feed))
+        #expect(!available(enabled: "YES", bundleID: "com.example.qa", publicKey: key, feed: feed))
+        #expect(!available(enabled: "YES", bundleID: nil, publicKey: key, feed: feed))
     }
 
     @Test func rejectsMissingOrInvalidConfiguration() {
         let id = "com.pobrespandas.draftly"
-        #expect(!AppUpdateConfiguration.isAvailable(enabled: "YES", bundleID: id, publicKey: "", feed: feed))
-        #expect(!AppUpdateConfiguration.isAvailable(enabled: "YES", bundleID: id, publicKey: "not a key", feed: feed))
-        #expect(!AppUpdateConfiguration.isAvailable(enabled: "YES", bundleID: id, publicKey: key, feed: "http://draftly.pobrespandas.com/appcast.xml"))
-        #expect(!AppUpdateConfiguration.isAvailable(enabled: "YES", bundleID: id, publicKey: key, feed: "https://example.com/appcast.xml"))
-        #expect(!AppUpdateConfiguration.isAvailable(enabled: "YES", bundleID: id, publicKey: key, feed: nil))
+        #expect(!available(enabled: "YES", bundleID: id, publicKey: "", feed: feed))
+        #expect(!available(enabled: "YES", bundleID: id, publicKey: "not a key", feed: feed))
+        #expect(!available(enabled: "YES", bundleID: id, publicKey: key, feed: "http://draftly.pobrespandas.com/appcast.xml"))
+        #expect(!available(enabled: "YES", bundleID: id, publicKey: key, feed: "https://example.com/appcast.xml"))
+        #expect(!available(enabled: "YES", bundleID: id, publicKey: key, feed: nil))
+        #expect(!available(enabled: "YES", bundleID: id, publicKey: key, feed: feed, signedFeed: false))
+        #expect(!available(enabled: "YES", bundleID: id, publicKey: key, feed: feed, verifyBeforeExtraction: false))
+        #expect(!available(enabled: "YES", bundleID: id, publicKey: key, feed: feed, allowsAutomaticUpdates: true))
     }
 }
 

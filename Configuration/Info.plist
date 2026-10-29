@@ -18,6 +18,9 @@
     <key>DraftlyUpdatesEnabled</key><string>$(DRAFTLY_UPDATES_ENABLED)</string>
     <key>SUEnableAutomaticChecks</key><true/>
     <key>SUAutomaticallyUpdate</key><false/>
+    <key>SUAllowsAutomaticUpdates</key><false/>
+    <key>SURequireSignedFeed</key><true/>
+    <key>SUVerifyUpdateBeforeExtraction</key><true/>
     <key>NSAppleEventsUsageDescription</key><string>Run AppleScript actions that you choose.</string>
     <key>NSCalendarsFullAccessUsageDescription</key><string>Create calendar events from your drafts.</string>
     <key>NSRemindersFullAccessUsageDescription</key><string>Create reminders from your drafts.</string>

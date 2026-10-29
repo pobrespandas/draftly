@@ -48,7 +48,11 @@ def validate_metadata(source, built, *, public_key=None):
     if public_key is not None:
         validate_key(public_key)
         if (built.get("DraftlyUpdatesEnabled") != "YES" or built.get("SUPublicEDKey") != public_key
-                or built.get("SUFeedURL") != FEED or built.get("SUAutomaticallyUpdate") is not False):
+                or built.get("SUFeedURL") != FEED or built.get("SUAutomaticallyUpdate") is not False
+                or built.get("SUAllowsAutomaticUpdates") is not False
+                or built.get("SUEnableAutomaticChecks") is not True
+                or built.get("SURequireSignedFeed") is not True
+                or built.get("SUVerifyUpdateBeforeExtraction") is not True):
             raise ValueError("The built app has an unexpected update configuration.")
     elif built.get("DraftlyUpdatesEnabled") == "YES":
         raise ValueError("The built app unexpectedly enables updates.")

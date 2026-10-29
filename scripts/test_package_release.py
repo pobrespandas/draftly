@@ -48,7 +48,9 @@ class FakeRunner:
                     "CFBundleShortVersionString": "0.1.0", "CFBundleVersion": "1",
                     "CFBundleURLTypes": [{"CFBundleURLSchemes": ["draftly"]}],
                     "DraftlyUpdatesEnabled": "YES" if "DRAFTLY_UPDATES_ENABLED=YES" in command else "NO",
-                    "SUPublicEDKey": KEY, "SUFeedURL": release.FEED, "SUAutomaticallyUpdate": False}
+                    "SUPublicEDKey": KEY, "SUFeedURL": release.FEED, "SUAutomaticallyUpdate": False, "SUAllowsAutomaticUpdates": False,
+                    "SURequireSignedFeed": True, "SUVerifyUpdateBeforeExtraction": True,
+                    "SUEnableAutomaticChecks": True}
             (contents / "Info.plist").write_bytes(plistlib.dumps(info))
         elif command[0] == "ditto":
             Path(command[-1]).write_bytes(b"neutral candidate")
@@ -184,11 +186,15 @@ class PackageReleaseTests(unittest.TestCase):
                  "CFBundleShortVersionString": "0.1.0", "CFBundleVersion": "1",
                  "CFBundleURLTypes": [{"CFBundleURLSchemes": ["draftly"]}],
                  "DraftlyUpdatesEnabled": "YES", "SUPublicEDKey": KEY,
-                 "SUFeedURL": release.FEED, "SUAutomaticallyUpdate": False}
+                 "SUFeedURL": release.FEED, "SUAutomaticallyUpdate": False, "SUAllowsAutomaticUpdates": False,
+                 "SURequireSignedFeed": True, "SUVerifyUpdateBeforeExtraction": True,
+                 "SUEnableAutomaticChecks": True}
         self.assertEqual(release.validate_metadata(source, valid, public_key=KEY), ("0.1.0", "1"))
         for field, value in (("CFBundleVersion", "2"), ("CFBundleIdentifier", "other"),
                              ("CFBundleURLTypes", [{"CFBundleURLSchemes": "draftly"}]),
-                             ("SUAutomaticallyUpdate", True), ("SUPublicEDKey", "other")):
+                             ("SUAutomaticallyUpdate", True), ("SUAllowsAutomaticUpdates", True), ("SUPublicEDKey", "other"),
+                             ("SURequireSignedFeed", False), ("SUVerifyUpdateBeforeExtraction", False),
+                             ("SUEnableAutomaticChecks", False)):
             with self.subTest(field=field):
                 invalid = dict(valid, **{field: value})
                 with self.assertRaises(ValueError):
