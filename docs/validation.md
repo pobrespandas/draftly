@@ -11304,3 +11304,20 @@ do not execute, prior text remains, and a separately requested recovery works.
 The Intent suite passed. An initial test assertion assumed history was oldest
 first; it was corrected to identify the recovery by action ID. This is not a
 native late Prompt response. No production code changed.
+
+### Prompt keyboard recovery through App Intent — 29 October 2026
+
+After the earlier system-delivered Prompt cancellation and a successful recovery
+Intent, a later separate QA session delivered a new Prompt action through the
+same Shortcut. Computer Use pasted `café 🐼` into its focused field and pressed
+Return. The Shortcut reported completion and the target QA draft became
+`Keyboard: café 🐼`. History and closed storage show a Success run for the new
+action; the earlier cancellation and intermediate recovery remain separate
+records. User activity and the intermediate recovery occurred between the two
+Prompt sessions. This demonstrates the observed later Prompt and Return path,
+not a physical key press, a native late response or uninterrupted isolation.
+
+The existing QA Shortcut's original fields were restored. After the user said
+QA could be closed, QA quit, its exact registration was removed and its bundle
+moved to Trash. Its library, including the user's additional note, remains.
+No production code changed.
