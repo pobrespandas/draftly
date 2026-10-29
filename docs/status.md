@@ -3205,5 +3205,6 @@ a merge policy remain pending. The usual app is unchanged.
 
 Replacing a group with a new name now moves its existing actions in the same
 transaction. Cancel and save failure retain the original membership. Automated
-tests cover the regression; native confirmation remains pending. Conflicts with
+tests cover the regression. Native QA verified Cancel and Replace for a group
+with one action, including identity and membership after restart. Conflicts with
 implicit groups need a separate policy. The usual app is unchanged.

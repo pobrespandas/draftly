@@ -64,7 +64,9 @@ Action installation links ask before they replace changed actions or groups
 with the same identity. Cancel keeps the whole batch unchanged. Duplicate
 identities and changes made during confirmation stop the import. Automated
 tests cover these paths. Native QA verified Cancel and Replace for one action,
-including its identity after restart. Group link confirmation remains to be checked.
+including its identity after restart. Native QA also verified Cancel and Replace
+for a renamed group with one action, including identity and membership after
+restart.
 An incoming group with the same name as another stored group and a different
 identity is rejected before any part of the link is saved. This does not yet
 define a merge policy for that conflict.

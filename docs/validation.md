@@ -10707,7 +10707,15 @@ presentation and a conflict merge policy remain pending.
 The new regression first failed because existing actions stayed in the old
 group. It passed after the atomic rename. Eleven focused action link tests and
 the serial app suite (884 tests) passed. The local Debug build passed. Native
-confirmation and conflicts with implicit groups remain pending.
+confirmation was pending at that point; implicit group conflicts remain open.
+
+Native Engine QA imported a neutral group and one action. Its installation link
+renamed the group. The confirmation named the group and action. Cancel retained
+the original group UUID and membership. Replace retained the UUID and moved the
+action to the new name. A verification action passed again after QA restarted.
+This does not cover implicit group conflicts or all import formats. QA quit
+normally, its exact registration was removed, and its app and fixtures moved
+to Trash. The isolated QA records remain.
 
 An additional action link test checks an imported action edit, unknown fields,
 an unrelated group, and backup restoration after the group rename. All twelve
