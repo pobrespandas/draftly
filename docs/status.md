@@ -3777,3 +3777,7 @@ The user saved a base64-encoded copy of the Apple notarization key in Google
 Password Manager. The first recovery check did not match; a second copy from
 that named entry matched the local file byte for byte. The Mac clipboard was
 cleared. Recovery from another device is still pending.
+
+Hosted FullOn27 run 40959080405 passed the complete Swift inventory, Python,
+website and matrix checks, local app build and package identity checks at commit
+6976e7d. This does not replace macOS 26 CI or validate publication.
