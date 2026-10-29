@@ -11064,3 +11064,27 @@ automation suites passed, as did the local Debug build. This does not implement 
 conflict-resolution interface or prove system-delivered URL or Intent behavior.
 The user must resolve the edits before running the action. Further edits can
 schedule autosave again; preservation beyond this boundary needs separate work.
+
+### Included action execution and cancellation in QA — 29 October 2026
+
+A separate ad-hoc signed Debug QA app used an isolated test library. Actions
+were imported from a locally generated directory link and run from the Actions
+menu. A root script created a trace and a template tag. An include resolved the
+child name from that tag. The child appended to the trace. The root tail checked
+and displayed `root|child|tail` with Unicode. The UI reported Success.
+
+A second root saved neutral text, queued another action and included a child by
+name. The child checked the root context and called `context.cancel()`. The UI
+reported Cancelled, kept the saved text in Inbox and did not show either tail's
+text. Archive was configured as the success disposition. History showed no
+queued or separate child run. A later run of the first root succeeded. After
+normal exit, the isolated store contained exactly three root run records: two
+Success and one Cancelled, with distinct run IDs and the same note ID. Run IDs
+are not execution IDs. The QA bundle was unregistered and moved to Trash; its
+library remains available.
+
+This session covers the UI entry, template and literal-name inclusion, shared
+script context, this cancellation path and recovery. It does not establish
+Drafts configuration precedence, an authentic Drafts export, success callback
+parameters, execution IDs, or URL and system-delivered App Intent execution.
+The six strict engine contracts remain partial.

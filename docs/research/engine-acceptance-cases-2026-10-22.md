@@ -191,3 +191,13 @@ Do not request a repeat of that check. The older record does not name the exact
 control/package; the present confirmation is user verification, not a new CUA
 measurement. Permission negatives and route-specific cases retain their own
 scope. The speech record links the recovered evidence and the later discrepancy.
+
+## Included action UI follow-up — 29 October 2026
+
+The separate QA session in `docs/validation.md` observed a template-resolved
+child sharing its root script context, and a literal-name child cancelling its
+root after an earlier save and queue. The note stayed in Inbox, no tail or queued
+run appeared, and a later root execution succeeded. This is UI evidence for
+those specific paths. CFG-01 through CFG-05 still need the Drafts reference;
+URL, system-delivered Intent, success parameters and execution identities remain
+separate obligations. No contract is promoted on this evidence alone.
