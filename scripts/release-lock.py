@@ -131,7 +131,7 @@ def recover(store, journal):
     return None
 
 
-def release(store, journal):
+def check(store, journal):
     state = read_journal(journal)
     if state["scope"] != validate_scope(store.scope()):
         raise ValueError("The lock scope does not match the journal.")
@@ -140,6 +140,15 @@ def release(store, journal):
     current = store.read()
     if current is None or validate_object(current) != {"owner": state["owner"], "generation": state["generation"]}:
         raise ValueError("The remote lock does not belong to this operation.")
+    return validate_object(current)
+
+
+def release(store, journal):
+    current = check(store, journal)
+    state = read_journal(journal)
+    if (state["state"] != "held" or state["scope"] != validate_scope(store.scope())
+            or current != {"owner": state["owner"], "generation": state["generation"]}):
+        raise ValueError("The lock journal changed during verification.")
     state["state"] = "releasing"
     write_journal(journal, state)
     store.delete(state["generation"])
@@ -229,13 +238,13 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("operation", choices=("acquire", "recover", "release"))
+    parser.add_argument("operation", choices=("acquire", "recover", "check", "release"))
     parser.add_argument("--bucket", required=True)
     parser.add_argument("--journal", required=True)
     args = parser.parse_args()
     try:
         store = StorageLock(args.bucket, os.environ.get("DRAFTLY_RELEASE_LOCK_TOKEN"))
-        result = {"acquire": acquire, "recover": recover, "release": release}[args.operation](store, args.journal)
+        result = {"acquire": acquire, "recover": recover, "check": check, "release": release}[args.operation](store, args.journal)
         print(json.dumps({"result": result, "state": read_journal(args.journal)["state"]}))
     except (ValueError, OSError) as error:
         raise SystemExit("Release lock failed: " + str(error))

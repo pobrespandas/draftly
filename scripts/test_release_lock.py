@@ -96,6 +96,25 @@ class ReleaseLockTests(unittest.TestCase):
             lock.release(self.store, self.journal)
         self.assertEqual(self.store.deletes, [])
 
+    def test_check_requires_the_same_held_owner_and_generation(self):
+        held = lock.acquire(self.store, self.journal)
+        self.assertEqual(lock.check(self.store, self.journal), held)
+        for current in (None, {"owner": "f" * 32, "generation": held["generation"]},
+                        {"owner": held["owner"], "generation": "999"}):
+            with self.subTest(current=current):
+                self.store.current = current
+                with self.assertRaises(ValueError):
+                    lock.check(self.store, self.journal)
+        self.assertEqual(self.store.deletes, [])
+
+    def test_check_rejects_different_scope_and_released_journal(self):
+        lock.acquire(self.store, self.journal)
+        with self.assertRaisesRegex(ValueError, "scope"):
+            lock.check(FakeStore(bucket="other-bucket"), self.journal)
+        lock.release(self.store, self.journal)
+        with self.assertRaisesRegex(ValueError, "hold"):
+            lock.check(self.store, self.journal)
+
     def test_journal_cannot_be_recovered_or_released_in_a_different_bucket(self):
         lock.acquire(self.store, self.journal)
         other = FakeStore(bucket="other-bucket")

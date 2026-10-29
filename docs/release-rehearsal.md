@@ -324,6 +324,11 @@ sync fails, the command stops without issuing that change. After a failure,
 inspect the journal before recovery because an atomic replacement may already
 have changed its visible state.
 
+The `check` operation compares the journal scope, owner, and generation with
+the current object without changing it. It is a point-in-time check, not an
+atomic guard on a later Hosting write. It cannot stop a writer that bypasses the
+coordinator or a manual lock deletion after the check.
+
 This component has fake-service tests only. It is not connected to the release
 workflow and does not prevent other Firebase writers from bypassing it. Before
 publication, all writers need an enforced coordinator with exclusive Firebase

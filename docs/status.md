@@ -3763,3 +3763,8 @@ The 850-point fit test passed, but the suite had twelve issues, including new
 failures in compressed divider restoration. The production adjustment was
 reverted. The focused suite passed locally after the revert. macOS 26 CI stays
 unresolved; the diagnostic comparison remains for investigation.
+
+The release lock now has a read-only ownership check for a future coordinator.
+Tests reject missing, replaced, released, and wrong-scope locks. All 230 Python
+tests passed with fake stores. The check is not atomic with a later Hosting
+write, and publication remains disabled until all writers are coordinated.
