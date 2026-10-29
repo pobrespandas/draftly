@@ -5,6 +5,24 @@ import DraftlyCore
 
 @Suite("Native action API") @MainActor
 struct NativeActionAPITests {
+    @Test(arguments: [false, true]) func failedTransferRestoresDestinationAndRemovesPartialOutput(move: Bool) throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let source = root.appendingPathComponent("source"), destination = root.appendingPathComponent("destination")
+        try "Source".write(to: source, atomically: true, encoding: .utf8)
+        try "Original 🐼".write(to: destination, atomically: true, encoding: .utf8)
+        enum FixtureFailure: Error { case interrupted }
+        #expect(throws: FixtureFailure.self) {
+            try NativeFileAdapter().transferItem(from: source, to: destination, root: root, overwrite: true, move: move) { _, target, _ in
+                try "Partial".write(to: target, atomically: true, encoding: .utf8)
+                throw FixtureFailure.interrupted
+            }
+        }
+        #expect(try String(contentsOf: destination, encoding: .utf8) == "Original 🐼")
+        #expect(try String(contentsOf: source, encoding: .utf8) == "Source")
+        #expect(Set(try FileManager.default.contentsOfDirectory(atPath: root.path)) == Set(["source", "destination"]))
+    }
     @Test(arguments: [false, true]) func scriptsCopyAndMoveWithExplicitOverwrite(worker: Bool) async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
@@ -25,6 +43,8 @@ struct NativeActionAPITests {
         if (!fm.writeString('/sourceDir/a','New') || !fm.writeString('/targetDir/b','Old')) throw Error('directory setup');
         if (!fm.copyItem('/sourceDir','/targetDir',true)) throw Error('directory replace');
         if (fm.readString('/targetDir/a') !== 'New' || fm.exists('/targetDir/b')) throw Error('directory result');
+        if (!fm.writeString('/moveDir/new','Moved folder') || !fm.moveItem('/moveDir','/targetDir',true)) throw Error('directory move');
+        if (fm.exists('/moveDir') || fm.readString('/targetDir/new') !== 'Moved folder' || fm.exists('/targetDir/a')) throw Error('directory move result');
         """])])
         if worker { #expect(await runner.runAsync(action).result.succeeded, Comment(rawValue: runner.message ?? "")) }
         else { #expect(runner.run(action), Comment(rawValue: runner.message ?? "")) }

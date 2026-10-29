@@ -230,7 +230,11 @@ struct NativeFileAdapter {
         }
     }
 
-    private func transferItem(from source: URL, to destination: URL, root: URL, overwrite: Bool, move: Bool) throws {
+    func transferItem(from source: URL, to destination: URL, root: URL, overwrite: Bool, move: Bool,
+                      performTransfer: (URL, URL, Bool) throws -> Void = { source, destination, move in
+                          if move { try FileManager.default.moveItem(at: source, to: destination) }
+                          else { try FileManager.default.copyItem(at: source, to: destination) }
+                      }) throws {
         let manager = FileManager.default
         guard source != root, destination != root, source != destination,
               !destination.path.hasPrefix(source.path + "/"),
@@ -238,10 +242,7 @@ struct NativeFileAdapter {
             throw DraftlyError.message("The source and destination must be separate paths inside the file root.")
         }
         guard manager.fileExists(atPath: source.path) else { throw DraftlyError.message("The source file does not exist.") }
-        func transfer() throws {
-            if move { try manager.moveItem(at: source, to: destination) }
-            else { try manager.copyItem(at: source, to: destination) }
-        }
+        func transfer() throws { try performTransfer(source, destination, move) }
         guard overwrite, manager.fileExists(atPath: destination.path) else { try transfer(); return }
         let backup = destination.deletingLastPathComponent().appendingPathComponent(".draftly-replaced-" + UUID().uuidString)
         try manager.moveItem(at: destination, to: backup)

@@ -10936,3 +10936,13 @@ directory copy, same-path rejection, missing source and normal collisions in a
 temporary local root. The focused file suites, structural matrix check and local
 Debug build passed. Failures after backup, concurrent path changes, directory
 moves, native permissions and comparison with Drafts remain unverified.
+
+### Controlled file replacement failure — 29 October 2026
+
+A controlled transfer failure now runs after the previous destination is moved
+to its temporary backup. The test writes partial output and throws. For copy and
+move, the adapter removes the partial output, restores the destination, and
+retains the source. Both script runners also replaced an existing directory by
+moving another directory. The focused native file suites, matrix structural
+check and local Debug build passed. The injected failure is not an actual system
+permission failure or a test of concurrent changes.
