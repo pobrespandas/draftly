@@ -43,3 +43,31 @@ or publish either source.
 
 Do not use the rehearsal as evidence that a public release is ready. A tag
 push does not start a publication in this version of the workflow.
+
+## Local signed candidate
+
+`scripts/package-release.py` prepares a candidate without publishing it. It
+requires an installed Developer ID provisioning profile and a Keychain
+notarytool profile. It builds with the existing team, bundle ID and CloudKit
+container, with production CloudKit and push settings. It checks the signature,
+submits the ZIP to Apple, waits for acceptance, staples the app and checks
+Gatekeeper before it writes the final ZIP and `READY` marker.
+
+Use a new destination outside the repository or in its ignored `.build`
+directory. The command never replaces an existing candidate. It requires a
+clean source tree and a version tag that points at the current commit. It
+checks the source again after the build. Update checks stay disabled unless a
+valid Sparkle public key is provided. Keep them disabled until the real update
+acceptance is complete.
+
+```sh
+python3 scripts/package-release.py --tag v0.1.0 --output .build/release-candidates/example \
+  --profile 'Developer ID profile name' --notary-profile 'Keychain profile name'
+```
+
+The output keeps `notary-submission.zip` and, after the service returns an
+identifier, `notary-submission.json`. The submitted ZIP is not the
+final stapled package. If the wait fails, inspect that submission with
+`xcrun notarytool info` before deciding whether to submit again. A candidate
+without `READY` must not be published. This workflow and its mocks have not
+yet produced a real Developer ID package.

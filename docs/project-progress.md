@@ -221,6 +221,10 @@ The signing verifier can require production CloudKit and push environments,
 Developer ID, and hardened runtime. The default build settings still use the
 development environments. The production configuration has not been signed
 or tested against CloudKit.
+A local release candidate packager now checks distribution signing, notarizes,
+staples, and checks Gatekeeper before marking a ZIP ready. Its control flow has
+only been tested with simulated tools. It does not publish, and a real
+Developer ID candidate remains unverified.
 
 The library uses the existing generic Core Data schema. Backups include shared
 themes and action execution history with compatibility checks. Development
