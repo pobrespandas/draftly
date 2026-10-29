@@ -348,6 +348,33 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
         if let affectedRange, (affectedRange.location == NSNotFound || affectedRange.location < 0 ||
             affectedRange.length < 0 || affectedRange.location > source.length ||
             affectedRange.length > source.length - affectedRange.location) { return [] }
+        func matchLine(_ line: String) -> (ordered: (rule: Int, indent: String, sequence: NSRange, number: Int)?, unordered: String?) {
+            let lineSource = line as NSString
+            for (index, rule) in listRules.enumerated() {
+                guard let match = rule.expression.firstMatch(in: line, range: NSRange(location: 0, length: lineSource.length)),
+                      match.range.location == 0, let indent = capture(match, rule.captures["indent"]) else { continue }
+                if rule.captures["sequence"] == nil { return (nil, lineSource.substring(with: indent)) }
+                guard let sequence = capture(match, rule.captures["sequence"]),
+                      let number = Int(lineSource.substring(with: sequence)) else { continue }
+                return ((index, lineSource.substring(with: indent), sequence, number), nil)
+            }
+            return (nil, nil)
+        }
+        if let affectedRange, source.length > 0 {
+            // Only groups that intersect the affected lines can produce edits.
+            let start = min(affectedRange.location, source.length - 1)
+            let end = min(source.length, max(start + 1, NSMaxRange(affectedRange)))
+            var scan = source.lineRange(for: NSRange(location: start, length: 0)).location
+            var containsListItem = false
+            while scan < end {
+                let lineRange = source.lineRange(for: NSRange(location: scan, length: 0))
+                let line = source.substring(with: lineRange).trimmingCharacters(in: .newlines)
+                let matched = matchLine(line)
+                if matched.ordered != nil || matched.unordered != nil { containsListItem = true; break }
+                scan = NSMaxRange(lineRange)
+            }
+            if !containsListItem { return [] }
+        }
         var offset = 0, levels: [Level] = []
         var groups: [Group] = []
         var inGroup = false
@@ -355,21 +382,8 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
             let lineRange = source.lineRange(for: NSRange(location: offset, length: 0))
             let line = source.substring(with: lineRange).trimmingCharacters(in: .newlines)
             let lineSource = line as NSString
-            var matched: (rule: Int, indent: String, sequence: NSRange, number: Int)?
-            var unorderedIndent: String?
-            for (index, rule) in listRules.enumerated() {
-                guard let match = rule.expression.firstMatch(in: line, range: NSRange(location: 0, length: lineSource.length)),
-                      match.range.location == 0, let indent = capture(match, rule.captures["indent"]) else { continue }
-                if rule.captures["sequence"] == nil {
-                    unorderedIndent = lineSource.substring(with: indent)
-                    break
-                }
-                guard
-                      let sequence = capture(match, rule.captures["sequence"]),
-                      let number = Int(lineSource.substring(with: sequence)) else { continue }
-                matched = (index, lineSource.substring(with: indent), sequence, number)
-                break
-            }
+            let match = matchLine(line)
+            let matched = match.ordered, unorderedIndent = match.unordered
             if matched != nil || unorderedIndent != nil {
                 if inGroup { groups[groups.count - 1].range.length = NSMaxRange(lineRange) - groups[groups.count - 1].range.location }
                 else { groups.append(Group(range: lineRange)); inGroup = true }

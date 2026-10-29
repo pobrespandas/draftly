@@ -10553,3 +10553,18 @@ pasteboard in that case. The complete serial Swift inventory passed (696 Core,
 871 app), and the local Debug build passed. This checks routing only; an actual
 file paste and rich-text variants still need native verification. The usual app
 was not updated.
+
+### Ordered-list planning cost — 29 October 2026
+
+The planner now checks the affected lines before it scans the document for
+list groups. If none uses a list rule, it returns without scanning all lines.
+The same matcher handles this check and the full calculation. Tests cover
+plain text, multiple selected list groups, Unicode and the document end.
+
+On an Apple M2 Max with macOS 27.2 and Xcode 27.1, a temporary Debug probe
+planned ten insertions in a 102,500 UTF-16 unit document of ordinary text.
+One run took 61.7 ms before and 2.2 ms after the change. These are single
+calculation measurements, not end-to-end editor latency or acceptance limits.
+Editing within a list can still scan the document. The complete serial Swift
+inventory passed (697 Core, 871 app), and the local Debug build passed. Real
+editor performance and large-list performance remain pending.

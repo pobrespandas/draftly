@@ -131,4 +131,17 @@ struct OrderedListRenumberingTests {
         #expect(result as String == "1. 🐼\r\n2. Dos\r\n\r\n10. Otra\r\n99. Final")
     }
 
+    @Test func affectedLinesIncludeListsAcrossTextAndAtDocumentEnd() throws {
+        let syntax = try ScriptSyntax.definition("Markdown")
+        let source = "Intro 🐼\n\n1. Uno\n9. Dos\n\nFinal\n\n4. Uno\n9. Dos\n"
+        let intro = (source as NSString).range(of: "Intro 🐼")
+        #expect(try syntax.orderedListRenumbering(in: source, affectedRange: intro).isEmpty)
+        let first = (source as NSString).range(of: "1. Uno")
+        let last = (source as NSString).range(of: "9. Dos", options: .backwards)
+        let spanning = NSRange(location: first.location, length: last.upperBound - first.location)
+        #expect(try syntax.orderedListRenumbering(in: source, affectedRange: spanning).map(\.text) == ["2", "5"])
+        let end = NSRange(location: source.utf16.count, length: 0)
+        #expect(try syntax.orderedListRenumbering(in: source, affectedRange: end).map(\.text) == ["5"])
+    }
+
 }
