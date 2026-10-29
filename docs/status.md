@@ -3580,3 +3580,11 @@ fails. A pre-existing profile is still rejected and preserved. A regression
 test reproduced the leftover file before the fix. The signing setup tests and
 all 180 Python tests passed with injected tools and temporary files. This does
 not cover a runner killed without cleanup or enable release signing.
+
+Hosted LargeDisplayPanels26 run 40948762553 compared three initial-constraint
+scenarios. Active constraints produced a 1030-point attached frame; deferred
+and inactive constraints produced 830 points. All three still settled at a
+1032-point content width after requesting 850 points. The initial constraints
+alone do not explain the final width. The suite failed the same ten geometry
+assertions. A local experiment that removed those constraints and applied panel
+positions later did not preserve all existing panel assertions and was reverted.
