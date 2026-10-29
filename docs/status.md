@@ -3538,3 +3538,12 @@ the controller, calling its appearance callback, settling layout, and requesting
 reports active controller constraints and toolbar item identities. The test
 keeps the existing geometry assertions. The focused local suite and local
 build passed. Hosted diagnosis is needed to interpret the earlier expansion.
+
+Hosted LargeDisplayPanels26 run 40946127522 failed the existing panel tests.
+At the 850-point fixture, the window was 850 points before the controller was
+attached and became 1030 points wide and 32 points high immediately after
+attachment, before the appearance callback installed the toolbar. The split
+view still had the previously observed sidebar inset. The cause is not yet
+proven. A local experiment removing initial width constraints introduced six
+panel assertion failures; that experiment was reverted. Do not loosen the
+geometry assertions or attribute the expansion to the toolbar.
