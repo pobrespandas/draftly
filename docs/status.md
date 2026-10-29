@@ -3671,3 +3671,8 @@ preconditions. It is not connected to the workflow or enforced for other
 Firebase writers. A shared coordinator and access controls remain required.
 Hosted Toolchain27 run 40952773179 passed Python, website, matrix, and release
 toolchain checks. It did not run the Swift suites or a production release.
+
+The writer lock now syncs its journal file and directory before a remote
+change. Tests exercise file and directory sync failures during acquisition
+and release. These tests do not establish recovery from a lost runner or
+enforce coordination with other site writers.

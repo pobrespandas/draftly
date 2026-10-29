@@ -154,6 +154,35 @@ class ReleaseLockTests(unittest.TestCase):
         self.assertEqual(json.loads(self.journal.read_text())["state"], "busy")
         self.assertEqual(self.store.current["generation"], "8")
 
+    def test_acquire_does_not_contact_store_if_journal_sync_fails(self):
+        with patch.object(lock.os, "fsync", side_effect=OSError("sync failed")):
+            with self.assertRaisesRegex(OSError, "sync failed"):
+                lock.acquire(self.store, self.journal)
+        self.assertIsNone(self.store.current)
+
+    def test_release_does_not_delete_if_journal_sync_fails(self):
+        held = lock.acquire(self.store, self.journal)
+        with patch.object(lock.os, "fsync", side_effect=OSError("sync failed")):
+            with self.assertRaisesRegex(OSError, "sync failed"):
+                lock.release(self.store, self.journal)
+        self.assertEqual(self.store.current, held)
+        self.assertEqual(self.store.deletes, [])
+
+    def test_directory_sync_failure_prevents_remote_changes(self):
+        with patch.object(lock, "sync_directory", side_effect=OSError("directory sync failed")):
+            with self.assertRaisesRegex(OSError, "directory sync failed"):
+                lock.acquire(self.store, self.journal)
+        self.assertIsNone(self.store.current)
+
+        self.journal.unlink()
+        held = lock.acquire(self.store, self.journal)
+        with patch.object(lock, "sync_directory", side_effect=OSError("directory sync failed")):
+            with self.assertRaisesRegex(OSError, "directory sync failed"):
+                lock.release(self.store, self.journal)
+        self.assertEqual(self.store.current, held)
+        self.assertEqual(self.store.deletes, [])
+        self.assertEqual(json.loads(self.journal.read_text())["state"], "releasing")
+
 
 if __name__ == "__main__":
     unittest.main()

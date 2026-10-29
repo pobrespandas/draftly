@@ -19,6 +19,9 @@ def write_journal(path, value, *, new=False):
     if new:
         with path.open("x") as output:
             output.write(data)
+            output.flush()
+            os.fsync(output.fileno())
+        sync_directory(path.parent)
         return
     if path.is_symlink():
         raise ValueError("The lock journal must not be a symlink.")
@@ -27,11 +30,22 @@ def write_journal(path, value, *, new=False):
         with tempfile.NamedTemporaryFile(mode="w", dir=path.parent, prefix=".release-lock-", delete=False) as output:
             temporary = output.name
             output.write(data)
+            output.flush()
+            os.fsync(output.fileno())
         os.replace(temporary, path)
         temporary = None
+        sync_directory(path.parent)
     finally:
         if temporary is not None:
             Path(temporary).unlink(missing_ok=True)
+
+
+def sync_directory(path):
+    descriptor = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
 
 
 def validate_scope(value):

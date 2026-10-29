@@ -310,6 +310,10 @@ coordinator. It creates one fixed object with `ifGenerationMatch=0` and
 deletes only the recorded generation. Its journal records the bucket, object,
 owner and operation state before a remote change. A lost response requires
 explicit recovery. Recovery does not retry creation or delete another owner.
+The journal file and its directory are synced before each remote change. If
+sync fails, the command stops without issuing that change. After a failure,
+inspect the journal before recovery because an atomic replacement may already
+have changed its visible state.
 
 This component has fake-service tests only. It is not connected to the release
 workflow and does not prevent other Firebase writers from bypassing it. Before
