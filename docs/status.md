@@ -3491,3 +3491,10 @@ used a separate identity and feed. This is not acceptance of the production
 update, CI publication, CloudKit migration or all preferences. The preview
 channel expires on 30 October 2026. The live site version and files were
 unchanged after the preview deployment.
+
+A local diagnostic launched `/usr/bin/true` 1,000 times with a 1 ms delay
+before querying the process group. All 1,000 queries returned ESRCH; in two
+cases Foundation still reported `isRunning` as true. This demonstrates that
+the two observations can disagree on this Mac. It does not prove that no
+descendant remains or establish a safe cleanup policy. The hosted failure
+remains unresolved; do not treat ESRCH alone as successful execution.
