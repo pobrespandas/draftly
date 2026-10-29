@@ -42,10 +42,18 @@
   <div class="hero">
     <div class="eyebrow">A curated starting point</div>
     <h1>Actions for your words.</h1>
-    <p class="lead">Explore ways to shape, organize, and use your writing. These actions come from the Drafts community and are available to import into Draftly for Mac.</p>
-    <p class="notice">Draftly is in development. Automated tests cover specific behavior in saved versions of these actions, using simulated services. The source actions can change. Review each action before saving or running it; native services and permissions still need verification.</p>
+    <p class="lead">Explore ways to shape, organize, and use your writing. Explore Draftly actions and reference actions from the Drafts community.</p>
+    <p class="notice">Draftly is in development. Automated tests cover specific behavior using simulated services. For community actions, tests cover saved versions; source actions can change. Review each action before saving or running it; native services and permissions still need verification.</p>
   </div>
-  <div class="catalog" aria-label="Curated actions">
+  <h2>Actions by Draftly</h2>
+  <p>Download an action file and import it in Draftly with File → Import. These versions passed automated tests on both action runners. Isolated Mac QA checked template and transform dialogs, transform Undo, and rich-text paste in TextEdit.</p>
+  <div class="catalog" aria-label="Actions by Draftly">
+    <article><span class="category">Create · Draftly</span><h2>New Draft from Template</h2><p>Choose a draft tagged <code>template</code> to create a new draft. Other tags are copied.</p><p class="detail">Tested: creation, copied tags, missing templates, and cancellation.</p><a href="actions/template.json" download>Download action file</a></article>
+    <article><span class="category">Edit · Draftly</span><h2>Transform Selected Text</h2><p>Change selected text to uppercase or lowercase.</p><p class="detail">Tested: Unicode text, empty selection, and cancellation.</p><a href="actions/transform.json" download>Download action file</a></article>
+    <article><span class="category">Share · Draftly</span><h2>Copy Markdown as Rich Text</h2><p>Render the current draft as Markdown and copy the result as rich text.</p><p class="detail">Tested: rendering and simulated clipboard success and failure. Mac QA also pasted accented text with bold formatting in TextEdit.</p><a href="actions/rich-text.json" download>Download action file</a></article>
+  </div>
+  <h2>Drafts community references</h2>
+  <div class="catalog" aria-label="Curated actions from Drafts">
     <article><span class="category">Create</span><h2>New Draft with Template</h2><p>Create a draft from a template and select a placeholder to begin writing.</p><p class="detail">Tested: template selection, tags, date rendering, and placeholder selection.</p><a href="https://actions.getdrafts.com/a/1VL">View original action and import URL</a></article>
     <article><span class="category">Organize</span><h2>Add to List</h2><p>Add items from the current draft to a selected list. The action archives the source draft after success.</p><p class="detail">Tested: list selection, item insertion, and source archive.</p><a href="https://actions.getdrafts.com/a/1Ga">View original action and import URL</a></article>
     <article><span class="category">Edit</span><h2>Text Modifier…</h2><p>Choose a transformation for selected text.</p><p class="detail">Tested: selection, an uppercase transformation, and cursor placement.</p><a href="https://actions.getdrafts.com/a/1Bg">View original action and import URL</a></article>

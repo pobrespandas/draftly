@@ -1,0 +1,13 @@
+{
+  "uuid": "D46F0001-0000-4000-8000-000000000002",
+  "name": "Transform Selected Text",
+  "group": "Draftly",
+  "steps": [
+    {
+      "type": "script",
+      "data": {
+        "script": "const text = editor.getSelectedText();\nif (!text) { context.fail('Select text to transform.'); }\nelse {\n  const choice = SelectPrompt.create(); choice.title = 'Transform selected text';\n  choice.addItem('upper', 'UPPERCASE'); choice.addItem('lower', 'lowercase');\n  if (!choice.show()) { context.cancel(); }\n  else { editor.setSelectedText(choice.selectedItem.id === 'upper' ? text.toUpperCase() : text.toLowerCase()); }\n}"
+      }
+    }
+  ]
+}
