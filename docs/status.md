@@ -3547,3 +3547,11 @@ view still had the previously observed sidebar inset. The cause is not yet
 proven. A local experiment removing initial width constraints introduced six
 panel assertion failures; that experiment was reverted. Do not loosen the
 geometry assertions or attribute the expansion to the toolbar.
+
+Two further local panel experiments were not retained. Lowering the initial
+constraint priority caused six assertion failures. Deferring activation until
+the appearance callback passed the existing local suite, but attachment changed
+window widths even on macOS 27, so a proposed attachment-width assertion was
+invalid. The existing tests do not prove that deferred activation fixes macOS 26
+or preserves visible transitions. Production source and assertions were
+restored. The hosted geometry issue remains open.
