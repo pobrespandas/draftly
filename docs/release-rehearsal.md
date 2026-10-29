@@ -302,3 +302,23 @@ release environment. Its only active ruleset protects version tags from updates
 and deletion. Do not store signing, notarization, or Sparkle secrets as
 repository-wide secrets until release workflow changes and secret access are
 restricted and tested. The signing and staging jobs remain disabled.
+
+## Site writer lock component
+
+`scripts/release-lock.py` provides a Cloud Storage lock for a future site
+coordinator. It creates one fixed object with `ifGenerationMatch=0` and
+deletes only the recorded generation. Its journal records the bucket, object,
+owner and operation state before a remote change. A lost response requires
+explicit recovery. Recovery does not retry creation or delete another owner.
+
+This component has fake-service tests only. It is not connected to the release
+workflow and does not prevent other Firebase writers from bypassing it. Before
+publication, all writers need an enforced coordinator with exclusive Firebase
+credentials and suitable access controls. Do not enable publication based on
+this lock alone. No bucket or IAM policy was created for this component.
+
+Do not automatically expire or clear a lock. Before manual recovery or release,
+confirm that its writer and any pending remote requests have stopped. Preserve
+the journal and inspect the remote object and generation. An abruptly lost
+runner may also lose its journal and require manual investigation. Never remove
+an unfamiliar lock to unblock a release.

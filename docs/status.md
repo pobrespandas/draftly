@@ -3663,3 +3663,11 @@ CLI also recovered that version. This used local Google credentials and QA
 keys. It did not publish GitHub assets or promote Firebase. Shared writer
 coordination, protected credentials, production validation, and CI remain
 required before enabling publication.
+
+The release writer lock component uses Cloud Storage generation preconditions
+and records the owner and scope before each remote change. Fake-service tests
+cover competing writers, lost responses, scope mismatches, and request
+preconditions. It is not connected to the workflow or enforced for other
+Firebase writers. A shared coordinator and access controls remain required.
+Hosted Toolchain27 run 40952773179 passed Python, website, matrix, and release
+toolchain checks. It did not run the Swift suites or a production release.
