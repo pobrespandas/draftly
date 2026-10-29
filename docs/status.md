@@ -3525,3 +3525,10 @@ stale running state as an isolation failure. Other probe failures remain errors.
 Tests cover the missing group, deadline, cancellation and a surviving child
 that ignores SIGTERM. The local build and complete Swift inventory passed: 759
 Core and 928 application tests. Hosted CI has not yet validated this change.
+
+Hosted FullOn27 run 40944659080 completed successfully on commit bd7c313.
+Python, matrix structure, the complete Swift inventory, the local app build
+and package identity checks passed. This is one successful hosted run after
+the process fix; the independent macOS 26 geometry failures and release
+publication requirements remain open. GitHub reported that checkout v4 and
+setup-python v5 target deprecated Node.js 20 actions and were run on Node.js 24.
