@@ -23,6 +23,10 @@ is still unverified.
 The HTML-to-Markdown converter preserves blank lines and decoded text inside
 `pre`/`code` blocks. It selects a fence longer than any backtick run in the
 block. The preference suite passed; Drafts comparison remains separate.
+HTML image conversion retains alt text and recognizes quoted and unquoted src
+attributes without confusing data-src with src. The preference suite covers these
+cases and ignoreImages. Markdown-special characters and Drafts comparison need
+separate checks.
 
 [Engine acceptance cases](engine-acceptance-cases-2026-10-22.md) assigns case IDs,
 entries, outcomes, cleanup and affected contracts to the remaining work. It

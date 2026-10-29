@@ -12,6 +12,14 @@ struct HTMLPreferencesTests {
         #expect(result == "Before\n\n````\nlet a = <tag>\n\n\nlet b = &value;\n```\nend\n````\n\nAfter")
     }
 
+    @Test func imageConversionPreservesAlternateTextAndAttributeOrder() throws {
+        let html = "<p><img alt='Café &amp; 🐼' src='neutral.png'><img data-src='wrong.png' src=actual.png alt=Diagram></p>"
+        let converter = NativeHTMLConversion()
+        let result = try converter.htmlToMarkdown(html, options: [:])
+        #expect(result == "![Café & 🐼](neutral.png)![Diagram](actual.png)")
+        #expect(try converter.htmlToMarkdown(html, options: ["ignoreImages": true]).isEmpty)
+    }
+
     @Test func marksAndIgnoreOptionsReachTheConverter() throws {
         let host = NativeActionHost()
         let html = "<p><strong>Café 🐼</strong> <em>text</em> <a href='https://example.com'>link</a><img src='neutral.png'></p><ul><li>item</li></ul>"

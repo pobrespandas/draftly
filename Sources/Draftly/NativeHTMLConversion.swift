@@ -71,7 +71,24 @@ struct NativeHTMLConversion {
             }
         }
         if options["ignoreImages"] as? Bool == true { replace("<img\\b[^>]*>", "") }
-        else { replace("<img\\b[^>]*src=[\"']([^\"']*)[\"'][^>]*>", "![]($1)") }
+        else {
+            let images = try NSRegularExpression(pattern: "<img\\b[^>]*>", options: .caseInsensitive)
+            let attributes = try NSRegularExpression(pattern: #"\s+(src|alt)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))"#, options: .caseInsensitive)
+            let source = result as NSString
+            for match in images.matches(in: result, range: NSRange(location: 0, length: source.length)).reversed() {
+                let tag = source.substring(with: match.range) as NSString
+                var values: [String: String] = [:]
+                for attribute in attributes.matches(in: tag as String, range: NSRange(location: 0, length: tag.length)) {
+                    let key = tag.substring(with: attribute.range(at: 1)).lowercased()
+                    guard values[key] == nil else { continue }
+                    if let group = (2...4).first(where: { attribute.range(at: $0).location != NSNotFound }) {
+                        values[key] = tag.substring(with: attribute.range(at: group))
+                    }
+                }
+                let replacement = values["src"].map { "![" + (values["alt"] ?? "") + "](" + $0 + ")" } ?? ""
+                if let range = Range(match.range, in: result) { result.replaceSubrange(range, with: replacement) }
+            }
+        }
         let emphasis = options["emphasisMark"] as? String ?? "_", strong = options["strongMark"] as? String ?? "**"
         replace("(?s)<(?:strong|b)\\b[^>]*>(.*?)</(?:strong|b)>", options["ignoreEmphasis"] as? Bool == true ? "$1" : strong + "$1" + strong)
         replace("(?s)<(?:em|i)\\b[^>]*>(.*?)</(?:em|i)>", options["ignoreEmphasis"] as? Bool == true ? "$1" : emphasis + "$1" + emphasis)
