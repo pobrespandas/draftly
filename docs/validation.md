@@ -10923,3 +10923,16 @@ Both script runners and the native adapter passed isolated local filesystem test
 The focused file suites, matrix structural check and local Debug build passed.
 Actual iCloud Drive access, native permission failures and Drafts comparison
 remain pending.
+
+### FileManager copy and move replacement — 29 October 2026
+
+The overwrite argument was ignored. A regression failed before the change. Both
+script runners now pass the argument to the file adapter. With overwrite false,
+a collision fails. With overwrite true, the adapter moves the previous target
+aside, transfers the source, and removes the temporary backup. It attempts to
+restore the previous target if transfer fails and reports the backup path if
+restoration fails. Overlapping paths are rejected. Tests cover file replacement,
+directory copy, same-path rejection, missing source and normal collisions in a
+temporary local root. The focused file suites, structural matrix check and local
+Debug build passed. Failures after backup, concurrent path changes, directory
+moves, native permissions and comparison with Drafts remain unverified.

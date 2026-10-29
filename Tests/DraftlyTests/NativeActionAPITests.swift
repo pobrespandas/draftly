@@ -5,6 +5,31 @@ import DraftlyCore
 
 @Suite("Native action API") @MainActor
 struct NativeActionAPITests {
+    @Test(arguments: [false, true]) func scriptsCopyAndMoveWithExplicitOverwrite(worker: Bool) async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let editor = EditorSession(); editor.load(try library.createNote(content: "Neutral"), focusEditor: false)
+        let host = NativeActionHost(); host.testFileRoot = root
+        let runner = ActionRunner(library: library, editor: editor, host: host)
+        let action = DraftAction(name: "File operations", steps: [ActionStep("script", ["script": """
+        const fm=FileManager.createLocal();
+        if (!fm.writeString('/source','Source 🐼') || !fm.writeString('/target','Keep')) throw Error('setup');
+        if (fm.copyItem('/source','/target') || fm.readString('/target') !== 'Keep') throw Error('copy collision');
+        if (!fm.copyItem('/source','/target',true) || fm.readString('/target') !== 'Source 🐼') throw Error('copy replace');
+        if (fm.moveItem('/missing','/target',true) || fm.readString('/target') !== 'Source 🐼') throw Error('missing source');
+        if (!fm.writeString('/source','Moved') || !fm.moveItem('/source','/target',true)) throw Error('move replace');
+        if (fm.exists('/source') || fm.readString('/target') !== 'Moved') throw Error('move result');
+        if (fm.copyItem('/target','/target',true) || fm.readString('/target') !== 'Moved') throw Error('same path');
+        if (!fm.writeString('/sourceDir/a','New') || !fm.writeString('/targetDir/b','Old')) throw Error('directory setup');
+        if (!fm.copyItem('/sourceDir','/targetDir',true)) throw Error('directory replace');
+        if (fm.readString('/targetDir/a') !== 'New' || fm.exists('/targetDir/b')) throw Error('directory result');
+        """])])
+        if worker { #expect(await runner.runAsync(action).result.succeeded, Comment(rawValue: runner.message ?? "")) }
+        else { #expect(runner.run(action), Comment(rawValue: runner.message ?? "")) }
+        #expect(try String(contentsOf: root.appendingPathComponent("target"), encoding: .utf8) == "Moved")
+    }
     @Test(arguments: [false, true]) func scriptCreatesNamedDirectoryInIsolatedRoot(worker: Bool) async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)

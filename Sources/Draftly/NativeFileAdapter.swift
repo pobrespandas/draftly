@@ -211,8 +211,12 @@ struct NativeFileAdapter {
             }
             try manager.createDirectory(at: directory, withIntermediateDirectories: true); return true
         case "listContents": return try manager.contentsOfDirectory(at: target, includingPropertiesForKeys: nil).map { $0.path.replacingOccurrences(of: canonical.path, with: "", options: .anchored) }.sorted()
-        case "copyItem": try manager.copyItem(at: target, to: resolve(values["destination"] as? String ?? "")); return true
-        case "moveItem": try manager.moveItem(at: target, to: resolve(values["destination"] as? String ?? "")); return true
+        case "copyItem", "moveItem":
+            let destination = try resolve(values["destination"] as? String ?? "")
+            let isMove = values["operation"] as? String == "moveItem"
+            try transferItem(from: target, to: destination, root: canonical,
+                             overwrite: values["overwrite"] as? Bool == true, move: isMove)
+            return true
         case "getCreationDate", "getModificationDate":
             let key: FileAttributeKey = values["operation"] as? String == "getCreationDate" ? .creationDate : .modificationDate
             guard let date = try manager.attributesOfItem(atPath: target.path)[key] as? Date else { throw DraftlyError.message("The file date is unavailable.") }
@@ -224,6 +228,35 @@ struct NativeFileAdapter {
         case "setTags": var url = target; var resource = URLResourceValues(); resource.tagNames = values["tags"] as? [String] ?? []; try url.setResourceValues(resource); return true
         default: throw DraftlyError.message("The file operation is invalid.")
         }
+    }
+
+    private func transferItem(from source: URL, to destination: URL, root: URL, overwrite: Bool, move: Bool) throws {
+        let manager = FileManager.default
+        guard source != root, destination != root, source != destination,
+              !destination.path.hasPrefix(source.path + "/"),
+              !source.path.hasPrefix(destination.path + "/") else {
+            throw DraftlyError.message("The source and destination must be separate paths inside the file root.")
+        }
+        guard manager.fileExists(atPath: source.path) else { throw DraftlyError.message("The source file does not exist.") }
+        func transfer() throws {
+            if move { try manager.moveItem(at: source, to: destination) }
+            else { try manager.copyItem(at: source, to: destination) }
+        }
+        guard overwrite, manager.fileExists(atPath: destination.path) else { try transfer(); return }
+        let backup = destination.deletingLastPathComponent().appendingPathComponent(".draftly-replaced-" + UUID().uuidString)
+        try manager.moveItem(at: destination, to: backup)
+        do { try transfer() }
+        catch {
+            let transferError = error
+            do {
+                if manager.fileExists(atPath: destination.path) { try manager.removeItem(at: destination) }
+                try manager.moveItem(at: backup, to: destination)
+            } catch {
+                throw DraftlyError.message("The transfer failed and the original destination could not be restored. Its backup is at \(backup.path).")
+            }
+            throw transferError
+        }
+        try manager.removeItem(at: backup)
     }
 
     private func containedTarget(_ candidate: URL, root: URL, message: String) throws -> URL {

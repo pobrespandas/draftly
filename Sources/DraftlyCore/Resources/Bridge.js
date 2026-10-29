@@ -354,7 +354,7 @@ class FileManager {
     writeJSON(path,value){return this.writeString(path,JSON.stringify(value));}
     exists(path){return this._op('exists',{path})===true;}isDirectory(path){return this._op('isDirectory',{path})===true;}
     listContents(path){return this._op('listContents',{path});}createDirectory(name,path){return this._op('createDirectory',path===undefined?{path:name}:{name,path})===true;}
-    copyItem(source,destination){return this._op('copyItem',{path:source,destination})===true;}moveItem(source,destination){return this._op('moveItem',{path:source,destination})===true;}
+    copyItem(source,destination,overwrite=false){return this._op('copyItem',{path:source,destination,overwrite})===true;}moveItem(source,destination,overwrite=false){return this._op('moveItem',{path:source,destination,overwrite})===true;}
     getCreationDate(path){return __date(this._op('getCreationDate',{path}));}getModificationDate(path){return __date(this._op('getModificationDate',{path}));}
     setCreationDate(path,date){return this._op('setCreationDate',{path,date})===true;}setModificationDate(path,date){return this._op('setModificationDate',{path,date})===true;}
     getTags(path){return this._op('getTags',{path});}setTags(path,tags){return this._op('setTags',{path,tags})===true;}

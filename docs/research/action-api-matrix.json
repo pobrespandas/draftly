@@ -14145,10 +14145,17 @@
             "copyItem(fromPath: string, toPath: string, overwrite?: boolean): boolean"
           ],
           "contract": "Copy file or directory at fromPath to the toPath. From and to path should be complete paths with file names included.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "reviewed-partial",
+          "automatedTest": {"suite": "NativeActionAPITests", "test": "scriptsCopyAndMoveWithExplicitOverwrite"},
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-29",
+          "implementationEvidence": {"file": "Sources/Draftly/NativeFileAdapter.swift", "symbol": "NativeFileAdapter.fileAPI"},
+          "defaults": "Overwrite defaults to false.",
+          "result": "Returns true after copying; explicit overwrite replaces the destination.",
+          "errors": "Failures return false and populate lastError.",
+          "limitations": ["Rollback after a partial filesystem failure, concurrent path changes, native permissions and Drafts comparison remain unverified."],
+          "evidenceLevel": "Both runners exercise local file and directory replacement, collision and missing source."
         },
         {
           "member": "createDirectory",
@@ -14230,10 +14237,17 @@
             "moveItem(fromPath: string, toPath: string, overwrite?: boolean): boolean"
           ],
           "contract": "Move file or directory at fromPath to the toPath. From and to path should be complete paths with file names included.",
-          "implementation": "not-audited",
-          "automatedTest": null,
+          "implementation": "reviewed-partial",
+          "automatedTest": {"suite": "NativeActionAPITests", "test": "scriptsCopyAndMoveWithExplicitOverwrite"},
           "liveCheck": null,
-          "compatibilityStatus": null
+          "compatibilityStatus": "partial",
+          "reviewDate": "2026-10-29",
+          "implementationEvidence": {"file": "Sources/Draftly/NativeFileAdapter.swift", "symbol": "NativeFileAdapter.fileAPI"},
+          "defaults": "Overwrite defaults to false.",
+          "result": "Returns true after moving; explicit overwrite replaces the destination.",
+          "errors": "Failures return false and populate lastError.",
+          "limitations": ["Directory moves, rollback after a partial filesystem failure, concurrent path changes, native permissions and Drafts comparison remain unverified."],
+          "evidenceLevel": "Both runners exercise local file replacement and missing source."
         },
         {
           "member": "readJSON",
