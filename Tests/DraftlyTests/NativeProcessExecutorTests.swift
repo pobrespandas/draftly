@@ -110,7 +110,10 @@ struct NativeProcessExecutorTests {
                 return reads == 0 ? start : start.addingTimeInterval(elapsed)
             })
             #expect(elapsed < 10 && status == 0)
-        } catch { #expect(elapsed >= 10 && error as? ActionExecutionInterruption == .timeout) }
+        } catch {
+            #expect(elapsed >= 10 && error as? ActionExecutionInterruption == .timeout,
+                    Comment(rawValue: "Unexpected process error at \(elapsed) seconds: \(String(reflecting: error))"))
+        }
         #expect(!process.isRunning)
         #expect(process.terminationHandler == nil)
     }

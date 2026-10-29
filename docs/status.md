@@ -3402,3 +3402,10 @@ touches the temporary Keychain. The missing-issuer test first reproduced the
 incorrect acceptance, then passed with the guard. All 176 Python tests passed.
 The Apple account does not yet have App Store Connect API access. The user was
 asked to review the access request and its terms. No API key was created.
+
+Hosted FullOn27 run 40938169083 passed the Core suite but failed one case of
+`NativeProcessExecutorTests.processExitChecksDeadlineBeforeQueuedTimeout` in
+the app suite. The earlier full run passed. The recorded assertion does not
+include the thrown error, so its cause is unknown. The test now reports the
+error without changing deadlines or retrying. Its focused local run passed.
+This does not establish a full CI pass or explain the hosted failure.
