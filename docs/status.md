@@ -3917,3 +3917,8 @@ Developer ID signing, site publication, updating or CloudKit synchronization.
 Draft pull request 1 presents the release branch for review against main. It
 does not enable publication. Full release security, coordinated site writes,
 public update acceptance and CloudKit Production remain pending.
+
+On 29 October 2026, an HTTPS check of draftly.pobrespandas.com returned HTTP
+200 with successful TLS verification. The configured `/appcast.xml` returned
+HTTP 404. The public update feed is not available; this check did not deploy
+or change the site.
