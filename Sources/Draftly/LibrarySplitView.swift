@@ -30,6 +30,7 @@ final class LibrarySplitController: NSSplitViewController {
     private var applyingPanelPositions = false
     private var lastContainerWidth: CGFloat?
     private var pendingDivider: (index: Int, widths: [CGFloat])?
+    private var sidebarContentInset: CGFloat = 0
 
     init(model: WindowModel, panels: [AnyView], animationsEnabled: @escaping @MainActor () -> Bool = {
         !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
@@ -106,6 +107,11 @@ final class LibrarySplitController: NSSplitViewController {
 
     override func viewDidLayout() {
         super.viewDidLayout()
+        if !splitViewItems[0].isCollapsed, splitView.arrangedSubviews.count == splitViewItems.count {
+            let container = splitView.arrangedSubviews[0].frame.width
+            let content = splitViewItems[0].viewController.view.frame.width
+            if container > 0, content > 0 { sidebarContentInset = max(0, container - content) }
+        }
         restoreWidthsAfterContainerResize()
     }
 
@@ -189,7 +195,7 @@ final class LibrarySplitController: NSSplitViewController {
                 let target = restoredWidths[index]
                 restoredMinimumThickness[index] = item.minimumThickness
                 // Set the native expansion target before animation starts.
-                item.minimumThickness = target
+                item.minimumThickness = max(0, target - (index == 0 ? sidebarContentInset : 0))
                 let width = splitView.arrangedSubviews[index].widthAnchor.constraint(equalToConstant: target)
                 width.priority = .defaultHigh
                 width.isActive = true
@@ -265,7 +271,7 @@ final class LibrarySplitController: NSSplitViewController {
     private func restorationWidths(collapsed: [Bool]) -> [CGFloat] {
         let visible = splitViewItems.indices.filter { !collapsed[$0] }
         let minimums = splitViewItems.enumerated().map { index, item in
-            restoredMinimumThickness[index] ?? item.minimumThickness
+            (restoredMinimumThickness[index] ?? item.minimumThickness) + (index == 0 ? sidebarContentInset : 0)
         }
         let dividerWidth = splitView.dividerThickness * CGFloat(max(0, visible.count - 1))
         let spare = max(0, splitView.bounds.width - dividerWidth - visible.reduce(CGFloat(0)) { $0 + minimums[$1] })

@@ -3881,3 +3881,10 @@ A subsequent local full Swift run with the improved native-process diagnostic
 passed the complete inventory: 759 Core and 933 app tests. The prior deadline
 failure did not recur, so its underlying cause remains unknown. No timeout or
 retry was added.
+
+Hosted run 40964349157 confirmed that macOS 26 applies sidebar minimum
+thickness to content: a minimum of 240 yielded a 248-point container; a
+minimum of 232 yielded a 240-point container. A candidate converts between
+container and content widths using the inset measured from AppKit. The local
+15-case panel suite and app build passed. macOS 26 and real-window validation
+remain pending.
