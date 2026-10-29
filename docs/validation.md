@@ -10994,3 +10994,12 @@ rejects invalid content before writing. An explicit empty string remains valid.
 Both runners checked preservation and recovery in an isolated local root. The
 focused file and bookmark suites, matrix structural check and local Debug build
 passed. Sandbox, bookmark, cloud and Drafts checks remain separate.
+
+### FileManager listing paths — 29 October 2026
+
+A regression showed that listContents could return physical paths that the same
+FileManager could not read. The adapter now returns paths relative to its file
+root. Both runners list and reuse Unicode file and directory paths from root and
+nested folders, and recover after a missing directory. Focused Actions and
+Mustache tests, matrix structure and the local Debug build passed. Exact Drafts
+path formatting, native permissions, bookmarks and cloud access remain open.

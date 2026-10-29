@@ -5,6 +5,28 @@ import DraftlyCore
 
 @Suite("Native action API") @MainActor
 struct NativeActionAPITests {
+    @Test(arguments: [false, true]) func listContentsReturnsUsablePathsAndRecoversFromMissingDirectory(worker: Bool) async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let editor = EditorSession(); editor.load(try library.createNote(content: "Neutral"), focusEditor: false)
+        let host = NativeActionHost(); host.testFileRoot = root
+        let runner = ActionRunner(library: library, editor: editor, host: host)
+        let action = DraftAction(name: "List files", steps: [ActionStep("script", ["script": """
+        const fm=FileManager.createLocal();
+        if (!fm.writeString('/folder/Café 🐼.txt','Unicode') || !fm.createDirectory('child','/folder')) throw Error('setup');
+        if (fm.listContents('/missing')!==undefined || typeof fm.lastError!=='string') throw Error('missing');
+        const paths=fm.listContents('/folder');
+        if (!Array.isArray(paths) || paths.length!==2 || fm.lastError!==undefined) throw Error('listing');
+        if (!paths.some(p=>p.normalize('NFC')==='/folder/Café 🐼.txt') || !paths.includes('/folder/child')) throw Error('paths '+JSON.stringify(paths));
+        if (fm.readString(paths.find(p=>p.endsWith('.txt')))!=='Unicode') throw Error('reusable path');
+        if (!fm.isDirectory(paths.find(p=>p.endsWith('/child')))) throw Error('directory');
+        if (!fm.listContents('/').includes('/folder')) throw Error('root listing');
+        """])])
+        if worker { #expect(await runner.runAsync(action).result.succeeded, Comment(rawValue: runner.message ?? "")) }
+        else { #expect(runner.run(action), Comment(rawValue: runner.message ?? "")) }
+    }
     @Test(arguments: [false, true]) func writeStringRejectsInvalidContentWithoutReplacingFile(worker: Bool) async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)

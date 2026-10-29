@@ -213,7 +213,10 @@ struct NativeFileAdapter {
                                                 message: "The path must stay inside the selected file root.")
             }
             try manager.createDirectory(at: directory, withIntermediateDirectories: true); return true
-        case "listContents": return try manager.contentsOfDirectory(at: target, includingPropertiesForKeys: nil).map { $0.path.replacingOccurrences(of: canonical.path, with: "", options: .anchored) }.sorted()
+        case "listContents":
+            let parent = target == canonical ? "" : String(target.path.dropFirst(canonical.path.count))
+            return try manager.contentsOfDirectory(at: target, includingPropertiesForKeys: nil)
+                .map { parent + "/" + $0.lastPathComponent }.sorted()
         case "copyItem", "moveItem":
             let destination = try resolve(values["destination"] as? String ?? "")
             let isMove = values["operation"] as? String == "moveItem"
