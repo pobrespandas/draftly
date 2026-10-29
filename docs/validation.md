@@ -10871,3 +10871,14 @@ start, only direct items determine the initial number. The regression failed
 before the change. The HTML preference suite and local Debug build passed.
 Markdown renderers can renumber ordered items; this test checks source text,
 not rendered parity. Drafts comparison remains pending.
+
+### File operation root containment — 29 October 2026
+
+Legacy readFile, writeFile and fileExists used a lexical path check. A test
+showed that a symbolic link could reach a file outside the library root. These
+operations now use the existing resolved-path containment check. The shared
+check also rejects dangling symbolic links instead of treating them as missing
+path components. The regression covers read, write, existence, a dangling link,
+and normal Unicode file access. Native file and bookmark suites and the local
+Debug build passed. Concurrent filesystem changes, system permission outcomes,
+and iCloud Drive access need separate checks.

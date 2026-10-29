@@ -12,11 +12,12 @@ struct NativeFileAdapter {
         switch operation {
         case "saveFile": return try saveFile(values)
         case "readFile", "writeFile", "fileExists":
-            let root = try libraryFolder()
+            let root = try libraryFolder().resolvingSymlinksInPath().standardizedFileURL
             let path = values["path"] as? String ?? ""
             let relative = path.hasPrefix("/") ? String(path.dropFirst()) : path
-            let target = root.appendingPathComponent(relative).standardizedFileURL
-            guard target.path.hasPrefix(root.standardizedFileURL.path + "/") else { throw DraftlyError.message("The file path must stay inside the Draftly Library folder.") }
+            let target = try containedTarget(root.appendingPathComponent(relative), root: root,
+                                             message: "The file path must stay inside the Draftly Library folder.")
+            guard target != root else { throw DraftlyError.message("The file path must stay inside the Draftly Library folder.") }
             if operation == "fileExists" { return FileManager.default.fileExists(atPath: target.path) }
             if operation == "readFile" { return try String(contentsOf: target, encoding: .utf8) }
             try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -222,6 +223,9 @@ struct NativeFileAdapter {
         var ancestor = candidate.standardizedFileURL
         var suffix: [String] = []
         while !manager.fileExists(atPath: ancestor.path) && ancestor.path != "/" {
+            if (try? manager.destinationOfSymbolicLink(atPath: ancestor.path)) != nil {
+                throw DraftlyError.message(message)
+            }
             suffix.insert(ancestor.lastPathComponent, at: 0)
             ancestor.deleteLastPathComponent()
         }

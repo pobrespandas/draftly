@@ -4,6 +4,34 @@ import Testing
 
 @Suite("Native action API") @MainActor
 struct NativeActionAPITests {
+    @Test func legacyFileOperationsRejectSymbolicLinkEscapes() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let root = folder.appendingPathComponent("Library")
+        let outside = folder.appendingPathComponent("Outside")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: outside, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let external = outside.appendingPathComponent("keep.txt")
+        try "Original".write(to: external, atomically: true, encoding: .utf8)
+        try FileManager.default.createSymbolicLink(at: root.appendingPathComponent("escape"), withDestinationURL: outside)
+        let adapter = NativeFileAdapter(testFileRoot: root)
+        for operation in ["readFile", "writeFile", "fileExists"] {
+            #expect(throws: (any Error).self) {
+                try adapter.perform(operation, values: ["path": "escape/keep.txt", "text": "Blocked"])
+            }
+        }
+        try FileManager.default.createSymbolicLink(at: root.appendingPathComponent("dangling"), withDestinationURL: outside.appendingPathComponent("new"))
+        #expect(throws: (any Error).self) {
+            try adapter.perform("writeFile", values: ["path": "dangling/note.txt", "text": "Blocked"])
+        }
+        #expect(throws: (any Error).self) {
+            try adapter.perform("fileExists", values: ["path": "dangling/note.txt"])
+        }
+        #expect(!FileManager.default.fileExists(atPath: outside.appendingPathComponent("new/note.txt").path))
+        #expect(try String(contentsOf: external, encoding: .utf8) == "Original")
+        _ = try adapter.perform("writeFile", values: ["path": "nested/note.txt", "text": "café 🐼"])
+        #expect(try adapter.perform("readFile", values: ["path": "nested/note.txt"]) as? String == "café 🐼")
+    }
     @Test func fileOperationsStayInsideTheirRoot() throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
