@@ -4,6 +4,14 @@ import Testing
 
 @Suite("XML-RPC contracts")
 struct XMLRPCTests {
+    @Test func dateMetadataRequiresAValidExistingPath() throws {
+        for values: [String: Any] in [
+            ["params": ["not a date"], "__draftlyDatePaths": ["/params/0"]],
+            ["params": [], "__draftlyDatePaths": ["/params/9"]]
+        ] {
+            #expect(throws: (any Error).self) { try ScriptXMLRPC.requestValues(values) }
+        }
+    }
     @Test func malformedBase64InNestedResponseCannotReportSuccess() throws {
         func response(_ value: String) -> [String: Any] {
             let xml = "<methodResponse><params><param><value><array><data><value><base64>" + value + "</base64></value></data></array></value></param></params></methodResponse>"

@@ -52,6 +52,11 @@ class Handler(BaseHTTPRequestHandler):
                    'café &amp; mañana</string></value></param></params></methodResponse>')
             data = xml.encode(encoding)
             content_type = "text/xml" if target.path.endswith("-no-charset") else "text/xml; charset=" + encoding
+        elif target.path == "/xml-inspect":
+            response = ET.Element("methodResponse")
+            value = ET.SubElement(ET.SubElement(ET.SubElement(response, "params"), "param"), "value")
+            ET.SubElement(value, "string").text = body.decode("utf-8")
+            data, content_type = ET.tostring(response, encoding="utf-8"), "text/xml"
         elif target.path == "/xml-echo":
             request = ET.fromstring(body)
             response = ET.Element("methodResponse")

@@ -3,7 +3,28 @@ import CoreFoundation
 
 public enum ScriptXMLRPC {
     static func requestValues(_ values: [String: Any]) throws -> [String: Any] {
-        let body = try requestBody(method: values["methodName"] as? String ?? "", params: values["params"] as? [Any] ?? [])
+        var dates = Set(values["__draftlyDatePaths"] as? [String] ?? [])
+        func restoreDates(_ value: Any, path: String) throws -> Any {
+            if dates.remove(path) != nil {
+                guard let date = APIValues.parseDate(value) else { throw DraftlyError.message("An XML-RPC date is invalid.") }
+                return date
+            }
+            if let array = value as? [Any] {
+                return try array.enumerated().map { try restoreDates($0.element, path: path + "/\($0.offset)") }
+            }
+            if let object = value as? [String: Any] {
+                var restored: [String: Any] = [:]
+                for (key, item) in object {
+                    let escaped = key.replacingOccurrences(of: "~", with: "~0").replacingOccurrences(of: "/", with: "~1")
+                    restored[key] = try restoreDates(item, path: path + "/" + escaped)
+                }
+                return restored
+            }
+            return value
+        }
+        let params = try restoreDates(values["params"] as? [Any] ?? [], path: "/params") as? [Any] ?? []
+        guard dates.isEmpty else { throw DraftlyError.message("An XML-RPC date path is invalid.") }
+        let body = try requestBody(method: values["methodName"] as? String ?? "", params: params)
         return ["url": values["url"] ?? "", "method": "POST", "headers": ["Content-Type": "text/xml; charset=utf-8"], "encoding": "raw", "data": body, "includeResponseBytes": true]
     }
 

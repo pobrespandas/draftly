@@ -1,7 +1,18 @@
 // Keep one JavaScript context for all steps in an action.
 var __cancelled = false, __failure = null, __completed = false, __tags = Object.create(null), __draftCache = Object.create(null);
 function __call(op, value) {
+    const dates = [], paths = new WeakMap();
+    if (op === 'xmlrpc') value = {...value, __draftlyDatePaths:dates};
     const replacer = op === 'xmlrpc' ? function(key, item) {
+        const parent = paths.get(this) || '';
+        const path = key === '' ? '' : parent + '/' + key.replace(/~/g,'~0').replace(/\//g,'~1');
+        const descriptor = Object.getOwnPropertyDescriptor(this,key);
+        const original = descriptor && descriptor.value;
+        if (original instanceof Date && path.startsWith('/params/')) {
+            if (!Number.isFinite(original.getTime())) throw new Error('An XML-RPC date is invalid.');
+            dates.push(path);
+        }
+        if (item !== null && typeof item === 'object') paths.set(item,path);
         if (typeof item === 'number' && !Number.isFinite(item)) throw new Error('An XML-RPC number must be finite.');
         return item;
     } : undefined;

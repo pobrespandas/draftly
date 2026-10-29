@@ -11,11 +11,13 @@ only that operation, outcome and entry point.
 The XML-RPC encoder rejects non-finite numeric parameters, including nested
 values. Both script execution paths reject them before JSON serialization can
 change them to null. Regression tests passed with the XML-RPC transport suites.
-An isolated loopback characterization also shows that both script paths send a
-JavaScript Date as a string and Uint8Array as a record with numeric keys. This
-is current behavior, not an accepted Drafts contract. The archived reference
-does not define the mapping. Replace the characterization when that mapping is
-verified and implemented.
+Both script paths now encode JavaScript Date values as XML-RPC dates, including
+nested dates, and reject invalid dates. A loopback server checks the actual
+request. Responses still return dates as strings, and Uint8Array is sent as a
+record with numeric keys. The archived reference does not define these mappings.
+Date values returned by JavaScript getters still follow JSON serialization; they
+are not converted as XML-RPC dates. Drafts comparison and binary type handling
+remain open.
 Malformed base64 in an XML-RPC response now returns an error instead of a
 successful value, including inside arrays. Tests cover invalid padding, empty
 data and XML whitespace. Valid base64 remains a string; its script type mapping

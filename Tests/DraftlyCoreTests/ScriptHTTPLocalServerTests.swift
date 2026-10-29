@@ -5,6 +5,30 @@ import Testing
 @Suite("HTTP loopback contracts")
 struct ScriptHTTPLocalServerTests {
     @Test(arguments: [false, true]) @MainActor
+    func xmlRPCSerializesJavaScriptDatesAsDates(worker: Bool) async throws {
+        let server = try LoopbackHTTPServer(); defer { server.stop() }
+        let fixture = try ScriptTestFixture(content: "Neutral", host: APIContractHost())
+        let action = ScriptTestAction.make("""
+        const iso='2026-10-19T12:34:56.000Z';
+        let reads=0;
+        const nested={'a/b~c':[new Date(iso)],get dynamic(){reads++;return 'getter';}};
+        const r=XMLRPC.request('\(server.url("/xml-inspect"))','echo',
+          [new Date(iso),iso,nested]);
+        check(r.success,'request succeeds');
+        check(reads===1,'getter is read once');
+        const xml=r.params[0];
+        check((xml.match(/<dateTime.iso8601>/g)||[]).length===2,'date types retained');
+        check(xml.includes('<string>'+iso+'</string>'),'ordinary string retained');
+        let rejected=false;
+        try { XMLRPC.request('https://fixture.invalid','echo',[new Date(NaN)]); }
+        catch (error) { rejected=true; }
+        check(rejected,'invalid date rejected');
+        """, name: "XML-RPC dates")
+        #expect(await ActionTestExecution.succeeds(action, runner: fixture.runner, worker: worker),
+                Comment(rawValue: fixture.runner.message ?? ""))
+        #expect(try server.event()["path"] as? String == "/xml-inspect")
+    }
+    @Test(arguments: [false, true]) @MainActor
     func xmlRPCDateAndBinaryCurrentMapping(worker: Bool) async throws {
         let server = try LoopbackHTTPServer(); defer { server.stop() }
         let fixture = try ScriptTestFixture(content: "Neutral", host: APIContractHost())
