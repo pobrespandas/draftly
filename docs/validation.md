@@ -10590,6 +10590,16 @@ This is a functional check, not a timed measurement. QA quit, its specific
 LaunchServices entry was removed, and the temporary app was moved to Trash.
 The usual app was not updated.
 
+### Action link replacement native check — 29 October 2026
+
+Isolated Engine QA imported neutral actions with a fixed target UUID. An action
+sent a changed installation link to the QA URL scheme. Cancel kept the original
+name and UUID. A second request selected Replace; the changed name kept the UUID.
+A verification action passed again after QA quit and reopened. This checks one
+action, not group replacement or every import format. QA quit normally, its
+exact registration was removed, and its temporary app and fixture moved to
+Trash. Neutral records remain in the isolated library.
+
 After the complete run, an additional focused test checked planned replacement
 against direct sequence edits across many insertion and deletion ranges. It
 passed; the complete inventory count above predates that added test.

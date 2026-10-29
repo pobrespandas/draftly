@@ -3183,8 +3183,9 @@ after restart. It does not resolve the duplicate names from the earlier fixture.
 
 Action links review changes to installed actions and groups before replacing
 them. Cancel and concurrent changes leave the import batch unchanged. Tests
-cover identities, storage failures, and unknown data. Native confirmation is
-not yet verified. The usual app is unchanged.
+cover identities, storage failures, and unknown data. Native QA verified Cancel
+and Replace for one action and its identity after restart. Group confirmation
+remains unverified. The usual app is unchanged.
 
 ### Syntax and theme link errors — 29 October 2026
 
