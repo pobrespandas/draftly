@@ -33,6 +33,8 @@ class FakeHosting:
         self.config = {"headers": [{"glob": "**", "headers": {"Cache-Control": "max-age=60"}}]}
         self.staged_files = {}
         self.staged_config = None
+        self.staged_labels = {}
+        self.staged_status = "CREATED"
         self.change_after_upload = change_after_upload
         self.missing_old = missing_old
         self.unsafe_upload = unsafe_upload
@@ -47,12 +49,13 @@ class FakeHosting:
         if method == "GET" and route in (OLD, CHANGED):
             return {"name": route, "status": "FINALIZED", "config": self.config, "fileCount": str(len(self.live_files))}
         if method == "GET" and route == NEW:
-            return {"name": NEW, "status": "CREATED", "config": self.staged_config}
+            return {"name": NEW, "status": self.staged_status, "config": self.staged_config, "labels": self.staged_labels}
         if method == "GET" and route in (OLD + "/files", CHANGED + "/files", NEW + "/files"):
             files = self.staged_files if route == NEW + "/files" else self.live_files
             return {"files": [{"path": path, "hash": digest, "status": "ACTIVE"} for path, digest in files.items()]}
         if method == "POST" and route == firebase.SITE + "/versions":
             self.staged_config = body["config"]
+            self.staged_labels = body["labels"]
             return {"name": NEW}
         if method == "POST" and route == NEW + ":populateFiles":
             self.staged_files.update(body["files"])
@@ -66,6 +69,7 @@ class FakeHosting:
                 self.live = CHANGED
             return {}
         if method == "PATCH" and route == NEW:
+            self.staged_status = "FINALIZED"
             return {"name": NEW, "status": "FINALIZED"}
         raise AssertionError("Unexpected request: " + method + " " + path)
 
@@ -130,6 +134,46 @@ class FirebaseStageTests(unittest.TestCase):
         self.assertEqual({k: v for k, v in client.staged_files.items() if k != "/appcast.xml"}, client.live_files)
         self.assertEqual(client.staged_config, client.config)
         self.assertFalse(any("/releases" in path for _, path, _, _ in client.calls))
+
+    def test_recovery_reuses_the_finalized_version_when_a_draft_exists(self):
+        client = FakeHosting()
+        data = self.feed(("0.1.0", "1"))
+        journal = self.root / "journal.json"
+        first = firebase.stage(client, OLD, data, self.public, releases=[], current_feed=None, journal=journal)
+        releases = [{"tag_name": "v0.1.0", "draft": True, "prerelease": False}]
+        second = firebase.stage(client, OLD, data, self.public, releases=releases, current_feed=None,
+                                journal=journal, resume=True)
+        self.assertEqual(first, second)
+        self.assertEqual(sum(method == "POST" and path == firebase.SITE + "/versions" for method, path, _, _ in client.calls), 1)
+        self.assertEqual(sum(method == "PATCH" for method, _, _, _ in client.calls), 1)
+
+    def test_recovery_continues_the_same_incomplete_version(self):
+        client = FakeHosting(unsafe_upload=True)
+        data = self.feed(("0.1.0", "1"))
+        journal = self.root / "journal.json"
+        with self.assertRaisesRegex(ValueError, "invalid upload URL"):
+            firebase.stage(client, OLD, data, self.public, releases=[], current_feed=None, journal=journal)
+        client.unsafe_upload = False
+        result = firebase.stage(client, OLD, data, self.public, releases=[], current_feed=None,
+                                journal=journal, resume=True)
+        self.assertEqual(result["stagedVersion"], NEW)
+        self.assertEqual(sum(method == "POST" and path == firebase.SITE + "/versions" for method, path, _, _ in client.calls), 1)
+
+    def test_unknown_creation_outcome_requires_inspection_without_creating_again(self):
+        class UnknownCreation(FakeHosting):
+            def request(self, method, path, body=None, *, upload=False):
+                if method == "POST" and path == firebase.SITE + "/versions":
+                    self.calls.append((method, path, body, upload))
+                    raise ValueError("Connection lost after request")
+                return super().request(method, path, body, upload=upload)
+        client = UnknownCreation()
+        data = self.feed(("0.1.0", "1"))
+        journal = self.root / "journal.json"
+        with self.assertRaisesRegex(ValueError, "Connection lost"):
+            firebase.stage(client, OLD, data, self.public, releases=[], current_feed=None, journal=journal)
+        with self.assertRaisesRegex(ValueError, "outcome is unknown"):
+            firebase.stage(client, OLD, data, self.public, releases=[], current_feed=None, journal=journal, resume=True)
+        self.assertEqual(sum(method == "POST" and path == firebase.SITE + "/versions" for method, path, _, _ in client.calls), 1)
 
     def test_tampered_feed_or_wrong_key_is_rejected(self):
         signed = self.feed(("0.1.0", "1"))

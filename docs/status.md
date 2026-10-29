@@ -3235,3 +3235,11 @@ keeps the previous visible default. Native QA checked an empty group hidden in
 the list while still available in the bar and management. The relation between
 group and action visibility, application menus and other surfaces needs a Drafts
 comparison. The usual app is unchanged.
+
+### Release staging recovery — 29 October 2026
+
+Firebase staging can record and resume a specific staged version. It checks the
+operation label, live base, and feed before recovery. An unknown create result
+stops for inspection. Focused tests and all 161 Python tests passed with fake
+services. The Actions matrix structural check passed. Real Firebase staging,
+publication, updater installation, and CloudKit Production remain unverified.

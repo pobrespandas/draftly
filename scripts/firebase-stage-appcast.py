@@ -12,10 +12,12 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
+import uuid
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
@@ -189,7 +191,37 @@ def snapshot(client):
     return {"version": version, "config": config, "files": files}
 
 
-def stage(client, expected_version, feed, public_key, *, releases=None, current_feed=None):
+def write_journal(path, data, *, new=False):
+    path = Path(path)
+    payload = json.dumps(data, indent=2, sort_keys=True) + "\n"
+    if new:
+        with path.open("x") as output:
+            output.write(payload)
+        return
+    name = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", dir=path.parent, prefix=".firebase-journal-", delete=False) as output:
+            name = output.name
+            output.write(payload)
+        os.replace(name, path)
+        name = None
+    finally:
+        if name is not None:
+            Path(name).unlink(missing_ok=True)
+
+
+def stage(client, expected_version, feed, public_key, *, releases=None, current_feed=None, journal=None, resume=False):
+    if resume and journal is None:
+        raise ValueError("Recovery needs a Firebase staging journal.")
+    checkpoint = None
+    if journal is not None:
+        journal = Path(journal)
+        if resume:
+            checkpoint = json.loads(journal.read_text())
+            if not isinstance(checkpoint, dict) or checkpoint.get("state") not in ("created", "finalized"):
+                raise ValueError("The Firebase staging outcome is unknown. Inspect Firebase before retrying.")
+        elif journal.exists() or journal.is_symlink():
+            raise ValueError("The Firebase staging journal already exists. Use recovery.")
     new_versions = verify_feed(feed, public_key)
     live = snapshot(client)
     if live["version"] != expected_version:
@@ -208,31 +240,57 @@ def stage(client, expected_version, feed, public_key, *, releases=None, current_
     if len(added) != 1:
         raise ValueError("The new appcast must add exactly one version.")
     version = next(iter(added))
-    history.validate_history(".".join(str(part) for part in version), str(new_versions[version]), releases, current_feed)
+    history.validate_history(".".join(str(part) for part in version), str(new_versions[version]), releases, current_feed,
+                             resume_candidate=resume)
     if (current_feed is None) != ("/appcast.xml" not in live["files"]):
         raise ValueError("The live appcast and Firebase file list do not agree.")
     compressed = gzip.compress(feed, mtime=0)
     digest = hashlib.sha256(compressed).hexdigest()
     files = dict(live["files"])
     files["/appcast.xml"] = digest
-    created = client.request("POST", SITE + "/versions", {"config": live["config"]})
-    staged = created.get("name")
+    if resume:
+        if (checkpoint.get("baseVersion") != live["version"] or checkpoint.get("appcastHash") != digest
+                or checkpoint.get("preservedFiles") != len(live["files"])
+                or not isinstance(checkpoint.get("operation"), str)
+                or not re.fullmatch(r"[a-f0-9]{32}", checkpoint["operation"])):
+            raise ValueError("The Firebase staging journal does not match the candidate.")
+        staged = checkpoint.get("stagedVersion")
+    else:
+        operation = uuid.uuid4().hex
+        checkpoint = {"state": "creating", "operation": operation, "baseVersion": live["version"],
+                      "preservedFiles": len(live["files"]), "appcastHash": digest}
+        if journal is not None:
+            write_journal(journal, checkpoint, new=True)
+        created = client.request("POST", SITE + "/versions", {"config": live["config"],
+                                 "labels": {"draftly-operation": operation}})
+        staged = created.get("name")
     if not isinstance(staged, str) or not VERSION_PATTERN.fullmatch(staged) or staged == live["version"]:
         raise ValueError("Firebase returned an invalid staged version.")
-    entries = list(files.items())
-    for start in range(0, len(entries), 1000):
-        response = client.request("POST", staged + ":populateFiles", {"files": dict(entries[start:start + 1000])})
-        required = response.get("uploadRequiredHashes", [])
-        if not isinstance(required, list) or any(value != digest for value in required):
-            raise ValueError("Firebase cannot reuse one or more live site files.")
-        if required:
-            upload_url = response.get("uploadUrl")
-            expected_path = "/upload/" + staged + "/files"
-            parsed = urllib.parse.urlsplit(upload_url) if isinstance(upload_url, str) else None
-            if (parsed is None or parsed.scheme != "https" or parsed.netloc != "upload-firebasehosting.googleapis.com"
-                    or parsed.path != expected_path or parsed.query or parsed.fragment):
-                raise ValueError("Firebase returned an invalid upload URL.")
-            client.request("POST", upload_url + "/" + digest, compressed, upload=True)
+    if not resume:
+        checkpoint.update({"state": "created", "stagedVersion": staged})
+        if journal is not None:
+            write_journal(journal, checkpoint)
+    details = client.request("GET", staged)
+    labels = details.get("labels", {})
+    if (details.get("name") != staged or details.get("config", {}) != live["config"]
+            or not isinstance(labels, dict) or labels.get("draftly-operation") != checkpoint["operation"]
+            or details.get("status") not in ("CREATED", "FINALIZED")):
+        raise ValueError("The Firebase staged version does not match its journal.")
+    if details["status"] == "CREATED":
+        entries = list(files.items())
+        for start in range(0, len(entries), 1000):
+            response = client.request("POST", staged + ":populateFiles", {"files": dict(entries[start:start + 1000])})
+            required = response.get("uploadRequiredHashes", [])
+            if not isinstance(required, list) or any(value != digest for value in required):
+                raise ValueError("Firebase cannot reuse one or more live site files.")
+            if required:
+                upload_url = response.get("uploadUrl")
+                expected_path = "/upload/" + staged + "/files"
+                parsed = urllib.parse.urlsplit(upload_url) if isinstance(upload_url, str) else None
+                if (parsed is None or parsed.scheme != "https" or parsed.netloc != "upload-firebasehosting.googleapis.com"
+                        or parsed.path != expected_path or parsed.query or parsed.fragment):
+                    raise ValueError("Firebase returned an invalid upload URL.")
+                client.request("POST", upload_url + "/" + digest, compressed, upload=True)
     if list_files(client, staged) != files:
         raise ValueError("The staged site does not preserve the live files.")
     staged_details = client.request("GET", staged)
@@ -240,9 +298,13 @@ def stage(client, expected_version, feed, public_key, *, releases=None, current_
         raise ValueError("The staged site configuration differs from the live site.")
     if snapshot(client)["version"] != live["version"]:
         raise ValueError("The live site changed while staging.")
-    final = client.request("PATCH", staged + "?updateMask=status", {"status": "FINALIZED"})
-    if final.get("name") != staged or final.get("status") != "FINALIZED":
-        raise ValueError("Firebase did not finalize the staged version.")
+    if details["status"] == "CREATED":
+        final = client.request("PATCH", staged + "?updateMask=status", {"status": "FINALIZED"})
+        if final.get("name") != staged or final.get("status") != "FINALIZED":
+            raise ValueError("Firebase did not finalize the staged version.")
+    if journal is not None:
+        checkpoint["state"] = "finalized"
+        write_journal(journal, checkpoint)
     return {"baseVersion": live["version"], "stagedVersion": staged,
             "preservedFiles": len(live["files"]), "appcastHash": digest}
 
@@ -253,18 +315,21 @@ def main():
     parser.add_argument("--appcast", help="Signed appcast to stage.")
     parser.add_argument("--public-key", help="Base64 Ed25519 public key from the app.")
     parser.add_argument("--expected-version", help="Live Firebase version used to prepare the appcast.")
+    parser.add_argument("--journal", help="New staging journal, or the journal to recover.")
+    parser.add_argument("--resume", action="store_true", help="Resume the version recorded in the staging journal.")
     args = parser.parse_args()
     try:
         client = HostingClient(os.environ.get("DRAFTLY_FIREBASE_ACCESS_TOKEN"))
         if args.inspect:
-            if args.appcast or args.public_key or args.expected_version:
+            if args.appcast or args.public_key or args.expected_version or args.journal or args.resume:
                 raise ValueError("Inspect does not accept staging options.")
             live = snapshot(client)
             result = {"liveVersion": live["version"], "fileCount": len(live["files"]), "hasAppcast": "/appcast.xml" in live["files"]}
         else:
             if not args.appcast or not args.public_key or not args.expected_version:
                 raise ValueError("Staging needs an appcast, public key, and expected live version.")
-            result = stage(client, args.expected_version, Path(args.appcast).read_bytes(), args.public_key)
+            result = stage(client, args.expected_version, Path(args.appcast).read_bytes(), args.public_key,
+                           journal=args.journal, resume=args.resume)
         print(json.dumps(result, indent=2))
     except (ValueError, OSError, subprocess.SubprocessError) as error:
         raise SystemExit("Firebase appcast staging failed: " + str(error))

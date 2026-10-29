@@ -44,6 +44,16 @@ class ReleaseHistoryTests(unittest.TestCase):
             with self.subTest(item=item), self.assertRaisesRegex(ValueError, "already has"):
                 history.validate_history("1.0.0", "2", [item], None)
 
+    def test_recovery_can_exclude_only_one_matching_candidate(self):
+        for candidate in (release("1.0.0", draft=True), release("1.0.0")):
+            history.validate_history("1.0.0", "2", [candidate], None, resume_candidate=True)
+        with self.assertRaisesRegex(ValueError, "already has"):
+            history.validate_history("1.0.0", "2", [release("1.0.0", prerelease=True)], None, resume_candidate=True)
+        with self.assertRaisesRegex(ValueError, "already has"):
+            history.validate_history("1.0.0", "2", [release("1.0.0"), release("1.0.0")], None, resume_candidate=True)
+        with self.assertRaisesRegex(ValueError, "do not match"):
+            history.validate_history("1.0.0", "2", [release("1.0.0")], feed(("1.0.0", "1")), resume_candidate=True)
+
     def test_mismatched_or_damaged_history_fails_closed(self):
         invalid = [None, b"<html/>", b"<!DOCTYPE rss><rss><channel/></rss>",
                    feed(("1.0.0", "1"), ("1.0.0", "2")),

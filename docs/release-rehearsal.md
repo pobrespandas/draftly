@@ -133,6 +133,17 @@ version. It rejects missing files, changed historical release items, unsafe
 upload URLs, and a live version that changes during staging. It also checks the
 public appcast ETag against the live Firebase file hash.
 
+Use `--journal PATH` to record the staging operation before the Firebase
+request. Keep this journal with the candidate and feed. Use `--resume` with
+the same journal to continue an existing staged version. Recovery checks the
+live base, feed hash, operation label, and staged files before it proceeds.
+It can also verify a finalized version after an interrupted run. An existing
+draft or public GitHub release is accepted only during recovery.
+
+If the journal says `creating`, the result of the create request is unknown.
+Inspect Firebase for the operation label before taking further action. Do not
+create another version automatically. A journal does not lock the live site.
+
 On 29 October 2026 the live site contained 26 files; this branch's website
 directory contained only three. Do not deploy that directory directly over the
 live site. The Hosting release API does not document an atomic condition on

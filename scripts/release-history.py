@@ -61,12 +61,13 @@ def feed_versions(data):
     return versions
 
 
-def validate_history(version, build, releases, appcast):
+def validate_history(version, build, releases, appcast, *, resume_candidate=False):
     candidate = version_tuple(version)
     candidate_build = build_number(build)
     if not isinstance(releases, list):
         raise ValueError("GitHub release history is invalid.")
     published = set()
+    candidate_seen = False
     for release in releases:
         if (not isinstance(release, dict) or not isinstance(release.get("tag_name"), str)
                 or not isinstance(release.get("draft"), bool)
@@ -74,7 +75,10 @@ def validate_history(version, build, releases, appcast):
             raise ValueError("A GitHub release has invalid metadata.")
         tag = release["tag_name"]
         if tag == "v" + version:
-            raise ValueError("The candidate already has a GitHub release.")
+            if not resume_candidate or candidate_seen or release["prerelease"]:
+                raise ValueError("The candidate already has a GitHub release.")
+            candidate_seen = True
+            continue
         if release.get("draft") is not False or release.get("prerelease") is not False:
             continue
         if not tag.startswith("v"):
@@ -127,12 +131,15 @@ def fetch_appcast():
 
 
 def main():
-    argparse.ArgumentParser(description=__doc__).parse_args()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--resume-candidate", action="store_true",
+                        help="Allow one existing candidate release for verified recovery.")
+    args = parser.parse_args()
     try:
         with Path("Configuration/Info.plist").open("rb") as source:
             info = plistlib.load(source)
         validate_history(info.get("CFBundleShortVersionString"), info.get("CFBundleVersion"),
-                         fetch_releases(), fetch_appcast())
+                         fetch_releases(), fetch_appcast(), resume_candidate=args.resume_candidate)
     except (ValueError, OSError, plistlib.InvalidFileException, subprocess.SubprocessError) as error:
         raise SystemExit("Release history check failed: " + str(error))
     print("Release history check passed. Nothing was published.")
