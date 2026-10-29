@@ -10476,3 +10476,24 @@ the editor inserts a normal newline. A headless editor test checks that the
 original Unicode text remains. The focused syntax and editor tests, complete
 serial Swift inventory (692 Core, 861 app before the new editor test), and
 local Debug build passed. User-facing error presentation remains pending.
+
+### Ordered-list editor integration — 29 October 2026
+
+Text insertion can plan a single replacement that includes sequence edits and
+the resulting UTF-16 cursor. The per-syntax Auto-renumber lists preference is
+enabled by default. Headless tests cover insertion, Return, the disabled
+option, Unicode and one Undo/Redo operation. The planner keeps a separate list
+unchanged and preserves distinct Unicode representations. This is not full
+native acceptance: paste, deletion, input methods, error reporting and real
+editor interaction still need checks. Pressing Return on an empty list item
+before another line currently leaves an extra newline; this is a separate
+existing continuation defect and is not covered by the new acceptance.
+
+The complete serial Swift inventory passed (696 Core, 865 app), and the local
+Debug build passed. In an isolated Engine QA app, typing in an irregular list
+renumbered it; one Undo and one Redo restored each state. Return inserted and
+renumbered the next item. Pasting the irregular list did not renumber it, so
+paste remains a confirmed difference from Drafts. QA quit, its specific
+LaunchServices entry was removed, and the temporary app was moved to Trash.
+The normal app was not updated.
+Python ran 80 tests, and the action API matrix structure check had no errors.

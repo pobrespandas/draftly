@@ -1,7 +1,7 @@
 import SwiftUI
 import AppKit
 import WebKit
-import DraftlyCore
+@_spi(EditorImplementation) import DraftlyCore
 
 struct NativeEditor: NSViewRepresentable {
     @Environment(\.colorScheme) private var colorScheme
@@ -81,6 +81,7 @@ struct NativeEditor: NSViewRepresentable {
             text.highlightInsertionPoint = highlightInsertionPoint
             text.currentLineColor = theme?.interfaceColor(named: "textCaret").flatMap(EditorTheme.color)?.withAlphaComponent(0.08)
             text.autoMatch = textInput.autoMatch
+            text.autoRenumber = textInput.autoRenumber
             text.indentation = indentation
             text.configureTouchBar(model: touchBarModel, showCustom: showCustomTouchBar)
             if text.syntaxDefinition?.source != syntaxDefinition?.source || text.syntaxDefinition?.featureState != syntaxDefinition?.featureState || text.syntaxDefinition?.type != syntaxDefinition?.type {
@@ -221,6 +222,7 @@ final class DraftTextView: NSTextView {
     var completionNoteID: UUID?
     var completionProvider: ((String, NSRange) -> SyntaxCompletionRequest?)?
     var autoMatch = false
+    var autoRenumber = false
     private var completionRevision = 0
     override func keyDown(with event: NSEvent) {
         completionRevision &+= 1
@@ -252,6 +254,16 @@ final class DraftTextView: NSTextView {
         }
     }
     override func insertText(_ insertString: Any, replacementRange: NSRange) {
+        let range = replacementRange.location == NSNotFound ? selectedRange() : replacementRange
+        if autoRenumber, isEditable, !hasMarkedText(), undoManager?.isUndoing != true,
+           undoManager?.isRedoing != true, let inserted = insertString as? String,
+           let syntaxDefinition,
+           let plan = try? syntaxDefinition.orderedListEdit(in: string, replacing: range, with: inserted) {
+            super.insertText(plan.text, replacementRange: plan.range)
+            setSelectedRange(plan.selection)
+            if !insertingSyntaxCompletion { refreshSyntaxCompletions() }
+            return
+        }
         super.insertText(insertString, replacementRange: replacementRange)
         if !insertingSyntaxCompletion { refreshSyntaxCompletions() }
     }

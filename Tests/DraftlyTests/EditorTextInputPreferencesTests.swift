@@ -26,7 +26,7 @@ struct EditorTextInputPreferencesTests {
             #expect(EditorTextInputPreferences.value(option, for: "Café 🐼", encoded: edited) == !option.defaultValue)
         }
         #expect(EditorTextInputPreferences.configuration(for: "Café 🐼", encoded: edited) ==
-            .init(spelling: false, grammar: true, smartQuotes: true, smartDashes: true, autoMatch: true))
+            .init(spelling: false, grammar: true, smartQuotes: true, smartDashes: true, autoMatch: true, autoRenumber: false))
         #expect(EditorTextInputPreferences.value(.grammar, for: "TaskPaper", encoded: edited))
         let reset = try EditorTextInputPreferences.reset(for: "Café 🐼", encoded: edited)
         #expect(!EditorTextInputPreferences.hasOverrides(for: "Café 🐼", encoded: reset))
