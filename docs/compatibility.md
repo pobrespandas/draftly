@@ -63,6 +63,9 @@ Action installation links ask before they replace changed actions or groups
 with the same identity. Cancel keeps the whole batch unchanged. Duplicate
 identities and changes made during confirmation stop the import. Automated
 tests cover these paths; native confirmation remains to be checked.
+An incoming group with the same name as another stored group and a different
+identity is rejected before any part of the link is saved. This does not yet
+define a merge policy for that conflict.
 
 The JavaScript runtime applies a ten-second CPU execution limit when macOS exports
 the JavaScriptCore limit function. Synchronous native dialogs wait for user input.

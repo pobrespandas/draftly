@@ -3187,3 +3187,10 @@ Syntax and theme link errors now remain visible when the library is not
 available. Syntax link tests cover identical data, cancellation, a failed save,
 and replacement with the same identity. Native error presentation remains
 unverified. The usual app is unchanged.
+
+### Action group link name conflicts — 29 October 2026
+
+An action link cannot create a second stored group with the same name and a
+different identity. It reports an error before it saves any action or group.
+Automated tests cover the conflict and the unchanged batch. Native handling and
+a merge policy remain pending. The usual app is unchanged.

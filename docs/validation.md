@@ -10668,3 +10668,10 @@ Five syntax import choice tests passed, including link installation and save
 failure. The serial app suite passed 882 tests. The local Debug build passed.
 Native error presentation and syntax link replacement remain pending. The
 prior parallel Core timing failures remain recorded above.
+
+### Action group link name conflicts — 29 October 2026
+
+Ten focused action URL installation tests passed. They include a Unicode group
+name collision and verify that the action batch is unchanged after reload. The
+serial app suite passed 883 tests. The local Debug build passed. Native error
+presentation and a conflict merge policy remain pending.

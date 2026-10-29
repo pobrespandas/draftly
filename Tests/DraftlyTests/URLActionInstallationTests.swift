@@ -149,4 +149,21 @@ struct URLActionInstallationTests {
         #expect(throws: (any Error).self) { try ApplicationURLRouter.installActions(url, library: library) }
         #expect(library.actions.isEmpty)
     }
+
+    @Test func groupNameCollisionWithAnotherIdentityRejectsEntireBatch() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let existing = ActionGroupRecord(name: "Neutral café 🐼")
+        try library.saveActionGroup(existing)
+        var incoming = ActionGroupRecord(name: existing.name); incoming.id = UUID()
+        var member = DraftAction(name: "Must not import", steps: []); member.group = incoming.name
+        let backup = Backup(notes: [], revisions: [], workspaces: [], actions: [member], actionGroups: [incoming])
+        var components = URLComponents(); components.scheme = "draftly"; components.host = "action"
+        components.queryItems = [URLQueryItem(name: "data", value: try JSONEncoder().encode(backup).base64EncodedString())]
+        let url = try #require(components.url)
+        #expect(throws: (any Error).self) {
+            try ApplicationURLRouter.installActions(url, library: library) { _, _ in true }
+        }
+        try library.reload()
+        #expect(library.actionGroups == [existing]); #expect(library.actions.isEmpty)
+    }
 }

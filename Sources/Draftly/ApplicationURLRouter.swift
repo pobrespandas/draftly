@@ -206,6 +206,16 @@ struct ApplicationURLRouter {
         guard Set(actions.map(\.id)).count == actions.count, Set(groups.map(\.id)).count == groups.count else {
             throw DraftlyError.message("The action link contains duplicate identifiers.")
         }
+        if !groups.isEmpty {
+            let replacedGroupIDs = Set(groups.map(\.id))
+            let groupNames = groups.map { $0.name.trimmingCharacters(in: .whitespacesAndNewlines) }
+            let existingNames = Set(library.actionGroups.filter { !replacedGroupIDs.contains($0.id) }
+                .map { $0.name.trimmingCharacters(in: .whitespacesAndNewlines) })
+            guard !groupNames.contains(""), Set(groupNames).count == groupNames.count,
+                  existingNames.isDisjoint(with: groupNames) else {
+                throw DraftlyError.message("The action link contains a group name that conflicts with an installed group.")
+            }
+        }
         let oldActions = library.actions, oldGroups = library.actionGroups
         let replacements = oldActions.filter { existing in actions.contains { $0.id == existing.id && $0 != existing } }
         let groupReplacements = oldGroups.filter { existing in groups.contains { $0.id == existing.id && $0 != existing } }
