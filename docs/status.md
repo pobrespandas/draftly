@@ -3454,3 +3454,10 @@ same version and draft. Stopping the loopback server produced a retrieval error
 without replacing the app. QA closed normally and its registration was removed.
 The last case tests an unavailable server, not the Mac's full offline state.
 The QA build and feed differ from production as described above.
+
+A further isolated QA update checked one existing editor preference. The QA
+preferences domain was set to a 23-point default font before updating from
+0.1.0 to 0.2.0. After restart, the stored value remained 23 and Editor Settings
+showed 23 pt. The neutral draft remained in the temporary library. QA exited
+normally, the local server stopped, and its app registration was removed. This
+checks one preference, not all settings or the production installation.
