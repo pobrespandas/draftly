@@ -321,6 +321,13 @@ publication, all writers need an enforced coordinator with exclusive Firebase
 credentials and suitable access controls. Do not enable publication based on
 this lock alone. No bucket or IAM policy was created for this component.
 
+On 29 October 2026, the project IAM policy included a human project owner and
+Firebase service agents. A project owner can bypass this lock with direct
+Hosting access. The project had no Cloud Storage buckets at that time. This
+inspection did not establish effective inherited permissions or restrict any
+identity. A coordinator therefore needs both a dedicated lock bucket and an
+enforced publishing path; a cooperative lock alone is not sufficient.
+
 Do not automatically expire or clear a lock. Before manual recovery or release,
 confirm that its writer and any pending remote requests have stopped. Preserve
 the journal and inspect the remote object and generation. An abruptly lost

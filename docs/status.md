@@ -3676,3 +3676,8 @@ The writer lock now syncs its journal file and directory before a remote
 change. Tests exercise file and directory sync failures during acquisition
 and release. These tests do not establish recovery from a lost runner or
 enforce coordination with other site writers.
+
+Project IAM inspection on 29 October found a human project owner and Firebase
+service agents. The owner can publish without the lock. A Cloud Storage bucket
+list returned no buckets for the project. Inherited effective permissions were
+not audited. No IAM or storage resources were changed.
