@@ -4,6 +4,12 @@ Updated: 26 October 2026.
 
 ## Settings and personalization in progress
 
+Auto-match is available per syntax for direct key events. It wraps Unicode
+selections, and excludes Command and Control shortcuts. Option input is
+supported. Core 682/app 846 and Python 80 passed. Native QA checked simulated
+pairing and Undo/Redo on this keyboard layout. Physical keyboards and composed
+input remain unverified. The usual app remains unchanged.
+
 Monospace font selection is available globally and per syntax. Syntax and theme
 scopes and indentation metrics use the resolved choice. Core 682/app 843,
 Python 80 and matrix checks passed; focused 25 and local Debug passed after a

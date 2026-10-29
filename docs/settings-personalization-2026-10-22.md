@@ -834,3 +834,46 @@ was not updated. Full visual parity and other editor options remain pending.
 Signed Release and profile verification passed with the existing bundle, team
 and CloudKit container. The candidate remains uninstalled. This does not prove
 synchronization.
+
+## 29 October — auto-match in progress
+
+The archived editor reference describes matching parentheses, brackets, braces
+and quotes, including wrapping selected text. The implementation adds a local
+per-syntax Auto-match switch. Its absent value is off, which preserves the
+existing editor behavior. Key events pair supported characters and retain the
+UTF-16 selection inside the pair. Marked text, Command or Control key events, and direct insertions keep their
+existing path. Option-modified character input can create pairs. The setting uses the existing text input
+preference, including unknown field preservation and reset.
+
+Focused tests cover all five pairs, empty and Unicode selections, and direct
+insertion. Complete checks and native acceptance are recorded separately.
+
+Complete Core 682/app 845 passed with inventory/XML. Python 80, the structural
+matrix check, local Debug and signed Release/profile verification passed. Native
+QA showed the Auto-match option and enabled it for Markdown. Computer Use sent
+parenleft but the editor received a closing parenthesis under the current
+keyboard mapping. A real keyboard check of insertion, wrapping, Undo and Redo
+remains pending. No native behavior acceptance is claimed. QA quit normally;
+its exact LaunchServices entry was removed after ZIP integrity verification.
+Recovery: DraftlyRecovery/auto-match-20261029-005424. The usual app remains
+unchanged. The implementation is uncommitted pending the native check.
+
+A follow-up fixed Option-modified opening characters, which some keyboard
+layouts require. The focused eight methods passed. In isolated native QA,
+Computer Use sent Shift-8 for the current keyboard layout. Markdown wrapped
+selected `café 🐼` in parentheses and retained the UTF-16 selection. Command-Z
+restored the original text and Command-Shift-Z restored the pair. This is a
+simulated keyboard event; other physical keyboards and input methods remain
+unverified. The QA app quit normally and its exact LaunchServices entry was
+removed after ZIP verification. Recovery:
+DraftlyRecovery/auto-match-option-20261029-005610. The usual app is unchanged.
+
+The final full run after the Option correction passed Core 682/app 846 with
+inventory/XML, Python 80 and the structural matrix check. No timeout or retry
+policy changed. Local Debug passed. Other keyboard layouts, composed input and
+physical keyboard delivery remain unverified. This check does not close the
+other Editor Settings work.
+
+Final signed Release/profile verification passed with the existing bundle, team
+and CloudKit container. The candidate remains uninstalled. Signature is not
+sync evidence.

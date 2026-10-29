@@ -5,7 +5,7 @@ enum EditorTextInputPreferences {
     static let key = "editor.textInputBySyntax"
 
     enum Option: String, CaseIterable, Identifiable {
-        case spelling, grammar, smartQuotes, smartDashes
+        case spelling, grammar, smartQuotes, smartDashes, autoMatch
         var id: String { rawValue }
         var title: String {
             switch self {
@@ -13,6 +13,7 @@ enum EditorTextInputPreferences {
             case .grammar: "Grammar checking"
             case .smartQuotes: "Smart quotes"
             case .smartDashes: "Smart dashes"
+            case .autoMatch: "Auto-match"
             }
         }
         var defaultValue: Bool { self == .spelling }
@@ -34,6 +35,7 @@ enum EditorTextInputPreferences {
         var grammar = false
         var smartQuotes = false
         var smartDashes = false
+        var autoMatch = false
         var autocorrection: Bool?
         var writingTools: Bool?
     }
@@ -49,6 +51,7 @@ enum EditorTextInputPreferences {
             grammar: value(.grammar, for: syntax, encoded: encoded),
             smartQuotes: value(.smartQuotes, for: syntax, encoded: encoded),
             smartDashes: value(.smartDashes, for: syntax, encoded: encoded),
+            autoMatch: value(.autoMatch, for: syntax, encoded: encoded),
             autocorrection: override(.autocorrection, for: syntax, encoded: encoded),
             writingTools: override(.writingTools, for: syntax, encoded: encoded))
     }

@@ -72,6 +72,7 @@ struct NativeEditor: NSViewRepresentable {
         let coordinator = context.coordinator; coordinator.parent = self; coordinator.updating = true
         defer { coordinator.updating = false }
         if let text = text as? DraftTextView {
+            text.autoMatch = textInput.autoMatch
             text.indentation = indentation
             text.configureTouchBar(model: touchBarModel, showCustom: showCustomTouchBar)
             if text.syntaxDefinition?.source != syntaxDefinition?.source || text.syntaxDefinition?.featureState != syntaxDefinition?.featureState || text.syntaxDefinition?.type != syntaxDefinition?.type {
@@ -190,11 +191,24 @@ final class DraftTextView: NSTextView {
     let syntaxCompletions = EditorSyntaxCompletions()
     var completionNoteID: UUID?
     var completionProvider: ((String, NSRange) -> SyntaxCompletionRequest?)?
+    var autoMatch = false
     private var completionRevision = 0
     override func keyDown(with event: NSEvent) {
         completionRevision &+= 1
         if syntaxCompletions.handle(event) { return }
         syntaxCompletions.dismiss()
+        if autoMatch, isEditable, !hasMarkedText(),
+           event.modifierFlags.intersection([.command, .control]).isEmpty,
+           let input = event.characters, let closing = ["(": ")", "[": "]", "{": "}", "\"": "\"", "'": "'"][input] {
+            let range = selectedRange()
+            let source = string as NSString
+            if range.location != NSNotFound, range.location <= source.length, range.length <= source.length - range.location {
+                let selected = source.substring(with: range)
+                insertText(input + selected + closing, replacementRange: range)
+                setSelectedRange(NSRange(location: range.location + input.utf16.count, length: range.length))
+                return
+            }
+        }
         super.keyDown(with: event)
     }
     private var insertingSyntaxCompletion = false
