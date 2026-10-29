@@ -1,0 +1,13 @@
+{
+  "uuid": "D46F0001-0000-4000-8000-000000000001",
+  "name": "New Draft from Template",
+  "group": "Draftly",
+  "steps": [
+    {
+      "type": "script",
+      "data": {
+        "script": "const templates = Draft.query('', 'all', ['template']);\nif (templates.length === 0) { context.fail('No drafts have the template tag.'); }\nelse {\n  const choice = SelectPrompt.create(); choice.title = 'Choose a template';\n  templates.forEach(item => choice.addItem(item.uuid, item.displayTitle));\n  if (!choice.show()) { context.cancel(); }\n  else {\n    const source = Draft.find(choice.selectedItem.id);\n    const result = Draft.create();\n    result.content = source.processTemplate(source.content);\n    result.tags = source.tags.filter(tag => tag.toLowerCase() !== 'template');\n    result.update(); editor.load(result);\n  }\n}"
+      }
+    }
+  ]
+}

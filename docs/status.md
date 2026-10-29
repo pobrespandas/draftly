@@ -3263,3 +3263,11 @@ save a recovery checkpoint, and prepare a GitHub draft. It does not publish or
 promote. Workflow YAML and shell syntax, all 167 Python tests, and the matrix
 structural check passed. GitHub-hosted execution, credentials, real staging,
 and site writer coordination remain unverified.
+
+### Release branch integration — 29 October 2026
+
+The release branch incorporates the action catalog and tests from `main`
+without rewriting either history. The complete Swift inventory passed: 759
+Core and 925 application tests. All 167 Python tests, the matrix structural
+check, and the local app build passed. This does not publish the site or prove
+Developer ID signing, Sparkle updates, or CloudKit Production.

@@ -7,6 +7,40 @@ import DraftlyCore
 
 @Suite("Asynchronous printing requests") @MainActor
 struct NativePrintRequestTests {
+    @MainActor private final class PDFActionHost: ActionHost {
+        let output: URL
+        init(output: URL) { self.output = output }
+        func perform(_ operation: String, values: [String: Any]) throws -> Any? {
+            guard operation == "print" else { return true }
+            let info = NSPrintInfo()
+            info.paperSize = NSSize(width: 612, height: 792)
+            info.jobDisposition = .save
+            info.dictionary()[NSPrintInfo.AttributeKey.jobSavingURL] = output
+            let print = try NativePrintLayout.makeOperation(NativePrintConfiguration(values), printInfo: info)
+            print.showsPrintPanel = false; print.showsProgressPanel = false
+            return print.run()
+        }
+    }
+
+    @Test func writingActionGeneratesRealMarkdownPDF() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let output = directory.appendingPathComponent("writing-action.pdf")
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        let data = try Data(contentsOf: root.appendingPathComponent("website/public/actions/print-pdf.json"))
+        let action = try #require(ActionImporter.decode(data).first)
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let editor = EditorSession(); editor.load(try library.createNote(content: "# Heading\n\n**café 🐼**"))
+        let host = PDFActionHost(output: output)
+        let runner = ActionRunner(library: library, editor: editor, host: host)
+        #expect(runner.run(action), Comment(rawValue: runner.message ?? ""))
+        let pdf = try #require(PDFDocument(url: output))
+        #expect(pdf.pageCount == 1)
+        let text = try #require(pdf.string)
+        #expect(text.contains("Heading") && text.contains("café") && text.contains("🐼"))
+        #expect(!text.contains("**"))
+    }
     @Test func ownedWindowDoesNotDependOnGlobalKeyWindow() {
         _ = NSApplication.shared
         let owner = NSWindow(contentRect: .zero, styleMask: [], backing: .buffered, defer: true)

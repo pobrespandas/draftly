@@ -1,0 +1,14 @@
+{
+  "uuid": "D46F0001-0000-4000-8000-000000000013",
+  "name": "Add Draft to List",
+  "group": "Draftly",
+  "afterSuccess": "archive",
+  "steps": [
+    {
+      "type": "script",
+      "data": {
+        "script": "const entries = draft.content.split(/\\r\\n|[\\n\\r]/).map(line => line.trim()).filter(Boolean);\nif (!entries.length) { context.fail('The draft has no items to add.'); }\nelse {\n  const lists = Draft.query('', 'all', ['list']).filter(item => item.uuid !== draft.uuid);\n  const choice = SelectPrompt.create(); choice.title = 'Choose a list';\n  lists.forEach(item => choice.addItem(item.uuid, item.displayTitle));\n  choice.addItem('__new__', 'Create new list');\n  if (!choice.show()) { context.cancel(); }\n  else {\n    let destination;\n    if (choice.selectedItem.id === '__new__') {\n      const prompt = Prompt.create(); prompt.title = 'Create a list';\n      prompt.addTextField('name', 'List name', ''); prompt.addButton('Create');\n      if (!prompt.show()) { context.cancel(); }\n      else {\n        const name = String(prompt.fieldValues.name || '').trim();\n        if (!name || /[\\r\\n]/.test(name)) { context.fail('Enter a name on one line.'); }\n        else {\n          destination = Draft.create(); destination.content = '# ' + name + '\\n';\n          destination.addTag('list'); destination.isArchived = true;\n        }\n      }\n    } else { destination = Draft.find(choice.selectedItem.id); }\n    if (destination) {\n      const separator = destination.content && !destination.content.endsWith('\\n') ? '\\n' : '';\n      destination.content += separator + entries.map(item => '- [ ] ' + item).join('\\n');\n      destination.update();\n    }\n  }\n}"
+      }
+    }
+  ]
+}

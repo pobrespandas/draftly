@@ -1,0 +1,13 @@
+{
+  "uuid": "D46F0001-0000-4000-8000-000000000004",
+  "name": "Sort Selected Lines",
+  "group": "Draftly",
+  "steps": [
+    {
+      "type": "script",
+      "data": {
+        "script": "const range = editor.getSelectedLineRange();\nconst text = editor.getTextInRange(range[0], range[1]);\nif (!text.trim()) { context.fail('Select lines to sort.'); }\nelse {\n  const choice = SelectPrompt.create(); choice.title = 'Sort lines';\n  choice.addItem('asc', 'Ascending'); choice.addItem('desc', 'Descending');\n  if (!choice.show()) { context.cancel(); }\n  else {\n    const newline = text.endsWith('\\n');\n    const lines = (newline ? text.slice(0, -1) : text).split('\\n');\n    lines.sort((a, b) => a.localeCompare(b));\n    if (choice.selectedItem.id === 'desc') lines.reverse();\n    editor.setTextInRange(range[0], range[1], lines.join('\\n') + (newline ? '\\n' : ''));\n  }\n}"
+      }
+    }
+  ]
+}

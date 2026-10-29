@@ -42,10 +42,63 @@
   <div class="hero">
     <div class="eyebrow">A curated starting point</div>
     <h1>Actions for your words.</h1>
-    <p class="lead">Explore ways to shape, organize, and use your writing. These actions come from the Drafts community and are available to import into Draftly for Mac.</p>
-    <p class="notice">Draftly is in development. Automated tests cover specific behavior in saved versions of these actions, using simulated services. The source actions can change. Review each action before saving or running it; native services and permissions still need verification.</p>
+    <p class="lead">Explore ways to shape, organize, and use your writing. Explore Draftly actions and reference actions from the Drafts community.</p>
+    <p class="notice">Draftly is in development. Automated tests cover specific behavior using simulated services. For community actions, tests cover saved versions; source actions can change. Review each action before saving or running it; native services and permissions still need verification.</p>
   </div>
-  <div class="catalog" aria-label="Curated actions">
+  <h2>Actions by Draftly</h2>
+  <p>Download an action file and import it in Draftly with File → Import. These actions passed automated tests. Mac QA checked the template and text transform dialogs, transform Undo, and rich-text paste in TextEdit. The newer actions have not yet been checked in native QA.</p>
+  <div class="catalog" aria-label="Actions by Draftly">
+    <article><span class="category">Create · Draftly</span><h2>New Draft from Template</h2><p>Choose a draft tagged <code>template</code> to create a new draft. Other tags are copied.</p><p class="detail">Tested: creation, copied tags, missing templates, and cancellation.</p><a href="actions/template.json" download>Download action file</a></article>
+    <article><span class="category">Edit · Draftly</span><h2>Transform Selected Text</h2><p>Change selected text to uppercase or lowercase.</p><p class="detail">Tested: Unicode text, empty selection, and cancellation.</p><a href="actions/transform.json" download>Download action file</a></article>
+    <article><span class="category">Share · Draftly</span><h2>Copy Markdown as Rich Text</h2><p>Render the current draft as Markdown and copy the result as rich text.</p><p class="detail">Tested: rendering and simulated clipboard success and failure. Mac QA also pasted accented text with bold formatting in TextEdit.</p><a href="actions/rich-text.json" download>Download action file</a></article>
+  </div>
+  <h2>Lists</h2>
+  <div class="catalog" aria-label="List actions">
+    <article><span class="category">Organize · Draftly</span><h2>Add Draft to List</h2><p>Add each nonempty line of the current draft as a task in a draft tagged <code>list</code>. Choose an existing list or create one.</p><p class="detail"><strong>After success, the source draft is archived.</strong> Automated tests cover both action runners, list creation, cancellation, and invalid input. Native dialogs and Undo remain unverified.</p><a href="actions/add-to-list.json" download>Download action file</a></article>
+  </div>
+  <h2>More writing actions</h2>
+  <p>These independent Draftly actions are inspired by Drafts. They passed focused automated tests. Native dialogs, Undo, and clipboard output remain to be checked.</p>
+  <div class="catalog" aria-label="More writing actions">
+    <article><span class="category">Edit · Draftly</span><h2>Sort Selected Lines</h2><p>Sort the selected lines in ascending or descending order. The original Drafts action offers additional options.</p><a href="actions/sort-lines.json" download>Download action file</a></article>
+    <article><span class="category">Edit · Draftly</span><h2>Append Text to Selected Lines</h2><p>Enter text to append to each selected line.</p><a href="actions/append-lines.json" download>Download action file</a></article>
+    <article><span class="category">Markdown · Draftly</span><h2>Make Selection Bold</h2><p>Wrap selected text in Markdown bold markers.</p><a href="actions/markdown-bold.json" download>Download action file</a></article>
+    <article><span class="category">Markdown · Draftly</span><h2>Emphasize Selection</h2><p>Wrap selected text in Markdown emphasis markers.</p><a href="actions/markdown-italic.json" download>Download action file</a></article>
+    <article><span class="category">Share · Draftly</span><h2>Copy Markdown as HTML</h2><p>Render the current draft as Markdown and copy the resulting HTML as plain text.</p><a href="actions/copy-html.json" download>Download action file</a></article>
+  </div>
+  <h2>Integration prototypes</h2>
+  <p>These actions cover a small part of the original Drafts actions. Automated tests use simulated services. Mac QA verified Save as PDF through the print dialog. Things integration has not been verified in native use.</p>
+  <div class="catalog" aria-label="Integration prototypes">
+    <article><span class="category">Export · Prototype</span><h2>Print Markdown to PDF</h2><p>Open the Mac print dialog with rendered Markdown. Choose Save as PDF in the dialog.</p><a href="actions/print-pdf.json" download>Download action file</a></article>
+    <article><span class="category">Things · Prototype</span><h2>Send Draft to Things</h2><p>Use the first line as a task title and the remaining text as notes. Opens Things Quick Entry; it does not parse project outlines.</p><a href="actions/things-draft.json" download>Download action file</a></article>
+    <article><span class="category">Things · Prototype</span><h2>Send TaskPaper to Things</h2><p>Send supported projects, tasks, headings, notes, checklist items, and tags. Basic Mustache prompts are supported. Unsupported expressions and syntax are rejected.</p><a href="actions/things-taskpaper.json" download>Download action file</a></article>
+    <article><span class="category">Things · Prototype</span><h2>Send Markdown Outline to Things</h2><p>Prepare projects, tasks, headings, notes, checklist items, tags, and dates for Things. Delivery and callbacks remain unverified.</p><a href="actions/things-markdown.json" download>Download action file</a></article>
+  </div>
+  <h2>Obsidian</h2>
+  <p>These independent actions use a folder bookmark named <code>Obsidian Vault</code>. Select your vault folder when Draftly asks. Tests cover both action runners and the native file adapter in a temporary folder; your vault access and Obsidian behavior have not been verified.</p>
+  <div class="catalog" aria-label="Obsidian actions">
+    <article><span class="category">Export · Draftly</span><h2>Save Draft in Obsidian Vault</h2><p>Save the current draft as a Markdown file in the vault root. The file name comes from the draft title.</p><p class="detail">This action creates a file and reports an error if a file with that name already exists.</p><a href="actions/obsidian-save.json" download>Download action file</a></article>
+    <article><span class="category">Organize · Draftly</span><h2>Append Draft to Obsidian Daily Note</h2><p>Append the draft to <code>YYYY-MM-DD.md</code> in the vault root, using today's date. The file is created if missing.</p><p class="detail"><strong>This action changes an existing daily file.</strong> It does not use a custom daily-note folder.</p><a href="actions/obsidian-daily.json" download>Download action file</a></article>
+  </div>
+  <h2>Notion and Day One</h2>
+  <p>These actions need the respective Mac app. Automated tests use simulated clipboard and URL hosts. Opening the apps and receiving content have not been verified.</p>
+  <div class="catalog" aria-label="Notion and Day One actions">
+    <article><span class="category">Notion · Draftly</span><h2>Copy Draft and Open Notion</h2><p>Copy the current draft as plain text, then open Notion so you can paste it. This action does not archive the draft.</p><p class="detail">If Notion cannot open after copying, the text remains on the clipboard.</p><a href="actions/notion-copy.json" download>Download action file</a></article>
+    <article><span class="category">Day One · Draftly</span><h2>Send Draft to Day One</h2><p>Open Day One with the current draft as the text of a new journal entry. This action does not archive the draft.</p><p class="detail"><strong>Day One may create a new entry.</strong> Draftly cannot confirm that Day One saved it.</p><a href="actions/dayone-send.json" download>Download action file</a></article>
+  </div>
+  <h2>More journal and note actions</h2>
+  <p>These actions need Bear or Day One on your Mac. URL and callback tests use simulated hosts; actual delivery and permissions have not been verified.</p>
+  <div class="catalog" aria-label="Journal and note actions">
+    <article><span class="category">Bear · Draftly</span><h2>Send Draft to Bear</h2><p>Send the first line as a title and the remaining text as the body of a new Bear note. The draft stays in Draftly.</p><p class="detail">The action waits for Bear's callback; callback outcomes were tested with a simulated host.</p><a href="actions/bear-send.json" download>Download action file</a></article>
+    <article><span class="category">Day One · Draftly</span><h2>Send Daily Notes to Day One</h2><p>Send the draft body as a dated entry with Daily and Notes tags. The draft stays in Draftly.</p><p class="detail"><strong>Day One may create a new entry.</strong> This action uses the default journal and cannot confirm the entry was saved.</p><a href="actions/dayone-daily.json" download>Download action file</a></article>
+  </div>
+  <h2>OmniFocus</h2>
+  <p>These actions require OmniFocus for Mac. URL tests use simulated hosts; delivery and saved tasks have not been verified with OmniFocus.</p>
+  <div class="catalog" aria-label="OmniFocus actions">
+    <article><span class="category">OmniFocus · Draftly</span><h2>Send Draft to OmniFocus</h2><p>Send the first line as a task name and the remaining text as its note. The draft stays in Draftly.</p><p class="detail"><strong>OmniFocus may create a task.</strong> Draftly cannot confirm it was saved.</p><a href="actions/omnifocus-task.json" download>Download action file</a></article>
+    <article><span class="category">OmniFocus · Draftly</span><h2>Send TaskPaper to OmniFocus</h2><p>Send the draft as TaskPaper to the OmniFocus inbox. OmniFocus interprets the text and may create tasks or projects. The draft stays in Draftly.</p><p class="detail">Draftly does not validate TaskPaper or confirm what OmniFocus saved.</p><a href="actions/omnifocus-tasks.json" download>Download action file</a></article>
+  </div>
+  <h2>Drafts community references</h2>
+  <div class="catalog" aria-label="Curated actions from Drafts">
     <article><span class="category">Create</span><h2>New Draft with Template</h2><p>Create a draft from a template and select a placeholder to begin writing.</p><p class="detail">Tested: template selection, tags, date rendering, and placeholder selection.</p><a href="https://actions.getdrafts.com/a/1VL">View original action and import URL</a></article>
     <article><span class="category">Organize</span><h2>Add to List</h2><p>Add items from the current draft to a selected list. The action archives the source draft after success.</p><p class="detail">Tested: list selection, item insertion, and source archive.</p><a href="https://actions.getdrafts.com/a/1Ga">View original action and import URL</a></article>
     <article><span class="category">Edit</span><h2>Text Modifier…</h2><p>Choose a transformation for selected text.</p><p class="detail">Tested: selection, an uppercase transformation, and cursor placement.</p><a href="https://actions.getdrafts.com/a/1Bg">View original action and import URL</a></article>

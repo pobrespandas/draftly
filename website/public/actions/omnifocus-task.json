@@ -1,0 +1,13 @@
+{
+  "uuid": "D46F0001-0000-4000-8000-000000000020",
+  "name": "Send Draft to OmniFocus",
+  "group": "Draftly",
+  "steps": [
+    {
+      "type": "script",
+      "data": {
+        "script": "if (!draft.content.trim()) { context.fail('The draft is empty.'); }\nelse {\n  const title = draft.title, body = draft.processTemplate('[[body]]');\n  const url = 'omnifocus:///add?name=' + encodeURIComponent(title) + '&note=' + encodeURIComponent(body);\n  if (!app.openURL(url)) context.fail('Could not open OmniFocus.');\n}"
+      }
+    }
+  ]
+}

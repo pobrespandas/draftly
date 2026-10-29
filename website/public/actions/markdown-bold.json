@@ -1,0 +1,13 @@
+{
+  "uuid": "D46F0001-0000-4000-8000-000000000006",
+  "name": "Make Selection Bold",
+  "group": "Draftly",
+  "steps": [
+    {
+      "type": "script",
+      "data": {
+        "script": "const text = editor.getSelectedText();\nif (!text) { context.fail('Select text to make bold.'); }\nelse { editor.setSelectedText('**' + text + '**'); }"
+      }
+    }
+  ]
+}

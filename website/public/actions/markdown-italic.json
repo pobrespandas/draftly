@@ -1,0 +1,13 @@
+{
+  "uuid": "D46F0001-0000-4000-8000-000000000007",
+  "name": "Emphasize Selection",
+  "group": "Draftly",
+  "steps": [
+    {
+      "type": "script",
+      "data": {
+        "script": "const text = editor.getSelectedText();\nif (!text) { context.fail('Select text to emphasize.'); }\nelse { editor.setSelectedText('*' + text + '*'); }"
+      }
+    }
+  ]
+}
