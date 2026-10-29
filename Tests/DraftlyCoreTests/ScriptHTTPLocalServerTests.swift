@@ -5,6 +5,27 @@ import Testing
 @Suite("HTTP loopback contracts")
 struct ScriptHTTPLocalServerTests {
     @Test(arguments: [false, true]) @MainActor
+    func xmlRPCSerializesUint8ArraysAsBinary(worker: Bool) async throws {
+        let server = try LoopbackHTTPServer(); defer { server.stop() }
+        let fixture = try ScriptTestFixture(content: "Neutral", host: APIContractHost())
+        let action = ScriptTestAction.make("""
+        const binary=new Uint8Array([9,0,128,255,9]).subarray(1,4);
+        let reads=0;
+        const nested={'a/b~c':[binary],get bytes(){reads++;return new Uint8Array();}};
+        const r=XMLRPC.request('\(server.url("/xml-inspect"))','echo',
+          [binary,[0,128,255],nested]);
+        check(r.success,'request succeeds');
+        check(reads===1,'getter is read once');
+        const xml=r.params[0];
+        check(xml.split('<base64>AID/').length===3,'binary values retained');
+        check(xml.includes('<base64></base64>'),'empty binary retained');
+        check(xml.includes('<array><data><value><i8>0</i8>'),'ordinary array retained');
+        """, name: "XML-RPC binary")
+        #expect(await ActionTestExecution.succeeds(action, runner: fixture.runner, worker: worker),
+                Comment(rawValue: fixture.runner.message ?? ""))
+        #expect(try server.event()["path"] as? String == "/xml-inspect")
+    }
+    @Test(arguments: [false, true]) @MainActor
     func xmlRPCSerializesJavaScriptDatesAsDates(worker: Bool) async throws {
         let server = try LoopbackHTTPServer(); defer { server.stop() }
         let fixture = try ScriptTestFixture(content: "Neutral", host: APIContractHost())
@@ -37,7 +58,7 @@ struct ScriptHTTPLocalServerTests {
           [new Date('2026-10-19T12:34:56.000Z'),new Uint8Array([0,128,255])]);
         check(result.success,'request succeeds');
         check(typeof result.params[0]==='string' && result.params[0]==='2026-10-19T12:34:56.000Z','date becomes string');
-        check(result.params[1]['0']===0 && result.params[1]['1']===128 && result.params[1]['2']===255,'binary becomes record');
+        check(result.params[1]==='AID/','binary response currently remains base64 text');
         """, name: "XML-RPC value observation")
         #expect(await ActionTestExecution.succeeds(action, runner: fixture.runner, worker: worker),
                 Comment(rawValue: fixture.runner.message ?? ""))

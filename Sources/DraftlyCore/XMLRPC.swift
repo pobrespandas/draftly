@@ -4,26 +4,39 @@ import CoreFoundation
 public enum ScriptXMLRPC {
     static func requestValues(_ values: [String: Any]) throws -> [String: Any] {
         var dates = Set(values["__draftlyDatePaths"] as? [String] ?? [])
-        func restoreDates(_ value: Any, path: String) throws -> Any {
+        var binaries = Set(values["__draftlyBinaryPaths"] as? [String] ?? [])
+        guard dates.isDisjoint(with: binaries) else { throw DraftlyError.message("An XML-RPC value has conflicting types.") }
+        func restoreValues(_ value: Any, path: String) throws -> Any {
             if dates.remove(path) != nil {
                 guard let date = APIValues.parseDate(value) else { throw DraftlyError.message("An XML-RPC date is invalid.") }
                 return date
             }
+            if binaries.remove(path) != nil {
+                guard let values = value as? [Any] else { throw DraftlyError.message("An XML-RPC binary value is invalid.") }
+                let bytes = try values.map { item -> UInt8 in
+                    guard let number = item as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID(),
+                          number.doubleValue.isFinite, number.doubleValue.rounded() == number.doubleValue,
+                          (0...255).contains(number.doubleValue) else { throw DraftlyError.message("An XML-RPC binary value is invalid.") }
+                    return UInt8(number.intValue)
+                }
+                return Data(bytes)
+            }
             if let array = value as? [Any] {
-                return try array.enumerated().map { try restoreDates($0.element, path: path + "/\($0.offset)") }
+                return try array.enumerated().map { try restoreValues($0.element, path: path + "/\($0.offset)") }
             }
             if let object = value as? [String: Any] {
                 var restored: [String: Any] = [:]
                 for (key, item) in object {
                     let escaped = key.replacingOccurrences(of: "~", with: "~0").replacingOccurrences(of: "/", with: "~1")
-                    restored[key] = try restoreDates(item, path: path + "/" + escaped)
+                    restored[key] = try restoreValues(item, path: path + "/" + escaped)
                 }
                 return restored
             }
             return value
         }
-        let params = try restoreDates(values["params"] as? [Any] ?? [], path: "/params") as? [Any] ?? []
+        let params = try restoreValues(values["params"] as? [Any] ?? [], path: "/params") as? [Any] ?? []
         guard dates.isEmpty else { throw DraftlyError.message("An XML-RPC date path is invalid.") }
+        guard binaries.isEmpty else { throw DraftlyError.message("An XML-RPC binary path is invalid.") }
         let body = try requestBody(method: values["methodName"] as? String ?? "", params: params)
         return ["url": values["url"] ?? "", "method": "POST", "headers": ["Content-Type": "text/xml; charset=utf-8"], "encoding": "raw", "data": body, "includeResponseBytes": true]
     }

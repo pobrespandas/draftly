@@ -13,11 +13,11 @@ values. Both script execution paths reject them before JSON serialization can
 change them to null. Regression tests passed with the XML-RPC transport suites.
 Both script paths now encode JavaScript Date values as XML-RPC dates, including
 nested dates, and reject invalid dates. A loopback server checks the actual
-request. Responses still return dates as strings, and Uint8Array is sent as a
-record with numeric keys. The archived reference does not define these mappings.
-Date values returned by JavaScript getters still follow JSON serialization; they
-are not converted as XML-RPC dates. Drafts comparison and binary type handling
-remain open.
+request. Uint8Array request values now use XML-RPC base64, including nested
+values, views and getter results. Ordinary arrays remain arrays. Responses still
+return dates and base64 as strings. Date values returned by JavaScript getters
+still follow JSON serialization. The archived reference does not define these
+mappings. Drafts comparison and binary response types remain open.
 Malformed base64 in an XML-RPC response now returns an error instead of a
 successful value, including inside arrays. Tests cover invalid padding, empty
 data and XML whitespace. Valid base64 remains a string; its script type mapping

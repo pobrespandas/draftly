@@ -12,6 +12,19 @@ struct XMLRPCTests {
             #expect(throws: (any Error).self) { try ScriptXMLRPC.requestValues(values) }
         }
     }
+    @Test func binaryMetadataRejectsInvalidBytesAndPaths() throws {
+        for bytes: [Any] in [[-1], [256], [1.5], [true], ["1"]] {
+            #expect(throws: (any Error).self) {
+                try ScriptXMLRPC.requestValues(["params": [bytes], "__draftlyBinaryPaths": ["/params/0"]])
+            }
+        }
+        #expect(throws: (any Error).self) {
+            try ScriptXMLRPC.requestValues(["params": [], "__draftlyBinaryPaths": ["/params/1"]])
+        }
+        #expect(throws: (any Error).self) {
+            try ScriptXMLRPC.requestValues(["params": [[]], "__draftlyBinaryPaths": ["/params/0"], "__draftlyDatePaths": ["/params/0"]])
+        }
+    }
     @Test func malformedBase64InNestedResponseCannotReportSuccess() throws {
         func response(_ value: String) -> [String: Any] {
             let xml = "<methodResponse><params><param><value><array><data><value><base64>" + value + "</base64></value></data></array></value></param></params></methodResponse>"
