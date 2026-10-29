@@ -3265,6 +3265,11 @@ promote. Workflow YAML and shell syntax, all 167 Python tests, and the matrix
 structural check passed. GitHub-hosted execution, credentials, real staging,
 and site writer coordination remain unverified.
 
+Firebase documents a broad site update permission. A separate staging-only
+permission has not been established. Do not grant the CI identity write access
+or enable the staging job until the effective permissions and a safe boundary
+between staging and live promotion have been verified.
+
 ### Release branch integration — 29 October 2026
 
 The release branch incorporates the action catalog and tests from `main`

@@ -176,9 +176,14 @@ The optional staging job is disabled by default. It runs only when
 It requires the signed candidate, `docs/releases/vVERSION.txt`, the Sparkle
 key, and Firebase Workload Identity Federation. Set
 `DRAFTLY_GCP_WIF_PROVIDER` and `DRAFTLY_GCP_SERVICE_ACCOUNT` as repository
-variables. Store `DRAFTLY_SPARKLE_PRIVATE_KEY` as a secret. Limit the Google
-identity to the required Hosting operations and to this repository and the
-trusted release workflow. Do not grant it permission to promote the site.
+variables. Store `DRAFTLY_SPARKLE_PRIVATE_KEY` as a secret. Restrict the Google
+identity to this repository and the trusted release workflow. Do not enable the
+job until its effective Firebase permissions have been tested. Firebase lists
+`firebasehosting.sites.update` for changes to Hosting resources, but its public
+permission list does not establish a separate staging-only permission. A role
+that can stage may also be able to publish. If so, use a controlled mediator or
+another enforced boundary before granting access. See the [Firebase Hosting
+permission reference](https://docs.cloud.google.com/iam/docs/roles-permissions/firebasehosting).
 
 The job verifies the candidate, signs the feed, stages a Firebase version,
 saves its journal and receipt, and prepares a GitHub draft. It does not publish
