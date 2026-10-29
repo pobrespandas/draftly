@@ -10497,3 +10497,18 @@ paste remains a confirmed difference from Drafts. QA quit, its specific
 LaunchServices entry was removed, and the temporary app was moved to Trash.
 The normal app was not updated.
 Python ran 80 tests, and the action API matrix structure check had no errors.
+
+### Ordered-list plain paste — 29 October 2026
+
+Plain text paste now uses the same atomic list edit when renumbering is on.
+HTML conversion still runs first. A headless test checks Unicode, replacement
+of a selection, the pasteboard, the disabled option, Undo and Redo. Existing
+HTML preference tests passed. The complete serial Swift inventory passed (696
+Core, 866 app), and the local Debug build passed.
+
+In isolated Engine QA, pasting an irregular neutral list produced `1., 2.,
+3.`. One Undo removed the paste and one Redo restored the numbered list. QA
+quit, its specific LaunchServices entry was removed, and its temporary app
+was moved to Trash. This does not verify file or rich-text paste variants,
+deletion, input methods, or the rest of list parity. The usual app was not
+updated.

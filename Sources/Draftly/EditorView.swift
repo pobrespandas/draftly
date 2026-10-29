@@ -321,8 +321,17 @@ final class DraftTextView: NSTextView {
     override func paste(_ sender: Any?) {
         do {
             if try pasteHTML(from: .general) { return }
+            if pasteRenumberedText(from: .general) { return }
             super.paste(sender)
         } catch { NSApp.presentError(error) }
+    }
+
+    @discardableResult
+    func pasteRenumberedText(from pasteboard: NSPasteboard) -> Bool {
+        guard autoRenumber, isEditable, !hasMarkedText(),
+              let value = pasteboard.string(forType: .string) else { return false }
+        insertText(value, replacementRange: selectedRange())
+        return true
     }
 
     @discardableResult

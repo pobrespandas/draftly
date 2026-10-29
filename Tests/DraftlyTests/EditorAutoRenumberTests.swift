@@ -52,4 +52,35 @@ struct EditorAutoRenumberTests {
         #expect(text.string == "1. Uno\n2. \n3. Dos\n4. Tres")
         #expect(text.selectedRange() == NSRange(location: cursor + 4, length: 0))
     }
+
+    @Test func plainPasteRenumbersAndPreservesClipboardAndUndo() throws {
+        let board = NSPasteboard(name: NSPasteboard.Name("Draftly.ListPaste." + UUID().uuidString))
+        defer { board.releaseGlobally() }
+        board.clearContents()
+        let clipboard = "1. 🐼\n9. Dos\n3. Tres"
+        #expect(board.setString(clipboard, forType: .string))
+        let text = DraftTextView(frame: .zero)
+        text.isRichText = false; text.allowsUndo = true; text.autoRenumber = true
+        text.syntaxDefinition = try ScriptSyntax.definition("Markdown")
+        let window = OffscreenTestWindow(contentRect: .zero, styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = text
+        defer { window.contentView = nil }
+        let undo = try #require(text.undoManager)
+        undo.groupsByEvent = false
+        text.string = "Reemplazar 🐼"
+        text.setSelectedRange(NSRange(location: 0, length: text.string.utf16.count))
+        undo.beginUndoGrouping()
+        #expect(text.pasteRenumberedText(from: board))
+        undo.endUndoGrouping()
+        let expected = "1. 🐼\n2. Dos\n3. Tres"
+        #expect(text.string == expected)
+        #expect(text.selectedRange() == NSRange(location: expected.utf16.count, length: 0))
+        #expect(board.string(forType: .string) == clipboard)
+        undo.undo()
+        #expect(text.string == "Reemplazar 🐼")
+        undo.redo()
+        #expect(text.string == expected && board.string(forType: .string) == clipboard && !window.isVisible)
+        text.autoRenumber = false
+        #expect(!text.pasteRenumberedText(from: board))
+    }
 }
