@@ -3534,7 +3534,7 @@ publication requirements remain open. GitHub reported that checkout v4 and
 setup-python v5 target deprecated Node.js 20 actions and were run on Node.js 24.
 
 The macOS 26 panel test now reports window frames before and after attaching
-the controller, showing it, settling layout, and requesting a resize. It also
+the controller, calling its appearance callback, settling layout, and requesting a resize. It also
 reports active controller constraints and toolbar item identities. The test
 keeps the existing geometry assertions. The focused local suite and local
 build passed. Hosted diagnosis is needed to interpret the earlier expansion.
