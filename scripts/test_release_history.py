@@ -65,10 +65,11 @@ class ReleaseHistoryTests(unittest.TestCase):
 
     def test_fetch_releases_flattens_all_pages_and_rejects_invalid_pages(self):
         result = subprocess.CompletedProcess([], 0, stdout=json.dumps([[release("1.0.0")], [release("1.1.0")]]))
-        with patch.dict(history.os.environ, {"DRAFTLY_SPARKLE_PRIVATE_KEY": "secret"}), \
+        with patch.dict(history.os.environ, {"DRAFTLY_SPARKLE_PRIVATE_KEY": "secret", "DRAFTLY_FIREBASE_ACCESS_TOKEN": "token"}), \
                 patch.object(history.subprocess, "run", return_value=result) as run:
             self.assertEqual(history.fetch_releases(), [release("1.0.0"), release("1.1.0")])
             self.assertNotIn("DRAFTLY_SPARKLE_PRIVATE_KEY", run.call_args.kwargs["env"])
+            self.assertNotIn("DRAFTLY_FIREBASE_ACCESS_TOKEN", run.call_args.kwargs["env"])
         result.stdout = json.dumps([{"unexpected": "page"}])
         with patch.object(history.subprocess, "run", return_value=result), self.assertRaisesRegex(ValueError, "invalid release pages"):
             history.fetch_releases()

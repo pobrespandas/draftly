@@ -228,6 +228,11 @@ Developer ID candidate remains unverified.
 An appcast preparer signs the candidate archive and feed, checks the embedded
 public key, and preserves the stable feed history. It does not publish. Tests
 use disposable keys and Sparkle's signing tool; no production key was used.
+Firebase appcast staging can preserve the current site's files and config
+without promoting a version. The live snapshot was inspected read-only; staging
+has only been exercised with a fake API. Promotion must coordinate all site
+writers because Firebase Hosting does not document an atomic live-version
+precondition.
 
 The library uses the existing generic Core Data schema. Backups include shared
 themes and action execution history with compatibility checks. Development

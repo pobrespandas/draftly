@@ -104,6 +104,7 @@ def fetch_releases():
     command = ["gh", "api", "--paginate", "--slurp", "repos/pobrespandas/draftly/releases?per_page=100"]
     environment = dict(os.environ)
     environment.pop("DRAFTLY_SPARKLE_PRIVATE_KEY", None)
+    environment.pop("DRAFTLY_FIREBASE_ACCESS_TOKEN", None)
     result = subprocess.run(command, check=True, capture_output=True, text=True, timeout=60, env=environment)
     pages = json.loads(result.stdout)
     if not isinstance(pages, list) or any(not isinstance(page, list) for page in pages):

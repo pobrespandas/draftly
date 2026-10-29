@@ -94,3 +94,25 @@ It does not allow Sparkle's automatic installation option; the user confirms
 each update.
 The appcast tool does not enable update checks. Real update acceptance and key
 recovery remain pending.
+
+## Stage the site without publishing
+
+`scripts/firebase-stage-appcast.py` can inspect the live Firebase Hosting
+version and stage a signed appcast in a new, finalized version. It does not
+create a release or change the live channel. The caller supplies a short-lived
+Firebase access token in `DRAFTLY_FIREBASE_ACCESS_TOKEN`; do not print or save
+the token. Supply the expected live version and the app's public key to stage.
+
+The staging check verifies the feed signature and version history, reads all
+live file hashes and the live configuration, and preserves them in the staged
+version. It rejects missing files, changed historical release items, unsafe
+upload URLs, and a live version that changes during staging. It also checks the
+public appcast ETag against the live Firebase file hash.
+
+On 29 October 2026 the live site contained 26 files; this branch's website
+directory contained only three. Do not deploy that directory directly over the
+live site. The Hosting release API does not document an atomic condition on
+the previous live version. Before adding promotion, route every site writer
+through a shared serialization mechanism and verify the live version and
+public release assets. The staged version alone is not safe publication or
+proof of a working update.
