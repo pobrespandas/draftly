@@ -10774,3 +10774,8 @@ The system Python lacked Pillow and could not import the visual capture tests.
 The bundled Python with Pillow passed all 80 script tests. The matrix structural
 check passed. The most recent local Debug build passed before this integration
 run. These results do not accept native behavior or the strict parity gates.
+
+The two affected tests now cancel their owned tasks if an assertion exits early.
+The focused async runner suite passed. A further parallel Core run still failed
+at the same two wait conditions. The cleanup change does not resolve or explain
+the parallel failures; keep them open.

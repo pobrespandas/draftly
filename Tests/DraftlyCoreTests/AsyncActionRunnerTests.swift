@@ -56,6 +56,7 @@ struct AsyncActionRunnerTests {
         action.steps.append(ActionStep("insertText", ["template": "Must not run"]))
         action.afterSuccess = "archive"
         let task = Task { await f.runner.runAsync(action) }
+        defer { task.cancel() }
         try await waitUntil { f.host.clipboard == "Completed" }
         task.cancel()
         let report = await task.value
@@ -97,6 +98,7 @@ struct AsyncActionRunnerTests {
         let f = try ScriptTestFixture(content: "Source", host: APIContractHost())
         let other = ActionRunner(library: f.library, editor: f.editor, host: f.host)
         let task = Task { await f.runner.runAsync(ScriptTestAction.make("app.setClipboard('Started');setTimeout(()=>script.complete(),100);", name: "Hold", allowAsync: true)) }
+        defer { task.cancel() }
         try await waitUntil { f.host.clipboard == "Started" }
         #expect(other.runReport(ScriptTestAction.make("", name: "Legacy")).reason == .busy)
         #expect(await other.runAsync(ScriptTestAction.make("", name: "Other")).reason == .busy)
