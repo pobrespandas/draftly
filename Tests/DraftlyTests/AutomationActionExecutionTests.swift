@@ -6,6 +6,38 @@ import DraftlyCore
 
 @Suite("Automation action editor safety") @MainActor
 struct AutomationActionExecutionTests {
+    @Test(arguments: [false, true]) func conflictingPendingEditorsDoNotOverwriteEachOtherOrStartAction(reverse: Bool) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Stored")
+        let first = WindowModel(library: library), second = WindowModel(library: library)
+        first.select(note.id); second.select(note.id)
+        first.editor.content = "First pending 🐼"; first.contentChanged()
+        second.editor.content = "Second pending café"; second.contentChanged()
+        let action = DraftAction(name: "Must not run", steps: [ActionStep("script", ["script": "editor.setText('Action ran');"])])
+        let models = reverse ? [second, first] : [first, second]
+        do {
+            _ = try await AutomationActionExecution.run(action, noteID: note.id, library: library, models: models, host: first.host)
+            Issue.record("Automation started with conflicting pending editors.")
+        } catch {
+            #expect(error.localizedDescription.contains("conflicting"))
+        }
+        try await Task.sleep(for: .milliseconds(650))
+        #expect(first.editor.content == "First pending 🐼" && first.hasUnsavedChanges)
+        #expect(second.editor.content == "Second pending café" && second.hasUnsavedChanges)
+        #expect(library.notes.first?.content == "Stored" && library.runs.isEmpty)
+    }
+    @Test func identicalPendingEditorsCanRunAutomation() async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Stored")
+        let first = WindowModel(library: library), second = WindowModel(library: library)
+        first.select(note.id); second.select(note.id)
+        first.editor.content = "Same 🐼"; first.contentChanged()
+        second.editor.content = "Same 🐼"; second.contentChanged()
+        let action = DraftAction(name: "Append", steps: [ActionStep("script", ["script": "draft.content+=' done';draft.update();"])])
+        let output = try await AutomationActionExecution.run(action, noteID: note.id, library: library, models: [first, second], host: first.host)
+        #expect(output.report.reason == .success)
+        #expect(library.notes.first?.content == "Same 🐼 done")
+    }
     private func delayedAction() -> DraftAction {
         DraftAction(name: "Delayed automation", steps: [
             ActionStep("script", ["allowAsync": "true", "script": "draft.addTag('waiting');draft.update();"]),

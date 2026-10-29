@@ -11050,3 +11050,17 @@ steps, success parameters and Archive do not run. A following action succeeds
 with a different execution ID. The old timer cannot change its result after its
 deadline. The focused inclusion, async runner and worker suites passed. This is
 controlled test evidence, not a native callback or a Drafts precedence comparison.
+
+### Conflicting pending windows before automation — 29 October 2026
+
+Two WindowModels with different unsaved edits to the same draft could previously
+flush in sequence before URL or Intent automation. A red regression showed that
+one edit was overwritten and the action ran. Automation now detects the conflict
+before any flush, pauses the pending autosaves for those windows and returns an
+explicit error. The edits remain in their windows. Identical pending text remains
+allowed. Focused tests cover both model orders, the autosave interval, no action
+log or stored change, and direct App Intent.perform. URL target tests, Intent and
+automation suites passed, as did the local Debug build. This does not implement a
+conflict-resolution interface or prove system-delivered URL or Intent behavior.
+The user must resolve the edits before running the action. Further edits can
+schedule autosave again; preservation beyond this boundary needs separate work.

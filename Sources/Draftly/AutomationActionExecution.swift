@@ -76,6 +76,17 @@ import DraftlyCore
         guard !lifetime.closed else {
             return notStarted(action, noteID: noteID, reason: .cancelled, message: "The target window closed before the action started.")
         }
+        var pending: [UUID: Set<String>] = [:]
+        for model in models where model.hasUnsavedChanges {
+            if let id = model.editor.noteID { pending[id, default: []].insert(model.editor.content) }
+        }
+        let conflicts = Set(pending.filter { $0.value.count > 1 }.map(\.key))
+        if !conflicts.isEmpty {
+            for model in models where model.hasUnsavedChanges && model.editor.noteID.map(conflicts.contains) == true {
+                model.pausePendingAutosave()
+            }
+            throw DraftlyError.message("Multiple windows have conflicting unsaved edits. Resolve them before running the action.")
+        }
         for model in models {
             model.synchronizeStoredEditor(library.notes)
             guard model.flush() else { throw DraftlyError.message("Pending edits could not be saved. The action was not started.") }

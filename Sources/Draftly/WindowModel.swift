@@ -317,6 +317,7 @@ final class WindowModel: ObservableObject {
             guard !Task.isCancelled else { return }; _ = self?.flush()
         }
     }
+    func pausePendingAutosave() { saveTask?.cancel(); saveTask = nil }
     @discardableResult func flush() -> Bool {
         saveTask?.cancel()
         do {

@@ -16,6 +16,25 @@ struct RunDraftActionIntentTests {
         return intent
     }
 
+    @Test func conflictingPendingWindowsRejectIntentWithoutSavingOrRunning() async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Stored")
+        let first = WindowModel(library: library), second = WindowModel(library: library)
+        first.select(note.id); second.select(note.id)
+        first.editor.content = "First 🐼"; first.contentChanged()
+        second.editor.content = "Second café"; second.contentChanged()
+        let action = DraftAction(name: "Must not run", steps: [ActionStep("script", ["script": "editor.setText('Action ran');"])])
+        try library.saveAction(action)
+        do {
+            _ = try await intent(action, note: note, library: library, models: [first, second], host: IntentMarkerHost()).perform()
+            Issue.record("The intent ran with conflicting pending edits.")
+        } catch { #expect(error.localizedDescription.contains("conflicting")) }
+        try await Task.sleep(for: .milliseconds(650))
+        #expect(first.editor.content == "First 🐼" && first.hasUnsavedChanges)
+        #expect(second.editor.content == "Second café" && second.hasUnsavedChanges)
+        #expect(library.notes.first?.content == "Stored" && library.runs.isEmpty)
+    }
+
     @Test func actualPerformReturnsAValueAfterSavingTheScriptResult() async throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let note = try library.createNote(content: "Neutral")
