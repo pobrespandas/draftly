@@ -3908,3 +3908,8 @@ window were not checked in this session.
 The manual QA divider drag did not change the accessibility-reported position.
 It did not verify width restoration after dragging. QA quit normally. The
 previous toggle checks remain valid; manual drag and resizing remain pending.
+
+Hosted full CI run 40966067211 passed on macOS 26 at commit 5d2c7af. It ran
+Python, website, matrix and complete Swift inventory checks, built the local
+app and checked package metadata and signature. This does not prove public
+Developer ID signing, site publication, updating or CloudKit synchronization.
