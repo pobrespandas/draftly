@@ -10882,3 +10882,13 @@ path components. The regression covers read, write, existence, a dangling link,
 and normal Unicode file access. Native file and bookmark suites and the local
 Debug build passed. Concurrent filesystem changes, system permission outcomes,
 and iCloud Drive access need separate checks.
+
+### Integrated regression after file and conversion changes — 29 October 2026
+
+At 721f716, the full Swift runner passed and its results matched discovery: 725
+Core and 901 app tests. The 80 Python script tests passed with the bundled Python.
+The matrix structural check reported zero errors. The strict engine parity check
+still reported 18 diagnostics across six partial contracts. This run does not
+replace their native checks or prove compatibility with Drafts. The local Debug
+build passed separately after the file containment change. Previous concurrent
+Core timing failures remain recorded; one passing run does not resolve them.
