@@ -10378,3 +10378,14 @@ editor; clipping the ruler fixed the observed issue in the next build. The QA
 bundle was archived and unregistered. Light appearance, long-document scroll,
 full selection/Undo coverage, and measured visual comparison remain pending.
 No screenshots are tracked.
+
+Engine QA scrolled a neutral 120-paragraph note from the end to the beginning.
+The visible labels matched the paragraph numbers, including 120 at the end.
+Selecting paragraph 3, editing it, and using Undo restored its text and
+selection. Redo restored the edit but visibly clipped the left edge of every
+line while the ruler was enabled. Repeating Undo and Redo reproduced the
+change. With paragraph numbers disabled, the same Undo/Redo sequence showed
+the full left edge. The cause is not established. A first offscreen attempt
+did not reproduce the clipping and is not evidence of a fix. Keep this as an
+open regression; do not install this build as the usual app. The QA bundle was
+closed, archived, and unregistered. The test note remains in QA storage.
