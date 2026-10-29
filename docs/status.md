@@ -3747,3 +3747,7 @@ The macOS 26 failure log shows a sidebar container eight points wider than
 its hosted content. The offscreen hold-width diagnostic now compares holding
 the container and the content. The focused suite passed locally; the hosted
 comparison is pending. No production layout change was made.
+
+The user confirmed that the Google Password Manager entry is visible on a
+second device. The recovered seed matched the public key on the Mac. The seed
+from the second device has not been checked independently.
