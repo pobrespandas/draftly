@@ -11013,3 +11013,15 @@ through the native adapter in an isolated local root. The test substitutes local
 storage for the requested cloud root. Template and worker suites, matrix
 structure and the local Debug build passed. Real iCloud Drive and Drafts
 comparison remain open.
+
+### Action confirmation in isolated QA — 29 October 2026
+
+An ad-hoc QA app used a separate local library and no Services entries. A neutral
+script action was created with Confirm Before Run enabled. It was started from
+the Actions menu. Cancel left the original editor text unchanged and displayed
+cancelled status. A subsequent Run changed the editor to the expected Unicode
+text and displayed completed status. Execution History showed one Cancelled and
+one Success entry. This checks the visible UI route only; execution identities,
+other entry points and other engine contracts remain separate. No production
+code changed. The QA app quit, its registration was removed and its bundle was
+moved to Trash. Its separate test library remains.

@@ -71,7 +71,7 @@ User permission to run a case does not count as an observed permission outcome.
 
 | ID | Operation and entry | Pending outcome | Required resource observation | Contracts | State |
 | --- | --- | --- | --- | --- | --- |
-| CONFIRM-01 | Action confirmation, UI | Accept then separate Cancel before first step | No step effect on Cancel | W,H,C,E | READY |
+| CONFIRM-01 | Action confirmation, UI | Cancel before first step, then Run | No step effect on Cancel; next run completes | W,H,C,E | OBSERVED in isolated QA on 29 October; execution identities and additional entry variants remain separate |
 | PRINT-01 | Print, UI | Actual individual owner close with pending print operation | Panel/operation cleanup, one cancel; Close All is not evidence | H,C,E | READY; first establish a supported close path |
 | ARRANGE-01 | Arrange, URL | Direct owner close and stale navigation | Owned presentation closed; no stale edit | H,C,E | READY |
 | HTML-01 | HTML return, URL | Actual old WebKit message after owner closure and a new preview | Old message cannot finish or edit the new request | H,C,E | OBSERVE |
