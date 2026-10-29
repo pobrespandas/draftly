@@ -1,12 +1,14 @@
 import AppKit
 import Carbon
 import DraftlyCore
+import Combine
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     static weak var current: AppDelegate?
     private var globalHotKeys: GlobalHotKeys?
     private var statusController: StatusMenuController?
+    private let termination = ActionTerminationCoordinator()
     lazy var captureService = CaptureService(save: { text in
         try AppController.shared.captureController.captureDirectly(text)
     }, showOptions: { text in
@@ -87,8 +89,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         catch let serviceError { error.pointee = serviceError.localizedDescription as NSString }
     }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        for window in AppController.shared.windows.allObjects where !window.flush() { return .terminateCancel }
-        return .terminateNow
+        let controller = AppController.shared
+        let flush = { controller.windows.allObjects.allSatisfy { $0.flush() } }
+        guard let library = controller.library else { return flush() ? .terminateNow : .terminateCancel }
+        return termination.request(busy: { ActionRunner.isExecuting(in: library) },
+            changes: ActionRunner.executionBusyPublisher(in: library), flush: flush,
+            reply: { sender.reply(toApplicationShouldTerminate: $0) })
     }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         guard !flag else { return true }
@@ -96,4 +102,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+}
+
+@MainActor
+final class ActionTerminationCoordinator {
+    private var observation: AnyCancellable?
+    private var waiting = false
+
+    func request(busy: @escaping () -> Bool, changes: AnyPublisher<Bool, Never>, flush: @escaping () -> Bool,
+                 reply: @escaping (Bool) -> Void) -> NSApplication.TerminateReply {
+        if waiting { return .terminateLater }
+        guard busy() else { return flush() ? .terminateNow : .terminateCancel }
+        waiting = true
+        observation = changes.receive(on: RunLoop.main).sink { [weak self] _ in
+            guard let self, self.waiting, !busy() else { return }
+            self.waiting = false
+            self.observation = nil
+            reply(flush())
+        }
+        return .terminateLater
+    }
 }

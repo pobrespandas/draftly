@@ -210,8 +210,10 @@ Sparkle 2 is linked in the app. Update checks are disabled unless the main app
 has an explicit build setting, a valid public key, and the configured HTTPS
 feed. Do not enable them yet. Update safety during active Actions, Developer
 ID signing, notarization, release publishing, and real update acceptance are
-still pending. The manual release rehearsal has read-only permissions and does
-not publish.
+still pending. App termination now waits for Actions in the active library and
+then saves open windows. Automated tests cover a pending Action and save
+failure. A real Sparkle installation during an Action remains unverified. The
+manual release rehearsal has read-only permissions and does not publish.
 
 The library uses the existing generic Core Data schema. Backups include shared
 themes and action execution history with compatibility checks. Development

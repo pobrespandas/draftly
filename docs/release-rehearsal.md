@@ -14,7 +14,9 @@ signature. It is not a release package.
 ## Before enabling publication
 
 - Keep `DRAFTLY_UPDATES_ENABLED` unset until update termination and active
-  Actions have been verified. Do not use a test key for a public build.
+  Actions have been verified in a real update. The headless termination tests
+  do not establish the Sparkle installation path. Do not use a test key for a
+  public build.
 - Verify the updater, signed feed, and key recovery process.
 - Add and verify Developer ID signing, notarization, and the production
   CloudKit profile. Verify all nested code and the installed app.
