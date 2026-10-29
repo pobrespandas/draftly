@@ -16,6 +16,10 @@ JavaScript Date as a string and Uint8Array as a record with numeric keys. This
 is current behavior, not an accepted Drafts contract. The archived reference
 does not define the mapping. Replace the characterization when that mapping is
 verified and implemented.
+Malformed base64 in an XML-RPC response now returns an error instead of a
+successful value, including inside arrays. Tests cover invalid padding, empty
+data and XML whitespace. Valid base64 remains a string; its script type mapping
+is still unverified.
 
 [Engine acceptance cases](engine-acceptance-cases-2026-10-22.md) assigns case IDs,
 entries, outcomes, cleanup and affected contracts to the remaining work. It

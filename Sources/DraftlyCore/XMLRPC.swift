@@ -120,7 +120,13 @@ public enum ScriptXMLRPC {
             throw DraftlyError.message("An XML-RPC scalar contains nested elements.")
         }
         switch child.name {
-        case "string", "dateTime.iso8601", "base64": return child.text
+        case "string", "dateTime.iso8601": return child.text
+        case "base64":
+            let compact = String(child.text.unicodeScalars.filter { ![9, 10, 13, 32].contains($0.value) })
+            let pattern = #"^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$"#
+            guard compact.range(of: pattern, options: .regularExpression) != nil,
+                  Data(base64Encoded: compact) != nil else { throw DraftlyError.message("An XML-RPC base64 value is invalid.") }
+            return child.text
         case "int", "i4", "i8":
             guard let value = Int64(child.text.trimmingCharacters(in: .whitespacesAndNewlines)) else { throw DraftlyError.message("An XML-RPC integer is invalid.") }; return value
         case "double":

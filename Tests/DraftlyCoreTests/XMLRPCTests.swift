@@ -4,6 +4,24 @@ import Testing
 
 @Suite("XML-RPC contracts")
 struct XMLRPCTests {
+    @Test func malformedBase64InNestedResponseCannotReportSuccess() throws {
+        func response(_ value: String) -> [String: Any] {
+            let xml = "<methodResponse><params><param><value><array><data><value><base64>" + value + "</base64></value></data></array></value></param></params></methodResponse>"
+            return ScriptXMLRPC.response(Data(xml.utf8), statusCode: 200)
+        }
+        for invalid in ["%%%", "A===", "AA=A", "abcd!"] {
+            let result = response(invalid)
+            #expect(result["success"] as? Bool == false)
+            #expect((result["params"] as? [Any])?.isEmpty == true)
+            #expect(!(result["error"] as? String ?? "").isEmpty)
+        }
+        for valid in ["", "AP//", " YQ==\n"] {
+            let result = response(valid)
+            #expect(result["success"] as? Bool == true)
+            let arrays = try #require(result["params"] as? [[String]])
+            #expect(arrays == [[valid]])
+        }
+    }
     @Test func nonFiniteNumbersCannotProduceAnInvalidRequest() throws {
         for value in [Double.nan, Double.infinity, -Double.infinity] {
             #expect(throws: (any Error).self) {
