@@ -3864,3 +3864,10 @@ The native process deadline test now reports the caught error and process-group
 isolation details if that assertion fails again. The focused native-process
 suite passed all 18 cases. The earlier full-suite failure remains unexplained;
 this diagnostic does not establish a fix.
+
+Hosted LargeDisplayPanels26 run 40963480415 tested panel candidate 4118a77.
+The offscreen suite failed with seven issues. Initial fit and real-content
+restoration passed, but visibility restoration and compressed window resizing
+still failed. Several restored sidebar widths differed by eight points; one
+narrow window was seven points too wide. The local pass does not establish
+macOS 26 compatibility. The candidate is not accepted for release.
