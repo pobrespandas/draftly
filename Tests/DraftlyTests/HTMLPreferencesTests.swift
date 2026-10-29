@@ -76,6 +76,14 @@ struct HTMLPreferencesTests {
         #expect(try NativeHTMLConversion().htmlToMarkdown(reverse, options: [:]) == "9. One\n    * Child\n10. Two")
     }
 
+    @Test func orderedListItemValueChangesFollowingNumber() throws {
+        let html = "<ol start='3'><li>First</li><li value=8>Reset 🐼<ol><li value='4'>Nested</li><li>Next nested</li></ol></li><li>Next</li></ol>"
+        let result = try NativeHTMLConversion().htmlToMarkdown(html, options: [:])
+        #expect(result == "3. First\n8. Reset 🐼\n    4. Nested\n    5. Next nested\n9. Next")
+        let quoted = "<ol title=' start=30'><li title=' value=99'>One</li><li value='7'>Seven</li></ol>"
+        #expect(try NativeHTMLConversion().htmlToMarkdown(quoted, options: [:]) == "1. One\n7. Seven")
+    }
+
     @Test func marksAndIgnoreOptionsReachTheConverter() throws {
         let host = NativeActionHost()
         let html = "<p><strong>Café 🐼</strong> <em>text</em> <a href='https://example.com'>link</a><img src='neutral.png'></p><ul><li>item</li></ul>"

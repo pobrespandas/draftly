@@ -10854,3 +10854,11 @@ silently discarded a value. A regression test failed before the correction.
 The decoder now returns an error for duplicate names, including inside arrays.
 The focused XML-RPC, async transport and loopback suites passed. The local Debug
 build passed. Drafts behavior for this malformed response remains unverified.
+
+### HTML ordered list values — 29 October 2026
+
+A regression showed that conversion ignored the value attribute of ordered list
+items. The converter now updates that list's counter and keeps nested counters
+separate. It reads start and value as attributes, not text inside quoted values.
+The HTML preference suite and local Debug build passed. Drafts comparison and
+other HTML list variants remain pending.

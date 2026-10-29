@@ -18,7 +18,15 @@ struct NativeHTMLConversion {
     private func convertLists(_ input: String, mark: String) throws -> String {
         struct List { var ordered: Bool; var next: Int }
         let tags = try NSRegularExpression(pattern: #"<(/?)(ul|ol|li)\b(?:[^'">]|"[^"]*"|'[^']*')*>"#, options: .caseInsensitive)
-        let start = try NSRegularExpression(pattern: #"\s+start\s*=\s*(?:"(-?\d+)"|'(-?\d+)'|(-?\d+))"#, options: .caseInsensitive)
+        let attributes = try NSRegularExpression(pattern: #"\s+([^\s=/>]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?"#)
+        func integerAttribute(_ tag: NSString, named name: String) -> Int? {
+            for attribute in attributes.matches(in: tag as String, range: NSRange(location: 0, length: tag.length)) {
+                guard tag.substring(with: attribute.range(at: 1)).lowercased() == name else { continue }
+                guard let group = (2...4).first(where: { attribute.range(at: $0).location != NSNotFound }) else { return nil }
+                return Int(tag.substring(with: attribute.range(at: group)))
+            }
+            return nil
+        }
         let source = input as NSString
         let output = NSMutableString()
         var stack: [List] = [], offset = 0
@@ -29,6 +37,10 @@ struct NativeHTMLConversion {
             if name == "li", !closing {
                 var marker = mark
                 if let index = stack.indices.last, stack[index].ordered {
+                    let tag = source.substring(with: match.range) as NSString
+                    if let number = integerAttribute(tag, named: "value") {
+                        stack[index].next = number
+                    }
                     marker = "\(stack[index].next)."
                     if stack[index].next < Int.max { stack[index].next += 1 }
                 }
@@ -38,11 +50,7 @@ struct NativeHTMLConversion {
                 if stack.isEmpty { output.append("\n\n") }
             } else if name != "li" {
                 let tag = source.substring(with: match.range) as NSString
-                let match = start.firstMatch(in: tag as String, range: NSRange(location: 0, length: tag.length))
-                var initial = 1
-                if let match, let group = (1...3).first(where: { match.range(at: $0).location != NSNotFound }) {
-                    initial = Int(tag.substring(with: match.range(at: group))) ?? 1
-                }
+                let initial = integerAttribute(tag, named: "start") ?? 1
                 stack.append(List(ordered: name == "ol", next: initial))
             }
             offset = match.range.location + match.range.length
