@@ -163,6 +163,12 @@ live base, feed hash, operation label, and staged files before it proceeds.
 It can also verify a finalized version after an interrupted run. An existing
 draft or public GitHub release is accepted only during recovery.
 
+The feed uses a gzip header with no filename and a zero timestamp. This avoids
+the header differences observed between Python versions. Recovery still
+recompresses the feed. Different compression libraries could produce different
+bytes, so preserving and verifying the original compressed payload remains a
+release requirement. Do not promote a version on a hash mismatch.
+
 If the journal says `creating`, the result of the create request is unknown.
 Inspect Firebase for the operation label before taking further action. Do not
 create another version automatically. A journal does not lock the live site.

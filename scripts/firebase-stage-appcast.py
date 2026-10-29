@@ -6,6 +6,7 @@ import base64
 import copy
 import gzip
 import hashlib
+import io
 import importlib.util
 import json
 import os
@@ -210,6 +211,13 @@ def write_journal(path, data, *, new=False):
             Path(name).unlink(missing_ok=True)
 
 
+def compress_feed(feed):
+    output = io.BytesIO()
+    with gzip.GzipFile(filename="", mode="wb", fileobj=output, mtime=0) as stream:
+        stream.write(feed)
+    return output.getvalue()
+
+
 def stage(client, expected_version, feed, public_key, *, releases=None, current_feed=None, journal=None, resume=False):
     if resume and journal is None:
         raise ValueError("Recovery needs a Firebase staging journal.")
@@ -244,7 +252,7 @@ def stage(client, expected_version, feed, public_key, *, releases=None, current_
                              resume_candidate=resume)
     if (current_feed is None) != ("/appcast.xml" not in live["files"]):
         raise ValueError("The live appcast and Firebase file list do not agree.")
-    compressed = gzip.compress(feed, mtime=0)
+    compressed = compress_feed(feed)
     digest = hashlib.sha256(compressed).hexdigest()
     files = dict(live["files"])
     files["/appcast.xml"] = digest

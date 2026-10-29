@@ -1,5 +1,4 @@
 """Test release publication control without changing GitHub or Firebase."""
-import gzip
 import hashlib
 import importlib.util
 import io
@@ -70,7 +69,7 @@ class PublicationTests(unittest.TestCase):
                       "candidate.json": self.candidate / "candidate.json", "appcast.xml": self.staged / "appcast.xml"}
         self.client = FinalizedHosting()
         self.client.staged_config = self.client.config
-        digest = hashlib.sha256(gzip.compress(b"signed feed", mtime=0)).hexdigest()
+        digest = hashlib.sha256(publisher.firebase.compress_feed(b"signed feed")).hexdigest()
         self.client.staged_files = dict(self.client.live_files, **{"/appcast.xml": digest})
         self.receipt = {"baseVersion": OLD, "stagedVersion": NEW,
                         "preservedFiles": len(self.client.live_files), "appcastHash": digest}

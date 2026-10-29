@@ -2,7 +2,6 @@
 """Publish a verified GitHub draft after checking a staged Firebase version."""
 
 import argparse
-import gzip
 import hashlib
 import importlib.util
 import json
@@ -44,7 +43,7 @@ def validate_site(client, receipt, feed):
             or not isinstance(staged, str) or not firebase.VERSION_PATTERN.fullmatch(staged) or staged == base
             or not isinstance(digest, str) or not firebase.HASH_PATTERN.fullmatch(digest)):
         raise ValueError("The Firebase staging receipt is invalid.")
-    actual_digest = hashlib.sha256(gzip.compress(feed, mtime=0)).hexdigest()
+    actual_digest = hashlib.sha256(firebase.compress_feed(feed)).hexdigest()
     if actual_digest != digest:
         raise ValueError("The staged appcast differs from the Firebase receipt.")
     live = firebase.snapshot(client)

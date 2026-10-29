@@ -122,6 +122,11 @@ class FirebaseStageTests(unittest.TestCase):
         self.assertNotIn("private-token", str(failure.exception))
         self.assertIsNone(firebase.NoRedirect().redirect_request(None, None, 302, "", {}, "https://evil.example"))
 
+    def test_gzip_feed_has_a_stable_header_across_python_versions(self):
+        result = firebase.compress_feed(b"draftly")
+        self.assertEqual(result, bytes.fromhex("1f8b08000000000002ff4b294a4c2bc9a90400dfc009ad07000000"))
+        self.assertEqual(gzip.decompress(result), b"draftly")
+
     def test_stages_signed_appcast_and_preserves_live_site_without_publishing(self):
         client = FakeHosting()
         data = self.feed(("0.1.0", "1"))
@@ -133,6 +138,16 @@ class FirebaseStageTests(unittest.TestCase):
         self.assertEqual(hashlib.sha256(client.uploaded).hexdigest(), result["appcastHash"])
         self.assertEqual({k: v for k, v in client.staged_files.items() if k != "/appcast.xml"}, client.live_files)
         self.assertEqual(client.staged_config, client.config)
+        self.assertFalse(any("/releases" in path for _, path, _, _ in client.calls))
+
+    def test_staged_feed_passes_publication_site_verification(self):
+        spec = importlib.util.spec_from_file_location("publish_release_for_stage", Path(__file__).with_name("publish-github-release.py"))
+        publisher = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(publisher)
+        client = FakeHosting()
+        data = self.feed(("0.1.0", "1"))
+        receipt = firebase.stage(client, OLD, data, self.public, releases=[], current_feed=None)
+        self.assertEqual(publisher.validate_site(client, receipt, data), "staged")
         self.assertFalse(any("/releases" in path for _, path, _, _ in client.calls))
 
     def test_recovery_reuses_the_finalized_version_when_a_draft_exists(self):

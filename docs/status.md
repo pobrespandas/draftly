@@ -3593,3 +3593,12 @@ The offscreen panel diagnostic now also measures layout without a toolbar and
 without the appearance callback. Both cases settled at 850 points on macOS 27.
 The focused suite and local build passed. The macOS 26 comparison remains
 pending; this does not establish the cause of its geometry failures.
+
+Firebase staging and GitHub publication verification now use the same gzip
+writer with an empty filename and zero timestamp. Python 3.9, 3.11 and 3.13
+produced the same bytes for the neutral sample on this Mac; the former
+`gzip.compress` generated a different header in Python 3.11. Tests cover the
+header and a staged feed checked by the publication verifier. All 182 Python
+tests passed. This does not guarantee identical compressed data with different
+zlib versions. Preserving the original compressed payload for recovery remains
+pending. Nothing was published.
