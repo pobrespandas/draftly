@@ -13,6 +13,11 @@
     <key>NSPrincipalClass</key><string>NSApplication</string>
     <key>NSHighResolutionCapable</key><true/>
     <key>DraftlyCloudKitContainer</key><string>$(DRAFTLY_CLOUDKIT_CONTAINER)</string>
+    <key>SUFeedURL</key><string>https://draftly.pobrespandas.com/appcast.xml</string>
+    <key>SUPublicEDKey</key><string>$(DRAFTLY_SPARKLE_PUBLIC_KEY)</string>
+    <key>DraftlyUpdatesEnabled</key><string>$(DRAFTLY_UPDATES_ENABLED)</string>
+    <key>SUEnableAutomaticChecks</key><true/>
+    <key>SUAutomaticallyUpdate</key><false/>
     <key>NSAppleEventsUsageDescription</key><string>Run AppleScript actions that you choose.</string>
     <key>NSCalendarsFullAccessUsageDescription</key><string>Create calendar events from your drafts.</string>
     <key>NSRemindersFullAccessUsageDescription</key><string>Create reminders from your drafts.</string>

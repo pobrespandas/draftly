@@ -57,6 +57,15 @@ class BuildAppTests(unittest.TestCase):
         self.assertFalse(any(call[0] == "python3" for call in calls))
         self.assertNotIn("-allowProvisioningUpdates", build)
 
+    def test_local_build_reseals_embedded_sparkle_before_the_app(self):
+        framework = self.root / ".build/xcode/Build/Products/Debug/Draftly.app/Contents/Frameworks/Sparkle.framework/Versions/B"
+        framework.mkdir(parents=True)
+        _, calls = self.run_build()
+        app = str(framework.parents[4])
+        framework_sign = ["codesign", "--force", "--sign", "-", str(framework)]
+        app_sign = ["codesign", "--force", "--sign", "-", app]
+        self.assertLess(calls.index(framework_sign), calls.index(app_sign))
+
     def test_local_output_override_is_isolated_and_ignores_manual_profile(self):
         output = self.root / "isolated output"
         result, calls = self.run_build("--local", DRAFTLY_BUILD_OUTPUT=str(output),

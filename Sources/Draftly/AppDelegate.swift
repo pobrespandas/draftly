@@ -19,6 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         app.capture(content: text)
     })
     func applicationDidFinishLaunching(_ notification: Notification) {
+        AppUpdates.shared.start()
         NSApp.appearance = ApplicationAppearance.resolved(
             UserDefaults.standard.string(forKey: ApplicationAppearance.preferenceKey) ?? "System"
         ).nativeAppearance

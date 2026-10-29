@@ -47,6 +47,11 @@ xcodebuild -project Draftly.xcodeproj -scheme Draftly -configuration "$configura
     -derivedDataPath "$output" "${signing[@]}" build
 app="${output:a}/Build/Products/$configuration/Draftly.app"
 if [[ "$mode" == "--local" ]]; then
+    # Xcode removes public headers when embedding Sparkle. Reseal the local
+    # framework before signing the app so strict verification can succeed.
+    if [[ -d "$app/Contents/Frameworks/Sparkle.framework" ]]; then
+        codesign --force --sign - "$app/Contents/Frameworks/Sparkle.framework/Versions/B"
+    fi
     codesign --force --sign - "$app"
 else
     python3 scripts/verify-cloud-signing.py "$app"

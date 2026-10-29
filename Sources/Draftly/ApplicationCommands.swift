@@ -28,6 +28,10 @@ struct LibraryApplicationCommands: Commands {
 
     var body: some Commands {
         CommandGroup(replacing: .appSettings) {
+            if AppUpdates.shared.isAvailable {
+                Button("Check for Updates…") { AppUpdates.shared.check() }
+                Divider()
+            }
             Button {
                 openSettings()
             } label: { Label("Settings…", systemImage: "gearshape") }
