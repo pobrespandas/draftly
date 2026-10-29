@@ -11223,3 +11223,28 @@ window. Drafts configuration precedence, later callbacks and system-delivered
 App Intents remain separate. QA and the helper quit; their exact registrations
 were removed and their bundles moved to Trash. The isolated library remains. No
 production code changed.
+
+### Included actions through system-delivered App Intent — 29 October 2026
+
+A development-signed Engine QA build with its own bundle ID and isolated library
+was registered from `~/Applications`. After Shortcuts restarted, the existing
+`Draftly QA Engine — disposable` Shortcut again resolved its QA Intent. This
+resolves the provider problem recorded in the previous attempt. Computer Use
+changed its action and neutral draft UUID for this session, then restored both
+original values before closing the editor.
+
+Shortcuts delivered five requests to QA: an included child cancelled its root;
+a recovery succeeded; an included child failed with `Neutral error café 🐼`; a
+second recovery succeeded; and a template-resolved inclusion completed. The
+caller displayed the cancellation, exact error, both recovery completions and
+the included success. For the interrupted roots, the QA list retained the text
+written before termination in Inbox. The history showed one root result for
+each request and no queued or separate child execution. The successful inclusion
+checked the shared root/child/tail trace and wrote `URL include success`.
+The five closed-store records have distinct run IDs and one note ID; run IDs are
+not execution IDs. App Intent output does not expose success parameters here.
+
+This is evidence for these system-delivered paths, not all Intent operations,
+production timeout, late callbacks or Drafts configuration precedence. QA quit,
+its exact registration was removed, and its bundle moved to Trash. The isolated
+library remains. No production code changed.
