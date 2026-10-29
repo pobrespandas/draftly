@@ -163,6 +163,25 @@ through a shared serialization mechanism and verify the live version and
 public release assets. The staged version alone is not safe publication or
 proof of a working update.
 
+## CI staging
+
+The optional staging job is disabled by default. It runs only when
+`DRAFTLY_RELEASE_STAGING_ENABLED` is `true` and the candidate job succeeds.
+It requires the signed candidate, `docs/releases/vVERSION.txt`, the Sparkle
+key, and Firebase Workload Identity Federation. Set
+`DRAFTLY_GCP_WIF_PROVIDER` and `DRAFTLY_GCP_SERVICE_ACCOUNT` as repository
+variables. Store `DRAFTLY_SPARKLE_PRIVATE_KEY` as a secret. Limit the Google
+identity to the required Hosting operations and to this repository and the
+trusted release workflow. Do not grant it permission to promote the site.
+
+The job verifies the candidate, signs the feed, stages a Firebase version,
+saves its journal and receipt, and prepares a GitHub draft. It does not publish
+the release or promote the Firebase version. Recovery downloads the staging
+artifact from the same run as the original candidate. It requires the journal;
+an absent journal or an unknown create outcome stops for inspection. Artifacts
+expire after 14 days, so preserve the candidate and checkpoint for recovery.
+This job has not yet run on GitHub or used real credentials.
+
 ## Stage a GitHub draft
 
 `scripts/stage-github-release.py` can create a draft release and upload the

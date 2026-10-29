@@ -3255,3 +3255,11 @@ The release workflow now accepts a prior run ID for candidate recovery. It
 downloads and verifies the original artifact. A rerun cannot sign a replacement
 candidate. Workflow YAML parsing passed; GitHub-hosted recovery remains
 unverified. Release tags still need protection from replacement.
+
+### CI release staging — 29 October 2026
+
+A disabled workflow job can prepare a signed feed, stage a Firebase version,
+save a recovery checkpoint, and prepare a GitHub draft. It does not publish or
+promote. Workflow YAML and shell syntax, all 167 Python tests, and the matrix
+structural check passed. GitHub-hosted execution, credentials, real staging,
+and site writer coordination remain unverified.
