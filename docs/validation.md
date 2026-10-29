@@ -10498,6 +10498,21 @@ LaunchServices entry was removed, and the temporary app was moved to Trash.
 The normal app was not updated.
 Python ran 80 tests, and the action API matrix structure check had no errors.
 
+### Leaving an empty list item — 29 October 2026
+
+Drafts 54.1.1 left the insertion point on the empty line when Return removed
+an empty list marker, both before another item and at the end. Draftly now
+keeps the existing line ending before another item and places the caret on the
+empty line. Headless tests cover LF, CRLF, Unicode, Undo and Redo with
+renumbering on and off. The complete serial Swift inventory passed (696 Core,
+868 app). A final guard for an existing selection passed the focused suite,
+and the local Debug build passed after it.
+
+In isolated Engine QA, two Return presses followed by typing matched the
+observed Drafts text before later list items. QA quit, its exact LaunchServices
+entry was removed, and the temporary app was moved to Trash. The usual app
+was not updated. Other list input paths remain pending.
+
 ### Ordered-list plain paste — 29 October 2026
 
 Plain text paste now uses the same atomic list edit when renumbering is on.

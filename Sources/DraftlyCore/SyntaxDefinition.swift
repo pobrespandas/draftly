@@ -440,7 +440,10 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
                   let contentRange = capture(match, captures["line"]),
                   selection.location >= lineRange.location + NSMaxRange(prefixRange) else { continue }
             if lineSource.substring(with: contentRange).trimmingCharacters(in: .whitespaces).isEmpty {
-                return (NSRange(location: lineRange.location, length: NSMaxRange(selection) - lineRange.location), "\n")
+                let contentEnd = lineRange.location + lineSource.length
+                let hasFollowingLine = NSMaxRange(lineRange) > contentEnd && NSMaxRange(selection) == contentEnd
+                return (NSRange(location: lineRange.location, length: NSMaxRange(selection) - lineRange.location),
+                        hasFollowingLine ? "" : "\n")
             }
             var prefix = lineSource.substring(with: prefixRange)
             if let sequence = capture(match, captures["sequence"]),

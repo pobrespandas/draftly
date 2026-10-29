@@ -51,6 +51,48 @@ struct EditorAutoRenumberTests {
         text.insertNewline(nil)
         #expect(text.string == "1. Uno\n2. \n3. Dos\n4. Tres")
         #expect(text.selectedRange() == NSRange(location: cursor + 4, length: 0))
+        text.insertNewline(nil)
+        #expect(text.string == "1. Uno\n\n3. Dos\n4. Tres")
+        #expect(text.selectedRange() == NSRange(location: cursor + 1, length: 0))
+    }
+
+    @Test func leavingEmptyItemAtEndKeepsCursorOnBlankLine() throws {
+        let text = DraftTextView(frame: .zero)
+        text.isRichText = false; text.autoRenumber = true
+        text.syntaxDefinition = try ScriptSyntax.definition("Markdown")
+        text.string = "1. Uno\n2. "
+        text.setSelectedRange(NSRange(location: text.string.utf16.count, length: 0))
+        text.insertNewline(nil)
+        #expect(text.string == "1. Uno\n\n")
+        #expect(text.selectedRange() == NSRange(location: 7, length: 0))
+        text.insertText("x", replacementRange: text.selectedRange())
+        #expect(text.string == "1. Uno\nx\n")
+    }
+
+    @Test(arguments: ["\n", "\r\n"], [false, true])
+    func leavingEmptyItemPreservesLineEndingsAndUndo(separator: String, renumber: Bool) throws {
+        let text = DraftTextView(frame: .zero)
+        text.isRichText = false; text.allowsUndo = true; text.autoRenumber = renumber
+        text.syntaxDefinition = try ScriptSyntax.definition("Markdown")
+        let window = OffscreenTestWindow(contentRect: .zero, styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = text
+        defer { window.contentView = nil }
+        let undo = try #require(text.undoManager)
+        undo.groupsByEvent = false
+        let original = "1. 🐼" + separator + "2. " + separator + "3. Dos"
+        text.string = original
+        let marker = (original as NSString).range(of: "2. ")
+        text.setSelectedRange(NSRange(location: marker.upperBound, length: 0))
+        undo.beginUndoGrouping()
+        text.insertNewline(nil)
+        undo.endUndoGrouping()
+        let expected = "1. 🐼" + separator + separator + "3. Dos"
+        #expect(text.string == expected)
+        #expect(text.selectedRange() == NSRange(location: marker.location, length: 0))
+        undo.undo()
+        #expect(text.string == original)
+        undo.redo()
+        #expect(text.string == expected && !window.isVisible)
     }
 
     @Test func plainPasteRenumbersAndPreservesClipboardAndUndo() throws {

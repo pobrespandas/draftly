@@ -380,8 +380,12 @@ final class DraftTextView: NSTextView {
     }
 
     override func insertNewline(_ sender: Any?) {
-        if let change = syntaxDefinition?.listContinuation(in: string, selection: selectedRange()) {
+        let selection = selectedRange()
+        if let change = syntaxDefinition?.listContinuation(in: string, selection: selection) {
             insertText(change.text, replacementRange: change.range)
+            if selection.length == 0 && change.range.length > 0 && (change.text.isEmpty || change.text == "\n") {
+                setSelectedRange(NSRange(location: change.range.location, length: 0))
+            }
             return
         }
         super.insertNewline(sender)
