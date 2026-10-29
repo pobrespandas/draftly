@@ -57,7 +57,8 @@ imported from Drafts.
 Workspace installation links with an existing identity require confirmation
 before they replace different local settings. Identical links do not replace
 the record. Cancellation and a concurrent change retain the installed record.
-Native QA has verified cancellation; native replacement remains to be checked.
+Native QA verified cancellation and replacement with the same identity. The
+identity also persisted after restarting QA.
 
 Action installation links ask before they replace changed actions or groups
 with the same identity. Cancel keeps the whole batch unchanged. Duplicate

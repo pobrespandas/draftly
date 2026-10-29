@@ -10659,6 +10659,15 @@ were not inspected, so this does not prove which record changed or accept the
 replacement contract. QA quit normally; its exact LaunchServices registration was
 removed and its temporary app moved to Trash. Its isolated data was retained.
 
+A separate unique-name QA case created a workspace, saved its UUID in a neutral
+draft, and dispatched a changed link through the QA URL scheme. Replace was
+selected. A second action found exactly one workspace with the new name and
+checked its UUID against the draft. The check passed again after QA quit and
+reopened. One earlier restart check ran on an empty draft and failed; selecting
+the draft that contained the UUID produced the passing result. QA quit normally,
+its exact registration was removed, and its temporary app and fixture moved to
+Trash. The neutral QA records remain in the isolated library.
+
 ### Action link replacement — 29 October 2026
 
 The focused action installation suite passed nine tests. It covers cancel,

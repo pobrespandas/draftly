@@ -3175,7 +3175,9 @@ both focused suites and a separate serial Core run passed. App inventory and
 local build passed with the limits in validation. The usual app is unchanged.
 Another native QA attempt confirmed the alert and displayed the incoming name
 after Replace. Two records shared that name, and their identities were not
-checked. Native replacement remains pending.
+checked in that attempt.
+The later unique-name QA case verified Replace with the same UUID before and
+after restart. It does not resolve the duplicate names from the earlier fixture.
 
 ### Action link replacement — 29 October 2026
 
