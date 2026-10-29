@@ -3897,3 +3897,10 @@ Hosted LargeDisplayPanels26 run 40965273480 passed the complete 15-case panel
 suite with the measured sidebar inset. The local full Swift inventory also
 passed. This focused hosted run does not establish full macOS 26 CI or real
 window behavior; those checks remain pending.
+
+Manual QA on macOS 27 used the isolated Engine QA bundle refreshed from the
+local build. Filters, draft list and actions opened and closed. Filters
+returned to the 239.5-point divider position and the draft list to about 280
+points after toggling. The editor retained focus. QA quit normally; its library
+was preserved. Dragged widths, rapid transitions, resizing and a real macOS 26
+window were not checked in this session.
