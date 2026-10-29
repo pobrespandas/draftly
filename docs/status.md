@@ -3751,3 +3751,9 @@ comparison is pending. No production layout change was made.
 The user confirmed that the Google Password Manager entry is visible on a
 second device. The recovered seed matched the public key on the Mac. The seed
 from the second device has not been checked independently.
+
+Hosted diagnostic 40957070871 showed that the temporary width constraints
+expanded the offscreen macOS 26 window from 850 to 857 points when applied to
+hosted content. Constraints on the split containers retained 850 points. The
+restoration path now holds the containers. The focused suite and local build
+passed on macOS 27. The complete macOS 26 behavior and CI still need validation.

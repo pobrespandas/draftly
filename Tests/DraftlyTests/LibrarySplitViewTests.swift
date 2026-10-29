@@ -180,6 +180,7 @@ struct LibrarySplitViewTests {
             split.setPosition(widths[0], ofDividerAt: 0)
             controller.view.layoutSubtreeIfNeeded()
             print("Panel hold diagnostic mode=\(mode) frame=\(window.frame) content=\(window.contentView?.frame ?? .zero) split=\(split.frame) panels=\(split.arrangedSubviews.map(\.frame))")
+            if mode == "container" { #expect(abs(split.bounds.width - 850) <= 1) }
             NSLayoutConstraint.deactivate(constraints)
             #expect(!window.isVisible)
             window.contentViewController = nil
