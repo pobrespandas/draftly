@@ -89,26 +89,72 @@ public enum ActionImporter {
         for candidate in [encoded, encoded.removingPercentEncoding ?? encoded] {
             for data in [candidate.data(using: .utf8), Data(base64Encoded: candidate)].compactMap({ $0 }) {
                 guard let actions = try? decode(data) else { continue }
-                if let backup = try? JSONDecoder().decode(Backup.self, from: data) {
-                    guard backup.version == 1 else { throw DraftlyError.message("This installation version is not supported.") }
-                    return try JSONEncoder().encode(Backup(notes: [], revisions: [], workspaces: [],
-                        actions: actions, actionGroups: backup.actionGroups))
-                }
-                if case .object(let object) = try? JSONDecoder().decode(JSONValue.self, from: data),
-                   case .array = object["actions"], object["uuid"] != nil, object["steps"] == nil {
-                    let (group, groupActions) = try DraftsActionGroupImport.decodeJSON(data)
-                    return try JSONEncoder().encode(Backup(notes: [], revisions: [], workspaces: [],
-                        actions: groupActions, actionGroups: [group]))
-                }
-                return data
+                return try normalizedInstallationData(data, actions: actions)
             }
         }
         throw DraftlyError.message("The installation link contains invalid action data.")
     }
 
+    private static func normalizedInstallationData(_ data: Data, actions: [DraftAction]) throws -> Data {
+        if let backup = try? JSONDecoder().decode(Backup.self, from: data) {
+            guard backup.version == 1 else { throw DraftlyError.message("This installation version is not supported.") }
+            return try JSONEncoder().encode(Backup(notes: [], revisions: [], workspaces: [],
+                actions: actions, actionGroups: backup.actionGroups))
+        }
+        if case .object(let object) = try? JSONDecoder().decode(JSONValue.self, from: data),
+           case .array = object["actions"], object["uuid"] != nil, object["steps"] == nil {
+            let (group, groupActions) = try DraftsActionGroupImport.decodeJSON(data)
+            return try JSONEncoder().encode(Backup(notes: [], revisions: [], workspaces: [],
+                actions: groupActions, actionGroups: [group]))
+        }
+        return data
+    }
+
+    @_spi(DraftlyInternal) public static func directoryInstallationData(_ url: URL) async throws -> Data {
+        try await directoryInstallationData(url) { try await URLSession.shared.data(from: $0) }
+    }
+
+    static func directoryInstallationData(_ url: URL,
+        transport: @escaping @Sendable (URL) async throws -> (Data, URLResponse)) async throws -> Data {
+        func load(_ url: URL, depth: Int) async throws -> Data {
+            guard depth < 5 else { throw DraftlyError.message("The directory link redirects too many times.") }
+            if ["draftly", "drafts", "drafts5"].contains(url.scheme?.lowercased() ?? ""),
+               ["action", "actiongroup"].contains(url.host?.lowercased() ?? "") {
+                return try installationData(url)
+            }
+            guard url.scheme == "https", ["actions.getdrafts.com", "directory.getdrafts.com", "config.getdrafts.com"].contains(url.host ?? "") else {
+                throw DraftlyError.message("Use an HTTPS Drafts Directory link or import an action file.")
+            }
+            let (data, response) = try await transport(url)
+            guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw DraftlyError.message("The action could not be downloaded.") }
+            let installation: Data
+            if let actions = try? decode(data) {
+                installation = try normalizedInstallationData(data, actions: actions)
+            } else {
+                guard let html = String(data: data, encoding: .utf8) else { throw DraftlyError.message("The directory returned an invalid page.") }
+                let expression = try NSRegularExpression(pattern: "(?:href|data-install-url)=[\"']([^\"']*(?:drafts5?://|config.getdrafts.com)[^\"']+)[\"']")
+                guard let match = expression.firstMatch(in: html, range: NSRange(html.startIndex..., in: html)),
+                      let range = Range(match.range(at: 1), in: html),
+                      let target = URL(string: String(html[range]).replacingOccurrences(of: "&amp;", with: "&")), target != url else {
+                    throw DraftlyError.message("No installation data was found. Export the action from Drafts and import the file.")
+                }
+                installation = try await load(target, depth: depth + 1)
+            }
+            if var backup = try? JSONDecoder().decode(Backup.self, from: installation) {
+                var actions = backup.actions
+                for index in actions.indices { actions[index].sourceURL = url.absoluteString }
+                backup.actions = actions
+                return try JSONEncoder().encode(backup)
+            }
+            return try JSONEncoder().encode(decode(installation, source: url.absoluteString))
+        }
+        return try await load(url, depth: 0)
+    }
+
     private static func download(_ url: URL, depth: Int) async throws -> [DraftAction] {
         guard depth < 5 else { throw DraftlyError.message("The directory link redirects too many times.") }
-        if ["drafts", "drafts5"].contains(url.scheme ?? ""), url.host == "action" {
+        if ["drafts", "drafts5"].contains(url.scheme?.lowercased() ?? ""),
+           ["action", "actiongroup"].contains(url.host?.lowercased() ?? "") {
             return try installationActions(url)
         }
         guard url.scheme == "https", ["actions.getdrafts.com", "directory.getdrafts.com", "config.getdrafts.com"].contains(url.host ?? "") else {

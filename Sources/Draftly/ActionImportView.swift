@@ -1,6 +1,6 @@
 import SwiftUI
 import AppKit
-import DraftlyCore
+@_spi(DraftlyInternal) import DraftlyCore
 
 struct ActionImportView: View {
     @ObservedObject var library: LibraryStore
@@ -35,8 +35,20 @@ struct ActionImportView: View {
                 }.frame(height: 180)
                 Button("Save Actions") {
                     do {
-                        if let installationData { try LibraryFileImport.apply(installationData, fileExtension: "json", to: library) }
-                        else { try library.saveActions(imported) }
+                        if let installationData {
+                            var link = URLComponents(); link.scheme = "draftly"; link.host = "action"
+                            link.queryItems = [URLQueryItem(name: "data", value: installationData.base64EncodedString())]
+                            guard let url = link.url else { throw DraftlyError.message("The action installation data is invalid.") }
+                            let installed = try ApplicationURLRouter.installActions(url, library: library) { actions, groups in
+                                let alert = NSAlert()
+                                alert.messageText = "Replace installed actions or groups?"
+                                alert.informativeText = (actions.map { "Action: \($0.name)" } + groups.map { "Group: \($0.name)" }).joined(separator: "\n")
+                                alert.addButton(withTitle: "Replace"); alert.addButton(withTitle: "Cancel")
+                                alert.buttons.last?.keyEquivalent = "\u{1b}"
+                                return alert.runModal() == .alertFirstButtonReturn
+                            }
+                            guard installed else { return }
+                        } else { try library.saveActions(imported) }
                         onImport?(imported); dismiss()
                     }
                     catch { self.error = error.localizedDescription }
@@ -51,10 +63,13 @@ struct ActionImportView: View {
         loading = true; error = nil; installationData = nil; imported = []
         Task {
             do {
-                if ["draftly", "drafts", "drafts5"].contains(url.scheme ?? ""), url.host == "action" {
+                if ["draftly", "drafts", "drafts5"].contains(url.scheme?.lowercased() ?? ""), ["action", "actiongroup"].contains(url.host?.lowercased() ?? "") {
                     let data = try ActionImporter.installationData(url)
                     imported = try ActionImporter.decode(data); installationData = data
-                } else { imported = try await ActionImporter.download(url) }
+                } else {
+                    let data = try await ActionImporter.directoryInstallationData(url)
+                    imported = try ActionImporter.decode(data); installationData = data
+                }
             } catch { self.error = error.localizedDescription }
             loading = false
         }

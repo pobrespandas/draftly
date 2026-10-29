@@ -167,6 +167,11 @@ The same directory payload can be installed through a `draftly://actionGroup`
 link. Tests cover the official payload and atomic installation with a neutral
 group. Opening the link from another app and native replacement review remain
 separate checks. Draftly does not register the original Drafts URL scheme.
+The action import screen can also load a Directory group page or a pasted
+Drafts group link, retain its group data for review, and use the existing
+replacement confirmation before saving. A test uses the official Basic payload
+in a simulated page; untrusted hosts and HTTP failures are rejected. The screen
+and live network flow still need native verification.
 Nested imported step objects now use stable JSON key order. This prevents
 new imports from differing only because object keys were serialized in a
 different order. Group reimport compares older step metadata by JSON content
