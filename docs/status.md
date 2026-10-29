@@ -3254,7 +3254,8 @@ structural check passed. Real Developer ID artifacts remain unverified.
 The release workflow now accepts a prior run ID for candidate recovery. It
 downloads and verifies the original artifact. A rerun cannot sign a replacement
 candidate. Workflow YAML parsing passed; GitHub-hosted recovery remains
-unverified. Release tags still need protection from replacement.
+unverified. The active GitHub ruleset `Protect release version tags` now
+prevents updates and deletion of `v*` tags. It does not restrict tag creation.
 
 ### CI release staging — 29 October 2026
 

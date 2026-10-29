@@ -76,8 +76,9 @@ For workflow recovery, dispatch the release workflow with the same tag and the
 run ID that contains the original candidate artifact. The workflow downloads
 and verifies that artifact. It does not run the signing job again. A rerun of
 the original signing job is rejected. A missing artifact or failed verification
-stops recovery. Protect release tags from replacement and inspect an interrupted
-signing run before taking further action.
+stops recovery. The GitHub ruleset `Protect release version tags` blocks updates
+and deletion of `v*` tags. It allows new tags. Inspect an interrupted signing
+run before taking further action.
 
 ## Local signed candidate
 
