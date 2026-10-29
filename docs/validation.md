@@ -10329,3 +10329,10 @@ long paragraph wrapped across five visual lines. Moving the insertion point
 changed the highlighted visual line without changing the text. The light-mode
 check remains pending: the QA appearance picker remained on System after the
 attempt. The Drafts visual comparison also remains pending.
+
+A focused regression test found that a final carriage return or Unicode line
+separator placed the indicator on the preceding line. The editor now uses the
+extra line fragment reported by AppKit at the end of the document. The test
+covers carriage return, CRLF, Unicode line and paragraph separators, and an
+end position without a terminator. The focused suite and local build passed.
+This fix has not been checked in a visible QA session.

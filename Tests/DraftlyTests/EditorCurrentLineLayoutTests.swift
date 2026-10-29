@@ -15,7 +15,9 @@ struct EditorCurrentLineLayoutTests {
         let first = try #require(EditorCurrentLineGeometry.rect(layout: layout, container: container, selection: NSRange(location: 0, length: 0)))
         let second = try #require(EditorCurrentLineGeometry.rect(layout: layout, container: container, selection: selection))
         #expect(second.minY > first.minY)
-        #expect(EditorCurrentLineGeometry.rect(layout: layout, container: container, selection: NSRange(location: (text.string as NSString).length, length: 0)) != nil)
+        let end = try #require(EditorCurrentLineGeometry.rect(layout: layout, container: container, selection: NSRange(location: (text.string as NSString).length, length: 0)))
+        let finalGlyph = layout.glyphIndexForCharacter(at: (text.string as NSString).length - 1)
+        #expect(end == layout.lineFragmentRect(forGlyphAt: finalGlyph, effectiveRange: nil))
         #expect(EditorCurrentLineGeometry.rect(layout: layout, container: container, selection: NSRange(location: NSNotFound, length: 0)) == nil)
         #expect(EditorCurrentLineGeometry.rect(layout: layout, container: container, selection: NSRange(location: (text.string as NSString).length + 1, length: 0)) == nil)
         text.highlightInsertionPoint = true
@@ -34,6 +36,19 @@ struct EditorCurrentLineLayoutTests {
         #expect(last.minY > first.minY)
         text.string = ""
         #expect(EditorCurrentLineGeometry.rect(layout: layout, container: container, selection: NSRange(location: 0, length: 0)) != nil)
+    }
+    @Test(arguments: ["\r", "\r\n", "\u{2028}", "\u{2029}"])
+    func insertionAfterLineTerminatorUsesExtraFragment(terminator: String) throws {
+        let text = DraftTextView(frame: NSRect(x: 0, y: 0, width: 400, height: 300))
+        let container = try #require(text.textContainer)
+        let layout = try #require(text.layoutManager)
+        text.string = "one" + terminator
+        layout.ensureLayout(for: container)
+        let expected = layout.extraLineFragmentRect
+        #expect(layout.extraLineFragmentTextContainer === container)
+        let actual = try #require(EditorCurrentLineGeometry.rect(layout: layout, container: container,
+            selection: NSRange(location: (text.string as NSString).length, length: 0)))
+        #expect(actual == expected)
     }
     @Test func backgroundDrawingFillsEmptyInsertionLineWithoutChangingText() throws {
         let text = DraftTextView(frame: NSRect(x: 0, y: 0, width: 200, height: 100))
