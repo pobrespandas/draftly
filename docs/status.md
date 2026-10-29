@@ -3302,6 +3302,9 @@ All 171 Python tests and the matrix structural check passed with simulated
 signing tools. A real signed candidate remains unverified.
 The toolchain subprocesses do not inherit the configured release credentials.
 Focused tests cover this environment boundary with simulated secrets.
+The manual packager also removes those credentials from its child processes.
+Focused tests cover the handoff to the draft verifier and 174 Python tests
+passed before the final verifier-specific case was added.
 
 Hosted CI run 40928632019 compiled with Xcode 26.6, then failed Core tests
 under concurrent load. Several waits expired before their work started. The

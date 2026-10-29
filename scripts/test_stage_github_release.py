@@ -238,6 +238,12 @@ class GitHubReleaseStageTests(unittest.TestCase):
         for name in ("DRAFTLY_SPARKLE_PRIVATE_KEY", "DRAFTLY_FIREBASE_ACCESS_TOKEN", "GH_TOKEN"):
             self.assertNotIn(name, run.call_args.kwargs["env"])
 
+    def test_local_verification_accepts_an_explicit_sanitized_environment(self):
+        result = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+        with patch.object(stage.subprocess, "run", return_value=result) as run:
+            stage.secret_free_run(["fixture"], env={"PATH": "/bin", "GH_TOKEN": "fixture"}, check=True)
+        self.assertEqual(run.call_args.kwargs["env"], {"PATH": "/bin"})
+
 
 if __name__ == "__main__":
     unittest.main()

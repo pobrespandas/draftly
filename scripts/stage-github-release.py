@@ -101,7 +101,7 @@ def inspect_inputs(candidate, staged, secret, notes):
 
 
 def secret_free_run(command, **options):
-    env = dict(os.environ)
+    env = dict(options.pop("env", os.environ))
     for name in ("DRAFTLY_SPARKLE_PRIVATE_KEY", "DRAFTLY_FIREBASE_ACCESS_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"):
         env.pop(name, None)
     return subprocess.run(command, env=env, **options)

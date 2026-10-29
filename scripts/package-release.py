@@ -64,7 +64,8 @@ def validate_metadata(source, built, *, public_key=None):
 
 
 def run_command(command, *, runner=subprocess.run, capture=False):
-    result = runner(command, cwd=ROOT, check=True, text=True, capture_output=capture)
+    result = runner(command, cwd=ROOT, check=True, text=True, capture_output=capture,
+                    env=toolchain.clean_environment())
     return result.stdout if capture else ""
 
 

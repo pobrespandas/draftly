@@ -24,6 +24,7 @@ class FakeRunner:
     def __init__(self, *, notary_status="Accepted", signing_fails=False, fail_command=None, dirty=False,
                  tag_commit=COMMIT, dirty_after_build=False):
         self.commands = []
+        self.environments = []
         self.notary_status = notary_status
         self.signing_fails = signing_fails
         self.fail_command = fail_command
@@ -34,6 +35,7 @@ class FakeRunner:
 
     def __call__(self, command, **kwargs):
         self.commands.append(command)
+        self.environments.append(kwargs.get("env"))
         if self.fail_command and command[:len(self.fail_command)] == self.fail_command:
             raise subprocess.CalledProcessError(1, command)
         output = ""
@@ -72,6 +74,18 @@ class FakeRunner:
 
 
 class PackageReleaseTests(unittest.TestCase):
+    def test_packaging_processes_do_not_inherit_release_secrets(self):
+        with tempfile.TemporaryDirectory() as directory:
+            runner = FakeRunner()
+            with patch.dict(os.environ, {"APPLE_DEVELOPER_ID_P12_PASSWORD": "fixture",
+                                         "DRAFTLY_SPARKLE_PRIVATE_KEY": "fixture", "GH_TOKEN": "fixture"}):
+                release.package(Path(directory) / "candidate", "QA profile", "QA notary", TAG, runner=runner)
+            self.assertTrue(runner.environments)
+            for environment in runner.environments:
+                self.assertIsNotNone(environment)
+                self.assertNotIn("APPLE_DEVELOPER_ID_P12_PASSWORD", environment)
+                self.assertNotIn("DRAFTLY_SPARKLE_PRIVATE_KEY", environment)
+                self.assertNotIn("GH_TOKEN", environment)
     def test_toolchain_checks_do_not_inherit_release_secrets(self):
         seen = []
         def runner(command, **options):
