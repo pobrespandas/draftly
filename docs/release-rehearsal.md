@@ -58,7 +58,9 @@ Configure the repository variables `DRAFTLY_DEVELOPER_ID_PROFILE` and
 `DRAFTLY_SPARKLE_PUBLIC_KEY`. Configure the protected secrets
 `APPLE_DEVELOPER_ID_P12_B64`, `APPLE_DEVELOPER_ID_P12_PASSWORD`,
 `APPLE_DEVELOPER_ID_PROFILE_B64`, `APPLE_NOTARY_API_KEY_B64`, and
-`APPLE_NOTARY_KEY_ID`. Team API keys also need `APPLE_NOTARY_ISSUER_ID`.
+`APPLE_NOTARY_KEY_ID`, and `APPLE_NOTARY_ISSUER_ID`. Use a team API key.
+Apple does not support individual API keys with `notarytool`. See
+[Apple API key documentation](https://developer.apple.com/documentation/appstoreconnectapi/creating-api-keys-for-app-store-connect-api).
 The P12, profile, and `.p8` values are base64-encoded file contents. The
 workflow does not pass the original secret values into the package process.
 Do not put these values in the repository or job logs.

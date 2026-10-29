@@ -3395,3 +3395,10 @@ entitlements. The first invocation without a configured team failed before
 building; no profile was changed. All 175 Python tests passed in an isolated
 environment with the CI dependencies. A system Python run lacked Pillow and
 cryptography and did not complete those suites.
+
+Apple's API key documentation states that individual API keys cannot use
+notarytool. The CI candidate setup now requires the team key issuer before it
+touches the temporary Keychain. The missing-issuer test first reproduced the
+incorrect acceptance, then passed with the guard. All 176 Python tests passed.
+The Apple account does not yet have App Store Connect API access. The user was
+asked to review the access request and its terms. No API key was created.

@@ -94,6 +94,12 @@ class ReleaseCandidateCITests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(self.calls(), [])
 
+    def test_missing_team_issuer_is_rejected_before_keychain_setup(self):
+        result = self.run_script(APPLE_NOTARY_ISSUER_ID="")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("APPLE_NOTARY_ISSUER_ID", result.stderr)
+        self.assertEqual(self.calls(), [])
+
     def test_invalid_public_key_is_rejected_before_keychain_setup(self):
         result = self.run_script(DRAFTLY_SPARKLE_PUBLIC_KEY="invalid")
         self.assertNotEqual(result.returncode, 0)
