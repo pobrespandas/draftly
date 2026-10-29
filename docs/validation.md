@@ -10347,3 +10347,7 @@ The QA theme selector stopped responding during that check.
 The full serial Swift regression also passed after the draw-time color fix.
 The inventory check verified 682 Core and 853 app tests. This automated run
 does not replace the pending visible light-mode check.
+
+A focused offscreen test now checks wrapped visual-line geometry with Unicode.
+It confirms that the indicator follows the selected visual fragment rather
+than the paragraph start. The focused suite and local build passed.

@@ -37,6 +37,20 @@ struct EditorCurrentLineLayoutTests {
         text.string = ""
         #expect(EditorCurrentLineGeometry.rect(layout: layout, container: container, selection: NSRange(location: 0, length: 0)) != nil)
     }
+    @Test func wrappedLineUsesVisualFragmentInsteadOfParagraph() throws {
+        let text = DraftTextView(frame: NSRect(x: 0, y: 0, width: 110, height: 300))
+        let container = try #require(text.textContainer)
+        let layout = try #require(text.layoutManager)
+        text.string = "first words followed by several more words and café 🐼"
+        let first = try #require(EditorCurrentLineGeometry.rect(layout: layout, container: container,
+            selection: NSRange(location: 0, length: 0)))
+        let panda = (text.string as NSString).range(of: "🐼")
+        let last = try #require(EditorCurrentLineGeometry.rect(layout: layout, container: container, selection: panda))
+        #expect(last.minY > first.minY)
+        let glyph = layout.glyphIndexForCharacter(at: panda.location)
+        #expect(last == layout.lineFragmentRect(forGlyphAt: glyph, effectiveRange: nil))
+    }
+
     @Test(arguments: ["\r", "\r\n", "\u{2028}", "\u{2029}"])
     func insertionAfterLineTerminatorUsesExtraFragment(terminator: String) throws {
         let text = DraftTextView(frame: NSRect(x: 0, y: 0, width: 400, height: 300))
