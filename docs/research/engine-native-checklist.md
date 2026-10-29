@@ -112,6 +112,17 @@ rollback and restore. Native QA imported the real file and displayed the empty
 group. The icon, visibility and disposition are retained but not applied.
 Populated groups, separators, and their presentation remain unverified.
 
+On 29 October, each Mac visibility checkbox was changed separately on the same
+neutral empty group and exported by Drafts 54.1.1. With all six Mac and iOS
+checkboxes enabled, `visibility` was 2016. Disabling Mac List changed it to
+1888 (bit 128); disabling Mac Action Bar changed it to 1760 (bit 256);
+disabling Mac Search changed it to 992 (bit 1024). With Mac List disabled,
+the action group selector showed no available group. The checkboxes were
+restored to their original enabled states. This does not establish the iOS bits,
+missing-value defaults, or the precedence between group and action visibility.
+The After success menu showed Nothing, Archive, Trash, and Ask; only Nothing's
+exported `disposition` value 0 is known. No execution outcome was tested.
+
 Generic native UI, URL and actual App Intent sessions already cover final
 success/failure/cancel/timeout, queues, owner close, library exclusion and
 same-draft two-window ownership. Keep those results. For the unresolved routes
