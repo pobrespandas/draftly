@@ -191,4 +191,28 @@ struct URLActionInstallationTests {
         #expect(library.actions == [member]); #expect(library.actionGroups == [renamed])
         #expect(library.actionGroupIdentifiers[renamed.name] == original.id)
     }
+
+    @Test func groupRenamePreservesImportedActionEditsAndUnrelatedGroups() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        var group = ActionGroupRecord(name: "Before"); group.id = UUID()
+        try library.saveActionGroup(group)
+        var member = DraftAction(name: "Original", steps: []); member.group = group.name
+        member.unknownFields = ["future": .string("preserve 🐼")]
+        var unrelated = DraftAction(name: "Unrelated", steps: []); unrelated.group = "Other"
+        try library.saveActions([member, unrelated])
+        var renamed = group; renamed.name = "After"
+        var edited = member; edited.name = "Edited"; edited.group = renamed.name
+        let backup = Backup(notes: [], revisions: [], workspaces: [], actions: [edited], actionGroups: [renamed])
+        var components = URLComponents(); components.scheme = "draftly"; components.host = "action"
+        components.queryItems = [URLQueryItem(name: "data", value: try JSONEncoder().encode(backup).base64EncodedString())]
+        let url = try #require(components.url)
+        #expect(try ApplicationURLRouter.installActions(url, library: library) { _, _ in true })
+        try library.reload()
+        #expect(library.actions.first(where: { $0.id == member.id }) == edited)
+        #expect(library.actions.first(where: { $0.id == unrelated.id }) == unrelated)
+        let restored = try LibraryStore(inMemory: true, seed: false)
+        try restored.restore(library.backupData())
+        #expect(restored.actions.first(where: { $0.id == member.id }) == edited)
+        #expect(restored.actionGroupIdentifiers[renamed.name] == group.id)
+    }
 }

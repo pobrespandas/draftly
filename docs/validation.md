@@ -10682,3 +10682,8 @@ The new regression first failed because existing actions stayed in the old
 group. It passed after the atomic rename. Eleven focused action link tests and
 the serial app suite (884 tests) passed. The local Debug build passed. Native
 confirmation and conflicts with implicit groups remain pending.
+
+An additional action link test checks an imported action edit, unknown fields,
+an unrelated group, and backup restoration after the group rename. All twelve
+focused action link tests and the local Debug build passed. This test does not
+replace the pending native confirmation.
