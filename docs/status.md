@@ -3297,6 +3297,8 @@ not expose the Private Cloud Compute mode.
 The CI signing setup now rejects SDKs before macOS 27 and Swift before 6.4.
 Seven focused tests used simulated tools and passed. This prevents an older
 runner from signing a public build without the macOS 27 model integration.
+The candidate job selects GitHub's `xcode-27` preview image. A real hosted
+signing run is still required to verify the toolchain and notarization.
 The manual candidate packager and CI signing setup now share this check.
 All 171 Python tests and the matrix structural check passed with simulated
 signing tools. A real signed candidate remains unverified.

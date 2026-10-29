@@ -84,7 +84,7 @@ jobs:
     name: Sign and notarize a candidate
     needs: rehearsal
     if: ${{ vars.DRAFTLY_RELEASE_SIGNING_ENABLED == 'true' || (github.event_name == 'workflow_dispatch' && inputs.resume_run_id != '') }}
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 60
     permissions:
       contents: read
