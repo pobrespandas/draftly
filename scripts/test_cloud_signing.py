@@ -5,6 +5,7 @@ import importlib.util
 import io
 from pathlib import Path
 import plistlib
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -59,13 +60,62 @@ class SigningTests(unittest.TestCase):
             module.main([str(self.app), "--expected-bundle-identifier", "com.example.draftly",
                          "--expected-team", "TEAM", "--expected-container", "iCloud.com.example.draftly"])
         verify.assert_called_once_with(str(self.app), expected_bundle_identifier="com.example.draftly",
-                                       expected_team="TEAM", expected_container="iCloud.com.example.draftly")
+                                       expected_team="TEAM", expected_container="iCloud.com.example.draftly",
+                                       expected_cloud_environment=None, expected_push_environment=None,
+                                       require_developer_id=False)
 
     def test_command_line_preserves_generic_mode(self):
         with patch.object(module, "verify", return_value={}) as verify, contextlib.redirect_stdout(io.StringIO()):
             module.main([str(self.app)])
         verify.assert_called_once_with(str(self.app), expected_bundle_identifier=None,
-                                       expected_team=None, expected_container=None)
+                                       expected_team=None, expected_container=None,
+                                       expected_cloud_environment=None, expected_push_environment=None,
+                                       require_developer_id=False)
+
+    def test_expected_production_environments_reject_development_even_if_profile_allows_it(self):
+        with self.assertRaisesRegex(ValueError, "CloudKit environment.*expected"):
+            module.verify(self.app, expected_cloud_environment="Production")
+        with self.assertRaisesRegex(ValueError, "push environment.*expected"):
+            module.verify(self.app, expected_push_environment="production")
+        self.rights["com.apple.developer.icloud-container-environment"] = "Production"
+        self.rights["com.apple.developer.aps-environment"] = "production"
+        self.profile["Entitlements"]["com.apple.developer.aps-environment"] = "production"
+        result = module.verify(self.app, expected_cloud_environment="Production", expected_push_environment="production")
+        self.assertEqual(result["cloudEnvironment"], "Production")
+        self.assertEqual(result["pushEnvironment"], "production")
+
+    def test_command_line_passes_expected_environments(self):
+        with patch.object(module, "verify", return_value={}) as verify, contextlib.redirect_stdout(io.StringIO()):
+            module.main([str(self.app), "--expected-cloud-environment", "Production",
+                         "--expected-push-environment", "production"])
+        self.assertEqual(verify.call_args.kwargs["expected_cloud_environment"], "Production")
+        self.assertEqual(verify.call_args.kwargs["expected_push_environment"], "production")
+
+    def test_developer_id_requires_the_correct_team_and_hardened_runtime(self):
+        signature = "Authority=Developer ID Application: Example (TEAM)\nCodeDirectory flags=0x10000(runtime)\n"
+        module.verify_developer_id(signature, "TEAM")
+        for invalid in (signature.replace("TEAM", "OTHER"), signature.replace("Developer ID Application", "Apple Development"),
+                        signature.replace("(runtime)", "(adhoc)")):
+            with self.subTest(signature=invalid), self.assertRaises(ValueError):
+                module.verify_developer_id(invalid, "TEAM")
+
+    def test_developer_id_rejects_debug_entitlement_before_checking_metadata(self):
+        self.rights["com.apple.security.get-task-allow"] = True
+        with self.assertRaisesRegex(ValueError, "get-task-allow"):
+            module.verify(self.app, require_developer_id=True)
+
+    def test_developer_id_mode_checks_signature_metadata(self):
+        metadata = subprocess.CompletedProcess([], 0, stdout="", stderr=(
+            "Authority=Developer ID Application: Example (TEAM)\nCodeDirectory flags=0x10000(runtime)\n"))
+        with patch.object(module.subprocess, "run", side_effect=[None, metadata]) as run:
+            module.verify(self.app, require_developer_id=True)
+        self.assertEqual(run.call_count, 2)
+        self.assertIn("--verbose=4", run.call_args.args[0])
+
+    def test_command_line_passes_developer_id_requirement(self):
+        with patch.object(module, "verify", return_value={}) as verify, contextlib.redirect_stdout(io.StringIO()):
+            module.main([str(self.app), "--require-developer-id"])
+        self.assertTrue(verify.call_args.kwargs["require_developer_id"])
 
     def test_missing_or_wrong_container_is_rejected(self):
         self.rights["com.apple.developer.icloud-container-identifiers"] = []

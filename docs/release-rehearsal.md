@@ -28,6 +28,10 @@ or publish either source.
 - Verify the updater, signed feed, and key recovery process.
 - Add and verify Developer ID signing, notarization, and the production
   CloudKit profile. Verify all nested code and the installed app.
+- For a signed candidate, `verify-cloud-signing.py` can require the expected
+  bundle, team, container, `Production` CloudKit environment, `production`
+  push environment, and Developer ID with hardened runtime. This check does
+  not notarize the app or establish Gatekeeper acceptance.
 - Apply the history check immediately before publication as well as during the
   rehearsal. Reject concurrent publication and verify the candidate artifacts.
 - Publish the package and verify its public bytes before changing the feed.

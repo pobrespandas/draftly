@@ -217,6 +217,10 @@ manual release rehearsal has read-only permissions and does not publish.
 The rehearsal also checks version and build ordering against GitHub releases
 and the public appcast. It requires both sources to contain the same stable
 history. It has not yet run on a GitHub-hosted runner.
+The signing verifier can require production CloudKit and push environments,
+Developer ID, and hardened runtime. The default build settings still use the
+development environments. The production configuration has not been signed
+or tested against CloudKit.
 
 The library uses the existing generic Core Data schema. Backups include shared
 themes and action execution history with compatibility checks. Development
