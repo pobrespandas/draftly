@@ -14154,8 +14154,8 @@
           "defaults": "Overwrite defaults to false.",
           "result": "Returns true after copying; explicit overwrite replaces the destination.",
           "errors": "Failures return false and populate lastError.",
-          "limitations": ["Actual filesystem failure during transfer, concurrent path changes, native permissions and Drafts comparison remain unverified."],
-          "evidenceLevel": "Both runners exercise local file and directory replacement, collision and missing source. A controlled transfer failure checks restoration and partial output cleanup."
+          "limitations": ["Other filesystem failures, concurrent path changes, sandbox and bookmark permissions, and Drafts comparison remain unverified."],
+          "evidenceLevel": "Both runners exercise local file and directory replacement, collision and missing source. Controlled transfer failure checks restoration and cleanup; a POSIX read denial also preserves the destination."
         },
         {
           "member": "createDirectory",

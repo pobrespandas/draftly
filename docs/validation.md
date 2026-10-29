@@ -10946,3 +10946,13 @@ retains the source. Both script runners also replaced an existing directory by
 moving another directory. The focused native file suites, matrix structural
 check and local Debug build passed. The injected failure is not an actual system
 permission failure or a test of concurrent changes.
+
+### POSIX denial during file replacement — 29 October 2026
+
+A temporary source file was made unreadable with POSIX mode 000. The test first
+confirmed that the process could not read it. Copy with overwrite then failed,
+retained the existing destination, and left no replacement backup. The test
+restores the source permissions before cleanup and is disabled for root users.
+The native file and bookmark suites and matrix structural check passed. This
+checks one local POSIX failure, not sandbox, bookmark or iCloud permissions.
+No production source changed; the previous local Debug build remains applicable.

@@ -5,6 +5,25 @@ import DraftlyCore
 
 @Suite("Native action API") @MainActor
 struct NativeActionAPITests {
+    @Test(.enabled(if: getuid() != 0)) func unreadableSourceRestoresExistingCopyDestination() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let source = root.appendingPathComponent("source"), destination = root.appendingPathComponent("destination")
+        try "Source".write(to: source, atomically: true, encoding: .utf8)
+        try "Original 🐼".write(to: destination, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0], ofItemAtPath: source.path)
+        defer {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: source.path)
+            try? FileManager.default.removeItem(at: root)
+        }
+        #expect(throws: (any Error).self) { try Data(contentsOf: source) }
+        let adapter = NativeFileAdapter(testFileRoot: root)
+        #expect(throws: (any Error).self) {
+            try adapter.fileAPI(["operation": "copyItem", "path": "source", "destination": "destination", "overwrite": true])
+        }
+        #expect(try String(contentsOf: destination, encoding: .utf8) == "Original 🐼")
+        #expect(Set(try FileManager.default.contentsOfDirectory(atPath: root.path)) == Set(["source", "destination"]))
+    }
     @Test(arguments: [false, true]) func failedTransferRestoresDestinationAndRemovesPartialOutput(move: Bool) throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
