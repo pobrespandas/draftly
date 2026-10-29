@@ -3331,3 +3331,7 @@ affected assertions now report the window, split, panel and divider dimensions
 to distinguish platform layout behavior from fixture setup. The ten panel
 tests passed locally on macOS 27. The macOS 26 dimensions and the separate
 typewriter diagnostic remain pending.
+
+Hosted run 40931935413 passed the isolated typewriter suite on Xcode 26.6.
+The incomplete report in the full app run remains unexplained; the isolated
+pass does not establish that all app tests complete together.
