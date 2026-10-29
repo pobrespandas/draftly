@@ -22,6 +22,7 @@ struct NativeEditor: NSViewRepresentable {
     var linksEnabled = false
     var isActive = true
     var showCustomTouchBar = true
+    var highlightInsertionPoint = false
     var touchBarModel: WindowModel?
     var textInput = EditorTextInputPreferences.Configuration()
     var completionContext: (@MainActor () -> EditorCompletionContext)?
@@ -72,6 +73,8 @@ struct NativeEditor: NSViewRepresentable {
         let coordinator = context.coordinator; coordinator.parent = self; coordinator.updating = true
         defer { coordinator.updating = false }
         if let text = text as? DraftTextView {
+            text.highlightInsertionPoint = highlightInsertionPoint
+            text.currentLineColor = (theme?.interfaceColor(named: "textCaret").flatMap(EditorTheme.color) ?? .textColor).withAlphaComponent(0.08)
             text.autoMatch = textInput.autoMatch
             text.indentation = indentation
             text.configureTouchBar(model: touchBarModel, showCustom: showCustomTouchBar)
@@ -108,7 +111,10 @@ struct NativeEditor: NSViewRepresentable {
             coordinator.style = "\(fontName):\(fontSize):\(monospaceFontName):\(lineSpacing):\(lineHeightMultiple):\(paragraphSpacing):\(markdown):\(syntax):\(linksEnabled):\(syntaxDefinition?.source ?? ""):\(syntaxDefinition?.featureState ?? ""):\(theme?.foreground ?? ""):\(theme?.heading ?? "")"
         }
         if changedText || changedNote { coordinator.invalidateDisplay() }
-        if text.selectedRange() != session.safeSelection { text.setSelectedRange(session.safeSelection); text.scrollRangeToVisible(session.safeSelection) }
+        if text.selectedRange() != session.safeSelection {
+            text.setSelectedRange(session.safeSelection); text.scrollRangeToVisible(session.safeSelection)
+            if (text as? DraftTextView)?.highlightInsertionPoint == true { text.needsDisplay = true }
+        }
         if coordinator.focusToken != session.focusToken {
             coordinator.focusToken = session.focusToken
             if isActive { DispatchQueue.main.async { text.window?.makeFirstResponder(text) } }
@@ -136,6 +142,7 @@ struct NativeEditor: NSViewRepresentable {
         }
         func textViewDidChangeSelection(_ notification: Notification) {
             guard !updating, let textView else { return }; parent.session.selection = textView.selectedRange()
+            if (textView as? DraftTextView)?.highlightInsertionPoint == true { textView.needsDisplay = true }
             if parent.session.typewriterScrollingEnabled, let scroll = textView.enclosingScrollView, let layout = textView.layoutManager, let container = textView.textContainer {
                 let glyphs = layout.glyphRange(forCharacterRange: textView.selectedRange(), actualCharacterRange: nil)
                 let rect = layout.boundingRect(forGlyphRange: glyphs, in: container)
@@ -157,6 +164,7 @@ struct NativeEditor: NSViewRepresentable {
                 highlight(); invalidateDisplay()
             }
             textView.setSelectedRange(parent.session.safeSelection)
+            if (textView as? DraftTextView)?.highlightInsertionPoint == true { textView.needsDisplay = true }
         }
         fileprivate func replaceSessionText(in textView: NSTextView, changedNote: Bool) -> Bool {
             if changedNote { textView.undoManager?.removeAllActions(); noteID = parent.session.noteID }
@@ -188,6 +196,15 @@ struct NativeEditor: NSViewRepresentable {
 }
 
 final class DraftTextView: NSTextView {
+    var highlightInsertionPoint = false { didSet { if oldValue != highlightInsertionPoint { needsDisplay = true } } }
+    var currentLineColor = NSColor.textColor.withAlphaComponent(0.08) { didSet { if oldValue != currentLineColor { needsDisplay = true } } }
+    override func drawBackground(in rect: NSRect) {
+        super.drawBackground(in: rect)
+        guard highlightInsertionPoint, let layout = layoutManager, let container = textContainer,
+              let line = EditorCurrentLineGeometry.rect(layout: layout, container: container, selection: selectedRange()) else { return }
+        currentLineColor.setFill()
+        line.offsetBy(dx: textContainerOrigin.x, dy: textContainerOrigin.y).intersection(rect).fill()
+    }
     let syntaxCompletions = EditorSyntaxCompletions()
     var completionNoteID: UUID?
     var completionProvider: ((String, NSRange) -> SyntaxCompletionRequest?)?

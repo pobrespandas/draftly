@@ -50,6 +50,7 @@ struct EditorSettingsView: View {
     @State private var syntaxFontError: String?
     @AppStorage(EditorSyntaxFontPreferences.key) private var syntaxFonts = "{}"
     @AppStorage("editor.fontName") private var fontName = "System"
+    @AppStorage("editor.highlightInsertionPoint") private var highlightInsertionPoint = false
     @AppStorage("editor.monospaceFontName") private var monospaceFontName = "System Monospace"
     @AppStorage("editor.fontSize") private var fontSize = 17.0
     @AppStorage("editor.lineSpacing") private var lineSpacing = 2.0
@@ -120,6 +121,9 @@ struct EditorSettingsView: View {
                             fontPicker("Monospace", selection: $monospaceFontName, monospace: true)
                             HStack { Text("Size"); Slider(value: $fontSize, in: 11...28, step: 1); Text(EditorPreferenceDisplay.wholePointLabel(fontSize)).monospacedDigit() }
                             EditorSpacingPreferences(fontName: fontName, fontSize: fontSize, legacyLineSpacing: lineSpacing)
+                        }
+                        Section("Display") {
+                            Toggle("Highlight Insertion Point", isOn: $highlightInsertionPoint)
                         }
                         Section("When Draft Is Loaded") {
                             Toggle("Focus Editor", isOn: $focusOnListSelection)

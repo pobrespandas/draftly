@@ -10300,3 +10300,26 @@ Preserve both the dated native record and the present user verification. Do not
 require a repeat of the user's check. No new CUA observation, permission outcome
 or cross-entry contract acceptance is claimed. The later20:33 Success record
 remains separate. See the speech lifetime record for this reconciliation.
+
+### Editor insertion line — 29 October 2026
+
+Implemented a local Highlight Insertion Point preference. It is off by default.
+The editor draws the current visual line below the text and selection. The
+change does not write background attributes to the document. It uses the
+existing text layout manager and keeps the text system intact.
+
+The focused tests cover UTF-16 positions, invalid positions, document end,
+empty and trailing lines, state preservation, and background drawing for an
+empty document. The local Xcode build passed. The serial Swift run verified
+682 Core and 851 app tests. Python ran 80 tests. The matrix structure check
+reported no errors. A direct concurrent ThemeRenderingTests run failed in the hanging-indent case
+with an earlier prototype that replaced the layout manager. The final version
+keeps that manager. The concurrent suite passed on the unchanged base and on
+the final version. The full serial app run also passed. This does not establish
+the cause of the earlier failure.
+
+In isolated Engine QA, the setting enabled the indicator. It followed the
+cursor from the third line to the second. Editing, Undo, and Redo preserved
+the neutral Unicode text. This check used dark appearance. Drafts comparison,
+light appearance, wrapped lines, and a restart check remain pending. No
+screenshots are stored in Git. QA was closed and its bundle was archived.
