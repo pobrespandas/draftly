@@ -3429,3 +3429,10 @@ The notarized rehearsal candidate also produced a local signed appcast with the
 new Sparkle key. The preparation checked the archive signature and verified the
 signed feed with Sparkle's tool. The feed points to a future release URL and
 was not published. This does not test a download or an installed update.
+
+Hosted FullOn27 run 40939930956 reproduced the native-process deadline test
+failure. The enhanced diagnostic reported `The process group could not be
+isolated` for the 9-second case; the deadline itself was not exceeded in the
+fixture. The exact group and process state at failure remain unknown. Do not
+claim that the process had already exited or change the test deadline. All 925
+app methods ran; this is a failed full CI run.
