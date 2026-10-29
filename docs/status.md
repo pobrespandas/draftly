@@ -3417,3 +3417,10 @@ app, with Developer ID and secure timestamps. A copied archive signed with the
 same procedure was accepted by Apple. Stapling, ticket validation, strict deep
 signature verification, and Gatekeeper assessment passed. This archive had
 updates disabled. It is not a published candidate or an update acceptance.
+
+An isolated clone at commit 167334b ran the complete release packager with a
+local-only `v0.1.0` tag and the new Sparkle public key. The packager produced a
+Developer ID signed, notarized, stapled ZIP with updates enabled and a READY
+marker. Independent candidate verification passed, including metadata, checksum,
+code signature and Gatekeeper. The candidate was not installed or published.
+The Sparkle private key does not yet have a verified off-Mac recovery copy.
