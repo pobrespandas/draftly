@@ -10336,3 +10336,10 @@ extra line fragment reported by AppKit at the end of the document. The test
 covers carriage return, CRLF, Unicode line and paragraph separators, and an
 end position without a terminator. The focused suite and local build passed.
 This fix has not been checked in a visible QA session.
+
+An offscreen drawing test found that the default line color could be resolved
+under the wrong appearance before drawing. In light appearance this could
+leave the indicator without contrast. The default color now resolves when the
+background is drawn. The focused tests check both Aqua and Dark Aqua, and the
+local build passed. Visual verification in a light QA window is still pending.
+The QA theme selector stopped responding during that check.

@@ -74,7 +74,7 @@ struct NativeEditor: NSViewRepresentable {
         defer { coordinator.updating = false }
         if let text = text as? DraftTextView {
             text.highlightInsertionPoint = highlightInsertionPoint
-            text.currentLineColor = (theme?.interfaceColor(named: "textCaret").flatMap(EditorTheme.color) ?? .textColor).withAlphaComponent(0.08)
+            text.currentLineColor = theme?.interfaceColor(named: "textCaret").flatMap(EditorTheme.color)?.withAlphaComponent(0.08)
             text.autoMatch = textInput.autoMatch
             text.indentation = indentation
             text.configureTouchBar(model: touchBarModel, showCustom: showCustomTouchBar)
@@ -197,12 +197,12 @@ struct NativeEditor: NSViewRepresentable {
 
 final class DraftTextView: NSTextView {
     var highlightInsertionPoint = false { didSet { if oldValue != highlightInsertionPoint { needsDisplay = true } } }
-    var currentLineColor = NSColor.textColor.withAlphaComponent(0.08) { didSet { if oldValue != currentLineColor { needsDisplay = true } } }
+    var currentLineColor: NSColor? { didSet { if oldValue != currentLineColor { needsDisplay = true } } }
     override func drawBackground(in rect: NSRect) {
         super.drawBackground(in: rect)
         guard highlightInsertionPoint, let layout = layoutManager, let container = textContainer,
               let line = EditorCurrentLineGeometry.rect(layout: layout, container: container, selection: selectedRange()) else { return }
-        currentLineColor.setFill()
+        (currentLineColor ?? NSColor.textColor.withAlphaComponent(0.08)).setFill()
         line.offsetBy(dx: textContainerOrigin.x, dy: textContainerOrigin.y).intersection(rect).fill()
     }
     let syntaxCompletions = EditorSyntaxCompletions()

@@ -73,4 +73,29 @@ struct EditorCurrentLineLayoutTests {
         #expect(text.string.isEmpty && text.selectedRange() == NSRange(location: 0, length: 0))
     }
 
+    @Test(arguments: [(NSAppearance.Name.aqua, false), (.darkAqua, true)])
+    func defaultLineColorContrastsWithEditorBackground(appearanceName: NSAppearance.Name, dark: Bool) throws {
+        let text = DraftTextView(frame: NSRect(x: 0, y: 0, width: 200, height: 100))
+        let appearance = try #require(NSAppearance(named: appearanceName))
+        text.appearance = appearance
+        text.backgroundColor = dark ? .black : .white
+        text.highlightInsertionPoint = true
+        let layout = try #require(text.layoutManager)
+        let container = try #require(text.textContainer)
+        let line = try #require(EditorCurrentLineGeometry.rect(layout: layout, container: container, selection: text.selectedRange()))
+            .offsetBy(dx: text.textContainerOrigin.x, dy: text.textContainerOrigin.y)
+        let bitmap = try #require(NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 200, pixelsHigh: 100,
+            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+        let context = try #require(NSGraphicsContext(bitmapImageRep: bitmap))
+        appearance.performAsCurrentDrawingAppearance {
+            NSGraphicsContext.saveGraphicsState()
+            NSGraphicsContext.current = context
+            text.drawBackground(in: text.bounds)
+            context.flushGraphics()
+            NSGraphicsContext.restoreGraphicsState()
+        }
+        let pixel = try #require(bitmap.colorAt(x: Int(line.midX), y: 99 - Int(line.midY))?.usingColorSpace(.deviceRGB))
+        #expect(dark ? pixel.redComponent > 0.01 : pixel.redComponent < 0.99)
+    }
+
 }
