@@ -3424,3 +3424,8 @@ Developer ID signed, notarized, stapled ZIP with updates enabled and a READY
 marker. Independent candidate verification passed, including metadata, checksum,
 code signature and Gatekeeper. The candidate was not installed or published.
 The Sparkle private key does not yet have a verified off-Mac recovery copy.
+
+The notarized rehearsal candidate also produced a local signed appcast with the
+new Sparkle key. The preparation checked the archive signature and verified the
+signed feed with Sparkle's tool. The feed points to a future release URL and
+was not published. This does not test a download or an installed update.
