@@ -3363,3 +3363,8 @@ requested height, but the 850-point width expanded to 1032 points. The native
 sidebar container and its inner content continued to differ by eight points.
 The cause of the enforced width and the app's macOS 26 behavior are not yet
 established. These failures remain open.
+
+Hosted Display26 run 40935851588 listed a 1920-by-1080 display mode. A separate
+diagnostic can select it for the disposable GitHub-hosted session before panel
+tests. The script rejects non-hosted environments. Its hosted result and the
+macOS 26 panel behavior remain pending.

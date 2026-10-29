@@ -17,6 +17,7 @@ on:
           - Toolchain27
           - FullOn27
           - Display26
+          - LargeDisplayPanels26
 
 permissions:
   contents: read
@@ -51,10 +52,15 @@ jobs:
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.diagnostic == 'all' || inputs.diagnostic == '' || inputs.diagnostic == 'FullOn27' }}
         run: python scripts/run-swift-tests.py --output-dir "$RUNNER_TEMP/draftly-test-results"
       - name: Run one suite for diagnosis
-        if: ${{ github.event_name == 'workflow_dispatch' && (inputs.diagnostic == 'LibrarySplitViewTests' || inputs.diagnostic == 'TypewriterScrollingTests') }}
+        if: ${{ github.event_name == 'workflow_dispatch' && (inputs.diagnostic == 'LibrarySplitViewTests' || inputs.diagnostic == 'TypewriterScrollingTests' || inputs.diagnostic == 'LargeDisplayPanels26') }}
         env:
           DIAGNOSTIC_SUITE: ${{ inputs.diagnostic }}
-        run: python scripts/run-swift-tests.py --output-dir "$RUNNER_TEMP/draftly-test-results" --diagnostic-suite "$DIAGNOSTIC_SUITE"
+        run: |
+          if [[ "$DIAGNOSTIC_SUITE" == LargeDisplayPanels26 ]]; then
+            swift scripts/configure-hosted-display.swift
+            DIAGNOSTIC_SUITE=LibrarySplitViewTests
+          fi
+          python scripts/run-swift-tests.py --output-dir "$RUNNER_TEMP/draftly-test-results" --diagnostic-suite "$DIAGNOSTIC_SUITE"
       - name: Check the release toolchain
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.diagnostic == 'Toolchain27' }}
         run: python scripts/release-toolchain.py
