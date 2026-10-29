@@ -3338,3 +3338,10 @@ pass does not establish that all app tests complete together.
 The workflow also supports a complete manual run on the hosted `xcode-27`
 image. It has a separate diagnostic check name and does not replace the
 required macOS 26 CI run.
+
+Hosted full run 40933758176 on macOS 27 passed 759 Core tests and ran all 925
+app tests. One panel test reported two width differences of exactly one point.
+Those assertions now accept one point inclusively, within the agreed three-point
+visual tolerance and consistent with the other panel checks. The ten focused
+panel tests passed locally. A new hosted full run is required. The larger
+macOS 26 fixture and panel geometry differences remain unresolved.

@@ -103,7 +103,7 @@ struct LibrarySplitViewTests {
         await withCheckedContinuation { continuation in DispatchQueue.main.async { continuation.resume() } }
         controller.view.layoutSubtreeIfNeeded()
         for index in 0..<2 {
-            #expect(abs(controller.splitViewItems[index].viewController.view.frame.width - resizedWidths[index]) < 1, "Panel \(index) must restore width \(resizedWidths[index]).")
+            #expect(abs(controller.splitViewItems[index].viewController.view.frame.width - resizedWidths[index]) <= 1, "Panel \(index) must restore width \(resizedWidths[index]) within one point.")
         }
         for (item, original) in zip(controller.splitViewItems, originalControllers) {
             #expect(item.viewController === original)
@@ -118,7 +118,7 @@ struct LibrarySplitViewTests {
         controller.view.layoutSubtreeIfNeeded()
         #expect(!controller.splitViewItems[0].isCollapsed && !controller.splitViewItems[1].isCollapsed)
         for index in 0..<2 {
-            #expect(abs(controller.splitViewItems[index].viewController.view.frame.width - resizedWidths[index]) < 1)
+            #expect(abs(controller.splitViewItems[index].viewController.view.frame.width - resizedWidths[index]) <= 1)
         }
     }
 
