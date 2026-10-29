@@ -11248,3 +11248,19 @@ This is evidence for these system-delivered paths, not all Intent operations,
 production timeout, late callbacks or Drafts configuration precedence. QA quit,
 its exact registration was removed, and its bundle moved to Trash. The isolated
 library remains. No production code changed.
+
+### Circular inclusion through system-delivered App Intent — 29 October 2026
+
+In isolated Engine QA, a root action saved `Retained before cycle`, queued a
+recovery action and included a child through a template. The child included the
+root by name. Shortcuts delivered the root via the existing QA App Intent and
+showed `An included action refers to itself.` The QA list retained the prior
+text in Inbox. History showed one Error root entry and no child, tail or queued
+recovery run. An explicitly requested recovery through the same Intent then
+completed. The closed store records an Error and a Success with distinct run
+IDs on the same note. Run IDs are not execution IDs.
+
+The QA Shortcut's original fields were restored. QA quit, its exact registration
+was removed and its bundle moved to Trash; the isolated library remains. This
+covers this dynamic two-action cycle and recovery, not every include identity,
+Drafts precedence or every Intent path. No production code changed.
