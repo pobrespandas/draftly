@@ -11187,3 +11187,21 @@ observed executions used percent-encoded spaces. The two QA apps quit, their
 exact registrations were removed and their bundles moved to Trash. The QA
 library remains. This session does not prove system-delivered App Intents,
 Drafts configuration precedence or other cancellation and callback paths.
+
+### Included failure through URL and callback — 29 October 2026
+
+The isolated Engine QA and registered callback helper from the prior URL session
+ran a root action that saved text, queued a recovery action and added a success
+parameter. Its included child checked the shared context and called
+`context.fail()` with `Neutral error café 🐼`. The helper received one error
+callback with that exact message and no success parameter. QA showed the error,
+kept `Retained before failure` in Inbox and recorded one Error root run. The
+history showed no child, tail or queued run. A separately requested recovery URL
+then produced one success callback. Its Success run and the failed run had
+distinct run IDs and the same note ID. Run IDs are not execution IDs.
+
+The callback counter resets between requests. This session does not prove that
+a callback cannot arrive beyond the observation window, system-delivered App
+Intent behavior or Drafts configuration precedence. QA and the helper quit,
+their exact registrations were removed, and their bundles moved to Trash. The
+isolated library remains. No production code changed.
