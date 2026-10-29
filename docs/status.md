@@ -3387,3 +3387,11 @@ Hosted LargeDisplayPanels26 run 40936190973 used a 1920-by-1080 display but
 the panel suite still failed, including eight-point sidebar differences. The
 larger display reduced the narrow-window discrepancy, but does not resolve the
 macOS 26 failures. This diagnostic does not establish visual parity.
+
+The scoped signing change also passed a separate Release build with the
+existing Development profile and an explicit team. Strict signature checks
+confirmed the existing app identity, team, iCloud container, and Development
+entitlements. The first invocation without a configured team failed before
+building; no profile was changed. All 175 Python tests passed in an isolated
+environment with the CI dependencies. A system Python run lacked Pillow and
+cryptography and did not complete those suites.
