@@ -3888,3 +3888,7 @@ minimum of 232 yielded a 240-point container. A candidate converts between
 container and content widths using the inset measured from AppKit. The local
 15-case panel suite and app build passed. macOS 26 and real-window validation
 remain pending.
+
+The full local Swift inventory passed after the sidebar inset adjustment:
+759 Core and 933 app tests. The focused toolbar suite also passed its five
+cases. Hosted macOS 26 and real-window acceptance remain pending.
