@@ -3173,6 +3173,9 @@ cover storage failure, unknown fields, reload and backup. Native QA confirmed
 Cancel; Replace remains unverified. Full normal Core runs had timing failures;
 both focused suites and a separate serial Core run passed. App inventory and
 local build passed with the limits in validation. The usual app is unchanged.
+Another native QA attempt confirmed the alert and displayed the incoming name
+after Replace. Two records shared that name, and their identities were not
+checked. Native replacement remains pending.
 
 ### Action link replacement — 29 October 2026
 

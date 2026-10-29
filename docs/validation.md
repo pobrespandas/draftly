@@ -10652,6 +10652,13 @@ and asynchronous runner waits in the second. Both focused suites passed. A
 separate complete serial Core run passed (699 methods). These diagnostics do
 not turn the normal parallel Core runs into passes. No timeout was changed.
 
+On 29 October, isolated Engine QA showed the workspace replacement alert again.
+Replace closed the alert and the workspace menu showed the incoming name.
+The menu and management sheet showed two records with that name. Their identities
+were not inspected, so this does not prove which record changed or accept the
+replacement contract. QA quit normally; its exact LaunchServices registration was
+removed and its temporary app moved to Trash. Its isolated data was retained.
+
 ### Action link replacement — 29 October 2026
 
 The focused action installation suite passed nine tests. It covers cancel,
