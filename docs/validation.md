@@ -11148,3 +11148,15 @@ both tails and the queue, and allow a later Intent to succeed with a new ID.
 The focused Intent suite passed. The test shares its fixture with the existing
 cancellation case. It does not prove system-delivered Intent or URL behavior.
 No production code changed.
+
+### Windows opened after an automation edit conflict — 29 October 2026
+
+A regression showed that a third window opened after conflict detection could
+save over the stored draft. A guarded flush now consults current window models
+for the same library and draft. It refuses a save while their pending contents
+differ, including when the original two have converged but the third has not.
+Once all three agree, they can flush. The new regression failed before the fix
+and passed afterward. Automation, direct Intent and related WindowModel suites
+passed, as did the local Debug build. These are headless model tests. Native
+window close/restart and independent library writers remain separate. This does
+not provide a merge interface or persist pending edits across restart.

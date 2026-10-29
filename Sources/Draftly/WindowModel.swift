@@ -324,13 +324,15 @@ final class WindowModel: ObservableObject {
     }
     @discardableResult func flush() -> Bool {
         saveTask?.cancel()
-        if let pendingSaveConflict {
-            guard !pendingSaveConflict() else {
-                library.error = "Multiple windows have conflicting unsaved edits. Resolve them before saving."
-                return false
-            }
-            self.pendingSaveConflict = nil
+        let peers = dependencies.windowModels().filter { $0.library === library && $0.editor.noteID == editor.noteID }
+        let guarded = pendingSaveConflict != nil || peers.contains { $0.pendingSaveConflict != nil }
+        let pendingContents = peers.filter(\.hasUnsavedChanges).map { $0.editor.content }
+            + (hasUnsavedChanges ? [editor.content] : [])
+        if pendingSaveConflict?() == true || (guarded && Set(pendingContents).count > 1) {
+            library.error = "Multiple windows have conflicting unsaved edits. Resolve them before saving."
+            return false
         }
+        pendingSaveConflict = nil
         do {
             if var note = scratchNote, note.id == editor.noteID {
                 note.content = editor.content

@@ -68,6 +68,45 @@ struct AutomationActionExecutionTests {
         #expect(third.hasUnsavedChanges)
         #expect(!third.flush())
         #expect(library.notes.first?.content == "Stored")
+        second.editor.content = first.editor.content; second.contentChanged()
+        #expect(!first.flush())
+        #expect(library.notes.first?.content == "Stored")
+        third.editor.content = first.editor.content; third.contentChanged()
+        #expect(first.flush() && second.flush() && third.flush())
+        #expect(library.notes.first?.content == "First")
+    }
+    @Test func windowOpenedAfterConflictCannotOverwritePendingEditors() async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Stored")
+        var windows: [WindowModel] = []
+        var dependencies = WindowDependencies()
+        dependencies.windowModels = { windows }
+        let first = WindowModel(library: library, dependencies: dependencies)
+        let second = WindowModel(library: library, dependencies: dependencies)
+        windows = [first, second]
+        first.select(note.id); second.select(note.id)
+        first.editor.content = "First"; first.contentChanged()
+        second.editor.content = "Second"; second.contentChanged()
+        let action = DraftAction(name: "Must not run", steps: [])
+        do {
+            _ = try await AutomationActionExecution.run(action, noteID: note.id, library: library,
+                                                        models: windows, host: first.host)
+            Issue.record("Automation started with conflicting pending editors.")
+        } catch { #expect(error.localizedDescription.contains("conflicting")) }
+        let third = WindowModel(library: library, dependencies: dependencies)
+        windows.append(third); third.select(note.id)
+        third.editor.content = "Third"; third.contentChanged()
+        try await Task.sleep(for: .milliseconds(650))
+        #expect(library.notes.first?.content == "Stored")
+        #expect(third.hasUnsavedChanges)
+        #expect(!third.flush())
+        #expect(library.notes.first?.content == "Stored")
+        second.editor.content = first.editor.content; second.contentChanged()
+        #expect(!first.flush())
+        #expect(library.notes.first?.content == "Stored")
+        third.editor.content = first.editor.content; third.contentChanged()
+        #expect(first.flush() && second.flush() && third.flush())
+        #expect(library.notes.first?.content == "First")
     }
     private func delayedAction() -> DraftAction {
         DraftAction(name: "Delayed automation", steps: [
