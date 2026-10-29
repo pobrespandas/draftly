@@ -3686,3 +3686,10 @@ The offscreen panel diagnostic now reports five initial visibility
 configurations. The focused suite and local build passed on macOS 27. A hosted
 macOS 26 run is required to compare the configurations and identify which
 layout path causes the expansion. This diagnostic does not change app behavior.
+
+Hosted LargeDisplayPanels26 run 40953767270 reproduced ten existing issues.
+At a requested 850-point width, the offscreen configurations with fewer than
+four visible panels stayed at 850 points. With filters, draft list, editor and
+Actions visible, content expanded to 1032 points. The sidebar measured eight
+points wider than the requested 240 in the visible-filter configurations. This
+narrows the reproduction but does not establish the cause or a safe fix.
