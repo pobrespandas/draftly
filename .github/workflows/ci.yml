@@ -15,6 +15,7 @@ on:
           - LibrarySplitViewTests
           - TypewriterScrollingTests
           - ThemeRenderingTests
+          - ReferenceToolbarLayoutTests
           - ReleaseEnvironmentDenied
           - Toolchain27
           - FullOn27
@@ -57,7 +58,7 @@ jobs:
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.diagnostic == 'all' || inputs.diagnostic == '' || inputs.diagnostic == 'FullOn27' }}
         run: python scripts/run-swift-tests.py --output-dir "$RUNNER_TEMP/draftly-test-results"
       - name: Run one suite for diagnosis
-        if: ${{ github.event_name == 'workflow_dispatch' && (inputs.diagnostic == 'LibrarySplitViewTests' || inputs.diagnostic == 'TypewriterScrollingTests' || inputs.diagnostic == 'ThemeRenderingTests' || inputs.diagnostic == 'LargeDisplayPanels26') }}
+        if: ${{ github.event_name == 'workflow_dispatch' && (inputs.diagnostic == 'LibrarySplitViewTests' || inputs.diagnostic == 'TypewriterScrollingTests' || inputs.diagnostic == 'ThemeRenderingTests' || inputs.diagnostic == 'ReferenceToolbarLayoutTests' || inputs.diagnostic == 'LargeDisplayPanels26') }}
         env:
           DIAGNOSTIC_SUITE: ${{ inputs.diagnostic }}
         run: |
