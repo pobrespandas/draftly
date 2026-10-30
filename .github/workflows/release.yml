@@ -1,6 +1,6 @@
 name: Release candidate
 
-# This workflow cannot publish. Release signing and publishing need acceptance.
+# Protected release flags control signing, staging and public promotion.
 on:
   workflow_dispatch:
     inputs:
@@ -122,7 +122,7 @@ jobs:
           APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
         shell: bash
         run: |
-          if [[ "$GITHUB_EVENT_NAME" != push || "$GITHUB_RUN_ATTEMPT" != 1 ]]; then
+          if [[ "$GITHUB_EVENT_NAME" != workflow_dispatch || "$GITHUB_REF" != refs/heads/main || "$GITHUB_RUN_ATTEMPT" != 1 ]]; then
             echo 'Use the original candidate artifact for recovery; do not build another candidate.' >&2
             exit 1
           fi
