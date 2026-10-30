@@ -1,7 +1,9 @@
 # Draftly website
 
-The website is a static Firebase Hosting site in the `pobrespandas-home`
-project. Its Hosting site ID is `draftly-pobrespandas`.
+The destination website is a static Firebase Hosting site in the
+`gen-lang-client-0607406471` project. Its site ID is
+`draftly-pobrespandas-prod`. The custom domain transfer is still in progress;
+the previous site serves it until DNS and Firebase ownership are updated.
 
 Preview it from this directory:
 

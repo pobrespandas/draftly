@@ -30,6 +30,12 @@ class ReleaseWorkflowPolicyTests(unittest.TestCase):
         self.assertEqual(candidate, "${{ vars.DRAFTLY_RELEASE_SIGNING_ENABLED == 'true' || (github.event_name == 'workflow_dispatch' && inputs.resume_run_id != '') }}")
         self.assertEqual(stage, "${{ vars.DRAFTLY_RELEASE_STAGING_ENABLED == 'true' }}")
 
+    def test_firebase_auth_uses_the_website_project(self):
+        configured = jobs()
+        auth = next(step for step in configured['stage']['steps'] if step.get('id') == 'firebase_auth')
+        projects = json.loads((ROOT / 'website/.firebaserc').read_text())
+        self.assertEqual(auth['with']['project_id'], projects['projects']['default'])
+
 
 if __name__ == '__main__':
     unittest.main()

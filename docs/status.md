@@ -3922,3 +3922,12 @@ On 29 October 2026, an HTTPS check of draftly.pobrespandas.com returned HTTP
 200 with successful TLS verification. The configured `/appcast.xml` returned
 HTTP 404. The public update feed is not available; this check did not deploy
 or change the site.
+
+The Draftly Hosting destination is now configured as project
+`gen-lang-client-0607406471`, site `draftly-pobrespandas-prod`. The current
+public site was cloned to that destination and selected public files matched.
+The custom domain still points to the old project until the DNS migration.
+Appcast staging, website settings and workflow authentication use the same
+new project. The focused staging, workflow policy and website tests passed.
+Publication remains disabled; DNS, credentials and real release acceptance
+are pending.

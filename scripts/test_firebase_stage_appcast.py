@@ -76,6 +76,15 @@ class FakeHosting:
 
 
 class FirebaseStageTests(unittest.TestCase):
+    def test_staging_and_website_use_the_migration_destination(self):
+        root = Path(__file__).resolve().parent.parent
+        self.assertEqual(firebase.PROJECT, "gen-lang-client-0607406471")
+        self.assertEqual(firebase.SITE, "sites/draftly-pobrespandas-prod")
+        website = json.loads((root / "website/firebase.json").read_text())
+        projects = json.loads((root / "website/.firebaserc").read_text())
+        self.assertEqual(website["hosting"]["site"], firebase.SITE.removeprefix("sites/"))
+        self.assertEqual(projects["projects"]["default"], firebase.PROJECT)
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(prefix="draftly-firebase-test-")
         self.addCleanup(self.tmp.cleanup)
