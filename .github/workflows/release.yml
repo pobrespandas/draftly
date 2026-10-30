@@ -19,6 +19,11 @@ on:
         description: Run ID that contains the original candidate artifact, for recovery
         required: false
         type: string
+      start_staging:
+        description: Start staging for a candidate that has never been staged
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -30,6 +35,7 @@ concurrency:
 env:
   RELEASE_TAG: ${{ inputs.tag }}
   RESUME_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.resume_run_id || '' }}
+  START_STAGING: ${{ inputs.start_staging && 'true' || 'false' }}
 
 jobs:
   rehearsal:
@@ -54,12 +60,16 @@ jobs:
             echo 'Invalid recovery run ID.' >&2
             exit 1
           fi
+          if [[ "$START_STAGING" == true && -z "$RESUME_RUN_ID" ]]; then
+            echo 'Starting staging for an existing candidate requires its run ID.' >&2
+            exit 1
+          fi
       - name: Check published version and build history
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          if [[ -n "$RESUME_RUN_ID" ]]; then
+          if [[ -n "$RESUME_RUN_ID" && "$START_STAGING" != true ]]; then
             python scripts/release-history.py --resume-candidate
           else
             python scripts/release-history.py
@@ -201,7 +211,7 @@ jobs:
           DRAFTLY_SPARKLE_PUBLIC_KEY: ${{ vars.DRAFTLY_SPARKLE_PUBLIC_KEY }}
         run: python scripts/verify-release-candidate.py --candidate ".build/release-candidates/$RELEASE_TAG" --tag "$RELEASE_TAG" --public-key "$DRAFTLY_SPARKLE_PUBLIC_KEY"
       - name: Restore the original staging checkpoint
-        if: ${{ env.RESUME_RUN_ID != '' }}
+        if: ${{ env.RESUME_RUN_ID != '' && env.START_STAGING != 'true' }}
         uses: actions/download-artifact@v4
         with:
           name: draftly-release-staging-${{ env.RELEASE_TAG }}
@@ -209,7 +219,7 @@ jobs:
           github-token: ${{ github.token }}
           run-id: ${{ env.RESUME_RUN_ID }}
       - name: Prepare the signed update feed
-        if: ${{ env.RESUME_RUN_ID == '' }}
+        if: ${{ env.RESUME_RUN_ID == '' || env.START_STAGING == 'true' }}
         env:
           DRAFTLY_SPARKLE_PRIVATE_KEY: ${{ secrets.DRAFTLY_SPARKLE_PRIVATE_KEY }}
           GH_TOKEN: ${{ github.token }}
@@ -235,7 +245,7 @@ jobs:
           set -euo pipefail
           test -n "$LOCK_BUCKET"
           journal=".build/release-staging/$RELEASE_TAG/site-lock.json"
-          if [[ -n "$RESUME_RUN_ID" ]]; then
+          if [[ -n "$RESUME_RUN_ID" && "$START_STAGING" != true ]]; then
             test -f "$journal"
             python scripts/release-lock.py check --bucket "$LOCK_BUCKET" --journal "$journal"
           else
@@ -259,7 +269,7 @@ jobs:
           stage_dir=".build/release-staging/$RELEASE_TAG"
           journal="$stage_dir/firebase-journal.json"
           receipt="$RUNNER_TEMP/firebase-receipt.json"
-          if [[ -n "$RESUME_RUN_ID" ]]; then
+          if [[ -n "$RESUME_RUN_ID" && "$START_STAGING" != true ]]; then
             test -f "$journal"
             base=$(python -c 'import json,sys; print(json.load(open(sys.argv[1]))["baseVersion"])' "$journal")
             site_base=$(python -c 'import json,sys; print(json.load(open(sys.argv[1]))["websiteSource"]["base"])' "$journal")
