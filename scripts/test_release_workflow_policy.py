@@ -86,6 +86,21 @@ class ReleaseWorkflowPolicyTests(unittest.TestCase):
                        if step.get('name') == 'Check published version and build history')
         self.assertIn('[[ -n "$RESUME_RUN_ID" && "$START_STAGING" != true ]]', history['run'])
 
+    def test_release_history_mode_tracks_whether_staging_is_new(self):
+        steps = jobs()['rehearsal']['steps']
+        command = next(step for step in steps
+                       if step.get('name') == 'Check published version and build history')['run']
+        command = command.replace('python scripts/release-history.py --resume-candidate',
+                                  "printf 'recover'")
+        command = command.replace('python scripts/release-history.py', "printf 'new'")
+        cases = [('', 'false', 'new'), ('123', 'false', 'recover'), ('123', 'true', 'new')]
+        for run_id, fresh, expected in cases:
+            with self.subTest(run_id=run_id, fresh=fresh):
+                result = subprocess.run(['bash', '-eu', '-c', command], check=True,
+                    capture_output=True, text=True, env={'PATH': '/usr/bin:/bin',
+                    'RESUME_RUN_ID': run_id, 'START_STAGING': fresh})
+                self.assertEqual(result.stdout, expected)
+
     def test_publication_requires_lock_and_preserves_final_recovery_state(self):
         steps = jobs()['stage']['steps']
         names = [step.get('name', '') for step in steps]
