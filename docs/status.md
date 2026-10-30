@@ -4009,6 +4009,20 @@ and generation-checked release. No site version was published. This proves the
 publisher access path and locking; it does not prove signed updating or CloudKit
 Production. The source checkpoint bootstrap is configured for the initial site.
 
+
+### Release preparation — 30 October 2026
+
+- PR #4 passed hosted CI 41005481716 and merged at a29aebc.
+- The release environment has all seven signing and notarization secrets.
+  Apple accepted the notarization key and issuer for a history request.
+- CloudKit Production now has the reviewed CD_Record type and fourteen indexes.
+  Users is unchanged. The exported schema matches the versioned configuration.
+- A signed native probe saved and fetched a neutral record in the Production
+  private database. Core Data transport between isolated stores is still under
+  review. This does not approve existing data migration or Mac-to-VM sync.
+- Public release flags remain disabled. Public update, complete Production
+  migration and Mac-to-VM acceptance remain pending. The usual app is intact.
+
 ### Trusted dispatch signing guard — 30 October 2026
 
 A shell-level regression test found that candidate signing still required a
@@ -4016,3 +4030,4 @@ push event after the release coordinator moved to workflow_dispatch on main.
 The guard now accepts only the first main dispatch. It rejects push events,
 work branches and reruns. Recovery must reuse the original candidate artifact.
 The publication flags and environment restrictions are unchanged.
+

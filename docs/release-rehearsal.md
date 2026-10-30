@@ -432,3 +432,45 @@ A new run reads the base source from the live version. The bootstrap variable
 exist. It was verified against the initial live site at commit `a955f00`.
 Once a feed exists, a missing or invalid source checkpoint stops the run.
 This prevents a later release from guessing which site source is live.
+
+## Production preparation on 30 October 2026
+
+PR #4 passed hosted CI run 41005481716 and merged into main at a29aebc.
+The release environment now has the Developer ID archive and password, the
+Production profile, the Sparkle seed, and the notarization key, key ID and
+issuer ID. Secret values were sent through standard input. They were not
+written to Git or command arguments. Apple accepted a read-only notarization
+history request with this key and issuer. This confirms authentication. It
+does not confirm that the hosted signing job can use every secret.
+
+CloudKit Console initially showed only Users in Production. The reviewed
+Development schema added CD_Record with five application fields and fourteen
+indexes. Users stayed unchanged. CD_Record grants write access to its creator;
+it has no public read or general iCloud create grant. The app uses the private
+database. The schema deployment completed. The exported Production schema
+matches Configuration/CloudKitProduction.ckdb and the reviewed export exactly.
+Its SHA-256 is
+9ac59aeccbcaa415626c6ddfaf62a892e460addfa4c294c5085241544069788d.
+Schema deployment does not copy Development records.
+
+A signed native probe uses the main bundle identifier, existing Developer ID
+Production profile and container. It runs directly from a temporary app bundle,
+without LaunchServices registration, AppController or preference writes. Its
+two LibraryStore instances use separate temporary directories and seed=false.
+Only a neutral note with UUID DD71668E-2039-4ACB-8209-202610300001 is compared.
+The native CloudKit call saved and fetched a neutral CD_Record in the separate
+private zone DraftlyProductionProbe20261030. The account status was available.
+This confirms real Production access, signing and the container association.
+The Core Data stores must still confirm export, fresh import and return editing.
+The first headless attempt logged BGSystemTaskSchedulerErrorDomain code 3;
+that harness result is not an application regression or a sync acceptance. Mac-to-VM convergence, migration
+of existing data and complete object coverage remain separate checks.
+
+Publication flags remain disabled. No public version tag, GitHub release,
+live appcast or replacement of the usual application has occurred.
+
+The AppKit harness also logged scheduler code 3 for both Core Data stores.
+The reader still had no records. The probe was stopped after this result;
+no transport pass or timeout acceptance is recorded. Continue this check with
+an isolated, normally launched application that can register background tasks.
+The temporary stores and neutral Production fixtures remain available.
