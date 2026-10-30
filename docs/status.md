@@ -3999,3 +3999,12 @@ first publication. Recovery and publication reject changed provenance. All
 256 Python tests passed locally. Current-site inspection found only index.html
 and release.mjs pending, with no deletions. This source-checkpoint change is
 not yet integrated or exercised against a real staged release.
+
+Publisher check 41005246265 was rejected before Hosting access because the
+repository uses GitHub's immutable OIDC subject format. The provider condition
+was corrected to include the owner and repository IDs in the subject, retaining
+all other restrictions. Check 41005402427 then passed: real federated
+authentication, read-only Hosting inspection, lock acquisition, ownership check
+and generation-checked release. No site version was published. This proves the
+publisher access path and locking; it does not prove signed updating or CloudKit
+Production. The source checkpoint bootstrap is configured for the initial site.
