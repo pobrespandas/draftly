@@ -522,3 +522,20 @@ separate clients, including Mac and VM. Existing-library migration, complete
 object coverage and convergence remain pending. The probes are stopped and
 were unregistered. No Production record was copied from Development by the
 schema deployment.
+
+## First release notes and source gate
+
+PR #7 passed hosted CI 41010858004 and merged at 04a7127. The termination
+regression test now compiles on the macOS 26 and 27 SDKs. Production code still
+uses the same DispatchQueue.main fix that passed the native QA repeat.
+
+Each version tag needs UTF-8 notes at docs/releases/vMAJOR.MINOR.PATCH.txt.
+The source preflight rejects missing, empty or invalid UTF-8 notes before the
+workflow starts its test and signing jobs. The initial v0.1.0 notes describe
+the current product and identify the remaining compatibility checks. They do
+not claim complete Drafts parity or completed CloudKit acceptance.
+
+A CLI regression reproduced the previous preflight accepting a tag with no
+notes. The source gate and Unicode/read-only cases now pass. All 259 Python
+tests and the structural matrix check passed locally. The release flags remain
+disabled. Notes in Git are preparation, not a published release.

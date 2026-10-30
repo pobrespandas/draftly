@@ -24,6 +24,12 @@ def validate(tag, head, main, tag_commit, version, build):
         raise ValueError("The checked-out commit and tag must match origin/main.")
 
 
+def validate_notes(tag, directory=Path("docs/releases")):
+    notes = (Path(directory) / (tag + ".txt")).read_text(encoding="utf-8")
+    if not notes.strip():
+        raise ValueError("Release notes must not be empty: " + tag + ".txt")
+
+
 def git_commit(ref):
     result = subprocess.run(["git", "rev-parse", "--verify", ref + "^{commit}"],
                             check=True, capture_output=True, text=True)
@@ -42,6 +48,7 @@ def main():
         validate(args.tag, git_commit("HEAD"), git_commit("refs/remotes/origin/main"),
                  git_commit("refs/tags/" + args.tag), info.get("CFBundleShortVersionString"),
                  info.get("CFBundleVersion"))
+        validate_notes(args.tag)
     except (ValueError, OSError, plistlib.InvalidFileException, subprocess.CalledProcessError) as error:
         parser.exit(1, "Release preflight failed: " + str(error) + "\n")
     print("Release source preflight passed. Nothing was published.")
