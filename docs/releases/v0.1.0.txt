@@ -1,0 +1,17 @@
+Draftly 0.1.0
+
+First public release for macOS 26 or later.
+
+Capture and organize drafts with tags, flags and Workspaces.
+Edit plain text, Markdown, HTML, MultiMarkdown and TaskPaper.
+Use the integrated Markdown preview and installed Nerd Fonts.
+Create and run Actions with JavaScript and native steps.
+Customize editor fonts, themes, margins and shortcuts.
+Export and restore library backups, including Action history.
+Check for signed updates. Draftly asks before it installs an update.
+
+Draftly has one edition. There is no Pro tier.
+
+Compatibility work continues. Some Drafts scripting contracts and native
+integrations still have open checks. See the project status for current limits:
+https://github.com/pobrespandas/draftly/blob/main/docs/status.md
