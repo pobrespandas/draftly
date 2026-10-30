@@ -56,11 +56,7 @@ struct ActionTerminationCoordinatorTests {
         let replies: Int = await withCheckedContinuation { continuation in
             RunLoop.main.perform(inModes: [.default]) {
                 MainActor.assumeIsolated {
-                    #if compiler(>=6.4)
                     let mode = CFRunLoopMode(rawValue: "DraftlyTerminationTestMode" as CFString)
-                    #else
-                    let mode = "DraftlyTerminationTestMode" as CFString
-                    #endif
                     let loop = CFRunLoopGetMain()!
                     CFRunLoopAddCommonMode(loop, mode)
                     let port = Port()
