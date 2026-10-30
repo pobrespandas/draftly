@@ -61,6 +61,46 @@ class ReleaseWorkflowPolicyTests(unittest.TestCase):
                 self.assertEqual(result.returncode == 0, accepted, result.stderr)
                 self.assertEqual('candidate accepted' in result.stdout, accepted)
 
+    def test_starting_staging_for_an_existing_candidate_is_explicit(self):
+        configured = jobs()
+        guard = next(step for step in configured['rehearsal']['steps']
+                     if step.get('name') == 'Validate recovery run ID')['run']
+        for run_id, fresh, accepted in [('', 'false', True), ('123', 'false', True),
+                                        ('123', 'true', True), ('', 'true', False),
+                                        ('invalid', 'true', False)]:
+            with self.subTest(run_id=run_id, fresh=fresh):
+                result = subprocess.run(['bash', '-eu', '-c', guard], capture_output=True,
+                    text=True, env={'PATH': '/usr/bin:/bin', 'RESUME_RUN_ID': run_id,
+                                    'START_STAGING': fresh})
+                self.assertEqual(result.returncode == 0, accepted, result.stderr)
+
+        stage = configured['stage']['steps']
+        restore = next(step for step in stage if step.get('name') == 'Restore the original staging checkpoint')
+        prepare = next(step for step in stage if step.get('name') == 'Prepare the signed update feed')
+        self.assertEqual(restore['if'], "${{ env.RESUME_RUN_ID != '' && env.START_STAGING != 'true' }}")
+        self.assertEqual(prepare['if'], "${{ env.RESUME_RUN_ID == '' || env.START_STAGING == 'true' }}")
+        for name in ['Acquire or verify the site writer lock', 'Stage the feed without promoting the site']:
+            step = next(step for step in stage if step.get('name') == name)
+            self.assertIn('[[ -n "$RESUME_RUN_ID" && "$START_STAGING" != true ]]', step['run'])
+        history = next(step for step in configured['rehearsal']['steps']
+                       if step.get('name') == 'Check published version and build history')
+        self.assertIn('[[ -n "$RESUME_RUN_ID" && "$START_STAGING" != true ]]', history['run'])
+
+    def test_release_history_mode_tracks_whether_staging_is_new(self):
+        steps = jobs()['rehearsal']['steps']
+        command = next(step for step in steps
+                       if step.get('name') == 'Check published version and build history')['run']
+        command = command.replace('python scripts/release-history.py --resume-candidate',
+                                  "printf 'recover'")
+        command = command.replace('python scripts/release-history.py', "printf 'new'")
+        cases = [('', 'false', 'new'), ('123', 'false', 'recover'), ('123', 'true', 'new')]
+        for run_id, fresh, expected in cases:
+            with self.subTest(run_id=run_id, fresh=fresh):
+                result = subprocess.run(['bash', '-eu', '-c', command], check=True,
+                    capture_output=True, text=True, env={'PATH': '/usr/bin:/bin',
+                    'RESUME_RUN_ID': run_id, 'START_STAGING': fresh})
+                self.assertEqual(result.stdout, expected)
+
     def test_publication_requires_lock_and_preserves_final_recovery_state(self):
         steps = jobs()['stage']['steps']
         names = [step.get('name', '') for step in steps]

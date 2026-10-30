@@ -92,6 +92,15 @@ stops recovery. The GitHub ruleset `Protect release version tags` blocks updates
 and deletion of `v*` tags. It allows new tags. Inspect an interrupted signing
 run before taking further action.
 
+If the candidate run did not start staging, the operator can dispatch with
+`resume_run_id` and `start_staging=true`. First verify that no staging was
+attempted for the candidate. This option does not recover an interrupted
+staging run. It rejects an existing GitHub release, obtains a new site lock,
+and stages from the current verified site version. The workflow still requires
+the tag to match the current main commit. It does not permit moving a tag or
+using a different source commit. If staging was attempted, use its original
+checkpoint and leave `start_staging` false. Never clear a lock to force a retry.
+
 ## Local signed candidate
 
 `scripts/package-release.py` prepares a candidate without publishing it. It
