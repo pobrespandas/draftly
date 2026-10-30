@@ -356,8 +356,9 @@ the current object without changing it. It is a point-in-time check, not an
 atomic guard on a later Hosting write. It cannot stop a writer that bypasses the
 coordinator or a manual lock deletion after the check.
 
-This component has fake-service tests only. It is not connected to the release
-workflow and does not prevent other Firebase writers from bypassing it. Before
+This component has fake-service tests. The release workflow now holds it from
+Firebase staging through public verification. Other Firebase writers can still
+bypass it unless IAM restricts the publishing path. Before
 publication, all writers need an enforced coordinator with exclusive Firebase
 credentials and suitable access controls. Do not enable publication based on
 this lock alone. No bucket or IAM policy was created for this component.
@@ -398,3 +399,23 @@ The command also requires the existing publication flag and credentials. Pass
 `--lock-bucket` and `--lock-journal`. Keep journals outside Git. This component
 has fake-service tests; the production coordinator and real promotion remain
 unverified. See the official [Firebase release API](https://firebase.google.com/docs/reference/hosting/rest/v1beta1/sites.releases/create).
+
+## Coordinated publication workflow
+
+The protected main workflow can now publish the verified GitHub draft and
+promote its matching Firebase version. Set
+`DRAFTLY_RELEASE_PUBLICATION_ENABLED=true` only after acceptance. The staging
+job acquires the site lock before creating Firebase versions. Publication
+rechecks the lock, candidate, public assets and live site. Promotion verifies
+the public HTTPS feed. The workflow releases the lock only after that step
+succeeds. The final checkpoint upload runs even after failure.
+
+A staging-only run keeps the lock for inspection. A recovery run verifies the
+original held lock; it does not silently create a new one. If the journal has
+an uncertain create or release, use the lock recovery procedure before
+continuing. The workflow does not automatically expire or delete a stale lock.
+
+Use `operation=verify-publisher` on main, without a tag, to check the federated
+identity and lock without signing or publication. This is a separate job from
+candidate creation. See [release infrastructure](release-infrastructure.md)
+for the current access controls and remaining real checks.

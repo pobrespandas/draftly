@@ -32,7 +32,7 @@ class ReleaseWorkflowPolicyTests(unittest.TestCase):
 
     def test_only_main_dispatch_can_reach_release_credentials(self):
         configured = jobs()
-        self.assertEqual(configured['rehearsal']['if'], "${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' }}")
+        self.assertEqual(configured['rehearsal']['if'], "${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.operation == 'release' }}")
         source = (ROOT / '.github/workflows/release.yml').read_text()
         self.assertNotIn('  push:', source)
         dispatcher = (ROOT / '.github/workflows/release-tag.yml').read_text()
@@ -40,6 +40,38 @@ class ReleaseWorkflowPolicyTests(unittest.TestCase):
         self.assertNotIn('actions/checkout', dispatcher)
         self.assertIn('gh workflow run release.yml --ref main', dispatcher)
         self.assertIn('actions: write', dispatcher)
+
+    def test_publication_requires_lock_and_preserves_final_recovery_state(self):
+        steps = jobs()['stage']['steps']
+        names = [step.get('name', '') for step in steps]
+        ordered = ['Acquire or verify the site writer lock',
+                   'Stage the feed without promoting the site',
+                   'Verify and stage the GitHub draft',
+                   'Publish and verify the GitHub assets',
+                   'Promote and verify the public site',
+                   'Release the writer lock after public verification',
+                   'Preserve the staging checkpoint']
+        positions = [names.index(name) for name in ordered]
+        self.assertEqual(positions, sorted(positions))
+        for name in ordered[3:6]:
+            step = steps[names.index(name)]
+            self.assertEqual(step['if'], "${{ vars.DRAFTLY_RELEASE_PUBLICATION_ENABLED == 'true' }}")
+            self.assertNotIn('always()', step['if'])
+        self.assertEqual(steps[-1]['if'], '${{ always() }}')
+        promote = steps[names.index('Promote and verify the public site')]
+        self.assertIn('--lock-journal', promote['run'])
+        self.assertIn('--journal', promote['run'])
+        self.assertEqual(promote['env']['DRAFTLY_RELEASE_PROMOTION_ENABLED'], 'YES')
+
+    def test_publisher_check_uses_no_signing_secrets_and_requires_main(self):
+        job = jobs()['verify-publisher']
+        self.assertEqual(job['environment'], 'release')
+        self.assertIn("github.ref == 'refs/heads/main'", job['if'])
+        self.assertIn("inputs.operation == 'verify-publisher'", job['if'])
+        self.assertEqual(job['permissions'], {'contents': 'read', 'id-token': 'write'})
+        self.assertNotIn('secrets.', json.dumps(job))
+        self.assertNotIn('needs', job)
+        self.assertTrue(all('package-release.py' not in step.get('run', '') for step in job['steps']))
 
     def test_firebase_auth_uses_the_website_project(self):
         configured = jobs()

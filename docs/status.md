@@ -3980,3 +3980,13 @@ A tag dispatcher has no release secrets and invokes the trusted main workflow;
 rehearsal rejects other source branches. No independent review approval is
 required in this single-maintainer setup. Environment rejection is not yet
 verified by a real negative run. Release jobs remain disabled.
+
+The protected release workflow now connects lock acquisition, staging, public
+GitHub verification, Firebase promotion, final verification and lock release.
+Its checkpoint upload runs last, including after failure. Publication is gated
+by an unset variable. The publisher identity, OIDC pool/provider and private
+lock bucket exist in the destination project. No account key was created.
+The default compute Editor binding was removed after an empty workload and
+user-key inventory. The project owner retains administrative recovery access.
+Positive hosted authentication and locking remain unverified. The separate
+publisher-check job can verify them on main without signing secrets.
