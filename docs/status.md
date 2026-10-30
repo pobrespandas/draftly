@@ -3956,3 +3956,11 @@ filters, serial test execution, migrated Hosting target and both histories.
 Local verification passed: 759 Core tests, 934 application tests, 240 Python
 tests, three website tests, matrix checks and swift build. Hosted CI for this
 merge remains pending. Publication and update acceptance remain open.
+
+### Post-merge release acceptance — 30 October 2026
+
+Main CI run 40998090026 produced an incomplete application XML report. The
+log ends during the link theme rendering test without a final result. This
+blocks release acceptance. The focused case and the full 15-test theme suite
+passed locally. CI can now diagnose ThemeRenderingTests on the hosted runner.
+An isolated pass does not replace the required complete inventory.
