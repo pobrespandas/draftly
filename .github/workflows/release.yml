@@ -2,8 +2,6 @@ name: Release candidate
 
 # This workflow cannot publish. Release signing and publishing need acceptance.
 on:
-  push:
-    tags: ['v*']
   workflow_dispatch:
     inputs:
       tag:
@@ -23,11 +21,12 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+  RELEASE_TAG: ${{ inputs.tag }}
   RESUME_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.resume_run_id || '' }}
 
 jobs:
   rehearsal:
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' }}
     runs-on: macos-26
     timeout-minutes: 60
     steps:

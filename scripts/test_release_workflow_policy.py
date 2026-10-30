@@ -30,6 +30,17 @@ class ReleaseWorkflowPolicyTests(unittest.TestCase):
         self.assertEqual(candidate, "${{ vars.DRAFTLY_RELEASE_SIGNING_ENABLED == 'true' || (github.event_name == 'workflow_dispatch' && inputs.resume_run_id != '') }}")
         self.assertEqual(stage, "${{ vars.DRAFTLY_RELEASE_STAGING_ENABLED == 'true' }}")
 
+    def test_only_main_dispatch_can_reach_release_credentials(self):
+        configured = jobs()
+        self.assertEqual(configured['rehearsal']['if'], "${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' }}")
+        source = (ROOT / '.github/workflows/release.yml').read_text()
+        self.assertNotIn('  push:', source)
+        dispatcher = (ROOT / '.github/workflows/release-tag.yml').read_text()
+        self.assertNotIn('secrets.', dispatcher)
+        self.assertNotIn('actions/checkout', dispatcher)
+        self.assertIn('gh workflow run release.yml --ref main', dispatcher)
+        self.assertIn('actions: write', dispatcher)
+
     def test_firebase_auth_uses_the_website_project(self):
         configured = jobs()
         auth = next(step for step in configured['stage']['steps'] if step.get('id') == 'firebase_auth')

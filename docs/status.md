@@ -3971,3 +3971,12 @@ live version. Recovery observes a completed promotion without repeating the
 POST. Unknown outcomes, changed site data, lost locks and public feed mismatches
 stop acceptance. Nine focused tests and all 249 Python tests passed. This does
 not establish a coordinated production writer, real promotion or publication.
+
+Hosted full run 41002350484 passed after the isolated theme diagnostic. The
+previous post-merge interruption remains unexplained; no retry or deadline
+change was added to the test runner. Main now requires a PR and current macOS
+CI, including for administrators. The release environment permits main only.
+A tag dispatcher has no release secrets and invokes the trusted main workflow;
+rehearsal rejects other source branches. No independent review approval is
+required in this single-maintainer setup. Environment rejection is not yet
+verified by a real negative run. Release jobs remain disabled.
