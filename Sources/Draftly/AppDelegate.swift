@@ -114,7 +114,7 @@ final class ActionTerminationCoordinator {
         if waiting { return .terminateLater }
         guard busy() else { return flush() ? .terminateNow : .terminateCancel }
         waiting = true
-        observation = changes.receive(on: RunLoop.main).sink { [weak self] _ in
+        observation = changes.receive(on: DispatchQueue.main).sink { [weak self] _ in
             guard let self, self.waiting, !busy() else { return }
             self.waiting = false
             self.observation = nil

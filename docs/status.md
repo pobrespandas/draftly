@@ -4031,3 +4031,26 @@ The guard now accepts only the first main dispatch. It rejects push events,
 work branches and reruns. Recovery must reuse the original candidate artifact.
 The publication flags and environment restrictions are unchanged.
 
+
+### Update termination regression — 30 October 2026
+
+- Reproduced a native Sparkle hang after an active action finished. The default
+  RunLoop mode held the deferred termination reply.
+- DispatchQueue.main now delivers that reply. A headless non-default-mode test
+  failed before the fix and passed after it. Save errors and duplicate replies
+  retain their prior behavior.
+- Manual QA passed after the fix: wait for a ninety-second action, replace and
+  relaunch two different executables, preserve Unicode text, note identity and
+  successful action history. This was a signed loopback QA regression check.
+- Full Swift results matched inventory: Core 759 and application 935 cases.
+- Public notarized update, main-identity installation and CloudKit cross-client
+  acceptance remain pending. The usual app and its data were not changed.
+
+### Production native transport follow-up — 30 October 2026
+
+- Normal application launch enabled background scheduling for the signed probe.
+- Core Data imported the neutral note into a fresh store. A separate cold-reader
+  launch imported the later edit with the same note identity.
+- Live return checks in the two-store process timed out. Live reception,
+  Mac-to-VM coverage and migration of existing data remain pending.
+- Temporary probes are stopped and unregistered. The usual app was not opened.
