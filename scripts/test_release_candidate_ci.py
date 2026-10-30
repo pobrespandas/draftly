@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import plistlib
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -19,6 +20,7 @@ class ReleaseCandidateCITests(unittest.TestCase):
         self.tools = self.root / "tools"
         self.tools.mkdir()
         (self.root / "scripts").mkdir()
+        shutil.copyfile(Path(__file__).with_name("release-toolchain.py"), self.root / "scripts/release-toolchain.py")
         self.runner = self.root / "runner"
         self.runner.mkdir()
         self.profiles = self.root / "profiles"
@@ -33,8 +35,12 @@ class ReleaseCandidateCITests(unittest.TestCase):
                     "if sys.argv[1] == 'cms': sys.stdout.buffer.write(pathlib.Path(os.environ['TEST_PROFILE_PLIST']).read_bytes())\n")
         xcrun = (f"#!{sys.executable}\n"
                  "import json, os, sys\n"
-                 "with open(os.environ['TEST_CALL_LOG'], 'a') as out: out.write(json.dumps(['xcrun', *sys.argv[1:3]]) + '\\n')\n")
-        for name, body in (("security", security), ("xcrun", xcrun)):
+                 "with open(os.environ['TEST_CALL_LOG'], 'a') as out: out.write(json.dumps(['xcrun', *sys.argv[1:3]]) + '\\n')\n"
+                 "if sys.argv[1:] == ['--sdk', 'macosx', '--show-sdk-version']: print(os.environ.get('TEST_CI_SDK_VERSION', '27.0'))\n")
+        swiftc = (f"#!{sys.executable}\n"
+                  "import os\n"
+                  "print('Apple Swift version ' + os.environ.get('TEST_CI_SWIFT_VERSION', '6.4'))\n")
+        for name, body in (("security", security), ("xcrun", xcrun), ("swiftc", swiftc)):
             path = self.tools / name
             path.write_text(body)
             path.chmod(0o755)
@@ -88,11 +94,29 @@ class ReleaseCandidateCITests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(self.calls(), [])
 
+    def test_missing_team_issuer_is_rejected_before_keychain_setup(self):
+        result = self.run_script(APPLE_NOTARY_ISSUER_ID="")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("APPLE_NOTARY_ISSUER_ID", result.stderr)
+        self.assertEqual(self.calls(), [])
+
     def test_invalid_public_key_is_rejected_before_keychain_setup(self):
         result = self.run_script(DRAFTLY_SPARKLE_PUBLIC_KEY="invalid")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("public key", result.stderr)
-        self.assertEqual(self.calls(), [])
+        self.assertFalse(any(call[0] == 'security' for call in self.calls()))
+
+    def test_old_sdk_is_rejected_before_keychain_setup(self):
+        result = self.run_script(TEST_CI_SDK_VERSION="26.6")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("macOS 27 SDK", result.stderr)
+        self.assertFalse(any(call[0] == "security" for call in self.calls()))
+
+    def test_old_compiler_is_rejected_before_keychain_setup(self):
+        result = self.run_script(TEST_CI_SWIFT_VERSION="6.3")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Swift 6.4", result.stderr)
+        self.assertFalse(any(call[0] == "security" for call in self.calls()))
 
     def test_existing_profile_is_preserved(self):
         existing = self.profiles / (self.uuid + ".provisionprofile")
@@ -100,6 +124,24 @@ class ReleaseCandidateCITests(unittest.TestCase):
         result = self.run_script()
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(existing.read_bytes(), b"keep")
+        self.assertFalse(any(call[0] == "package" for call in self.calls()))
+        self.assertIn(["security", "delete-keychain"], self.calls())
+
+    def test_failed_profile_copy_removes_partial_destination(self):
+        custom = self.root / "injected"
+        custom.mkdir()
+        (custom / "sitecustomize.py").write_text(
+            "import shutil\n"
+            "def fail_copy(source, target, length=0):\n"
+            "    target.write(b'partial')\n"
+            "    raise OSError('fixture copy failure')\n"
+            "shutil.copyfileobj = fail_copy\n"
+        )
+        result = self.run_script(PYTHONPATH=str(custom))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("fixture copy failure", result.stderr)
+        self.assertFalse((self.profiles / (self.uuid + ".provisionprofile")).exists())
+        self.assertEqual(list(self.runner.iterdir()), [])
         self.assertFalse(any(call[0] == "package" for call in self.calls()))
         self.assertIn(["security", "delete-keychain"], self.calls())
 

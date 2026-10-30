@@ -64,6 +64,8 @@ jobs:
         run: swift package resolve
       - name: Run Python checks
         run: python -m unittest discover -s scripts -p 'test_*.py'
+      - name: Check website release availability
+        run: node --test website/release.test.mjs
       - name: Check Actions matrix structure
         run: python scripts/audit-action-api.py --check
       - name: Run Swift tests and verify inventory
@@ -84,7 +86,8 @@ jobs:
     name: Sign and notarize a candidate
     needs: rehearsal
     if: ${{ vars.DRAFTLY_RELEASE_SIGNING_ENABLED == 'true' || (github.event_name == 'workflow_dispatch' && inputs.resume_run_id != '') }}
-    runs-on: macos-26
+    environment: release
+    runs-on: xcode-27
     timeout-minutes: 60
     permissions:
       contents: read
@@ -162,6 +165,7 @@ jobs:
     name: Stage update feed and GitHub draft
     needs: candidate
     if: ${{ vars.DRAFTLY_RELEASE_STAGING_ENABLED == 'true' }}
+    environment: release
     runs-on: macos-26
     timeout-minutes: 30
     permissions:
@@ -220,10 +224,13 @@ jobs:
         env:
           DRAFTLY_FIREBASE_ACCESS_TOKEN: ${{ steps.firebase_auth.outputs.access_token }}
           DRAFTLY_SPARKLE_PUBLIC_KEY: ${{ vars.DRAFTLY_SPARKLE_PUBLIC_KEY }}
+          DRAFTLY_SITE_BASE_COMMIT: ${{ vars.DRAFTLY_SITE_BASE_COMMIT }}
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
+          test -n "$DRAFTLY_SITE_BASE_COMMIT"
+          site_target=$(git rev-parse HEAD)
           stage_dir=".build/release-staging/$RELEASE_TAG"
           journal="$stage_dir/firebase-journal.json"
           receipt="$RUNNER_TEMP/firebase-receipt.json"
@@ -232,13 +239,15 @@ jobs:
             base=$(python -c 'import json,sys; print(json.load(open(sys.argv[1]))["baseVersion"])' "$journal")
             python scripts/firebase-stage-appcast.py --appcast "$stage_dir/appcast.xml" \
               --public-key "$DRAFTLY_SPARKLE_PUBLIC_KEY" --expected-version "$base" \
-              --journal "$journal" --resume > "$receipt"
+              --journal "$journal" --site-base "$DRAFTLY_SITE_BASE_COMMIT" \
+              --site-target "$site_target" --resume > "$receipt"
           else
             python scripts/firebase-stage-appcast.py --inspect > "$RUNNER_TEMP/firebase-live.json"
             base=$(python -c 'import json,sys; print(json.load(open(sys.argv[1]))["liveVersion"])' "$RUNNER_TEMP/firebase-live.json")
             python scripts/firebase-stage-appcast.py --appcast "$stage_dir/appcast.xml" \
               --public-key "$DRAFTLY_SPARKLE_PUBLIC_KEY" --expected-version "$base" \
-              --journal "$journal" > "$receipt"
+              --journal "$journal" --site-base "$DRAFTLY_SITE_BASE_COMMIT" \
+              --site-target "$site_target" > "$receipt"
           fi
           mv "$receipt" "$stage_dir/firebase-receipt.json"
       - name: Preserve the staging checkpoint

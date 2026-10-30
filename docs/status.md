@@ -3254,7 +3254,8 @@ structural check passed. Real Developer ID artifacts remain unverified.
 The release workflow now accepts a prior run ID for candidate recovery. It
 downloads and verifies the original artifact. A rerun cannot sign a replacement
 candidate. Workflow YAML parsing passed; GitHub-hosted recovery remains
-unverified. Release tags still need protection from replacement.
+unverified. The active GitHub ruleset `Protect release version tags` now
+prevents updates and deletion of `v*` tags. It does not restrict tag creation.
 
 ### CI release staging — 29 October 2026
 
@@ -3264,6 +3265,11 @@ promote. Workflow YAML and shell syntax, all 167 Python tests, and the matrix
 structural check passed. GitHub-hosted execution, credentials, real staging,
 and site writer coordination remain unverified.
 
+Firebase documents a broad site update permission. A separate staging-only
+permission has not been established. Do not grant the CI identity write access
+or enable the staging job until the effective permissions and a safe boundary
+between staging and live promotion have been verified.
+
 ### Release branch integration — 29 October 2026
 
 The release branch incorporates the action catalog and tests from `main`
@@ -3271,6 +3277,668 @@ without rewriting either history. The complete Swift inventory passed: 759
 Core and 925 application tests. All 167 Python tests, the matrix structural
 check, and the local app build passed. This does not publish the site or prove
 Developer ID signing, Sparkle updates, or CloudKit Production.
+
+A later read-only Hosting comparison found 26 live files. All 24 files in the
+merged repository site matched their public bytes. The remaining two live
+paths are Firebase initialization resources. The site had no appcast. This
+does not authorize an uncoordinated deploy or prove future feed preservation.
+
+The integrated commit was fast-forwarded to remote `main`. The first hosted CI
+run failed to compile macOS 27 SDK APIs with Xcode 26.6. The separate local `main` checkout
+has uncommitted changes and was not modified; it is behind the remote branch.
+The available signing identities are Apple Development identities. A Developer
+ID identity and hosted release credentials have not been established.
+
+The macOS 27-only model and menu APIs are now conditional on the compiler that
+provides them. Xcode 27.1 passed the model tests and local app build. Validation
+with the hosted Xcode 26.6 runner is pending. Builds made with the older SDK do
+not expose the Private Cloud Compute mode.
+
+The CI signing setup now rejects SDKs before macOS 27 and Swift before 6.4.
+Seven focused tests used simulated tools and passed. This prevents an older
+runner from signing a public build without the macOS 27 model integration.
+The candidate job selects GitHub's `xcode-27` preview image. Hosted diagnostic
+run 40932376170 passed the SDK and compiler gate with Xcode 27.1 and Swift 6.4.
+It used no signing credentials and did not publish. A full CI run, real signed
+candidate, and notarization remain required.
+The manual candidate packager and CI signing setup now share this check.
+All 171 Python tests and the matrix structural check passed with simulated
+signing tools. A real signed candidate remains unverified.
+The toolchain subprocesses do not inherit the configured release credentials.
+Focused tests cover this environment boundary with simulated secrets.
+The manual packager also removes those credentials from its child processes.
+Focused tests cover the handoff to the draft verifier and 174 Python tests
+passed before the final verifier-specific case was added.
+
+Hosted CI run 40928632019 compiled with Xcode 26.6, then failed Core tests
+under concurrent load. Several waits expired before their work started. The
+test runner now executes Core serially, without retries or deadline changes.
+The complete local serial inventory passed: 759 Core and 925 app tests. Hosted
+validation of this change is pending.
+
+Hosted serial CI run 40929687887 passed Core but failed the app stage. The
+macOS 26 runner reported panel geometry failures and left an incomplete Swift
+Testing XML report. The test runner rejects this report and now identifies the
+file and log to inspect. These failures need investigation on macOS 26; they
+are not waived by the passing macOS 27 local suite.
+
+The CI workflow can run either affected suite as a manual diagnostic. It still
+requires the complete inventory for normal CI and release acceptance. Both
+diagnostic modes passed locally on macOS 27; macOS 26 results remain pending.
+
+The isolated macOS 26 panel diagnostic reproduced the geometry failures. The
+affected assertions now report the window, split, panel and divider dimensions
+to distinguish platform layout behavior from fixture setup. The ten panel
+tests passed locally on macOS 27. The macOS 26 dimensions and the separate
+typewriter diagnostic remain pending.
+
+Hosted run 40931935413 passed the isolated typewriter suite on Xcode 26.6.
+The incomplete report in the full app run remains unexplained; the isolated
+pass does not establish that all app tests complete together.
+The workflow also supports a complete manual run on the hosted `xcode-27`
+image. It has a separate diagnostic check name and does not replace the
+required macOS 26 CI run.
+
+Hosted full run 40933758176 on macOS 27 passed 759 Core tests and ran all 925
+app tests. One panel test reported two width differences of exactly one point.
+Those assertions now accept one point inclusively, within the agreed three-point
+visual tolerance and consistent with the other panel checks. The ten focused
+panel tests passed locally. A new hosted full run is required. The larger
+macOS 26 fixture and panel geometry differences remain unresolved.
+
+Hosted FullOn27 run 40934676660 then passed all 759 Core and 925 app test
+methods, 175 Python tests, the matrix structural check, and the local app
+build and metadata checks. It does not replace macOS 26 CI, signed release,
+or update acceptance.
+
+Hosted run 40933403504 showed a 240-point native sidebar container with a
+232-point content view on macOS 26. The 850-point fixture had resized only the
+controller view, while its window content remained 1037 points wide. The test
+now resizes the window and keeps the existing width assertions. Ten focused
+panel tests passed locally; hosted validation and the sidebar geometry contract
+remain pending.
+
+Hosted run 40935152594 showed that resizing the fixture window restored the
+requested height, but the 850-point width expanded to 1032 points. The native
+sidebar container and its inner content continued to differ by eight points.
+The cause of the enforced width and the app's macOS 26 behavior are not yet
+established. These failures remain open.
+
+Hosted Display26 run 40935851588 listed a 1920-by-1080 display mode. A separate
+diagnostic can select it for the disposable GitHub-hosted session before panel
+tests. The script rejects non-hosted environments. Its hosted result and the
+macOS 26 panel behavior remain pending.
+
+### Developer ID certificate — 29 October 2026
+
+The user approved creation of a signing key and certificate request. Apple
+issued a Developer ID Application certificate for team `NM92LU2KKV` and the
+login Keychain reports a valid matching signing identity. The user approved a Developer ID profile for `com.pobrespandas.draftly`. The
+profile includes the existing iCloud container and Production entitlements.
+An isolated archive found that a global signing identity conflicts with a Swift
+package resource target. The release packager now scopes its identity to the
+app. A second isolated archive succeeded with Developer ID. Strict signature
+verification confirmed the expected app, team, container, and Production
+entitlements. The local build and 14 focused packager tests passed. No release
+was notarized or published.
+CloudKit Production and update acceptance remain separate.
+
+Hosted LargeDisplayPanels26 run 40936190973 used a 1920-by-1080 display but
+the panel suite still failed, including eight-point sidebar differences. The
+larger display reduced the narrow-window discrepancy, but does not resolve the
+macOS 26 failures. This diagnostic does not establish visual parity.
+
+The scoped signing change also passed a separate Release build with the
+existing Development profile and an explicit team. Strict signature checks
+confirmed the existing app identity, team, iCloud container, and Development
+entitlements. The first invocation without a configured team failed before
+building; no profile was changed. All 175 Python tests passed in an isolated
+environment with the CI dependencies. A system Python run lacked Pillow and
+cryptography and did not complete those suites.
+
+Apple's API key documentation states that individual API keys cannot use
+notarytool. The CI candidate setup now requires the team key issuer before it
+touches the temporary Keychain. The missing-issuer test first reproduced the
+incorrect acceptance, then passed with the guard. All 176 Python tests passed.
+The Apple account does not yet have App Store Connect API access. The user was
+asked to review the access request and its terms. No API key was created.
+
+Hosted FullOn27 run 40938169083 passed the Core suite but failed one case of
+`NativeProcessExecutorTests.processExitChecksDeadlineBeforeQueuedTimeout` in
+the app suite. The earlier full run passed. The recorded assertion does not
+include the thrown error, so its cause is unknown. The test now reports the
+error without changing deadlines or retrying. Its focused local run passed.
+This does not establish a full CI pass or explain the hosted failure.
+
+A real isolated Developer ID archive was submitted to Apple. The first
+submission was invalid because Sparkle's inner helpers retained ad hoc
+signatures. The release packager now signs each helper, then the framework and
+app, with Developer ID and secure timestamps. A copied archive signed with the
+same procedure was accepted by Apple. Stapling, ticket validation, strict deep
+signature verification, and Gatekeeper assessment passed. This archive had
+updates disabled. It is not a published candidate or an update acceptance.
+
+An isolated clone at commit 167334b ran the complete release packager with a
+local-only `v0.1.0` tag and the new Sparkle public key. The packager produced a
+Developer ID signed, notarized, stapled ZIP with updates enabled and a READY
+marker. Independent candidate verification passed, including metadata, checksum,
+code signature and Gatekeeper. The candidate was not installed or published.
+The Sparkle private key does not yet have a verified off-Mac recovery copy.
+
+The notarized rehearsal candidate also produced a local signed appcast with the
+new Sparkle key. The preparation checked the archive signature and verified the
+signed feed with Sparkle's tool. The feed points to a future release URL and
+was not published. This does not test a download or an installed update.
+
+Hosted FullOn27 run 40939930956 reproduced the native-process deadline test
+failure. The enhanced diagnostic reported `The process group could not be
+isolated` for the 9-second case; the deadline itself was not exceeded in the
+fixture. The exact group and process state at failure remain unknown. Do not
+claim that the process had already exited or change the test deadline. All 925
+app methods ran; this is a failed full CI run.
+
+A separate manual Sparkle QA used two Developer ID-signed executables with
+verified different unsigned bytes, a separate QA bundle ID, test key, local HTTP
+feed, and temporary library. The 0.1.0 app displayed the 0.2.0 update and notes.
+After confirmation, Sparkle downloaded and installed it, then relaunched the
+updated executable. A neutral draft remained in the temporary library and its
+full text reopened. QA was closed and its LaunchServices registration removed.
+This fixture changes the feed and bundle checks for local QA and is not
+notarized. It does not establish public HTTPS, production updates, settings
+preservation, failure paths, or CloudKit migration.
+
+The separate local updater QA also covered three negative paths. Postponing the
+0.2.0 update left the 0.1.0 app and neutral draft in place. Altering one byte of
+the ZIP after signing produced Sparkle's invalid-signature error and left the
+same version and draft. Stopping the loopback server produced a retrieval error
+without replacing the app. QA closed normally and its registration was removed.
+The last case tests an unavailable server, not the Mac's full offline state.
+The QA build and feed differ from production as described above.
+
+A further isolated QA update checked one existing editor preference. The QA
+preferences domain was set to a 23-point default font before updating from
+0.1.0 to 0.2.0. After restart, the stored value remained 23 and Editor Settings
+showed 23 pt. The neutral draft remained in the temporary library. QA exited
+normally, the local server stopped, and its app registration was removed. This
+checks one preference, not all settings or the production installation.
+
+A throttled loopback server allowed cancellation during the QA ZIP download.
+The 0.1.0 app stayed signed and kept the neutral draft. A later manual check
+successfully downloaded and installed 0.2.0; the draft and the 23-point QA
+preference remained. QA exited and its registration was removed. This covers
+user cancellation during transfer and subsequent recovery, not a network drop
+or interruption while replacing the production app.
+
+The native-process deadline test now records the process ID, observed group ID,
+and errno at an isolation failure. The default execution behavior and timeout
+are unchanged. The focused local process suites and local app build passed.
+Hosted validation is needed to identify the observed failure; this diagnostic
+does not fix it or make CI green.
+
+Hosted FullOn27 run 40942498032 reproduced the native-process test failure.
+The diagnostic observed `getpgid` returning -1 with errno 3 (ESRCH) for the
+process at the isolation check. This identifies the observation, not its cause
+or a safe fix. The run failed; release CI is not accepted.
+
+A separate HTTPS updater QA used a Firebase Hosting preview channel, two
+Developer ID-signed QA executables, a QA signing key and an isolated library.
+The 0.1.0 app found 0.2.0 and displayed its notes. After confirmation, it
+downloaded the signed archive over HTTPS, installed it and restarted. The
+installed bundle reported 0.2.0 and its executable matched the second build.
+A neutral draft reopened with its full text. The QA app closed and its specific
+LaunchServices registration was removed. The QA builds were not notarized and
+used a separate identity and feed. This is not acceptance of the production
+update, CI publication, CloudKit migration or all preferences. The preview
+channel expires on 30 October 2026. The live site version and files were
+unchanged after the preview deployment.
+
+A local diagnostic launched `/usr/bin/true` 1,000 times with a 1 ms delay
+before querying the process group. All 1,000 queries returned ESRCH; in two
+cases Foundation still reported `isRunning` as true. This demonstrates that
+the two observations can disagree on this Mac. It does not prove that no
+descendant remains or establish a safe cleanup policy. The hosted failure
+remains unresolved; do not treat ESRCH alone as successful execution.
+
+The release history check now rejects HTTP redirects before following them.
+Its redirect and 404 tests passed, as did all 178 Python tests in the isolated
+CI dependency environment. The live history check passed without publishing.
+The system Python run could not import the required cryptography and Pillow
+dependencies; it is not a full test result. This change does not enable release
+publishing or resolve the hosted Swift failure.
+
+A local process experiment confirmed that a child can remain in the original
+process group after its parent is no longer queryable with `getpgid`. The group
+remained queryable until the neutral child was stopped. An ESRCH result for the
+parent alone cannot establish that cleanup is complete. The hosted CI failure
+remains open.
+
+The appcast redirect check also passed against a local HTTP server: the server
+recorded the initial request and no request to the redirect target. All 179
+Python tests passed in the isolated CI dependency environment. No production
+site or release was changed.
+
+Native process execution now checks the original process group when the parent
+is already gone at launch inspection. A surviving group remains available for
+timeout or cancellation cleanup. When both parent and group are absent, the
+executor waits for Foundation's termination delivery instead of treating its
+stale running state as an isolation failure. Other probe failures remain errors.
+Tests cover the missing group, deadline, cancellation and a surviving child
+that ignores SIGTERM. The local build and complete Swift inventory passed: 759
+Core and 928 application tests. Hosted CI has not yet validated this change.
+
+Hosted FullOn27 run 40944659080 completed successfully on commit bd7c313.
+Python, matrix structure, the complete Swift inventory, the local app build
+and package identity checks passed. This is one successful hosted run after
+the process fix; the independent macOS 26 geometry failures and release
+publication requirements remain open. GitHub reported that checkout v4 and
+setup-python v5 target deprecated Node.js 20 actions and were run on Node.js 24.
+
+The macOS 26 panel test now reports window frames before and after attaching
+the controller, calling its appearance callback, settling layout, and requesting a resize. It also
+reports active controller constraints and toolbar item identities. The test
+keeps the existing geometry assertions. The focused local suite and local
+build passed. Hosted diagnosis is needed to interpret the earlier expansion.
+
+Hosted LargeDisplayPanels26 run 40946127522 failed the existing panel tests.
+At the 850-point fixture, the window was 850 points before the controller was
+attached and became 1030 points wide and 32 points high immediately after
+attachment, before the appearance callback installed the toolbar. The split
+view still had the previously observed sidebar inset. The cause is not yet
+proven. A local experiment removing initial width constraints introduced six
+panel assertion failures; that experiment was reverted. Do not loosen the
+geometry assertions or attribute the expansion to the toolbar.
+
+Two further local panel experiments were not retained. Lowering the initial
+constraint priority caused six assertion failures. Deferring activation until
+the appearance callback passed the existing local suite, but attachment changed
+window widths even on macOS 27, so a proposed attachment-width assertion was
+invalid. The existing tests do not prove that deferred activation fixes macOS 26
+or preserves visible transitions. Production source and assertions were
+restored. The hosted geometry issue remains open.
+
+A headless panel diagnostic now compares the existing initial constraints with
+the same constraints temporarily disabled during controller attachment. On
+macOS 27 the attached window widths were 1022 and 822 points respectively;
+both scenarios settled at the requested 850-point content width. All 11 local
+panel tests and the local build passed. The test does not change production
+layout or establish the macOS 26 result.
+
+Hosted LargeDisplayPanels26 run 40947635402 failed the existing panel
+assertions. The temporary comparison measured an attached window width of
+1030 points with initial constraints active and 830 with them deferred. Both
+settled at a 1032-point content width after the 850-point resize request.
+Deferring activation only during attachment does not resolve the hosted
+behavior. The sidebar inset and other geometry failures remain open.
+
+The offscreen panel diagnostic now also keeps the initial width constraints
+inactive until after layout. All three scenarios settled at 850 points on
+macOS 27. The focused local suite and build passed. The macOS 26 result is
+needed before deciding whether those constraints cause the larger width.
+
+The CI signing setup now removes a newly created partial profile if the copy
+fails. A pre-existing profile is still rejected and preserved. A regression
+test reproduced the leftover file before the fix. The signing setup tests and
+all 180 Python tests passed with injected tools and temporary files. This does
+not cover a runner killed without cleanup or enable release signing.
+
+Hosted LargeDisplayPanels26 run 40948762553 compared three initial-constraint
+scenarios. Active constraints produced a 1030-point attached frame; deferred
+and inactive constraints produced 830 points. All three still settled at a
+1032-point content width after requesting 850 points. The initial constraints
+alone do not explain the final width. The suite failed the same ten geometry
+assertions. A local experiment that removed those constraints and applied panel
+positions later did not preserve all existing panel assertions and was reverted.
+
+The offscreen panel diagnostic now also measures layout without a toolbar and
+without the appearance callback. Both cases settled at 850 points on macOS 27.
+The focused suite and local build passed. The macOS 26 comparison remains
+pending; this does not establish the cause of its geometry failures.
+
+Firebase staging and GitHub publication verification now use the same gzip
+writer with an empty filename and zero timestamp. Python 3.9, 3.11 and 3.13
+produced the same bytes for the neutral sample on this Mac; the former
+`gzip.compress` generated a different header in Python 3.11. Tests cover the
+header and a staged feed checked by the publication verifier. All 182 Python
+tests passed. This does not guarantee identical compressed data with different
+zlib versions. Preserving the original compressed payload for recovery remains
+pending. Nothing was published.
+
+Firebase staging now saves its original compressed appcast next to the
+journal. Recovery and GitHub publication verify the saved hash and decoded
+feed rather than recompressing it. Missing, changed or unrelated payloads stop
+the operation; an existing payload is not overwritten. Tests cover recovery
+without recompression and publication refusal. The staging command requires a journal. All 189 Python tests passed
+with fake services. Old checkpoints without the payload need inspection and
+restaging. This does not enable publication or prove live recovery.
+
+On 29 October 2026, a real Firebase QA used a neutral feed and a separate QA
+signing key. Staging finalized version `48a9bc23eb75e052` without promoting
+it. Recovery reused that version and its saved gzip while recompression was
+blocked in the test. The publication site verifier accepted the staged
+receipt. Before and after snapshots matched: live version
+`1b4a91b81d597449`, 26 files and the same configuration. The QA version and
+checkpoint remain available for inspection. The test used local Google
+credentials, not GitHub Workload Identity Federation. It did not publish a
+GitHub release or promote a site, and it does not validate production keys or
+an interrupted network request.
+
+Hosted LargeDisplayPanels26 run 40949939848 reproduced ten panel issues. With
+initial constraints inactive and no toolbar, the content still expanded to
+1032 points. Without the controller appearance callback it stayed at 850
+points. This isolates a difference in the appearance/layout path, but does not
+identify the exact operation or resolve the sidebar inset. No production layout
+change was made.
+
+The website source can now show a download, minimum macOS version, and release
+notes from the live appcast. It keeps the development message when the feed is
+missing or invalid and accepts only the expected GitHub asset URL. This page
+checks feed metadata, not its signature; the release pipeline must still verify
+the signed feed and public asset before promotion. Three Node tests, all 189
+Python tests, and the matrix check passed. A local browser check showed both a
+neutral release fixture and the missing-feed fallback. The site was not
+deployed. A coordinated site deployment is still required.
+
+A read-only website overlay inspection compares committed base and target
+files against the live Firebase version. It reports independent edits as
+conflicts and checks that the live snapshot did not change during inspection.
+Against the real site, base a955f00 and target 7ece377 produced two changes:
+`/index.html` and `/release.mjs`. No Firebase write was made. Ten focused
+planner tests, all 199 Python tests, three website tests, and the matrix check
+passed. This check does not lock the site and is not connected to staging or
+promotion. Shared writer coordination remains required.
+
+Firebase staging can now combine the signed feed and checked website changes
+in one finalized version. The website comparison rejects independent changes,
+preserves unrelated live files, and records compressed payloads for recovery.
+The GitHub publication check verifies those payloads against the candidate's
+committed website source. Missing website checkpoints stop publication. The
+staging workflow requires the last deployed site commit as configuration.
+All 209 Python tests, three Node tests, and the matrix check passed.
+
+A real Firebase rehearsal staged a neutral QA-signed feed with `/index.html`
+and `/release.mjs` as version `b776fdaeffe7f15a`. Recovery reused the saved
+payloads, the site verifier passed, and before and after live snapshots
+matched version `1b4a91b81d597449`, 26 files, and configuration. The staging
+CLI also recovered that version. This used local Google credentials and QA
+keys. It did not publish GitHub assets or promote Firebase. Shared writer
+coordination, protected credentials, production validation, and CI remain
+required before enabling publication.
+
+The release writer lock component uses Cloud Storage generation preconditions
+and records the owner and scope before each remote change. Fake-service tests
+cover competing writers, lost responses, scope mismatches, and request
+preconditions. It is not connected to the workflow or enforced for other
+Firebase writers. A shared coordinator and access controls remain required.
+Hosted Toolchain27 run 40952773179 passed Python, website, matrix, and release
+toolchain checks. It did not run the Swift suites or a production release.
+
+The writer lock now syncs its journal file and directory before a remote
+change. Tests exercise file and directory sync failures during acquisition
+and release. These tests do not establish recovery from a lost runner or
+enforce coordination with other site writers.
+
+Project IAM inspection on 29 October found a human project owner and Firebase
+service agents. The owner can publish without the lock. A Cloud Storage bucket
+list returned no buckets for the project. Inherited effective permissions were
+not audited. No IAM or storage resources were changed.
+
+The offscreen panel diagnostic now reports five initial visibility
+configurations. The focused suite and local build passed on macOS 27. A hosted
+macOS 26 run is required to compare the configurations and identify which
+layout path causes the expansion. This diagnostic does not change app behavior.
+
+Hosted LargeDisplayPanels26 run 40953767270 reproduced ten existing issues.
+At a requested 850-point width, the offscreen configurations with fewer than
+four visible panels stayed at 850 points. With filters, draft list, editor and
+Actions visible, content expanded to 1032 points. The sidebar measured eight
+points wider than the requested 240 in the visible-filter configurations. This
+narrows the reproduction but does not establish the cause or a safe fix.
+
+The user confirmed that the Sparkle private seed was saved in Apple Passwords.
+Recovery from another device remains unverified. The Developer ID private key
+and notarization API key still need verified recovery copies.
+
+An offscreen diagnostic now measures initial divider operations separately.
+The focused suite passed on macOS 27. A hosted macOS 26 run is still required;
+this diagnostic does not modify the app or establish a fix.
+
+Hosted LargeDisplayPanels26 run 40954905141 reproduced ten existing panel
+issues. A separate offscreen diagnostic applied zero through three initial
+separator operations without the controller appearance callback; all retained
+850-point content. The full appearance path still expands with four panels.
+This rules out those calls alone in that fixture, not their interaction with
+appearance, toolbar, or asynchronous layout. No production fix was made.
+
+The user confirmed that the Sparkle entry appears in Apple Passwords on
+another device. The entry contents have not been checked against the release
+public key. Full recovery is still pending.
+
+A local recovery check compares a hidden Sparkle seed with its public key.
+It refuses nonterminal input and an echo-enabled fallback. Four focused tests
+and all 228 Python tests passed with disposable keys. The real recovered seed
+has not been entered or verified by this check.
+
+An offscreen test compares panel restoration with and without temporary width
+constraints. Both cases kept 850-point content in the local macOS 27 run. The
+focused suite passed. Hosted macOS 26 comparison remains required.
+
+The user reported that the seed recovered from the Apple Passwords entry did
+not match the release public key. A local check confirmed that the existing
+local seed does match that public key. The external copy is not accepted as a
+recovery backup. Do not replace or discard either copy before investigating.
+
+The user authorized linking the pobrespandas billing account to
+pobrespandas-home for Secret Manager. Google rejected the link because the
+account's project quota was exceeded; five projects were already linked. No
+project was unlinked, no secret was created, and no key was uploaded. The
+choice between a quota increase and another recovery destination is pending.
+
+The user confirmed that the seed recovered from Google Password Manager passed
+its public-key check on this Mac. Recovery on a separate device and Google
+account synchronization remain unverified. The clipboard was cleared.
+
+Hosted LargeDisplayPanels26 run 40956255642 reproduced ten existing panel
+issues. In the isolated hold-width diagnostic, the window stayed at 850 points
+without temporary constraints and expanded to 857 with them. This supports an
+interaction with those constraints on macOS 26; it does not establish that they
+explain the full 1032-point expansion or the remaining failures.
+
+The macOS 26 failure log shows a sidebar container eight points wider than
+its hosted content. The offscreen hold-width diagnostic now compares holding
+the container and the content. The focused suite passed locally; the hosted
+comparison is pending. No production layout change was made.
+
+The user confirmed that the Google Password Manager entry is visible on a
+second device. The recovered seed matched the public key on the Mac. The seed
+from the second device has not been checked independently.
+
+Hosted diagnostic 40957070871 showed that the temporary width constraints
+expanded the offscreen macOS 26 window from 850 to 857 points when applied to
+hosted content. Constraints on the split containers retained 850 points. The
+restoration path now holds the containers. The focused suite and local build
+passed on macOS 27. The complete macOS 26 behavior and CI still need validation.
+
+Hosted run 40957924439 tested container constraints in the restoration path.
+The 850-point fit test passed, but the suite had twelve issues, including new
+failures in compressed divider restoration. The production adjustment was
+reverted. The focused suite passed locally after the revert. macOS 26 CI stays
+unresolved; the diagnostic comparison remains for investigation.
+
+The release lock now has a read-only ownership check for a future coordinator.
+Tests reject missing, replaced, released, and wrong-scope locks. All 230 Python
+tests passed with fake stores. The check is not atomic with a later Hosting
+write, and publication remains disabled until all writers are coordinated.
+
+The user confirmed that the seed recovered from Google Password Manager on a
+second device also matches the release public key. The clipboard was cleared on
+the Mac. Developer ID and notarization key recovery remain separate checks.
+
+The user saved a base64-encoded copy of the Apple notarization key in Google
+Password Manager. The first recovery check did not match; a second copy from
+that named entry matched the local file byte for byte. The Mac clipboard was
+cleared. Recovery from another device is still pending.
+
+Hosted FullOn27 run 40959080405 passed the complete Swift inventory, Python,
+website and matrix checks, local app build and package identity checks at commit
+6976e7d. This does not replace macOS 26 CI or validate publication.
+
+A local Developer ID backup verifier checks an encrypted PKCS#12 file against
+an independently supplied public certificate and team. It requires hidden
+terminal password entry and checks that the private key matches. Five focused
+and 235 total Python tests passed with temporary test identities. No real backup
+has been verified; the user reported an export but its path is not yet known.
+
+On 29 October 2026, GitHub ruleset 26163655 was activated for main. The branch
+rules API reports deletion and non-fast-forward protections. Fast-forward pushes
+remain allowed; workflow changes and release secrets are not yet protected.
+The release environment remains absent and publication remains disabled.
+
+A GitHub environment named release now exists. Its deployment reference
+policies allow the main branch and v* tags. No secrets were added, and the
+workflow is not connected to it. Workflow-change protection, environment access
+validation, and publication acceptance remain pending.
+
+The disabled candidate and staging jobs now reference the empty release
+GitHub environment. Its policies admit main and v*; these policies have not
+been exercised by an actual job. YAML parsing passed. Workflow-change
+protection, credential restrictions, and release acceptance remain open.
+
+The user saved the notarization key in Apple Passwords. A copy from that
+entry matched the local p8 bytes. The clipboard was cleared. Recovery from a
+second device has not been verified.
+
+The user copied the new Sparkle entry from Apple Passwords. Its seed matched
+the release public key, and the clipboard was cleared. Both the Sparkle and
+notarization Apple entries have now been checked on this Mac. Second-device
+recovery of these Apple entries has not been verified.
+
+The user confirmed that the exported Developer ID PKCS#12 passed the local
+identity check. The archive is in Documents with owner-only permissions. An
+Apple Passwords entry for its base64-encoded encrypted bytes is being prepared;
+its saved contents and off-device recovery are not yet verified. The archive
+password must be recovered separately.
+
+Automated workflow policy tests now check the release environment, job
+prerequisites and enablement gates. All 237 Python tests passed locally. These
+static tests do not establish GitHub environment enforcement or protect the
+workflow against changes by an authorized writer.
+
+The saved Apple Passwords entry for the encrypted Developer ID PKCS#12 matched
+the local archive byte for byte. The Mac clipboard was cleared. A separate
+entry for the archive password and recovery from another device remain pending.
+Hosted Toolchain27 run 40961973061 passed; it does not validate macOS 26 or
+public release.
+
+The password copied from the separate Apple Passwords Developer ID entry opened
+the encrypted PKCS#12 backup. The identity matched the public certificate. The
+clipboard was cleared. Recovery of both entries from another device remains
+unverified.
+
+An offscreen AppKit diagnostic compares a native sidebar with a regular split
+item without Draftly's split controller. The local panel suite passed all 15
+cases. Both native item types reported equal container and content widths on
+macOS 27. A hosted macOS 26 run is needed to compare the same setup.
+
+Hosted LargeDisplayPanels26 run 40962550202 failed the panel suite with ten
+issues. The isolated native diagnostic passed: at a 240-point divider, a
+regular split item had 240-point container and content widths. A full-height
+sidebar had a 240-point container and 232-point content. The same diagnostic
+on macOS 27 reported equal widths. This establishes an AppKit geometry
+difference in this setup; it does not by itself resolve window expansion or
+validate a production fix.
+
+A candidate panel change measures divider positions and saved widths in split
+container coordinates. AppKit creates those containers when the view loads, so
+initial constraints are installed at that point. The local panel suite passed
+all 15 cases, and the local app build passed. macOS 26 and real-window behavior
+remain unverified. Do not treat this candidate as release acceptance.
+
+The full local Swift run after the panel candidate passed all 759 Core tests.
+The app suite ran 933 tests and reported one failure in
+`exitedParentWithoutGroupStillUsesTheFinalDeadline` at simulated 9 seconds.
+The focused case later passed. The failed assertion did not record the caught
+error, so its cause is unknown. This remains an unresolved failure; a passing
+focused run does not replace the full run. No timeout was changed.
+
+The native process deadline test now reports the caught error and process-group
+isolation details if that assertion fails again. The focused native-process
+suite passed all 18 cases. The earlier full-suite failure remains unexplained;
+this diagnostic does not establish a fix.
+
+Hosted LargeDisplayPanels26 run 40963480415 tested panel candidate 4118a77.
+The offscreen suite failed with seven issues. Initial fit and real-content
+restoration passed, but visibility restoration and compressed window resizing
+still failed. Several restored sidebar widths differed by eight points; one
+narrow window was seven points too wide. The local pass does not establish
+macOS 26 compatibility. The candidate is not accepted for release.
+
+The offscreen native split diagnostic now also measures the effect of 240- and
+232-point minimum thickness values on a 240-point divider. The local panel
+suite passed all 15 cases. Both settings retained 240-point container and
+content widths on macOS 27. A macOS 26 comparison is pending.
+
+A subsequent local full Swift run with the improved native-process diagnostic
+passed the complete inventory: 759 Core and 933 app tests. The prior deadline
+failure did not recur, so its underlying cause remains unknown. No timeout or
+retry was added.
+
+Hosted run 40964349157 confirmed that macOS 26 applies sidebar minimum
+thickness to content: a minimum of 240 yielded a 248-point container; a
+minimum of 232 yielded a 240-point container. A candidate converts between
+container and content widths using the inset measured from AppKit. The local
+15-case panel suite and app build passed. macOS 26 and real-window validation
+remain pending.
+
+The full local Swift inventory passed after the sidebar inset adjustment:
+759 Core and 933 app tests. The focused toolbar suite also passed its five
+cases. Hosted macOS 26 and real-window acceptance remain pending.
+
+Hosted LargeDisplayPanels26 run 40965273480 passed the complete 15-case panel
+suite with the measured sidebar inset. The local full Swift inventory also
+passed. This focused hosted run does not establish full macOS 26 CI or real
+window behavior; those checks remain pending.
+
+Manual QA on macOS 27 used the isolated Engine QA bundle refreshed from the
+local build. Filters, draft list and actions opened and closed. Filters
+returned to the 239.5-point divider position and the draft list to about 280
+points after toggling. The editor retained focus. QA quit normally; its library
+was preserved. Dragged widths, rapid transitions, resizing and a real macOS 26
+window were not checked in this session.
+
+The manual QA divider drag did not change the accessibility-reported position.
+It did not verify width restoration after dragging. QA quit normally. The
+previous toggle checks remain valid; manual drag and resizing remain pending.
+
+Hosted full CI run 40966067211 passed on macOS 26 at commit 5d2c7af. It ran
+Python, website, matrix and complete Swift inventory checks, built the local
+app and checked package metadata and signature. This does not prove public
+Developer ID signing, site publication, updating or CloudKit synchronization.
+
+Draft pull request 1 presents the release branch for review against main. It
+does not enable publication. Full release security, coordinated site writes,
+public update acceptance and CloudKit Production remain pending.
+
+On 29 October 2026, an HTTPS check of draftly.pobrespandas.com returned HTTP
+200 with successful TLS verification. The configured `/appcast.xml` returned
+HTTP 404. The public update feed is not available; this check did not deploy
+or change the site.
+
+The Draftly Hosting destination is now configured as project
+`gen-lang-client-0607406471`, site `draftly-pobrespandas-prod`. The current
+public site was cloned to that destination and selected public files matched.
+The three custom domains now have active ownership, hosting and certificates
+in the destination project. Their HTTPS home pages match the new sites.
+Appcast staging, website settings and workflow authentication use the same
+new project. The focused staging, workflow policy and website tests passed.
+Publication remains disabled; credentials and real release acceptance remain
+pending.
+
+The native process deadline tests now control the group probe after the parent
+exits. On macOS the real probe can return EPERM, so a separate test verifies
+that this result remains an explicit isolation error. The diagnostic callback
+now reports the probe error. This does not establish why the real probe returns
+EPERM or change the production response to that error.
+
 The macOS 27-only model and menu APIs require the compiler that provides them.
 Builds made with the older SDK do not expose Private Cloud Compute mode.
 
@@ -3280,3 +3948,11 @@ waits and loopback requests to expire. No retry or deadline change is used.
 Panel layout uses split container widths and accounts for the native sidebar
 inset. The panel suite passed locally and in hosted CI on the release branch.
 Manual divider dragging and resizing remain unverified.
+
+### Distribution branch reconciliation — 30 October 2026
+
+Merged main at 530a460 into the distribution branch. Kept the diagnostic
+filters, serial test execution, migrated Hosting target and both histories.
+Local verification passed: 759 Core tests, 934 application tests, 240 Python
+tests, three website tests, matrix checks and swift build. Hosted CI for this
+merge remains pending. Publication and update acceptance remain open.

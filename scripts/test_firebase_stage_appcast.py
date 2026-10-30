@@ -3,6 +3,7 @@ import base64
 import gzip
 import hashlib
 import io
+import json
 import importlib.util
 from pathlib import Path
 import subprocess
@@ -81,6 +82,15 @@ class FirebaseDestinationTests(unittest.TestCase):
 
 
 class FirebaseStageTests(unittest.TestCase):
+    def test_staging_and_website_use_the_migration_destination(self):
+        root = Path(__file__).resolve().parent.parent
+        self.assertEqual(firebase.PROJECT, "gen-lang-client-0607406471")
+        self.assertEqual(firebase.SITE, "sites/draftly-pobrespandas-prod")
+        website = json.loads((root / "website/firebase.json").read_text())
+        projects = json.loads((root / "website/.firebaserc").read_text())
+        self.assertEqual(website["hosting"]["site"], firebase.SITE.removeprefix("sites/"))
+        self.assertEqual(projects["projects"]["default"], firebase.PROJECT)
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(prefix="draftly-firebase-test-")
         self.addCleanup(self.tmp.cleanup)
@@ -102,6 +112,31 @@ class FirebaseStageTests(unittest.TestCase):
                                 text=True, capture_output=True)
         self.assertEqual(result.returncode, 0, "Sparkle could not sign the disposable fixture.")
         return path.read_bytes()
+
+    def test_cli_requires_a_journal_before_staging(self):
+        args = ["firebase-stage-appcast.py", "--appcast", "feed.xml", "--public-key", self.public,
+                "--expected-version", OLD]
+        with patch("sys.argv", args), patch.dict("os.environ", {"DRAFTLY_FIREBASE_ACCESS_TOKEN": "fixture"}), \
+                patch.object(firebase, "HostingClient") as client:
+            with self.assertRaisesRegex(SystemExit, "journal"):
+                firebase.main()
+            client.return_value.request.assert_not_called()
+
+    def test_cli_rejects_incomplete_or_mismatched_website_commits(self):
+        args = ["firebase-stage-appcast.py", "--appcast", "feed.xml", "--public-key", self.public,
+                "--expected-version", OLD, "--journal", str(self.root / "journal"), "--site-base", "a" * 40]
+        with patch("sys.argv", args), patch.dict("os.environ", {"DRAFTLY_FIREBASE_ACCESS_TOKEN": "fixture"}), \
+                patch.object(firebase, "HostingClient") as client:
+            with self.assertRaisesRegex(SystemExit, "both base and target"):
+                firebase.main()
+            client.return_value.request.assert_not_called()
+        with patch("sys.argv", args + ["--site-target", "b" * 40]), \
+                patch.dict("os.environ", {"DRAFTLY_FIREBASE_ACCESS_TOKEN": "fixture"}), \
+                patch.object(firebase, "HostingClient") as client, \
+                patch.object(firebase.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, stdout="c" * 40)):
+            with self.assertRaisesRegex(SystemExit, "checked-out source"):
+                firebase.main()
+            client.return_value.request.assert_not_called()
 
     def test_read_only_snapshot_captures_all_files_and_config(self):
         client = FakeHosting()
@@ -128,6 +163,11 @@ class FirebaseStageTests(unittest.TestCase):
         self.assertNotIn("private-token", str(failure.exception))
         self.assertIsNone(firebase.NoRedirect().redirect_request(None, None, 302, "", {}, "https://evil.example"))
 
+    def test_gzip_feed_has_a_stable_header_across_python_versions(self):
+        result = firebase.compress_feed(b"draftly")
+        self.assertEqual(result, bytes.fromhex("1f8b08000000000002ff4b294a4c2bc9a90400dfc009ad07000000"))
+        self.assertEqual(gzip.decompress(result), b"draftly")
+
     def test_stages_signed_appcast_and_preserves_live_site_without_publishing(self):
         client = FakeHosting()
         data = self.feed(("0.1.0", "1"))
@@ -141,6 +181,93 @@ class FirebaseStageTests(unittest.TestCase):
         self.assertEqual(client.staged_config, client.config)
         self.assertFalse(any("/releases" in path for _, path, _, _ in client.calls))
 
+    def test_staged_feed_passes_publication_site_verification(self):
+        spec = importlib.util.spec_from_file_location("publish_release_for_stage", Path(__file__).with_name("publish-github-release.py"))
+        publisher = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(publisher)
+        client = FakeHosting()
+        data = self.feed(("0.1.0", "1"))
+        receipt = firebase.stage(client, OLD, data, self.public, releases=[], current_feed=None)
+        self.assertEqual(publisher.validate_site(client, receipt, data, firebase.compress_feed(data)), "staged")
+        self.assertFalse(any("/releases" in path for _, path, _, _ in client.calls))
+
+    def test_stages_site_changes_with_feed_and_recovers_original_payloads(self):
+        class SiteHosting(FakeHosting):
+            def request(self, method, path, body=None, *, upload=False):
+                if method == "POST" and path == NEW + ":populateFiles":
+                    self.calls.append((method, path, body, upload))
+                    self.staged_files.update(body["files"])
+                    missing = [value for value in body["files"].values() if value not in self.live_files.values()]
+                    return {"uploadRequiredHashes": missing,
+                            "uploadUrl": "https://upload-firebasehosting.googleapis.com/upload/" + NEW + "/files"}
+                return super().request(method, path, body, upload=upload)
+        client = SiteHosting()
+        data = self.feed(("0.1.0", "1"))
+        journal = self.root / "journal.json"
+        website = ({"/index.html": b"old"}, {"/index.html": b"new", "/release.mjs": b"script"},
+                   lambda path, digest: b"old")
+        result = firebase.stage(client, OLD, data, self.public, releases=[], current_feed=None,
+                                journal=journal, website=website)
+        self.assertEqual(set(result["websiteHashes"]), {"/index.html", "/release.mjs"})
+        self.assertEqual(client.staged_files["/actions.html"], client.live_files["/actions.html"])
+        self.assertEqual(client.staged_files["/index.html"], result["websiteHashes"]["/index.html"])
+        with patch.object(firebase, "compress_feed", side_effect=AssertionError("must use saved bytes")):
+            recovered = firebase.stage(client, OLD, data, self.public, releases=[], current_feed=None,
+                                       journal=journal, resume=True, website=website)
+        self.assertEqual(result, recovered)
+        self.assertFalse(any("/releases" in path for _, path, _, _ in client.calls))
+
+    def test_staged_website_deletion_keeps_unrelated_live_files(self):
+        client = FakeHosting()
+        data = self.feed(("0.1.0", "1"))
+        journal = self.root / "journal.json"
+        website = ({"/index.html": b"same", "/actions.html": b"old"},
+                   {"/index.html": b"same"}, lambda path, digest: b"old")
+        result = firebase.stage(client, OLD, data, self.public, releases=[], current_feed=None,
+                                journal=journal, website=website)
+        self.assertEqual(result["websiteHashes"], {"/actions.html": None})
+        self.assertNotIn("/actions.html", client.staged_files)
+        self.assertEqual(client.staged_files["/actions/a.json"], client.live_files["/actions/a.json"])
+        recovered = firebase.stage(client, OLD, data, self.public, releases=[], current_feed=None,
+                                   journal=journal, resume=True, website=website)
+        self.assertEqual(recovered, result)
+
+    def test_recovery_rejects_changed_website_payload_before_firebase_writes(self):
+        client = FakeHosting()
+        data = self.feed(("0.1.0", "1"))
+        journal = self.root / "journal.json"
+        website = ({"/index.html": b"old"}, {"/index.html": b"new"}, lambda path, digest: b"old")
+        firebase.stage(client, OLD, data, self.public, releases=[], current_feed=None,
+                       journal=journal, website=website)
+        checkpoint = json.loads(journal.read_text())
+        checkpoint["websitePayloads"]["/index.html"]["data"] = base64.b64encode(b"changed").decode()
+        journal.write_text(json.dumps(checkpoint))
+        client.calls.clear()
+        with self.assertRaisesRegex(ValueError, "website payload"):
+            firebase.stage(client, OLD, data, self.public, releases=[], current_feed=None,
+                           journal=journal, resume=True, website=website)
+        self.assertFalse(any(method in ("POST", "PATCH") for method, _, _, _ in client.calls))
+
+    def test_recovery_requires_the_original_website_sources(self):
+        client = FakeHosting()
+        data = self.feed(("0.1.0", "1"))
+        journal = self.root / "journal.json"
+        website = ({"/index.html": b"old"}, {"/index.html": b"new"}, lambda path, digest: b"old")
+        firebase.stage(client, OLD, data, self.public, releases=[], current_feed=None,
+                       journal=journal, website=website)
+        with self.assertRaisesRegex(ValueError, "original website sources"):
+            firebase.stage(client, OLD, data, self.public, releases=[], current_feed=None,
+                           journal=journal, resume=True)
+
+    def test_rejects_site_conflict_before_creating_firebase_version(self):
+        client = FakeHosting()
+        data = self.feed(("0.1.0", "1"))
+        website = ({"/index.html": b"old"}, {"/index.html": b"new"}, lambda path, digest: b"independent")
+        with self.assertRaisesRegex(ValueError, "changed independently"):
+            firebase.stage(client, OLD, data, self.public, releases=[], current_feed=None,
+                           journal=self.root / "journal.json", website=website)
+        self.assertFalse(any(method in ("POST", "PATCH") for method, _, _, _ in client.calls))
+
     def test_recovery_reuses_the_finalized_version_when_a_draft_exists(self):
         client = FakeHosting()
         data = self.feed(("0.1.0", "1"))
@@ -152,6 +279,54 @@ class FirebaseStageTests(unittest.TestCase):
         self.assertEqual(first, second)
         self.assertEqual(sum(method == "POST" and path == firebase.SITE + "/versions" for method, path, _, _ in client.calls), 1)
         self.assertEqual(sum(method == "PATCH" for method, _, _, _ in client.calls), 1)
+
+    def test_existing_payload_is_preserved_before_any_firebase_write(self):
+        client = FakeHosting()
+        data = self.feed(("0.1.0", "1"))
+        journal = self.root / "journal.json"
+        payload = firebase.payload_path(journal)
+        payload.write_bytes(b"keep existing bytes")
+        with self.assertRaises(FileExistsError):
+            firebase.stage(client, OLD, data, self.public, releases=[], current_feed=None, journal=journal)
+        self.assertEqual(payload.read_bytes(), b"keep existing bytes")
+        self.assertFalse(journal.exists())
+        self.assertFalse(any(method in ("POST", "PATCH") for method, _, _, _ in client.calls))
+
+    def test_recovery_uses_original_compressed_bytes_without_recompressing(self):
+        client = FakeHosting()
+        data = self.feed(("0.1.0", "1"))
+        journal = self.root / "journal.json"
+        first = firebase.stage(client, OLD, data, self.public, releases=[], current_feed=None, journal=journal)
+        with patch.object(firebase, "compress_feed", side_effect=AssertionError("must use saved bytes")):
+            second = firebase.stage(client, OLD, data, self.public, releases=[], current_feed=None,
+                                    journal=journal, resume=True)
+        self.assertEqual(first, second)
+
+    def test_recovery_rejects_changed_or_missing_compressed_payload(self):
+        client = FakeHosting()
+        data = self.feed(("0.1.0", "1"))
+        journal = self.root / "journal.json"
+        firebase.stage(client, OLD, data, self.public, releases=[], current_feed=None, journal=journal)
+        payload = firebase.payload_path(journal)
+        original = payload.read_bytes()
+        for value in (b"invalid", gzip.compress(b"other", mtime=0)):
+            payload.write_bytes(value)
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                firebase.stage(client, OLD, data, self.public, releases=[], current_feed=None,
+                               journal=journal, resume=True)
+        payload.unlink()
+        with self.assertRaises((ValueError, OSError)):
+            firebase.stage(client, OLD, data, self.public, releases=[], current_feed=None,
+                           journal=journal, resume=True)
+        self.assertTrue(original)
+
+    def test_saved_payload_must_decode_to_exact_feed_even_with_matching_hash(self):
+        payload = self.root / "payload.gz"
+        for value in (b"not gzip", gzip.compress(b"different", mtime=0)):
+            payload.write_bytes(value)
+            digest = hashlib.sha256(value).hexdigest()
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                firebase.read_payload(payload, b"expected", digest)
 
     def test_recovery_continues_the_same_incomplete_version(self):
         client = FakeHosting(unsafe_upload=True)

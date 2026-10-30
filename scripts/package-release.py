@@ -4,6 +4,7 @@
 import argparse
 import base64
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 import plistlib
@@ -18,6 +19,9 @@ TEAM = "NM92LU2KKV"
 BUNDLE = "com.pobrespandas.draftly"
 CONTAINER = "iCloud.com.andrestobelem.draftly"
 FEED = "https://draftly.pobrespandas.com/appcast.xml"
+toolchain_spec = importlib.util.spec_from_file_location("release_toolchain", ROOT / "scripts/release-toolchain.py")
+toolchain = importlib.util.module_from_spec(toolchain_spec)
+toolchain_spec.loader.exec_module(toolchain)
 
 
 def validate_key(value):
@@ -60,7 +64,8 @@ def validate_metadata(source, built, *, public_key=None):
 
 
 def run_command(command, *, runner=subprocess.run, capture=False):
-    result = runner(command, cwd=ROOT, check=True, text=True, capture_output=capture)
+    result = runner(command, cwd=ROOT, check=True, text=True, capture_output=capture,
+                    env=toolchain.clean_environment())
     return result.stdout if capture else ""
 
 
@@ -72,6 +77,17 @@ def read_json(output, description):
     if not isinstance(value, dict):
         raise ValueError(description + " did not return an object.")
     return value
+
+
+def sign_embedded_sparkle(app, runner):
+    """Sign Sparkle helpers before sealing the framework and app."""
+    framework = app / "Contents/Frameworks/Sparkle.framework/Versions/B"
+    targets = [framework / "Updater.app", framework / "Autoupdate",
+               framework / "XPCServices/Downloader.xpc", framework / "XPCServices/Installer.xpc",
+               framework, app]
+    for target in targets:
+        run_command(["codesign", "--force", "--sign", "Developer ID Application", "--options", "runtime",
+                     "--timestamp", "--preserve-metadata=identifier,entitlements,flags", str(target)], runner=runner)
 
 
 def source_commit(tag, runner):
@@ -99,6 +115,7 @@ def package(output, profile, notary_profile, tag, *, public_key=None, runner=sub
             or tag != "v" + version):
         raise ValueError("The candidate tag must match the source version.")
     commit = source_commit(tag, runner)
+    toolchain.check(runner)
     output.parent.mkdir(parents=True, exist_ok=True)
     # This fails if the destination exists. Never overwrite a previous candidate.
     output.mkdir()
@@ -110,12 +127,13 @@ def package(output, profile, notary_profile, tag, *, public_key=None, runner=sub
                    "-configuration", "Release", "-destination", "generic/platform=macOS",
                    "-archivePath", str(archive), "DEVELOPMENT_TEAM=" + TEAM,
                    "DRAFTLY_CODE_SIGN_STYLE=Manual", "DRAFTLY_PROVISIONING_PROFILE=" + profile,
-                   "CODE_SIGN_IDENTITY=Developer ID Application", "DRAFTLY_CLOUDKIT_ENVIRONMENT=Production",
+                   "DRAFTLY_CODE_SIGN_IDENTITY=Developer ID Application", "DRAFTLY_CLOUDKIT_ENVIRONMENT=Production",
                    "DRAFTLY_APS_ENVIRONMENT=production", "DRAFTLY_UPDATES_ENABLED=" + ("YES" if public_key else "NO"),
                    "DRAFTLY_SPARKLE_PUBLIC_KEY=" + (public_key or ""), "archive"]
         run_command(command, runner=runner)
         if source_commit(tag, runner) != commit:
             raise ValueError("The source commit changed during the build.")
+        sign_embedded_sparkle(app, runner)
         built = plistlib.loads((app / "Contents/Info.plist").read_bytes())
         version, build = validate_metadata(source, built, public_key=public_key)
         signing = read_json(run_command([sys.executable, str(ROOT / "scripts/verify-cloud-signing.py"), str(app),

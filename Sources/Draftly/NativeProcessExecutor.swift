@@ -13,6 +13,7 @@ final class NativeProcessExecutor {
     private let cancellation = CancellationState()
     private let process: Process
     private let now: @MainActor () -> Date
+    private let onIsolationFailure: (@MainActor (pid_t, pid_t, Int32) -> Void)?
     private var deadline = Date.distantFuture
     private var continuation: CheckedContinuation<Int32, Error>?
     private var timeoutTask: Task<Void, Never>?
@@ -20,17 +21,32 @@ final class NativeProcessExecutor {
     private var interruption: Error?
     private var finished = false
     private var parentExited = false
+    private var parentAndGroupMissing = false
     private var cleanupPending = false
     private var isolatedProcessGroup: pid_t?
     private var onExit: (() -> Void)?
+    private let afterLaunch: (@MainActor (pid_t) -> Void)?
+    private let probeGroup: @MainActor (pid_t) -> Int32
 
-    init(process: Process, now: @escaping @MainActor () -> Date = Date.init) {
-        self.process = process; self.now = now
+    init(process: Process, now: @escaping @MainActor () -> Date = Date.init,
+         onIsolationFailure: (@MainActor (pid_t, pid_t, Int32) -> Void)? = nil,
+         afterLaunch: (@MainActor (pid_t) -> Void)? = nil,
+         probeGroup: @escaping @MainActor (pid_t) -> Int32 = { pid in
+             Darwin.kill(-pid, 0) == 0 ? 0 : errno
+         }) {
+        self.process = process; self.now = now; self.onIsolationFailure = onIsolationFailure
+        self.afterLaunch = afterLaunch
+        self.probeGroup = probeGroup
     }
 
     static func run(_ process: Process, timeout: TimeInterval,
-                    now: @escaping @MainActor () -> Date = Date.init) async throws -> Int32 {
-        let executor = NativeProcessExecutor(process: process, now: now)
+                    now: @escaping @MainActor () -> Date = Date.init,
+                    onIsolationFailure: (@MainActor (pid_t, pid_t, Int32) -> Void)? = nil,
+                    afterLaunch: (@MainActor (pid_t) -> Void)? = nil,
+                    probeGroup: @escaping @MainActor (pid_t) -> Int32 = { pid in
+                        Darwin.kill(-pid, 0) == 0 ? 0 : errno
+                    }) async throws -> Int32 {
+        let executor = NativeProcessExecutor(process: process, now: now, onIsolationFailure: onIsolationFailure, afterLaunch: afterLaunch, probeGroup: probeGroup)
         return try await executor.run(timeout: timeout)
     }
 
@@ -53,8 +69,24 @@ final class NativeProcessExecutor {
         }
         try process.run()
         let pid = process.processIdentifier
-        if getpgid(pid) == pid, pid != getpgrp() { isolatedProcessGroup = pid }
-        else if process.isRunning {
+        afterLaunch?(pid)
+        let group = getpgid(pid)
+        let groupError = group == -1 ? errno : 0
+        if group == pid, pid != getpgrp() { isolatedProcessGroup = pid }
+        else if group == -1, groupError == ESRCH, pid > 0, pid != getpgrp() {
+            // The parent may exit before Foundation delivers its termination callback.
+            // Its process group can still contain descendants.
+            let probeError = probeGroup(pid)
+            if probeError == 0 { isolatedProcessGroup = pid }
+            else if probeError == ESRCH { parentAndGroupMissing = true }
+            else {
+                onIsolationFailure?(pid, group, probeError)
+                let error = DraftlyError.message("The process group could not be isolated.")
+                interrupt(error)
+                throw error
+            }
+        } else if process.isRunning {
+            onIsolationFailure?(pid, group, groupError)
             let error = DraftlyError.message("The process group could not be isolated.")
             interrupt(error)
             throw error
@@ -84,6 +116,10 @@ final class NativeProcessExecutor {
     private func interrupt(_ error: Error) {
         guard !finished, interruption == nil else { return }
         interruption = error
+        if parentAndGroupMissing {
+            if parentExited { finish() }
+            return
+        }
         if let group = isolatedProcessGroup {
             signalGroup(group, SIGTERM)
         } else if process.isRunning {

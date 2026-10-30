@@ -3,11 +3,13 @@ import base64
 import importlib.util
 import hashlib
 import json
+import os
 from pathlib import Path
 import plistlib
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location("package_release", Path(__file__).with_name("package-release.py"))
 release = importlib.util.module_from_spec(spec)
@@ -22,6 +24,7 @@ class FakeRunner:
     def __init__(self, *, notary_status="Accepted", signing_fails=False, fail_command=None, dirty=False,
                  tag_commit=COMMIT, dirty_after_build=False):
         self.commands = []
+        self.environments = []
         self.notary_status = notary_status
         self.signing_fails = signing_fails
         self.fail_command = fail_command
@@ -32,6 +35,7 @@ class FakeRunner:
 
     def __call__(self, command, **kwargs):
         self.commands.append(command)
+        self.environments.append(kwargs.get("env"))
         if self.fail_command and command[:len(self.fail_command)] == self.fail_command:
             raise subprocess.CalledProcessError(1, command)
         output = ""
@@ -39,6 +43,10 @@ class FakeRunner:
             output = " M example\n" if self.dirty or (self.built and self.dirty_after_build) else ""
         elif command[:2] == ["git", "rev-parse"]:
             output = (self.tag_commit if command[-1].startswith("refs/tags/") else COMMIT) + "\n"
+        elif command == ["xcrun", "--sdk", "macosx", "--show-sdk-version"]:
+            output = "27.0\n"
+        elif command == ["swiftc", "--version"]:
+            output = "Apple Swift version 6.4\n"
         elif command[0] == "xcodebuild":
             self.built = True
             archive = Path(command[command.index("-archivePath") + 1])
@@ -66,6 +74,38 @@ class FakeRunner:
 
 
 class PackageReleaseTests(unittest.TestCase):
+    def test_packaging_processes_do_not_inherit_release_secrets(self):
+        with tempfile.TemporaryDirectory() as directory:
+            runner = FakeRunner()
+            with patch.dict(os.environ, {"APPLE_DEVELOPER_ID_P12_PASSWORD": "fixture",
+                                         "DRAFTLY_SPARKLE_PRIVATE_KEY": "fixture", "GH_TOKEN": "fixture"}):
+                release.package(Path(directory) / "candidate", "QA profile", "QA notary", TAG, runner=runner)
+            self.assertTrue(runner.environments)
+            for environment in runner.environments:
+                self.assertIsNotNone(environment)
+                self.assertNotIn("APPLE_DEVELOPER_ID_P12_PASSWORD", environment)
+                self.assertNotIn("DRAFTLY_SPARKLE_PRIVATE_KEY", environment)
+                self.assertNotIn("GH_TOKEN", environment)
+    def test_toolchain_checks_do_not_inherit_release_secrets(self):
+        seen = []
+        def runner(command, **options):
+            seen.append(options["env"])
+            value = "27.0" if command[0] == "xcrun" else "Apple Swift version 6.4"
+            return subprocess.CompletedProcess(command, 0, stdout=value)
+        with patch.dict(os.environ, {"APPLE_DEVELOPER_ID_P12_PASSWORD": "fixture",
+                                     "DRAFTLY_SPARKLE_PRIVATE_KEY": "fixture", "GH_TOKEN": "fixture"}):
+            release.toolchain.check(runner)
+        self.assertEqual(len(seen), 2)
+        for environment in seen:
+            self.assertNotIn("APPLE_DEVELOPER_ID_P12_PASSWORD", environment)
+            self.assertNotIn("DRAFTLY_SPARKLE_PRIVATE_KEY", environment)
+            self.assertNotIn("GH_TOKEN", environment)
+    def test_toolchain_gate_rejects_older_or_unknown_toolchains(self):
+        for sdk, swift in (("26.6", "Apple Swift version 6.4"), ("27.0", "Apple Swift version 6.3"),
+                           ("invalid", "Apple Swift version 6.4"), ("27.0", "unknown")):
+            with self.subTest(sdk=sdk, swift=swift), self.assertRaises(ValueError):
+                release.toolchain.validate(sdk, swift)
+        release.toolchain.validate("27.1", "Apple Swift version 6.4 (swiftlang-6.4)")
     def test_candidate_gates_archive_signing_notary_stapling_and_gatekeeper(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "candidate"
@@ -81,15 +121,30 @@ class PackageReleaseTests(unittest.TestCase):
             build = next(command for command in commands if command[0] == "xcodebuild")
             for setting in ("DRAFTLY_CLOUDKIT_ENVIRONMENT=Production", "DRAFTLY_APS_ENVIRONMENT=production",
                             "DRAFTLY_CODE_SIGN_STYLE=Manual", "DEVELOPMENT_TEAM=" + release.TEAM,
-                            "DRAFTLY_UPDATES_ENABLED=YES"):
+                            "DRAFTLY_UPDATES_ENABLED=YES", "DRAFTLY_CODE_SIGN_IDENTITY=Developer ID Application"):
                 self.assertIn(setting, build)
+            self.assertFalse(any(arg.startswith("CODE_SIGN_IDENTITY=") for arg in build))
             self.assertNotIn("-allowProvisioningUpdates", build)
+            signed = [command for command in commands if command[0] == "codesign" and "--force" in command]
+            self.assertEqual(len(signed), 6)
+            self.assertTrue(all("--timestamp" in command and "--options" in command for command in signed))
+            self.assertTrue(signed[-1][-1].endswith("/Draftly.app"))
+            self.assertLess(commands.index(signed[-1]), next(i for i, command in enumerate(commands) if "verify-cloud-signing.py" in command[1]))
             verify = next(command for command in commands if "verify-cloud-signing.py" in command[1])
             self.assertIn("--require-developer-id", verify)
             self.assertLess(next(i for i, command in enumerate(commands) if command[:3] == ["xcrun", "notarytool", "wait"]),
                             next(i for i, command in enumerate(commands) if command[:3] == ["xcrun", "stapler", "staple"]))
             self.assertLess(next(i for i, command in enumerate(commands) if command[0] == "spctl"),
                             max(i for i, command in enumerate(commands) if command[0] == "ditto"))
+
+    def test_embedded_signing_failure_stops_before_notary_submission(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "candidate"
+            runner = FakeRunner(fail_command=["codesign"])
+            with self.assertRaises(subprocess.CalledProcessError):
+                release.package(output, "QA profile", "QA notary", TAG, runner=runner)
+            self.assertFalse((output / "READY").exists())
+            self.assertFalse(any(command[:3] == ["xcrun", "notarytool", "submit"] for command in runner.commands))
 
     def test_notary_failure_preserves_receipt_but_never_marks_ready(self):
         with tempfile.TemporaryDirectory() as directory:

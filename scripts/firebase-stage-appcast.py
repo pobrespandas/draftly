@@ -6,6 +6,7 @@ import base64
 import copy
 import gzip
 import hashlib
+import io
 import importlib.util
 import json
 import os
@@ -18,6 +19,7 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 import uuid
+import zlib
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
@@ -34,6 +36,9 @@ SIGNATURE_PREFIX = b"<!-- sparkle-signatures:\n"
 spec = importlib.util.spec_from_file_location("release_history", ROOT / "scripts/release-history.py")
 history = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(history)
+site_spec = importlib.util.spec_from_file_location("site_overlay", ROOT / "scripts/site-overlay.py")
+site_overlay = importlib.util.module_from_spec(site_spec)
+site_spec.loader.exec_module(site_overlay)
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -210,13 +215,61 @@ def write_journal(path, data, *, new=False):
             Path(name).unlink(missing_ok=True)
 
 
-def stage(client, expected_version, feed, public_key, *, releases=None, current_feed=None, journal=None, resume=False):
+def compress_feed(feed):
+    output = io.BytesIO()
+    with gzip.GzipFile(filename="", mode="wb", fileobj=output, mtime=0) as stream:
+        stream.write(feed)
+    return output.getvalue()
+
+
+def payload_path(journal):
+    journal = Path(journal)
+    return journal.with_name(journal.name + ".feed.gz")
+
+
+def read_payload(path, feed, expected_digest):
+    path = Path(path)
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > history.MAX_FEED_BYTES + 65536:
+        raise ValueError("The saved compressed appcast is missing or invalid.")
+    data = path.read_bytes()
+    if not isinstance(expected_digest, str) or hashlib.sha256(data).hexdigest() != expected_digest:
+        raise ValueError("The saved compressed appcast does not match the staging receipt.")
+    try:
+        with gzip.GzipFile(fileobj=io.BytesIO(data), mode="rb") as stream:
+            decoded = stream.read(len(feed) + 1)
+    except (OSError, EOFError, zlib.error) as error:
+        raise ValueError("The saved compressed appcast is invalid.") from error
+    if decoded != feed:
+        raise ValueError("The saved compressed appcast does not match the feed.")
+    return data
+
+
+def decode_website_payload(entry, content):
+    if not isinstance(entry, dict) or set(entry) != {"hash", "data"} or not isinstance(content, bytes):
+        raise ValueError("The saved website payload is invalid.")
+    encoded_text = entry["data"]
+    if not isinstance(encoded_text, str) or len(encoded_text) > 3 * 1024 * 1024:
+        raise ValueError("The saved website payload is invalid.")
+    try:
+        encoded = base64.b64decode(encoded_text, validate=True)
+        with gzip.GzipFile(fileobj=io.BytesIO(encoded), mode="rb") as stream:
+            decoded = stream.read(len(content) + 1)
+    except (ValueError, TypeError, OSError, EOFError, zlib.error) as error:
+        raise ValueError("The saved website payload is invalid.") from error
+    if decoded != content or hashlib.sha256(encoded).hexdigest() != entry["hash"]:
+        raise ValueError("The saved website payload does not match the source.")
+    return encoded
+
+
+def stage(client, expected_version, feed, public_key, *, releases=None, current_feed=None, journal=None, resume=False, website=None):
     if resume and journal is None:
         raise ValueError("Recovery needs a Firebase staging journal.")
     checkpoint = None
     if journal is not None:
         journal = Path(journal)
         if resume:
+            if journal.is_symlink() or journal.stat().st_size > 24 * 1024 * 1024:
+                raise ValueError("The Firebase staging journal is invalid.")
             checkpoint = json.loads(journal.read_text())
             if not isinstance(checkpoint, dict) or checkpoint.get("state") not in ("created", "finalized"):
                 raise ValueError("The Firebase staging outcome is unknown. Inspect Firebase before retrying.")
@@ -226,6 +279,20 @@ def stage(client, expected_version, feed, public_key, *, releases=None, current_
     live = snapshot(client)
     if live["version"] != expected_version:
         raise ValueError("The live site changed before staging.")
+    changes = {}
+    if website is not None:
+        if journal is None or not isinstance(website, tuple) or len(website) != 3:
+            raise ValueError("Website staging needs source trees, a fetcher, and a journal.")
+        base, target, fetch = website
+        site_overlay.validate_sources(base, target)
+        if "/index.html" not in base or "/index.html" not in target or not callable(fetch):
+            raise ValueError("The website source or fetcher is invalid.")
+        changed = {path for path in base.keys() | target.keys() if base.get(path) != target.get(path)}
+        observed = {path: fetch(path, live["files"][path]) if path in live["files"] else None
+                    for path in sorted(changed)}
+        changes = site_overlay.plan(base, target, observed)
+        if len(changes) > 100 or any(data is not None and len(data) > history.MAX_FEED_BYTES for data in changes.values()):
+            raise ValueError("The website changes exceed staging limits.")
     if releases is None:
         releases = history.fetch_releases()
         current_feed = fetch_live_feed(live)
@@ -244,10 +311,39 @@ def stage(client, expected_version, feed, public_key, *, releases=None, current_
                              resume_candidate=resume)
     if (current_feed is None) != ("/appcast.xml" not in live["files"]):
         raise ValueError("The live appcast and Firebase file list do not agree.")
-    compressed = gzip.compress(feed, mtime=0)
+    if resume:
+        compressed = read_payload(payload_path(journal), feed, checkpoint.get("appcastHash"))
+    else:
+        compressed = compress_feed(feed)
     digest = hashlib.sha256(compressed).hexdigest()
     files = dict(live["files"])
     files["/appcast.xml"] = digest
+    uploads = {digest: compressed}
+    website_payloads = {}
+    if website is not None:
+        saved = checkpoint.get("websitePayloads") if resume else None
+        if resume and (not isinstance(saved, dict) or set(saved) != set(changes)):
+            raise ValueError("The website changes do not match the staging journal.")
+        for path, content in changes.items():
+            if content is None:
+                if resume and saved[path] is not None:
+                    raise ValueError("The website deletion does not match the staging journal.")
+                files.pop(path, None)
+                website_payloads[path] = None
+                continue
+            if resume:
+                entry = saved[path]
+                encoded = decode_website_payload(entry, content)
+            else:
+                encoded = compress_feed(content)
+                entry = {"hash": hashlib.sha256(encoded).hexdigest(), "data": base64.b64encode(encoded).decode("ascii")}
+            files[path] = entry["hash"]
+            uploads[entry["hash"]] = encoded
+            website_payloads[path] = entry
+        if sum(len(data) for data in uploads.values()) > 16 * 1024 * 1024:
+            raise ValueError("The compressed website changes exceed staging limits.")
+    elif resume and checkpoint.get("websitePayloads") is not None:
+        raise ValueError("Recovery requires the original website sources.")
     if resume:
         if (checkpoint.get("baseVersion") != live["version"] or checkpoint.get("appcastHash") != digest
                 or checkpoint.get("preservedFiles") != len(live["files"])
@@ -259,8 +355,22 @@ def stage(client, expected_version, feed, public_key, *, releases=None, current_
         operation = uuid.uuid4().hex
         checkpoint = {"state": "creating", "operation": operation, "baseVersion": live["version"],
                       "preservedFiles": len(live["files"]), "appcastHash": digest}
+        if website is not None:
+            checkpoint["websitePayloads"] = website_payloads
         if journal is not None:
-            write_journal(journal, checkpoint, new=True)
+            payload = payload_path(journal)
+            saved = payload.open("xb")
+            try:
+                with saved:
+                    saved.write(compressed)
+            except BaseException:
+                payload.unlink(missing_ok=True)
+                raise
+            try:
+                write_journal(journal, checkpoint, new=True)
+            except BaseException:
+                payload.unlink(missing_ok=True)
+                raise
         created = client.request("POST", SITE + "/versions", {"config": live["config"],
                                  "labels": {"draftly-operation": operation}})
         staged = created.get("name")
@@ -281,7 +391,7 @@ def stage(client, expected_version, feed, public_key, *, releases=None, current_
         for start in range(0, len(entries), 1000):
             response = client.request("POST", staged + ":populateFiles", {"files": dict(entries[start:start + 1000])})
             required = response.get("uploadRequiredHashes", [])
-            if not isinstance(required, list) or any(value != digest for value in required):
+            if not isinstance(required, list) or any(value not in uploads for value in required):
                 raise ValueError("Firebase cannot reuse one or more live site files.")
             if required:
                 upload_url = response.get("uploadUrl")
@@ -290,7 +400,8 @@ def stage(client, expected_version, feed, public_key, *, releases=None, current_
                 if (parsed is None or parsed.scheme != "https" or parsed.netloc != "upload-firebasehosting.googleapis.com"
                         or parsed.path != expected_path or parsed.query or parsed.fragment):
                     raise ValueError("Firebase returned an invalid upload URL.")
-                client.request("POST", upload_url + "/" + digest, compressed, upload=True)
+                for required_digest in set(required):
+                    client.request("POST", upload_url + "/" + required_digest, uploads[required_digest], upload=True)
     if list_files(client, staged) != files:
         raise ValueError("The staged site does not preserve the live files.")
     staged_details = client.request("GET", staged)
@@ -305,8 +416,12 @@ def stage(client, expected_version, feed, public_key, *, releases=None, current_
     if journal is not None:
         checkpoint["state"] = "finalized"
         write_journal(journal, checkpoint)
-    return {"baseVersion": live["version"], "stagedVersion": staged,
-            "preservedFiles": len(live["files"]), "appcastHash": digest}
+    result = {"baseVersion": live["version"], "stagedVersion": staged,
+              "preservedFiles": len(live["files"]), "appcastHash": digest}
+    if website is not None:
+        result["websiteHashes"] = {path: entry["hash"] if entry is not None else None
+                                   for path, entry in website_payloads.items()}
+    return result
 
 
 def main():
@@ -317,19 +432,32 @@ def main():
     parser.add_argument("--expected-version", help="Live Firebase version used to prepare the appcast.")
     parser.add_argument("--journal", help="New staging journal, or the journal to recover.")
     parser.add_argument("--resume", action="store_true", help="Resume the version recorded in the staging journal.")
+    parser.add_argument("--site-base", help="Full commit of the previously deployed site source.")
+    parser.add_argument("--site-target", help="Full commit of the new site source.")
     args = parser.parse_args()
     try:
         client = HostingClient(os.environ.get("DRAFTLY_FIREBASE_ACCESS_TOKEN"))
         if args.inspect:
-            if args.appcast or args.public_key or args.expected_version or args.journal or args.resume:
+            if args.appcast or args.public_key or args.expected_version or args.journal or args.resume or args.site_base or args.site_target:
                 raise ValueError("Inspect does not accept staging options.")
             live = snapshot(client)
             result = {"liveVersion": live["version"], "fileCount": len(live["files"]), "hasAppcast": "/appcast.xml" in live["files"]}
         else:
-            if not args.appcast or not args.public_key or not args.expected_version:
-                raise ValueError("Staging needs an appcast, public key, and expected live version.")
+            if not args.appcast or not args.public_key or not args.expected_version or not args.journal:
+                raise ValueError("Staging needs an appcast, public key, expected live version, and journal.")
+            if bool(args.site_base) != bool(args.site_target):
+                raise ValueError("Website staging needs both base and target commits.")
+            website = None
+            if args.site_base:
+                actual = subprocess.run(["git", "rev-parse", "HEAD^{commit}"], cwd=ROOT, check=True,
+                                        capture_output=True, text=True, timeout=30, env={"PATH": os.environ.get("PATH", "")}).stdout.strip()
+                if args.site_target != actual:
+                    raise ValueError("The website target commit must match the checked-out source.")
+                base = site_overlay.read_git_tree(ROOT, args.site_base)
+                target = site_overlay.read_git_tree(ROOT, args.site_target)
+                website = (base, target, lambda path, digest: site_overlay.fetch_public(NoRedirect, path, digest))
             result = stage(client, args.expected_version, Path(args.appcast).read_bytes(), args.public_key,
-                           journal=args.journal, resume=args.resume)
+                           journal=args.journal, resume=args.resume, website=website)
         print(json.dumps(result, indent=2))
     except (ValueError, OSError, subprocess.SubprocessError) as error:
         raise SystemExit("Firebase appcast staging failed: " + str(error))

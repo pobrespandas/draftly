@@ -58,10 +58,21 @@ Configure the repository variables `DRAFTLY_DEVELOPER_ID_PROFILE` and
 `DRAFTLY_SPARKLE_PUBLIC_KEY`. Configure the protected secrets
 `APPLE_DEVELOPER_ID_P12_B64`, `APPLE_DEVELOPER_ID_P12_PASSWORD`,
 `APPLE_DEVELOPER_ID_PROFILE_B64`, `APPLE_NOTARY_API_KEY_B64`, and
-`APPLE_NOTARY_KEY_ID`. Team API keys also need `APPLE_NOTARY_ISSUER_ID`.
+`APPLE_NOTARY_KEY_ID`, and `APPLE_NOTARY_ISSUER_ID`. Use a team API key.
+Apple does not support individual API keys with `notarytool`. See
+[Apple API key documentation](https://developer.apple.com/documentation/appstoreconnectapi/creating-api-keys-for-app-store-connect-api).
 The P12, profile, and `.p8` values are base64-encoded file contents. The
 workflow does not pass the original secret values into the package process.
 Do not put these values in the repository or job logs.
+
+The release signing job requires the macOS 27 SDK and Swift 6.4 or later.
+Older SDK builds cannot include the macOS 27 Private Cloud Compute integration.
+The macOS 26 hosted runner was observed using Xcode 26.6. The candidate job
+selects GitHub's `xcode-27` preview image instead. GitHub diagnostic run
+40932376170 passed the toolchain gate with Xcode 27.1 and Swift 6.4. The image
+has not yet produced a real signed candidate. The rehearsal continues on macOS 26.
+See the [GitHub runner image list](https://github.com/actions/runner-images#available-images).
+The manual candidate packager uses the same toolchain check before building.
 
 A successful candidate is uploaded as a GitHub Actions artifact, not as a
 GitHub Release. If notarization fails after submission, the job preserves the
@@ -76,8 +87,9 @@ For workflow recovery, dispatch the release workflow with the same tag and the
 run ID that contains the original candidate artifact. The workflow downloads
 and verifies that artifact. It does not run the signing job again. A rerun of
 the original signing job is rejected. A missing artifact or failed verification
-stops recovery. Protect release tags from replacement and inspect an interrupted
-signing run before taking further action.
+stops recovery. The GitHub ruleset `Protect release version tags` blocks updates
+and deletion of `v*` tags. It allows new tags. Inspect an interrupted signing
+run before taking further action.
 
 ## Local signed candidate
 
@@ -130,6 +142,26 @@ each update.
 The appcast tool does not enable update checks. Real update acceptance and key
 recovery remain pending.
 
+## Inspect website changes before staging
+
+`scripts/site-overlay.py` compares two committed website trees with the public
+site. Supply their full commit hashes in `--base` and `--target`, and provide a
+short-lived Firebase token in `DRAFTLY_FIREBASE_ACCESS_TOKEN`. The base must
+represent the site source that was deployed. The command reads Firebase and
+public files. It does not write to Firebase or publish anything.
+
+For each changed path, it checks that the live bytes match either the base or
+the target. An independent change is a conflict. Unchanged paths are not
+replaced. The command checks the Firebase snapshot before and after reading.
+It rejects redirects, invalid paths, symlinks, and a public ETag that differs
+from the Firebase snapshot. The output lists the changes and deletions.
+
+This inspection is not a lock. A writer can change the site after it finishes.
+Release staging uses the same comparison when given site source commits. It
+stages the intended changes with the appcast. Promotion is not implemented.
+Route all site writers through an enforced shared coordinator before relying on
+this check for publication.
+
 ## Stage the site without publishing
 
 `scripts/firebase-stage-appcast.py` can inspect the live Firebase Hosting
@@ -139,25 +171,39 @@ Firebase access token in `DRAFTLY_FIREBASE_ACCESS_TOKEN`; do not print or save
 the token. Supply the expected live version and the app's public key to stage.
 
 The staging check verifies the feed signature and version history, reads all
-live file hashes and the live configuration, and preserves them in the staged
-version. It rejects missing files, changed historical release items, unsafe
+live file hashes and the live configuration, and preserves files outside the
+intended website changes. With `--site-base` and `--site-target`, it checks the
+committed website changes against the live files and stages them with the feed.
+The target must be the checked-out commit. The journal retains compressed
+website payloads and recovery checks them against the same source. It rejects missing files, changed historical release items, unsafe
 upload URLs, and a live version that changes during staging. It also checks the
 public appcast ETag against the live Firebase file hash.
 
-Use `--journal PATH` to record the staging operation before the Firebase
-request. Keep this journal with the candidate and feed. Use `--resume` with
+Staging requires `--journal` before it can change Firebase. Use the staging
+directory path `firebase-journal.json`. Keep this journal with the candidate and feed. Use `--resume` with
 the same journal to continue an existing staged version. Recovery checks the
 live base, feed hash, operation label, and staged files before it proceeds.
 It can also verify a finalized version after an interrupted run. An existing
 draft or public GitHub release is accepted only during recovery.
 
+The feed uses a gzip header with no filename and a zero timestamp. Staging
+saves the original compressed bytes next to its journal as
+`firebase-journal.json.feed.gz`. Keep the payload with the journal and feed.
+Recovery and publication verify its hash and decoded content. They do not
+recompress it. A missing or changed payload stops recovery and publication.
+Older checkpoints without this payload require inspection and restaging; they
+cannot use automatic recovery.
+
 If the journal says `creating`, the result of the create request is unknown.
 Inspect Firebase for the operation label before taking further action. Do not
 create another version automatically. A journal does not lock the live site.
 
-On 29 October 2026 the live site contained 26 files; this branch's website
-directory contained only three. Do not deploy that directory directly over the
-live site. The Hosting release API does not document an atomic condition on
+On 29 October 2026 the live site contained 26 files. After the action catalog
+was merged from `main`, all 24 repository site files matched the public bytes.
+The two additional live paths were `/__/firebase/init.js` and
+`/__/firebase/init.json`. This comparison does not authorize a direct deploy:
+it must also preserve future update feeds and coordinate other site writers.
+The Hosting release API does not document an atomic condition on
 the previous live version. Before adding promotion, route every site writer
 through a shared serialization mechanism and verify the live version and
 public release assets. The staged version alone is not safe publication or
@@ -169,13 +215,20 @@ The optional staging job is disabled by default. It runs only when
 `DRAFTLY_RELEASE_STAGING_ENABLED` is `true` and the candidate job succeeds.
 It requires the signed candidate, `docs/releases/vVERSION.txt`, the Sparkle
 key, and Firebase Workload Identity Federation. Set
-`DRAFTLY_GCP_WIF_PROVIDER` and `DRAFTLY_GCP_SERVICE_ACCOUNT` as repository
-variables. Store `DRAFTLY_SPARKLE_PRIVATE_KEY` as a secret. Limit the Google
-identity to the required Hosting operations and to this repository and the
-trusted release workflow. Do not grant it permission to promote the site.
+`DRAFTLY_GCP_WIF_PROVIDER`, `DRAFTLY_GCP_SERVICE_ACCOUNT`, and
+`DRAFTLY_SITE_BASE_COMMIT` as repository variables. The site base must identify
+the committed site source last deployed to the live site. Store `DRAFTLY_SPARKLE_PRIVATE_KEY` as a secret. Restrict the Google
+identity to this repository and the trusted release workflow. Do not enable the
+job until its effective Firebase permissions have been tested. Firebase lists
+`firebasehosting.sites.update` for changes to Hosting resources, but its public
+permission list does not establish a separate staging-only permission. A role
+that can stage may also be able to publish. If so, use a controlled mediator or
+another enforced boundary before granting access. See the [Firebase Hosting
+permission reference](https://docs.cloud.google.com/iam/docs/roles-permissions/firebasehosting).
 
-The job verifies the candidate, signs the feed, stages a Firebase version,
-saves its journal and receipt, and prepares a GitHub draft. It does not publish
+The job verifies the candidate, signs the feed, stages a Firebase version with
+the checked website changes, saves its journal and receipt, and prepares a
+GitHub draft. It does not publish
 the release or promote the Firebase version. Recovery downloads the staging
 artifact from the same run as the original candidate. It requires the journal;
 an absent journal or an unknown create outcome stops for inspection. Artifacts
@@ -235,3 +288,87 @@ not create or overwrite another release. Inspect the existing release and the
 live site, then rerun the checks with the same verified assets. A live site
 change stops the process; restaging may be required. A verified public GitHub
 release alone does not authorize Firebase promotion.
+
+## Credential state on 29 October 2026
+
+A Developer ID identity and a matching Production profile are installed on the
+local Mac. An isolated archive passed notarization and Gatekeeper after Sparkle's
+helpers were signed. A Sparkle release key was created locally. The user
+recovered the seed from Google Password Manager on a second device and verified
+it against the public key on the Mac. This does not complete release acceptance.
+
+To verify a recovered seed, use `scripts/verify-recovered-sparkle-key.py` in a
+private terminal with Python and the `cryptography` package. Pass the saved
+public key file with `--public-key-file`. Paste the recovered seed only at the
+hidden prompt, never as an argument or in chat. The command checks the derived
+public key and prints only a match or failure. Clear any clipboard used for the
+transfer. A matching result confirms the recovered seed; this check does not
+verify Developer ID or notarization key recovery.
+
+After exporting the Developer ID identity as an encrypted PKCS#12 file, use
+`scripts/verify-developer-id-backup.py` with `--backup` and `--certificate`.
+The certificate argument must be the expected public Developer ID certificate
+from the trusted local Keychain, not a certificate supplied by the backup. The
+tool requests the archive password with hidden terminal input. It checks the
+certificate fingerprint, team, and matching private key. It does not import the
+identity, validate Apple trust or prove recovery on another device.
+
+The encrypted Developer ID archive and its password are stored in separate
+Apple Passwords entries. On the Mac, the stored archive matched the local file
+byte for byte, and the stored password opened it and passed the identity check.
+Recovery of those entries from another device has not been verified. The Apple
+Passwords notarization key also matched its local file on the Mac; its
+second-device recovery has not been verified. Keep the local originals until
+those recovery checks succeed. Never put recovered credentials in command
+arguments, logs, Git, or chat.
+
+The public GitHub repository has active rulesets that protect version tags and
+prevent deletion and non-fast-forward updates of `main`. Fast-forward pushes to
+`main` remain allowed. A `release` environment exists with `main` and `v*`
+reference policies. The candidate and staging jobs use it, but it holds no
+secrets. These rules do not protect workflow changes or secrets. Do not store signing, notarization, or
+Sparkle secrets as repository-wide secrets until release workflow changes and
+secret access are restricted and tested. The signing and staging jobs remain
+disabled.
+
+The environment accepts `main` for recovery dispatches and `v*` tags for
+release runs. The workflow must still verify the exact tag and source commit.
+Reference policies alone do not protect a workflow that can be changed by a
+direct push to `main`. Test the environment rules and protect workflow changes
+before adding credentials or enabling either job.
+
+## Site writer lock component
+
+`scripts/release-lock.py` provides a Cloud Storage lock for a future site
+coordinator. It creates one fixed object with `ifGenerationMatch=0` and
+deletes only the recorded generation. Its journal records the bucket, object,
+owner and operation state before a remote change. A lost response requires
+explicit recovery. Recovery does not retry creation or delete another owner.
+The journal file and its directory are synced before each remote change. If
+sync fails, the command stops without issuing that change. After a failure,
+inspect the journal before recovery because an atomic replacement may already
+have changed its visible state.
+
+The `check` operation compares the journal scope, owner, and generation with
+the current object without changing it. It is a point-in-time check, not an
+atomic guard on a later Hosting write. It cannot stop a writer that bypasses the
+coordinator or a manual lock deletion after the check.
+
+This component has fake-service tests only. It is not connected to the release
+workflow and does not prevent other Firebase writers from bypassing it. Before
+publication, all writers need an enforced coordinator with exclusive Firebase
+credentials and suitable access controls. Do not enable publication based on
+this lock alone. No bucket or IAM policy was created for this component.
+
+On 29 October 2026, the project IAM policy included a human project owner and
+Firebase service agents. A project owner can bypass this lock with direct
+Hosting access. The project had no Cloud Storage buckets at that time. This
+inspection did not establish effective inherited permissions or restrict any
+identity. A coordinator therefore needs both a dedicated lock bucket and an
+enforced publishing path; a cooperative lock alone is not sufficient.
+
+Do not automatically expire or clear a lock. Before manual recovery or release,
+confirm that its writer and any pending remote requests have stopped. Preserve
+the journal and inspect the remote object and generation. An abruptly lost
+runner may also lose its journal and require manual investigation. Never remove
+an unfamiliar lock to unblock a release.

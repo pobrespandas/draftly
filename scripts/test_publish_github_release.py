@@ -1,5 +1,5 @@
 """Test release publication control without changing GitHub or Firebase."""
-import gzip
+import base64
 import hashlib
 import importlib.util
 import io
@@ -70,16 +70,21 @@ class PublicationTests(unittest.TestCase):
                       "candidate.json": self.candidate / "candidate.json", "appcast.xml": self.staged / "appcast.xml"}
         self.client = FinalizedHosting()
         self.client.staged_config = self.client.config
-        digest = hashlib.sha256(gzip.compress(b"signed feed", mtime=0)).hexdigest()
+        compressed = publisher.firebase.compress_feed(b"signed feed")
+        publisher.firebase.payload_path(self.staged / "firebase-journal.json").write_bytes(compressed)
+        digest = hashlib.sha256(compressed).hexdigest()
         self.client.staged_files = dict(self.client.live_files, **{"/appcast.xml": digest})
         self.receipt = {"baseVersion": OLD, "stagedVersion": NEW,
-                        "preservedFiles": len(self.client.live_files), "appcastHash": digest}
+                        "preservedFiles": len(self.client.live_files), "appcastHash": digest, "websiteHashes": {}}
+        (self.staged / "firebase-journal.json").write_text(json.dumps({"state": "finalized", "baseVersion": OLD,
+            "stagedVersion": NEW, "websitePayloads": {}}))
         self.github = FakeGitHub(self.paths)
         self.downloads = []
         inspect = patch.object(publisher.github_stage, "inspect_inputs", return_value={})
         source = patch.object(publisher.github_stage.prepare.release, "source_commit", return_value=COMMIT)
-        inspect.start(); source.start()
-        self.addCleanup(inspect.stop); self.addCleanup(source.stop)
+        site_source = patch.object(publisher.firebase.site_overlay, "read_git_tree", return_value={"/index.html": b"site"})
+        inspect.start(); source.start(); site_source.start()
+        self.addCleanup(inspect.stop); self.addCleanup(source.stop); self.addCleanup(site_source.stop)
 
     def stage_draft(self, candidate, staged, notes, secret, *, github):
         return {"tag": TAG, "sha256": self.digest, "draft": github.item["draft"]}
@@ -98,6 +103,62 @@ class PublicationTests(unittest.TestCase):
         self.assertEqual(self.github.calls, [])
         self.assertEqual(self.client.calls, [])
 
+    def test_publication_requires_website_checkpoint_even_with_no_changes(self):
+        del self.receipt["websiteHashes"]
+        with self.assertRaisesRegex(ValueError, "website receipt"):
+            self.run_publish()
+        self.assertNotIn("publish", self.github.calls)
+
+    def test_rejects_missing_or_tampered_staged_payload_before_publication(self):
+        payload = publisher.firebase.payload_path(self.staged / "firebase-journal.json")
+        original = payload.read_bytes()
+        for value in (b"invalid", publisher.firebase.compress_feed(b"different feed")):
+            payload.write_bytes(value)
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                self.run_publish()
+            self.assertNotIn("publish", self.github.calls)
+        payload.unlink()
+        with self.assertRaises((ValueError, OSError)):
+            self.run_publish()
+        self.assertNotIn("publish", self.github.calls)
+        payload.write_bytes(original)
+
+    def test_website_overlay_is_checked_against_source_and_staged_files(self):
+        data = b"updated index"
+        compressed = publisher.firebase.compress_feed(data)
+        digest = hashlib.sha256(compressed).hexdigest()
+        self.client.staged_files["/index.html"] = digest
+        self.receipt["websiteHashes"] = {"/index.html": digest}
+        journal = {"state": "finalized", "baseVersion": OLD, "stagedVersion": NEW,
+                   "websitePayloads": {"/index.html": {"hash": digest,
+                       "data": base64.b64encode(compressed).decode("ascii")}}}
+        (self.staged / "firebase-journal.json").write_text(json.dumps(journal))
+        with patch.object(publisher.firebase.site_overlay, "read_git_tree", return_value={"/index.html": data}):
+            result = self.run_publish()
+        self.assertEqual(result["releaseId"], 42)
+
+    def test_website_receipt_cannot_remove_index_page(self):
+        self.receipt["websiteHashes"] = {"/index.html": None}
+        self.client.staged_files.pop("/index.html")
+        with self.assertRaisesRegex(ValueError, "no index"):
+            publisher.validate_site(self.client, self.receipt, b"signed feed",
+                                    publisher.firebase.compress_feed(b"signed feed"))
+        self.assertNotIn("publish", self.github.calls)
+
+    def test_website_overlay_rejects_payload_not_matching_source(self):
+        compressed = publisher.firebase.compress_feed(b"not the source")
+        digest = hashlib.sha256(compressed).hexdigest()
+        self.client.staged_files["/index.html"] = digest
+        self.receipt["websiteHashes"] = {"/index.html": digest}
+        journal = {"state": "finalized", "baseVersion": OLD, "stagedVersion": NEW,
+                   "websitePayloads": {"/index.html": {"hash": digest,
+                       "data": base64.b64encode(compressed).decode("ascii")}}}
+        (self.staged / "firebase-journal.json").write_text(json.dumps(journal))
+        with patch.object(publisher.firebase.site_overlay, "read_git_tree", return_value={"/index.html": b"source"}):
+            with self.assertRaisesRegex(ValueError, "website payload"):
+                self.run_publish()
+        self.assertNotIn("publish", self.github.calls)
+
     def test_publishes_only_after_site_check_and_verifies_all_public_assets(self):
         result = self.run_publish()
         self.assertEqual(result["releaseId"], 42)
@@ -107,6 +168,11 @@ class PublicationTests(unittest.TestCase):
                             for url, _, _ in self.downloads))
         self.assertEqual(json.loads((self.candidate / "PUBLIC_VERIFIED.json").read_text()), result)
         self.assertFalse(any("/releases" in path for _, path, _, _ in self.client.calls))
+
+    def test_publication_uses_saved_payload_without_recompression(self):
+        with patch.object(publisher.firebase, "compress_feed", side_effect=AssertionError("must use saved bytes")):
+            result = self.run_publish()
+        self.assertEqual(result["releaseId"], 42)
 
     def test_interrupted_public_download_can_resume_without_republishing(self):
         def fail(url, size, digest):

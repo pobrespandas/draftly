@@ -10,7 +10,7 @@ if [[ "${GITHUB_ACTIONS:-}" != "true" || "${RUNNER_ENVIRONMENT:-}" != "github-ho
 fi
 for name in RUNNER_TEMP RELEASE_TAG DRAFTLY_DEVELOPER_ID_PROFILE DRAFTLY_SPARKLE_PUBLIC_KEY \
     APPLE_DEVELOPER_ID_P12_B64 APPLE_DEVELOPER_ID_P12_PASSWORD APPLE_DEVELOPER_ID_PROFILE_B64 \
-    APPLE_NOTARY_API_KEY_B64 APPLE_NOTARY_KEY_ID; do
+    APPLE_NOTARY_API_KEY_B64 APPLE_NOTARY_KEY_ID APPLE_NOTARY_ISSUER_ID; do
     if [[ -z "${!name:-}" ]]; then
         echo "Release signing configuration is incomplete: $name." >&2
         exit 1
@@ -20,6 +20,7 @@ if [[ ! "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]
     echo "The release tag is invalid." >&2
     exit 1
 fi
+python3 scripts/release-toolchain.py
 python3 - <<'PY'
 import base64, os
 try:
@@ -72,15 +73,20 @@ if [[ -e "$profile_path" || -L "$profile_path" ]]; then
     exit 1
 fi
 python3 - "$workdir/profile.provisionprofile" "$profile_path" <<'PY'
-import shutil, sys
-with open(sys.argv[1], 'rb') as source, open(sys.argv[2], 'xb') as target:
-    shutil.copyfileobj(source, target)
+import os, shutil, sys
+with open(sys.argv[1], 'rb') as source:
+    target = open(sys.argv[2], 'xb')
+    try:
+        with target:
+            shutil.copyfileobj(source, target)
+    except BaseException:
+        os.unlink(sys.argv[2])
+        raise
 PY
 profile_owned=1
 
 printf '%s' "$APPLE_NOTARY_API_KEY_B64" | base64 -D > "$workdir/notary.p8"
-notary_options=(--key "$workdir/notary.p8" --key-id "$APPLE_NOTARY_KEY_ID" --keychain "$keychain")
-if [[ -n "${APPLE_NOTARY_ISSUER_ID:-}" ]]; then notary_options+=(--issuer "$APPLE_NOTARY_ISSUER_ID"); fi
+notary_options=(--key "$workdir/notary.p8" --key-id "$APPLE_NOTARY_KEY_ID" --issuer "$APPLE_NOTARY_ISSUER_ID" --keychain "$keychain")
 xcrun notarytool store-credentials "Draftly Release CI" "${notary_options[@]}"
 
 # The build and its tools do not need the original CI secret values.
