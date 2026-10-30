@@ -141,8 +141,63 @@ class FirebaseStageTests(unittest.TestCase):
     def test_read_only_snapshot_captures_all_files_and_config(self):
         client = FakeHosting()
         result = firebase.snapshot(client)
-        self.assertEqual(result, {"version": OLD, "config": client.config, "files": client.live_files})
+        self.assertEqual(result, {"version": OLD, "config": client.config, "files": client.live_files, "siteSourceCommit": None})
         self.assertTrue(all(method == "GET" for method, _, _, _ in client.calls))
+
+    def test_site_base_uses_recorded_source_and_limits_bootstrap_to_first_release(self):
+        live = {"files": {"/index.html": "a" * 64}, "siteSourceCommit": None}
+        self.assertEqual(firebase.site_base_commit(live, "b" * 40), "b" * 40)
+        live["files"]["/appcast.xml"] = "c" * 64
+        with self.assertRaisesRegex(ValueError, "no source checkpoint"):
+            firebase.site_base_commit(live, "b" * 40)
+        live["siteSourceCommit"] = "d" * 40
+        self.assertEqual(firebase.site_base_commit(live, "b" * 40), "d" * 40)
+
+    def test_staging_records_source_and_recovery_cannot_change_it(self):
+        client = FakeHosting()
+        data = self.feed(("0.1.0", "1"))
+        journal = self.root / "journal.json"
+        website = ({"/index.html": b"same"}, {"/index.html": b"same"}, lambda *args: b"same")
+        source = {"base": "a" * 40, "target": "b" * 40}
+        result = firebase.stage(client, OLD, data, self.public, releases=[], current_feed=None,
+                                journal=journal, website=website, website_source=source)
+        self.assertEqual(result["websiteSource"], source)
+        self.assertEqual(client.staged_labels["draftly-site-source"], source["target"])
+        before = len(client.calls)
+        with self.assertRaisesRegex(ValueError, "source commits do not match"):
+            firebase.stage(client, OLD, data, self.public, releases=[], current_feed=None,
+                journal=journal, resume=True, website=website, website_source={"base": "c" * 40, "target": "b" * 40})
+        self.assertTrue(all(call[0] == "GET" for call in client.calls[before:]))
+
+    def test_publication_checks_recorded_website_source(self):
+        spec = importlib.util.spec_from_file_location("publisher_provenance", Path(__file__).with_name("publish-github-release.py"))
+        publisher = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(publisher)
+        client = FakeHosting()
+        data = self.feed(("0.1.0", "1"))
+        journal = self.root / "firebase-journal.json"
+        website = ({"/index.html": b"same"}, {"/index.html": b"same"}, lambda *args: b"same")
+        source = {"base": "a" * 40, "target": "b" * 40}
+        receipt = firebase.stage(client, OLD, data, self.public, releases=[], current_feed=None,
+                                 journal=journal, website=website, website_source=source)
+        self.assertEqual(publisher.validate_site(client, receipt, data, firebase.compress_feed(data)), "staged")
+        with patch.object(publisher.firebase.site_overlay, "read_git_tree", return_value={"/index.html": b"same"}):
+            publisher.verify_website_checkpoint(self.root, receipt, source["target"])
+        with self.assertRaisesRegex(ValueError, "match the candidate"):
+            publisher.verify_website_checkpoint(self.root, receipt, "c" * 40)
+        client.staged_labels["draftly-site-source"] = "c" * 40
+        with self.assertRaisesRegex(ValueError, "source differs"):
+            publisher.validate_site(client, receipt, data, firebase.compress_feed(data))
+
+    def test_snapshot_rejects_invalid_source_provenance(self):
+        class InvalidSource(FakeHosting):
+            def request(self, method, path, body=None, **kwargs):
+                value = super().request(method, path, body, **kwargs)
+                if path == OLD:
+                    value["labels"] = {"draftly-site-source": "invalid"}
+                return value
+        with self.assertRaisesRegex(ValueError, "source label"):
+            firebase.snapshot(InvalidSource())
 
     def test_file_listing_uses_all_pages_and_rejects_repeated_paths(self):
         class Pages:

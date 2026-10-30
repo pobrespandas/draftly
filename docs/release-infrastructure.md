@@ -17,7 +17,7 @@ created. Trust requires all of these token claims:
 - Repository ID `1424482652` and owner ID `122828663`.
 - Ref `refs/heads/main`.
 - Workflow `pobrespandas/draftly/.github/workflows/release.yml@refs/heads/main`.
-- Subject `repo:pobrespandas/draftly:environment:release`.
+- Immutable subject `repo:pobrespandas@122828663/draftly@1424482652:environment:release`.
 - Event `workflow_dispatch` and a GitHub-hosted runner.
 
 Only this repository identity can impersonate the service account through the
@@ -53,7 +53,7 @@ it. Routine Draftly site writes must use the publishing workflow.
 
 Environment negative run `41003440674` rejected the work branch before any
 steps ran. Positive OIDC authentication and the actual lock acquire/check/release
-cycle still need verification. After integrating the workflow, dispatch
+cycle passed in hosted run `41005402427`. After integrating the workflow, dispatch
 `release.yml` on main with `operation=verify-publisher` and no tag or recovery
 run ID. This job uses no signing secrets. It inspects Hosting, exercises the
 lock, and saves its journal. It does not publish a site version.

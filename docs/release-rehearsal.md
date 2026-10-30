@@ -419,3 +419,16 @@ Use `operation=verify-publisher` on main, without a tag, to check the federated
 identity and lock without signing or publication. This is a separate job from
 candidate creation. See [release infrastructure](release-infrastructure.md)
 for the current access controls and remaining real checks.
+
+## Website source checkpoints
+
+Each coordinated staged version records its target Git commit in the Firebase
+`draftly-site-source` label and both source commits in the journal and receipt.
+Publication checks these values against the candidate. Recovery must use the
+original source commits. It cannot replace them with current environment values.
+
+A new run reads the base source from the live version. The bootstrap variable
+`DRAFTLY_SITE_BASE_COMMIT` is used only when no source label and no public appcast
+exist. It was verified against the initial live site at commit `a955f00`.
+Once a feed exists, a missing or invalid source checkpoint stops the run.
+This prevents a later release from guessing which site source is live.
