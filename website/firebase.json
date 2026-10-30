@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "site": "draftly-pobrespandas",
+    "site": "draftly-pobrespandas-prod",
     "public": "public",
     "ignore": ["firebase.json", "**/.*"]
   }

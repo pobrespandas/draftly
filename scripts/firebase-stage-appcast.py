@@ -24,9 +24,9 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 
 ROOT = Path(__file__).resolve().parent.parent
-SITE = "sites/draftly-pobrespandas"
+SITE = "sites/draftly-pobrespandas-prod"
 API = "https://firebasehosting.googleapis.com/v1beta1/"
-PROJECT = "pobrespandas-home"
+PROJECT = "gen-lang-client-0607406471"
 VERSION_PATTERN = re.compile(re.escape(SITE) + r"/versions/[A-Za-z0-9]+\Z")
 HASH_PATTERN = re.compile(r"[a-f0-9]{64}\Z")
 SIGNATURE_PREFIX = b"<!-- sparkle-signatures:\n"
