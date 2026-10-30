@@ -26,19 +26,27 @@ final class NativeProcessExecutor {
     private var isolatedProcessGroup: pid_t?
     private var onExit: (() -> Void)?
     private let afterLaunch: (@MainActor (pid_t) -> Void)?
+    private let probeGroup: @MainActor (pid_t) -> Int32
 
     init(process: Process, now: @escaping @MainActor () -> Date = Date.init,
          onIsolationFailure: (@MainActor (pid_t, pid_t, Int32) -> Void)? = nil,
-         afterLaunch: (@MainActor (pid_t) -> Void)? = nil) {
+         afterLaunch: (@MainActor (pid_t) -> Void)? = nil,
+         probeGroup: @escaping @MainActor (pid_t) -> Int32 = { pid in
+             Darwin.kill(-pid, 0) == 0 ? 0 : errno
+         }) {
         self.process = process; self.now = now; self.onIsolationFailure = onIsolationFailure
         self.afterLaunch = afterLaunch
+        self.probeGroup = probeGroup
     }
 
     static func run(_ process: Process, timeout: TimeInterval,
                     now: @escaping @MainActor () -> Date = Date.init,
                     onIsolationFailure: (@MainActor (pid_t, pid_t, Int32) -> Void)? = nil,
-                    afterLaunch: (@MainActor (pid_t) -> Void)? = nil) async throws -> Int32 {
-        let executor = NativeProcessExecutor(process: process, now: now, onIsolationFailure: onIsolationFailure, afterLaunch: afterLaunch)
+                    afterLaunch: (@MainActor (pid_t) -> Void)? = nil,
+                    probeGroup: @escaping @MainActor (pid_t) -> Int32 = { pid in
+                        Darwin.kill(-pid, 0) == 0 ? 0 : errno
+                    }) async throws -> Int32 {
+        let executor = NativeProcessExecutor(process: process, now: now, onIsolationFailure: onIsolationFailure, afterLaunch: afterLaunch, probeGroup: probeGroup)
         return try await executor.run(timeout: timeout)
     }
 
@@ -68,12 +76,11 @@ final class NativeProcessExecutor {
         else if group == -1, groupError == ESRCH, pid > 0, pid != getpgrp() {
             // The parent may exit before Foundation delivers its termination callback.
             // Its process group can still contain descendants.
-            let groupStatus = Darwin.kill(-pid, 0)
-            let probeError = groupStatus == -1 ? errno : 0
-            if groupStatus == 0 { isolatedProcessGroup = pid }
+            let probeError = probeGroup(pid)
+            if probeError == 0 { isolatedProcessGroup = pid }
             else if probeError == ESRCH { parentAndGroupMissing = true }
             else {
-                onIsolationFailure?(pid, group, groupError)
+                onIsolationFailure?(pid, group, probeError)
                 let error = DraftlyError.message("The process group could not be isolated.")
                 interrupt(error)
                 throw error

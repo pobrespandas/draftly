@@ -123,6 +123,7 @@ struct NativeProcessExecutorTests {
 
     @Test(arguments: [9.0, 10.0])
     func exitedParentWithoutGroupStillUsesTheFinalDeadline(elapsed: Double) async throws {
+        // Control the group probe: macOS can return EPERM after the parent exits.
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/true")
         let start = Date(timeIntervalSinceReferenceDate: 100)
@@ -139,13 +140,32 @@ struct NativeProcessExecutorTests {
                 let deadline = ContinuousClock.now + .seconds(2)
                 while getpgid(pid) != -1, ContinuousClock.now < deadline { usleep(1000) }
                 sawMissingParent = getpgid(pid) == -1 && errno == ESRCH
-            })
+            }, probeGroup: { _ in ESRCH })
             #expect(elapsed < 10 && status == 0)
         } catch {
             #expect(elapsed >= 10 && error as? ActionExecutionInterruption == .timeout,
                     Comment(rawValue: "Unexpected process error at \(elapsed) seconds: \(String(reflecting: error)); \(isolation)"))
         }
         #expect(sawMissingParent)
+        #expect(!process.isRunning && process.terminationHandler == nil)
+    }
+
+    @Test func inaccessibleGroupAfterParentExitFailsExplicitly() async throws {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/true")
+        var probeError: Int32?
+        do {
+            _ = try await NativeProcessExecutor.run(process, timeout: 10, onIsolationFailure: { _, _, error in
+                probeError = error
+            }, afterLaunch: { pid in
+                let deadline = ContinuousClock.now + .seconds(2)
+                while getpgid(pid) != -1, ContinuousClock.now < deadline { usleep(1000) }
+            }, probeGroup: { _ in EPERM })
+            Issue.record("An inaccessible process group returned success.")
+        } catch {
+            #expect(error.localizedDescription == "The process group could not be isolated.")
+        }
+        #expect(probeError == EPERM)
         #expect(!process.isRunning && process.terminationHandler == nil)
     }
 
@@ -160,7 +180,7 @@ struct NativeProcessExecutorTests {
                 while getpgid(pid) != -1, ContinuousClock.now < deadline { usleep(1000) }
                 sawMissingParent = getpgid(pid) == -1 && errno == ESRCH
                 task?.cancel()
-            })
+            }, probeGroup: { _ in ESRCH })
         }
         do { _ = try await #require(task).value; Issue.record("A cancelled execution returned success.") }
         catch { #expect(error is CancellationError) }

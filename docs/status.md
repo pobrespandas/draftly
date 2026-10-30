@@ -3926,8 +3926,15 @@ or change the site.
 The Draftly Hosting destination is now configured as project
 `gen-lang-client-0607406471`, site `draftly-pobrespandas-prod`. The current
 public site was cloned to that destination and selected public files matched.
-The custom domain still points to the old project until the DNS migration.
+The three custom domains now have active ownership, hosting and certificates
+in the destination project. Their HTTPS home pages match the new sites.
 Appcast staging, website settings and workflow authentication use the same
 new project. The focused staging, workflow policy and website tests passed.
-Publication remains disabled; DNS, credentials and real release acceptance
-are pending.
+Publication remains disabled; credentials and real release acceptance remain
+pending.
+
+The native process deadline tests now control the group probe after the parent
+exits. On macOS the real probe can return EPERM, so a separate test verifies
+that this result remains an explicit isolation error. The diagnostic callback
+now reports the probe error. This does not establish why the real probe returns
+EPERM or change the production response to that error.
