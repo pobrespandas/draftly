@@ -262,16 +262,18 @@ jobs:
           if [[ -n "$RESUME_RUN_ID" ]]; then
             test -f "$journal"
             base=$(python -c 'import json,sys; print(json.load(open(sys.argv[1]))["baseVersion"])' "$journal")
+            site_base=$(python -c 'import json,sys; print(json.load(open(sys.argv[1]))["websiteSource"]["base"])' "$journal")
             python scripts/firebase-stage-appcast.py --appcast "$stage_dir/appcast.xml" \
               --public-key "$DRAFTLY_SPARKLE_PUBLIC_KEY" --expected-version "$base" \
-              --journal "$journal" --site-base "$DRAFTLY_SITE_BASE_COMMIT" \
+              --journal "$journal" --site-base "$site_base" \
               --site-target "$site_target" --resume > "$receipt"
           else
-            python scripts/firebase-stage-appcast.py --inspect > "$RUNNER_TEMP/firebase-live.json"
+            python scripts/firebase-stage-appcast.py --inspect --bootstrap-site-base "$DRAFTLY_SITE_BASE_COMMIT" > "$RUNNER_TEMP/firebase-live.json"
             base=$(python -c 'import json,sys; print(json.load(open(sys.argv[1]))["liveVersion"])' "$RUNNER_TEMP/firebase-live.json")
+            site_base=$(python -c 'import json,sys; print(json.load(open(sys.argv[1]))["siteBaseCommit"])' "$RUNNER_TEMP/firebase-live.json")
             python scripts/firebase-stage-appcast.py --appcast "$stage_dir/appcast.xml" \
               --public-key "$DRAFTLY_SPARKLE_PUBLIC_KEY" --expected-version "$base" \
-              --journal "$journal" --site-base "$DRAFTLY_SITE_BASE_COMMIT" \
+              --journal "$journal" --site-base "$site_base" \
               --site-target "$site_target" > "$receipt"
           fi
           mv "$receipt" "$stage_dir/firebase-receipt.json"

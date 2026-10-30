@@ -3990,3 +3990,12 @@ The default compute Editor binding was removed after an empty workload and
 user-key inventory. The project owner retains administrative recovery access.
 Positive hosted authentication and locking remain unverified. The separate
 publisher-check job can verify them on main without signing secrets.
+
+PR #3 passed hosted CI run 41004461420 and merged into main at 6cc056a.
+The secret-free publisher check is running as 41005246265. Website staging
+now records its source commits in the version, journal and receipt. Future
+runs use the live source checkpoint; the bootstrap source is limited to the
+first publication. Recovery and publication reject changed provenance. All
+256 Python tests passed locally. Current-site inspection found only index.html
+and release.mjs pending, with no deletions. This source-checkpoint change is
+not yet integrated or exercised against a real staged release.

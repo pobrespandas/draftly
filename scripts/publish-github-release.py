@@ -81,6 +81,11 @@ def validate_site(client, receipt, feed, compressed):
     if (details.get("name") != staged or details.get("status") != "FINALIZED"
             or details.get("config", {}) != base_config):
         raise ValueError("The staged Firebase configuration is invalid.")
+    source = receipt.get("websiteSource")
+    if source is not None:
+        labels = details.get("labels", {})
+        if not isinstance(source, dict) or not isinstance(labels, dict) or labels.get("draftly-site-source") != source.get("target"):
+            raise ValueError("The staged website source differs from its receipt.")
     if live["version"] == staged and (live["files"] != expected or live["config"] != base_config):
         raise ValueError("The promoted Firebase version does not match the receipt.")
     if firebase.snapshot(client)["version"] != live["version"]:
@@ -100,6 +105,13 @@ def verify_website_checkpoint(staged, receipt, commit):
             or checkpoint.get("baseVersion") != receipt.get("baseVersion")
             or checkpoint.get("stagedVersion") != receipt.get("stagedVersion")):
         raise ValueError("The website staging journal does not match the receipt.")
+    source_commits = receipt.get("websiteSource")
+    if checkpoint.get("websiteSource") != source_commits:
+        raise ValueError("The website source commits differ from the staging journal.")
+    if source_commits is not None and (not isinstance(source_commits, dict)
+            or set(source_commits) != {"base", "target"} or source_commits.get("target") != commit
+            or any(not isinstance(v, str) or not re.fullmatch(r"[a-f0-9]{40}", v) for v in source_commits.values())):
+        raise ValueError("The website source commits do not match the candidate.")
     saved = checkpoint.get("websitePayloads")
     if not isinstance(saved, dict) or set(saved) != set(website):
         raise ValueError("The saved website payloads do not match the receipt.")

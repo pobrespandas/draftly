@@ -193,7 +193,24 @@ def snapshot(client):
     count = details.get("fileCount")
     if count is not None and (not str(count).isdigit() or int(count) != len(files)):
         raise ValueError("The live Firebase file count is inconsistent.")
-    return {"version": version, "config": config, "files": files}
+    labels = details.get("labels", {})
+    if not isinstance(labels, dict):
+        raise ValueError("The live website source label is invalid.")
+    source = labels.get("draftly-site-source")
+    if source is not None and (not isinstance(source, str) or not re.fullmatch(r"[a-f0-9]{40}", source)):
+        raise ValueError("The live website source label is invalid.")
+    return {"version": version, "config": config, "files": files, "siteSourceCommit": source}
+
+
+def site_base_commit(live, bootstrap):
+    source = live.get("siteSourceCommit")
+    if source is None:
+        if "/appcast.xml" in live["files"]:
+            raise ValueError("The published site has no source checkpoint. Inspect it before continuing.")
+        source = bootstrap
+    if not isinstance(source, str) or not re.fullmatch(r"[a-f0-9]{40}", source):
+        raise ValueError("A valid website source commit is required.")
+    return source
 
 
 def write_journal(path, data, *, new=False):
@@ -261,7 +278,7 @@ def decode_website_payload(entry, content):
     return encoded
 
 
-def stage(client, expected_version, feed, public_key, *, releases=None, current_feed=None, journal=None, resume=False, website=None):
+def stage(client, expected_version, feed, public_key, *, releases=None, current_feed=None, journal=None, resume=False, website=None, website_source=None):
     if resume and journal is None:
         raise ValueError("Recovery needs a Firebase staging journal.")
     checkpoint = None
@@ -275,6 +292,12 @@ def stage(client, expected_version, feed, public_key, *, releases=None, current_
                 raise ValueError("The Firebase staging outcome is unknown. Inspect Firebase before retrying.")
         elif journal.exists() or journal.is_symlink():
             raise ValueError("The Firebase staging journal already exists. Use recovery.")
+    if website_source is not None and (website is None or not isinstance(website_source, dict)
+            or set(website_source) != {"base", "target"}
+            or any(not isinstance(v, str) or not re.fullmatch(r"[a-f0-9]{40}", v) for v in website_source.values())):
+        raise ValueError("The website source commits are invalid.")
+    if resume and checkpoint.get("websiteSource") != website_source:
+        raise ValueError("The website source commits do not match the staging journal.")
     new_versions = verify_feed(feed, public_key)
     live = snapshot(client)
     if live["version"] != expected_version:
@@ -357,6 +380,8 @@ def stage(client, expected_version, feed, public_key, *, releases=None, current_
                       "preservedFiles": len(live["files"]), "appcastHash": digest}
         if website is not None:
             checkpoint["websitePayloads"] = website_payloads
+        if website_source is not None:
+            checkpoint["websiteSource"] = website_source
         if journal is not None:
             payload = payload_path(journal)
             saved = payload.open("xb")
@@ -371,8 +396,10 @@ def stage(client, expected_version, feed, public_key, *, releases=None, current_
             except BaseException:
                 payload.unlink(missing_ok=True)
                 raise
-        created = client.request("POST", SITE + "/versions", {"config": live["config"],
-                                 "labels": {"draftly-operation": operation}})
+        labels = {"draftly-operation": operation}
+        if website_source is not None:
+            labels["draftly-site-source"] = website_source["target"]
+        created = client.request("POST", SITE + "/versions", {"config": live["config"], "labels": labels})
         staged = created.get("name")
     if not isinstance(staged, str) or not VERSION_PATTERN.fullmatch(staged) or staged == live["version"]:
         raise ValueError("Firebase returned an invalid staged version.")
@@ -386,6 +413,8 @@ def stage(client, expected_version, feed, public_key, *, releases=None, current_
             or not isinstance(labels, dict) or labels.get("draftly-operation") != checkpoint["operation"]
             or details.get("status") not in ("CREATED", "FINALIZED")):
         raise ValueError("The Firebase staged version does not match its journal.")
+    if website_source is not None and labels.get("draftly-site-source") != website_source["target"]:
+        raise ValueError("The staged website source does not match its journal.")
     if details["status"] == "CREATED":
         entries = list(files.items())
         for start in range(0, len(entries), 1000):
@@ -421,11 +450,14 @@ def stage(client, expected_version, feed, public_key, *, releases=None, current_
     if website is not None:
         result["websiteHashes"] = {path: entry["hash"] if entry is not None else None
                                    for path, entry in website_payloads.items()}
+    if website_source is not None:
+        result["websiteSource"] = website_source
     return result
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--bootstrap-site-base", help="Initial website source when no published appcast exists.")
     parser.add_argument("--inspect", action="store_true", help="Inspect the live version without changing Firebase.")
     parser.add_argument("--appcast", help="Signed appcast to stage.")
     parser.add_argument("--public-key", help="Base64 Ed25519 public key from the app.")
@@ -441,8 +473,13 @@ def main():
             if args.appcast or args.public_key or args.expected_version or args.journal or args.resume or args.site_base or args.site_target:
                 raise ValueError("Inspect does not accept staging options.")
             live = snapshot(client)
-            result = {"liveVersion": live["version"], "fileCount": len(live["files"]), "hasAppcast": "/appcast.xml" in live["files"]}
+            result = {"liveVersion": live["version"], "fileCount": len(live["files"]), "hasAppcast": "/appcast.xml" in live["files"],
+                      "siteSourceCommit": live["siteSourceCommit"]}
+            if args.bootstrap_site_base is not None:
+                result["siteBaseCommit"] = site_base_commit(live, args.bootstrap_site_base)
         else:
+            if args.bootstrap_site_base is not None:
+                raise ValueError("The bootstrap source is only valid for inspection.")
             if not args.appcast or not args.public_key or not args.expected_version or not args.journal:
                 raise ValueError("Staging needs an appcast, public key, expected live version, and journal.")
             if bool(args.site_base) != bool(args.site_target):
@@ -457,7 +494,8 @@ def main():
                 target = site_overlay.read_git_tree(ROOT, args.site_target)
                 website = (base, target, lambda path, digest: site_overlay.fetch_public(NoRedirect, path, digest))
             result = stage(client, args.expected_version, Path(args.appcast).read_bytes(), args.public_key,
-                           journal=args.journal, resume=args.resume, website=website)
+                           journal=args.journal, resume=args.resume, website=website,
+                           website_source={"base": args.site_base, "target": args.site_target} if website is not None else None)
         print(json.dumps(result, indent=2))
     except (ValueError, OSError, subprocess.SubprocessError) as error:
         raise SystemExit("Firebase appcast staging failed: " + str(error))
