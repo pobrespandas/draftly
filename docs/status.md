@@ -3271,3 +3271,12 @@ without rewriting either history. The complete Swift inventory passed: 759
 Core and 925 application tests. All 167 Python tests, the matrix structural
 check, and the local app build passed. This does not publish the site or prove
 Developer ID signing, Sparkle updates, or CloudKit Production.
+The macOS 27-only model and menu APIs require the compiler that provides them.
+Builds made with the older SDK do not expose Private Cloud Compute mode.
+
+Core tests run serially on hosted CI because concurrent load caused unrelated
+waits and loopback requests to expire. No retry or deadline change is used.
+
+Panel layout uses split container widths and accounts for the native sidebar
+inset. The panel suite passed locally and in hosted CI on the release branch.
+Manual divider dragging and resizing remain unverified.

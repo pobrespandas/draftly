@@ -80,6 +80,15 @@ class SwiftResultVerificationTests(unittest.TestCase):
                 self.assertEqual(command.call_count, 1)
                 self.assertEqual("--no-parallel" in command.call_args.args[0], not concurrent)
 
+    def test_core_tests_run_serially_even_when_app_diagnostics_are_concurrent(self):
+        for concurrent in [False, True]:
+            with patch.object(runner.subprocess, "run", return_value=CompletedProcess([], 7)) as command:
+                with self.assertRaisesRegex(ValueError, "Swift tests failed"):
+                    runner.run_target("DraftlyCoreTests", self.expected, Path(self.folder.name),
+                                      concurrent_app=concurrent)
+                self.assertEqual(command.call_count, 1)
+                self.assertIn("--no-parallel", command.call_args.args[0])
+
     def test_inventory_ignores_build_noise_but_requires_unique_test_ids(self):
         output = "Building for debugging...\n" + "\n".join(sorted(self.expected))
         self.assertEqual(runner.test_inventory(output), self.expected)

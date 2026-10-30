@@ -74,6 +74,12 @@ class FakeHosting:
         raise AssertionError("Unexpected request: " + method + " " + path)
 
 
+class FirebaseDestinationTests(unittest.TestCase):
+    def test_staging_targets_migrated_site(self):
+        self.assertEqual(firebase.PROJECT, "gen-lang-client-0607406471")
+        self.assertEqual(firebase.SITE, "sites/draftly-pobrespandas-prod")
+
+
 class FirebaseStageTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(prefix="draftly-firebase-test-")
