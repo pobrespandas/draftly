@@ -474,3 +474,34 @@ The reader still had no records. The probe was stopped after this result;
 no transport pass or timeout acceptance is recorded. Continue this check with
 an isolated, normally launched application that can register background tasks.
 The temporary stores and neutral Production fixtures remain available.
+
+## Active-action update regression on 30 October 2026
+
+The local QA updater found a real termination defect. A neutral asynchronous
+script completed and saved its result. Sparkle still waited for the app to
+exit. ActionTerminationCoordinator scheduled its reply on the default RunLoop
+mode. That mode did not run during the termination wait. The failed QA session
+was stopped explicitly. Its later replacement does not count as a normal
+update pass.
+
+The coordinator now schedules its reply on DispatchQueue.main. A headless test
+runs a common mode without running the default mode. The test failed before
+the fix and passed after it. Existing idle, save-failure and reply-once cases
+also passed. No timeout or retry rule changed.
+
+The manual repeat used a Developer ID signed QA host with this exact fix and
+an existing, different QA destination executable. Both use the isolated
+com.pobrespandas.draftly.updater-qa identity and the same temporary library ID.
+The source host was Debug; the target was the earlier Release QA fixture.
+This is a termination regression check, not notarized release acceptance.
+A signed loopback catalog offered 0.2.0 build 2 to 0.1.0 build 1. The app kept
+build 1 while its ninety-second action was active. After the action completed,
+Sparkle replaced the app and relaunched build 2 without external termination.
+The Unicode editor text, note identity and successful action record survived.
+Computer Use reopened the note and showed the saved action marker.
+The QA app quit normally after the repeat. The loopback server stopped.
+Only the temporary apps were unregistered. The usual app was not replaced.
+
+Full local Swift results matched the inventory: 759 Core and 935 application
+cases. These counts show execution completeness, not API compatibility.
+Public release verification and notarized main-identity update remain pending.

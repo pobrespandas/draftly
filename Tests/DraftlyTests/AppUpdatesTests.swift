@@ -52,6 +52,39 @@ struct ActionTerminationCoordinatorTests {
         #expect(replies == 0)
     }
 
+    @Test func terminationRepliesOutsideTheDefaultRunLoopMode() async {
+        let replies: Int = await withCheckedContinuation { continuation in
+            RunLoop.main.perform(inModes: [.default]) {
+                MainActor.assumeIsolated {
+                    #if compiler(>=6.4)
+                    let mode = CFRunLoopMode(rawValue: "DraftlyTerminationTestMode" as CFString)
+                    #else
+                    let mode = "DraftlyTerminationTestMode" as CFString
+                    #endif
+                    let loop = CFRunLoopGetMain()!
+                    CFRunLoopAddCommonMode(loop, mode)
+                    let port = Port()
+                    RunLoop.main.add(port, forMode: RunLoop.Mode("DraftlyTerminationTestMode"))
+                    defer { port.invalidate() }
+
+                    let changes = PassthroughSubject<Bool, Never>()
+                    let coordinator = ActionTerminationCoordinator()
+                    var busy = true
+                    var count = 0
+                    let reply = coordinator.request(busy: { busy }, changes: changes.eraseToAnyPublisher(),
+                        flush: { true }, reply: { _ in count += 1; CFRunLoopStop(loop) })
+                    #expect(reply == .terminateLater)
+                    busy = false
+                    changes.send(false)
+                    CFRunLoopRunInMode(mode, 1, false)
+                    withExtendedLifetime(coordinator) { continuation.resume(returning: count) }
+                }
+            }
+            CFRunLoopWakeUp(CFRunLoopGetMain())
+        }
+        #expect(replies == 1)
+    }
+
     @Test(arguments: [true, false]) func terminationWaitsForActionAndRepliesOnceAfterSave(saveSucceeds: Bool) async {
         let changes = PassthroughSubject<Bool, Never>()
         let coordinator = ActionTerminationCoordinator()
