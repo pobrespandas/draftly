@@ -2,13 +2,18 @@ name: Release candidate
 
 # This workflow cannot publish. Release signing and publishing need acceptance.
 on:
-  push:
-    tags: ['v*']
   workflow_dispatch:
     inputs:
+      operation:
+        description: Build a release or verify publisher access without signing
+        type: choice
+        default: release
+        options:
+          - release
+          - verify-publisher
       tag:
         description: Existing release tag on the current main commit
-        required: true
+        required: false
         type: string
       resume_run_id:
         description: Run ID that contains the original candidate artifact, for recovery
@@ -23,11 +28,12 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+  RELEASE_TAG: ${{ inputs.tag }}
   RESUME_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.resume_run_id || '' }}
 
 jobs:
   rehearsal:
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.operation == 'release' }}
     runs-on: macos-26
     timeout-minutes: 60
     steps:
@@ -220,16 +226,35 @@ jobs:
           token_format: access_token
           create_credentials_file: false
           export_environment_variables: false
+      - name: Acquire or verify the site writer lock
+        env:
+          DRAFTLY_RELEASE_LOCK_TOKEN: ${{ steps.firebase_auth.outputs.access_token }}
+          LOCK_BUCKET: ${{ vars.DRAFTLY_RELEASE_LOCK_BUCKET }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$LOCK_BUCKET"
+          journal=".build/release-staging/$RELEASE_TAG/site-lock.json"
+          if [[ -n "$RESUME_RUN_ID" ]]; then
+            test -f "$journal"
+            python scripts/release-lock.py check --bucket "$LOCK_BUCKET" --journal "$journal"
+          else
+            python scripts/release-lock.py acquire --bucket "$LOCK_BUCKET" --journal "$journal"
+          fi
       - name: Stage the feed without promoting the site
         env:
           DRAFTLY_FIREBASE_ACCESS_TOKEN: ${{ steps.firebase_auth.outputs.access_token }}
           DRAFTLY_SPARKLE_PUBLIC_KEY: ${{ vars.DRAFTLY_SPARKLE_PUBLIC_KEY }}
           DRAFTLY_SITE_BASE_COMMIT: ${{ vars.DRAFTLY_SITE_BASE_COMMIT }}
+          DRAFTLY_RELEASE_LOCK_TOKEN: ${{ steps.firebase_auth.outputs.access_token }}
+          LOCK_BUCKET: ${{ vars.DRAFTLY_RELEASE_LOCK_BUCKET }}
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
           test -n "$DRAFTLY_SITE_BASE_COMMIT"
+          python scripts/release-lock.py check --bucket "$LOCK_BUCKET" \
+            --journal ".build/release-staging/$RELEASE_TAG/site-lock.json"
           site_target=$(git rev-parse HEAD)
           stage_dir=".build/release-staging/$RELEASE_TAG"
           journal="$stage_dir/firebase-journal.json"
@@ -250,6 +275,55 @@ jobs:
               --site-target "$site_target" > "$receipt"
           fi
           mv "$receipt" "$stage_dir/firebase-receipt.json"
+      - name: Verify and stage the GitHub draft
+        env:
+          DRAFTLY_SPARKLE_PRIVATE_KEY: ${{ secrets.DRAFTLY_SPARKLE_PRIVATE_KEY }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python scripts/stage-github-release.py --candidate ".build/release-candidates/$RELEASE_TAG" \
+            --appcast ".build/release-staging/$RELEASE_TAG" --notes "docs/releases/$RELEASE_TAG.txt"
+      - name: Publish and verify the GitHub assets
+        if: ${{ vars.DRAFTLY_RELEASE_PUBLICATION_ENABLED == 'true' }}
+        env:
+          DRAFTLY_RELEASE_PUBLISH_ENABLED: 'YES'
+          DRAFTLY_FIREBASE_ACCESS_TOKEN: ${{ steps.firebase_auth.outputs.access_token }}
+          DRAFTLY_SPARKLE_PRIVATE_KEY: ${{ secrets.DRAFTLY_SPARKLE_PRIVATE_KEY }}
+          DRAFTLY_RELEASE_LOCK_TOKEN: ${{ steps.firebase_auth.outputs.access_token }}
+          LOCK_BUCKET: ${{ vars.DRAFTLY_RELEASE_LOCK_BUCKET }}
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          stage_dir=".build/release-staging/$RELEASE_TAG"
+          python scripts/release-lock.py check --bucket "$LOCK_BUCKET" --journal "$stage_dir/site-lock.json"
+          python scripts/publish-github-release.py --candidate ".build/release-candidates/$RELEASE_TAG" \
+            --appcast "$stage_dir" --notes "docs/releases/$RELEASE_TAG.txt" \
+            --firebase-receipt "$stage_dir/firebase-receipt.json"
+          cp ".build/release-candidates/$RELEASE_TAG/PUBLIC_VERIFIED.json" "$stage_dir/PUBLIC_VERIFIED.json"
+      - name: Promote and verify the public site
+        if: ${{ vars.DRAFTLY_RELEASE_PUBLICATION_ENABLED == 'true' }}
+        env:
+          DRAFTLY_RELEASE_PUBLISH_ENABLED: 'YES'
+          DRAFTLY_RELEASE_PROMOTION_ENABLED: 'YES'
+          DRAFTLY_FIREBASE_ACCESS_TOKEN: ${{ steps.firebase_auth.outputs.access_token }}
+          DRAFTLY_SPARKLE_PRIVATE_KEY: ${{ secrets.DRAFTLY_SPARKLE_PRIVATE_KEY }}
+          LOCK_BUCKET: ${{ vars.DRAFTLY_RELEASE_LOCK_BUCKET }}
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          stage_dir=".build/release-staging/$RELEASE_TAG"
+          python scripts/promote-firebase-release.py --candidate ".build/release-candidates/$RELEASE_TAG" \
+            --appcast "$stage_dir" --notes "docs/releases/$RELEASE_TAG.txt" \
+            --firebase-receipt "$stage_dir/firebase-receipt.json" \
+            --journal "$stage_dir/promotion-journal.json" \
+            --lock-bucket "$LOCK_BUCKET" --lock-journal "$stage_dir/site-lock.json"
+      - name: Release the writer lock after public verification
+        if: ${{ vars.DRAFTLY_RELEASE_PUBLICATION_ENABLED == 'true' }}
+        env:
+          DRAFTLY_RELEASE_LOCK_TOKEN: ${{ steps.firebase_auth.outputs.access_token }}
+          LOCK_BUCKET: ${{ vars.DRAFTLY_RELEASE_LOCK_BUCKET }}
+        run: python scripts/release-lock.py release --bucket "$LOCK_BUCKET" --journal ".build/release-staging/$RELEASE_TAG/site-lock.json"
       - name: Preserve the staging checkpoint
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
@@ -258,10 +332,54 @@ jobs:
           path: .build/release-staging/${{ env.RELEASE_TAG }}/
           if-no-files-found: ignore
           retention-days: 14
-      - name: Verify and stage the GitHub draft
+
+  verify-publisher:
+    name: Verify publisher identity and lock
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.operation == 'verify-publisher' && inputs.tag == '' && inputs.resume_run_id == '' }}
+    environment: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install verification dependency
+        run: python -m pip install 'cryptography>=44,<46'
+      - name: Authenticate publisher
+        id: firebase_auth
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093
+        with:
+          workload_identity_provider: ${{ vars.DRAFTLY_GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.DRAFTLY_GCP_SERVICE_ACCOUNT }}
+          project_id: gen-lang-client-0607406471
+          token_format: access_token
+          create_credentials_file: false
+          export_environment_variables: false
+      - name: Inspect Hosting and exercise the lock
         env:
-          DRAFTLY_SPARKLE_PRIVATE_KEY: ${{ secrets.DRAFTLY_SPARKLE_PRIVATE_KEY }}
-          GH_TOKEN: ${{ github.token }}
+          DRAFTLY_FIREBASE_ACCESS_TOKEN: ${{ steps.firebase_auth.outputs.access_token }}
+          DRAFTLY_RELEASE_LOCK_TOKEN: ${{ steps.firebase_auth.outputs.access_token }}
+          LOCK_BUCKET: ${{ vars.DRAFTLY_RELEASE_LOCK_BUCKET }}
+        shell: bash
         run: |
-          python scripts/stage-github-release.py --candidate ".build/release-candidates/$RELEASE_TAG" \
-            --appcast ".build/release-staging/$RELEASE_TAG" --notes "docs/releases/$RELEASE_TAG.txt"
+          set -euo pipefail
+          python scripts/firebase-stage-appcast.py --inspect
+          journal="$RUNNER_TEMP/publisher-lock.json"
+          python scripts/release-lock.py acquire --bucket "$LOCK_BUCKET" --journal "$journal"
+          python scripts/release-lock.py check --bucket "$LOCK_BUCKET" --journal "$journal"
+          python scripts/release-lock.py release --bucket "$LOCK_BUCKET" --journal "$journal"
+      - name: Preserve publisher lock recovery state
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: publisher-lock-check
+          path: ${{ runner.temp }}/publisher-lock.json
+          if-no-files-found: ignore
+          retention-days: 14

@@ -3956,3 +3956,37 @@ filters, serial test execution, migrated Hosting target and both histories.
 Local verification passed: 759 Core tests, 934 application tests, 240 Python
 tests, three website tests, matrix checks and swift build. Hosted CI for this
 merge remains pending. Publication and update acceptance remain open.
+
+### Post-merge release acceptance — 30 October 2026
+
+Main CI run 40998090026 produced an incomplete application XML report. The
+log ends during the link theme rendering test without a final result. This
+blocks release acceptance. The focused case and the full 15-test theme suite
+passed locally. CI can now diagnose ThemeRenderingTests on the hosted runner.
+An isolated pass does not replace the required complete inventory.
+
+The final Firebase promotion command now reuses public release verification,
+requires a held site writer lock, and journals the request before changing the
+live version. Recovery observes a completed promotion without repeating the
+POST. Unknown outcomes, changed site data, lost locks and public feed mismatches
+stop acceptance. Nine focused tests and all 249 Python tests passed. This does
+not establish a coordinated production writer, real promotion or publication.
+
+Hosted full run 41002350484 passed after the isolated theme diagnostic. The
+previous post-merge interruption remains unexplained; no retry or deadline
+change was added to the test runner. Main now requires a PR and current macOS
+CI, including for administrators. The release environment permits main only.
+A tag dispatcher has no release secrets and invokes the trusted main workflow;
+rehearsal rejects other source branches. No independent review approval is
+required in this single-maintainer setup. Environment rejection is not yet
+verified by a real negative run. Release jobs remain disabled.
+
+The protected release workflow now connects lock acquisition, staging, public
+GitHub verification, Firebase promotion, final verification and lock release.
+Its checkpoint upload runs last, including after failure. Publication is gated
+by an unset variable. The publisher identity, OIDC pool/provider and private
+lock bucket exist in the destination project. No account key was created.
+The default compute Editor binding was removed after an empty workload and
+user-key inventory. The project owner retains administrative recovery access.
+Positive hosted authentication and locking remain unverified. The separate
+publisher-check job can verify them on main without signing secrets.

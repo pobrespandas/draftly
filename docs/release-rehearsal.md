@@ -1,7 +1,8 @@
 # Release rehearsal
 
-The release workflow checks a candidate source tree when a version tag is
-pushed or when it is started manually. Its rehearsal job has read-only
+A version tag dispatches the release workflow from protected main. The
+release workflow also accepts a manual dispatch on main. It checks the
+candidate source tree before accessing release credentials. Its rehearsal job has read-only
 permissions. It does not create a release or deploy the website.
 
 Use an existing tag in the form `vMAJOR.MINOR.PATCH`. The tag must identify the
@@ -323,19 +324,20 @@ those recovery checks succeed. Never put recovered credentials in command
 arguments, logs, Git, or chat.
 
 The public GitHub repository has active rulesets that protect version tags and
-prevent deletion and non-fast-forward updates of `main`. Fast-forward pushes to
-`main` remain allowed. A `release` environment exists with `main` and `v*`
-reference policies. The candidate and staging jobs use it, but it holds no
-secrets. These rules do not protect workflow changes or secrets. Do not store signing, notarization, or
-Sparkle secrets as repository-wide secrets until release workflow changes and
-secret access are restricted and tested. The signing and staging jobs remain
-disabled.
+prevent deletion and non-fast-forward updates of main. Main requires a pull
+request and a successful current `Build and test on macOS` check, including for
+administrators. The release environment allows only main. It holds no secrets.
+These settings do not provide independent review of workflow changes. Store
+release credentials only as environment secrets after testing the source
+restriction. Signing and staging jobs remain disabled.
 
-The environment accepts `main` for recovery dispatches and `v*` tags for
-release runs. The workflow must still verify the exact tag and source commit.
-Reference policies alone do not protect a workflow that can be changed by a
-direct push to `main`. Test the environment rules and protect workflow changes
-before adding credentials or enabling either job.
+Tags run a dispatcher with no release secrets. It requests the trusted release
+workflow on main. The rehearsal rejects dispatches from other branches before
+any credential job can run. The workflow still verifies the exact tag and
+source commit. The environment has no required reviewer, so a valid release
+can run automatically. Main requires zero independent approvals for this
+single-maintainer repository; the maintainer must inspect workflow changes.
+Test the environment restriction before adding credentials or enabling jobs.
 
 ## Site writer lock component
 
@@ -354,8 +356,9 @@ the current object without changing it. It is a point-in-time check, not an
 atomic guard on a later Hosting write. It cannot stop a writer that bypasses the
 coordinator or a manual lock deletion after the check.
 
-This component has fake-service tests only. It is not connected to the release
-workflow and does not prevent other Firebase writers from bypassing it. Before
+This component has fake-service tests. The release workflow now holds it from
+Firebase staging through public verification. Other Firebase writers can still
+bypass it unless IAM restricts the publishing path. Before
 publication, all writers need an enforced coordinator with exclusive Firebase
 credentials and suitable access controls. Do not enable publication based on
 this lock alone. No bucket or IAM policy was created for this component.
@@ -372,3 +375,47 @@ confirm that its writer and any pending remote requests have stopped. Preserve
 the journal and inspect the remote object and generation. An abruptly lost
 runner may also lose its journal and require manual investigation. Never remove
 an unfamiliar lock to unblock a release.
+
+## Promote the verified site
+
+`scripts/promote-firebase-release.py` requires an existing public GitHub release,
+a matching `PUBLIC_VERIFIED.json`, the signed appcast and its staging receipt.
+It reuses candidate, public-asset and site verification before promotion. It
+requires the held site writer lock and checks ownership before the request and
+before acceptance. The coordinator must keep that lock for the whole release.
+The lock check does not prevent a writer that bypasses the coordinator.
+
+The command writes a durable pending journal before the Firebase release POST.
+If the response is lost, recovery can verify an already-promoted version without
+another POST. If the original version remains live, recovery stops: the earlier
+request can still be in flight. Inspect Firebase and stop all pending writers
+before further action. A public-feed mismatch leaves the journal pending.
+The command marks completion only after Firebase and the public HTTPS appcast
+match the verified release. It does not release the writer lock.
+
+Set `DRAFTLY_RELEASE_PROMOTION_ENABLED=YES` only after release acceptance.
+The command also requires the existing publication flag and credentials. Pass
+`--candidate`, `--appcast`, `--notes`, `--firebase-receipt`, `--journal`,
+`--lock-bucket` and `--lock-journal`. Keep journals outside Git. This component
+has fake-service tests; the production coordinator and real promotion remain
+unverified. See the official [Firebase release API](https://firebase.google.com/docs/reference/hosting/rest/v1beta1/sites.releases/create).
+
+## Coordinated publication workflow
+
+The protected main workflow can now publish the verified GitHub draft and
+promote its matching Firebase version. Set
+`DRAFTLY_RELEASE_PUBLICATION_ENABLED=true` only after acceptance. The staging
+job acquires the site lock before creating Firebase versions. Publication
+rechecks the lock, candidate, public assets and live site. Promotion verifies
+the public HTTPS feed. The workflow releases the lock only after that step
+succeeds. The final checkpoint upload runs even after failure.
+
+A staging-only run keeps the lock for inspection. A recovery run verifies the
+original held lock; it does not silently create a new one. If the journal has
+an uncertain create or release, use the lock recovery procedure before
+continuing. The workflow does not automatically expire or delete a stale lock.
+
+Use `operation=verify-publisher` on main, without a tag, to check the federated
+identity and lock without signing or publication. This is a separate job from
+candidate creation. See [release infrastructure](release-infrastructure.md)
+for the current access controls and remaining real checks.

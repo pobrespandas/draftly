@@ -107,7 +107,7 @@ def main():
                         help="Keep logs and XML in this directory. Default: temporary files.")
     parser.add_argument("--concurrent-app", action="store_true",
                         help="Diagnose concurrent AppKit tests. Default: serial app tests.")
-    parser.add_argument("--diagnostic-suite", choices=["LibrarySplitViewTests", "TypewriterScrollingTests"],
+    parser.add_argument("--diagnostic-suite", choices=["LibrarySplitViewTests", "TypewriterScrollingTests", "ThemeRenderingTests"],
                         help="Run one suite for diagnosis, not release acceptance.")
     args = parser.parse_args()
     temporary = args.output_dir is None
