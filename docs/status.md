@@ -3964,3 +3964,10 @@ log ends during the link theme rendering test without a final result. This
 blocks release acceptance. The focused case and the full 15-test theme suite
 passed locally. CI can now diagnose ThemeRenderingTests on the hosted runner.
 An isolated pass does not replace the required complete inventory.
+
+The final Firebase promotion command now reuses public release verification,
+requires a held site writer lock, and journals the request before changing the
+live version. Recovery observes a completed promotion without repeating the
+POST. Unknown outcomes, changed site data, lost locks and public feed mismatches
+stop acceptance. Nine focused tests and all 249 Python tests passed. This does
+not establish a coordinated production writer, real promotion or publication.

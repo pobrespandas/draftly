@@ -372,3 +372,27 @@ confirm that its writer and any pending remote requests have stopped. Preserve
 the journal and inspect the remote object and generation. An abruptly lost
 runner may also lose its journal and require manual investigation. Never remove
 an unfamiliar lock to unblock a release.
+
+## Promote the verified site
+
+`scripts/promote-firebase-release.py` requires an existing public GitHub release,
+a matching `PUBLIC_VERIFIED.json`, the signed appcast and its staging receipt.
+It reuses candidate, public-asset and site verification before promotion. It
+requires the held site writer lock and checks ownership before the request and
+before acceptance. The coordinator must keep that lock for the whole release.
+The lock check does not prevent a writer that bypasses the coordinator.
+
+The command writes a durable pending journal before the Firebase release POST.
+If the response is lost, recovery can verify an already-promoted version without
+another POST. If the original version remains live, recovery stops: the earlier
+request can still be in flight. Inspect Firebase and stop all pending writers
+before further action. A public-feed mismatch leaves the journal pending.
+The command marks completion only after Firebase and the public HTTPS appcast
+match the verified release. It does not release the writer lock.
+
+Set `DRAFTLY_RELEASE_PROMOTION_ENABLED=YES` only after release acceptance.
+The command also requires the existing publication flag and credentials. Pass
+`--candidate`, `--appcast`, `--notes`, `--firebase-receipt`, `--journal`,
+`--lock-bucket` and `--lock-journal`. Keep journals outside Git. This component
+has fake-service tests; the production coordinator and real promotion remain
+unverified. See the official [Firebase release API](https://firebase.google.com/docs/reference/hosting/rest/v1beta1/sites.releases/create).
