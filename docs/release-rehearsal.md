@@ -539,3 +539,21 @@ A CLI regression reproduced the previous preflight accepting a tag with no
 notes. The source gate and Unicode/read-only cases now pass. All 259 Python
 tests and the structural matrix check passed locally. The release flags remain
 disabled. Notes in Git are preparation, not a published release.
+
+## Neutral legacy recovery check
+
+A headless local helper imported the two saved neutral guest exports from the
+19 October VM check into temporary Record stores. It created a library backup,
+restored that backup to an empty store, and reopened the result. Current model
+values matched by identity, including all encoded fields and relationships.
+The main-container fixture retained two notes and eight revisions. The wider
+fixture retained ten notes, eleven revisions, one action, one group, one
+Workspace and one execution record. No personal library or cloud store was
+opened by this check.
+
+The first helper compared unsorted storage arrays and reported a mismatch for
+the wider fixture. LibraryStore does not promise a note-array storage order.
+Comparison by UUID confirmed equal values; persisted order fields stayed part
+of those value comparisons. This was a harness issue, not a data correction.
+These exports do not validate migration of Development mirroring metadata or
+Production cross-client convergence. Keep those acceptances separate.

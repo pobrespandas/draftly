@@ -4064,3 +4064,11 @@ The first version now has release notes. Source preflight requires versioned,
 non-empty UTF-8 notes before expensive release work. The CLI case failed before
 the gate and passed after it; all 259 Python tests passed. Publication flags
 remain disabled. No version tag or public release has been created.
+
+### Neutral legacy recovery — 30 October 2026
+
+The saved neutral guest exports passed local backup, restore and reopen checks.
+Values and relationships matched by identity: the small fixture has two notes
+and eight revisions; the wider fixture also covers an action, group, Workspace
+and execution history. This does not approve Development-to-Production mirror
+migration or live cross-client synchronization. No personal library was used.
