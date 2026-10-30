@@ -2,8 +2,7 @@
 
 The destination website is a static Firebase Hosting site in the
 `gen-lang-client-0607406471` project. Its site ID is
-`draftly-pobrespandas-prod`. The custom domain transfer is still in progress;
-the previous site serves it until DNS and Firebase ownership are updated.
+`draftly-pobrespandas-prod`. The custom domain is active in this project. The previous project is scheduled for deletion.
 
 Preview it from this directory:
 

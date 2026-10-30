@@ -3938,3 +3938,21 @@ exits. On macOS the real probe can return EPERM, so a separate test verifies
 that this result remains an explicit isolation error. The diagnostic callback
 now reports the probe error. This does not establish why the real probe returns
 EPERM or change the production response to that error.
+
+The macOS 27-only model and menu APIs require the compiler that provides them.
+Builds made with the older SDK do not expose Private Cloud Compute mode.
+
+Core tests run serially on hosted CI because concurrent load caused unrelated
+waits and loopback requests to expire. No retry or deadline change is used.
+
+Panel layout uses split container widths and accounts for the native sidebar
+inset. The panel suite passed locally and in hosted CI on the release branch.
+Manual divider dragging and resizing remain unverified.
+
+### Distribution branch reconciliation — 30 October 2026
+
+Merged main at 530a460 into the distribution branch. Kept the diagnostic
+filters, serial test execution, migrated Hosting target and both histories.
+Local verification passed: 759 Core tests, 934 application tests, 240 Python
+tests, three website tests, matrix checks and swift build. Hosted CI for this
+merge remains pending. Publication and update acceptance remain open.

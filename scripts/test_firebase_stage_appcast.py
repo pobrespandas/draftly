@@ -75,6 +75,12 @@ class FakeHosting:
         raise AssertionError("Unexpected request: " + method + " " + path)
 
 
+class FirebaseDestinationTests(unittest.TestCase):
+    def test_staging_targets_migrated_site(self):
+        self.assertEqual(firebase.PROJECT, "gen-lang-client-0607406471")
+        self.assertEqual(firebase.SITE, "sites/draftly-pobrespandas-prod")
+
+
 class FirebaseStageTests(unittest.TestCase):
     def test_staging_and_website_use_the_migration_destination(self):
         root = Path(__file__).resolve().parent.parent
