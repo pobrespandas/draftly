@@ -41,6 +41,26 @@ class ReleaseWorkflowPolicyTests(unittest.TestCase):
         self.assertIn('gh workflow run release.yml --ref main', dispatcher)
         self.assertIn('actions: write', dispatcher)
 
+    def test_candidate_guard_accepts_only_the_first_trusted_main_dispatch(self):
+        steps = jobs()['candidate']['steps']
+        step = next(step for step in steps if step.get('name') == 'Build the signed candidate')
+        command = 'bash scripts/release-candidate-ci.sh'
+        self.assertEqual(step['run'].count(command), 1)
+        guard = step['run'].replace(command, "printf 'candidate accepted'")
+        cases = [
+            ('workflow_dispatch', 'refs/heads/main', '1', True),
+            ('push', 'refs/heads/main', '1', False),
+            ('workflow_dispatch', 'refs/heads/work', '1', False),
+            ('workflow_dispatch', 'refs/heads/main', '2', False),
+        ]
+        for event, ref, attempt, accepted in cases:
+            with self.subTest(event=event, ref=ref, attempt=attempt):
+                result = subprocess.run(['bash', '-eu', '-c', guard], capture_output=True,
+                    text=True, env={'PATH': '/usr/bin:/bin', 'GITHUB_EVENT_NAME': event,
+                                    'GITHUB_REF': ref, 'GITHUB_RUN_ATTEMPT': attempt})
+                self.assertEqual(result.returncode == 0, accepted, result.stderr)
+                self.assertEqual('candidate accepted' in result.stdout, accepted)
+
     def test_publication_requires_lock_and_preserves_final_recovery_state(self):
         steps = jobs()['stage']['steps']
         names = [step.get('name', '') for step in steps]
