@@ -468,3 +468,9 @@ of existing data and complete object coverage remain separate checks.
 
 Publication flags remain disabled. No public version tag, GitHub release,
 live appcast or replacement of the usual application has occurred.
+
+The AppKit harness also logged scheduler code 3 for both Core Data stores.
+The reader still had no records. The probe was stopped after this result;
+no transport pass or timeout acceptance is recorded. Continue this check with
+an isolated, normally launched application that can register background tasks.
+The temporary stores and neutral Production fixtures remain available.
