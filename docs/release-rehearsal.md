@@ -505,3 +505,20 @@ Only the temporary apps were unregistered. The usual app was not replaced.
 Full local Swift results matched the inventory: 759 Core and 935 application
 cases. These counts show execution completeness, not API compatibility.
 Public release verification and notarized main-identity update remain pending.
+
+## Production native transport follow-up
+
+Normal macOS application launch resolved the probe's background scheduling
+error. The signed probe reported an available account, saved the neutral note,
+and imported that exact UUID and text into a fresh Core Data store. A change
+made in that store was exported. A separate cold-reader launch then imported
+the changed text with the same UUID. All stores used temporary directories.
+The probe did not instantiate AppController or change the usual preferences.
+
+Two live same-process return checks did not receive the change before their
+fixed deadline, including the check with remote notification registration.
+Do not count fresh import as proof of live push reception. Continue with real
+separate clients, including Mac and VM. Existing-library migration, complete
+object coverage and convergence remain pending. The probes are stopped and
+were unregistered. No Production record was copied from Development by the
+schema deployment.
