@@ -278,7 +278,7 @@ def decode_website_payload(entry, content):
     return encoded
 
 
-def stage(client, expected_version, feed, public_key, *, releases=None, current_feed=None, journal=None, resume=False, website=None, website_source=None):
+def stage(client, expected_version, feed, public_key, *, releases=None, current_feed=None, journal=None, resume=False, website=None, website_source=None, website_only=False):
     if resume and journal is None:
         raise ValueError("Recovery needs a Firebase staging journal.")
     checkpoint = None
@@ -327,11 +327,30 @@ def stage(client, expected_version, feed, public_key, *, releases=None, current_
         if any(new_items.get(version) != item for version, item in old_items.items()):
             raise ValueError("The new appcast changes a published release item.")
     added = set(new_versions) - set(old_versions)
-    if len(added) != 1:
-        raise ValueError("The new appcast must add exactly one version.")
-    version = next(iter(added))
-    history.validate_history(".".join(str(part) for part in version), str(new_versions[version]), releases, current_feed,
-                             resume_candidate=resume)
+    if website_only:
+        if website is None or current_feed is None or feed != current_feed:
+            raise ValueError("A website-only deployment must preserve the exact published feed.")
+        stable = []
+        for release in releases:
+            if (not isinstance(release, dict) or not isinstance(release.get("draft"), bool)
+                    or not isinstance(release.get("prerelease"), bool)):
+                raise ValueError("A GitHub release has invalid metadata.")
+            if not release["draft"] and not release["prerelease"]:
+                tag = release.get("tag_name")
+                if not isinstance(tag, str) or not tag.startswith("v"):
+                    raise ValueError("A stable release tag is invalid.")
+                stable.append(history.version_tuple(tag[1:]))
+        if len(stable) != len(set(stable)) or set(stable) != set(new_versions):
+            raise ValueError("The published releases do not match the unchanged feed.")
+        builds = [new_versions[version] for version in sorted(new_versions)]
+        if any(first >= second for first, second in zip(builds, builds[1:])):
+            raise ValueError("Published builds do not increase with their versions.")
+    else:
+        if len(added) != 1:
+            raise ValueError("The new appcast must add exactly one version.")
+        version = next(iter(added))
+        history.validate_history(".".join(str(part) for part in version), str(new_versions[version]), releases, current_feed,
+                                 resume_candidate=resume)
     if (current_feed is None) != ("/appcast.xml" not in live["files"]):
         raise ValueError("The live appcast and Firebase file list do not agree.")
     if resume:
@@ -463,6 +482,7 @@ def main():
     parser.add_argument("--public-key", help="Base64 Ed25519 public key from the app.")
     parser.add_argument("--expected-version", help="Live Firebase version used to prepare the appcast.")
     parser.add_argument("--journal", help="New staging journal, or the journal to recover.")
+    parser.add_argument("--website-only", action="store_true", help="Preserve the exact existing feed for website changes.")
     parser.add_argument("--resume", action="store_true", help="Resume the version recorded in the staging journal.")
     parser.add_argument("--site-base", help="Full commit of the previously deployed site source.")
     parser.add_argument("--site-target", help="Full commit of the new site source.")
@@ -470,7 +490,7 @@ def main():
     try:
         client = HostingClient(os.environ.get("DRAFTLY_FIREBASE_ACCESS_TOKEN"))
         if args.inspect:
-            if args.appcast or args.public_key or args.expected_version or args.journal or args.resume or args.site_base or args.site_target:
+            if args.appcast or args.public_key or args.expected_version or args.journal or args.resume or args.site_base or args.site_target or args.website_only:
                 raise ValueError("Inspect does not accept staging options.")
             live = snapshot(client)
             result = {"liveVersion": live["version"], "fileCount": len(live["files"]), "hasAppcast": "/appcast.xml" in live["files"],
@@ -495,7 +515,8 @@ def main():
                 website = (base, target, lambda path, digest: site_overlay.fetch_public(NoRedirect, path, digest))
             result = stage(client, args.expected_version, Path(args.appcast).read_bytes(), args.public_key,
                            journal=args.journal, resume=args.resume, website=website,
-                           website_source={"base": args.site_base, "target": args.site_target} if website is not None else None)
+                           website_source={"base": args.site_base, "target": args.site_target} if website is not None else None,
+                           website_only=args.website_only)
         print(json.dumps(result, indent=2))
     except (ValueError, OSError, subprocess.SubprocessError) as error:
         raise SystemExit("Firebase appcast staging failed: " + str(error))

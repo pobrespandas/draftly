@@ -95,4 +95,4 @@ unset APPLE_DEVELOPER_ID_P12_B64 APPLE_DEVELOPER_ID_P12_PASSWORD APPLE_DEVELOPER
     DRAFTLY_SPARKLE_PRIVATE_KEY DRAFTLY_FIREBASE_ACCESS_TOKEN GH_TOKEN GITHUB_TOKEN
 python3 scripts/package-release.py --tag "$RELEASE_TAG" \
     --output ".build/release-candidates/$RELEASE_TAG" --profile "$DRAFTLY_DEVELOPER_ID_PROFILE" \
-    --notary-profile "Draftly Release CI" --public-key "$DRAFTLY_SPARKLE_PUBLIC_KEY"
+    --notary-profile "Draftly Release CI" --public-key "$DRAFTLY_SPARKLE_PUBLIC_KEY" --dmg

@@ -118,6 +118,13 @@ def verify_candidate(candidate, *, runner=secret_free_run):
                 "--expected-push-environment", "production", "--require-developer-id"], check=True, capture_output=True)
         runner(["xcrun", "stapler", "validate", str(app)], check=True, capture_output=True)
         runner(["spctl", "--assess", "--type", "execute", str(app)], check=True, capture_output=True)
+        metadata = json.loads((Path(candidate) / "candidate.json").read_text())
+        dmg = load_module("release_disk_image_verify", "release-dmg.py")
+        disk_assets = (dmg.assets(candidate, metadata["version"], metadata["sha256"])
+                       if (Path(candidate) / "disk-image.json").exists() else {})
+        for name, path in disk_assets.items():
+            if name.endswith(".dmg"):
+                dmg.verify(path, lambda command: runner(command, check=True, capture_output=True))
 
 
 def file_digest(path):
@@ -219,9 +226,19 @@ def validate_assets(release, expected, notes, tag, *, allow_missing):
     return [expected[name] for name in sorted(missing)]
 
 
+def release_assets(candidate, staged):
+    candidate, staged = Path(candidate), Path(staged)
+    metadata = json.loads((candidate / "candidate.json").read_text())
+    dmg = load_module("release_disk_image", "release-dmg.py")
+    result = {"Draftly.zip": candidate / "Draftly.zip", "Draftly.zip.sha256": candidate / "Draftly.zip.sha256",
+              "candidate.json": candidate / "candidate.json", "appcast.xml": staged / "appcast.xml"}
+    if (candidate / "disk-image.json").exists():
+        result.update(dmg.assets(candidate, metadata["version"], metadata["sha256"]))
+    return result
+
+
 def stage(candidate, staged, notes, secret, *, github=None, verify=verify_candidate, current_feed=UNSET):
-    expected = {"Draftly.zip": Path(candidate) / "Draftly.zip", "Draftly.zip.sha256": Path(candidate) / "Draftly.zip.sha256",
-                "candidate.json": Path(candidate) / "candidate.json", "appcast.xml": Path(staged) / "appcast.xml"}
+    expected = release_assets(candidate, staged)
     hashes = {name: (path.stat().st_size, file_digest(path)) for name, path in expected.items()}
     metadata = inspect_inputs(candidate, staged, secret, notes)
     verify(candidate)

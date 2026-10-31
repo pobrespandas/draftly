@@ -97,6 +97,22 @@ class PublicationTests(unittest.TestCase):
                                  enabled=enabled, github=self.github, stage_draft=self.stage_draft,
                                  download=download or self.download)
 
+    def test_release_assets_include_only_manifest_bound_disk_image(self):
+        metadata = {"sourceCommit": COMMIT, "version": "0.1.0", "sha256": self.digest}
+        (self.candidate / "candidate.json").write_text(json.dumps(metadata))
+        image = self.candidate / "Draftly-0.1.0.dmg"
+        image.write_bytes(b"notarized disk image")
+        digest = hashlib.sha256(image.read_bytes()).hexdigest()
+        (self.candidate / (image.name + ".sha256")).write_text(digest + "  " + image.name + "\n")
+        (self.candidate / "disk-image.json").write_text(json.dumps({"version": "0.1.0",
+            "name": image.name, "sha256": digest, "zipSHA256": self.digest,
+            "notarySubmission": "4d5a9a69-b1d9-402b-9d18-18a84a531a42"}))
+        paths = publisher.github_stage.release_assets(self.candidate, self.staged)
+        self.assertEqual(set(paths) - set(self.paths), {image.name, image.name + ".sha256", "disk-image.json"})
+        image.write_bytes(b"altered")
+        with self.assertRaises(ValueError):
+            publisher.github_stage.release_assets(self.candidate, self.staged)
+
     def test_requires_explicit_enablement_before_any_external_work(self):
         with self.assertRaisesRegex(ValueError, "disabled"):
             self.run_publish(enabled=None)
@@ -106,6 +122,26 @@ class PublicationTests(unittest.TestCase):
     def test_publication_requires_website_checkpoint_even_with_no_changes(self):
         del self.receipt["websiteHashes"]
         with self.assertRaisesRegex(ValueError, "website receipt"):
+            self.run_publish()
+        self.assertNotIn("publish", self.github.calls)
+
+    def test_feed_only_checkpoint_preserves_live_files_before_publication(self):
+        del self.receipt["websiteHashes"]
+        journal = self.staged / "firebase-journal.json"
+        checkpoint = json.loads(journal.read_text())
+        del checkpoint["websitePayloads"]
+        journal.write_text(json.dumps(checkpoint))
+        self.run_publish()
+        self.assertIn("publish", self.github.calls)
+
+    def test_feed_only_checkpoint_rejects_unexpected_website_change(self):
+        del self.receipt["websiteHashes"]
+        journal = self.staged / "firebase-journal.json"
+        checkpoint = json.loads(journal.read_text())
+        del checkpoint["websitePayloads"]
+        journal.write_text(json.dumps(checkpoint))
+        self.client.staged_files["/index.html"] = "0" * 64
+        with self.assertRaises(ValueError):
             self.run_publish()
         self.assertNotIn("publish", self.github.calls)
 

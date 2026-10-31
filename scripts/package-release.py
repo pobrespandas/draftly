@@ -101,7 +101,7 @@ def source_commit(tag, runner):
     return commit
 
 
-def package(output, profile, notary_profile, tag, *, public_key=None, runner=subprocess.run):
+def package(output, profile, notary_profile, tag, *, public_key=None, runner=subprocess.run, include_dmg=False):
     if not profile or notary_profile.startswith("-") or not notary_profile or "\n" in profile + notary_profile:
         raise ValueError("A signing profile and a Keychain notary profile are required.")
     if public_key is not None:
@@ -171,6 +171,12 @@ def package(output, profile, notary_profile, tag, *, public_key=None, runner=sub
         (output / "candidate.json").write_text(json.dumps({"version": version, "build": build, "tag": tag,
             "sourceCommit": commit, "sha256": digest, "notarySubmission": submission_id,
             "updatesEnabled": public_key is not None}, indent=2) + "\n")
+        if include_dmg:
+            spec = importlib.util.spec_from_file_location("release_dmg", ROOT / "scripts/release-dmg.py")
+            dmg = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(dmg)
+            dmg.create(app, output, version, notary_profile,
+                       lambda command, capture=False: run_command(command, runner=runner, capture=capture))
         # READY is the final operation. Its absence means the candidate failed.
         (output / "READY").write_text("Notarized candidate. Not published.\n")
 
@@ -182,9 +188,10 @@ def main():
     parser.add_argument("--notary-profile", required=True, help="Keychain profile for notarytool.")
     parser.add_argument("--tag", required=True, help="Existing version tag for the clean source commit.")
     parser.add_argument("--public-key", help="Sparkle public EdDSA key. Omit to disable update checks.")
+    parser.add_argument("--dmg", action="store_true", help="Create a signed and notarized disk image.")
     args = parser.parse_args()
     try:
-        package(args.output, args.profile, args.notary_profile, args.tag, public_key=args.public_key)
+        package(args.output, args.profile, args.notary_profile, args.tag, public_key=args.public_key, include_dmg=args.dmg)
     except (OSError, ValueError, plistlib.InvalidFileException, subprocess.SubprocessError) as error:
         raise SystemExit("Release candidate failed: " + str(error))
     print("Notarized candidate is ready. Nothing was published: " + args.output)

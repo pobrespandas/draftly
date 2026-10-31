@@ -95,7 +95,7 @@ def validate_site(client, receipt, feed, compressed):
 
 def verify_website_checkpoint(staged, receipt, commit):
     website = receipt.get("websiteHashes")
-    if not isinstance(website, dict) or len(website) > 100:
+    if "websiteHashes" in receipt and (not isinstance(website, dict) or len(website) > 100):
         raise ValueError("The Firebase website receipt is invalid.")
     journal = staged / "firebase-journal.json"
     if journal.is_symlink() or not journal.is_file() or journal.stat().st_size > 24 * 1024 * 1024:
@@ -112,6 +112,12 @@ def verify_website_checkpoint(staged, receipt, commit):
             or set(source_commits) != {"base", "target"} or source_commits.get("target") != commit
             or any(not isinstance(v, str) or not re.fullmatch(r"[a-f0-9]{40}", v) for v in source_commits.values())):
         raise ValueError("The website source commits do not match the candidate.")
+    if "websiteHashes" not in receipt:
+        if ("websitePayloads" in checkpoint or "websiteSource" in checkpoint
+                or "websiteSource" in receipt):
+            raise ValueError("The Firebase website receipt is invalid.")
+        # validate_site checks exact live-file preservation before publication.
+        return
     saved = checkpoint.get("websitePayloads")
     if not isinstance(saved, dict) or set(saved) != set(website):
         raise ValueError("The saved website payloads do not match the receipt.")
@@ -195,8 +201,7 @@ def publish(candidate, staged, notes, secret, receipt, client, *, enabled, githu
     release = github_stage.find_release(github.releases(), tag)
     if release is None:
         raise ValueError("The verified GitHub release no longer exists.")
-    paths = {"Draftly.zip": candidate / "Draftly.zip", "Draftly.zip.sha256": candidate / "Draftly.zip.sha256",
-             "candidate.json": candidate / "candidate.json", "appcast.xml": staged / "appcast.xml"}
+    paths = github_stage.release_assets(candidate, staged)
     github_stage.validate_assets(release, paths, notes, tag, allow_missing=False)
     release_id = release.get("id")
     if isinstance(release_id, bool) or not isinstance(release_id, int) or release_id <= 0:
