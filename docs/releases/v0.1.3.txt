@@ -1,0 +1,6 @@
+Draftly 0.1.3
+
+Fix a draft-list click that could only move focus from the editor instead of
+opening the selected draft. A single click now selects and opens the draft.
+
+Requires macOS 26 or later.

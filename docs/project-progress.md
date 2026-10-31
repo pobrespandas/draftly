@@ -19,7 +19,7 @@ The corrected QA build also retained a fresh edit while switching notes and
 handled Command-click multiple selection. Complete local checks passed 759
 Core, 938 app, and 285 Python tests; the local app build and structural matrix
 passed. QA used a temporary library and was closed and unregistered afterward.
-The next corrected release is in preparation; do not call it published yet.
+Version 0.1.3/build 4 is in preparation; do not call it published yet.
 
 Draftly has one edition. Drafts Pro restrictions are reference blockers, not
 Draftly feature restrictions. Continue other product work from the subsystem
