@@ -226,10 +226,6 @@ struct NativeDraftTable: NSViewRepresentable {
 
 private final class DraftTableView: NSTableView {
     var menuProvider: ((NSTableView, NSEvent, Int) -> NSMenu?)?
-    override func mouseDown(with event: NSEvent) {
-        window?.makeFirstResponder(self)
-        super.mouseDown(with: event)
-    }
     override func menu(for event: NSEvent) -> NSMenu? {
         let row = row(at: convert(event.locationInWindow, from: nil))
         guard row >= 0 else { return nil }
