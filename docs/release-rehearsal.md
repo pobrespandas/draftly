@@ -602,3 +602,15 @@ remains separate evidence. Negative cases and public endpoint checks remain.
 The user clarified that they reopened the app in the earlier attempt.
 Do not attribute that reopening to Computer Use. The earlier attempt did
 not establish automatic restart or an updater defect.
+
+## Negative updater checks with a valid origin signature
+
+On 31 October, strict deep verification passed before and after the negative
+checks. With the loopback server stopped, Sparkle reported a retrieval error.
+With a one-byte-modified ZIP, it reported an improper-signature error and
+blocked installation. After restoring the definitive ZIP, closing the update
+offer cancelled without replacement. The origin remained build 0 in each
+case. This proves unavailable-server handling, archive authenticity rejection,
+and cancellation before download. It does not prove a mid-download network
+interruption, interruption during installation, or public HTTPS delivery.
+The earlier invalid-origin observations do not provide this acceptance.
