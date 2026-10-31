@@ -80,10 +80,10 @@ website tests passed locally, including the transition from old DMG links to
 a new published version. Real repository release selection also returned
 `package=false` for the cleanup, which changes no app package inputs.
 
-Open PR #9 still contains a first-staging recovery proposal; it needs review
-against the new preflight. Open PR #11 still contains the actions-page footer
-link. Their changes are not obsolete or fully integrated, so both PRs and
-branches remain. Cancelled checks do not establish acceptance.
+At that checkpoint, PR #9 retained a first-staging recovery proposal and PR #11
+retained the actions-page footer link. Both PRs later closed. Their branches
+remain available. See the dated fixture review below for the current outcome.
+Cancelled checks do not establish acceptance.
 
 ## Script test fixture review, 31 October
 

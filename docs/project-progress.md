@@ -15,7 +15,20 @@ Drafts Pro restrictions are reference blockers, not Draftly feature restrictions
 - The user requested 0.1.2 specifically to test a public update and reinstall.
   This is a one-time manual release exception: no app feature changed since
   0.1.1. Normal automated publication still rejects version-only changes.
-  Version 0.1.2/build 3 is in preparation, not published or accepted yet.
+  Version [0.1.2/build 3](https://github.com/pobrespandas/draftly/releases/tag/v0.1.2)
+  is now public. Its signed and notarized DMG and all seven public assets
+  passed verification. Firebase promotion `da4410a0a1d306b0` preserved all 28
+  site files and the previous update items.
+- On this Mac, Sparkle offered 0.1.2 to installed 0.1.1, downloaded it, and
+  completed Install and Relaunch. Version 0.1.2/build 3 then passed signature,
+  Gatekeeper, neutral-note retention, editing, Undo, and Redo checks.
+- The app bundle was removed to Trash and reinstalled from a new public DMG
+  download. The app reopened as 0.1.2 and retained the neutral note. Existing
+  preference values were retained; only Sparkle's last-check time differed.
+  Data was retained deliberately. This is not an empty-library installation
+  test or a new CloudKit synchronization acceptance.
+- The public site now selects 0.1.2 for both download buttons and release notes.
+  Old public tags and assets remain unchanged.
 - Website follow-up PR #17 passed website CI and was integrated at `c22e4df`.
   Firebase version `cfa7ec5f7a704616` adds the top GitHub link and corrects the
   initial DMG fallback to 0.1.1. All 28 files and the signed feed were preserved.
@@ -54,6 +67,14 @@ Ubuntu result; native, script, and matrix jobs were skipped. The saved earlier c
 partial design rather than discarding that branch.
 
 ## Evidence and open acceptance
+
+- PR #19 shares the disposable Git fixture between the CI and release selector
+  tests. All 16 focused cases and names remain. Full hosted CI `41235528547`
+  passed before integration at `894b81c`. No redundant test removal was justified.
+- Automated publication is not yet accepted end to end. Signing is enabled;
+  staging and publication flags remain disabled. The 0.1.2 release used the
+  local publication tools. Its tagged commit includes a skip instruction,
+  so it did not exercise the tag-triggered workflow. See the release guide.
 
 - The release fix passed complete local Swift reports: 759 Core and 937 app
   tests. Its Python suite passed 268 tests and website tests passed three.
