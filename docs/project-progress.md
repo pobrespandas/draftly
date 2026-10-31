@@ -32,8 +32,9 @@ Drafts Pro restrictions are reference blockers, not Draftly feature restrictions
 - Website follow-up PR #17 passed website CI and was integrated at `c22e4df`.
   Firebase version `cfa7ec5f7a704616` adds the top GitHub link and corrects the
   initial DMG fallback to 0.1.1. All 28 files and the signed feed were preserved.
-  Both public buttons and notes were checked in the browser. The release site
-  source variable now identifies that verified source checkpoint.
+  Both public buttons and notes were checked in the browser. After 0.1.2,
+  the release site source variable was updated to its verified `3922ee3`
+  checkpoint, matching the live site's source label.
 
 - The clean-install correction is integrated in main through PR #13, merge
   `1ea567e`. Required PR CI run `41226934559` passed.
@@ -71,10 +72,18 @@ partial design rather than discarding that branch.
 - PR #19 shares the disposable Git fixture between the CI and release selector
   tests. All 16 focused cases and names remain. Full hosted CI `41235528547`
   passed before integration at `894b81c`. No redundant test removal was justified.
-- Automated publication is not yet accepted end to end. Signing is enabled;
-  staging and publication flags remain disabled. The 0.1.2 release used the
-  local publication tools. Its tagged commit includes a skip instruction,
-  so it did not exercise the tag-triggered workflow. See the release guide.
+- Automated publication is configured but not yet accepted end to end.
+  Signing, staging, and publication flags are enabled after the DMG transfer
+  correction passed CI. Publisher identity and lock handling passed the
+  Ubuntu-only run `41236743915`. No app was built or published by that check.
+  The 0.1.2 release used local publication tools. Its tagged commit includes
+  a skip instruction, so it did not exercise the tag-triggered workflow.
+- PR #21 fixes missing DMG files in the candidate artifact. Its regression
+  failed before the fix and passed afterward. All 285 Python tests, actionlint,
+  and matrix structure passed locally; hosted CI `41236763902` passed the
+  script path without a native app build. The fix is integrated at `8f1c565`.
+  A real hosted signing-to-publication run remains pending for the next app
+  release with package changes. See the release guide.
 
 - The release fix passed complete local Swift reports: 759 Core and 937 app
   tests. Its Python suite passed 268 tests and website tests passed three.
