@@ -614,3 +614,15 @@ case. This proves unavailable-server handling, archive authenticity rejection,
 and cancellation before download. It does not prove a mid-download network
 interruption, interruption during installation, or public HTTPS delivery.
 The earlier invalid-origin observations do not provide this acceptance.
+
+## Download interruption and recovery
+
+On 31 October, a throttled loopback transfer showed 66 KB of 7.5 MB before
+the server was stopped. Sparkle reported a download error. The origin retained
+build 0 and passed strict deep signature verification. After restoring the
+server, a new attempt installed the definitive ZIP and restarted PID 19435
+at the updated Draftly executable path. No app lookup or explicit open occurred
+after Install and Relaunch. Its signature passed and executable hash matched
+`50e9aaedf9dee13a0faa06c10e5c3cb0982aa09bb305d185d814b993dcad4cb3`.
+This verifies a transport interruption and subsequent recovery, not a power
+failure during the atomic installation step.
