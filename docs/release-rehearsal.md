@@ -557,3 +557,29 @@ Comparison by UUID confirmed equal values; persisted order fields stayed part
 of those value comparisons. This was a harness issue, not a data correction.
 These exports do not validate migration of Development mirroring metadata or
 Production cross-client convergence. Keep those acceptances separate.
+
+## Production live round trip on 31 October 2026
+
+Probe E passed with both clients open. The host ran macOS 27.2 (26B123).
+The UTM guest ran macOS 26.6 (25G72). Both clients used the Production
+container `iCloud.com.andrestobelem.draftly`, the main app identity, and
+isolated local libraries. The personal library was not opened.
+
+The guest ZIP SHA-256 was
+`31f2dd38cae78c73209b237bc01b65ea98abefc0366c8b10a62cd6edd4b10102`.
+The guest passed signature verification and Gatekeeper assessment. The host
+was recovered from that same executable. Its explicit role was set to `host`
+and its bundle was signed again with the existing Developer ID identity.
+Both clients reported an available account and successful push registration.
+
+The host created neutral note `DD71668E-2039-4ACB-8209-202610300006`.
+The guest received a remote notification, reported `HOST_TO_GUEST=PASS`,
+and saved its edit. The host then received a remote notification and reported
+`GUEST_TO_HOST_LIVE=PASS; CONTENT=PASS; TAGS=PASS; FLAG=PASS; UUID=PASS`
+and `CROSS_CLIENT_NOTE_ROUND_TRIP=PASS`. Neither client was restarted during
+the round trip. The return took several minutes.
+
+This verifies the isolated live note round trip in Production. It does not
+prove the complete synchronization matrix, Development data migration,
+public updater acceptance, or public release. Earlier failures remain valid
+observations. This result does not establish their cause.
