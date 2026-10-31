@@ -100,12 +100,16 @@ class CIResultTests(unittest.TestCase):
             scope.verify_results(results)
 
 
+def workflow_jobs():
+    workflow = Path(scope.__file__).resolve().parent.parent / '.github/workflows/ci.yml'
+    parsed = subprocess.check_output(['ruby', '-rjson', '-ryaml', '-e',
+        'print JSON.generate(YAML.load_file(ARGV.fetch(0)).fetch("jobs"))', str(workflow)], text=True)
+    return json.loads(parsed)
+
+
 class CIWorkflowPolicyTests(unittest.TestCase):
     def test_native_runner_depends_on_selection_and_required_gate_runs_after_skips(self):
-        workflow = Path(scope.__file__).resolve().parent.parent / '.github/workflows/ci.yml'
-        parsed = subprocess.check_output(['ruby', '-rjson', '-ryaml', '-e',
-            'print JSON.generate(YAML.load_file(ARGV.fetch(0)).fetch("jobs"))', str(workflow)], text=True)
-        jobs = json.loads(parsed)
+        jobs = workflow_jobs()
         self.assertEqual(jobs['plan']['runs-on'], 'ubuntu-latest')
         self.assertEqual(jobs['macos']['needs'], 'plan')
         self.assertEqual(jobs['macos']['if'], "${{ needs.plan.outputs.native == 'true' }}")
@@ -114,3 +118,10 @@ class CIWorkflowPolicyTests(unittest.TestCase):
         self.assertIn('always()', jobs['result']['if'])
         self.assertEqual(set(jobs['result']['needs']), {'plan', 'macos', 'tooling', 'website', 'matrix'})
         self.assertIn('scripts/ci-change-scope.py --verify-results', jobs['result']['steps'][-1]['run'])
+
+
+    def test_script_runner_resolves_real_sparkle_tools_before_contract_tests(self):
+        steps = workflow_jobs()['tooling']['steps']
+        commands = [step.get('run', '') for step in steps]
+        self.assertLess(commands.index('swift package resolve'),
+                        commands.index("python -m unittest discover -s scripts -p 'test_*.py'"))
