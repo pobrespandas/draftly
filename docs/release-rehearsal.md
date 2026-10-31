@@ -583,3 +583,22 @@ This verifies the isolated live note round trip in Production. It does not
 prove the complete synchronization matrix, Development data migration,
 public updater acceptance, or public release. Earlier failures remain valid
 observations. This result does not establish their cause.
+
+## Main-identity updater restart on 31 October 2026
+
+A repeat used the internal 0.0.9/build 0 origin harness and the unchanged
+notarized v0.1.0 ZIP. The signed test appcast and archive were served only
+on loopback. This does not verify the public HTTPS endpoints.
+Computer Use confirmed the version offer, release notes, extraction, and
+Install and Relaunch. After that click, no app lookup or explicit open was
+performed. Process inspection found PID 17518 at the updated path ending
+`update-acceptance/Draftly.app/Contents/MacOS/Draftly`, with build 1.
+Strict signature verification passed. Its executable SHA-256 was
+`50e9aaedf9dee13a0faa06c10e5c3cb0982aa09bb305d185d814b993dcad4cb3`,
+which matches the definitive candidate. Automatic restart passed in this
+repeat. The origin is a harness; the earlier full-app active-action test
+remains separate evidence. Negative cases and public endpoint checks remain.
+
+The user clarified that they reopened the app in the earlier attempt.
+Do not attribute that reopening to Computer Use. The earlier attempt did
+not establish automatic restart or an updater defect.
