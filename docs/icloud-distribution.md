@@ -10,6 +10,10 @@ Current identity: 21 October 2026. Historical server checks retain their dates.
 Read [the identity migration record](bundle-identity-2026-10-21.md) for data
 conservation, installation and remaining native checks.
 
+For the storage entry name and icon, read [iCloud display identity](icloud-identity.md).
+Its current acceptance is incomplete; the container description alone did not
+change the name shown by macOS.
+
 ## Development and personal configuration
 
 The configured team is `NM92LU2KKV`. Apple reports its name as
