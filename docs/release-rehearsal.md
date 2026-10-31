@@ -1,4 +1,9 @@
-# Release rehearsal
+# Release rehearsal record
+
+Use [release operations](releasing.md) for the current procedure and
+[project progress](project-progress.md) for pending acceptance. This file keeps
+dated implementation and test records. Earlier pending statements describe
+their original stage, not the current release state.
 
 A version tag dispatches the release workflow from protected main. The
 release workflow also accepts a manual dispatch on main. It checks the

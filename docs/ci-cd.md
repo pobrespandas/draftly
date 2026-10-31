@@ -54,7 +54,7 @@ assets still pass the later recovery checks.
 
 Signing, notarization, release uploads, and Firebase promotion retain their
 existing protected environment and publication flags. The preflight adds no
-credentials or bypasses. See [release operations](release-rehearsal.md) for
+credentials or bypasses. See [release operations](releasing.md) for
 candidate validation, writer locks, journals, and recovery.
 
 The website reads the published appcast. Both download buttons derive the

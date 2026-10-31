@@ -1,10 +1,16 @@
-# iCloud and personal installation
+# iCloud and installation
+
+Public Developer ID releases use the existing container with CloudKit
+Production and production push entitlements. Use [release operations](releasing.md)
+for public signing, notarization, updates, and recovery. The configuration
+below describes Development and registered-device personal builds. Those
+profiles do not authorize public distribution.
 
 Current identity: 21 October 2026. Historical server checks retain their dates.
 Read [the identity migration record](bundle-identity-2026-10-21.md) for data
 conservation, installation and remaining native checks.
 
-## Configuration
+## Development and personal configuration
 
 The configured team is `NM92LU2KKV`. Apple reports its name as
 `Andrés Tobelem`. Xcode does not list a separate team named `pobrespandas`.
