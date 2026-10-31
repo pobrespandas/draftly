@@ -757,3 +757,29 @@ website tests. The matrix structural check reported no errors. Hosted run
 the protected PR check. The user authorized a PR event run and a rebuild
 from the integrated commit. Repeat clean installation for that final package
 before publication. No v0.1.1 release assets are public yet.
+
+
+## Public 0.1.1 acceptance — 31 October 2026
+
+PR #13 merged as `1ea567e` after its required PR CI passed. The final package
+was rebuilt from that commit. The signed, notarized DMG passed a clean macOS
+26 VM installation. The app created preferences and the library itself;
+no repair helper or manually written migration marker ran in the VM.
+The final DMG SHA-256 is
+`fcdbcf4d726bf570a233b0ce3ef49178d28e09447c53b4adeb698d9dd2f1786c`.
+
+The early tag had pointed to the pre-merge candidate. The user authorized a
+temporary exception for only that still unpublished tag. It was corrected to
+`1ea567e`, then the original protection and tag workflow were restored.
+Future release preparation must create tags only after integration.
+
+GitHub release `430109446` published seven verified assets. The signed feed
+preserved 0.1.0 and added 0.1.1. Firebase promotion completed at version
+`4d85484ac8b01594`, preserving all 28 live files. The writer lock was released.
+Computer Use observed both site download links pointing to the 0.1.1 DMG.
+The habitual Mac installation was not replaced by this publication.
+
+The first publication attempt stopped before changing the draft because the
+compressed staging feed was not in the publisher's expected directory. The
+exact saved journal and compressed feed were placed under the staged appcast
+directory. Verification then passed. No public asset was replaced.

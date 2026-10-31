@@ -51,6 +51,12 @@ matrix structure, actionlint, and whitespace checks. These do not prove that
 hosted runner selection has executed as intended.
 
 Validate the cleanup PR on GitHub, then verify a docs-only or website-only
-change uses the intended jobs. Integrate only after the pending app release,
-because its current preflight requires the release tag to match main HEAD.
+change uses the intended jobs. The app release is now public. The cleanup can proceed through its protected
+PR checks.
 Keep release publication and cleanup integration as separate operations.
+
+
+The first hosted cleanup run detected a missing prerequisite in the separated
+script job: its appcast tests need the real pinned Sparkle tools. The job now
+resolves those tools before testing. A workflow policy test preserves that
+order. This resolves dependencies without compiling the app in that job.

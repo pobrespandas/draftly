@@ -5,7 +5,8 @@ Historical test reports describe only the versions they tested.
 
 ## Current priority
 
-Finish the clean-install fix release, then integrate repository and CI cleanup.
+Validate and integrate repository and CI cleanup. The clean-install fix release
+is public.
 Do not add app functionality during that cleanup. Draftly has one edition.
 Drafts Pro restrictions are reference blockers, not Draftly feature restrictions.
 
@@ -13,16 +14,16 @@ Drafts Pro restrictions are reference blockers, not Draftly feature restrictions
 
 - The clean-install correction is integrated in main through PR #13, merge
   `1ea567e`. Required PR CI run `41226934559` passed.
-- Public release: [0.1.0](https://github.com/pobrespandas/draftly/releases/tag/v0.1.0).
-  Its fresh-preferences startup bug remains in those published bytes.
-- The rebuilt 0.1.1 candidate is signed and notarized. A clean macOS 26 VM
-  installation passed without a repair helper or a manually written marker.
-  Both preference domains were empty and the library was absent before launch.
-- There is no public 0.1.1 release. The early remote tag still points to
-  `749d67e`, while the integrated candidate uses `1ea567e`. Tag protection
-  rejected an update. A user decision is pending: authorize a temporary
-  exception for that exact unpublished tag, or publish a later version.
-  Preserve all protection until that decision arrives.
+- Public release: [0.1.1](https://github.com/pobrespandas/draftly/releases/tag/v0.1.1).
+  The signed and notarized DMG passed a clean macOS 26 VM installation without
+  a repair helper or manually written marker. Both preference domains were
+  empty and the local library was absent before launch.
+- GitHub public assets and the promoted signed appcast passed verification.
+  Both website download buttons were observed pointing to the 0.1.1 DMG.
+  Existing site files and the 0.1.0 appcast item were preserved.
+- The user authorized correcting the early, still unpublished 0.1.1 tag to
+  integrated `1ea567e`. Only that tag was excepted temporarily; the original
+  protection and active tag workflow were restored before publication.
 - The habitual installed app still reports 0.1.0. Source integration, package
   validation, publication, and installation are separate states.
 
@@ -34,9 +35,8 @@ rejects unchanged package inputs before it allocates native or signing jobs.
 See [CI and publication](ci-cd.md) for selection rules and validation.
 These changes are not yet integrated or deployed.
 
-Keep the release commit available until publication finishes. Do not merge
-cleanup ahead of publication: the current release preflight requires the tag,
-candidate, and main HEAD to match. The saved earlier classifier commit
+Publication is complete. The cleanup PR can now proceed through its required
+checks. Preserve the published tag and assets. The saved earlier classifier commit
 `74cd477` remains preserved on its original branch; the cleanup replaces its
 partial design rather than discarding that branch.
 
@@ -64,13 +64,11 @@ retain older implementation and acceptance records.
 
 ## Next work
 
-1. Resolve the unpublished version tag and publish only the accepted package.
-   Verify GitHub assets, signed appcast, and both website DMG links.
-2. Validate the cleanup PR, then integrate it after publication. Verify a docs
-   or website change skips native runners and the required check still passes.
-3. Check iCloud storage display name and icon. Keep the existing container and
+1. Validate the cleanup PR and integrate it through required checks. Verify a
+   docs or website change skips native runners and the required check passes.
+2. Check iCloud storage display name and icon. Keep the existing container and
    its data. This is separate from synchronization acceptance.
-4. Continue Actions and editor contracts, inspector and integrations, Settings,
+3. Continue Actions and editor contracts, inspector and integrations, Settings,
    and remaining data/synchronization acceptance from their subsystem records.
 
 Keep `com.pobrespandas.draftly`, team `NM92LU2KKV`, `draftly://`, and container
