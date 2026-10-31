@@ -1,0 +1,7 @@
+Draftly 0.1.2
+
+This release validates the public update and reinstall process.
+It retains the app features and clean-install correction from 0.1.1.
+No new app features are included.
+
+Requires macOS 26 or later.
