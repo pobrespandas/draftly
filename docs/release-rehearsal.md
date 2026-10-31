@@ -636,3 +636,25 @@ live site before publication. A regression test reproduces the prior rejection.
 A separate test rejects an unexpected staged index change before publication.
 All 261 Python tests passed. The first complete run lacked Pillow; installing
 the existing test dependency fixed test collection. No Swift code changed.
+
+## Public v0.1.0 publication on 31 October 2026
+
+GitHub release 430038131 is public at
+https://github.com/pobrespandas/draftly/releases/tag/v0.1.0.
+The publisher downloaded and verified the public assets. The ZIP SHA-256 is
+`2f9811316050b953fccd605273ed6b07ff5a19452620a5f7d2850796ade7c454`.
+The signed feed is public at https://draftly.pobrespandas.com/appcast.xml.
+Firebase promotion journal completed for version 1b2ac62fca6e7d3d. The public
+feed bytes matched the signed staged feed. The owned site lock was released.
+The live index page is byte-identical to the user's page saved before promotion.
+
+Corrected publisher tools ran separately from the clean immutable candidate
+checkout. The package source validation root was that checkout; its tag and
+remote main validation remained enabled. Candidate bytes and tag were unchanged.
+No source receipt was fabricated. Feed-only journal and payload were copied
+byte-for-byte to the canonical filenames required by the publisher.
+
+Remaining: add download presentation on top of the user's current website,
+check the public feed from the actual installed app, and finish usual-install
+acceptance. Public release does not complete the full Draftly clone, full
+CloudKit matrix, VM updater acceptance, or power-loss installation testing.
