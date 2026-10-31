@@ -1,6 +1,9 @@
 # Draftly architecture
 
-## Current continuation
+## Continuation and records
+
+Use [project progress](project-progress.md) for current work. The following
+links preserve completed refactoring stages and their original diagnoses.
 
 The [modularity audit](modularity-audit-2026-10-22.md) records the current
 refactoring diagnosis. [Editor completion context](refactoring-completion-context-2026-10-22.md)
@@ -482,3 +485,17 @@ choice in its style identity. ThemeTextAttributes resolves the selected font for
 syntax, theme and indentation metrics. A missing font falls back to the system
 monospace font. The system default preserves the prior fixed-pitch behavior.
 These settings do not change shared syntax records or backups.
+
+
+## CI and release boundaries
+
+`ci-change-scope.py` selects checks and verifies the combined result. Native
+execution remains in its workflow job. Script and website tests use separate
+jobs. Selection has no signing credentials and does not publish.
+
+`release-changes.py` compares package inputs before native runner allocation.
+Version and history validation remain in the existing preflight components.
+Candidate creation, signed appcast preparation, GitHub staging, public asset
+verification, and site promotion keep their existing separate commands. The
+writer lock and operation journals cover the publication sequence. See
+[CI/CD](ci-cd.md) and [release operations](releasing.md).

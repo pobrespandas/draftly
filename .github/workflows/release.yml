@@ -32,8 +32,37 @@ env:
   RESUME_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.resume_run_id || '' }}
 
 jobs:
-  rehearsal:
+  preflight:
     if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.operation == 'release' }}
+    runs-on: ubuntu-latest
+    outputs:
+      package: ${{ steps.changes.outputs.package }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check tag, version, and main before native allocation
+        run: python3 scripts/release-preflight.py "$RELEASE_TAG"
+      - name: Check published history
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ -n "$RESUME_RUN_ID" ]]; then
+            python3 scripts/release-history.py --resume-candidate
+          else
+            python3 scripts/release-history.py
+          fi
+      - name: Require package changes or an explicit recovery
+        id: changes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/release-changes.py --resume-run-id "$RESUME_RUN_ID" >> "$GITHUB_OUTPUT"
+
+  rehearsal:
+    needs: preflight
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.operation == 'release' && needs.preflight.outputs.package == 'true' }}
     runs-on: macos-26
     timeout-minutes: 60
     steps:

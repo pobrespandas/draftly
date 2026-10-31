@@ -13,6 +13,12 @@ function feed({ version = "1.2.3", minimum = "26.0", download = url, malformed =
     querySelector: name => name === "parsererror" ? (malformed ? {} : null) : item };
 }
 
+function availabilityPage() {
+  const ids = ["release-pending", "release-available", "release-download", "release-notes", "release-details", "release-hero-note", "release-nav-download"];
+  const elements = Object.fromEntries(ids.map(id => [id, { hidden: id === "release-available" }]));
+  return { document: { getElementById: id => elements[id] }, elements };
+}
+
 test("accepts a release only when metadata and GitHub asset agree", () => {
   assert.deepEqual(releaseFromDocument(feed()), {
     version: "1.2.3", minimum: "26.0", download: "https://github.com/pobrespandas/draftly/releases/download/v1.2.3/Draftly-1.2.3.dmg",
@@ -32,9 +38,7 @@ test("unavailable, redirected, invalid or oversized feeds stay unavailable", asy
 });
 
 test("availability stays hidden on failure and shows only validated metadata", async () => {
-  const ids = ["release-pending", "release-available", "release-download", "release-notes", "release-details", "release-hero-note", "release-nav-download"];
-  const elements = Object.fromEntries(ids.map(id => [id, { hidden: id === "release-available" }]));
-  const document = { getElementById: id => elements[id] };
+  const { document, elements } = availabilityPage();
   await updateAvailability(document, async () => ({ ok: false }), () => feed());
   assert.equal(elements["release-available"].hidden, true);
   assert.equal(elements["release-pending"].hidden, false);
@@ -49,4 +53,21 @@ test("availability stays hidden on failure and shows only validated metadata", a
   assert.equal(elements["release-nav-download"].href, elements["release-download"].href);
   assert.equal(elements["release-details"].textContent, "Requires macOS 26.0 or later.");
   assert.equal(elements["release-notes"].href, "https://github.com/pobrespandas/draftly/releases/tag/v1.2.3");
+});
+
+
+test("a new published version advances both existing DMG links without editing the page", async () => {
+  const { document, elements } = availabilityPage();
+  const oldDMG = "https://github.com/pobrespandas/draftly/releases/download/v0.1.0/Draftly-0.1.0.dmg";
+  elements["release-nav-download"].href = oldDMG;
+  elements["release-download"].href = oldDMG;
+  await updateAvailability(document, async () => ({ ok: false }), () => feed());
+  assert.equal(elements["release-nav-download"].href, oldDMG);
+  assert.equal(elements["release-download"].href, oldDMG);
+  await updateAvailability(document, async () => ({ ok: true, text: async () => "<rss/>" }),
+    () => feed({ version: "0.1.1", download: "https://github.com/pobrespandas/draftly/releases/download/v0.1.1/Draftly.zip" }));
+  const newDMG = "https://github.com/pobrespandas/draftly/releases/download/v0.1.1/Draftly-0.1.1.dmg";
+  assert.equal(elements["release-nav-download"].href, newDMG);
+  assert.equal(elements["release-download"].href, newDMG);
+  assert.equal(elements["release-notes"].href, "https://github.com/pobrespandas/draftly/releases/tag/v0.1.1");
 });
