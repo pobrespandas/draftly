@@ -658,3 +658,25 @@ Remaining: add download presentation on top of the user's current website,
 check the public feed from the actual installed app, and finish usual-install
 acceptance. Public release does not complete the full Draftly clone, full
 CloudKit matrix, VM updater acceptance, or power-loss installation testing.
+
+## Supplemental DMG for v0.1.0
+
+The user requested DMG installation. Created `Draftly-0.1.0.dmg` with the
+unchanged published app and an `/Applications` symlink. Signed the image with
+the existing Developer ID. Apple accepted submission
+`4d5a9a69-b1d9-402b-9d18-18a84a531a42`. Stapling, ticket validation, image
+integrity verification and Gatekeeper assessment passed. A read-only mount
+confirmed the app signature and exact candidate executable hash.
+
+Uploaded the DMG and its SHA-256 file as supplemental v0.1.0 release assets.
+Downloaded the public DMG and confirmed byte equality and the stapled ticket.
+DMG SHA-256: `14d485219a1c713cc4d40f4bf07e24cfdee1c2d7bfe6d71b12c0f9d63d23748d`.
+Public URL:
+https://github.com/pobrespandas/draftly/releases/download/v0.1.0/Draftly-0.1.0.dmg
+The Sparkle ZIP and public appcast were not changed.
+
+The current release coordinator expects exactly four core assets. Its strict
+resume validator will reject these supplemental assets. Before reusing that
+coordinator for this release, add explicit DMG metadata and tests; do not weaken
+unknown-asset rejection. Automating DMG creation for later tags remains pending.
+The website download link still needs the DMG presentation change.
