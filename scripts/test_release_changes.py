@@ -3,9 +3,9 @@ import importlib.util
 from pathlib import Path
 import plistlib
 import subprocess
-import tempfile
 import unittest
 from unittest.mock import patch
+from git_test_fixture import temporary_git_repository
 
 spec = importlib.util.spec_from_file_location('release_changes', Path(__file__).with_name('release-changes.py'))
 release = importlib.util.module_from_spec(spec)
@@ -38,14 +38,8 @@ class ReleaseChangesTests(unittest.TestCase):
                 self.assertFalse(release.package_path(path))
 
     def test_version_only_docs_and_tests_do_not_release_but_metadata_and_source_do(self):
-        with tempfile.TemporaryDirectory() as directory, patch.object(release, 'ROOT', Path(directory)):
-            root = Path(directory)
-            def git(*args):
-                return subprocess.check_output(['git', '-C', str(root), *args], text=True).strip()
-            def save(message):
-                git('add', '-A'); git('commit', '-qm', message)
-                return git('rev-parse', 'HEAD')
-            git('init', '-q'); git('config', 'user.email', 'qa@example.invalid'); git('config', 'user.name', 'QA')
+        with temporary_git_repository() as repository, patch.object(release, 'ROOT', repository.root):
+            root, save = repository.root, repository.commit
             (root / 'Configuration').mkdir()
             info = root / 'Configuration/Info.plist'
             value = dict(CFBundleVersion='1', CFBundleShortVersionString='0.1.0', CFBundleIdentifier='test.app')

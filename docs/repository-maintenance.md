@@ -84,3 +84,20 @@ Open PR #9 still contains a first-staging recovery proposal; it needs review
 against the new preflight. Open PR #11 still contains the actions-page footer
 link. Their changes are not obsolete or fully integrated, so both PRs and
 branches remain. Cancelled checks do not establish acceptance.
+
+## Script test fixture review, 31 October
+
+The CI selector and release selector use different rules. Their tests are not
+interchangeable: one selects checks, and the other selects app publication.
+The review found no identical test bodies across the Python test files.
+That syntactic check does not prove that all contract coverage is unique.
+
+The two selector suites repeated disposable Git initialization and commits.
+They now share `scripts/git_test_fixture.py`. Each use still creates and removes
+its own temporary repository with a neutral local author. Test names and
+assertions stay unchanged. The focused suites pass all 16 tests. No test was
+removed because equivalent contract coverage was not demonstrated.
+
+PRs #9 and #11 are now closed. The source-link purpose is retained by PR #17.
+The first-staging recovery proposal remains on its branch; closure does not
+establish that its recovery behavior was implemented or accepted.

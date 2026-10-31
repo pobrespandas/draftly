@@ -4,8 +4,8 @@ import json
 from pathlib import Path
 import subprocess
 import sys
-import tempfile
 import unittest
+from git_test_fixture import temporary_git_repository
 
 spec = importlib.util.spec_from_file_location('ci_scope', Path(__file__).with_name('ci-change-scope.py'))
 scope = importlib.util.module_from_spec(spec)
@@ -48,17 +48,12 @@ class CIChangeScopeTests(unittest.TestCase):
                 self.assertIsNone(scope.changed_paths(base, 'a' * 40))
 
     def test_git_diff_includes_deletions_and_renames_and_cli_reports_booleans(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            def git(*args):
-                return subprocess.check_output(['git', '-C', str(root), *args], text=True).strip()
-            git('init', '-q'); git('config', 'user.email', 'qa@example.invalid'); git('config', 'user.name', 'QA')
+        with temporary_git_repository() as repository:
+            root = repository.root
             (root / 'README.md').write_text('neutral')
-            git('add', '.'); git('commit', '-qm', 'initial')
-            base = git('rev-parse', 'HEAD')
+            base = repository.commit('initial')
             (root / 'Sources').mkdir(); (root / 'README.md').rename(root / 'Sources/Input.swift')
-            git('add', '-A'); git('commit', '-qm', 'move')
-            head = git('rev-parse', 'HEAD')
+            head = repository.commit('move')
             result = subprocess.run([sys.executable, scope.__file__, '--base', base, '--head', head],
                                     cwd=root, text=True, capture_output=True, check=True)
             self.assertIn('native=true', result.stdout)
