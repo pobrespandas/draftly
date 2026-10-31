@@ -1,6 +1,43 @@
-# Test structure
+# Testing Draftly
 
-Updated: 22 October 2026.
+Updated: 31 October 2026.
+
+## Run the checks
+
+Run commands from the repository root. Use the [development guide](development.md)
+for Xcode requirements and local app builds.
+
+For the complete Swift checks:
+
+```sh
+python3 scripts/run-swift-tests.py
+```
+
+The runner checks that every discovered test has a result. It reports failures
+and incomplete runs instead of treating a successful process exit as enough.
+Tests use temporary data and offscreen editors. They must not open or move
+visible windows, request permissions, play sounds, or use personal data.
+
+For Python checks, use Python 3.12, as CI does, in a separate environment:
+
+```sh
+python3.12 -m venv .build/test-venv
+source .build/test-venv/bin/activate
+python -m pip install 'Pillow>=10,<13' 'cryptography>=44,<46'
+swift package resolve
+python -m unittest discover -s scripts -p 'test_*.py'
+```
+
+Resolving packages supplies the pinned Sparkle tools used by signature tests.
+For website changes, also run:
+
+```sh
+node --test website/release.test.mjs
+```
+
+Automated tests do not prove that native services or synchronization work on
+a real Mac. Use [manual QA](manual-engine-qa.md) for those separate checks.
+The sections below explain fixture boundaries and retain dated test records.
 
 ## Boundaries
 
@@ -55,8 +92,7 @@ Run `python3 scripts/run-swift-tests.py` for a complete app and core run. The
 runner compares discovered test identities with fresh xUnit results. It rejects
 missing, duplicate, failed, skipped, or unexpected results even if Swift exits0.
 Each target gets a fresh report. AppKit tests run serially because they share
-process-wide state and concurrent app reports remain unreliable. Core tests run
-concurrently. Earlier concurrent worker timeouts remain recorded in
+process-wide state and concurrent app reports remain unreliable. Core tests also run serially by default. Earlier concurrent worker timeouts remain recorded in
 [project status](status.md). To compare this refactoring with its serial base,
 run each target with `swift test --no-parallel --filter TARGET --xunit-output
 /tmp/UNIQUE-TARGET.xml`. Keep target reports separate; a combined command can

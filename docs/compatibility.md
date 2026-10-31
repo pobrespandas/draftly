@@ -1,5 +1,17 @@
 # Action compatibility
 
+## Before you import an action
+
+Draftly can import actions from Drafts, but compatibility is still in progress.
+An imported action can contain a step or API that Draftly does not yet support.
+Keep its original script and review the action before running it.
+
+The tables below describe specific behavior covered by tests. Many tests use
+simulated services. They do not prove that another app received data or that
+macOS granted a permission. Use [project progress](project-progress.md) for
+current open work and [the user guide](getting-started.md#run-and-organize-actions)
+for the basic action workflow.
+
 ## Reference snapshots
 
 The fixture manifest records the source URL and SHA-256 hash of each downloaded
