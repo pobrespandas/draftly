@@ -2,8 +2,11 @@
 
 ## Continuation
 
-- To resume the current Draftly work, read `docs/claude-handoff.md` first.
-  It records the unfinished contract review, test evidence, and next checks.
+- To resume Draftly work, read `docs/claude-handoff.md` first when it exists.
+  It contains local operation journals and unfinished checks. Then read
+  `docs/project-progress.md` for the tracked state and next work.
+- Use `docs/README.md` to find maintained guides. Dated audits and archived
+  checkpoints record their original scope; they are not the current task list.
 
 ## Product decisions
 

@@ -4,6 +4,12 @@ Draftly is a native Mac app for quick text capture and actions. It uses SwiftUI,
 AppKit, Core Data, CloudKit, and JavaScriptCore. It requires macOS 26 or later
 and Xcode 26 or later with Swift 6.2 or later.
 
+## Download
+
+Get the signed Mac app from [draftly.pobrespandas.com](https://draftly.pobrespandas.com/).
+Read [project progress](docs/project-progress.md) for current release limits and
+pending acceptance. Use [the documentation map](docs/README.md) to find guides.
+
 ## Build and run
 
 Build a local app without an Apple Developer profile:
@@ -29,8 +35,10 @@ To enable iCloud:
    [validation.md](docs/validation.md).
 
 The configured paid team now provisions CloudKit and Push Notifications. Apple
-reports its name as Andrés Tobelem, not pobrespandas. The signed build uses the
-private Development container. The full sync matrix remains open.
+reports its name as Andrés Tobelem, not pobrespandas. Debug and personal builds use the
+private Development environment. Public Developer ID packages use Production
+in the same container. Keep their acceptance separate; the full sync matrix
+remains open.
 
 `Signing.xcconfig` is ignored by Git. The project supports automatic signing.
 CloudKit sync is eventual. Local saves do not prove a remote save.
@@ -41,8 +49,8 @@ isolated build directory. Set `DRAFTLY_PROVISIONING_PROFILE` to use an installed
 manual profile when Xcode has no signed-in account. Run
 `scripts/package-personal.sh` for a signed Release package for registered Macs. See
 [icloud-distribution.md](docs/icloud-distribution.md) for profile limits,
-installation, updates, and the current server test result. The main app is
-installed at `~/Applications/Draftly.app`. Read
+installation, updates, and dated server test results. Public release operations
+are in [the release guide](docs/releasing.md). Read
 [bundle identity migration](docs/bundle-identity-2026-10-21.md) before changing
 its identifier or restoring the previous package.
 
@@ -106,7 +114,7 @@ step runs. Disabled unknown steps remain stored and do not run. Unsupported API 
 Native steps support the clipboard, sharing, file export, URLs, text insertion,
 new drafts, Markdown preview, Shortcuts, AppleScript, Reminders, and Calendar.
 AppleScript and Shortcuts run with the current user's permissions. Review
-imported scripts before use. This personal app does not use App Sandbox.
+imported scripts before use. Draftly does not use App Sandbox.
 
 Shortcuts can create, search, and open drafts, or run an action. URL examples:
 
@@ -176,7 +184,7 @@ available macOS model. See [compatibility.md](docs/compatibility.md) for limits.
 `ApplicationCommands.swift` defines app and window menus. `SettingsView.swift`
 contains Settings pages. Preference access is separate from those views.
 
-Start with [project status](docs/status.md) for implemented work and pending
+Start with [project progress](docs/project-progress.md) for implemented work and pending
 acceptance. Use [architecture](docs/architecture.md) for component boundaries
 and refactoring checks. Use [validation](docs/validation.md) for historical test evidence.
 Use the [core audit](docs/research/core-actions-audit.md) and
