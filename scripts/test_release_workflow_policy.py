@@ -32,7 +32,14 @@ class ReleaseWorkflowPolicyTests(unittest.TestCase):
 
     def test_only_main_dispatch_can_reach_release_credentials(self):
         configured = jobs()
-        self.assertEqual(configured['rehearsal']['if'], "${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.operation == 'release' }}")
+        trusted = "github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.operation == 'release'"
+        self.assertEqual(configured['preflight']['if'], "${{ " + trusted + " }}")
+        self.assertEqual(configured['preflight']['runs-on'], 'ubuntu-latest')
+        self.assertEqual(configured['rehearsal']['needs'], 'preflight')
+        self.assertEqual(configured['rehearsal']['if'], "${{ " + trusted + " && needs.preflight.outputs.package == 'true' }}")
+        preflight = json.dumps(configured['preflight'])
+        self.assertNotIn('secrets.', preflight)
+        self.assertIn('scripts/release-changes.py', preflight)
         source = (ROOT / '.github/workflows/release.yml').read_text()
         self.assertNotIn('  push:', source)
         dispatcher = (ROOT / '.github/workflows/release-tag.yml').read_text()

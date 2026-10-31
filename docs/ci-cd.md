@@ -36,3 +36,28 @@ selector or native workflow changes. Keep generated reports outside Git.
 A successful local run is not a protected PR check. GitHub must recognize the
 required check on the PR before integration. Source, signed candidate, public
 release, website promotion, and installed app are separate states.
+
+## Release selection
+
+A version tag requests the trusted main workflow. Pull requests and normal
+main pushes do not publish. An Ubuntu preflight checks the tag, version,
+published history, and changes before it allocates macOS or signing runners.
+
+`scripts/release-changes.py` compares package inputs with the latest stable
+published tag. Documentation, tests, website code, and workflow changes do not
+create a new app release. Changing only the version and build in Info.plist
+also does not qualify. App code, resources, bundle settings, dependencies, and
+packaging drivers qualify. Unknown top-level inputs qualify conservatively.
+Malformed metadata, missing tags, or unrelated history stop the preflight.
+An explicit recovery run can resume the existing candidate; its identity and
+assets still pass the later recovery checks.
+
+Signing, notarization, release uploads, and Firebase promotion retain their
+existing protected environment and publication flags. The preflight adds no
+credentials or bypasses. See [release operations](release-rehearsal.md) for
+candidate validation, writer locks, journals, and recovery.
+
+The website reads the published appcast. Both download buttons derive the
+versioned DMG URL from that feed. Promotion preserves the live site files and
+old release items. Verify the public feed, GitHub assets, and both buttons
+after each release. A source change alone does not update the live site.
