@@ -75,3 +75,22 @@ a disposable candidate and checks that these files survive the transfer.
 This check covers file selection. A successful hosted signing and publication
 run is still required to accept the complete pipeline. The local 0.1.2 release
 does not provide that hosted acceptance.
+
+## Configured publication state, 31 October 2026
+
+The repository flags for signing, staging, and publication are enabled.
+The release environment still limits credential use to main. PR checks and
+ordinary main pushes do not publish. A valid version tag without a CI skip
+instruction requests the main workflow; preflight still rejects unchanged
+package inputs before native allocation. Published tags and assets stay fixed.
+
+Run `41236743915` verified the existing publisher identity from GitHub, read
+Hosting, and acquired, checked, and released the site writer lock. All signing
+and publication jobs were skipped. This proves publisher access and lock
+handling, not a complete hosted release.
+
+PR #21 corrected the artifact transfer. Run `41236763902` passed the script
+checks and required result without native compilation. Local validation passed
+285 Python tests, actionlint, and matrix structure. The next app release with
+package changes must verify hosted signing, artifact transfer, publication,
+and site promotion before end-to-end automation acceptance is recorded.
