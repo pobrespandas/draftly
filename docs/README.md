@@ -34,6 +34,9 @@ signing guides to install the released app.
 
 ## Read historical evidence
 
+- [Mission, vision, and values](research/mission-vision-values-2026-10-31.md):
+  origins, differences between frameworks, evidence, and use in Draftly.
+
 Use [project progress](project-progress.md) for the current work list.
 Dated audits and [validation records](validation.md) describe the versions
 checked at the time. Old pending statements are not new instructions.
