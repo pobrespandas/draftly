@@ -102,6 +102,21 @@ struct ApplicationIdentityMigrationTests {
         #expect(!ApplicationIdentityMigration.isRequired(bundleIdentifier: nil, isolated: false))
     }
 
+    @Test func freshInstallWithNoPersistentDomainsCompletesAndIsIdempotent() throws {
+        let old = try TestPreferences(prefix: "Draftly.Identity.FreshOld.")
+        let new = try TestPreferences(prefix: "Draftly.Identity.FreshNew.")
+        defer { old.close(); new.close() }
+        #expect(new.defaults.persistentDomain(forName: old.name) == nil)
+        #expect(new.defaults.persistentDomain(forName: new.name) == nil)
+        let domains = ApplicationIdentityMigration.Domains.persistent(defaults: new.defaults)
+        #expect(try ApplicationIdentityMigration.migrate(domains: domains,
+            source: old.name, destination: new.name))
+        #expect(new.defaults.persistentDomain(forName: new.name)?[marker] as? Bool == true)
+        #expect(new.defaults.persistentDomain(forName: old.name) == nil)
+        #expect(try !ApplicationIdentityMigration.migrate(domains: domains,
+            source: old.name, destination: new.name))
+    }
+
     @Test func persistentAdapterCopiesOnlyExplicitDomains() throws {
         let old = try TestPreferences(prefix: "Draftly.Identity.Old.")
         let new = try TestPreferences(prefix: "Draftly.Identity.New.")

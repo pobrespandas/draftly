@@ -66,7 +66,8 @@ import Foundation
 
     private static func writeAndVerify(_ values: [String: Any], to domain: String, domains: Domains) throws {
         try domains.write(domain, values)
-        guard let actual = try domains.read(domain), NSDictionary(dictionary: values).isEqual(to: actual) else {
+        let actual = try domains.read(domain) ?? [:]
+        guard NSDictionary(dictionary: values).isEqual(to: actual) else {
             throw MigrationError.persistence
         }
     }

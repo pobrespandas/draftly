@@ -702,3 +702,21 @@ to update the site without adding an app version. This mode requires the exact
 published signed feed, unchanged bytes, and a matching stable GitHub history.
 It preserves unrelated live files and rejects unexpected source changes.
 Normal release staging still requires exactly one new version.
+
+## Fresh-install preference migration failure
+
+On 31 October, v0.1.0 failed before opening the library when both old and new
+preference domains were empty. A native reproduction with isolated empty
+UserDefaults domains failed before the fix. UserDefaults can read a written
+empty persistent domain as nil. Verification now treats nil as an empty map;
+nonempty lost writes and read errors still fail. The new native-domain test
+checks completion, no source creation, and idempotence. All nine migration
+tests passed, and the local application build passed. No hosted run was started.
+
+The user-installed /Applications/Draftly.app was unblocked by running the fixed
+migration only after verifying both real preference domains contained zero
+keys. No old data was restored and no app bytes were changed. The startup
+alert could not be read by Computer Use. Terminated that pre-library process
+and reopened the same installed app. Computer Use then confirmed its main
+window with 0 drafts. The public v0.1.0 package still has the bug; it must be
+fixed in a new signed version, without replacing existing release assets.
