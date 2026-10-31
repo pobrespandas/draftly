@@ -5,10 +5,25 @@ Historical test reports describe only the versions they tested.
 
 ## Current priority
 
-Repository cleanup is validated. Continue product work from the subsystem
+Repository cleanup and the human-readable documentation pass are integrated.
+The current fix addresses a draft-list click that only changed focus when the
+editor was focused. Native table click handling now owns that focus transition.
+The installed 0.1.2 release and an isolated QA build of the old code reproduced
+the issue. The corrected QA build selected the target draft on the first click
+in both directions, with the same library and preferences.
+
+The headless table test covers selection-to-editor routing, multiple selection,
+and suppression of programmatic selection callbacks. It does not simulate a
+physical click. Native click acceptance was checked separately with Computer Use.
+The corrected QA build also retained a fresh edit while switching notes and
+handled Command-click multiple selection. Complete local checks passed 759
+Core, 938 app, and 285 Python tests; the local app build and structural matrix
+passed. QA used a temporary library and was closed and unregistered afterward.
+The next corrected release is in preparation; do not call it published yet.
+
+Draftly has one edition. Drafts Pro restrictions are reference blockers, not
+Draftly feature restrictions. Continue other product work from the subsystem
 records below, keeping current guidance separate from dated evidence.
-Do not add app functionality during that cleanup. Draftly has one edition.
-Drafts Pro restrictions are reference blockers, not Draftly feature restrictions.
 
 ## Source, publication, and installation
 

@@ -6,6 +6,43 @@ import DraftlyCore
 
 @Suite("Draft row presentation") @MainActor
 struct DraftRowPresentationTests {
+    @Test func nativeSelectionLoadsTheClickedDraftAndKeepsMultipleSelectionSeparate() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let first = try library.createNote(content: "First QA")
+        let target = try library.createNote(content: "Target café 🐼")
+        let preferences = try TestPreferences(prefix: "Draftly-TableSelection-")
+        defer { preferences.close() }
+        var dependencies = WindowDependencies()
+        dependencies.preferences = WindowPreferences(defaults: preferences.defaults)
+        let model = WindowModel(library: library, dependencies: dependencies)
+        model.select(first.id, focusEditor: false)
+        let selection = Binding<Set<UUID>>(get: { model.selectedDraftIDs },
+                                           set: { model.selectedDraftIDs = $0 })
+        let view = NativeDraftTable(model: model, library: library, selection: selection,
+                                   showPreview: true, previewLines: 2, showTags: true, showDate: true)
+        let coordinator = view.makeCoordinator()
+        coordinator.notes = [first, target]
+        let table = NSTableView(frame: NSRect(x: 0, y: 0, width: 300, height: 200))
+        table.addTableColumn(NSTableColumn(identifier: .init("draft")))
+        table.allowsMultipleSelection = true
+        table.dataSource = coordinator
+        table.delegate = coordinator
+        coordinator.table = table
+        table.reloadData()
+        table.selectRowIndexes(IndexSet(integer: 1), byExtendingSelection: false)
+        #expect(model.selectedDraftIDs == [target.id])
+        #expect(model.editor.noteID == target.id)
+        #expect(model.editor.content == target.content)
+        table.selectRowIndexes(IndexSet(integersIn: 0..<2), byExtendingSelection: false)
+        #expect(model.selectedDraftIDs == [first.id, target.id])
+        #expect(model.editor.noteID == target.id)
+        coordinator.synchronizingSelection = true
+        table.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
+        coordinator.synchronizingSelection = false
+        #expect(model.selectedDraftIDs == [first.id, target.id])
+        #expect(model.editor.noteID == target.id)
+    }
+
     @Test func tableCallbacksUseTheDisplayedSnapshotUntilTheNextUpdate() throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let model = WindowModel(library: library)
