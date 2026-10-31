@@ -234,3 +234,24 @@ The local folder for files read or written by action scripts. It is separate fro
 
 **Named export folder**:
 A folder chosen by the user and recalled by name for file exports on this Mac.
+
+
+### Planned agent access
+
+These terms describe the proposed agent interface, not a shipped capability.
+
+**Draftly agent connection**:
+A user-approved connection through which an external agent requests work in
+Draftly. It can be disabled independently of other connections.
+
+**Agent grant**:
+The user's authorization for a Draftly agent connection to perform specified
+work on specified library resources for a limited time.
+
+**Agent operation**:
+A request for work in Draftly with an identifiable outcome and the grant under
+which it was accepted.
+
+**Agent approval**:
+The user's one-use consent to a specific requested operation and its effects.
+It does not widen the connection's grant.
