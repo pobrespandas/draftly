@@ -18,7 +18,8 @@ unknown inputs, missing revisions, mixed changes, and final job results.
 Script tests stay on macOS because some test macOS command adapters. They do
 not compile the app. The script job resolves the pinned Sparkle tools before
 running tests that check real appcast signatures. Native compilation and Swift tests have their own job.
-Explicit diagnostics select their native check. A manual full run selects all
+Explicit diagnostics select their native check and use a separate summary
+name. They do not report the full required-check name. A manual full run selects all
 checks. A missing revision selects all checks; an unreadable revision fails.
 
 The required check retains the name `Build and test on macOS` for compatibility

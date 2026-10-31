@@ -147,7 +147,7 @@ jobs:
           retention-days: 7
 
   result:
-    name: Build and test on macOS
+    name: "${{ github.event_name == 'workflow_dispatch' && inputs.diagnostic != '' && inputs.diagnostic != 'all' && format('Diagnostic summary: {0}', inputs.diagnostic) || 'Build and test on macOS' }}"
     needs: [plan, macos, tooling, website, matrix]
     if: ${{ always() && (github.event_name != 'workflow_dispatch' || inputs.diagnostic != 'ReleaseEnvironmentDenied') }}
     runs-on: ubuntu-latest
