@@ -626,3 +626,13 @@ after Install and Relaunch. Its signature passed and executable hash matched
 `50e9aaedf9dee13a0faa06c10e5c3cb0982aa09bb305d185d814b993dcad4cb3`.
 This verifies a transport interruption and subsequent recovery, not a power
 failure during the atomic installation step.
+
+## Feed-only publisher compatibility
+
+The publisher now accepts a finalized feed-only checkpoint only when both
+website payload fields and website source fields are absent. It still checks
+the finalized journal and matches staged files and configuration against the
+live site before publication. A regression test reproduces the prior rejection.
+A separate test rejects an unexpected staged index change before publication.
+All 261 Python tests passed. The first complete run lacked Pillow; installing
+the existing test dependency fixed test collection. No Swift code changed.

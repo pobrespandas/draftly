@@ -109,6 +109,26 @@ class PublicationTests(unittest.TestCase):
             self.run_publish()
         self.assertNotIn("publish", self.github.calls)
 
+    def test_feed_only_checkpoint_preserves_live_files_before_publication(self):
+        del self.receipt["websiteHashes"]
+        journal = self.staged / "firebase-journal.json"
+        checkpoint = json.loads(journal.read_text())
+        del checkpoint["websitePayloads"]
+        journal.write_text(json.dumps(checkpoint))
+        self.run_publish()
+        self.assertIn("publish", self.github.calls)
+
+    def test_feed_only_checkpoint_rejects_unexpected_website_change(self):
+        del self.receipt["websiteHashes"]
+        journal = self.staged / "firebase-journal.json"
+        checkpoint = json.loads(journal.read_text())
+        del checkpoint["websitePayloads"]
+        journal.write_text(json.dumps(checkpoint))
+        self.client.staged_files["/index.html"] = "0" * 64
+        with self.assertRaises(ValueError):
+            self.run_publish()
+        self.assertNotIn("publish", self.github.calls)
+
     def test_rejects_missing_or_tampered_staged_payload_before_publication(self):
         payload = publisher.firebase.payload_path(self.staged / "firebase-journal.json")
         original = payload.read_bytes()
