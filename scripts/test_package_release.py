@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import plistlib
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -76,6 +77,19 @@ class FakeRunner:
 
 
 class PackageReleaseTests(unittest.TestCase):
+    def setUp(self):
+        self.source = tempfile.TemporaryDirectory(prefix="draftly-package-source-")
+        self.addCleanup(self.source.cleanup)
+        root = Path(self.source.name)
+        (root / "Configuration").mkdir()
+        (root / "Configuration/Info.plist").write_bytes(plistlib.dumps({
+            "CFBundleShortVersionString": "0.1.0", "CFBundleVersion": "1"}))
+        (root / "scripts").mkdir()
+        shutil.copyfile(Path(__file__).with_name("release-dmg.py"), root / "scripts/release-dmg.py")
+        source = patch.object(release, "ROOT", root)
+        source.start()
+        self.addCleanup(source.stop)
+
     def test_ci_disk_image_finishes_before_candidate_is_ready(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "candidate"
