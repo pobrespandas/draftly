@@ -720,3 +720,19 @@ alert could not be read by Computer Use. Terminated that pre-library process
 and reopened the same installed app. Computer Use then confirmed its main
 window with 0 drafts. The public v0.1.0 package still has the bug; it must be
 fixed in a new signed version, without replacing existing release assets.
+
+## Additional macOS 26 empty-file regression
+
+The first 0.1.1 candidate (705b5ed, local tag only) failed the real clean VM
+launch and was not published. Its files are retained at
+`.build/release-candidates/v0.1.1-rejected-705b5ed`. Before launch, both domains
+were empty and Library.sqlite was absent. After failure, the destination plist
+was valid and had zero keys, but UserDefaults returned no domain on macOS 26.
+The read adapter had treated any existing file with an absent domain as corrupt.
+
+The adapter now accepts a valid empty dictionary file in that case. It still
+rejects invalid files and nonempty files that the preferences backend cannot
+read. A directory parameter isolates file tests from real user preferences.
+All ten migration tests and complete local Swift reports passed: 759 Core and
+937 application tests. No hosted runner was started. Rebuild and repeat native
+clean installation before publication. Do not apply the local repair in the VM.
