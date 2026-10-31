@@ -2,6 +2,7 @@
 import json
 from pathlib import Path
 import subprocess
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -16,6 +17,30 @@ def jobs():
 
 
 class ReleaseWorkflowPolicyTests(unittest.TestCase):
+    def test_candidate_artifact_retains_dmg_and_notarization_receipts(self):
+        step = next(s for s in jobs()['candidate']['steps']
+                    if s.get('name') == 'Save verified candidate for review')
+        expected = {'Draftly.zip', 'Draftly.zip.sha256', 'candidate.json',
+                    'signing-report.json', 'notary-submission.json', 'READY',
+                    'Draftly-1.2.3.dmg', 'Draftly-1.2.3.dmg.sha256',
+                    'disk-image.json', 'dmg-notary-submission.json'}
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            candidate = root / '.build/release-candidates/v1.2.3'
+            candidate.mkdir(parents=True)
+            for name in expected:
+                (candidate / name).write_text('neutral artifact transfer fixture')
+            transferred = set()
+            for pattern in step['with']['path'].splitlines():
+                pattern = pattern.replace('${{ env.RELEASE_TAG }}', 'v1.2.3').strip()
+                transferred.update(p.name for p in root.glob(pattern))
+            self.assertEqual(transferred, expected)
+        recovery = next(s for s in jobs()['candidate']['steps']
+                        if s.get('name') == 'Preserve incomplete notary submission for recovery')
+        for name in ('dmg-notary-submission.json', 'Draftly-*.dmg'):
+            self.assertIn('/' + name, recovery['with']['path'])
+        self.assertEqual(recovery['if'], 'failure()')
+
     def test_sensitive_jobs_require_the_release_environment_and_prerequisites(self):
         configured = jobs()
         self.assertEqual(configured['candidate']['environment'], 'release')
