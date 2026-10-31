@@ -18,7 +18,7 @@ team, signing profiles, and distribution method.
 - CloudKit Console exposes container visibility, database/schema controls,
   sharing fallback, tokens, and permissions. The inspected pages did not offer
   a storage icon control. No schema, permissions, records, or visibility changed.
-- App Store Connect has no app record in this account. It also shows an updated
+- Before this investigation, App Store Connect had no app record. It showed an updated
   Developer Program agreement that requires the account holder's review.
   No agreement was accepted by the agent.
 
@@ -29,16 +29,42 @@ publishing or enabling TestFlight. Creation was attempted with macOS, name
 Draftly, and the existing `com.pobrespandas.draftly` identifier. Apple rejected
 it because that app name is already in use. No app record was created.
 
-The user was asked whether to use Draftly by Pobrespandas for only the private
-record. Until that decision arrives, do not substitute another name. This
-investigation has not established that a private record will fix iCloud's
-storage name or icon. Do not describe it as a proven requirement or solution.
-Do not add iCloud Documents entitlements or move records as a branding fix.
+The user then authorized Draftly by Pobrespandas for only the private record.
+Apple created record `6829288536` with the existing app identifier. It remains
+in preparation for submission. Its publication setting was changed to manual
+and saved. No build was uploaded, no review was requested, and TestFlight was
+not enabled. The installed app name and bundle identifier were not changed.
+The default App Store version field is 1.0; it is not the public DMG version.
+
+The general app page has no direct icon upload control. Apple's [app icon
+guide](https://developer.apple.com/help/app-store-connect/manage-app-information/add-an-app-icon)
+says App Store Connect receives the icon from an uploaded build. This does not
+prove that an uploaded build would correct the CloudKit storage entry. Do not
+request new signing certificates or upload a build based on that hypothesis.
+
+The user questioned the private-record route. Investigation now focuses on
+how macOS obtains storage-entry metadata for Developer ID apps. The installed
+0.1.1 app has the correct display name and its Draftly.icns resource. Apple's
+CKTool JS 1.3.2 exposes container name and optional imageUrl in its response;
+the inspected base API exposes getContainers and getTeams, not a setter for
+that image. The local cktool command list also has no branding command.
+No authorization token was generated or credential used for this inspection.
+
+The [Info.plist reference](https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CocoaKeys.html)
+defines NSUbiquitousContainerName for the iCloud Drive name. That is not proof
+that it controls this CloudKit storage entry. No iCloud Documents capability,
+entitlement, or speculative metadata key was added.
 
 ## Acceptance
 
 After any confirmed metadata change, reopen System Settings and verify both
 the displayed name and icon. Portal success alone is insufficient. Keep this
 acceptance separate from CloudKit synchronization and app distribution.
-The storage entry `cloudqa` is a separate test container; this investigation
-did not delete it or its data.
+The user accepted the cosmetic difference for now. On 31 October, the user
+explicitly authorized permanent deletion of both `draftly` and `cloudqa` data
+from all synchronized devices. Both system confirmation sequences completed.
+After reopening Manage Storage, `draftly` was absent. `cloudqa` still showed
+129.1 KB. Its deletion is therefore requested, but not verified. Do not claim
+that both entries are gone. Other apps, including Drafts, were not changed.
+An active client can create new data later; this operation does not uninstall
+apps or delete their local libraries.

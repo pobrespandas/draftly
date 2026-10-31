@@ -24,8 +24,9 @@ Drafts Pro restrictions are reference blockers, not Draftly feature restrictions
 - The user authorized correcting the early, still unpublished 0.1.1 tag to
   integrated `1ea567e`. Only that tag was excepted temporarily; the original
   protection and active tag workflow were restored before publication.
-- The habitual installed app still reports 0.1.0. Source integration, package
-  validation, publication, and installation are separate states.
+- A later read-only inspection found 0.1.1 in the habitual installation. This
+  does not establish a full migration or update acceptance check. Source,
+  package validation, publication, and installation are separate states.
 
 ## Repository and CI cleanup
 
