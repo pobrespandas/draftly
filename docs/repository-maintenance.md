@@ -101,3 +101,31 @@ removed because equivalent contract coverage was not demonstrated.
 PRs #9 and #11 are now closed. The source-link purpose is retained by PR #17.
 The first-staging recovery proposal remains on its branch; closure does not
 establish that its recovery behavior was implemented or accepted.
+
+## Final repository audit, 31 October
+
+The maintained entry points are README, the documentation map, and project
+progress. The local status page points to that summary. Historical reports
+remain labeled as evidence for their original versions. A read-only scan
+checked 148 local Markdown link targets outside skill templates; none was
+missing.
+
+The tracked artifact scan found only the intentional website icon among
+screenshots, logs, packages, databases, and private signing-file extensions.
+No private .p8 key or SQLite rollback journal was tracked. Ignore rules now
+also exclude those files. Direct Git checks confirmed that private files are
+excluded while environment examples, tests, the icon, and the matrix remain
+eligible for tracking.
+
+The independent main checkout still has its previous website edits and skill
+deletions. They remain untouched. The disposable Git-fixture worktree was
+removed after it was clean and integrated; its branch remains. Reference
+release packages, coherent backups, and prior source checkouts were retained.
+Only the old update-acceptance app registration was removed; its package was
+kept. The installed app was registered again. No global registry reset ran.
+
+PR #21 fixed DMG artifact transfer after a failing regression reproduced the
+omission. Publisher access and lock handling passed on GitHub. Publication
+flags are enabled. Complete hosted signing-to-publication acceptance remains
+pending for a release with real package changes. The successful local 0.1.2
+release and reinstall do not replace that acceptance.
