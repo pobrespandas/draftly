@@ -437,6 +437,25 @@ class FirebaseStageTests(unittest.TestCase):
             self.assertIsNone(client.uploaded)
             self.assertFalse(any(method == "PATCH" for method, _, _, _ in client.calls))
 
+    def test_website_only_preserves_exact_feed_and_requires_public_history(self):
+        feed = self.feed(("0.1.0", "1"))
+        releases = [{"tag_name": "v0.1.0", "draft": False, "prerelease": False}]
+        website = ({"/index.html": b"old"}, {"/index.html": b"new"}, lambda *args: b"old")
+        receipt = firebase.stage(FakeHosting(has_feed=True), OLD, feed, self.public,
+            releases=releases, current_feed=feed, journal=self.root / "site.json",
+            website=website, website_only=True)
+        self.assertIn("/index.html", receipt["websiteHashes"])
+        for changed_feed, history, supplied_site in [
+                (feed + b"\n", releases, website), (feed, [], website),
+                (feed, releases + releases, website), (feed, releases, None)]:
+            with self.subTest(history=history, supplied_site=supplied_site), self.assertRaises(ValueError):
+                firebase.stage(FakeHosting(has_feed=True), OLD, changed_feed, self.public,
+                    releases=history, current_feed=feed, journal=self.root / "bad.json",
+                    website=supplied_site, website_only=True)
+        with self.assertRaisesRegex(ValueError, "exactly one"):
+            firebase.stage(FakeHosting(has_feed=True), OLD, feed, self.public,
+                releases=releases, current_feed=feed, journal=self.root / "normal.json", website=website)
+
     def test_rejects_missing_live_feed_and_nonmonotonic_history(self):
         feed = self.feed(("0.1.0", "1"))
         with self.assertRaisesRegex(ValueError, "file list do not agree"):

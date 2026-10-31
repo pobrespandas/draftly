@@ -566,3 +566,148 @@ Comparison by UUID confirmed equal values; persisted order fields stayed part
 of those value comparisons. This was a harness issue, not a data correction.
 These exports do not validate migration of Development mirroring metadata or
 Production cross-client convergence. Keep those acceptances separate.
+
+## Production live round trip on 31 October 2026
+
+Probe E passed with both clients open. The host ran macOS 27.2 (26B123).
+The UTM guest ran macOS 26.6 (25G72). Both clients used the Production
+container `iCloud.com.andrestobelem.draftly`, the main app identity, and
+isolated local libraries. The personal library was not opened.
+
+The guest ZIP SHA-256 was
+`31f2dd38cae78c73209b237bc01b65ea98abefc0366c8b10a62cd6edd4b10102`.
+The guest passed signature verification and Gatekeeper assessment. The host
+was recovered from that same executable. Its explicit role was set to `host`
+and its bundle was signed again with the existing Developer ID identity.
+Both clients reported an available account and successful push registration.
+
+The host created neutral note `DD71668E-2039-4ACB-8209-202610300006`.
+The guest received a remote notification, reported `HOST_TO_GUEST=PASS`,
+and saved its edit. The host then received a remote notification and reported
+`GUEST_TO_HOST_LIVE=PASS; CONTENT=PASS; TAGS=PASS; FLAG=PASS; UUID=PASS`
+and `CROSS_CLIENT_NOTE_ROUND_TRIP=PASS`. Neither client was restarted during
+the round trip. The return took several minutes.
+
+This verifies the isolated live note round trip in Production. It does not
+prove the complete synchronization matrix, Development data migration,
+public updater acceptance, or public release. Earlier failures remain valid
+observations. This result does not establish their cause.
+
+## Main-identity updater restart on 31 October 2026
+
+A repeat used the internal 0.0.9/build 0 origin harness and the unchanged
+notarized v0.1.0 ZIP. The signed test appcast and archive were served only
+on loopback. This does not verify the public HTTPS endpoints.
+Computer Use confirmed the version offer, release notes, extraction, and
+Install and Relaunch. After that click, no app lookup or explicit open was
+performed. Process inspection found PID 17518 at the updated path ending
+`update-acceptance/Draftly.app/Contents/MacOS/Draftly`, with build 1.
+Strict signature verification passed. Its executable SHA-256 was
+`50e9aaedf9dee13a0faa06c10e5c3cb0982aa09bb305d185d814b993dcad4cb3`,
+which matches the definitive candidate. Automatic restart passed in this
+repeat. The origin is a harness; the earlier full-app active-action test
+remains separate evidence. Negative cases and public endpoint checks remain.
+
+The user clarified that they reopened the app in the earlier attempt.
+Do not attribute that reopening to Computer Use. The earlier attempt did
+not establish automatic restart or an updater defect.
+
+## Negative updater checks with a valid origin signature
+
+On 31 October, strict deep verification passed before and after the negative
+checks. With the loopback server stopped, Sparkle reported a retrieval error.
+With a one-byte-modified ZIP, it reported an improper-signature error and
+blocked installation. After restoring the definitive ZIP, closing the update
+offer cancelled without replacement. The origin remained build 0 in each
+case. This proves unavailable-server handling, archive authenticity rejection,
+and cancellation before download. It does not prove a mid-download network
+interruption, interruption during installation, or public HTTPS delivery.
+The earlier invalid-origin observations do not provide this acceptance.
+
+## Download interruption and recovery
+
+On 31 October, a throttled loopback transfer showed 66 KB of 7.5 MB before
+the server was stopped. Sparkle reported a download error. The origin retained
+build 0 and passed strict deep signature verification. After restoring the
+server, a new attempt installed the definitive ZIP and restarted PID 19435
+at the updated Draftly executable path. No app lookup or explicit open occurred
+after Install and Relaunch. Its signature passed and executable hash matched
+`50e9aaedf9dee13a0faa06c10e5c3cb0982aa09bb305d185d814b993dcad4cb3`.
+This verifies a transport interruption and subsequent recovery, not a power
+failure during the atomic installation step.
+
+## Feed-only publisher compatibility
+
+The publisher now accepts a finalized feed-only checkpoint only when both
+website payload fields and website source fields are absent. It still checks
+the finalized journal and matches staged files and configuration against the
+live site before publication. A regression test reproduces the prior rejection.
+A separate test rejects an unexpected staged index change before publication.
+All 261 Python tests passed. The first complete run lacked Pillow; installing
+the existing test dependency fixed test collection. No Swift code changed.
+
+## Public v0.1.0 publication on 31 October 2026
+
+GitHub release 430038131 is public at
+https://github.com/pobrespandas/draftly/releases/tag/v0.1.0.
+The publisher downloaded and verified the public assets. The ZIP SHA-256 is
+`2f9811316050b953fccd605273ed6b07ff5a19452620a5f7d2850796ade7c454`.
+The signed feed is public at https://draftly.pobrespandas.com/appcast.xml.
+Firebase promotion journal completed for version 1b2ac62fca6e7d3d. The public
+feed bytes matched the signed staged feed. The owned site lock was released.
+The live index page is byte-identical to the user's page saved before promotion.
+
+Corrected publisher tools ran separately from the clean immutable candidate
+checkout. The package source validation root was that checkout; its tag and
+remote main validation remained enabled. Candidate bytes and tag were unchanged.
+No source receipt was fabricated. Feed-only journal and payload were copied
+byte-for-byte to the canonical filenames required by the publisher.
+
+Remaining: add download presentation on top of the user's current website,
+check the public feed from the actual installed app, and finish usual-install
+acceptance. Public release does not complete the full Draftly clone, full
+CloudKit matrix, VM updater acceptance, or power-loss installation testing.
+
+## Supplemental DMG for v0.1.0
+
+The user requested DMG installation. Created `Draftly-0.1.0.dmg` with the
+unchanged published app and an `/Applications` symlink. Signed the image with
+the existing Developer ID. Apple accepted submission
+`4d5a9a69-b1d9-402b-9d18-18a84a531a42`. Stapling, ticket validation, image
+integrity verification and Gatekeeper assessment passed. A read-only mount
+confirmed the app signature and exact candidate executable hash.
+
+Uploaded the DMG and its SHA-256 file as supplemental v0.1.0 release assets.
+Downloaded the public DMG and confirmed byte equality and the stapled ticket.
+DMG SHA-256: `14d485219a1c713cc4d40f4bf07e24cfdee1c2d7bfe6d71b12c0f9d63d23748d`.
+Public URL:
+https://github.com/pobrespandas/draftly/releases/download/v0.1.0/Draftly-0.1.0.dmg
+The Sparkle ZIP and public appcast were not changed.
+
+The current release coordinator expects exactly four core assets. Its strict
+resume validator will reject these supplemental assets. Before reusing that
+coordinator for this release, add explicit DMG metadata and tests; do not weaken
+unknown-asset rejection. Automating DMG creation for later tags remains pending.
+The website download link still needs the DMG presentation change.
+
+## Automated DMG candidates
+
+The signing job calls `package-release.py --dmg`. It creates the ZIP first,
+then copies the same notarized app to a disk image with an Applications link.
+It signs, submits, waits for Apple acceptance, staples, and verifies the image
+before writing READY. `disk-image.json` binds the version, image checksum,
+notary submission and ZIP checksum. A failure leaves no ready candidate.
+
+Staging and publication derive their exact asset inventory from that manifest.
+They verify the image checksum, checksum file, signature, ticket and Gatekeeper
+assessment. Unknown or duplicate release assets remain invalid. Candidates
+without a manifest keep their original four-asset format. New CI candidates
+include the DMG, its checksum and the manifest. Sparkle still uses the ZIP.
+
+## Website-only deployment
+
+Use `firebase-stage-appcast.py --website-only` with the website source options
+to update the site without adding an app version. This mode requires the exact
+published signed feed, unchanged bytes, and a matching stable GitHub history.
+It preserves unrelated live files and rejects unexpected source changes.
+Normal release staging still requires exactly one new version.

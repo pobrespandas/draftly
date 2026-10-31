@@ -15,7 +15,7 @@ export function releaseFromDocument(document) {
   const tag = `v${version}`;
   const download = `${RELEASES}/download/${tag}/Draftly.zip`;
   if (enclosure.getAttribute("url") !== download) return null;
-  return { version, minimum, download, notes: `${RELEASES}/tag/${tag}` };
+  return { version, minimum, download: `${RELEASES}/download/${tag}/Draftly-${version}.dmg`, notes: `${RELEASES}/tag/${tag}` };
 }
 
 export async function loadRelease(fetcher, parse) {
@@ -43,6 +43,8 @@ export async function updateAvailability(document, fetcher, parse) {
   download.href = release.download;
   download.textContent = `Download Draftly ${release.version}`;
   notes.href = release.notes;
+  const navigationDownload = document.getElementById("release-nav-download");
+  if (navigationDownload) navigationDownload.href = release.download;
   details.textContent = `Requires macOS ${release.minimum} or later.`;
   hero.textContent = `macOS ${release.minimum} or later · Version ${release.version}`;
   pending.hidden = true;
