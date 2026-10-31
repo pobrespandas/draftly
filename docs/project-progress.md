@@ -5,8 +5,8 @@ Historical test reports describe only the versions they tested.
 
 ## Current priority
 
-Validate and integrate repository and CI cleanup. The clean-install fix release
-is public.
+Repository cleanup is validated. Continue product work from the subsystem
+records below, keeping current guidance separate from dated evidence.
 Do not add app functionality during that cleanup. Draftly has one edition.
 Drafts Pro restrictions are reference blockers, not Draftly feature restrictions.
 
@@ -33,10 +33,12 @@ The cleanup branch separates check selection from native execution. Its final
 required check preserves the existing protected-check name. Release preflight
 rejects unchanged package inputs before it allocates native or signing jobs.
 See [CI and publication](ci-cd.md) for selection rules and validation.
-These changes are not yet integrated or deployed.
+These changes are integrated through PR #14 (`e8c832c`). Its full hosted CI
+run `41230093909` passed, including native tests and local app compilation.
 
-Publication is complete. The cleanup PR can now proceed through its required
-checks. Preserve the published tag and assets. The saved earlier classifier commit
+Publication and cleanup integration are complete. Preserve the published tag
+and assets. Website-only CI run `41230802922` passed website tests and the required
+Ubuntu result; native, script, and matrix jobs were skipped. The saved earlier classifier commit
 `74cd477` remains preserved on its original branch; the cleanup replaces its
 partial design rather than discarding that branch.
 
@@ -64,11 +66,9 @@ retain older implementation and acceptance records.
 
 ## Next work
 
-1. Validate the cleanup PR and integrate it through required checks. Verify a
-   docs or website change skips native runners and the required check passes.
-2. Check iCloud storage display name and icon. Keep the existing container and
+1. Check iCloud storage display name and icon. Keep the existing container and
    its data. This is separate from synchronization acceptance.
-3. Continue Actions and editor contracts, inspector and integrations, Settings,
+2. Continue Actions and editor contracts, inspector and integrations, Settings,
    and remaining data/synchronization acceptance from their subsystem records.
 
 Keep `com.pobrespandas.draftly`, team `NM92LU2KKV`, `draftly://`, and container
@@ -80,3 +80,20 @@ The ignored `docs/claude-handoff.md` contains local paths and active operation
 journals. Use it when present; do not commit credentials, raw logs, screenshots,
 package outputs, or personal data. The tracked summary must remain sufficient
 for a new checkout to find the next step.
+
+
+## Preserved work in other checkouts
+
+The main checkout at `~/ws/pp/draftly` contains previous uncommitted website
+changes and local skill deletions. It remains unchanged by this cleanup; its
+branch was not reset or updated over that work. The cleanup checkout is clean.
+Preserve and review those independent changes before updating that checkout.
+
+
+## Preserved open PRs
+
+PR #9 retains the separate first-staging recovery proposal. Its workflow
+conditions need review against the new preflight before integration. PR #11
+retains a source-repository footer link for the actions page; that change is
+not in main yet. Their old cancelled checks are not acceptance. Both proposals
+and their branches remain intact; neither was closed as obsolete.
