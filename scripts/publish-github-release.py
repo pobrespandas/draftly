@@ -201,8 +201,7 @@ def publish(candidate, staged, notes, secret, receipt, client, *, enabled, githu
     release = github_stage.find_release(github.releases(), tag)
     if release is None:
         raise ValueError("The verified GitHub release no longer exists.")
-    paths = {"Draftly.zip": candidate / "Draftly.zip", "Draftly.zip.sha256": candidate / "Draftly.zip.sha256",
-             "candidate.json": candidate / "candidate.json", "appcast.xml": staged / "appcast.xml"}
+    paths = github_stage.release_assets(candidate, staged)
     github_stage.validate_assets(release, paths, notes, tag, allow_missing=False)
     release_id = release.get("id")
     if isinstance(release_id, bool) or not isinstance(release_id, int) or release_id <= 0:

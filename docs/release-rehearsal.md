@@ -680,3 +680,17 @@ resume validator will reject these supplemental assets. Before reusing that
 coordinator for this release, add explicit DMG metadata and tests; do not weaken
 unknown-asset rejection. Automating DMG creation for later tags remains pending.
 The website download link still needs the DMG presentation change.
+
+## Automated DMG candidates
+
+The signing job calls `package-release.py --dmg`. It creates the ZIP first,
+then copies the same notarized app to a disk image with an Applications link.
+It signs, submits, waits for Apple acceptance, staples, and verifies the image
+before writing READY. `disk-image.json` binds the version, image checksum,
+notary submission and ZIP checksum. A failure leaves no ready candidate.
+
+Staging and publication derive their exact asset inventory from that manifest.
+They verify the image checksum, checksum file, signature, ticket and Gatekeeper
+assessment. Unknown or duplicate release assets remain invalid. Candidates
+without a manifest keep their original four-asset format. New CI candidates
+include the DMG, its checksum and the manifest. Sparkle still uses the ZIP.

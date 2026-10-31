@@ -60,6 +60,8 @@ class FakeRunner:
                     "SURequireSignedFeed": True, "SUVerifyUpdateBeforeExtraction": True,
                     "SUEnableAutomaticChecks": True}
             (contents / "Info.plist").write_bytes(plistlib.dumps(info))
+        elif command[:2] == ["hdiutil", "create"]:
+            Path(command[-1]).write_bytes(b"neutral disk image")
         elif command[0] == "ditto":
             Path(command[-1]).write_bytes(b"neutral candidate")
         elif "verify-cloud-signing.py" in command[1]:
@@ -74,6 +76,20 @@ class FakeRunner:
 
 
 class PackageReleaseTests(unittest.TestCase):
+    def test_ci_disk_image_finishes_before_candidate_is_ready(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "candidate"
+            runner = FakeRunner()
+            release.package(output, "QA profile", "QA notary", TAG, public_key=KEY,
+                            runner=runner, include_dmg=True)
+            self.assertTrue((output / "READY").is_file())
+            metadata = json.loads((output / "disk-image.json").read_text())
+            candidate = json.loads((output / "candidate.json").read_text())
+            self.assertEqual(metadata["zipSHA256"], candidate["sha256"])
+            self.assertEqual(metadata["name"], "Draftly-0.1.0.dmg")
+            self.assertEqual(sum(command[:3] == ["xcrun", "notarytool", "submit"]
+                                 for command in runner.commands), 2)
+
     def test_packaging_processes_do_not_inherit_release_secrets(self):
         with tempfile.TemporaryDirectory() as directory:
             runner = FakeRunner()
