@@ -1,0 +1,6 @@
+Draftly 0.1.1
+
+Fixes a startup error on clean installations when no local preferences exist.
+Existing preferences and libraries remain unchanged.
+
+Requires macOS 26 or later.
