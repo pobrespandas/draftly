@@ -694,3 +694,11 @@ They verify the image checksum, checksum file, signature, ticket and Gatekeeper
 assessment. Unknown or duplicate release assets remain invalid. Candidates
 without a manifest keep their original four-asset format. New CI candidates
 include the DMG, its checksum and the manifest. Sparkle still uses the ZIP.
+
+## Website-only deployment
+
+Use `firebase-stage-appcast.py --website-only` with the website source options
+to update the site without adding an app version. This mode requires the exact
+published signed feed, unchanged bytes, and a matching stable GitHub history.
+It preserves unrelated live files and rejects unexpected source changes.
+Normal release staging still requires exactly one new version.
