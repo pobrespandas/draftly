@@ -182,6 +182,10 @@ jobs:
             .build/release-candidates/${{ env.RELEASE_TAG }}/candidate.json
             .build/release-candidates/${{ env.RELEASE_TAG }}/signing-report.json
             .build/release-candidates/${{ env.RELEASE_TAG }}/notary-submission.json
+            .build/release-candidates/${{ env.RELEASE_TAG }}/Draftly-*.dmg
+            .build/release-candidates/${{ env.RELEASE_TAG }}/Draftly-*.dmg.sha256
+            .build/release-candidates/${{ env.RELEASE_TAG }}/disk-image.json
+            .build/release-candidates/${{ env.RELEASE_TAG }}/dmg-notary-submission.json
             .build/release-candidates/${{ env.RELEASE_TAG }}/READY
           if-no-files-found: error
           retention-days: 14
@@ -193,6 +197,8 @@ jobs:
           path: |
             .build/release-candidates/${{ env.RELEASE_TAG }}/notary-submission.json
             .build/release-candidates/${{ env.RELEASE_TAG }}/notary-submission.zip
+            .build/release-candidates/${{ env.RELEASE_TAG }}/Draftly-*.dmg
+            .build/release-candidates/${{ env.RELEASE_TAG }}/dmg-notary-submission.json
           if-no-files-found: ignore
           retention-days: 14
 

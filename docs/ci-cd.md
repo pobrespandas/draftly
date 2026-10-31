@@ -63,3 +63,15 @@ The website reads the published appcast. Both download buttons derive the
 versioned DMG URL from that feed. Promotion preserves the live site files and
 old release items. Verify the public feed, GitHub assets, and both buttons
 after each release. A source change alone does not update the live site.
+
+## Candidate transfer
+
+The signing job must transfer the DMG with its checksum, manifest, and notary
+receipt. The staging job verifies those original bytes; it does not rebuild
+the installer. Failure recovery must also retain an image already submitted
+to Apple. The workflow policy test expands the actual upload patterns against
+a disposable candidate and checks that these files survive the transfer.
+
+This check covers file selection. A successful hosted signing and publication
+run is still required to accept the complete pipeline. The local 0.1.2 release
+does not provide that hosted acceptance.
