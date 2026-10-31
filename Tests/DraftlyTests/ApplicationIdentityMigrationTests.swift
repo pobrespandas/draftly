@@ -102,6 +102,45 @@ struct ApplicationIdentityMigrationTests {
         #expect(!ApplicationIdentityMigration.isRequired(bundleIdentifier: nil, isolated: false))
     }
 
+    @Test func freshInstallWithNoPersistentDomainsCompletesAndIsIdempotent() throws {
+        let old = try TestPreferences(prefix: "Draftly.Identity.FreshOld.")
+        let new = try TestPreferences(prefix: "Draftly.Identity.FreshNew.")
+        defer { old.close(); new.close() }
+        #expect(new.defaults.persistentDomain(forName: old.name) == nil)
+        #expect(new.defaults.persistentDomain(forName: new.name) == nil)
+        let domains = ApplicationIdentityMigration.Domains.persistent(defaults: new.defaults)
+        #expect(try ApplicationIdentityMigration.migrate(domains: domains,
+            source: old.name, destination: new.name))
+        #expect(new.defaults.persistentDomain(forName: new.name)?[marker] as? Bool == true)
+        #expect(new.defaults.persistentDomain(forName: old.name) == nil)
+        #expect(try !ApplicationIdentityMigration.migrate(domains: domains,
+            source: old.name, destination: new.name))
+    }
+
+    @Test func absentBackendAcceptsOnlyAValidEmptyStoredDictionary() throws {
+        final class AbsentDomainDefaults: UserDefaults {
+            override func persistentDomain(forName domainName: String) -> [String: Any]? { nil }
+        }
+        let preferences = try TestPreferences(prefix: "Draftly.Identity.EmptyFile.")
+        defer { preferences.close() }
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let defaults = try #require(AbsentDomainDefaults(suiteName: preferences.name))
+        let domains = ApplicationIdentityMigration.Domains.persistent(defaults: defaults,
+            preferencesDirectory: directory)
+        let file = directory.appendingPathComponent(preferences.name + ".plist")
+        #expect(try domains.read(preferences.name) == nil)
+        let empty = try PropertyListSerialization.data(fromPropertyList: [String: String](), format: .binary, options: 0)
+        try empty.write(to: file)
+        #expect(try domains.read(preferences.name)?.isEmpty == true)
+        let existing = try PropertyListSerialization.data(fromPropertyList: ["font": "keep"], format: .binary, options: 0)
+        for data in [existing, Data("invalid plist".utf8)] {
+            try data.write(to: file)
+            #expect(throws: (any Error).self) { try domains.read(preferences.name) }
+        }
+    }
+
     @Test func persistentAdapterCopiesOnlyExplicitDomains() throws {
         let old = try TestPreferences(prefix: "Draftly.Identity.Old.")
         let new = try TestPreferences(prefix: "Draftly.Identity.New.")

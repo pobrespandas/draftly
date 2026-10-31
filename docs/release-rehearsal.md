@@ -702,3 +702,53 @@ to update the site without adding an app version. This mode requires the exact
 published signed feed, unchanged bytes, and a matching stable GitHub history.
 It preserves unrelated live files and rejects unexpected source changes.
 Normal release staging still requires exactly one new version.
+
+## Fresh-install preference migration failure
+
+On 31 October, v0.1.0 failed before opening the library when both old and new
+preference domains were empty. A native reproduction with isolated empty
+UserDefaults domains failed before the fix. UserDefaults can read a written
+empty persistent domain as nil. Verification now treats nil as an empty map;
+nonempty lost writes and read errors still fail. The new native-domain test
+checks completion, no source creation, and idempotence. All nine migration
+tests passed, and the local application build passed. No hosted run was started.
+
+The user-installed /Applications/Draftly.app was unblocked by running the fixed
+migration only after verifying both real preference domains contained zero
+keys. No old data was restored and no app bytes were changed. The startup
+alert could not be read by Computer Use. Terminated that pre-library process
+and reopened the same installed app. Computer Use then confirmed its main
+window with 0 drafts. The public v0.1.0 package still has the bug; it must be
+fixed in a new signed version, without replacing existing release assets.
+
+## Additional macOS 26 empty-file regression
+
+The first 0.1.1 candidate (705b5ed, local tag only) failed the real clean VM
+launch and was not published. Its files are retained at
+`.build/release-candidates/v0.1.1-rejected-705b5ed`. Before launch, both domains
+were empty and Library.sqlite was absent. After failure, the destination plist
+was valid and had zero keys, but UserDefaults returned no domain on macOS 26.
+The read adapter had treated any existing file with an absent domain as corrupt.
+
+The adapter now accepts a valid empty dictionary file in that case. It still
+rejects invalid files and nonempty files that the preferences backend cannot
+read. A directory parameter isolates file tests from real user preferences.
+All ten migration tests and complete local Swift reports passed: 759 Core and
+937 application tests. No hosted runner was started. Rebuild and repeat native
+clean installation before publication. Do not apply the local repair in the VM.
+
+## Corrected clean installation on macOS 26
+
+Candidate 749d67e passed a real clean installation from its signed and
+notarized DMG. Before launch, both preference domains were empty and the
+library was absent. The app created the migration marker and library itself.
+The main window opened with zero drafts. No repair helper ran in the VM.
+Signature and Gatekeeper checks passed. The DMG SHA-256 was
+`a83fecab7b3a9319521349dcebfabf54f6f96960ce643a779124db5676cd6390`.
+
+Local validation passed: 759 Core, 937 application, 268 Python and three
+website tests. The matrix structural check reported no errors. Hosted run
+41226200238 also passed all CI steps, but its manual event did not satisfy
+the protected PR check. The user authorized a PR event run and a rebuild
+from the integrated commit. Repeat clean installation for that final package
+before publication. No v0.1.1 release assets are public yet.

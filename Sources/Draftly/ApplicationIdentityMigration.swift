@@ -10,18 +10,23 @@ import Foundation
         var read: (String) throws -> [String: Any]?
         var write: (String, [String: Any]) throws -> Void
 
-        static func persistent(defaults: UserDefaults = .standard) -> Self {
+        static func persistent(defaults: UserDefaults = .standard,
+                               preferencesDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
+                                .appendingPathComponent("Library/Preferences", isDirectory: true)) -> Self {
             Self(read: { domain in
                 guard CFPreferencesAppSynchronize(domain as CFString) else {
                     throw MigrationError.persistence
                 }
                 let values = defaults.persistentDomain(forName: domain)
-                let file = FileManager.default.homeDirectoryForCurrentUser
-                    .appendingPathComponent("Library/Preferences/\(domain).plist")
-                guard values != nil || !FileManager.default.fileExists(atPath: file.path) else {
+                if let values { return values }
+                let file = preferencesDirectory.appendingPathComponent("\(domain).plist")
+                guard FileManager.default.fileExists(atPath: file.path) else { return nil }
+                guard let data = try? Data(contentsOf: file),
+                      let stored = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],
+                      stored.isEmpty else {
                     throw MigrationError.persistence
                 }
-                return values
+                return [:]
             }, write: { domain, values in
                 defaults.setPersistentDomain(values, forName: domain)
                 guard CFPreferencesAppSynchronize(domain as CFString) else {
@@ -66,7 +71,8 @@ import Foundation
 
     private static func writeAndVerify(_ values: [String: Any], to domain: String, domains: Domains) throws {
         try domains.write(domain, values)
-        guard let actual = try domains.read(domain), NSDictionary(dictionary: values).isEqual(to: actual) else {
+        let actual = try domains.read(domain) ?? [:]
+        guard NSDictionary(dictionary: values).isEqual(to: actual) else {
             throw MigrationError.persistence
         }
     }
