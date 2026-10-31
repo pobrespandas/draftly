@@ -129,3 +129,16 @@ omission. Publisher access and lock handling passed on GitHub. Publication
 flags are enabled. Complete hosted signing-to-publication acceptance remains
 pending for a release with real package changes. The successful local 0.1.2
 release and reinstall do not replace that acceptance.
+
+## Product image
+
+The website now uses `website/public/draftly-editor-0.1.2.jpg` in place of the
+HTML illustration. It is an unretouched capture of installed Draftly 0.1.2
+with three neutral sample drafts. It contains no personal content. The page
+states the version and links to the full-size image. Its native dimensions
+are 2396 by 1638 pixels; the page preserves that aspect ratio.
+
+This is a requested product asset, not discarded QA evidence. Keep it tracked
+while the site uses it. Raw validation captures and logs remain ignored. When
+the interface changes, replace the asset with a new real capture and update
+the version caption together. Do not draw simulated controls over the image.
