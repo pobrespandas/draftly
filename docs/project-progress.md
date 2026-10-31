@@ -19,7 +19,21 @@ The corrected QA build also retained a fresh edit while switching notes and
 handled Command-click multiple selection. Complete local checks passed 759
 Core, 938 app, and 285 Python tests; the local app build and structural matrix
 passed. QA used a temporary library and was closed and unregistered afterward.
-Version 0.1.3/build 4 is in preparation; do not call it published yet.
+Version [0.1.3/build 4](https://github.com/pobrespandas/draftly/releases/tag/v0.1.3)
+is public and installed on this Mac. PR #26 integrated the fix at `b307c77`.
+Required PR CI `41250495492` passed. Tag `v0.1.3` started the automatic release
+run `41250992295`; all release checks, signing, notarization, asset publication,
+and site promotion passed. No local publication shortcut was used.
+
+Sparkle offered 0.1.3 to installed 0.1.2 and completed Install and Relaunch.
+The installed package passed strict signature and Gatekeeper checks. With the
+editor focused, one click opened each of three neutral drafts. The 24 library
+records retained their identities and payloads; only three access dates changed.
+Both preference domains were retained. Expected changes were window frames,
+recent draft IDs, and Sparkle's last-check time. A coherent database backup,
+preference exports, and the old app remain in the private local build directory.
+Both site download buttons now point to the 0.1.3 DMG. A new public download
+matched its checksum. This update does not establish new CloudKit acceptance.
 
 Draftly has one edition. Drafts Pro restrictions are reference blockers, not
 Draftly feature restrictions. Continue other product work from the subsystem
@@ -42,7 +56,8 @@ records below, keeping current guidance separate from dated evidence.
   preference values were retained; only Sparkle's last-check time differed.
   Data was retained deliberately. This is not an empty-library installation
   test or a new CloudKit synchronization acceptance.
-- The public site now selects 0.1.2 for both download buttons and release notes.
+- At the 0.1.2 checkpoint, the public site selected that version for both
+  download buttons and release notes.
   Old public tags and assets remain unchanged.
 - Website follow-up PR #17 passed website CI and was integrated at `c22e4df`.
   Firebase version `cfa7ec5f7a704616` adds the top GitHub link and corrects the
