@@ -12,6 +12,16 @@ Drafts Pro restrictions are reference blockers, not Draftly feature restrictions
 
 ## Source, publication, and installation
 
+- The user requested 0.1.2 specifically to test a public update and reinstall.
+  This is a one-time manual release exception: no app feature changed since
+  0.1.1. Normal automated publication still rejects version-only changes.
+  Version 0.1.2/build 3 is in preparation, not published or accepted yet.
+- Website follow-up PR #17 passed website CI and was integrated at `c22e4df`.
+  Firebase version `cfa7ec5f7a704616` adds the top GitHub link and corrects the
+  initial DMG fallback to 0.1.1. All 28 files and the signed feed were preserved.
+  Both public buttons and notes were checked in the browser. The release site
+  source variable now identifies that verified source checkpoint.
+
 - The clean-install correction is integrated in main through PR #13, merge
   `1ea567e`. Required PR CI run `41226934559` passed.
 - Public release: [0.1.1](https://github.com/pobrespandas/draftly/releases/tag/v0.1.1).
