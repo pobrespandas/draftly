@@ -24,8 +24,9 @@ Drafts Pro restrictions are reference blockers, not Draftly feature restrictions
 - The user authorized correcting the early, still unpublished 0.1.1 tag to
   integrated `1ea567e`. Only that tag was excepted temporarily; the original
   protection and active tag workflow were restored before publication.
-- The habitual installed app still reports 0.1.0. Source integration, package
-  validation, publication, and installation are separate states.
+- A later read-only inspection found 0.1.1 in the habitual installation. This
+  does not establish a full migration or update acceptance check. Source,
+  package validation, publication, and installation are separate states.
 
 ## Repository and CI cleanup
 
@@ -66,8 +67,10 @@ retain older implementation and acceptance records.
 
 ## Next work
 
-1. Check iCloud storage display name and icon. Keep the existing container and
-   its data. This is separate from synchronization acceptance.
+1. The user accepts the generic iCloud storage icon for now. See
+   [iCloud identity](icloud-identity.md) for the private-record investigation
+   and authorized cloud-data deletion. Draftly disappeared from Manage Storage;
+   cloudqa deletion remains unverified. Keep the existing container identifier.
 2. Continue Actions and editor contracts, inspector and integrations, Settings,
    and remaining data/synchronization acceptance from their subsystem records.
 
@@ -94,6 +97,5 @@ Preserve and review those independent changes before updating that checkout.
 
 PR #9 retains the separate first-staging recovery proposal. Its workflow
 conditions need review against the new preflight before integration. PR #11
-retains a source-repository footer link for the actions page; that change is
-not in main yet. Their old cancelled checks are not acceptance. Both proposals
-and their branches remain intact; neither was closed as obsolete.
+is now closed. Its source-link purpose is retained by the website follow-up.
+Old cancelled checks do not establish acceptance. Preserve both branches.
