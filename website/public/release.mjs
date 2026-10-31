@@ -43,6 +43,8 @@ export async function updateAvailability(document, fetcher, parse) {
   download.href = release.download;
   download.textContent = `Download Draftly ${release.version}`;
   notes.href = release.notes;
+  const navigationDownload = document.getElementById("release-nav-download");
+  if (navigationDownload) navigationDownload.href = release.download;
   details.textContent = `Requires macOS ${release.minimum} or later.`;
   hero.textContent = `macOS ${release.minimum} or later · Version ${release.version}`;
   pending.hidden = true;
