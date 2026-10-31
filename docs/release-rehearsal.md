@@ -736,3 +736,19 @@ read. A directory parameter isolates file tests from real user preferences.
 All ten migration tests and complete local Swift reports passed: 759 Core and
 937 application tests. No hosted runner was started. Rebuild and repeat native
 clean installation before publication. Do not apply the local repair in the VM.
+
+## Corrected clean installation on macOS 26
+
+Candidate 749d67e passed a real clean installation from its signed and
+notarized DMG. Before launch, both preference domains were empty and the
+library was absent. The app created the migration marker and library itself.
+The main window opened with zero drafts. No repair helper ran in the VM.
+Signature and Gatekeeper checks passed. The DMG SHA-256 was
+`a83fecab7b3a9319521349dcebfabf54f6f96960ce643a779124db5676cd6390`.
+
+Local validation passed: 759 Core, 937 application, 268 Python and three
+website tests. The matrix structural check reported no errors. Hosted run
+41226200238 also passed all CI steps, but its manual event did not satisfy
+the protected PR check. The user authorized a PR event run and a rebuild
+from the integrated commit. Repeat clean installation for that final package
+before publication. No v0.1.1 release assets are public yet.
