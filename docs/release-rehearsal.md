@@ -783,3 +783,32 @@ The first publication attempt stopped before changing the draft because the
 compressed staging feed was not in the publisher's expected directory. The
 exact saved journal and compressed feed were placed under the staged appcast
 directory. Verification then passed. No public asset was replaced.
+
+## Public 0.1.2 lifecycle, 31 October 2026
+
+The user requested a new public version to test update and reinstall. This was
+an explicit manual exception to the version-only release gate. App features
+remain those of 0.1.1. Tag v0.1.2 identifies `3922ee3`; PR #18 CI `41234752693`
+passed. Local validation passed 759 Core, 937 app, 284 Python, four website
+tests, matrix structure, and the local build. These totals are not API coverage.
+
+Developer ID app and DMG notarization passed. The new public DMG SHA-256 is
+`19c3787f398dc5b0b501445b8f57d945113d09fa1cc6cb57faf96b1b8181867a`.
+GitHub release `430148221` has seven verified assets. Firebase version
+`da4410a0a1d306b0` preserves all 28 live files and prior feed items. The writer
+lock was released after public verification. Both website buttons show 0.1.2.
+
+Computer Use verified the real Sparkle offer from 0.1.1, download, Install and
+Relaunch, and installed 0.1.2/build 3. A neutral note survived. Editing,
+Undo, and Redo worked after the update. The app then quit normally. Its bundle
+was removed to Trash and replaced from a newly downloaded public DMG. The DMG
+checksum, signature, ticket, and installed Gatekeeper assessment passed.
+Reopening retained the note. Preference comparison found only SULastCheckTime
+changed; no preference values were restored manually.
+
+The previous app and a coherent SQLite backup were retained locally. The
+reinstall deliberately kept local data. Empty-library first launch, another
+Mac, and CloudKit synchronization were not retested in this lifecycle check.
+The tag-triggered publisher was not exercised: the tagged merge used [skip ci].
+Normal version-only rejection remains active. Local operation journals and
+screenshots stay outside Git.

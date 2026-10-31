@@ -9,7 +9,10 @@ and dated acceptance. Its old pending statements are not current instructions.
 
 1. Validate the PR and integrate it through branch protection.
 2. Confirm the release commit, version, and build before creating its tag.
-3. Create the version tag once, on the integrated commit. Keep published tags
+3. For an automated release, use a commit without a CI skip instruction.
+   GitHub applies those instructions to push events, including the tag
+   dispatcher. See [GitHub's skip rules](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/skip-workflow-runs).
+   Create the version tag once, on the integrated commit. Keep published tags
    and assets immutable. Do not create a tag while a candidate PR is pending.
 4. Run the release preflight. It requires HEAD, main, and tag to match. Package
    inputs must differ from the latest stable release. A version-only change
