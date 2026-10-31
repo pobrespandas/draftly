@@ -5,8 +5,8 @@ Historical test reports describe only the versions they tested.
 
 ## Current priority
 
-Finish the hosted website-only CI check and its documentation. The
-clean-install fix release and repository cleanup are integrated.
+Repository cleanup is validated. Continue product work from the subsystem
+records below, keeping current guidance separate from dated evidence.
 Do not add app functionality during that cleanup. Draftly has one edition.
 Drafts Pro restrictions are reference blockers, not Draftly feature restrictions.
 
@@ -37,7 +37,8 @@ These changes are integrated through PR #14 (`e8c832c`). Its full hosted CI
 run `41230093909` passed, including native tests and local app compilation.
 
 Publication and cleanup integration are complete. Preserve the published tag
-and assets. A separate website-only change verifies native runner selection. The saved earlier classifier commit
+and assets. Website-only CI run `41230802922` passed website tests and the required
+Ubuntu result; native, script, and matrix jobs were skipped. The saved earlier classifier commit
 `74cd477` remains preserved on its original branch; the cleanup replaces its
 partial design rather than discarding that branch.
 
@@ -65,11 +66,9 @@ retain older implementation and acceptance records.
 
 ## Next work
 
-1. Finish the website-only CI verification: website tests and the required
-   result must pass, with native, script, and matrix jobs skipped.
-2. Check iCloud storage display name and icon. Keep the existing container and
+1. Check iCloud storage display name and icon. Keep the existing container and
    its data. This is separate from synchronization acceptance.
-3. Continue Actions and editor contracts, inspector and integrations, Settings,
+2. Continue Actions and editor contracts, inspector and integrations, Settings,
    and remaining data/synchronization acceptance from their subsystem records.
 
 Keep `com.pobrespandas.draftly`, team `NM92LU2KKV`, `draftly://`, and container
@@ -89,3 +88,12 @@ The main checkout at `~/ws/pp/draftly` contains previous uncommitted website
 changes and local skill deletions. It remains unchanged by this cleanup; its
 branch was not reset or updated over that work. The cleanup checkout is clean.
 Preserve and review those independent changes before updating that checkout.
+
+
+## Preserved open PRs
+
+PR #9 retains the separate first-staging recovery proposal. Its workflow
+conditions need review against the new preflight before integration. PR #11
+retains a source-repository footer link for the actions page; that change is
+not in main yet. Their old cancelled checks are not acceptance. Both proposals
+and their branches remain intact; neither was closed as obsolete.

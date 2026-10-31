@@ -70,3 +70,17 @@ the required check pending. No app or production website code is changed.
 The original main checkout has previous uncommitted website changes and local
 skill deletions. It was inspected read-only and left intact. The cleanup does
 not claim that every independent worktree has no pending work.
+
+
+## Hosted path-selection acceptance
+
+PR #15 run `41230802922` passed with only selection, website tests, and the
+required Ubuntu result. Native, script, and matrix jobs were skipped. Four
+website tests passed locally, including the transition from old DMG links to
+a new published version. Real repository release selection also returned
+`package=false` for the cleanup, which changes no app package inputs.
+
+Open PR #9 still contains a first-staging recovery proposal; it needs review
+against the new preflight. Open PR #11 still contains the actions-page footer
+link. Their changes are not obsolete or fully integrated, so both PRs and
+branches remain. Cancelled checks do not establish acceptance.
