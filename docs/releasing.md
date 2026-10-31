@@ -1,5 +1,10 @@
 # Release operations
 
+This guide is for maintainers who publish the Mac app. Public downloads are
+hosted on GitHub Releases. The website and signed update catalog, called the
+appcast, tell users which version is available. Preparing files does not make
+them public; publication and the website update are separate steps.
+
 Use [CI/CD](ci-cd.md) for workflow selection and publication gates. Use
 [project progress](project-progress.md) for the current pending release.
 The [rehearsal record](release-rehearsal.md) preserves implementation history

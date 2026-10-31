@@ -1,4 +1,8 @@
-# iCloud and installation
+# iCloud and signing for maintainers
+
+To install the released app, use the [user guide](getting-started.md).
+This page is for maintainers who configure Apple signing and test CloudKit.
+It is not a setup requirement for people who download Draftly.
 
 Public Developer ID releases use the existing container with CloudKit
 Production and production push entitlements. Use [release operations](releasing.md)

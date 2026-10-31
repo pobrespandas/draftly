@@ -1,5 +1,16 @@
 # Draftly architecture
 
+## System overview
+
+Draftly has two source modules. `DraftlyCore` contains the library models,
+storage, templates, scripting, and action execution. `Draftly` connects those
+operations to Mac windows, the editor, settings, and native services.
+
+Start with the [development guide](development.md) to build the app and locate
+files. The sections below explain component boundaries and the reasons for
+past refactorings. Use [project progress](project-progress.md) for current work;
+a completed refactoring does not mean a feature has complete Drafts parity.
+
 ## Continuation and records
 
 Use [project progress](project-progress.md) for current work. The following

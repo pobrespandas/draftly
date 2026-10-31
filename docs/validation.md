@@ -1,9 +1,11 @@
-# Validation
+# Historical validation records
 
-Run `swift test` and `scripts/build-app.sh --local` before a release.
+For current test commands, read [Testing Draftly](testing.md). For release
+checks, read [release operations](releasing.md). Use
+[project progress](project-progress.md) for the implementation and open work.
 
-For the current implementation and remaining work, read [project status](status.md).
-The sections below are historical records. Their test counts describe each run.
+The sections below are dated evidence, not the current test procedure.
+Their test counts describe each original run.
 The user removed session evidence and all screenshots on 19 October 2026.
 Artifact paths in older records are historical and may no longer exist.
 
