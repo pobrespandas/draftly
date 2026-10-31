@@ -15,7 +15,7 @@ function feed({ version = "1.2.3", minimum = "26.0", download = url, malformed =
 
 test("accepts a release only when metadata and GitHub asset agree", () => {
   assert.deepEqual(releaseFromDocument(feed()), {
-    version: "1.2.3", minimum: "26.0", download: url,
+    version: "1.2.3", minimum: "26.0", download: "https://github.com/pobrespandas/draftly/releases/download/v1.2.3/Draftly-1.2.3.dmg",
     notes: "https://github.com/pobrespandas/draftly/releases/tag/v1.2.3",
   });
   for (const bad of [feed({ version: "01.2.3" }), feed({ minimum: "26<script>" }),
@@ -45,7 +45,7 @@ test("availability stays hidden on failure and shows only validated metadata", a
   }, () => feed());
   assert.equal(elements["release-available"].hidden, false);
   assert.equal(elements["release-pending"].hidden, true);
-  assert.equal(elements["release-download"].href, url);
+  assert.equal(elements["release-download"].href, "https://github.com/pobrespandas/draftly/releases/download/v1.2.3/Draftly-1.2.3.dmg");
   assert.equal(elements["release-details"].textContent, "Requires macOS 26.0 or later.");
   assert.equal(elements["release-notes"].href, "https://github.com/pobrespandas/draftly/releases/tag/v1.2.3");
 });

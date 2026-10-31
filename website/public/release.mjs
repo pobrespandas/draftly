@@ -15,7 +15,7 @@ export function releaseFromDocument(document) {
   const tag = `v${version}`;
   const download = `${RELEASES}/download/${tag}/Draftly.zip`;
   if (enclosure.getAttribute("url") !== download) return null;
-  return { version, minimum, download, notes: `${RELEASES}/tag/${tag}` };
+  return { version, minimum, download: `${RELEASES}/download/${tag}/Draftly-${version}.dmg`, notes: `${RELEASES}/tag/${tag}` };
 }
 
 export async function loadRelease(fetcher, parse) {
