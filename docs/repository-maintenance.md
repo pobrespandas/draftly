@@ -60,3 +60,13 @@ The first hosted cleanup run detected a missing prerequisite in the separated
 script job: its appcast tests need the real pinned Sparkle tools. The job now
 resolves those tools before testing. A workflow policy test preserves that
 order. This resolves dependencies without compiling the app in that job.
+
+
+PR #14 is integrated as `e8c832c`. Full hosted CI run `41230093909` passed,
+including all selected jobs and the required aggregate. A separate website-only
+change now verifies that native and script jobs can be skipped without leaving
+the required check pending. No app or production website code is changed.
+
+The original main checkout has previous uncommitted website changes and local
+skill deletions. It was inspected read-only and left intact. The cleanup does
+not claim that every independent worktree has no pending work.
