@@ -706,10 +706,16 @@ that attempt. Normal startup still needs to supply the real lease validator.
 Closing a session, explicit invalidation or observing a locked
 screen removes its cursors. Unlocking does not restore that session.
 
-The service owns an explicit set of eight read handlers. server.schemas reports
+The service owns an explicit set of read handlers. server.schemas reports
 that set independently of the contract inventory. New catalog or schema entries
 do not become executable by registration. Other operations return a real error.
 No permission-management or approval method becomes an agent tool.
+
+preferences.schema returns descriptors from AgentPreferenceCatalog only. It needs
+preferences.read, validates selected field IDs and uses the same session-bound
+pagination as resource reads. Private page IDs are service-local. The operation
+returns no stored values and reads no preference domain or Keychain item.
+preferences.get, update and reset remain separate unfinished handlers.
 
 AgentDraftReading uses LibraryStore and the existing Workspace evaluator. It
 filters authorized drafts before search, sorting, previews or counts. Summary

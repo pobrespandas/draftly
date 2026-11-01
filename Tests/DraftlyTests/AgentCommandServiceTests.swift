@@ -90,6 +90,49 @@ struct AgentCommandServiceTests {
         }
     }
 
+    @Test func preferenceDescriptorsPageFromTheAuthoritativeCatalogWithoutReadingSettings() throws {
+        let f = try Fixture(), (_, session) = try f.connect(capabilities: [.preferencesRead])
+        let catalog = try AgentPreferenceCatalog.make()
+        var returned: [AgentJSONValue] = [], cursor: AgentJSONValue?
+        repeat {
+            var parameters: [String: AgentJSONValue] = ["limit": .integer(7)]
+            if let cursor { parameters["cursor"] = cursor }
+            let page = try f.values("preferences.schema", session: session, parameters: parameters)
+            guard case .array(let descriptors) = page["items"] else { throw AgentErrorCode.executionError }
+            returned += descriptors
+            cursor = page["nextCursor"] == .null ? nil : page["nextCursor"]
+        } while cursor != nil
+        let expected = try JSONDecoder().decode([AgentJSONValue].self,
+            from: JSONEncoder().encode(catalog.fields.map { catalog.descriptor($0) }))
+        #expect(returned == expected)
+        #expect(AgentCommandService.implementedOperations.contains("preferences.schema"))
+    }
+
+    @Test func preferenceDiscoveryRequiresReadCapabilityAndValidKnownIDs() throws {
+        let f = try Fixture(), (_, reader) = try f.connect(), (_, settings) = try f.connect(capabilities: [.preferencesRead])
+        #expect(try f.response("preferences.schema", session: reader).outcome == .error(.permissionDenied))
+        #expect(try f.response("preferences.schema", session: settings,
+            parameters: ["ids": .array([.string("secret.credential")])]).outcome == .error(.invalidInput))
+        let page = try f.values("preferences.schema", session: settings,
+            parameters: ["ids": .array([.string("editor.fontSize")])])
+        #expect(try items(page).map { $0["id"] } == [.string("editor.fontSize")])
+    }
+
+    @Test func preferenceCursorCannotCrossSessionsOrFiltersAndExpires() throws {
+        let f = try Fixture(), (_, first) = try f.connect(capabilities: [.preferencesRead]),
+            (_, other) = try f.connect(capabilities: [.preferencesRead])
+        let page = try f.values("preferences.schema", session: first, parameters: ["limit": .integer(1)])
+        let cursor = try #require(page["nextCursor"])
+        #expect(cursor != .null)
+        #expect(try f.response("preferences.schema", session: other,
+            parameters: ["cursor": cursor]).outcome == .error(.invalidInput))
+        #expect(try f.response("preferences.schema", session: first,
+            parameters: ["cursor": cursor, "ids": .array([.string("editor.fontSize")])]).outcome == .error(.invalidInput))
+        f.wall += 301; f.uptime += 301
+        #expect(try f.response("preferences.schema", session: first,
+            parameters: ["cursor": cursor]).outcome == .error(.invalidInput))
+    }
+
     @Test func lostHostDeniesStartupAuthenticationAndExistingSessions() throws {
         let f = try Fixture(), (record, session) = try f.connect()
         f.hostError = .versionConflict
@@ -427,7 +470,7 @@ struct AgentCommandServiceTests {
             guard case .object(let fields) = item, fields["available"] == .bool(true), case .string(let name) = fields["name"] else { return nil }
             return name
         })
-        #expect(operations.count == 136 && available == AgentReadSchemas.operationNames && available.count == 8)
+        #expect(operations.count == 136 && available == AgentReadSchemas.operationNames.union(["preferences.schema"]) && available.count == 9)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.unavailable))
         #expect(f.library.notes.isEmpty)
         #expect(try f.values("server.capabilities", session: session)["capabilities"] == .array([.string("drafts.read"), .string("drafts.write")]))
