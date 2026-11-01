@@ -9,7 +9,7 @@ struct AgentToolInputTests {
         #expect(names.count == 137 && Set(names).count == names.count)
         for operation in AgentOperationCatalog.operations { #expect(AgentToolInput.operation(named: AgentToolInput.name(for: operation.name))?.name == operation.name) }
         #expect(AgentToolInput.operation(named: "run_any_script") == nil)
-        #expect(Set(AgentOperationCatalog.operations.filter(\.isReadOnly).map(\.name)) == AgentReadSchemas.operationNames.union(["editor.windows", "editor.get"]))
+        #expect(Set(AgentOperationCatalog.operations.filter(\.isReadOnly).map(\.name)) == AgentReadSchemas.operationNames.union(["editor.windows", "editor.get", "editor.find"]))
     }
     @Test func requestTargetsAndAuthorityCannotBeReboundByToolArguments() throws {
         let operation = try #require(AgentToolInput.operation(named: "draftly_drafts_get")), id = UUID()

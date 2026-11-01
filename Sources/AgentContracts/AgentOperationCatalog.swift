@@ -87,7 +87,7 @@ package enum AgentOperationCatalog {
         .init(name: "drafts.purge", owner: "LibraryStore", capabilities: [.draftsWrite, .destructiveRequest], targets: .many(.draft), requiresExpectedVersion: true, requiresHumanApproval: true),
         .init(name: "editor.windows", owner: "EditorSession + WindowModel", capabilities: [.editorRead, .draftsRead], targets: .none, isReadOnly: true),
         .init(name: "editor.get", owner: "EditorSession + WindowModel", capabilities: [.editorRead, .draftsRead], targets: .one(.window), isReadOnly: true),
-        .init(name: "editor.find", owner: "EditorSession + WindowModel", capabilities: [.editorRead, .draftsRead], targets: .one(.window)),
+        .init(name: "editor.find", owner: "EditorSession + WindowModel", capabilities: [.editorRead, .draftsRead], targets: .one(.window), isReadOnly: true),
         .init(name: "editor.markers", owner: "EditorSession + WindowModel", capabilities: [.editorRead, .draftsRead], targets: .one(.window)),
         .init(name: "editor.links", owner: "EditorSession + WindowModel", capabilities: [.editorRead, .draftsRead], targets: .one(.window)),
         .init(name: "editor.replaceRange", owner: "EditorSession + WindowModel", capabilities: [.editorWrite, .draftsWrite], targets: .one(.window), requiresExpectedVersion: true),
