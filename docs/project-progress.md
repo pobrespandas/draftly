@@ -3,6 +3,34 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Human pairing lifecycle — 1 November
+
+AgentPairingCoordinator now owns temporary connection requests. A request creates
+no grant or credential. Human review binds a fresh review ID, comparison code,
+name, capabilities, exact resource IDs and expiry. The default remains selected
+IDs and read access for one hour. Whole-library and renewable grants require an
+explicit choice. A comparison code is not proof of client identity.
+
+Approval rechecks resource resolution and calls the existing persistent registry.
+Duplicate approval, stale reviews and cross-request review IDs cannot create a
+second connection. A storage failure is terminal for that pairing attempt; it is
+not retried by polling or another click. Denial, cancellation, expiry and
+invalidation remain distinct. Wall-clock rollback and monotonic expiry cannot
+extend the five-minute challenge. Disable, lock and unreadable metadata invalidate
+pending decisions. The runtime must call invalidatePending on lifecycle events.
+
+This component is not yet connected to Settings or the pre-authentication socket
+route. The pairing adapter must verify the signed helper before creating a
+request. UI bindings, signed helper packaging and native pairing acceptance remain
+pending. No installed app or personal data changed.
+
+Automated evidence: 15 focused contracts and the full Swift inventories passed
+(1 consumer, 140 agent contracts, 763 Core, 1075 application tests). The 286 Python
+tests passed, the generated local app build passed, and the structural matrix has
+zero errors. Tests use in-memory
+metadata and fake credentials, not real Keychain data or windows. The setup flow
+still requires native UI and signed-client acceptance.
+
 ## Local MCP adapter — 1 November
 
 Implemented the official Swift MCP SDK 0.12.1 over bounded stdio. Shared metadata
