@@ -234,3 +234,16 @@ New windows select the first list-visible group when General is absent. The
 panel also checks its selection when it first appears and when catalog data
 changes. Existing visible selections and All Actions remain selected. This
 prevents the Basic catalog from opening as an empty General list.
+
+### Action list selection check — 1 November 2026
+
+In Drafts 54.1.2, a single click selected the Stats row without opening its
+preview. Return opened the preview. After Cancel, a double click on Stats also
+opened the preview. The selected row kept its blue background after Cancel.
+A direct coordinate click on that selected row did not run it again.
+The check used the neutral QA draft and did not change its text.
+
+Draftly still uses a button for each action row. Its first click runs the action,
+and it has no persistent row selection. Replace this with native table selection,
+then check Return, double click, arrow keys, context menus, and group changes.
+The action bar remains a separate surface: its buttons execute on one click.
