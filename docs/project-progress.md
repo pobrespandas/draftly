@@ -3,6 +3,14 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Partial list option decoding — 1 November
+
+DraftListOptions now uses its existing defaults for absent fields while retaining
+other saved options. Present values with invalid types, including null, still
+fail decoding. Complete records keep the same keys and round-trip behavior.
+This allows a per-field reset without discarding unrelated options. The new
+regressions failed before the correction; 18 focused Core/app cases then passed.
+
 ## Encoded preference access — 1 November
 
 The application can now prepare typed reads and edits for 44 encoded preference

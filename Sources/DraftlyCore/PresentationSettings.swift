@@ -130,4 +130,23 @@ public struct DraftListOptions: Codable, Equatable {
     public var showLastAction = false
     public var highlightFlagged = false
     public init() {}
+
+    private enum CodingKeys: String, CodingKey {
+        case showPreview, previewLines, showTags, showDate, searchTitlesOnly, caseSensitiveSearch, previewSearchMatches, showLastAction, highlightFlagged
+    }
+
+    public init(from decoder: any Decoder) throws {
+        self.init()
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        if values.contains(.showPreview) { showPreview = try values.decode(Bool.self, forKey: .showPreview) }
+        if values.contains(.previewLines) { previewLines = try values.decode(Int.self, forKey: .previewLines) }
+        if values.contains(.showTags) { showTags = try values.decode(Bool.self, forKey: .showTags) }
+        if values.contains(.showDate) { showDate = try values.decode(Bool.self, forKey: .showDate) }
+        if values.contains(.searchTitlesOnly) { searchTitlesOnly = try values.decode(Bool.self, forKey: .searchTitlesOnly) }
+        if values.contains(.caseSensitiveSearch) { caseSensitiveSearch = try values.decode(Bool.self, forKey: .caseSensitiveSearch) }
+        if values.contains(.previewSearchMatches) { previewSearchMatches = try values.decode(Bool.self, forKey: .previewSearchMatches) }
+        if values.contains(.showLastAction) { showLastAction = try values.decode(Bool.self, forKey: .showLastAction) }
+        if values.contains(.highlightFlagged) { highlightFlagged = try values.decode(Bool.self, forKey: .highlightFlagged) }
+    }
+
 }
