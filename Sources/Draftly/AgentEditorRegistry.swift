@@ -7,6 +7,7 @@ import AgentContracts
 @MainActor final class AgentEditorRegistry {
     struct Snapshot {
         let note: Note
+        let storedNote: Note
         let generation: String
     }
     @MainActor private final class Entry {
@@ -55,7 +56,7 @@ import AgentContracts
         if let owner = pending.first { note.content = owner.editor.content }
         let generation = generations[stored.id] ?? UUID()
         generations[stored.id] = generation
-        return Snapshot(note: note, generation: generation.uuidString)
+        return Snapshot(note: note, storedNote: stored, generation: generation.uuidString)
     }
 
     private func touch(_ id: UUID?) {

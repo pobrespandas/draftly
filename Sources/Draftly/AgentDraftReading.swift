@@ -57,15 +57,18 @@ import AgentContracts
     }
 
     private func snapshot(_ note: Note) throws -> AgentEditorRegistry.Snapshot {
-        try editors?.snapshot(note) ?? .init(note: note, generation: "")
+        try editors?.snapshot(note) ?? .init(note: note, storedNote: note, generation: "")
     }
 
     private func summary(_ state: AgentEditorRegistry.Snapshot, query: String = "") throws -> [String: AgentJSONValue] {
         let note = state.note
         var versioned = note
         versioned.accessedAt = nil
+        var storedVersioned = state.storedNote
+        storedVersioned.accessedAt = nil
         let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
-        let data = try encoder.encode(versioned)
+        // A pending projection must not hide a concurrent stored-text change.
+        let data = try encoder.encode([storedVersioned, versioned])
         // Length framing separates content bytes from the trusted editor generation.
         let external = pendingEditorGeneration(note.id)
         let generation = "\(external.utf8.count):" + external + state.generation

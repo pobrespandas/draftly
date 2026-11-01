@@ -276,7 +276,7 @@ A request for work in Draftly with an identifiable outcome and the grant under
 which it was accepted.
 
 **Agent version token**:
-An opaque reference to a resource's editable state, including pending editor
+An opaque reference to a resource's stored editable state and pending editor
 changes. It is used to detect a stale view of that state. It does not grant access
 and is distinct from a saved revision.
 

@@ -959,5 +959,9 @@ its acknowledged baseline. Exact bytes detect Unicode edits before the window
 dirty flag changes. This does not change the normal save or scripting rules.
 Reads never flush, synchronize, focus or change Undo. Stored metadata
 remains intact. The host and service reject a registry bound to another library.
+Version tokens cover both the stored Note and the projected Note, with access
+dates excluded from both. A concurrent stored-text change cannot hide behind
+unchanged pending text, even when an import preserves dates. Only the projected
+text is returned; the version material remains inside the application.
 AppController wiring, editor mutations and the system-lock adapter remain
 unfinished. No installed-app access is enabled by this read adapter.

@@ -219,6 +219,23 @@ struct AgentCommandServiceTests {
             targets: [.init(kind: .draft, id: hidden.id)]).outcome == .error(.notFound))
     }
 
+    @Test func pendingTextDoesNotHideChangesToStoredContentFromTheVersionToken() throws {
+        let f = try Fixture(), note = try f.note("Original stored"), (_, session) = try f.connect()
+        defer { f.cleanEditorPreferences() }
+        let model = try f.window(note, content: "Pending neutral", dirty: true); f.editors = [model]
+        let first = try summary(f.get(note, session: session))["versionToken"]
+        var stored = note; stored.accessedAt = f.wall.addingTimeInterval(5)
+        try f.library.saveNote(stored, preserveRevision: false, preserveDates: true)
+        #expect(try summary(f.get(note, session: session))["versionToken"] == first)
+        stored.content = "Concurrent stored text"
+        try f.library.saveNote(stored, preserveRevision: false, preserveDates: true)
+        let values = try f.get(note, session: session)
+        #expect(try summary(values)["versionToken"] != first)
+        guard case .object(let chunk) = values["content"] else { Issue.record("Missing pending text"); return }
+        #expect(chunk["text"] == .string("Pending neutral"))
+        #expect(model.hasUnsavedChanges && model.editor.content == "Pending neutral")
+    }
+
     @Test func aWindowOpenedEditedAndClosedBetweenReadsChangesTheVersion() throws {
         let f = try Fixture(), note = try f.note("Stored"), (_, session) = try f.connect()
         defer { f.cleanEditorPreferences() }

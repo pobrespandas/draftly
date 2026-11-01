@@ -19,18 +19,22 @@ per-draft generations. Selection, focus and unrelated drafts do not change them.
 
 The caller must invoke refreshMembership at window registration and removal.
 Lazy reads alone cannot observe a window opened, edited and closed between two
-requests. Three rounds of focused reproductions failed before their respective
-changes: stale reads/conflicts, missed membership and code-unit-only text.
+requests. Focused reproductions failed before their respective changes: stale reads and
+conflicts, missed membership, code-unit-only text, and a stored-content change
+hidden by pending text. Version material now includes both stored and projected
+Notes. Access dates are excluded from both.
 
-All62 focused cases passed (57 app, 5 Core). Complete inventories passed:
-consumer1, contracts158, Core764, app1195 (2118 total). Python286, matrix0 and
+All63 focused cases passed (58 app, 5 Core). Complete inventories passed:
+consumer1, contracts158, Core764, app1196 (2119 total). Python286, matrix0 and
 final helper/local app builds passed. The socket case returned pending text
 without saving it. Other cases cover Unicode conflicts, edit/revert, weak
 lifetime, scope, selection, callbacks and wrong-library refusal.
 No public API, Note identity, library or backup format changed.
 
-CI41307619354 at57282bf was canceled as obsolete while fixing membership and
-Unicode regressions. The replacement head still needs exact-head CI. These are
+CI41308744548 passed at178e2a8 before the stored-version reproduction. Its
+completed result could not be canceled and does not validate the later fix.
+The new head still needs exact-head CI. The earlier CI41307619354 was canceled
+as obsolete for membership and Unicode corrections. These are
 headless, injected-host tests, not native UI or signed acceptance. AppController
 wiring, lifecycle acceptance, system-lock handling, helper provisioning and
 editor mutations remain unfinished. No installed-app access is enabled.
