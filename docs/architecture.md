@@ -823,7 +823,11 @@ shown choices; exact target IDs are resolved again before persistence. Polling
 returns lifecycle state and, after approval, a connection UUID, never a credential.
 The registry remains the sole owner of persistent grants and credential creation.
 A failed commit terminates the pairing attempt rather than retrying a write.
-Clock and lock dependencies are explicit for headless tests. Runtime lock,
+Clock, lock and host-ownership dependencies are explicit for headless tests.
+Request and review admission require a live owner. Scope resolution is followed
+by another ownership check before a review or credential is created. Host loss
+invalidates pending and approved pairing results without deleting saved grants.
+Temporary contention preserves the review and its original deadline. Runtime lock,
 disable and shutdown events must invalidate pending decisions before activation.
 
 

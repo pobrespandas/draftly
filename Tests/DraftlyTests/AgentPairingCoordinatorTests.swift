@@ -11,6 +11,9 @@ struct AgentPairingCoordinatorTests {
         var secrets: [UUID: Data] = [:]
         var wall = Date(timeIntervalSince1970: 1_700_000_000)
         var elapsed: TimeInterval = 50
+        var hostError: AgentErrorCode?
+        var onHostValidation: (() -> Void)?
+        var onResolve: (() -> Void)?
         var locked = false
         var failWrite = false
         var failCleanup = false
@@ -29,9 +32,107 @@ struct AgentPairingCoordinatorTests {
         func coordinator(capacity: Int = 32) -> AgentPairingCoordinator {
             AgentPairingCoordinator(registry: registry, libraryID: libraryID, capacity: capacity,
                 now: { [unowned self] in self.wall }, uptime: { [unowned self] in self.elapsed },
-                isLocked: { [unowned self] in self.locked }, resolveTargets: { [unowned self] in $0.intersection(self.targets) })
+                validateHost: { [unowned self] in
+                    self.onHostValidation?()
+                    if let error = self.hostError { throw error }
+                },
+                isLocked: { [unowned self] in self.locked }, resolveTargets: { [unowned self] in
+                    self.onResolve?(); return $0.intersection(self.targets)
+                })
         }
         func enable() throws { try registry.setEnabledFromUserInterface(true) }
+    }
+
+    @Test func ownershipLostDuringRequestRefreshDoesNotCreateAChallenge() throws {
+        let f = Fixture(); try f.enable(); let c = f.coordinator()
+        var checks = 0
+        f.onHostValidation = {
+            checks += 1
+            if checks == 2 { f.hostError = .versionConflict }
+        }
+        #expect(throws: AgentErrorCode.versionConflict) { try c.request(clientName: "Neutral") }
+        f.onHostValidation = nil; f.hostError = nil
+        #expect(c.pendingFromUserInterface().isEmpty && f.createCount == 0)
+    }
+
+    @Test func contentionAfterScopeResolutionRetainsThePreparedReview() throws {
+        let f = Fixture(); try f.enable(); let c = f.coordinator(), q = try c.request(clientName: "client")
+        let target = AgentResourceReference(kind: .draft, id: UUID()); f.targets = [target]
+        let review = try c.prepareReviewFromUserInterface(q.id, name: "Neutral", scope: .resources([target]))
+        f.onResolve = { f.hostError = .busy }
+        #expect(throws: AgentErrorCode.busy) {
+            try c.approveFromUserInterface(q.id, reviewID: review.id, displayedChallenge: q.code)
+        }
+        #expect(try c.state(q.id) == .pending && f.createCount == 0)
+        f.onResolve = nil; f.hostError = nil
+        _ = try c.approveFromUserInterface(q.id, reviewID: review.id, displayedChallenge: q.code)
+        #expect(f.createCount == 1)
+    }
+
+    @Test func hostContentionDoesNotExtendChallengeExpiry() throws {
+        let f = Fixture(); try f.enable(); let c = f.coordinator(), q = try c.request(clientName: "client")
+        f.hostError = .busy; f.elapsed += AgentPairingCoordinator.lifetime
+        #expect(try c.state(q.id) == .expired)
+        f.hostError = nil
+        #expect(try c.state(q.id) == .expired && f.createCount == 0)
+    }
+
+    @Test func lostHostRejectsNewRequestsAndInvalidatesPreparedReviews() throws {
+        let f = Fixture(); try f.enable(); let c = f.coordinator(), q = try c.request(clientName: "client")
+        let review = try c.prepareReviewFromUserInterface(q.id, name: "Neutral")
+        f.hostError = .versionConflict
+        #expect(throws: AgentErrorCode.versionConflict) { try c.request(clientName: "another") }
+        #expect(c.pendingFromUserInterface().isEmpty)
+        #expect(try c.state(q.id) == .invalidated)
+        #expect(throws: AgentErrorCode.versionConflict) {
+            try c.approveFromUserInterface(q.id, reviewID: review.id, displayedChallenge: q.code)
+        }
+        f.hostError = nil
+        #expect(throws: AgentErrorCode.permissionDenied) {
+            try c.approveFromUserInterface(q.id, reviewID: review.id, displayedChallenge: q.code)
+        }
+        #expect(f.createCount == 0 && f.secrets.isEmpty)
+    }
+
+    @Test func hostContentionPreservesTheReviewButCannotCreateCredentials() throws {
+        let f = Fixture(); try f.enable(); let c = f.coordinator(), q = try c.request(clientName: "client")
+        let review = try c.prepareReviewFromUserInterface(q.id, name: "Neutral")
+        f.hostError = .busy
+        #expect(throws: AgentErrorCode.busy) {
+            try c.approveFromUserInterface(q.id, reviewID: review.id, displayedChallenge: q.code)
+        }
+        #expect(try c.state(q.id) == .pending && f.createCount == 0)
+        f.hostError = nil
+        let record = try c.approveFromUserInterface(q.id, reviewID: review.id, displayedChallenge: q.code)
+        #expect(try c.state(q.id) == .approved(connectionID: record.id))
+    }
+
+    @Test func ownershipIsRecheckedAfterResolvingTargetsAtReviewAndApproval() throws {
+        for approve in [false, true] {
+            let f = Fixture(); try f.enable(); let c = f.coordinator(), q = try c.request(clientName: "client")
+            let target = AgentResourceReference(kind: .draft, id: UUID()); f.targets = [target]
+            let review = try c.prepareReviewFromUserInterface(q.id, name: "Neutral", scope: .resources([target]))
+            f.onResolve = { f.hostError = .versionConflict }
+            #expect(throws: AgentErrorCode.versionConflict) {
+                if approve {
+                    _ = try c.approveFromUserInterface(q.id, reviewID: review.id, displayedChallenge: q.code)
+                } else {
+                    _ = try c.prepareReviewFromUserInterface(q.id, name: "Neutral", scope: .resources([target]))
+                }
+            }
+            #expect(try c.state(q.id) == .invalidated && f.createCount == 0)
+        }
+    }
+
+    @Test func lostHostDoesNotReportAPreviouslyApprovedConnectionAsUsable() throws {
+        let f = Fixture(); try f.enable(); let c = f.coordinator(), q = try c.request(clientName: "client")
+        let review = try c.prepareReviewFromUserInterface(q.id, name: "Neutral")
+        let record = try c.approveFromUserInterface(q.id, reviewID: review.id, displayedChallenge: q.code)
+        f.hostError = .versionConflict
+        #expect(try c.state(q.id) == .invalidated)
+        // Losing ownership does not silently delete a previously persisted grant.
+        #expect(try f.registry.configurationForUserInterface().connections.first?.id == record.id)
+        #expect(f.createCount == 1)
     }
 
     @Test func requestCreatesNoGrantAndDefaultsRemainSelectedReadOnly() throws {

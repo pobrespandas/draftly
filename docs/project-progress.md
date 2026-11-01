@@ -3,6 +3,29 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Host checks for human pairing — 1 November
+
+AgentPairingCoordinator now requires an explicit host validator. Requests,
+reviews and approval check ownership. A second check after target resolution
+prevents stale reviews from creating credentials. Polling observes host loss and
+invalidates pending and approved results without deleting previously saved grants.
+Temporary contention preserves a prepared review but cannot approve it or extend
+its deadline. A failed request refresh cannot create a challenge.
+
+Seven new specific tests cover those boundaries. The five affected suites passed
+93 tests. Complete Swift results passed with verified inventories: 1 consumer,
+146 contracts, 763 Core and 1142 application tests. All 286 Python tests passed,
+and the structural matrix has zero errors. The local app and isolated Settings
+preview builds passed. Neither build was launched.
+Transport, Settings and the memory-only manual preview explicitly supply
+their validator. Normal host construction, locator publication and signed helper
+acceptance remain pending. No installed app or listener was activated.
+
+PR #51 passed its complete exact-head CI, including the required summary check,
+and merged as aa15c417. This also integrated PR #50 through the preserved history.
+The read-admission follow-up and this pairing change remain on their work branch
+until their own checks and review pass.
+
 ## Host checks at read admission — 1 November
 
 AgentCommandService now requires an explicit host validator. It checks ownership
@@ -41,9 +64,8 @@ were added. Final complete Swift inventories passed: 1 consumer, 146 agent
 contracts, 763 Core and 1131 application tests. All 286 Python tests passed. The
 structural matrix has zero errors. The generated local app build passed. These
 are automatic filesystem/SQLite checks, not signed host or normal startup
-acceptance. PR #50's selected CI jobs passed, but GitHub
-did not report its required summary check. It remains unmerged; this branch keeps
-all its commits and will receive its own full exact-head validation.
+acceptance. PR #50 initially lacked its required summary check. PR #51 later
+passed complete exact-head CI and merged the preserved history of both PRs.
 
 ## Private local state extraction — 1 November
 

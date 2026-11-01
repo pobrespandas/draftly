@@ -24,7 +24,7 @@ struct AgentConnectionsSettingsTests {
         lazy var registry = makeRegistry()
         lazy var pairing = AgentPairingCoordinator(registry: registry, libraryID: libraryID,
             now: { [unowned self] in self.wall }, uptime: { [unowned self] in self.elapsed },
-            isLocked: { [unowned self] in self.locked }, resolveTargets: { [unowned self] in $0.intersection(self.targets) })
+            validateHost: {}, isLocked: { [unowned self] in self.locked }, resolveTargets: { [unowned self] in $0.intersection(self.targets) })
         func makeRegistry() -> AgentConnectionRegistry {
             AgentConnectionRegistry(metadata: .init(read: { [unowned self] in self.bytes }, replace: { [unowned self] value, expected in
                 guard !self.failWrite else { throw AgentErrorCode.storageError }
@@ -293,7 +293,7 @@ struct AgentConnectionsSettingsTests {
         try model.saveExisting()
         let registry = f.makeRegistry()
         let pairing = AgentPairingCoordinator(registry: registry, libraryID: f.libraryID,
-            now: { f.wall }, isLocked: { false }, resolveTargets: { $0.intersection(f.targets) })
+            now: { f.wall }, validateHost: {}, isLocked: { false }, resolveTargets: { $0.intersection(f.targets) })
         let recreated = try AgentConnectionsSettingsModel(libraryID: f.libraryID, registry: registry, pairing: pairing,
             now: { f.wall }, choices: { [] }, resolveTargets: { $0.intersection(f.targets) },
             setAccessEnabled: { try registry.setEnabledFromUserInterface($0) })

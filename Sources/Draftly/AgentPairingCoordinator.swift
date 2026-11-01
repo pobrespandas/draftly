@@ -39,6 +39,7 @@ import AgentContracts
     private let libraryID: UUID
     private let now: () -> Date
     private let uptime: () -> TimeInterval
+    private let validateHost: () throws -> Void
     private let isLocked: () -> Bool
     // Resolve exact IDs in this library. A saved query must be resolved by the UI
     // before this call; future query matches never expand the grant.
@@ -49,9 +50,10 @@ import AgentContracts
     init(registry: AgentConnectionRegistry, libraryID: UUID, capacity: Int = 32,
          now: @escaping () -> Date = Date.init,
          uptime: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
-         isLocked: @escaping () -> Bool,
+         validateHost: @escaping () throws -> Void, isLocked: @escaping () -> Bool,
          resolveTargets: @escaping (Set<AgentResourceReference>) throws -> Set<AgentResourceReference>) {
         self.registry = registry; self.libraryID = libraryID; self.capacity = max(1, capacity)
+        self.validateHost = validateHost
         self.now = now; self.uptime = uptime; self.isLocked = isLocked; self.resolveTargets = resolveTargets
     }
 
@@ -65,6 +67,7 @@ import AgentContracts
         try requireAvailable()
         guard AgentConnectionMetadata.validName(clientName) else { throw AgentErrorCode.invalidInput }
         refresh()
+        try requireAvailable()
         // Retain terminal entries until their challenge expires so polling is stable.
         entries = entries.filter { !hasExpired($0.value) }
         guard entries.count < capacity else { throw AgentErrorCode.busy }
@@ -96,6 +99,7 @@ import AgentContracts
         guard AgentConnectionMetadata.validName(name), expiry.timeIntervalSince1970.isFinite,
               expiry > now() else { throw AgentErrorCode.invalidInput }
         try validateScope(scope)
+        try requirePending(id)
         guard let challenge = entries[id]?.challenge else { throw AgentErrorCode.notFound }
         let review = Review(id: UUID(), challenge: challenge, name: name,
                             capabilities: capabilities, scope: scope, grantExpiresAt: expiry, renewable: renewable)
@@ -108,9 +112,11 @@ import AgentContracts
         guard let review = entries[id]?.review, review.id == reviewID,
               review.challenge.code == displayedChallenge else { throw AgentErrorCode.versionConflict }
         guard review.grantExpiresAt > now() else { throw AgentErrorCode.invalidInput }
-        do { try validateScope(review.scope) }
+        do { try validateScope(review.scope); try requirePending(id) }
         catch {
-            entries[id]?.state = .invalidated; entries[id]?.review = nil
+            if (error as? AgentErrorCode) != .busy {
+                entries[id]?.state = .invalidated; entries[id]?.review = nil
+            }
             throw error
         }
         // The registry verifies durable metadata and credentials before success.
@@ -155,8 +161,23 @@ import AgentContracts
     private func requireAvailable() throws {
         do {
             guard !isLocked(), try registry.permitsTransportStart() else { throw AgentErrorCode.permissionDenied }
+            try requireHost()
         } catch {
-            invalidatePending()
+            if (error as? AgentErrorCode) != .busy { invalidatePending() }
+            throw error
+        }
+    }
+
+    private func requireHost() throws {
+        do { try validateHost() }
+        catch {
+            if (error as? AgentErrorCode) != .busy {
+                invalidatePending()
+                // A completed result must not advertise a connection for a lost host.
+                for id in entries.keys {
+                    if case .approved = entries[id]?.state { entries[id]?.state = .invalidated }
+                }
+            }
             throw error
         }
     }
@@ -175,6 +196,9 @@ import AgentContracts
     }
 
     private func refresh() {
+        // Polling can expire a challenge during contention, but contention alone
+        // does not discard a human review. Approval still requires a live owner.
+        do { try requireHost() } catch {}
         let available = !isLocked() && ((try? registry.permitsTransportStart()) == true)
         for id in entries.keys {
             guard let entry = entries[id] else { continue }
