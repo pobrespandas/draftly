@@ -3,6 +3,38 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Editor mutation coordination — 1 November
+
+AgentEditorRegistry now coordinates a synchronous stored mutation across matching
+editors. It protects pending projections during library publication, then uses
+the existing Undo callback. Selection is clamped safely and focus stays unchanged.
+Clean tag fields refresh; unconfirmed tag input remains editable. The caller owns
+authorization, expected versions, durable storage and an atomic receipt. No
+external write handler is enabled by this component.
+
+The registry reserves one generation for the mutation. Its own synchronization
+does not invalidate that generation. Real callback edits or navigation do. A
+failed save restores the prior generation only if no outside state changed.
+Failed storage retains prior text and Undo. A conflict after a completed commit
+does not roll back stored data; recovery must consult the durable receipt.
+
+Eight new methods cover two-editor Undo, selection/focus, publication ordering,
+pending and clean save failures, reentry, invalidation, callback edits/navigation
+and unconfirmed tags. Initial stub tests failed. Additional failing cases caught
+generation loss after a clean failure and tag input replacement. Final focused
+checks passed 54 tests. Python 294, structural audit and app/helper builds passed.
+
+One full run ended during TypewriterScrollingTests without a final app XML or a
+recorded assertion failure. Its cause is not established. An isolated diagnostic
+passed all three methods. A new complete check, with no code, deadline or retry
+changes between runs, verified one consumer, 164 contract, 786 Core and 1241 app
+tests (2192 total). Keep the original interruption as an unresolved reliability
+observation. The earlier similar signature does not prove this one pre-existing.
+
+All checks used neutral isolated data and offscreen text fixtures. No native
+permission, installed app or release changed. Receipt integration, service key
+issuance, guarded handlers and native activation remain pending.
+
 ## Exact Unicode content correction — 1 November
 
 Canonically equivalent strings can contain different code units. The editor
