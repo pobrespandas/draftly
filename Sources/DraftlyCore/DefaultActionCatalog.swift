@@ -8,7 +8,7 @@ public struct DefaultActionCatalogInstallation: Equatable, Sendable {
 
 public enum DefaultActionCatalog {
     public static let referenceVersion = "Drafts 54.1.2 (947)"
-    public static let revision = 3
+    public static let revision = 4
     public static let groupNames = ["Basic", "Editing", "Markdown", "Tools", "Processing"]
 
     public static var groups: [ActionGroupRecord] {
@@ -174,7 +174,7 @@ public enum DefaultActionCatalog {
             script("Archive", "Processing", "archivebox", "draft.isArchived = true; draft.update();"),
             script("Save Version", "Processing", "clock.arrow.circlepath", "draft.saveVersion();"),
             script("Trash", "Processing", "trash", "draft.isTrashed = true; draft.update();"),
-            script("Stats", "Processing", "chart.bar", "app.displayInfoMessage(draft.content.length + ' characters');"),
+            statisticsAction,
             separator("Tags & Flags", "Processing"),
             script("Update Tags...", "Processing", "tag", updateTags),
             script("Rename Tag...", "Processing", "tag.slash", renameTag),
@@ -198,8 +198,25 @@ public enum DefaultActionCatalog {
         script("Save Version", "Processing", "clock.arrow.circlepath", "draft.update();")
     }
 
+    static var legacyStatistics: DraftAction {
+        script("Stats", "Processing", "chart.bar", "app.displayInfoMessage(draft.content.length + ' characters');")
+    }
+
+    private static var statisticsAction: DraftAction {
+        var value = action("Stats", "Processing", "chart.bar", [
+            .init("script", ["script": DefaultActionStatistics.requireText]),
+            .init("script", ["script": DefaultActionStatistics.calculate]),
+            .init("script", ["script": DefaultActionStatistics.theme]),
+            .init("htmlpreview", ["template": DefaultActionStatistics.preview])
+        ])
+        value.presentation.description = "Calculate and present preview of common readability statistics for the current draft."
+        value.presentation.notifyOnSuccess = false
+        value.presentation.logLevel = 1
+        return value
+    }
+
     static func correctedDefaultAction(_ source: DraftAction) -> DraftAction? {
-        guard source == legacyInboxSeparator || source == legacySaveVersion else { return nil }
+        guard source == legacyInboxSeparator || source == legacySaveVersion || source == legacyStatistics else { return nil }
         return processing.first { $0.name == source.name }
     }
 

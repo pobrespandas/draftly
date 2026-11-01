@@ -2,6 +2,26 @@
 
 ## Visual review — 1 November 2026
 
+Catalog revision 4 replaces the Stats character-count message with the four
+observed steps: reject empty text, calculate nine statistics, set theme colors,
+and show an HTML table. Notifications and logs use errors only. An unchanged
+legacy Stats action receives the correction on local library open.
+
+The reference action applies English syllable rules and repeated text
+normalization. These rules can produce counts that differ from the editor.
+The implementation preserves these results instead of substituting another
+readability algorithm. With `The cat sat on the mat. This is a simple test.`,
+Drafts and the QA app both displayed these values, in table order:
+12, 3, 3, 119.8, -2.9, 1, 1.8, -6.6, and 0.8.
+Eighteen catalog tests passed, including the observed values, empty text,
+unchanged content and modification date, and migration of intact defaults.
+The Debug build and strict QA signature check passed.
+
+Stats presentation is not fully accepted. Drafts opens a separate Preview
+window with controls above the table. Draftly uses its existing inline preview
+with controls below it. The reference loads Vollkorn from Google Fonts; the
+local preview uses the available font fallback. Those visual differences remain.
+
 Read-only inspection of Drafts Save Version confirmed `draft.saveVersion();`
 and the bar label Version. Catalog revision 3 uses that script and label.
 The local migration also replaces an exact unchanged legacy Save Version.
@@ -76,7 +96,7 @@ current engine. `blocked` means that safe parity needs a new service, account
 flow, paid service, or non-public contract. This revision has no remaining
 `implementable` entries.
 
-The catalog revision is 3. It contains 110 entries, including separators. All
+The catalog revision is 4. It contains 110 entries, including separators. All
 installed steps use supported Draftly step types. Separators keep their observed
 names and positions relative to installed actions.
 
@@ -161,7 +181,7 @@ names and positions relative to installed actions.
 | Tags & Flags, Templates | supported | Separators. |
 | Archive, Trash | supported | Uses the current draft update contract. |
 | Save Version | supported | Calls `draft.saveVersion()` to create an explicit snapshot, even when text is unchanged. |
-| Stats | supported | Displays a local character count. |
+| Stats | supported | Shows nine reference readability statistics in an HTML table. Rejects an empty draft. Preview window and font parity remain pending. |
 | Update Tags..., Rename Tag... | supported | Shows a review prompt, then updates the draft or renames the tag across the library. |
 | Flag, Unflag | supported | Updates the current draft flag. |
 | Workspaces | supported | Separator. |

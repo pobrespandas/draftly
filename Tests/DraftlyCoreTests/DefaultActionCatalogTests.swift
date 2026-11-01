@@ -4,6 +4,41 @@ import Testing
 
 @Suite("Initial action catalog") @MainActor
 struct DefaultActionCatalogTests {
+    @Test func statisticsMatchesReferencePreviewWithoutChangingDraft() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "The cat sat on the mat. This is a simple test.")
+        let editor = EditorSession(); editor.load(note)
+        let host = DefaultCatalogHost()
+        let runner = ActionRunner(library: library, editor: editor, host: host)
+        let action = try #require(DefaultActionCatalog.actions.first { $0.name == "Stats" })
+        #expect(runner.run(action))
+        let html = try #require(host.calls.first { $0.0 == "htmlPreview" }?.1["html"] as? String)
+        // Values observed in Drafts 54.1.2 with this exact neutral text.
+        let expected = [("Words", "12"), ("Sentences", "3"), ("Words per sentence", "3"),
+                        ("Flesch-Kincaid Ease", "119.8"), ("Flesch-Kincaid Grade Level", "-2.9"),
+                        ("Gunning Fog", "1"), ("SMOG Index", "1.8"),
+                        ("Automated Readability", "-6.6"), ("Coleman Liau", "0.8")]
+        for (label, value) in expected {
+            #expect(html.contains("<td class=\"lbl\">\(label)</td><td class=\"val\">\(value)</td>"))
+        }
+        #expect(!html.contains("[[htmltable]]") && !html.contains("[[bodystyle]]"))
+        #expect(editor.content == note.content)
+        #expect(library.notes.first { $0.id == note.id }?.modifiedAt == note.modifiedAt)
+        #expect(library.runs.isEmpty)
+        #expect(!host.calls.contains { $0.0 == "actionNotification" })
+    }
+
+    @Test func statisticsRejectsEmptyDraftBeforeOpeningPreview() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let editor = EditorSession(); editor.load(try library.createNote(content: ""))
+        let host = DefaultCatalogHost()
+        let runner = ActionRunner(library: library, editor: editor, host: host)
+        #expect(!runner.run(try #require(DefaultActionCatalog.actions.first { $0.name == "Stats" })))
+        #expect(!host.calls.contains { $0.0 == "htmlPreview" })
+        #expect(host.calls.contains { String(describing: $0.1).contains("Empty draft. Text required to calculate statistics.") })
+        #expect(editor.content.isEmpty)
+    }
+
     @Test func inboxRestoresAnArchivedDraftWithoutChangingItsTextOrTags() throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         var note = try library.createNote(content: "Inbox QA 🐼")
@@ -39,17 +74,18 @@ struct DefaultActionCatalogTests {
         #expect(saved.tags == note.tags && saved.isArchived == note.isArchived)
     }
 
-    @Test(arguments: ["Inbox", "Save Version"])
+    @Test(arguments: ["Inbox", "Save Version", "Stats"])
     func reopeningCorrectsOnlyUnchangedLegacyActions(_ name: String) throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: folder) }
         var library: LibraryStore? = try LibraryStore(directory: folder, seed: false)
-        let legacy = name == "Inbox" ? DefaultActionCatalog.legacyInboxSeparator : DefaultActionCatalog.legacySaveVersion
+        let legacy = name == "Inbox" ? DefaultActionCatalog.legacyInboxSeparator
+            : name == "Stats" ? DefaultActionCatalog.legacyStatistics : DefaultActionCatalog.legacySaveVersion
         try library!.saveAction(legacy)
         library = nil
         library = try LibraryStore(directory: folder)
         let corrected = try #require(library!.actions.first { $0.id == legacy.id })
-        #expect(!corrected.isSeparator && corrected.steps.count == 1)
+        #expect(!corrected.isSeparator && corrected.steps.count == (name == "Stats" ? 4 : 1))
         library = nil
         library = try LibraryStore(directory: folder)
         #expect(library!.actions == [corrected])
