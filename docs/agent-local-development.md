@@ -267,10 +267,25 @@ credentials or business data there. Results can be stale. A successful discovery
 is not proof that a host is live or authorized. Use --library UUID to select that
 exact library, or keep explicit --socket access. Both routes verify the signed
 peer and authenticate through the credential route. The library route also
-checks the server's library acknowledgement. Client configuration export and
-automatic app startup are not implemented yet.
+checks the server's library acknowledgement. The helper can export a copyable stdio configuration as described below.
+Automatic app startup is not implemented yet.
 
 The host withdraws only its own epoch. A failed withdrawal leaves transport
 stopped and records locatorCleanupError. Another explicit suspend or close can
 retry that exact cleanup without removing a later owner. Readers do not remove
 stale records or sockets. The private catalog is excluded from library backups.
+
+## Export client configuration
+
+Run `draftly-agent configuration --connection UUID --library UUID` with the
+absolute helper executable path. Add `--state-parent ABSOLUTE_PATH` only for an
+isolated library parent. The command prints an MCP `mcpServers` JSON object.
+Copy or merge that object into the client configuration that you choose.
+
+The command uses its own executable path. Export from the final bundled helper;
+a development build path can disappear. The server key includes the connection
+UUID so distinct connections can coexist. The command never installs client
+configuration, starts the app, reads Keychain, or grants access. It contains
+routing identifiers, not a credential. Successful export does not prove that the
+helper is provisioned or that the connection is live. Pair and approve access in
+Draftly before using it. Normal app activation remains pending.

@@ -3,6 +3,21 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Copyable MCP client configuration — 1 November
+
+The helper configuration command prints a stdio mcpServers object with its own
+absolute executable path, connection UUID and stable library route. An optional
+state parent supports isolated libraries. It reuses AgentHostDestination rules.
+It reads no credential or library, changes no client file and grants no access.
+Export from the final bundled helper when provisioning is accepted.
+
+Three new headless contract methods cover exact arguments, JSON structure,
+Unicode paths and malformed input. All5 focused methods passed. Complete Swift
+results verified1consumer/161contracts/764Core/1204app (2130 total). Python286,
+matrix0, helper compilation and positive/negative CLI smoke checks passed.
+Local app compilation passed. Exact-head CI remains pending at this checkpoint.
+Normal startup, signed sharing and native lock acceptance remain unfinished.
+
 ## Application-owned host lifecycle — 1 November
 
 AppController can adopt a prepared host for its exact library and editor registry.
