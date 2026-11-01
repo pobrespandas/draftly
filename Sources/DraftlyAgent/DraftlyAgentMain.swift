@@ -13,6 +13,7 @@ import AgentMCP
             print("Usage: draftly-agent {json|status|capabilities|mcp} --connection UUID --socket ABSOLUTE_PATH")
             print("       draftly-agent call OPERATION --connection UUID --socket ABSOLUTE_PATH < arguments.json")
             print("       draftly-agent connect --name CLIENT_NAME --socket ABSOLUTE_PATH")
+            print("       draftly-agent configuration --connection UUID --library UUID [--state-parent ABSOLUTE_PATH]")
             print("       draftly-agent discover [--state-parent ABSOLUTE_PATH]")
             print("Replace --socket PATH with --library UUID [--state-parent ABSOLUTE_PATH] for stable library selection.")
             print("json reads a full request from stdin. call reads targets and parameters, using shared tool schemas.")
@@ -22,6 +23,12 @@ import AgentMCP
         if args == ["--version"] { print("draftly-agent protocol 1; MCP baseline 2025-11-25"); return }
         let isMCP = args.first == "mcp"
         do {
+            if args.first == "configuration" {
+                guard let executable = Bundle.main.executableURL?.path else { throw AgentErrorCode.unavailable }
+                let configuration = try AgentClientConfiguration(cliArguments: Array(args.dropFirst()), helperPath: executable)
+                try FileHandle.standardOutput.write(contentsOf: configuration.encoded() + Data([10]))
+                return
+            }
             if args.first == "discover" { try discover(args); return }
             if args.first == "connect" { try await pair(args); return }
             guard let mode = args.first, ["json", "status", "capabilities", "call", "mcp"].contains(mode) else { throw AgentErrorCode.invalidInput }
