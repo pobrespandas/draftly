@@ -3,6 +3,19 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Read cursor lifetime contract — 1 November
+
+Read cursors now use the accepted ten-minute maximum, bounded by the grant
+expiry and both wall and monotonic clocks. The previous implementation used five
+minutes. Pairing challenges and human approvals retain their five-minute limits.
+This changes the cursor contract, not a test wait or execution timeout.
+
+The new 599-second read failed before the correction. All37 focused service
+methods then passed, including exact 600-second expiry, a shorter grant and
+monotonic rollback. Full Swift results verified1consumer/161contracts/765Core/
+1210app (2137 total). Python294, matrix0 and the helper build passed. Local app
+compilation passed. Exact-head CI remains pending for this correction. No installed access was enabled.
+
 ## Authenticated preference discovery — 1 November
 
 preferences.schema now serves the authoritative typed preference descriptors.
