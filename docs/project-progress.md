@@ -3,6 +3,30 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## CLI request preparation refactor — 1 November
+
+The helper entry point mixed request preparation with stream and connection
+management. AgentCLIRequest now owns preparation for json, call, status and
+capabilities. AgentRequest and AgentToolInput remain the validation authorities.
+The executable keeps framing, identity checks, transport, cleanup and output.
+The input closure preserves the previous read order and error types.
+
+The base is a56334f. The reference tag is
+pre-refactor-cli-requests-2026-11-01. Before editing, 14 focused tests and the
+helper build passed. Main's complete CI results remain recorded below.
+After extraction, 20 focused tests, 286 Python tests and the structural matrix
+passed. The complete Swift inventory passed: 1 consumer, 152 contracts,
+763 Core and 1169 app cases (2085 total). Final helper and local app builds
+passed. Five helper smoke checks passed, including stderr-only MCP errors.
+These counts describe execution, not compatibility. No native UI check was
+needed for this internal extraction. Signed-helper acceptance is still pending.
+No existing test was removed. No UI or native permission path changed.
+
+The separate expected-library implementation remains in branch
+agent/library-bound-connections-20261101 at 81c7b24. Its incomplete routing
+adapter is preserved in the named library-routing stash. Neither belongs to
+this behavior-preserving refactor. Local agent access remains unfinished.
+
 ## Publication responsibility refactor — 1 November
 
 The concrete problem was mixed ownership in AgentLocalHost: transport and

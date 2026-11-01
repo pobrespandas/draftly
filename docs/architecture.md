@@ -808,6 +808,12 @@ library writer, raw credential flag, global installation, background daemon or
 remote socket. Signed helper wrapping/provisioning, pairing UI and normal
 app startup are pending. No app route starts this broker in the installed app.
 
+AgentCLIRequest prepares the JSON, named-call and generated status requests.
+It delegates envelope validation to AgentRequest and named arguments to
+AgentToolInput. The executable keeps input framing, connection cleanup and
+output. The input closure preserves lazy reads: generated requests do not read
+stdin, and an unknown operation fails before reading its arguments.
+
 
 AgentMCP owns protocol presentation, not application authority. It uses the pinned
 MCP SDK with a bounded pipe transport. AgentToolInput shares tool names and request
