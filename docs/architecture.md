@@ -643,7 +643,8 @@ and name collisions before a scoped change. This adapter does not grant access
 to every definition with the same name.
 
 The catalog records ownership, target shape, expected-version and human approval
-requirements. Catalog entries have no handlers. Execution and native effects
+requirements. The catalog contains no executable handlers. The application
+service owns runtime availability. Execution and native effects
 require an additional authorization result, even when the connection has the
 baseline capability. Query decisions retain the explicit allowed scope for a
 future handler to filter results. These decisions do not authenticate callers,
@@ -691,3 +692,52 @@ AgentExecutionSchemas checks state/report consistency and keeps polling expiry
 separate from operation timeout. A terminal Action result must have a matching
 report; an ambiguous effect does not become success. Ownership checks, durable
 operation state, approvals and native execution remain application-service work.
+
+### Authenticated agent reads
+
+AgentCommandService accepts bounded serialized requests under an internal session
+handle. Only credential authentication can create a handle. Requests cannot choose
+one. Each dispatch checks the current registry, host library, grant identity,
+capabilities, targets, expiry and lock state. It checks authority again before
+returning data. Closing a session, explicit invalidation or observing a locked
+screen removes its cursors. Unlocking does not restore that session.
+
+The service owns an explicit set of eight read handlers. server.schemas reports
+that set independently of the contract inventory. New catalog or schema entries
+do not become executable by registration. Other operations return a real error.
+No permission-management or approval method becomes an agent tool.
+
+AgentDraftReading uses LibraryStore and the existing Workspace evaluator. It
+filters authorized drafts before search, sorting, previews or counts. Summary
+counts include authorized drafts in Trash. A revision read requires permission
+for its parent draft; a revision ID alone does not grant that permission. Reads
+never open an editor, save a draft, create a revision or update an access date.
+Previews use the existing row presentation and are bounded to 1024 characters.
+Search previews use its literal-query snippet behavior; compound-query snippets
+can fall back to a normal preview, as in the existing row presentation.
+
+AgentReadPages retains only resource IDs and order. Values remain current on
+each page; deleted members are skipped and new members are not added. Signed,
+opaque cursors bind the normalized query, targets, session and grant. They expire
+after at most five minutes or the grant deadline. Monotonic time bounds their
+lifetime. A replay reads the same membership position, not a cached content copy.
+There are at most 64 snapshots and one million retained IDs per service.
+
+Draft text uses UTF-16 offsets. A chunk cannot split a Unicode scalar. An offset
+inside a surrogate pair or a length too small to return its first scalar is an
+invalid request. An empty draft returns a valid empty terminal chunk. Read version
+tokens are opaque per-service HMACs of the draft and a trusted editor generation.
+Access dates are excluded. The future live-editor adapter must supply a generation
+that changes for every pending edit. No mutation handler relies on these tokens yet.
+
+The eight-MiB frame limit also applies to responses. Oversized full revision content
+or metadata returns unavailable, without truncating its meaning or reporting
+success. Use metadata-only revision reads when content is too large. Chunked
+revision-content access remains a contract gap. Large schemas and JSON parsing
+still need rate/latency review before transport activation.
+
+This service is not connected to the installed app. The real Keychain adapter,
+protected pairing/management UI, lock notifications, stable host library identity,
+live-editor generation adapter, Unix socket and CLI/MCP remain pending. Tests use
+an in-memory library and fake credentials. They do not prove signed-helper access,
+real pairing, native approval, remote access or synchronization.

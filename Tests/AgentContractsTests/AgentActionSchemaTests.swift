@@ -96,7 +96,7 @@ struct AgentActionSchemaTests {
         }.map(\.name))
         #expect(AgentActionSchemas.operationNames == names)
         #expect(AgentReadSchemas.operationNames.isDisjoint(with: names))
-        for name in names { #expect(try #require(AgentOperationCatalog.operation(named: name)).hasHandler == false) }
+        for name in names { #expect(try #require(AgentOperationCatalog.operation(named: name)).name == name) }
     }
 
     @Test func unsupportedOperationsDoNotReceiveAnEmptyFallbackSchema() {
