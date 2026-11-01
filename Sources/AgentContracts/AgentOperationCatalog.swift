@@ -44,6 +44,8 @@ package struct AgentOperationDescriptor: Sendable {
 
     package var requiresEffectAuthorization: Bool {
         name == "actions.run" || name.hasPrefix("native.")
+            || name == "preferences.update" || name == "preferences.reset"
+            || name == "imports.commit"
     }
 
     package func acceptsTargets(_ values: [AgentResourceReference]) -> Bool {

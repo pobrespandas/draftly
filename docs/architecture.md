@@ -530,3 +530,26 @@ The independent required-operation fixture prevents accidental scope removal.
 The existing Swift inventory runner discovers the new test target without an
 alternate test command. See the [agent operation inventory](research/agent-operation-inventory.md)
 for current boundaries, reused characterization cases and remaining work.
+
+
+### Agent read schemas
+
+AgentReadSchemas defines parameters and results for the first eight discovery
+and draft-read operations. AgentValueShape covers only the JSON Schema types
+used by those contracts. Validation and schema export use the same field rules;
+this is not a general-purpose JSON Schema interpreter. Defaults stay in request
+values, not preferences or imported objects. Shape validation does not check
+library scope or read data. Future handlers must perform those checks.
+
+
+### Agent effect review
+
+AgentStepEffectCatalog records potential effects for the existing Action step
+types. Its result is either skipped, unsupported, or a requirement for runtime
+checks. It never grants permission. Tests compare its keys with the executor's
+supported types. The production contract target remains independent of Core;
+only its tests import Core for this compatibility check.
+
+Action execution still needs authority at each real bridge and native effect.
+Preference and import mutations also need contextual checks after the baseline
+grant check. This work changes only unexposed contracts, not existing user routes.

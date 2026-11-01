@@ -216,3 +216,55 @@ All execution routes also need checks for final tags, flag and folder effects.
 Review source in ActionStepExecutor, ActionAsyncExecution, ActionScriptCommands
 and native adapters. A static step classification cannot authorize dynamic
 script behavior. All new agent execution handlers remain unavailable.
+
+## Discovery and read schema increment
+
+Eight operations now have parameter and result shapes: server.status,
+server.capabilities, server.schemas, library.summary, drafts.list, drafts.search,
+drafts.get and drafts.versions. AgentReadSchemas owns these definitions and
+exports JSON Schema from the same rules used for validation. This does not add
+an executor or make any operation available.
+
+Query defaults are request-local: all non-trash drafts, modified order, descending,
+50 results. Explicit folder=trash uses the existing Workspace meaning. Search
+requires a nonempty query; list allows an empty query. Folder and sort raw names
+match NoteFolder and NoteSort. Advanced date filters and Workspace evaluation
+remain handler/schema work; unknown parameters fail instead of being ignored.
+
+List results contain summaries, never full content. library.summary returns
+only draftCount, not counts of Actions or other library objects. The count
+means authorized saved drafts, including those in Trash. Full-content
+reads use UTF-16 offset and length, with a maximum chunk of 65,536 code units.
+Chunk results must match the text length, total length and hasMore state. A future
+handler must also verify the requested target, range boundaries and grant scope.
+Dates require UTC and UUID fields require valid identities. Pagination defaults
+and integer bounds are exported; string lengths use Unicode code points.
+
+No schema exists for the other 119 operations yet. Their catalog entries remain
+planned without a handler. Native destination checks, authentication, snapshots,
+cursors and library/editor reads are not implemented by these shapes.
+
+Sources: JSON Schema official [object reference](https://json-schema.org/understanding-json-schema/reference/object)
+and [string reference](https://json-schema.org/understanding-json-schema/reference/string),
+consulted 31 October 2026. Format annotations require format checking in an external
+validator; the Swift validator checks UUID and UTC date values directly.
+
+## Effect classification increment
+
+AgentStepEffectCatalog now describes potential effects for all 25 existing step
+types. A test compares its keys with DraftAction.supportedSteps. Enabled known
+steps return requiresRuntimeChecks; enabled unknown steps return unsupported;
+disabled steps return skipped. No result authorizes execution.
+
+The classification is conservative. A clipboard step can potentially read and
+write; a create step can potentially open a window. Actual parameters and
+runtime calls determine which grants are needed. Do not demand every potential
+capability in advance or use the classification to bypass runtime checks.
+Templates, initial configuration, final disposition and queued Actions have
+separate review requirements. Script runtime authority remains unfinished.
+
+Baseline permission evaluation also returns needsEffectAuthorization for
+preferences.update, preferences.reset and imports.commit. A general write grant
+cannot decide which setting or imported resource is safe. Field allowlists,
+resource classification and any required human approval remain handler work.
+No existing execution or preference route was changed.

@@ -19,13 +19,20 @@ cover isolation, expiry/revocation, target kinds, revision-token requirements,
 full-library backup authority, malformed/oversized messages, Unicode/decimal
 transport, and distinct pending/error/result states.
 
-Automatic validation passed 21 AgentContracts, 759 Core and 938 app tests with
+Automatic validation passed 36 AgentContracts, 759 Core and 938 app tests with
 complete result inventories, 285 Python tests, the structural matrix check,
 and the final local app build.
 See the [operation inventory](research/agent-operation-inventory.md) for reused
 characterization evidence and remaining schemas and runtime enforcement work.
-Stage 1 is not closed: per-operation parameter/result schemas and the complete
-script/native authority map still need implementation. Real agent clients have
+Eight discovery and draft-read operations now have parameter/result schemas.
+They use one definition for validation, exported JSON Schema and request-local
+defaults. Chunk checks use UTF-16; result shapes separate summaries from content.
+The step effect catalog covers all 25 executor step types and always requires
+runtime review for enabled steps. It does not authorize script execution.
+Preference writes and imports also require contextual effect review.
+
+Stage 1 is not closed: the other 119 operation schemas, detailed script/native
+effect checks and real executors still need implementation. Real agent clients have
 not been connected. The habitual app remains the released 0.1.3.
 
 ## Released first-click correction
