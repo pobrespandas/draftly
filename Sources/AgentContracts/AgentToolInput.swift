@@ -70,7 +70,7 @@ package enum AgentToolInput {
             "parameters": .init(shape: .object(.init(fields: [:], allowsAdditionalFields: true))),
             "parametersJSON": .init(shape: .string(maximum: AgentRequest.maximumBytes))
         ]
-        if !operation.isReadOnly { fields["retryKey"] = .init(shape: .string(minimum: 1, maximum: AgentRequest.maximumRetryKeyBytes)) }
+        if !operation.isReadOnly && operation.name != AgentMutationSchemas.name { fields["retryKey"] = .init(shape: .string(minimum: 1, maximum: AgentRequest.maximumRetryKeyBytes)) }
         if operation.requiresExpectedVersion { fields["expectedVersion"] = .init(shape: .string(minimum: 1, maximum: 4096), required: true) }
         return .init(fields: fields)
     }

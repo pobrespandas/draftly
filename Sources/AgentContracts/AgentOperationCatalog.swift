@@ -66,6 +66,7 @@ package enum AgentOperationCatalog {
         .init(name: "server.status", owner: "AgentCommandService", capabilities: [], targets: .none, isReadOnly: true),
         .init(name: "server.capabilities", owner: "AgentCommandService", capabilities: [], targets: .none, isReadOnly: true),
         .init(name: "server.schemas", owner: "AgentCommandService", capabilities: [], targets: .none, isReadOnly: true),
+        .init(name: AgentMutationSchemas.name, owner: "AgentCommandService", capabilities: [], targets: .none),
         .init(name: "library.summary", owner: "LibraryStore", capabilities: [.draftsRead], targets: .none, isReadOnly: true),
         .init(name: "drafts.list", owner: "LibraryStore + DraftCommands", capabilities: [.draftsRead], targets: .none, isReadOnly: true),
         .init(name: "drafts.search", owner: "LibraryStore + DraftCommands", capabilities: [.draftsRead], targets: .none, isReadOnly: true),

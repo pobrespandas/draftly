@@ -3,6 +3,28 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Local mutation routes — 1 November
+
+The configured command service now exposes mutations.prepare and drafts.update.
+Preparation validates a typed unsigned request, current scope and expected version.
+It returns a signed key without changing notes. Update uses the existing writer,
+editor coordination and atomic receipt. CLI and the official MCP SDK use these
+same routes through the real private local socket. They do not renew keys silently.
+The service requires an explicit editor registry before it enables write handlers.
+
+New tests cover preparation without mutation, selected-note updates, Unicode,
+lost replies through MCP, CLI named calls, insufficient capability, excluded notes,
+wrong libraries, existing keys and stale versions. Complete Swift results verified
+one consumer, 166 contract, 786 Core and 1256 app tests (2209 total). A later
+focused run passed 47 tests after assertions were tightened to exact error codes.
+Python 294, the structural audit and local app/helper builds passed. Explicit
+preparation after a committed update also recovered the original response in a
+final 47-test focused run. No visible windows, native permissions or personal data were used.
+
+This branch remains separate from PR76 until its main integration is validated.
+Normal app startup, native activation, remaining write operations and full agent
+acceptance remain pending. No installed application or release changed.
+
 ## Existing-draft update receipts — 1 November
 
 AgentDraftWriting now joins current admission and signed-key checks, read-version

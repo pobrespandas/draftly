@@ -1028,7 +1028,26 @@ defaults, preserves target order and Unicode scalars, and bounds encoded data.
 Grant binding includes its identity, library, capabilities, scope, expiry and
 revocation. The existing approval tests retain their behavior.
 
-This key engine is not yet a transport endpoint. The command service still needs
-key issuance, request-envelope integration and a guarded mutation dispatcher.
-Durable recovery across app restart, restore-epoch handling, receipt pruning,
-editor CAS and task-owned targets remain required. Keys do not bypass those steps.
+The local service routes below connect key issuance and existing-draft updates.
+Native activation, restore-epoch handling, receipt pruning and task-owned targets
+remain required. Keys do not bypass those steps.
+
+## Local mutation preparation and update routing
+
+AgentCommandService exposes mutations.prepare and drafts.update when it has an
+explicit AgentEditorRegistry for the same library. Without that registry, the
+service remains read-only. Normal app startup does not yet activate this service.
+
+Preparation accepts an unsigned AgentRequest inside a typed request field. The
+service binds an omitted library ID to its own library. It checks the inner
+operation, current grant, scope, version and editor state before it returns a
+signed retry key. It currently supports drafts.update only. Preparation changes
+no note. A request that already has a retry key cannot request another key through
+this wrapper. CLI and MCP use the same service route; neither renews keys silently.
+
+The update route delegates to AgentDraftWriting. It checks authority before
+receipt recovery and uses the existing atomic note/receipt transaction for new
+writes. An explicit preparation of the same committed intent can recover its
+receipt without repeating the edit. Preparation is not approval for native effects.
+Host-owner loss closes the key manager and removes write handlers. A temporary
+busy result denies only that attempt.

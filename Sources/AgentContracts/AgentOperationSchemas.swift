@@ -2,7 +2,7 @@ import Foundation
 
 package enum AgentOperationSchemas {
     package static var operationNames: Set<String> {
-        AgentReadSchemas.operationNames.union(AgentActionSchemas.operationNames).union(AgentExecutionSchemas.operationNames).union(AgentWorkspaceSchemas.operationNames).union(AgentDraftSchemas.operationNames).union(AgentEditorSchemas.operationNames).union(AgentAppearanceSchemas.operationNames).union(AgentPreferenceSchemas.operationNames).union(AgentBookmarkSchemas.operationNames)
+        AgentReadSchemas.operationNames.union(AgentMutationSchemas.operationNames).union(AgentActionSchemas.operationNames).union(AgentExecutionSchemas.operationNames).union(AgentWorkspaceSchemas.operationNames).union(AgentDraftSchemas.operationNames).union(AgentEditorSchemas.operationNames).union(AgentAppearanceSchemas.operationNames).union(AgentPreferenceSchemas.operationNames).union(AgentBookmarkSchemas.operationNames)
     }
 
     package static func schema(for operation: String, preferences: AgentPreferenceRegistry? = nil) -> AgentOperationSchema? {
@@ -10,7 +10,7 @@ package enum AgentOperationSchemas {
             guard let preferences else { return nil }
             return AgentPreferenceSchemas.schema(for: operation, registry: preferences)
         }
-        return AgentReadSchemas.schema(for: operation) ?? AgentActionSchemas.schema(for: operation)
+        return AgentReadSchemas.schema(for: operation) ?? AgentMutationSchemas.schema(for: operation) ?? AgentActionSchemas.schema(for: operation)
             ?? AgentExecutionSchemas.schema(for: operation) ?? AgentWorkspaceSchemas.schema(for: operation) ?? AgentDraftSchemas.schema(for: operation) ?? AgentEditorSchemas.schema(for: operation) ?? AgentAppearanceSchemas.schema(for: operation) ?? AgentBookmarkSchemas.schema(for: operation)
     }
 
@@ -24,6 +24,9 @@ package enum AgentOperationSchemas {
         }
         if descriptor.requiresExpectedVersion {
             guard let version = request.expectedVersion, !version.isEmpty else { throw AgentSchemaError.invalidValue }
+        }
+        if AgentMutationSchemas.operationNames.contains(request.operation) {
+            return try AgentMutationSchemas.validatedParameters(for: request)
         }
         if AgentPreferenceSchemas.operationNames.contains(request.operation) {
             guard let preferences else { throw AgentErrorCode.unavailable }
@@ -75,6 +78,10 @@ package enum AgentOperationSchemas {
         guard let descriptor = AgentOperationCatalog.operation(named: request.operation),
               request.apiVersion == AgentRequest.version, descriptor.acceptsTargets(request.targets) else {
             throw AgentSchemaError.invalidValue
+        }
+        if AgentMutationSchemas.operationNames.contains(request.operation) {
+            try AgentMutationSchemas.validateResult(values, for: request)
+            return
         }
         if AgentPreferenceSchemas.operationNames.contains(request.operation) {
             guard let preferences else { throw AgentErrorCode.unavailable }

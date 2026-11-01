@@ -134,3 +134,4 @@ native.openURL
 native.shell
 native.appleScript
 native.shortcut
+mutations.prepare

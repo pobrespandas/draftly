@@ -11,8 +11,12 @@ import AgentContracts
         let connectionID: UUID
         let grantID: UUID
     }
-    static let implementedOperations: Set<String> = ["server.status", "server.capabilities", "server.schemas",
+    private static let readOperations: Set<String> = ["server.status", "server.capabilities", "server.schemas",
         "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions", "preferences.schema"]
+    static let implementedOperations = readOperations.union([AgentMutationSchemas.name, "drafts.update"])
+    private var availableOperations: Set<String> { writes == nil ? Self.readOperations : Self.implementedOperations }
+    private let retryKeys: AgentRetryKeys
+    private var writes: AgentDraftWriting?
     private let libraryID: UUID
     private let connections: AgentConnectionRegistry
     private let validateHost: () throws -> Void
@@ -43,6 +47,14 @@ import AgentContracts
         let pages = AgentReadPages(now: now, uptime: uptime)
         self.pages = pages
         drafts = AgentDraftReading(library: library, pages: pages, editors: editors, pendingEditorGeneration: pendingEditorGeneration)
+        retryKeys = AgentRetryKeys(now: now, uptime: uptime,
+            currentGrant: { try? connections.grantForAuthenticatedConnection($0) }, isLocked: isLocked)
+        if let editors {
+            writes = try AgentDraftWriting(library: library, libraryID: libraryID, reader: drafts, editors: editors,
+                keys: retryKeys, now: now, validateAdmission: { [weak self] in
+                    guard let self else { throw AgentErrorCode.cancelled }; try self.validateAdmission()
+                })
+        }
     }
 
     func authenticate(connectionID: UUID, credential: Data, expectedLibraryID: UUID? = nil) throws -> Session {
@@ -86,7 +98,7 @@ import AgentContracts
             case .denied(let error): throw error
             case .needsHumanApproval, .needsEffectAuthorization: throw AgentErrorCode.unavailable
             }
-            guard Self.implementedOperations.contains(request.operation) else { throw AgentErrorCode.unavailable }
+            guard availableOperations.contains(request.operation) else { throw AgentErrorCode.unavailable }
             let parameters: [String: AgentJSONValue]
             do { parameters = try AgentOperationSchemas.validatedParameters(for: request, preferences: preferences) }
             catch { throw AgentErrorCode.invalidInput }
@@ -114,7 +126,7 @@ import AgentContracts
         catch {
             // A transient lock collision denies this attempt. A lost owner must
             // not regain old sessions after a new host epoch.
-            if (error as? AgentErrorCode) != .busy { invalidateAll() }
+            if (error as? AgentErrorCode) != .busy { invalidateAll(); retryKeys.close(); writes = nil }
             throw error
         }
     }
@@ -143,6 +155,19 @@ import AgentContracts
                 "scope": .object(["allResources": .bool(grant.scope == .library), "resources": .array(references.map {
                     .object(["kind": .string($0.kind.rawValue), "id": .string($0.id.uuidString)])
                 })]), "expiresAt": .string(APIValues.date(grant.expiresAt))]
+        case "mutations.prepare":
+            guard let writes else { throw AgentErrorCode.unavailable }
+            let input = try AgentMutationSchemas.mutation(from: parameters)
+            let bound = AgentRequest(requestID: input.requestID, libraryID: input.libraryID ?? libraryID,
+                operation: input.operation, targets: input.targets, expectedVersion: input.expectedVersion, parameters: input.parameters)
+            let ticket = try writes.prepare(bound, connectionID: grant.connectionID)
+            return ["requestID": .string(bound.requestID.uuidString), "retryKey": .string(ticket.value),
+                "expiresAt": .string(APIValues.date(min(ticket.expiresAt, grant.expiresAt)))]
+        case "drafts.update":
+            guard let writes else { throw AgentErrorCode.unavailable }
+            let receipt = try writes.update(request, connectionID: grant.connectionID)
+            guard let resource = receipt.resources.first else { throw AgentErrorCode.storageError }
+            return ["resource": .object(["id": .string(resource.id.uuidString), "versionToken": .string(resource.versionToken)])]
         case "preferences.schema":
             let selected: Set<String>?
             if case .array(let ids) = parameters["ids"] {
@@ -163,7 +188,7 @@ import AgentContracts
             return ["operations": .array(names.map { name in
                 let schema = AgentOperationSchemas.schema(for: name, preferences: preferences)
                 return .object(["name": .string(name), "inputSchema": schema?.parameters.jsonSchema ?? .null,
-                    "resultSchema": schema?.result.jsonSchema ?? .null, "available": .bool(Self.implementedOperations.contains(name))])
+                    "resultSchema": schema?.result.jsonSchema ?? .null, "available": .bool(availableOperations.contains(name) && (name != AgentMutationSchemas.name || grant.capabilities.contains(.draftsWrite)))])
             })]
         default: return try drafts.read(request, parameters: parameters, grant: grant, sessionID: sessionID)
         }

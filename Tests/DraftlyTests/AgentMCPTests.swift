@@ -25,16 +25,18 @@ struct AgentMCPTests {
         var server: MCP.Server!
         let client = MCP.Client(name: "Neutral QA", version: "1", configuration: .strict)
 
-        init(count: Int) throws {
+        init(count: Int, writeAccess: Bool = false) throws {
             library = try LibraryStore(inMemory: true, seed: false)
             notes = (0..<count).map { Note(content: "Neutral \($0)\ne\u{301} 🐼") }
             hidden = Note(content: "Hidden private title")
             try library.saveNotes(notes + [hidden], preserveRevision: false)
             try registry.setEnabledFromUserInterface(true)
             record = try registry.connectFromUserInterface(name: "SDK QA", libraryID: libraryID,
-                scope: .resources(Set(notes.map { .init(kind: .draft, id: $0.id) })))
+                capabilities: writeAccess ? [.draftsRead, .draftsWrite] : [.draftsRead], scope: .resources(Set(notes.map { .init(kind: .draft, id: $0.id) })))
             let service = try AgentCommandService(library: library, libraryID: libraryID, connections: registry, appVersion: "QA",
-                validateHost: {}, isLocked: { false }, pendingEditorGeneration: { _ in "" })
+                validateHost: {}, isLocked: { false },
+                editors: writeAccess ? AgentEditorRegistry(library: library, models: { [] }) : nil,
+                pendingEditorGeneration: { _ in "" })
             broker = try AgentSocketBroker(service: service, parentDirectory: FileManager.default.temporaryDirectory, validateHelper: { _ in })
             helper = AgentHelperConnection(connect: { [unowned self] in try await self.localClient() })
         }
@@ -60,8 +62,8 @@ struct AgentMCPTests {
             await client.disconnect(); await server?.stop(); await helper?.close(); broker?.stop()
         }
     }
-    private func run(count: Int = 1, _ body: @MainActor (Runtime) async throws -> Void) async throws {
-        let runtime = try Runtime(count: count)
+    private func run(count: Int = 1, writeAccess: Bool = false, _ body: @MainActor (Runtime) async throws -> Void) async throws {
+        let runtime = try Runtime(count: count, writeAccess: writeAccess)
         do { try await runtime.start(); try await body(runtime); await runtime.close() }
         catch { await runtime.close(); throw error }
     }
@@ -150,4 +152,67 @@ struct AgentMCPTests {
             #expect(text.contains("invalid_input") && !text.contains("Neutral"))
         }
     }
+    @Test func sdkPreparesExecutesAndRecoversAScopedDraftUpdate() async throws {
+        try await run(writeAccess: true) { r in
+            let note = try #require(r.notes.first)
+            let tools = try await r.client.listTools().tools
+            #expect(tools.contains { $0.name == "draftly_mutations_prepare" })
+            #expect(tools.contains { $0.name == "draftly_drafts_update" })
+            let targets: MCP.Value = .array([.object(["kind": .string("draft"), "id": .string(note.id.uuidString)])])
+            let read = try await r.client.callTool(name: "draftly_drafts_get", arguments: ["targets": targets])
+            guard case .result(.object(let value)) = try response(read.content).outcome,
+                  case .object(let draft) = value["draft"], case .string(let version) = draft["versionToken"] else {
+                Issue.record("Missing read version"); return
+            }
+            let mutation = AgentRequest(requestID: UUID(), libraryID: nil, operation: "drafts.update",
+                targets: [.init(kind: .draft, id: note.id)], expectedVersion: version,
+                parameters: ["changes": .object(["content": .string("SDK update e\u{0301} 🐼")])])
+            let frame = try JSONDecoder().decode(MCP.Value.self, from: JSONEncoder().encode(mutation))
+            let prepared = try await r.client.callTool(name: "draftly_mutations_prepare", arguments: [
+                "requestID": .string(UUID().uuidString), "parameters": .object(["request": frame])])
+            guard case .result(.object(let fields)) = try response(prepared.content).outcome,
+                  case .string(let key) = fields["retryKey"] else { Issue.record("Preparation failed"); return }
+            #expect(r.library.notes.first { $0.id == note.id }?.content == note.content)
+            let arguments: [String: MCP.Value] = ["requestID": .string(mutation.requestID.uuidString), "targets": targets,
+                "expectedVersion": .string(version), "retryKey": .string(key),
+                "parameters": .object(["changes": .object(["content": .string("SDK update e\u{0301} 🐼")])])]
+            let changed = try await r.client.callTool(name: "draftly_drafts_update", arguments: arguments)
+            #expect(changed.isError == false)
+            #expect(r.library.notes.first { $0.id == note.id }?.content == "SDK update e\u{0301} 🐼")
+            let revisions = r.library.revisions
+            let recovered = try await r.client.callTool(name: "draftly_drafts_update", arguments: arguments)
+            #expect(try response(recovered.content) == response(changed.content))
+            #expect(r.library.revisions == revisions)
+            #expect(r.library.notes.first { $0.id == r.hidden.id }?.content == r.hidden.content)
+        }
+    }
+
+    @Test func cliNamedCallsPrepareAndExecuteThroughTheRealLocalSocket() async throws {
+        try await run(writeAccess: true) { r in
+            let note = try #require(r.notes.first)
+            func call(_ operation: String, _ arguments: [String: AgentJSONValue]) async throws -> AgentResponse {
+                let input = try JSONEncoder().encode(AgentJSONValue.object(arguments))
+                let request = try AgentCLIRequest.make(mode: "call", operationName: operation, readInput: { input })
+                return try await r.helper.request(request)
+            }
+            let targets: AgentJSONValue = .array([.object(["kind": .string("draft"), "id": .string(note.id.uuidString)])])
+            guard case .result(.object(let values)) = try await call("drafts.get", ["targets": targets]).outcome,
+                  case .object(let draft) = values["draft"], case .string(let version) = draft["versionToken"] else {
+                Issue.record("Missing CLI read version"); return
+            }
+            let mutation = AgentRequest(requestID: UUID(), libraryID: nil, operation: "drafts.update",
+                targets: [.init(kind: .draft, id: note.id)], expectedVersion: version,
+                parameters: ["changes": .object(["flag": .integer(3)])])
+            let frame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(mutation))
+            guard case .result(.object(let prepared)) = try await call("mutations.prepare", [
+                "requestID": .string(UUID().uuidString), "parameters": .object(["request": frame])]).outcome,
+                  case .string(let key) = prepared["retryKey"] else { Issue.record("Missing CLI retry key"); return }
+            let reply = try await call("drafts.update", ["requestID": .string(mutation.requestID.uuidString),
+                "targets": targets, "expectedVersion": .string(version), "retryKey": .string(key), "parameters": .object(mutation.parameters)])
+            guard case .result = reply.outcome else { Issue.record("CLI mutation failed"); return }
+            #expect(r.library.notes.first { $0.id == note.id }?.flag == 3)
+            #expect(r.library.notes.first { $0.id == r.hidden.id }?.flag == r.hidden.flag)
+        }
+    }
+
 }
