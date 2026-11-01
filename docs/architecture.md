@@ -729,7 +729,7 @@ can fall back to a normal preview, as in the existing row presentation.
 AgentReadPages retains only resource IDs and order. Values remain current on
 each page; deleted members are skipped and new members are not added. Signed,
 opaque cursors bind the normalized query, targets, session and grant. They expire
-after at most five minutes or the grant deadline. Monotonic time bounds their
+after at most ten minutes or the grant deadline. Monotonic time bounds their
 lifetime. A replay reads the same membership position, not a cached content copy.
 There are at most 64 snapshots and one million retained IDs per service.
 
@@ -982,3 +982,29 @@ cancels Quit. Closure invalidates transport, sessions and pending pairing.
 Normal host startup, editor mutations and the system-lock adapter remain
 unfinished.
 No installed-app access is enabled by this read adapter.
+
+## Atomic library mutation receipts
+
+LibraryStore.commitNotes is a package-only persistence boundary. It stages notes
+through the same rules as saveNotes, then stages an agentMutationReceipt record
+and commits both through the existing Core Data writer. A Sendable result builder
+receives the normalized note values. It derives opaque resource version tokens
+without access to the actor-owned store. No second writer or model entity is added.
+
+A receipt contains the request ID, connection identifier hash, normalized request
+hash, commit date, affected IDs and resulting version tokens. It contains no raw
+request, draft content or credential. Reuse with a different request hash or target
+set is rejected. A committed matching request returns its stored receipt without
+staging edits or calling the builder again. Retained receipts expire after thirty
+days. Backup exports omit them; unknown existing record kinds remain intact.
+
+Receipt reads reject a context with pending changes. The write boundary also
+rejects pre-existing pending work, preserving it rather than committing or rolling
+it back. Errors while staging notes, building the receipt or preparing the save
+roll back the new batch together. A lost reply can be reconciled after reopening.
+
+This storage primitive does not authorize a request. Agent handlers must validate
+current grants, expected versions, editor conflicts and signed retry keys before
+using it or returning a receipt. Retry-key issuance, receipt pruning, restore-epoch
+invalidation, editor coordination and operation dispatch remain unfinished.
+Agent writes stay unavailable until those boundaries are implemented and tested.

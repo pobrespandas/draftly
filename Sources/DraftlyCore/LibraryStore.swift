@@ -117,24 +117,79 @@ public final class LibraryStore: ObservableObject {
     }
     public func saveNotes(_ values: [Note], preserveRevision: Bool = true, preserveDates: Bool = false) throws {
         do {
-            for var note in values {
-                note.tags = TagRules.normalize(note.tags)
-                if let accessed = notes.first(where: { $0.id == note.id })?.accessedAt,
-                   note.accessedAt.map({ $0 < accessed }) ?? true { note.accessedAt = accessed }
-                if notes.first(where: { $0.id == note.id }) == note { continue }
-                if preserveRevision && revisions.first(where: { $0.noteID == note.id })?.content != note.content {
-                    let revision = Revision(noteID: note.id, content: note.content)
-                    try persist(revision, id: revision.id, kind: "revision")
-                }
-                if !preserveDates { note.modifiedAt = Date() }
-                try persist(note, id: note.id, kind: "note")
-            }
+            _ = try stageNotes(values, preserveRevision: preserveRevision, preserveDates: preserveDates)
             try beforeBatchCommit?()
             try commit()
         } catch {
             container.viewContext.rollback(); try? reload(); throw error
         }
     }
+    private func stageNotes(_ values: [Note], preserveRevision: Bool, preserveDates: Bool) throws -> [Note] {
+        var staged: [Note] = []
+        for var note in values {
+            note.tags = TagRules.normalize(note.tags)
+            if let accessed = notes.first(where: { $0.id == note.id })?.accessedAt,
+               note.accessedAt.map({ $0 < accessed }) ?? true { note.accessedAt = accessed }
+            if let existing = notes.first(where: { $0.id == note.id }), existing == note {
+                staged.append(existing); continue
+            }
+            if preserveRevision && revisions.first(where: { $0.noteID == note.id })?.content != note.content {
+                let revision = Revision(noteID: note.id, content: note.content)
+                try persist(revision, id: revision.id, kind: "revision")
+            }
+            if !preserveDates { note.modifiedAt = Date() }
+            try persist(note, id: note.id, kind: "note")
+            staged.append(note)
+        }
+        return staged
+    }
+
+    package func mutationReceipt(for mutation: LibraryMutationIdentity, at now: Date) throws -> LibraryMutationReceipt? {
+        try mutation.validate()
+        guard !container.viewContext.hasChanges else { throw LibraryMutationReceiptError.pendingChanges }
+        guard now.timeIntervalSince1970.isFinite else { throw LibraryMutationReceiptError.invalidReceipt }
+        let matches = try persistence.decode("agentMutationReceipt", LibraryMutationReceipt.self).filter {
+            $0.mutation.requestID == mutation.requestID && $0.mutation.connectionHash == mutation.connectionHash
+        }
+        guard matches.count <= 1 else { throw LibraryMutationReceiptError.requestConflict }
+        guard let receipt = matches.first else { return nil }
+        try receipt.validate()
+        guard receipt.mutation == mutation else { throw LibraryMutationReceiptError.requestConflict }
+        let age = now.timeIntervalSince(receipt.committedAt)
+        guard age >= 0 else { throw LibraryMutationReceiptError.invalidReceipt }
+        guard age < 30 * 24 * 60 * 60 else { throw LibraryMutationReceiptError.retryWindowExpired }
+        return receipt
+    }
+
+    // The application owns authorization, expected versions and request hashing.
+    package func commitNotes(_ values: [Note], mutation: LibraryMutationIdentity, at now: Date,
+                             makeResources: @Sendable ([Note]) throws -> [LibraryMutationReceipt.Resource]) throws -> LibraryMutationReceipt {
+        guard !values.isEmpty, Set(values.map(\.id)).count == values.count else {
+            throw LibraryMutationReceiptError.invalidReceipt
+        }
+        if let previous = try mutationReceipt(for: mutation, at: now) {
+            guard Set(previous.resources.map(\.id)) == Set(values.map(\.id)) else {
+                throw LibraryMutationReceiptError.requestConflict
+            }
+            return previous
+        }
+        do {
+            let staged = try stageNotes(values, preserveRevision: true, preserveDates: false)
+            let receipt = LibraryMutationReceipt(id: UUID(), mutation: mutation, committedAt: now,
+                resources: try makeResources(staged))
+            try receipt.validate()
+            guard Set(receipt.resources.map(\.id)) == Set(values.map(\.id)) else {
+                throw LibraryMutationReceiptError.invalidReceipt
+            }
+            try persist(receipt, id: receipt.id, kind: "agentMutationReceipt")
+            try beforeBatchCommit?()
+            try commit()
+            return receipt
+        } catch {
+            container.viewContext.rollback(); try? reload(); throw error
+        }
+    }
+
     public func recordAccess(_ id: UUID, at date: Date = Date()) throws {
         guard date.timeIntervalSince1970.isFinite else { throw DraftlyError.message("The access date is invalid.") }
         guard let note = notes.first(where: { $0.id == id }) else { throw DraftlyError.message("The draft was not found.") }
