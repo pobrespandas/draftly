@@ -38,6 +38,14 @@ Tests used neutral isolated libraries and offscreen text fixtures. No installed
 application, native permission, personal data or release changed. The earlier
 Typewriter interruption remains an unresolved observation; it was not fixed here.
 
+## Editor coordination integrated — 1 November
+
+PR75 exact head a3d7ebc passed CI41331687422, including the required macOS
+summary. Native results verified1/164/786/1241 and BUILD SUCCEEDED. Guarded
+merge 1b510422f6a9e275f763dddc5cc9c3d9b257b3ef preserves both histories.
+The draft-update branch took that main ancestry without changing its validated
+source tree. This does not resolve the earlier unexplained test interruption.
+
 ## Editor mutation coordination — 1 November
 
 AgentEditorRegistry now coordinates a synchronous stored mutation across matching
