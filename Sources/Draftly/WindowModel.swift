@@ -310,14 +310,14 @@ final class WindowModel: ObservableObject {
     }
     func synchronizeStoredEditor(_ notes: [Note]) {
         guard !hasUnsavedChanges, let id = editor.noteID,
-              let note = notes.first(where: { $0.id == id }), note.content != editor.content else { return }
+              let note = notes.first(where: { $0.id == id }), !DraftOperations.sameText(note.content, editor.content) else { return }
         cancelActionForUserEdit()
         editor.content = note.content
         editor.acknowledgeSaved(note)
     }
     func contentChanged() {
         cancelActionForUserEdit()
-        guard let currentNote, currentNote.content != editor.content else { return }
+        guard let currentNote, !DraftOperations.sameText(currentNote.content, editor.content) else { return }
         hasUnsavedChanges = true
         saveTask?.cancel()
         saveTask = Task { [weak self] in
@@ -347,7 +347,7 @@ final class WindowModel: ObservableObject {
                     note.accessedAt = Date()
                     try saveDraft(note); scratchNote = nil; onAccessDraft(note.id)
                 }
-            } else if var note = currentNote, note.content != editor.content {
+            } else if var note = currentNote, !DraftOperations.sameText(note.content, editor.content) {
                 note.content = editor.content; try saveDraft(note)
             }
             if let note = currentNote { editor.acknowledgeSaved(note) }

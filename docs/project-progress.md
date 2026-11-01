@@ -3,6 +3,25 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Exact Unicode content correction — 1 November
+
+Canonically equivalent strings can contain different code units. The editor
+could skip such a replacement, omit Undo, leave the draft clean and skip saving
+the new spelling. The library could also skip its revision and persisted value.
+
+DraftOperations.sameText now supplies one package-only content comparison.
+Editor synchronization, dirty detection, flush, saved baselines and library
+content/revision checks use exact UTF-8 bytes. Existing agent generation tracking
+uses the same rule. Note equality, public APIs and library formats are unchanged.
+This is a functional correction, separate from the agent version-check feature.
+
+All four new methods failed before the fix, with nine issues across app and Core
+results. Final focused checks passed 19 tests. Full results verified one consumer,
+164 contract, 786 Core and 1233 app tests (2184 total). All 294 Python tests, the
+structural matrix and local app/helper builds passed. The offscreen Undo fixture
+created no window. Persistence tests reopened a neutral temporary library.
+No personal data, native permission, installation or release was involved.
+
 ## Retry transport integrated — 1 November
 
 PR72 exact head67b1b7c passed CI41327756363, including the required macOS

@@ -7,6 +7,11 @@ public enum MergeDestination: String, CaseIterable, Sendable {
 }
 
 public enum DraftOperations {
+    // Draft content identity preserves code units; it does not normalize Unicode.
+    package static func sameText(_ first: String, _ second: String) -> Bool {
+        first.utf8.elementsEqual(second.utf8)
+    }
+
     public static func duplicate(_ source: Note, at date: Date = Date()) -> Note {
         Note(content: source.content, tags: source.tags, flag: source.flag,
              createdAt: date, modifiedAt: date, syntax: source.syntax)

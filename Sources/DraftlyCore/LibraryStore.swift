@@ -131,10 +131,10 @@ public final class LibraryStore: ObservableObject {
             note.tags = TagRules.normalize(note.tags)
             if let accessed = notes.first(where: { $0.id == note.id })?.accessedAt,
                note.accessedAt.map({ $0 < accessed }) ?? true { note.accessedAt = accessed }
-            if let existing = notes.first(where: { $0.id == note.id }), existing == note {
+            if let existing = notes.first(where: { $0.id == note.id }), existing == note, DraftOperations.sameText(existing.content, note.content) {
                 staged.append(existing); continue
             }
-            if preserveRevision && revisions.first(where: { $0.noteID == note.id })?.content != note.content {
+            if preserveRevision && (revisions.first(where: { $0.noteID == note.id }).map { !DraftOperations.sameText($0.content, note.content) } ?? true) {
                 let revision = Revision(noteID: note.id, content: note.content)
                 try persist(revision, id: revision.id, kind: "revision")
             }
