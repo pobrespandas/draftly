@@ -107,8 +107,8 @@ struct ActionListPanel: View {
                 }.scrollIndicators(.hidden)
             }
         }.background(Color(nsColor: .textBackgroundColor))
-        .onChange(of: library.actions) { _, _ in if !groups.contains(model.actionGroup), model.actionGroup != "All Actions" { model.actionGroup = groups.first ?? "All Actions" } }
-        .onChange(of: library.actionGroups) { _, _ in if !groups.contains(model.actionGroup), model.actionGroup != "All Actions" { model.actionGroup = groups.first ?? "All Actions" } }
+        .onChange(of: library.actions, initial: true) { _, _ in model.reconcileActionGroup() }
+        .onChange(of: library.actionGroups) { _, _ in model.reconcileActionGroup() }
     }
     private func toggleSearch() {
         model.showActionSearch.toggle()

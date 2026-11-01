@@ -65,6 +65,11 @@ struct ActionStepExecutor {
         switch step.type {
         case "configurationKey": break
         case "clipboard":
+            if ["html", "richText"].contains(step.values["output"] ?? "") {
+                let html = try MarkdownPreferences.render(rendered, defaults: runner.markdownDefaults)
+                _ = try platform("htmlToClipboard", ["html": html])
+                break
+            }
             let mode = step.values["writeType"] ?? "replace"
             guard ["replace", "append", "prepend"].contains(mode) else { throw DraftlyError.message("Unsupported clipboard write type: \(mode)") }
             let previous = mode == "replace" ? "" : try platform("getClipboard", [:]) as? String ?? ""
@@ -118,7 +123,11 @@ struct ActionStepExecutor {
             guard let tags = try prompt.tags(from: platform("prompt", prompt.values)) else { return false }
             runner.customTags.merge(tags) { _, new in new }
         case "mail", "message":
-            let message = try ActionMessageStep(step, text: rendered) { try renderTemplate($0, note: current) }
+            let body = step.values["renderMarkdown"] == "true"
+                ? try MarkdownPreferences.render(rendered, defaults: runner.markdownDefaults) : rendered
+            var resolved = step
+            if step.values["renderMarkdown"] == "true" { resolved.values["isBodyHTML"] = "true" }
+            let message = try ActionMessageStep(resolved, text: body) { try renderTemplate($0, note: current) }
             if try !message.accepted(platform(message.operation, message.values)) { return false }
         case "listInReminders":
             let listName = try renderTemplate(step.values["list"] ?? step.values["listTemplate"] ?? "Reminders", note: current)
@@ -128,7 +137,10 @@ struct ActionStepExecutor {
             }
         case "openIn": _ = try platform("shareFile", ["text": rendered, "name": try renderTemplate(step.values["name"] ?? "[[safe_title]].txt", note: current)])
         case "print":
-            if try platform("print", step.values.merging(["text": rendered], uniquingKeysWith: { _, new in new })) as? Bool == false { return false }
+            let markdown = step.values["format"] == "markdown"
+            let body = markdown ? try MarkdownPreferences.render(rendered, defaults: runner.markdownDefaults) : rendered
+            let values = step.values.merging(["text": body, "format": markdown ? "html" : step.values["format"] ?? "plainText"], uniquingKeysWith: { _, new in new })
+            if try platform("print", values) as? Bool == false { return false }
         case "speak":
             if try platform("speak", ["text": rendered, "settings": ["autoStart": step.values["autoStart"] != "false", "autoClose": step.values["autoClose"] != "false"]]) as? Bool == false { return false }
         case "reminder", "event": _ = try platform(step.type, ["text": rendered])
