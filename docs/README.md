@@ -33,8 +33,12 @@ signing guides to install the released app.
   code boundaries, risks, and refactorings needed for that plan.
 - [Agent credential decision](adr/0001-agent-device-keychain.md): why credentials
   use the device keychain and why the signed helper needs its own profile.
+- [Agent library binding](adr/0003-local-agent-library-binding.md): local store
+  identity, copy behavior and exclusive host ownership.
 - [MCP transport decision](adr/0002-mcp-exact-bounded-stdio.md): bounded stdio,
   exact JSON and the selected SDK profile.
+- [Agent connection interface](agent-connections-ui.md): human review, editing
+  copies, host requirements and the isolated manual preview.
 - [Local agent development](agent-local-development.md): socket protocol, JSON
   helper, isolated tests, and the setup that remains before activation.
 

@@ -55,6 +55,10 @@ import AgentContracts
         self.now = now; self.uptime = uptime; self.isLocked = isLocked; self.resolveTargets = resolveTargets
     }
 
+    func isBound(to registry: AgentConnectionRegistry, libraryID: UUID) -> Bool {
+        self.registry === registry && self.libraryID == libraryID
+    }
+
     // Called only after the pairing transport has verified the signed helper.
     // The supplied name remains an untrusted display label.
     func request(clientName: String) throws -> Challenge {

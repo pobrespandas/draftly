@@ -833,3 +833,43 @@ AgentPairingCoordinator. Pending waits reserve at most two client slots.
 The async pairing session does not retain the broker; destruction closes its
 channels and cancels pending work. Normal authenticated requests still recheck
 current grants, so a pairing result cannot substitute for live authorization.
+
+
+AgentConnectionsSettingsModel coordinates human commands, not transport startup.
+It uses the same registry/library binding as its pairing coordinator. The view
+owns bindings and presentation; AgentGrantEditingCopy retains unsaved choices.
+Existing edits check the grant ID that was reviewed. Pairing copy changes discard
+the prepared review. The registry remains the source for live, paused, revoked
+and blocked display states. Resource labels include stable IDs and do not grant
+access by title or by future Workspace membership.
+
+AppController can receive this Settings model through explicit host setup.
+Settings adds the Agents tab only when it exists. Normal startup still supplies
+none until signed helper, Keychain, locator and lifecycle integration are ready.
+The separate Tools/AgentSettingsPreview host uses memory fixtures and never opens
+an agent endpoint. Its build script does not launch it; manual Computer Use is a
+separate step. See [connection UI](agent-connections-ui.md) for verified cases.
+
+
+AgentStateDirectory owns bounded local metadata I/O and file-lock lifetimes.
+AgentPrivateFilePolicy remains the common owner, mode, ACL and link rule.
+AgentConnectionFile selects the existing connection filenames and budget; it no
+longer contains another atomic-write implementation. A held AgentStateFileLock
+keeps its descriptor and directory alive. Release leaves the lock inode in place.
+Long-lived host owners can also validate the current path and inode before work.
+
+
+AgentLibraryLocation reads the loaded SQLite store's UUID and retains a read-only
+file descriptor. It uses the filesystem path, volume and file identity to check
+that the loaded store still names that instance. It does not change Core Data
+metadata, Note or the database. In-memory or ambiguous stores are not adopted by
+this persistent host path.
+
+AgentHostLease owns the stable local library ID and both location and physical
+file locks. Its private identity record lives in Agents beside SQLite, outside
+record backups and synchronization. Corrupt or foreign records fail without
+repair. Copy or replacement creates a different binding. Release keeps lock
+inodes in place. Ownership validation is required before every admitted request;
+a non-contention failure remains invalid until a new host epoch. The app factory
+and broker still need to consume this lease before normal activation. See
+[the binding decision](adr/0003-local-agent-library-binding.md).

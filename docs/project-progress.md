@@ -3,6 +3,77 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Stable local library binding and ownership — 1 November
+
+AgentLibraryLocation now identifies the loaded SQLite store without changing its
+metadata or Note data. AgentHostLease keeps a local library ID across reopen and
+holds both location and physical-file locks. A coherent closed database copy gets
+another agent binding even when its Core Data UUID is unchanged. Replacing the
+file at the same path also requires a fresh binding. Aliases share one owner.
+
+Corrupt or foreign identity records fail without repair. Deletion cannot bypass
+a held owner. Validation checks the loaded store, current paths and saved binding;
+a changed owner stays invalid for that host epoch. Normal host startup and locator
+publication still need to use these checks. No installed app or listener was
+activated. See [the decision](adr/0003-local-agent-library-binding.md).
+
+Focused tests use temporary real SQLite stores and preserve draft IDs and content.
+They cover reopen, copies, replacement, aliases, moves, Unicode paths, lock
+release, temporary contention, metadata changes, corrupt records, deleted identity
+files and unsupported storage. Sixteen host tests and six state-directory tests
+were added. Final complete Swift inventories passed: 1 consumer, 146 agent
+contracts, 763 Core and 1131 application tests. All 286 Python tests passed. The
+structural matrix has zero errors. The generated local app build passed. These
+are automatic filesystem/SQLite checks, not signed host or normal startup
+acceptance. PR #50's selected CI jobs passed, but GitHub
+did not report its required summary check. It remains unmerged; this branch keeps
+all its commits and will receive its own full exact-head validation.
+
+## Private local state extraction — 1 November
+
+AgentStateDirectory now owns the private agent directory, bounded reads, atomic
+CAS replacement and advisory file locks. AgentConnectionFile delegates to it and
+keeps connections.json, connections.lock and its byte format unchanged. The
+shared file policy still owns permission, ACL and link checks. Credentials remain
+outside these files.
+
+The focused metadata, registry, Settings and state-directory suites passed 43
+checks. Existing file tests retain their names and coverage. New checks cover
+independent files, byte budgets, invalid names, held lock lifetime, inode and
+directory replacement, unsafe aliases and exclusion by an actual child process.
+The generated local app build passed. This is an extraction for the host identity
+and ownership work; it does not activate a listener or prove signed access.
+
+## Human connection review and Settings — 1 November
+
+Implemented the grant editing copy, human Settings model and native review and
+management view. Cancel does not save or approve. Existing edits check the grant
+ID before replacement. Pairing requires a prepared review and code comparison;
+changing choices invalidates that review. Missing IDs remain visible. Revocation
+shows its current state immediately and reports credential cleanup per connection.
+
+The Agents tab is conditional on a configured AppController model. Normal startup
+still supplies none. Signed helper setup, real Keychain sharing, stable host and
+locator/lifecycle work remain required before activation. Recent activity, Stop
+Work and full operation access are not complete.
+
+Eighteen specific headless tests cover defaults, Cancel, stale copies, error
+retention, frozen selections, approval, revocation, metadata errors, authority
+binding, accessibility labels and recreation from serialized metadata. The
+separate native memory-only preview passed Cancel/reopen, code comparison,
+approval, Save/reopen, Revoke, Deny, Pause, resource filtering, Escape, scrolling
+and light/dark checks. An observed missing title in resource accessibility labels
+was corrected and checked again. The preview was closed and unregistered; its
+app went to Trash and its temporary preferences were removed. No endpoint,
+Keychain adapter or personal library was used. Final complete Swift inventories
+passed: 1 consumer, 146 agent contracts, 763 Core and 1109 application tests.
+All 286 Python tests passed. The structural matrix has zero errors. The generated
+local app build passed. This evidence does not approve normal startup or signed
+pairing.
+
+PR #49 passed exact-head CI and was merged as 74188c6. The installed app and
+release remain unchanged. See [connection UI](agent-connections-ui.md).
+
 ## Pairing socket and CLI connect — 1 November
 
 Implemented a separate pairing introduction on the private socket and the helper's

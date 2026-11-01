@@ -71,6 +71,7 @@ final class AppController: ObservableObject {
     static let shared = AppController()
     @Published var library: LibraryStore?
     @Published var startupError: String?
+    @Published var agentSettings: AgentConnectionsSettingsModel?
     @Published var globalShortcutErrors: [String: String] = [:]
     @Published var commandWindow: WindowModel?
     let recentDrafts: RecentDraftStore
@@ -103,8 +104,8 @@ final class AppController: ObservableObject {
     let windows = NSHashTable<WindowModel>.weakObjects()
     private var pendingMenuAction: PendingMenuAction?
     init() { recentDrafts = RecentDraftStore(); start() }
-    init(library: LibraryStore, recentDrafts: RecentDraftStore) {
-        self.library = library; self.recentDrafts = recentDrafts
+    init(library: LibraryStore, recentDrafts: RecentDraftStore, agentSettings: AgentConnectionsSettingsModel? = nil) {
+        self.library = library; self.recentDrafts = recentDrafts; self.agentSettings = agentSettings
     }
     func start() {
         do {
