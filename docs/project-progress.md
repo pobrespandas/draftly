@@ -3,6 +3,14 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Retry transport integrated — 1 November
+
+PR72 exact head67b1b7c passed CI41327756363, including the required macOS
+summary. Native results verified1/164/785/1224 and BUILD SUCCEEDED. Guarded
+merge b23b7d3d7645c00f3f54e5e605b746cd8b57f5e3 preserves both histories.
+The draft-version branch took that ancestry with no change to its validated
+source tree. This is source integration, not installed agent activation.
+
 ## Draft expected-version check — 1 November
 
 Draft reads and the internal checkedSnapshot boundary now use one version
