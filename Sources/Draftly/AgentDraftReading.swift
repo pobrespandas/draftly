@@ -8,9 +8,12 @@ import AgentContracts
     private let pages: AgentReadPages
     private let versionKey = SymmetricKey(size: .bits256)
     private let pendingEditorGeneration: (UUID) -> String
+    private let editors: AgentEditorRegistry?
 
-    init(library: LibraryStore, pages: AgentReadPages, pendingEditorGeneration: @escaping (UUID) -> String) {
+    init(library: LibraryStore, pages: AgentReadPages, editors: AgentEditorRegistry? = nil,
+         pendingEditorGeneration: @escaping (UUID) -> String) {
         self.library = library; self.pages = pages; self.pendingEditorGeneration = pendingEditorGeneration
+        self.editors = editors
     }
 
     func read(_ request: AgentRequest, parameters: [String: AgentJSONValue], grant: AgentGrant,
@@ -23,15 +26,16 @@ import AgentContracts
             guard let note = library.notes.first(where: { $0.id == request.targets[0].id && permitted($0.id) }) else {
                 throw AgentErrorCode.notFound
             }
-            return ["draft": .object(try summary(note)), "content": .object(try chunk(note.content, parameters: parameters))]
+            let state = try snapshot(note)
+            return ["draft": .object(try summary(state)), "content": .object(try chunk(state.note.content, parameters: parameters))]
         case "drafts.list", "drafts.search":
             let workspace = try query(parameters)
             return try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
                 parameters: parameters, expiresAt: grant.expiresAt, ids: {
-                    workspace.filter(library.notes.filter { permitted($0.id) }).map(\.id)
+                    try workspace.filter(library.notes.filter { permitted($0.id) }.map { try snapshot($0).note }).map(\.id)
                 }, value: { id in
                     guard permitted(id), let note = library.notes.first(where: { $0.id == id }) else { return nil }
-                    return .object(try summary(note, query: request.operation == "drafts.search" ? workspace.query : ""))
+                    return .object(try summary(snapshot(note), query: request.operation == "drafts.search" ? workspace.query : ""))
                 })
         case "drafts.versions":
             let parent = request.targets[0].id
@@ -52,13 +56,19 @@ import AgentContracts
         }
     }
 
-    private func summary(_ note: Note, query: String = "") throws -> [String: AgentJSONValue] {
+    private func snapshot(_ note: Note) throws -> AgentEditorRegistry.Snapshot {
+        try editors?.snapshot(note) ?? .init(note: note, generation: "")
+    }
+
+    private func summary(_ state: AgentEditorRegistry.Snapshot, query: String = "") throws -> [String: AgentJSONValue] {
+        let note = state.note
         var versioned = note
         versioned.accessedAt = nil
         let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
         let data = try encoder.encode(versioned)
         // Length framing separates content bytes from the trusted editor generation.
-        let generation = pendingEditorGeneration(note.id)
+        let external = pendingEditorGeneration(note.id)
+        let generation = "\(external.utf8.count):" + external + state.generation
         var input = Data("\(data.count):".utf8); input.append(data); input.append(Data(generation.utf8))
         let version = Data(HMAC<SHA256>.authenticationCode(for: input, using: versionKey)).base64EncodedString()
         return ["id": .string(note.id.uuidString), "title": .string(note.title),

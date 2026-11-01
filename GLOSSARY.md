@@ -275,6 +275,11 @@ lifetime. It does not prove availability or grant access.
 A request for work in Draftly with an identifiable outcome and the grant under
 which it was accepted.
 
+**Agent version token**:
+An opaque reference to a resource's editable state, including pending editor
+changes. It is used to detect a stale view of that state. It does not grant access
+and is distinct from a saved revision.
+
 **Agent approval**:
 The user's one-use consent to a specific requested operation and its effects.
 It does not widen the connection's grant or carry over to a replacement grant.

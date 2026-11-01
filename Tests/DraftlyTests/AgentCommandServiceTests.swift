@@ -16,6 +16,9 @@ struct AgentCommandServiceTests {
         var hostError: AgentErrorCode?
         var locked = false
         var generation = ""
+        var editors: [WindowModel] = []
+        let editorDefaultsName = "Draftly-Agent-Editor-Tests-" + UUID().uuidString
+        lazy var editorRegistry = AgentEditorRegistry(library: library, models: { [weak self] in self?.editors ?? [] })
         var onGeneration: (() -> Void)?
         lazy var connections = AgentConnectionRegistry(metadata: .init(read: { [unowned self] in self.bytes },
             replace: { [unowned self] data, expected in
@@ -37,7 +40,7 @@ struct AgentCommandServiceTests {
                 appVersion: "QA", validateHost: { [unowned self] in
                     if let error = self.hostError { throw error }
                 }, isLocked: { [unowned self] in self.locked }, now: { [unowned self] in self.wall },
-                uptime: { [unowned self] in self.uptime }, pendingEditorGeneration: { [unowned self] _ in
+                uptime: { [unowned self] in self.uptime }, editors: editorRegistry, pendingEditorGeneration: { [unowned self] _ in
                     self.onGeneration?(); return self.generation
                 })
         }
@@ -54,6 +57,16 @@ struct AgentCommandServiceTests {
             try library.saveNote(value, preserveRevision: false, preserveDates: true)
             return value
         }
+        func window(_ note: Note, content: String? = nil, dirty: Bool = false, library: LibraryStore? = nil) throws -> WindowModel {
+            var dependencies = WindowDependencies()
+            dependencies.preferences = WindowPreferences(defaults: try #require(UserDefaults(suiteName: editorDefaultsName)))
+            let model = WindowModel(library: library ?? self.library, dependencies: dependencies)
+            model.editor.load(note, focusEditor: false)
+            if let content { model.editor.content = content }
+            model.hasUnsavedChanges = dirty
+            return model
+        }
+        func cleanEditorPreferences() { UserDefaults.standard.removePersistentDomain(forName: editorDefaultsName) }
         func response(_ operation: String, session: AgentCommandService.Session,
                       targets: [AgentResourceReference] = [], parameters: [String: AgentJSONValue] = [:],
                       libraryID: UUID? = nil) throws -> AgentResponse {
@@ -112,6 +125,118 @@ struct AgentCommandServiceTests {
     }
     private func summary(_ values: [String: AgentJSONValue]) throws -> [String: AgentJSONValue] {
         guard case .object(let value) = values["draft"] else { throw AgentErrorCode.executionError }; return value
+    }
+
+    @Test func currentReadsUsePendingEditorTextWithoutSavingOrChangingSelection() throws {
+        let f = try Fixture(), note = try f.note("Stored\nold text"), (_, session) = try f.connect()
+        defer { f.cleanEditorPreferences() }
+        let model = try f.window(note)
+        model.editor.content = "Pending 🐼\ncurrent needle"
+        model.editor.selection = NSRange(location: 8, length: 2)
+        model.hasUnsavedChanges = true; f.editors = [model]
+        var effects = 0
+        model.editor.synchronizeScriptEdit = { effects += 1 }
+        model.editor.performUndo = { _ in effects += 1 }
+        let before = try f.library.backupData(), focus = model.editor.focusToken
+        let value = try f.get(note, session: session)
+        #expect(try summary(value)["title"] == .string("Pending 🐼"))
+        guard case .object(let chunk) = value["content"] else { Issue.record("Missing text chunk"); return }
+        #expect(chunk["text"] == .string(model.editor.content))
+        let matches = try items(f.values("drafts.search", session: session, parameters: ["query": .string("needle")]))
+        #expect(matches.count == 1 && matches.first?["id"] == .string(note.id.uuidString))
+        #expect(model.editor.selection == NSRange(location: 8, length: 2) && model.editor.focusToken == focus)
+        #expect(model.hasUnsavedChanges && f.library.notes.first?.content == note.content)
+        #expect(effects == 0)
+        #expect(try f.library.backupData() == before)
+    }
+
+    @Test func divergentPendingEditorsReturnConflictRatherThanStoredTextOrOneWindow() throws {
+        let f = try Fixture(), note = try f.note("Stored"), (_, session) = try f.connect()
+        defer { f.cleanEditorPreferences() }
+        f.editors = try ["First neutral", "Second neutral"].map { try f.window(note, content: $0, dirty: true) }
+        let before = try f.library.backupData()
+        #expect(try f.response("drafts.get", session: session,
+            targets: [.init(kind: .draft, id: note.id)]).outcome == .error(.editorConflict))
+        #expect(try f.response("drafts.list", session: session).outcome == .error(.editorConflict))
+        #expect(try f.library.backupData() == before)
+    }
+
+    @Test func matchingPendingWindowsIgnoreCleanStaleAndOtherLibraryEditors() throws {
+        let f = try Fixture(), note = try f.note("Stored"), (_, session) = try f.connect()
+        defer { f.cleanEditorPreferences() }
+        let foreign = try LibraryStore(inMemory: true, seed: false)
+        let a = try f.window(note, content: "Matching 🐼", dirty: true)
+        let b = try f.window(note, content: "Matching 🐼", dirty: true)
+        let stale = try f.window(note, content: "Old clean text")
+        let other = try f.window(note, content: "Foreign pending", dirty: true, library: foreign)
+        f.editors = [stale, a, other, b]
+        let first = try summary(f.get(note, session: session))
+        #expect(first["title"] == .string("Matching 🐼"))
+        f.editors.reverse()
+        #expect(try summary(f.get(note, session: session)) == first)
+        #expect(stale.editor.content == "Old clean text" && other.editor.content == "Foreign pending")
+    }
+
+    @Test func editorGenerationTracksUnobservedRevertsAndClosureButNotSelection() throws {
+        let f = try Fixture(), note = try f.note("Stored 🐼"), (_, session) = try f.connect()
+        defer { f.cleanEditorPreferences() }
+        let model = try f.window(note); f.editors = [model]
+        let original = try summary(f.get(note, session: session))["versionToken"]
+        model.editor.selection = NSRange(location: 7, length: 2); model.editor.focusToken = UUID()
+        #expect(try summary(f.get(note, session: session))["versionToken"] == original)
+        model.editor.content = "Intermediate"; model.hasUnsavedChanges = true
+        model.editor.content = note.content
+        let reverted = try summary(f.get(note, session: session))["versionToken"]
+        #expect(reverted != original)
+        f.editors = []
+        let closed = try summary(f.get(note, session: session))["versionToken"]
+        #expect(closed != original && closed != reverted)
+        model.editor.content = "Disconnected editor"
+        #expect(try summary(f.get(note, session: session))["versionToken"] == closed)
+        #expect(f.library.notes.first?.content == note.content)
+    }
+
+    @Test func canonicallyEquivalentPendingStringsStillConflictWhenTheirCodeUnitsDiffer() throws {
+        let f = try Fixture(), note = try f.note("Stored"), (_, session) = try f.connect()
+        defer { f.cleanEditorPreferences() }
+        f.editors = try ["café", "cafe\u{0301}"].map { try f.window(note, content: $0, dirty: true) }
+        #expect(try f.response("drafts.get", session: session,
+            targets: [.init(kind: .draft, id: note.id)]).outcome == .error(.editorConflict))
+    }
+
+    @Test func hiddenEditorConflictsDoNotChangeAuthorizedReadsOrVersionTokens() throws {
+        let f = try Fixture(), allowed = try f.note("Allowed"), hidden = try f.note("Hidden")
+        defer { f.cleanEditorPreferences() }
+        let (_, session) = try f.connect(scope: .resources([.init(kind: .draft, id: allowed.id)]))
+        f.editors = try ["First", "Second"].map { try f.window(hidden, content: $0, dirty: true) }
+        let before = try summary(f.get(allowed, session: session))["versionToken"]
+        let values = try items(f.values("drafts.list", session: session))
+        #expect(values.count == 1 && values.first?["id"] == .string(allowed.id.uuidString))
+        f.editors[0].editor.content = "Changed hidden text"
+        #expect(try summary(f.get(allowed, session: session))["versionToken"] == before)
+        #expect(try f.response("drafts.get", session: session,
+            targets: [.init(kind: .draft, id: hidden.id)]).outcome == .error(.notFound))
+    }
+
+    @Test func registryObservationDoesNotRetainClosedWindowModels() throws {
+        let f = try Fixture(), note = try f.note("Stored"), (_, session) = try f.connect()
+        defer { f.cleanEditorPreferences() }
+        var model: WindowModel? = try f.window(note)
+        weak var observed = model
+        f.editors = [try #require(model)]
+        _ = try f.get(note, session: session)
+        f.editors = []; model = nil
+        #expect(observed == nil)
+        #expect(try summary(f.get(note, session: session))["title"] == .string("Stored"))
+    }
+
+    @Test func aRegistryForAnotherLibraryIsRejectedAtServiceConstruction() throws {
+        let f = try Fixture(), other = try LibraryStore(inMemory: true, seed: false)
+        #expect(throws: AgentErrorCode.invalidInput) {
+            try AgentCommandService(library: other, libraryID: f.libraryID, connections: f.connections,
+                appVersion: "QA", validateHost: {}, isLocked: { false }, editors: f.editorRegistry,
+                pendingEditorGeneration: { _ in "" })
+        }
     }
 
     @Test func scopedCountsSearchAndGetNeverExposeOtherNotesOrChangeAccess() throws {

@@ -3,6 +3,28 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Pending editor read projection — 1 November
+
+Two focused cases first reproduced stale stored reads and missing conflict
+errors. AgentEditorRegistry now projects pending text for one bound library.
+It observes text, draft and dirty-state changes without retaining windows.
+AgentDraftReading uses that text for content, titles, previews, search and order,
+after scope filtering. Different pending code units return editor_conflict.
+The generation records edit-then-revert between reads. Selection and focus do
+not change it. Clean stale windows and other libraries cannot override it.
+
+The registry is injectable through the host and service. A different library is
+rejected before private host state is created. A socket test returned pending
+text without saving it. All 55 focused cases passed. Complete Swift inventories
+passed: 1 consumer, 158 contracts, 763 Core and 1193 app (2115 total).
+All 286 Python tests and the structural matrix passed. Final helper and local
+app builds passed. Exact-head PR CI is still pending.
+No public API, Note identity, library or backup format changed.
+
+These are headless, injected-host tests, not native UI or signed acceptance.
+Normal AppController wiring, system-lock handling, helper provisioning and
+editor mutations remain unfinished. No installed-app access is enabled.
+
 ## Stable library destinations — 1 November
 
 The helper accepts --library UUID, with an optional absolute --state-parent,
@@ -25,7 +47,8 @@ passed. After merging the validated CLI refactor from main, complete Swift
 inventories passed: 1 consumer, 158 contracts, 763 Core and 1183 app (2105
 total). Python286, matrix0 and both final builds passed. Three executable checks
 kept stdin open and proved status/capabilities and invalid calls do not read it.
-Exact-head functional PR CI remains pending. Normal app startup, helper provisioning, configuration export and the
+PR #58 passed exact-head CI 41306169094, including native build and required
+summary, and merged as 50cc5c9. Normal app startup, helper provisioning, configuration export and the
 remaining handlers are unfinished.
 
 ## Local host test fixture lifetime — 1 November

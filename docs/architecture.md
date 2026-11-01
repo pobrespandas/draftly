@@ -941,3 +941,18 @@ Absent expectations retain the legacy wire shapes. A present invalid or null
 expectation is rejected, never treated as unbound mode. Bound clients also reject
 missing or mismatched acknowledgements. Stable CLI library selection uses this
 binding. Neither the handshake nor its adapter activates the installed app.
+
+AgentEditorRegistry supplies a read-only view of pending text for one loaded
+library. The caller supplies its live WindowModels. The registry keeps weak
+model references and observes text, draft and dirty-state changes. Its per-draft
+generation detects edit-then-revert even between reads. Selection and focus do
+not change that generation. Removed models lose their subscriptions.
+
+AgentDraftReading filters authority before resolving editor state. It uses the
+same resolved text for content, titles, previews, search and list ordering.
+Matching dirty editors share one projection; different code units return
+editor_conflict. Clean stale views and other libraries cannot replace pending
+text. Reads never flush, synchronize, focus or change Undo. Stored metadata
+remains intact. The host and service reject a registry bound to another library.
+AppController wiring, editor mutations and the system-lock adapter remain
+unfinished. No installed-app access is enabled by this read adapter.
