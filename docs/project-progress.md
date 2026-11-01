@@ -3,6 +3,27 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Application-owned editor membership — 1 November
+
+AppController now lazily supplies one AgentEditorRegistry for its current
+library. Both registration paths and window removal refresh membership. A
+library change or controller release invalidates the old registry. Retained
+references cannot read snapshots or reattach after invalidation. Another library
+is rejected. This adds no listener, grant, settings model or startup activation.
+
+Three headless cases first failed before the wiring: normal/requested windows
+between reads, library replacement/cache identity and owner release. They passed
+afterwards. All68 focused cases passed. The complete inventory passed:
+consumer1, contracts158, Core764, app1199 (2122 total). Python286, matrix0 and
+final helper/local app builds passed. Tests used temporary preferences and
+in-memory libraries; no visible window was created.
+
+This branch includes the stored/projected version correction from PR #59, whose
+new exact-head CI is still running. Native lifecycle acceptance, host shutdown
+on context change, system-lock handling and signed helper provisioning remain.
+Registry invalidation does not substitute for invalidating all host authority.
+The website, installed app and release are unchanged.
+
 ## Pending editor read projection — 1 November
 
 AgentEditorRegistry projects current text for one bound library. Reads use that
