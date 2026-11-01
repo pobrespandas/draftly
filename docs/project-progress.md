@@ -18,8 +18,10 @@ consumer1, contracts158, Core764, app1199 (2122 total). Python286, matrix0 and
 final helper/local app builds passed. Tests used temporary preferences and
 in-memory libraries; no visible window was created.
 
-This branch includes the stored/projected version correction from PR #59, whose
-new exact-head CI is still running. Native lifecycle acceptance, host shutdown
+PR #59 passed exact-head CI 41310392387 and merged as 97cd64f. The native
+job verified inventory2119 and BUILD SUCCEEDED. Merge5ff376b brought main into
+this branch without changing the validated49436f7 tree. After resumption, the
+complete2122 inventory, Python286, matrix0 and both builds passed again. Native lifecycle acceptance, host shutdown
 on context change, system-lock handling and signed helper provisioning remain.
 Registry invalidation does not substitute for invalidating all host authority.
 The website, installed app and release are unchanged.
@@ -54,10 +56,11 @@ No public API, Note identity, library or backup format changed.
 
 CI41308744548 passed at178e2a8 before the stored-version reproduction. Its
 completed result could not be canceled and does not validate the later fix.
-The new head still needs exact-head CI. The earlier CI41307619354 was canceled
-as obsolete for membership and Unicode corrections. These are
-headless, injected-host tests, not native UI or signed acceptance. AppController
-wiring, lifecycle acceptance, system-lock handling, helper provisioning and
+The corrected head ea46474 then passed all required checks in CI41310392387
+and merged through PR #59. The earlier CI41307619354 was canceled as obsolete
+for membership and Unicode corrections. These are
+headless, injected-host tests, not native UI or signed acceptance. Host wiring,
+native lifecycle acceptance, system-lock handling, helper provisioning and
 editor mutations remain unfinished. No installed-app access is enabled.
 
 ## Stable library destinations — 1 November
