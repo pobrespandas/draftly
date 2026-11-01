@@ -1,6 +1,6 @@
 # Project progress
 
-Updated: 31 October 2026. This is the maintained continuation summary.
+Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
 ## Current priority
@@ -12,21 +12,22 @@ result envelopes, stable errors, typed resource references, a planned operation
 catalog and baseline grant evaluation. It adds no app route, CLI, socket, MCP
 server, Keychain entry, native permission or network listener.
 
-The catalog declares 129 planned operations and enables none. Baseline decisions
+The catalog declares 136 planned operations and enables none. Baseline decisions
 retain the resource scope; Actions and native requests require further effect
 authorization. Irreversible operations require human approval. The new tests
 cover isolation, expiry/revocation, target kinds, revision-token requirements,
 full-library backup authority, malformed/oversized messages, Unicode/decimal
 transport, and distinct pending/error/result states.
 
-Automatic validation passed 92 AgentContracts, 759 Core and 938 app tests with
+Automatic validation passed 111 AgentContracts, 759 Core and 938 app tests with
 complete result inventories, 285 Python tests, the structural matrix check,
 and the final local app build.
 See the [operation inventory](research/agent-operation-inventory.md) for reused
 characterization evidence and remaining schemas and runtime enforcement work.
-Sixty-seven operations now have parameter/result schemas: eight discovery/draft
+Ninety operations now have parameter/result schemas: eight discovery/draft
 reads, 13 draft mutations, 18 Action/group operations, four operation lifecycle
-routes, nine Workspace operations and 15 editor operations.
+routes, nine Workspace operations, 15 editor operations and 23 theme/syntax
+operations.
 They use one definition for validation, exported JSON Schema and request-local
 defaults. Chunk checks use UTF-16; result shapes separate summaries from content.
 The step effect catalog covers all 25 executor step types and always requires
@@ -82,7 +83,22 @@ Shared text validation preserves the existing draft range rules. No editor
 command, actual Undo, window opening or live query runs through agents yet.
 PR #33 merged at `620781c`; PR #34 merged at `d4d7c63` after required CI passed.
 
-Stage 1 is not closed: the other 62 operation schemas, detailed script/native
+Import-source contracts now share exclusive input alternatives with exported
+JSON Schema. They distinguish inline text, staged transfers, bookmarked relative
+paths, installation links and HTTPS sources. Path and URL checks do not grant
+file or network access. A focused regression detected missing required fields in
+the exported alternatives before this was corrected.
+
+Appearance contracts preserve canonical theme fields, imported data and exact
+syntax source strings. Built-ins use names; installed definitions use UUIDs.
+Added explicit selection state, named built-in routes, file Reload and targeted
+theme replacement. Selection versions remain separate from definition versions.
+Installation does not select a theme unless requested with a selection token.
+File-backed reads and writes still require contextual effect review. All actual
+parsers, imports, persistence, rendering and local preference changes remain
+handler and native acceptance work. PR #35 passed CI and merged at `2b8478b`.
+
+Stage 1 is not closed: the other 46 operation schemas, detailed script/native
 effect checks and real executors still need implementation. Real agent clients have
 not been connected. The habitual app remains the released 0.1.3.
 

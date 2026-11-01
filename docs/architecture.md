@@ -524,6 +524,12 @@ patches and editor contracts. It checks integer bounds, overflow, text lengths
 and continuation flags. Handlers must still check live content and scalar
 boundaries. It does not own text replacement, selection or Undo.
 
+AgentImportSource describes inline text, prepared transfers, bookmarked relative
+paths, installation links and HTTPS inputs. Validation and exported JSON Schema
+share exclusive input alternatives. The application must still authorize roots,
+resolve symlinks, check transfer ownership and authorize every HTTP destination.
+The contract target performs none of those effects.
+
 The catalog records ownership, target shape, expected-version and human approval
 requirements. Catalog entries have no handlers. Execution and native effects
 require an additional authorization result, even when the connection has the
