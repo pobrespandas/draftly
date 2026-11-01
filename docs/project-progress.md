@@ -21,8 +21,8 @@ including refusal of unprovisioned identity without creating state directories.
 These are isolated, injected-signature tests, not signed-helper acceptance.
 The full branch inventory passed: 1 consumer, 152 contracts, 763 Core and
 1183 app cases (2099 total). All 286 Python tests and the structural matrix
-passed. Integration with the separate CLI refactor and exact-head CI remain
-pending. Normal app startup, helper provisioning, configuration export and the
+passed. The CLI refactor has been merged from main. Combined validation and
+exact-head CI remain pending. Normal app startup, helper provisioning, configuration export and the
 remaining handlers are unfinished.
 
 ## Local host test fixture lifetime — 1 November
@@ -49,7 +49,32 @@ The generated local app build also passed.
 New tests cover legacy shapes, invalid types, correct/wrong library requests,
 zero credential reads on refusal and clients checking acknowledgements.
 This is transport-level binding, not signed-helper or normal-app acceptance.
-Stable CLI lookup and routing are the next adapter step.
+The stable CLI adapter above now uses this handshake binding.
+
+## CLI request preparation refactor — 1 November
+
+The helper entry point mixed request preparation with stream and connection
+management. AgentCLIRequest now owns preparation for json, call, status and
+capabilities. AgentRequest and AgentToolInput remain the validation authorities.
+The executable keeps framing, identity checks, transport, cleanup and output.
+The input closure preserves the previous read order and error types.
+
+The base is a56334f. The reference tag is
+pre-refactor-cli-requests-2026-11-01. Before editing, 14 focused tests and the
+helper build passed. Main's complete CI results remain recorded below.
+After extraction, 20 focused tests, 286 Python tests and the structural matrix
+passed. The complete Swift inventory passed: 1 consumer, 152 contracts,
+763 Core and 1169 app cases (2085 total). Final helper and local app builds
+passed. Five helper smoke checks passed, including stderr-only MCP errors.
+These counts describe execution, not compatibility. No native UI check was
+needed for this internal extraction. Signed-helper acceptance is still pending.
+No existing test was removed. No UI or native permission path changed.
+
+Expected-library binding and routing were developed separately, as recorded
+above. Neither belongs to this behavior-preserving refactor. The extra recovery
+stash remains preserved. PR #57 passed exact-head CI 41305076276 and merged
+as 33c91df. Its checks included the native build and the required summary.
+Local agent access remains unfinished.
 
 ## Publication responsibility refactor — 1 November
 

@@ -48,17 +48,8 @@ import AgentMCP
                 } catch { await server.stop(); await connection.close(); throw error }
                 return
             }
-            let request: AgentRequest
-            if mode == "json" { request = try AgentRequest.decode(readInput()) }
-            else if mode == "call" {
-                guard let operation = AgentOperationCatalog.operation(named: args[1]),
-                      case .object(let arguments) = try JSONDecoder().decode(AgentJSONValue.self, from: readInput()) else {
-                    throw AgentErrorCode.invalidInput
-                }
-                request = try AgentToolInput.request(operation: operation, arguments: arguments)
-            } else {
-                request = AgentRequest(requestID: UUID(), libraryID: nil, operation: mode == "status" ? "server.status" : "server.capabilities")
-            }
+            let request = try AgentCLIRequest.make(mode: mode,
+                operationName: mode == "call" ? args[1] : nil, readInput: readInput)
             do {
                 let result = try await connection.request(request)
                 await connection.close()
