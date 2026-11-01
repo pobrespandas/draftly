@@ -43,6 +43,12 @@ to the busy error code. Its focused regression failed before the correction and
 passed afterward. The complete Swift suites, Python tests, structural matrix
 check and local build passed after this correction.
 
+Workspace permission review found two catalog gaps. Workspace queries now
+require draftsRead as well as workspacesRead. Applying a Workspace requires
+contextual effect authorization before theme or file references can load.
+The focused permission regression failed before the correction and passed after
+it. These checks remain unexposed baseline policy, not runtime enforcement.
+
 Stage 1 is not closed: the other 98 operation schemas, detailed script/native
 effect checks and real executors still need implementation. Real agent clients have
 not been connected. The habitual app remains the released 0.1.3.

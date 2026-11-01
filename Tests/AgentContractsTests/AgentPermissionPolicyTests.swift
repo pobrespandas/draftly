@@ -97,4 +97,16 @@ struct AgentPermissionPolicyTests {
         let imported = grant([.draftsWrite, .filesRead], scope: .library)
         #expect(evaluate("imports.commit", version: "v1", grant: imported) == .needsEffectAuthorization(.library, humanApproval: false))
     }
+    @Test func workspaceQueriesNeedDraftReadAuthorityAndApplicationNeedsEffectReview() {
+        let workspace = AgentResourceReference(kind: .workspace, id: UUID())
+        let window = AgentResourceReference(kind: .window, id: UUID())
+        #expect(evaluate("workspaces.query", targets: [workspace],
+            grant: grant([.workspacesRead], scope: .library)) == .denied(.permissionDenied))
+        #expect(evaluate("workspaces.query", targets: [workspace],
+            grant: grant([.workspacesRead, .draftsRead], scope: .library)) == .permitted(.library))
+        #expect(evaluate("workspaces.apply", targets: [workspace, window], version: "snapshot",
+            grant: grant([.workspacesApply, .presentUI], scope: .library))
+            == .needsEffectAuthorization(.library, humanApproval: false))
+    }
+
 }

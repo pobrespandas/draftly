@@ -45,7 +45,7 @@ package struct AgentOperationDescriptor: Sendable {
     package var requiresEffectAuthorization: Bool {
         name == "actions.run" || name.hasPrefix("native.")
             || name == "preferences.update" || name == "preferences.reset"
-            || name == "imports.commit"
+            || name == "imports.commit" || name == "workspaces.apply"
     }
 
     package func acceptsTargets(_ values: [AgentResourceReference]) -> Bool {
@@ -120,7 +120,7 @@ package enum AgentOperationCatalog {
         .init(name: "operations.answerPrompt", owner: "AgentOperationRegistry", capabilities: [], targets: .one(.operation), requiresExpectedVersion: true),
         .init(name: "workspaces.list", owner: "Workspace + LibraryStore", capabilities: [.workspacesRead], targets: .none),
         .init(name: "workspaces.get", owner: "Workspace + LibraryStore", capabilities: [.workspacesRead], targets: .one(.workspace)),
-        .init(name: "workspaces.query", owner: "Workspace + LibraryStore", capabilities: [.workspacesRead], targets: .one(.workspace)),
+        .init(name: "workspaces.query", owner: "Workspace + LibraryStore", capabilities: [.workspacesRead, .draftsRead], targets: .one(.workspace)),
         .init(name: "workspaces.create", owner: "LibraryStore", capabilities: [.workspacesManage], targets: .none),
         .init(name: "workspaces.update", owner: "LibraryStore", capabilities: [.workspacesManage], targets: .one(.workspace), requiresExpectedVersion: true),
         .init(name: "workspaces.duplicate", owner: "LibraryStore", capabilities: [.workspacesManage], targets: .one(.workspace), requiresExpectedVersion: true),
