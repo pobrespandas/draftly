@@ -289,3 +289,22 @@ configuration, starts the app, reads Keychain, or grants access. It contains
 routing identifiers, not a credential. Successful export does not prove that the
 helper is provisioned or that the connection is live. Pair and approve access in
 Draftly before using it. Normal app activation remains pending.
+
+## Prepare the signed helper wrapper
+
+Use `scripts/package-agent-helper.py --help` for the isolated packaging command.
+Supply the compiled executable, a profile for `com.pobrespandas.draftly.agent`,
+a signing identity, version, build and a new output directory. The output parent
+must exist. The tool creates `DraftlyAgent.app` under that new directory. It
+never changes the installed app or enables access.
+
+The tool checks the helper identity, team, expiry and allowed Keychain group
+before creating output. It signs with hardened runtime, verifies the exact Apple
+code requirement and entitlements, and checks that the profile permits the leaf
+certificate. A failure leaves the isolated candidate for inspection. Use a new
+output path for another attempt; an existing candidate is never replaced.
+
+This prepares a wrapper, not a public release. The enclosing app still needs its
+own Keychain entitlement and a valid profile. Verify actual app/helper sharing,
+locked-session behavior, embedding, outer signing and notarization before normal
+activation. A local build or mocked signing test proves none of those checks.

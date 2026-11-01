@@ -3,6 +3,22 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Isolated agent helper packaging — 1 November
+
+The new packaging command builds an app-like wrapper for draftly-agent in a new
+output directory. It checks the helper profile identity, team, expiry, Keychain
+group and certificates before signing. It verifies the signed Apple requirement,
+exact required entitlements and the permitted leaf certificate. Existing output
+is preserved. Errors propagate and leave only the isolated candidate.
+
+All294 Python tests passed, including eight new packaging cases. The structural
+matrix passed. A real negative invocation rejected the installed principal-app
+profile before creating output or requesting a signature. No helper profile is
+installed yet. Positive signed packaging, embedding, runtime Keychain sharing,
+lock behavior and notarization remain pending. No installed app or release changed.
+The prior Swift2130 inventory and app/helper builds apply to client configuration;
+this scripts-only stage did not repeat them or claim new native acceptance.
+
 ## Copyable MCP client configuration — 1 November
 
 The helper configuration command prints a stdio mcpServers object with its own
