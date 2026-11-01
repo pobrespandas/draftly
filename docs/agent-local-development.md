@@ -42,8 +42,9 @@ Input is one bounded JSON request, terminated by end-of-file. For example:
 
 The helper fills a missing libraryID from the authenticated host. It preserves an
 explicit libraryID, which the app must check. Output is one JSON response. A
-transport/setup failure produces an error code and exit status 1. An operation
-error also returns status 1. A result or accepted operation returns status 0;
+transport/setup or operation failure produces an error code and a nonzero status:
+2 for invalid input, 3 for authorization, 4 for conflicts or busy, 5 for an
+unavailable capability, and 1 for other failures. A result or accepted operation returns status 0;
 accepted does not mean the operation has finished. Credentials are never command
 arguments, input fields, configuration or log output.
 

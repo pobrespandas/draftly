@@ -31,13 +31,13 @@ import AgentLocalTransport
                 await client.close()
                 let response = try JSONDecoder().decode(AgentResponse.self, from: result)
                 try FileHandle.standardOutput.write(contentsOf: result + Data([10]))
-                if case .error = response.outcome { exit(1) }
+                if case .error(let code) = response.outcome { exit(AgentCLIStatus.exitCode(code)) }
             } catch { await client.close(); throw error }
         } catch {
             let code = (error as? AgentErrorCode) ?? .unavailable
             let value = AgentJSONValue.object(["error": .string(code.rawValue)])
             if let data = try? JSONEncoder().encode(value) { try? FileHandle.standardOutput.write(contentsOf: data + Data([10])) }
-            exit(1)
+            exit(AgentCLIStatus.exitCode(code))
         }
     }
 }
