@@ -171,7 +171,7 @@ Use versioned JSON contracts. IDs are UUIDs and dates are ISO 8601 UTC. Return
 structured results and a concise text summary; never make clients parse a
 localized status string. Use stable errors: invalid_input, permission_denied,
 not_found (also used to conceal unauthorized resource IDs), version_conflict,
-editor_conflict, busy, interaction_required, unavailable, storage_error,
+editor_conflict, busy, interaction_required, unavailable, storage_error, execution_error,
 cancelled, timeout, outcome_unknown, and retry_window_expired. Include a
 request ID and retry guidance without leaking unauthorized resource details.
 Inputs specify library ID, explicit resource/window

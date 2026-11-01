@@ -4,6 +4,7 @@ package enum AgentSchemaError: Error { case invalidValue }
 
 // The subset used by agent contracts. Validation and exported schemas share these rules.
 package indirect enum AgentValueShape: Sendable {
+    private static let utcPattern = #"^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\.[0-9]+)?Z$"#
     case string(minimum: Int = 0, maximum: Int? = nil, choices: [String]? = nil)
     case uuid
     case utcDate
@@ -11,6 +12,7 @@ package indirect enum AgentValueShape: Sendable {
     case boolean
     case array(AgentValueShape, maximum: Int)
     case object(AgentObjectShape)
+    case map(AgentValueShape)
     case nullable(AgentValueShape)
 
     package func validate(_ value: AgentJSONValue) throws {
@@ -22,11 +24,15 @@ package indirect enum AgentValueShape: Sendable {
         case (.uuid, .string(let text)):
             guard UUID(uuidString: text) != nil else { throw AgentSchemaError.invalidValue }
         case (.utcDate, .string(let text)):
+            guard text.hasSuffix("Z"), text.range(of: Self.utcPattern, options: .regularExpression) != nil else {
+                throw AgentSchemaError.invalidValue
+            }
             let formatter = ISO8601DateFormatter()
-            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            let precise = formatter.date(from: text)
             formatter.formatOptions = [.withInternetDateTime]
-            guard text.hasSuffix("Z"), precise != nil || formatter.date(from: text) != nil else {
+            formatter.timeZone = TimeZone(secondsFromGMT: 0)
+            // Check calendar components without rounding a valid fractional second.
+            let seconds = String(text.prefix(19)) + "Z"
+            guard let date = formatter.date(from: seconds), formatter.string(from: date) == seconds else {
                 throw AgentSchemaError.invalidValue
             }
         case let (.integer(minimum, maximum), .integer(number)):
@@ -43,6 +49,8 @@ package indirect enum AgentValueShape: Sendable {
             guard items.count <= maximum else { throw AgentSchemaError.invalidValue }
             for item in items { try shape.validate(item) }
         case let (.object(shape), .object(fields)): try shape.validate(fields)
+        case let (.map(shape), .object(fields)):
+            for value in fields.values { try shape.validate(value) }
         case (.nullable, .null): break
         case (.nullable(let shape), _): try shape.validate(value)
         default: throw AgentSchemaError.invalidValue
@@ -58,13 +66,15 @@ package indirect enum AgentValueShape: Sendable {
             return .object(fields)
         case .uuid: return .object(["type": .string("string"), "format": .string("uuid")])
         case .utcDate:
-            return .object(["type": .string("string"), "format": .string("date-time"), "pattern": .string("Z$")])
+            return .object(["type": .string("string"), "format": .string("date-time"), "pattern": .string(Self.utcPattern)])
         case let .integer(minimum, maximum):
             return .object(["type": .string("integer"), "minimum": .integer(minimum), "maximum": .integer(maximum)])
         case .boolean: return .object(["type": .string("boolean")])
         case let .array(shape, maximum):
             return .object(["type": .string("array"), "items": shape.jsonSchema, "maxItems": .integer(Int64(maximum))])
         case .object(let shape): return shape.jsonSchema
+        case .map(let shape):
+            return .object(["type": .string("object"), "additionalProperties": shape.jsonSchema])
         case .nullable(let shape):
             return .object(["anyOf": .array([shape.jsonSchema, .object(["type": .string("null")])])])
         }

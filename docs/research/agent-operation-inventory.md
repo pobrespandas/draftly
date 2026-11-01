@@ -59,6 +59,7 @@ remain required before execution. This inventory is not evidence of functionalit
 | actions.reorder | LibraryStore + ActionEditingCopy | actionsManage | actions | version |
 | actions.validateShortcut | LibraryStore + ActionEditingCopy | actionsManage | none | none |
 | actions.delete | LibraryStore | actionsManage,destructiveRequest | action | version,human |
+| actionGroups.get | LibraryStore + ActionCatalog | actionsRead | actionGroup | none |
 | actionGroups.create | LibraryStore + ActionCatalog | actionsManage | none | none |
 | actionGroups.update | LibraryStore + ActionCatalog | actionsManage | actionGroup | version |
 | actionGroups.duplicate | LibraryStore + ActionCatalog | actionsManage | actionGroup | version |
@@ -240,8 +241,8 @@ handler must also verify the requested target, range boundaries and grant scope.
 Dates require UTC and UUID fields require valid identities. Pagination defaults
 and integer bounds are exported; string lengths use Unicode code points.
 
-No schema exists for the other 119 operations yet. Their catalog entries remain
-planned without a handler. Native destination checks, authentication, snapshots,
+At this checkpoint, no schema existed for the other 119 operations. Later
+increments are recorded below. All catalog entries remain planned without a handler. Native destination checks, authentication, snapshots,
 cursors and library/editor reads are not implemented by these shapes.
 
 Sources: JSON Schema official [object reference](https://json-schema.org/understanding-json-schema/reference/object)
@@ -268,3 +269,54 @@ preferences.update, preferences.reset and imports.commit. A general write grant
 cannot decide which setting or imported resource is safe. Field allowlists,
 resource classification and any required human approval remain handler work.
 No existing execution or preference route was changed.
+
+## Action definitions and lifecycle increment
+
+AgentActionSchemas adds 18 schemas for Action definitions, groups and execution
+requests. AgentExecutionSchemas adds four schemas for inspect/wait/cancel/prompt
+reply operations. Together with the original eight reads, 30 operations now have
+schemas; none has an executor or an enabled endpoint.
+
+Added actionGroups.get to close an inventory gap: reading an entire group,
+including imported metadata, needs an explicit targeted read. The catalog and
+independent required-operation fixture now contain 128 entries. This is an
+inventory expansion, not a compatibility percentage. All 98 remaining operations
+still need schemas.
+
+Definitions use DraftAction's canonical Codable format, not the external
+.draftsAction import format. Steps keep their own IDs, include destinations in
+values, optional enabled state and unknown fields. values/configuredValues and
+scriptMetadata remain string maps. Imported presentation values and unknown
+fields are retained, including unsupported values that must not be normalized
+just to edit another field. Creating a definition does not fill absent nested
+options with inspector defaults. New definitions can omit constructor fields;
+future handlers must obtain their defaults from the existing models.
+
+Update payload IDs must match their typed targets. Reorder payloads must name
+every target exactly once. Mutation results are identity/version receipts, not
+readable Action definitions. A management grant therefore does not implicitly
+return scripts or unknown metadata. Reading definitions remains a separate
+capability. Validation does not save or execute the definition.
+
+Lifecycle replies separate wait expiration from execution timeout, preserve
+completed-effect metadata, and reject success reports in pending/ambiguous
+states. Cancel cannot claim acceptance after a successful committed result.
+Failure reports cannot contain success parameters. execution_error represents
+an unclassified Action execution failure; storage_error remains distinct.
+Request-bound result validation checks operation/resource identities.
+
+Prompt answers require operation, step and prompt identities and a version
+check. They do not grant permissions. A future handler must validate fields
+against the live prompt, reject secure fields, check ownership and consume the
+proper token. No operation registry, prompt UI or permission grant is implemented
+by these schemas.
+
+## UTC validation regression
+
+A focused test demonstrated that ISO8601DateFormatter accepted 31 February and
+trailing text after a timestamp. AgentValueShape now checks the exact UTC syntax
+and verifies calendar components without rounding the fractional second.
+The exported schema uses the same syntax pattern. The regression fails before
+the fix and passes afterward; valid leap days and high fractional precision
+remain accepted. This is a separate contract fix, not a change to existing app
+or scripting date behavior.

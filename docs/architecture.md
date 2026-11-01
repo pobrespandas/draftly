@@ -553,3 +553,18 @@ only its tests import Core for this compatibility check.
 Action execution still needs authority at each real bridge and native effect.
 Preference and import mutations also need contextual checks after the baseline
 grant check. This work changes only unexposed contracts, not existing user routes.
+
+
+### Agent definition and execution contracts
+
+AgentOperationSchemas composes the read, Action and execution schema families.
+It checks target binding without reading the library or granting authority.
+AgentActionSchemas follows the canonical model fields and preserves unknown
+Action, step and presentation fields. Typed string maps stay distinct from
+arbitrary imported JSON metadata. Mutation results expose receipts rather than
+full definitions.
+
+AgentExecutionSchemas checks state/report consistency and keeps polling expiry
+separate from operation timeout. A terminal Action result must have a matching
+report; an ambiguous effect does not become success. Ownership checks, durable
+operation state, approvals and native execution remain application-service work.

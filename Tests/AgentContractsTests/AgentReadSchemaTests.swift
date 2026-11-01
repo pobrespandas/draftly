@@ -97,6 +97,17 @@ struct AgentReadSchemaTests {
         #expect(throws: AgentSchemaError.self) { try AgentValueShape.uuid.validate(.string("not-a-uuid")) }
     }
 
+    @Test(arguments: ["2026-02-31T22:00:00Z", "2026-10-31T22:00:00ZextraZ"])
+    func invalidCalendarDatesAndTrailingTextAreRejected(value: String) {
+        #expect(throws: AgentSchemaError.self) { try AgentValueShape.utcDate.validate(.string(value)) }
+    }
+
+    @Test func validLeapDaysAndFractionalPrecisionAreRetained() throws {
+        for value in ["2024-02-29T23:59:59Z", "2026-10-31T23:59:59.999999999Z"] {
+            try AgentValueShape.utcDate.validate(.string(value))
+        }
+    }
+
     private func draftSummary() -> [String: AgentJSONValue] {
         ["id": .string(UUID().uuidString), "title": .string("café 🐼"), "preview": .string("Text"),
          "tags": .array([.string("neutral")]), "flag": .integer(0), "isArchived": .bool(false),

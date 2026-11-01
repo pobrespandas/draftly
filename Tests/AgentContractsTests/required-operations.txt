@@ -44,6 +44,7 @@ actions.move
 actions.reorder
 actions.validateShortcut
 actions.delete
+actionGroups.get
 actionGroups.create
 actionGroups.update
 actionGroups.duplicate

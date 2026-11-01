@@ -12,26 +12,34 @@ result envelopes, stable errors, typed resource references, a planned operation
 catalog and baseline grant evaluation. It adds no app route, CLI, socket, MCP
 server, Keychain entry, native permission or network listener.
 
-The catalog declares 127 planned operations and enables none. Baseline decisions
+The catalog declares 128 planned operations and enables none. Baseline decisions
 retain the resource scope; Actions and native requests require further effect
 authorization. Irreversible operations require human approval. The new tests
 cover isolation, expiry/revocation, target kinds, revision-token requirements,
 full-library backup authority, malformed/oversized messages, Unicode/decimal
 transport, and distinct pending/error/result states.
 
-Automatic validation passed 36 AgentContracts, 759 Core and 938 app tests with
+Automatic validation passed 54 AgentContracts, 759 Core and 938 app tests with
 complete result inventories, 285 Python tests, the structural matrix check,
 and the final local app build.
 See the [operation inventory](research/agent-operation-inventory.md) for reused
 characterization evidence and remaining schemas and runtime enforcement work.
-Eight discovery and draft-read operations now have parameter/result schemas.
+Thirty operations now have parameter/result schemas: eight discovery/draft reads,
+18 Action/group operations and four operation lifecycle routes.
 They use one definition for validation, exported JSON Schema and request-local
 defaults. Chunk checks use UTF-16; result shapes separate summaries from content.
 The step effect catalog covers all 25 executor step types and always requires
 runtime review for enabled steps. It does not authorize script execution.
-Preference writes and imports also require contextual effect review.
+Preference writes and imports also require contextual effect review. Action
+updates bind payload IDs to targets; reorder requests must cover the target set
+exactly once. Unknown Action/step/presentation data stays intact. Writes return
+receipts rather than scripts. Lifecycle results distinguish wait expiry,
+cancellation, timeout and ambiguous effects. actionGroups.get closes a missing
+explicit read path; it has no executor yet. A separate UTC validation regression
+rejects impossible calendar dates and trailing text while retaining valid leap
+days and fractional precision.
 
-Stage 1 is not closed: the other 119 operation schemas, detailed script/native
+Stage 1 is not closed: the other 98 operation schemas, detailed script/native
 effect checks and real executors still need implementation. Real agent clients have
 not been connected. The habitual app remains the released 0.1.3.
 
