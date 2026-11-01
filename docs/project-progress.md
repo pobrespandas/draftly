@@ -3,6 +3,45 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Agent UTF-16 patch handler — 1 November
+
+The separate patch branch adds drafts.patch to the prepared existing-draft writer
+and command service. Every range refers to the original projected UTF-16 text.
+Preparation and execution validate bounds and scalar boundaries. Replacements run
+in descending offset order. The existing admission, grant, version, editor and
+atomic receipt checks remain shared with drafts.update. Metadata is retained;
+the text change uses the existing Undo synchronization. Chunk reads reuse the
+same pure scalar-boundary check. The catalog remains137 operations; the configured
+service now has12 handlers. Normal app startup remains inactive.
+
+Initial patch characterization failed five issues against the unavailable handler.
+After implementation, 61 app tests and12 schema tests passed. They cover unordered
+edits on one snapshot, combining Unicode, supplementary scalars, empty documents,
+end insertion, split/out-of-bounds rejection during preparation and execution,
+Undo and repeat receipt recovery. The real-socket CLI test also performs a patch
+and verifies that an unauthorized note is unchanged. Complete Swift verified
+1/166/786/1259 (2212). Python294, the structural audit and local app/helper builds passed. All data is neutral and isolated.
+
+PR76 remains unmerged for the separate CI interruption below. This branch does
+not change Actions, native permissions, the installed app, iCloud or releases.
+
+## PR76 CI interruption — 1 November
+
+Exact-head CI41337022036 failed on e09e790. Plan, tooling and matrix passed;
+the native job124938932238 returned an incomplete app XML report. The strict
+verifier rejected it. Artifact13095643499 contains the test output and reports.
+The app XML contains only its opening root. The last reported case started was
+URLActionInstallationTests.draftlyGroupLinkInstallsGroupAndOrderedActionsAtomically.
+TypewriterScrollingTests reported all its cases complete before that point.
+This is the last log position, not proof of the cause or crash location.
+
+A separate local diagnostic verified all17 tests in those two suites. It does
+not fix or explain the interruption. The Swift CLI returned zero to the runner;
+the child process outcome is not available in the uploaded artifact. No CI retry,
+deadline increase or acceptance bypass was made. PR76 remains unmerged. Preserve
+the failure and collect better process/crash diagnostics before another CI attempt.
+Independent patch work is kept on agent/draft-patch-20261101.
+
 ## Local-route combined validation — 1 November
 
 Merge cc7ba82 preserves the update branch and theme catalog ancestry. Complete

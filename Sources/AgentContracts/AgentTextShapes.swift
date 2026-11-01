@@ -16,6 +16,13 @@ package enum AgentTextShapes {
         "length": .init(shape: .integer(minimum: 1, maximum: 65_536), defaultValue: .integer(65_536))
     ])
 
+    package static func isScalarBoundary(_ index: Int, in text: NSString) -> Bool {
+        guard index >= 0, index <= text.length else { return false }
+        return index == 0 || index == text.length
+            || !(0xD800...0xDBFF).contains(text.character(at: index - 1))
+            || !(0xDC00...0xDFFF).contains(text.character(at: index))
+    }
+
     package static func count(_ value: AgentJSONValue?) throws -> Int64 {
         guard let value else { throw AgentSchemaError.invalidValue }
         try AgentValueShape.integer(minimum: 0).validate(value)

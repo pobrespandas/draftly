@@ -148,14 +148,10 @@ import AgentContracts
         let text = content as NSString, total = text.length
         let offset = try AgentTextShapes.count(parameters["offset"]), requested = try AgentTextShapes.count(parameters["length"])
         guard offset <= Int64(total) else { throw AgentErrorCode.invalidInput }
-        func splitsScalar(_ index: Int) -> Bool {
-            index > 0 && index < total && (0xD800...0xDBFF).contains(text.character(at: index - 1))
-                && (0xDC00...0xDFFF).contains(text.character(at: index))
-        }
         let start = Int(offset)
-        guard !splitsScalar(start) else { throw AgentErrorCode.invalidInput }
+        guard AgentTextShapes.isScalarBoundary(start, in: text) else { throw AgentErrorCode.invalidInput }
         var end = start + min(Int(requested), total - start)
-        if splitsScalar(end) { end -= 1 }
+        if !AgentTextShapes.isScalarBoundary(end, in: text) { end -= 1 }
         guard end > start || start == total else { throw AgentErrorCode.invalidInput }
         return ["text": .string(text.substring(with: NSRange(location: start, length: end - start))),
             "offset": .integer(offset), "length": .integer(Int64(end - start)),

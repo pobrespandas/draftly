@@ -212,6 +212,23 @@ struct AgentMCPTests {
             guard case .result = reply.outcome else { Issue.record("CLI mutation failed"); return }
             #expect(r.library.notes.first { $0.id == note.id }?.flag == 3)
             #expect(r.library.notes.first { $0.id == r.hidden.id }?.flag == r.hidden.flag)
+            guard case .result(.object(let current)) = try await call("drafts.get", ["targets": targets]).outcome,
+                  case .object(let draft) = current["draft"], case .string(let patchVersion) = draft["versionToken"] else {
+                Issue.record("Missing patch version"); return
+            }
+            let patch = AgentRequest(requestID: UUID(), libraryID: nil, operation: "drafts.patch",
+                targets: mutation.targets, expectedVersion: patchVersion, parameters: ["edits": .array([
+                    .object(["offset": .integer(0), "length": .integer(0), "text": .string("🐼 e\u{0301} ")])])])
+            let patchFrame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(patch))
+            guard case .result(.object(let ticket)) = try await call("mutations.prepare", [
+                "requestID": .string(UUID().uuidString), "parameters": .object(["request": patchFrame])]).outcome,
+                  case .string(let patchKey) = ticket["retryKey"] else { Issue.record("Missing patch key"); return }
+            let result = try await call("drafts.patch", ["requestID": .string(patch.requestID.uuidString),
+                "targets": targets, "expectedVersion": .string(patchVersion), "retryKey": .string(patchKey),
+                "parameters": .object(patch.parameters)])
+            guard case .result = result.outcome else { Issue.record("CLI patch failed"); return }
+            #expect(r.library.notes.first { $0.id == note.id }?.content.utf8.elementsEqual(("🐼 e\u{0301} " + note.content).utf8) == true)
+            #expect(r.library.notes.first { $0.id == r.hidden.id }?.content == r.hidden.content)
         }
     }
 
