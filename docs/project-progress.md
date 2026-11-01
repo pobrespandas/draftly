@@ -3,6 +3,34 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Pairing socket and CLI connect — 1 November
+
+Implemented a separate pairing introduction on the private socket and the helper's
+connect command. The signed peer check precedes the request. The helper shows a
+comparison code and polls for the person's decision. Only poll and cancel controls
+exist; the client cannot supply grants, credentials or approval. Approval returns
+a connection UUID. Normal requests still authenticate through Keychain and check
+the current grant. No normal app route starts the broker yet.
+
+Pairing frames are limited to 4096 bytes. Each conversation binds its challenge
+ID; another conversation cannot inspect or cancel it. At most two pairing waits
+use the eight client slots. Disconnect and broker destruction release pending
+requests. Cancel after approval reports the completed effect rather than a false
+revocation. Name validation is shared with persisted connection metadata.
+
+Six protocol tests and sixteen socket tests cover the new path. Together with the
+existing transport, registry and lifecycle suites, focused checks passed. The
+compiled helper passed connect help, invalid-argument and unsigned-refusal smoke
+checks without reading credentials or showing windows. The decision waiter also covers
+approval racing a deadline, invalid wait budgets and task cancellation. Final complete Swift inventories passed: 1 consumer, 146 agent contracts,
+763 Core and 1091 application tests. All 286 Python tests passed. The structural
+matrix has zero errors. The helper and generated local app builds passed. No
+signed pairing or native UI acceptance is claimed. PR #48 passed CI and was integrated as db659c7.
+
+Remaining: Settings review and management bindings, helper wrapping/profiles,
+real Keychain sharing, locator and host/editor/lock adapters. The installed app is
+unchanged. This does not complete local agent access or enable remote access.
+
 ## Human pairing lifecycle — 1 November
 
 AgentPairingCoordinator now owns temporary connection requests. A request creates
@@ -19,9 +47,8 @@ invalidation remain distinct. Wall-clock rollback and monotonic expiry cannot
 extend the five-minute challenge. Disable, lock and unreadable metadata invalidate
 pending decisions. The runtime must call invalidatePending on lifecycle events.
 
-This component is not yet connected to Settings or the pre-authentication socket
-route. The pairing adapter must verify the signed helper before creating a
-request. UI bindings, signed helper packaging and native pairing acceptance remain
+Settings bindings remain pending. The pairing socket now verifies the signed
+helper before creating a request. UI bindings, signed helper packaging and native pairing acceptance remain
 pending. No installed app or personal data changed.
 
 Automated evidence: 15 focused contracts and the full Swift inventories passed

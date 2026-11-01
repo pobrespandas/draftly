@@ -65,7 +65,6 @@ struct AgentConnectionMetadata: Codable {
     }
 
     static func validName(_ name: String) -> Bool {
-        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && name.count <= 256
-            && !name.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains)
+        AgentConnectionName.isValid(name)
     }
 }
