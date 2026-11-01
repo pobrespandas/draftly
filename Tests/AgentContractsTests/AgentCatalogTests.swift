@@ -17,4 +17,12 @@ struct AgentCatalogTests {
     func consequentialOperationsNeverBypassHumanApproval(name: String) throws {
         #expect(try #require(AgentOperationCatalog.operation(named: name)).requiresHumanApproval)
     }
+    @Test func mutationSchemasRequireTheVersionHeaderBeforeGrantEvaluation() {
+        for version: String? in [nil, ""] {
+            let request = AgentRequest(requestID: UUID(), libraryID: UUID(), operation: "actions.delete",
+                targets: [.init(kind: .action, id: UUID())], expectedVersion: version)
+            #expect(throws: AgentSchemaError.self) { try AgentOperationSchemas.validatedParameters(for: request) }
+        }
+    }
+
 }

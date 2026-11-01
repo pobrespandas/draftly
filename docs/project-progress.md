@@ -70,6 +70,10 @@ results need a new identity. These contracts do not mutate notes or implement
 version checks, transactions, editor coordination or Undo yet. PR #32 passed
 required CI and merged at `0a2b7ab`.
 
+The schema gateway now rejects missing or empty expectedVersion headers for
+mutations independently of grant evaluation. Its regression failed before the
+correction. Live version comparison remains an unimplemented handler boundary.
+
 Stage 1 is not closed: the other 76 operation schemas, detailed script/native
 effect checks and real executors still need implementation. Real agent clients have
 not been connected. The habitual app remains the released 0.1.3.

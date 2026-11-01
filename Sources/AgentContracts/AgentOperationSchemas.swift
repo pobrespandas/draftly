@@ -18,6 +18,9 @@ package enum AgentOperationSchemas {
         guard request.apiVersion == AgentRequest.version, descriptor.acceptsTargets(request.targets) else {
             throw AgentSchemaError.invalidValue
         }
+        if descriptor.requiresExpectedVersion {
+            guard let version = request.expectedVersion, !version.isEmpty else { throw AgentSchemaError.invalidValue }
+        }
         if AgentActionSchemas.operationNames.contains(request.operation) {
             return try AgentActionSchemas.validatedParameters(for: request)
         }
