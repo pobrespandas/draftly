@@ -2,16 +2,20 @@ import Foundation
 
 package enum AgentOperationSchemas {
     package static var operationNames: Set<String> {
-        AgentReadSchemas.operationNames.union(AgentActionSchemas.operationNames).union(AgentExecutionSchemas.operationNames).union(AgentWorkspaceSchemas.operationNames).union(AgentDraftSchemas.operationNames).union(AgentEditorSchemas.operationNames).union(AgentAppearanceSchemas.operationNames)
+        AgentReadSchemas.operationNames.union(AgentActionSchemas.operationNames).union(AgentExecutionSchemas.operationNames).union(AgentWorkspaceSchemas.operationNames).union(AgentDraftSchemas.operationNames).union(AgentEditorSchemas.operationNames).union(AgentAppearanceSchemas.operationNames).union(AgentPreferenceSchemas.operationNames)
     }
 
-    package static func schema(for operation: String) -> AgentOperationSchema? {
-        AgentReadSchemas.schema(for: operation) ?? AgentActionSchemas.schema(for: operation)
+    package static func schema(for operation: String, preferences: AgentPreferenceRegistry? = nil) -> AgentOperationSchema? {
+        if AgentPreferenceSchemas.operationNames.contains(operation) {
+            guard let preferences else { return nil }
+            return AgentPreferenceSchemas.schema(for: operation, registry: preferences)
+        }
+        return AgentReadSchemas.schema(for: operation) ?? AgentActionSchemas.schema(for: operation)
             ?? AgentExecutionSchemas.schema(for: operation) ?? AgentWorkspaceSchemas.schema(for: operation) ?? AgentDraftSchemas.schema(for: operation) ?? AgentEditorSchemas.schema(for: operation) ?? AgentAppearanceSchemas.schema(for: operation)
     }
 
     // This validates shape and target binding. It does not authorize or execute a request.
-    package static func validatedParameters(for request: AgentRequest) throws -> [String: AgentJSONValue] {
+    package static func validatedParameters(for request: AgentRequest, preferences: AgentPreferenceRegistry? = nil) throws -> [String: AgentJSONValue] {
         guard let descriptor = AgentOperationCatalog.operation(named: request.operation) else {
             throw AgentErrorCode.unavailable
         }
@@ -20,6 +24,10 @@ package enum AgentOperationSchemas {
         }
         if descriptor.requiresExpectedVersion {
             guard let version = request.expectedVersion, !version.isEmpty else { throw AgentSchemaError.invalidValue }
+        }
+        if AgentPreferenceSchemas.operationNames.contains(request.operation) {
+            guard let preferences else { throw AgentErrorCode.unavailable }
+            return try AgentPreferenceSchemas.validatedParameters(for: request, registry: preferences)
         }
         if AgentActionSchemas.operationNames.contains(request.operation) {
             return try AgentActionSchemas.validatedParameters(for: request)
@@ -40,8 +48,11 @@ package enum AgentOperationSchemas {
         return try schema.validatedParameters(request.parameters)
     }
 
-    package static func validateResult(_ values: [String: AgentJSONValue], for operation: String) throws {
-        if AgentReadSchemas.operationNames.contains(operation) {
+    package static func validateResult(_ values: [String: AgentJSONValue], for operation: String, preferences: AgentPreferenceRegistry? = nil) throws {
+        if AgentPreferenceSchemas.operationNames.contains(operation) {
+            guard let preferences else { throw AgentErrorCode.unavailable }
+            try AgentPreferenceSchemas.validateResult(values, for: operation, registry: preferences)
+        } else if AgentReadSchemas.operationNames.contains(operation) {
             try AgentReadSchemas.validateResult(values, for: operation)
         } else if AgentAppearanceSchemas.operationNames.contains(operation) {
             try AgentAppearanceSchemas.validateResult(values, for: operation)
@@ -55,10 +66,15 @@ package enum AgentOperationSchemas {
         }
     }
 
-    package static func validateResult(_ values: [String: AgentJSONValue], for request: AgentRequest) throws {
+    package static func validateResult(_ values: [String: AgentJSONValue], for request: AgentRequest, preferences: AgentPreferenceRegistry? = nil) throws {
         guard let descriptor = AgentOperationCatalog.operation(named: request.operation),
               request.apiVersion == AgentRequest.version, descriptor.acceptsTargets(request.targets) else {
             throw AgentSchemaError.invalidValue
+        }
+        if AgentPreferenceSchemas.operationNames.contains(request.operation) {
+            guard let preferences else { throw AgentErrorCode.unavailable }
+            try AgentPreferenceSchemas.validateResult(values, for: request, registry: preferences)
+            return
         }
         if AgentDraftSchemas.operationNames.contains(request.operation) {
             try AgentDraftSchemas.validateResult(values, for: request)

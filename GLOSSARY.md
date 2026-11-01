@@ -263,3 +263,8 @@ which it was accepted.
 **Agent approval**:
 The user's one-use consent to a specific requested operation and its effects.
 It does not widen the connection's grant.
+
+
+**Agent preference address**:
+A named Draftly setting together with the syntax, command, or feature to which
+it applies. It identifies one setting within the agent interface.

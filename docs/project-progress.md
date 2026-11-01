@@ -98,6 +98,13 @@ File-backed reads and writes still require contextual effect review. All actual
 parsers, imports, persistence, rendering and local preference changes remain
 handler and native acceptance work. PR #35 passed CI and merged at `2b8478b`.
 
+Preference contracts now require an explicit application-supplied field registry.
+Requests cannot register fields or read raw storage names. Typed contexts separate
+device, syntax, feature and command settings. Defaults, inheritance, read-only
+state and approval requirements stay distinct. The production allowlist is not
+yet built; use the new preference source inventory before connecting consumers.
+The fixture registry is not evidence of application field coverage.
+
 Stage 1 is not closed: the other 46 operation schemas, detailed script/native
 effect checks and real executors still need implementation. Real agent clients have
 not been connected. The habitual app remains the released 0.1.3.
