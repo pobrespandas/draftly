@@ -110,6 +110,21 @@ final 47-test focused run. No visible windows, native permissions or personal da
 This branch remains separate from PR76 until its main integration is validated.
 Normal app startup, native activation, remaining write operations and full agent
 acceptance remain pending. No installed application or release changed.
+## Settings toolbar background — 1 November
+
+A separate visual fix gives Settings an explicit window-background color and
+keeps the native toolbar background visible. Tab buttons remain native. This
+removes dependence on automatic background visibility across tab content changes.
+It is a candidate fix for the reported background wobble, not a proven diagnosis
+of macOS compositing. Only SettingsView changed.
+
+Local app build and strict package signature verification passed. Manual isolated
+QA opened General, Markdown, HTML and Markdown again. Controls and final layout
+remained available; QA quit normally. Still-image Computer Use cannot certify
+absence of a transient animation artifact. Temporal user acceptance remains pending.
+No preference control or personal note was changed. The installed app was not
+replaced. QA used a fresh temporary library and separate preference domain.
+
 
 ## Native test interruption diagnostics — 1 November
 
