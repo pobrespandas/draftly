@@ -1,4 +1,6 @@
 import importlib.util
+import json
+import os
 from pathlib import Path
 import tempfile
 from subprocess import CompletedProcess
@@ -14,6 +16,9 @@ class SwiftResultVerificationTests(unittest.TestCase):
     def setUp(self):
         self.folder = tempfile.TemporaryDirectory()
         self.addCleanup(self.folder.cleanup)
+        environment = patch.dict(runner.os.environ, {"GITHUB_ACTIONS": "false"})
+        environment.start()
+        self.addCleanup(environment.stop)
         self.report = Path(self.folder.name) / "results.xml"
         self.expected = {"DraftlyTests.Suite/first()", "DraftlyCoreTests.Suite/second(worker:)"}
 
@@ -97,6 +102,108 @@ class SwiftResultVerificationTests(unittest.TestCase):
             args = command.call_args.args[0]
             self.assertEqual(args[args.index("--filter") + 1], "DraftlyTests.TypewriterScrollingTests")
             self.assertEqual(command.call_count, 1)
+
+    def test_incomplete_report_retains_zero_cli_exit_without_claiming_child_success(self):
+        with patch.object(runner.subprocess, "run", return_value=CompletedProcess([], 0)) as command:
+            with self.assertRaisesRegex(ValueError, "no test report"):
+                runner.run_target("DraftlyTests", self.expected, Path(self.folder.name))
+        record = json.loads((Path(self.folder.name) / "process.json").read_text())
+        self.assertEqual(record["scope"], "swift_cli")
+        self.assertEqual(record["returnCode"], 0)
+        self.assertEqual(record["verification"], "rejected")
+        self.assertIsNone(record["signal"])
+        self.assertNotIn("environment", record)
+        self.assertEqual(command.call_count, 1)
+
+    def test_signal_exit_is_recorded_before_reporting_a_test_failure(self):
+        with patch.object(runner.subprocess, "run", return_value=CompletedProcess([], -11)):
+            with self.assertRaisesRegex(ValueError, "Swift tests failed"):
+                runner.run_target("DraftlyTests", self.expected, Path(self.folder.name))
+        record = json.loads((Path(self.folder.name) / "process.json").read_text())
+        self.assertEqual(record["returnCode"], -11)
+        self.assertEqual(record["signal"], 11)
+        self.assertEqual(record["verification"], "not_run")
+        self.assertGreaterEqual(record["elapsedSeconds"], 0)
+
+    def test_completed_report_records_verification_and_clears_stale_process_data(self):
+        path = Path(self.folder.name) / "process.json"
+        path.write_text('{"stale": true}')
+        def complete(*args, **kwargs):
+            self.write_report(self.cases())
+            return CompletedProcess([], 0)
+        with patch.object(runner.subprocess, "run", side_effect=complete) as command:
+            self.assertEqual(runner.run_target("DraftlyTests", self.expected, Path(self.folder.name)),
+                             {"DraftlyTests": 1, "DraftlyCoreTests": 1})
+        record = json.loads(path.read_text())
+        self.assertNotIn("stale", record)
+        self.assertEqual(record["verification"], "passed")
+        self.assertEqual(record["command"][0:2], ["swift", "test"])
+        self.assertEqual(command.call_count, 1)
+
+    def test_local_execution_does_not_read_system_crash_reports(self):
+        with patch.object(runner.subprocess, "run", return_value=CompletedProcess([], 0)), \
+                patch.object(runner, "capture_native_crashes") as capture:
+            with self.assertRaisesRegex(ValueError, "no test report"):
+                runner.run_target("DraftlyTests", self.expected, Path(self.folder.name))
+        capture.assert_not_called()
+
+    def test_ci_execution_records_available_crash_diagnostics_without_accepting_bad_results(self):
+        with patch.dict(runner.os.environ, {"GITHUB_ACTIONS": "true"}), \
+                patch.object(runner.subprocess, "run", return_value=CompletedProcess([], 0)), \
+                patch.object(runner, "capture_native_crashes", return_value={"state": "scanned", "files": []}) as capture:
+            with self.assertRaisesRegex(ValueError, "no test report"):
+                runner.run_target("DraftlyTests", self.expected, Path(self.folder.name))
+        self.assertEqual(capture.call_count, 1)
+        record = json.loads((Path(self.folder.name) / "process.json").read_text())
+        self.assertEqual(record["nativeCrashReports"], {"state": "scanned", "files": []})
+        self.assertEqual(record["verification"], "rejected")
+
+    def test_crash_capture_excludes_old_unrelated_and_symlinked_reports(self):
+        source = Path(self.folder.name) / "reports"; source.mkdir()
+        destination = Path(self.folder.name) / "copied"
+        good = source / "DraftlyTests-neutral.ips"; good.write_text("neutral crash fixture")
+        old = source / "swift-test-old.ips"; old.write_text("old"); os.utime(old, (1, 1))
+        (source / "OtherApp-neutral.ips").write_text("unrelated")
+        (source / "xctest-link.ips").symlink_to(good)
+        record = runner.capture_native_crashes(source, destination, 2)
+        self.assertEqual(record["files"], [good.name])
+        self.assertEqual(list(destination.iterdir()), [destination / good.name])
+        self.assertEqual((destination / good.name).read_text(), "neutral crash fixture")
+
+    def test_crash_capture_is_bounded_and_handles_missing_directories(self):
+        source = Path(self.folder.name) / "reports"; source.mkdir()
+        destination = Path(self.folder.name) / "copied"
+        for index in range(6):
+            (source / f"DraftlyTests-neutral{index}.ips").write_text("neutral")
+        with (source / "xctest-large.ips").open("wb") as file:
+            file.truncate(2 * 1024 * 1024 + 1)
+        record = runner.capture_native_crashes(source, destination, 0)
+        self.assertEqual(len(record["files"]), 4)
+        self.assertEqual(record["skipped"], 3)
+        self.assertEqual(runner.capture_native_crashes(source / "missing", destination, 0)["state"], "unavailable")
+
+    def test_delayed_ci_collection_uses_the_recorded_start_and_does_not_run_tests(self):
+        record = Path(self.folder.name) / "DraftlyTests" / "process.json"
+        record.parent.mkdir()
+        record.write_text(json.dumps({"scope": "swift_cli", "startedAt": "2026-11-01T00:00:00+00:00",
+                                     "verification": "rejected", "returnCode": 0}))
+        with patch.dict(runner.os.environ, {"GITHUB_ACTIONS": "true"}), \
+                patch.object(runner, "capture_native_crashes", return_value={"state": "scanned", "files": ["DraftlyTests-neutral.ips"]}) as capture, \
+                patch.object(runner.subprocess, "run") as command:
+            runner.collect_ci_crashes(Path(self.folder.name))
+        command.assert_not_called()
+        self.assertEqual(capture.call_count, 1)
+        self.assertEqual(capture.call_args.args[2], 1793491200.0)
+        updated = json.loads(record.read_text())
+        self.assertEqual(updated["verification"], "rejected")
+        self.assertEqual(updated["returnCode"], 0)
+        self.assertEqual(updated["nativeCrashReports"]["files"], ["DraftlyTests-neutral.ips"])
+
+    def test_delayed_crash_collection_refuses_local_execution(self):
+        with patch.object(runner, "capture_native_crashes") as capture:
+            with self.assertRaisesRegex(ValueError, "isolated CI runner"):
+                runner.collect_ci_crashes(Path(self.folder.name))
+        capture.assert_not_called()
 
     def test_inventory_ignores_build_noise_but_requires_unique_test_ids(self):
         output = "Building for debugging...\n" + "\n".join(sorted(self.expected))

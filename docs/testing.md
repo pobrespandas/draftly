@@ -1,6 +1,6 @@
 # Testing Draftly
 
-Updated: 31 October 2026.
+Updated: 1 November 2026.
 
 ## Run the checks
 
@@ -17,6 +17,26 @@ The runner checks that every discovered test has a result. It reports failures
 and incomplete runs instead of treating a successful process exit as enough.
 Tests use temporary data and offscreen editors. They must not open or move
 visible windows, request permissions, play sounds, or use personal data.
+
+### Diagnose an interrupted native run
+
+Use `--output-dir PATH` to retain `process.json`, logs and XML for each target.
+The process record contains the command, timestamps, duration, Swift CLI exit
+code and report validation result. It does not contain environment variables.
+A zero CLI exit does not prove that its child tests completed. The XML and
+inventory must still pass verification. A process record is a past observation,
+not a live process handle.
+
+In GitHub Actions only, the runner also copies new diagnostic reports for known
+test process names. It excludes old files, unrelated processes and symbolic
+links. Each target accepts at most four files of two MiB each. A failure step
+collects again before artifact upload because macOS can write reports late.
+This collection does not execute tests or change their result. Missing diagnostic
+reports do not prove that no crash occurred. Local runs do not inspect system
+crash reports; the collection command refuses local execution.
+
+Keep these artifacts outside Git. Diagnose the recorded failure before another
+attempt. The runner does not retry tests or extend their timeouts.
 
 For Python checks, use Python 3.12, as CI does, in a separate environment:
 

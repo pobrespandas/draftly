@@ -22,8 +22,8 @@ Undo and repeat receipt recovery. The real-socket CLI test also performs a patch
 and verifies that an unauthorized note is unchanged. Complete Swift verified
 1/166/786/1259 (2212). Python294, the structural audit and local app/helper builds passed. All data is neutral and isolated.
 
-PR76 remains unmerged for the separate CI interruption below. This branch does
-not change Actions, native permissions, the installed app, iCloud or releases.
+PR76 later merged after the diagnostic head passed; see the integration entry.
+This branch does not change Actions, native permissions, the installed app, iCloud or releases.
 
 ## PR76 CI interruption — 1 November
 
@@ -41,6 +41,34 @@ the child process outcome is not available in the uploaded artifact. No CI retry
 deadline increase or acceptance bypass was made. PR76 remains unmerged. Preserve
 the failure and collect better process/crash diagnostics before another CI attempt.
 Independent patch work is kept on agent/draft-patch-20261101.
+
+## Local route validation follow-up — 1 November
+
+The combined run agent-routes-main-accepted returned CLI code1 with an incomplete
+app report. Its last log starts a toolbar separator test; no recorded assertion
+establishes the cause. A separate strict diagnostic verified all5 toolbar methods.
+Preserve the failed report. A passing isolated suite is not a root-cause fix.
+
+A new service contract test confirms that a missing editor registry leaves both
+mutation preparation and update unavailable, even with write capability. Its first
+fixture used the real clock with an expired synthetic grant; after injecting the
+fixture clock, all40 service tests passed. This corrected only the test setup.
+The final complete run verified 1/166/786/1257 (2210) Swift tests. The earlier
+interruption remains unresolved. Python303, the structural audit and local
+app/helper builds passed.
+Normal app activation remains pending.
+
+## Draft update integration accepted — 1 November
+
+PR76 passed every actual check at 3d2425f in CI41339030094, including the required
+macOS summary. Its native log verified 1/164/786/1252 Swift results and a successful
+app build. Guarded merge a6c1eb0 preserves both histories. The prior interrupted
+run remains unexplained; the passing diagnostic head is not a root-cause fix.
+
+The local-route branch took the accepted main ancestry via7632969. Its earlier
+run agent-routes-with-diagnostics stopped during the user pause and has no complete
+app report. It is not acceptance. A fresh combined check is recorded separately.
+No installed app, native permission or release changed.
 
 ## Local-route combined validation — 1 November
 
@@ -72,6 +100,32 @@ final 47-test focused run. No visible windows, native permissions or personal da
 This branch remains separate from PR76 until its main integration is validated.
 Normal app startup, native activation, remaining write operations and full agent
 acceptance remain pending. No installed application or release changed.
+
+## Native test interruption diagnostics — 1 November
+
+CI41337022036 rejected the incomplete app XML on PR76 e09e790. The last logged
+case was URLActionInstallationTests.draftlyGroupLinkInstallsGroupAndOrderedActionsAtomically;
+Typewriter had already reported completion. A local17-test diagnostic of both
+suites passed. This does not establish the interruption cause. Preserve artifact
+13095643499 and the failed run; do not describe the failure as fixed.
+
+A separate infrastructure change records each Swift CLI invocation and report
+verification. It retains a zero exit even when XML is rejected and distinguishes
+signal exits. It records no environment variables. CI can collect bounded fresh
+crash reports for known test processes, then collect delayed reports before
+artifact upload. Local runs do not read system crash logs. Tests cover old files,
+symlinks, unrelated reports, size/count limits, local refusal and delayed capture
+without executing tests. Incomplete reports still fail; no retries or deadline
+changes were added.
+
+Initial diagnostic tests failed because no process records existed. Final20
+focused checks and303 Python tests passed. The complete enhanced runner verified
+1/164/786/1252 (2203) Swift and four passed CLI/verification records. No local
+system crash directory was read. Structural checks and local app/helper builds passed. The next exact-head CI
+result remains separate evidence; the prior interruption is still unexplained.
+
+The route branch f92f5b0 and patch branch f4543bc remain preserved independently.
+Normal app activation and the full local-agent objective remain unfinished.
 
 ## Theme ancestry integration — 1 November
 
