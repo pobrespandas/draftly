@@ -3,6 +3,18 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Theme ancestry integration — 1 November
+
+The draft-update branch merged main at de5a851 after PR66 completed. Merge
+ df0fc9a preserves both histories and the 14-theme public catalog. No conflict
+resolution changed either implementation. The combined local tree passed complete
+Swift checks: one consumer, 164 contract, 786 Core and 1252 app tests (2203 total).
+Python294 and the structural audit passed. Helper and local app compilation passed. New exact-head PR checks must also
+pass before integration.
+
+The separate local-route branch remains pushed at 1d47518. Its newer operation
+catalog and CLI/MCP tests are not part of this PR. The site was not deployed.
+
 ## Existing-draft update receipts — 1 November
 
 AgentDraftWriting now joins current admission and signed-key checks, read-version
