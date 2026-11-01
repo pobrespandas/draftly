@@ -303,7 +303,9 @@ completed-effect metadata, and reject success reports in pending/ambiguous
 states. Cancel cannot claim acceptance after a successful committed result.
 Failure reports cannot contain success parameters. execution_error represents
 an unclassified Action execution failure; storage_error remains distinct.
-Request-bound result validation checks operation/resource identities.
+Request-bound result validation checks operation/resource identities. A busy
+termination reason must use the busy error code. Other failures cannot use that
+code. A focused regression detected a busy report labelled storage_error.
 
 Prompt answers require operation, step and prompt identities and a version
 check. They do not grant permissions. A future handler must validate fields
