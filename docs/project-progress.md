@@ -3,6 +3,34 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Local route validation follow-up — 1 November
+
+The combined run agent-routes-main-accepted returned CLI code1 with an incomplete
+app report. Its last log starts a toolbar separator test; no recorded assertion
+establishes the cause. A separate strict diagnostic verified all5 toolbar methods.
+Preserve the failed report. A passing isolated suite is not a root-cause fix.
+
+A new service contract test confirms that a missing editor registry leaves both
+mutation preparation and update unavailable, even with write capability. Its first
+fixture used the real clock with an expired synthetic grant; after injecting the
+fixture clock, all40 service tests passed. This corrected only the test setup.
+The final complete run verified 1/166/786/1257 (2210) Swift tests. The earlier
+interruption remains unresolved. Python303, the structural audit and local
+app/helper builds passed.
+Normal app activation remains pending.
+
+## Draft update integration accepted — 1 November
+
+PR76 passed every actual check at 3d2425f in CI41339030094, including the required
+macOS summary. Its native log verified 1/164/786/1252 Swift results and a successful
+app build. Guarded merge a6c1eb0 preserves both histories. The prior interrupted
+run remains unexplained; the passing diagnostic head is not a root-cause fix.
+
+The local-route branch took the accepted main ancestry via7632969. Its earlier
+run agent-routes-with-diagnostics stopped during the user pause and has no complete
+app report. It is not acceptance. A fresh combined check is recorded separately.
+No installed app, native permission or release changed.
+
 ## Local-route combined validation — 1 November
 
 Merge cc7ba82 preserves the update branch and theme catalog ancestry. Complete

@@ -615,6 +615,26 @@ struct AgentCommandServiceTests {
         #expect(recovered == text && offset == Int64(text.utf16.count))
         #expect(f.library.notes.first?.accessedAt == nil && f.library.revisions.isEmpty)
     }
+    @Test func missingEditorTrackingKeepsMutationRoutesUnavailable() throws {
+        let f = try Fixture()
+        f.service = try AgentCommandService(library: f.library, libraryID: f.libraryID, connections: f.connections,
+            appVersion: "QA", validateHost: {}, isLocked: { false }, now: { f.wall },
+            uptime: { f.uptime }, pendingEditorGeneration: { _ in "" })
+        let (_, session) = try f.connect(capabilities: [.draftsRead, .draftsWrite])
+        let schemas = try f.values("server.schemas", session: session)
+        guard case .array(let entries) = schemas["operations"] else { Issue.record("Missing schema entries"); return }
+        for name in ["mutations.prepare", "drafts.update"] {
+            let entry = entries.first { value in
+                guard case .object(let fields) = value else { return false }
+                return fields["name"] == .string(name)
+            }
+            guard case .object(let fields) = entry else { Issue.record("Missing mutation descriptor"); continue }
+            #expect(fields["available"] == .bool(false))
+        }
+        #expect(try f.response("mutations.prepare", session: session).outcome == .error(.unavailable))
+        #expect(f.library.notes.isEmpty)
+    }
+
     @Test func preparesAndExecutesAnAuthorizedUpdateWithoutChangingDuringPreparation() throws {
         let f = try Fixture(), note = try f.note("Neutral original 🐼")
         let (record, session) = try f.connect(scope: .resources([.init(kind: .draft, id: note.id)]), capabilities: [.draftsRead, .draftsWrite])
