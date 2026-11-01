@@ -4,6 +4,16 @@ import AgentContracts
 
 // Human-only management. The transport must not register these mutation methods.
 @MainActor final class AgentConnectionRegistry {
+    enum DisplayStatus { case active, paused, inactive, revoked, needsReview }
+
+    func displayStatusFromUserInterface(_ record: AgentConnectionRecord, enabled: Bool) -> DisplayStatus {
+        if record.revoked { return .revoked }
+        if !isLive(record) { return .inactive }
+        if blocked.contains(record.id) { return .needsReview }
+        if !enabled || disabledUntilCommit { return .paused }
+        return .active
+    }
+
     struct MetadataAccess {
         let read: () throws -> Data?
         let replace: (Data, Data?) throws -> Void

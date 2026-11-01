@@ -35,6 +35,8 @@ signing guides to install the released app.
   use the device keychain and why the signed helper needs its own profile.
 - [MCP transport decision](adr/0002-mcp-exact-bounded-stdio.md): bounded stdio,
   exact JSON and the selected SDK profile.
+- [Agent connection interface](agent-connections-ui.md): human review, editing
+  copies, host requirements and the isolated manual preview.
 - [Local agent development](agent-local-development.md): socket protocol, JSON
   helper, isolated tests, and the setup that remains before activation.
 

@@ -3,6 +3,36 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Human connection review and Settings — 1 November
+
+Implemented the grant editing copy, human Settings model and native review and
+management view. Cancel does not save or approve. Existing edits check the grant
+ID before replacement. Pairing requires a prepared review and code comparison;
+changing choices invalidates that review. Missing IDs remain visible. Revocation
+shows its current state immediately and reports credential cleanup per connection.
+
+The Agents tab is conditional on a configured AppController model. Normal startup
+still supplies none. Signed helper setup, real Keychain sharing, stable host and
+locator/lifecycle work remain required before activation. Recent activity, Stop
+Work and full operation access are not complete.
+
+Eighteen specific headless tests cover defaults, Cancel, stale copies, error
+retention, frozen selections, approval, revocation, metadata errors, authority
+binding, accessibility labels and recreation from serialized metadata. The
+separate native memory-only preview passed Cancel/reopen, code comparison,
+approval, Save/reopen, Revoke, Deny, Pause, resource filtering, Escape, scrolling
+and light/dark checks. An observed missing title in resource accessibility labels
+was corrected and checked again. The preview was closed and unregistered; its
+app went to Trash and its temporary preferences were removed. No endpoint,
+Keychain adapter or personal library was used. Final complete Swift inventories
+passed: 1 consumer, 146 agent contracts, 763 Core and 1109 application tests.
+All 286 Python tests passed. The structural matrix has zero errors. The generated
+local app build passed. This evidence does not approve normal startup or signed
+pairing.
+
+PR #49 passed exact-head CI and was merged as 74188c6. The installed app and
+release remain unchanged. See [connection UI](agent-connections-ui.md).
+
 ## Pairing socket and CLI connect — 1 November
 
 Implemented a separate pairing introduction on the private socket and the helper's

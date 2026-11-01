@@ -183,3 +183,8 @@ failed persistence, cross-conversation rejection, capacity, disconnect and broke
 destruction. Decoder tests cover authority injection, malformed replies and frame
 limits. The compiled unsigned helper passes help and invalid-input checks and
 refuses pairing before credential access. This is not signed-use acceptance.
+
+
+For human review controls, editing copies and the isolated native preview, use
+[Agent connection Settings](agent-connections-ui.md). The normal app still needs
+its host setup before it supplies that Settings model or starts the broker.

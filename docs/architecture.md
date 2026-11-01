@@ -833,3 +833,19 @@ AgentPairingCoordinator. Pending waits reserve at most two client slots.
 The async pairing session does not retain the broker; destruction closes its
 channels and cancels pending work. Normal authenticated requests still recheck
 current grants, so a pairing result cannot substitute for live authorization.
+
+
+AgentConnectionsSettingsModel coordinates human commands, not transport startup.
+It uses the same registry/library binding as its pairing coordinator. The view
+owns bindings and presentation; AgentGrantEditingCopy retains unsaved choices.
+Existing edits check the grant ID that was reviewed. Pairing copy changes discard
+the prepared review. The registry remains the source for live, paused, revoked
+and blocked display states. Resource labels include stable IDs and do not grant
+access by title or by future Workspace membership.
+
+AppController can receive this Settings model through explicit host setup.
+Settings adds the Agents tab only when it exists. Normal startup still supplies
+none until signed helper, Keychain, locator and lifecycle integration are ready.
+The separate Tools/AgentSettingsPreview host uses memory fixtures and never opens
+an agent endpoint. Its build script does not launch it; manual Computer Use is a
+separate step. See [connection UI](agent-connections-ui.md) for verified cases.

@@ -27,6 +27,10 @@ struct SettingsView: View {
                 .tabItem { Label("HTML", systemImage: "chevron.left.forwardslash.chevron.right") }.tag("html")
             editorSettings
                 .tabItem { Label("Editor", systemImage: "textformat") }.tag("editor")
+            if let agents = controller.agentSettings {
+                AgentConnectionsSettingsView(model: agents)
+                    .tabItem { Label("Agents", systemImage: "key") }.tag("agents")
+            }
             Form { ShortcutPreferences(app: controller) }
                 .formStyle(.grouped)
                 .tabItem { Label("Shortcuts", systemImage: "keyboard") }.tag("shortcuts")
