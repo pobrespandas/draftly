@@ -21,8 +21,11 @@ including refusal of unprovisioned identity without creating state directories.
 These are isolated, injected-signature tests, not signed-helper acceptance.
 The full branch inventory passed: 1 consumer, 152 contracts, 763 Core and
 1183 app cases (2099 total). All 286 Python tests and the structural matrix
-passed. The CLI refactor has been merged from main. Combined validation and
-exact-head CI remain pending. Normal app startup, helper provisioning, configuration export and the
+passed. After merging the validated CLI refactor from main, complete Swift
+inventories passed: 1 consumer, 158 contracts, 763 Core and 1183 app (2105
+total). Python286, matrix0 and both final builds passed. Three executable checks
+kept stdin open and proved status/capabilities and invalid calls do not read it.
+Exact-head functional PR CI remains pending. Normal app startup, helper provisioning, configuration export and the
 remaining handlers are unfinished.
 
 ## Local host test fixture lifetime — 1 November
