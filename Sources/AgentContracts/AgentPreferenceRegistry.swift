@@ -17,6 +17,16 @@ package struct AgentPreferenceField: Sendable {
     package var writable = true
     package var requiresHumanApproval = false
     package var approvalCommands: Set<String> = []
+
+    package init(id: String, title: String, context: Context, value: AgentValueShape,
+                 defaultSource: DefaultSource, defaultValue: AgentJSONValue? = nil,
+                 writable: Bool = true, requiresHumanApproval: Bool = false,
+                 approvalCommands: Set<String> = []) {
+        self.id = id; self.title = title; self.context = context; self.value = value
+        self.defaultSource = defaultSource; self.defaultValue = defaultValue
+        self.writable = writable; self.requiresHumanApproval = requiresHumanApproval
+        self.approvalCommands = approvalCommands
+    }
 }
 
 package struct AgentPreferenceAddress: Hashable, Sendable {
@@ -29,7 +39,7 @@ package struct AgentPreferenceAddress: Hashable, Sendable {
     package let feature: String?
 }
 
-// Only application code constructs this allowlist. Request data cannot add fields.
+// The host supplies this allowlist. Request data cannot register fields.
 package struct AgentPreferenceRegistry: Sendable {
     package let fields: [AgentPreferenceField]
     package let builtInSyntaxNames: [String]

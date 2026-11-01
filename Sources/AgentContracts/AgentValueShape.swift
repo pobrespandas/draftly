@@ -112,12 +112,20 @@ package struct AgentFieldShape: Sendable {
     package let shape: AgentValueShape
     package var required = false
     package var defaultValue: AgentJSONValue? = nil
+
+    package init(shape: AgentValueShape, required: Bool = false, defaultValue: AgentJSONValue? = nil) {
+        self.shape = shape; self.required = required; self.defaultValue = defaultValue
+    }
 }
 
 package struct AgentObjectShape: Sendable {
     package let fields: [String: AgentFieldShape]
     package var allowsAdditionalFields = false
     package var minimumFields = 0
+
+    package init(fields: [String: AgentFieldShape], allowsAdditionalFields: Bool = false, minimumFields: Int = 0) {
+        self.fields = fields; self.allowsAdditionalFields = allowsAdditionalFields; self.minimumFields = minimumFields
+    }
 
     package func validate(_ values: [String: AgentJSONValue]) throws {
         guard values.count >= minimumFields,

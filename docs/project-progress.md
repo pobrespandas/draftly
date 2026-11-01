@@ -19,7 +19,8 @@ cover isolation, expiry/revocation, target kinds, revision-token requirements,
 full-library backup authority, malformed/oversized messages, Unicode/decimal
 transport, and distinct pending/error/result states.
 
-Automatic validation passed 127 AgentContracts, 759 Core and 938 app tests with
+Automatic validation passed one package-consumer test, 127 AgentContracts,
+759 Core and 938 app tests with
 complete result inventories, 285 Python tests, the structural matrix check,
 and the final local app build.
 See the [operation inventory](research/agent-operation-inventory.md) for reused
@@ -101,7 +102,10 @@ Requests cannot register fields or read raw storage names. Typed contexts separa
 device, syntax, feature and command settings. Defaults, inheritance, read-only
 state and approval requirements stay distinct. The production allowlist is not
 yet built; use the new preference source inventory before connecting consumers.
-The fixture registry is not evidence of application field coverage. A separate
+A separate consumer module now checks construction without @testable access.
+It reproduced inaccessible synthesized initializers before explicit package
+constructors were added. The fixture registry is not evidence of application
+field coverage. A separate
 regression rejects null replies for resolved nonnullable inherited/system values;
 declared system inheritance and invalid-store states remain distinct.
 

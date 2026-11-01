@@ -522,6 +522,10 @@ while an ordinary local option does not. interactive only permits the app to ask
 it is not approval. Native adapters, conflicts, syntax-feature existence, reference
 scope, storage failures and field-level reset behavior remain application work.
 Descriptor output must match the trusted registry, including types and defaults.
+A separate package-consumer module constructs fields and structured value shapes
+without @testable access. It failed before explicit package constructors were
+added. This proves the module interface can be consumed, not that application
+Settings bindings are complete.
 
 Bookmark list replies contain names, local IDs and versions, not paths or saved
 permission data. Add requests preserve Unicode names and require a native human

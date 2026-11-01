@@ -11,6 +11,7 @@ let package = Package(
         .target(name: "CGFM", path: "Vendor/CGFM", exclude: ["COPYING", "src/case_fold_switch.inc", "src/entities.inc"], sources: ["src", "extensions"], publicHeadersPath: "include", cSettings: [.headerSearchPath("src"), .headerSearchPath("extensions"), .define("CMARK_GFM_STATIC_DEFINE"), .define("CMARK_GFM_EXTENSIONS_STATIC_DEFINE")]),
         .target(name: "AgentContracts"),
         .testTarget(name: "AgentContractsTests", dependencies: ["AgentContracts", "DraftlyCore"], resources: [.copy("required-operations.txt")]),
+        .testTarget(name: "AgentContractsConsumerTests", dependencies: ["AgentContracts"]),
         .target(name: "DraftlyCore", dependencies: ["CMultiMarkdown", "CGFM"], resources: [.process("Resources")]),
         .executableTarget(name: "Draftly", dependencies: ["DraftlyCore", .product(name: "Sparkle", package: "Sparkle")]),
         .executableTarget(name: "LibraryBenchmark", dependencies: ["DraftlyCore"], path: "Tools/LibraryBenchmark"),
