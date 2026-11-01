@@ -21,7 +21,7 @@ current engine. `implementable` means that the behavior is reasonable but is
 not in this catalog revision. `blocked` means that safe parity needs a new
 service, account flow, paid service, or non-public contract.
 
-The catalog revision is 1. It contains 99 entries, including separators. All
+The catalog revision is 1. It contains 105 entries, including separators. All
 installed steps use supported Draftly step types. Separators keep their observed
 names and positions relative to installed actions.
 
@@ -94,8 +94,9 @@ names and positions relative to installed actions.
 | Hard Wrap, Strip Extra Blank Lines, Trim Whitespace, Remove Blank Lines | supported | Uses local deterministic line transforms. |
 | Format Number | implementable | Needs locale and formatting choices. |
 | Smart Parentheses, Smart Brackets, Smart Braces | supported | Wraps the selection. |
+| With Options | supported | Separator. |
 | Change Case..., Sort Lines... | supported | Shows a review prompt before applying the selected local transform. |
-| With Options, Encode..., Decode... | implementable | Need explicit option contracts. |
+| Encode..., Decode... | supported | Offers URL component and HTML transformations in a review prompt. |
 
 ## Processing
 
@@ -104,9 +105,9 @@ names and positions relative to installed actions.
 | Inbox, Tags & Flags, Templates | supported | Separators. |
 | Archive, Save Version, Trash | supported | Uses the current draft update contract. |
 | Stats | supported | Displays a local character count. |
-| Update Tags..., Rename Tag... | implementable | Need review prompts and library-wide rename confirmation. |
+| Update Tags..., Rename Tag... | supported | Shows a review prompt, then updates the draft or renames the tag across the library. |
 | Flag, Unflag | supported | Updates the current draft flag. |
-| Workspaces | implementable | Separator will ship when its related actions ship. |
+| Workspaces | supported | Separator. |
 | Select Workspace, Filter by Tag, New Draft in Workspace | implementable | Need selection dialogs and workspace routing. |
 | New Draft with Template, Apply Template | supported | Uses create-draft and insert-text steps. |
 | Previous Placeholder, Next Placeholder | supported | Selects the previous or next `<|>` marker. |

@@ -11,7 +11,7 @@ struct DefaultActionCatalogTests {
         let actions = library!.orderedActions(on: .list)
         #expect(library!.groupNames == DefaultActionCatalog.groupNames)
         #expect(actions.count == DefaultActionCatalog.actions.count)
-        #expect(actions.count == 99)
+        #expect(actions.count == 105)
         #expect(Set(actions.map(\.id)).count == actions.count)
         #expect(Set(actions.flatMap(\.steps).map(\.id)).count == actions.flatMap(\.steps).count)
         #expect(actions.allSatisfy { !$0.symbol.isEmpty && $0.unsupportedSteps.isEmpty })
@@ -122,14 +122,44 @@ struct DefaultActionCatalogTests {
         #expect(editor.content == "BETA\nALPHA")
         #expect(host.calls.filter { $0.0 == "prompt" }.count == 2)
     }
+
+    @Test func encodeAndDecodeOptionsRoundTripUnicodeSelection() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let editor = EditorSession()
+        editor.load(try library.createNote(content: "café & panda"))
+        let host = DefaultCatalogHost()
+        let runner = ActionRunner(library: library, editor: editor, host: host)
+        host.promptIndex = 0
+        #expect(runner.run(try #require(DefaultActionCatalog.actions.first { $0.name == "Encode..." })))
+        #expect(editor.content == "caf%C3%A9%20%26%20panda")
+        #expect(runner.run(try #require(DefaultActionCatalog.actions.first { $0.name == "Decode..." })))
+        #expect(editor.content == "café & panda")
+    }
+
+    @Test func tagReviewActionsUpdateTheDraftAndRenameAcrossTheLibrary() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let first = try library.createNote(content: "First", tags: ["old"])
+        _ = try library.createNote(content: "Second", tags: ["old", "keep"])
+        let editor = EditorSession(); editor.load(first)
+        let host = DefaultCatalogHost()
+        let runner = ActionRunner(library: library, editor: editor, host: host)
+        host.promptFields = ["tags": "old, added"]
+        #expect(runner.run(try #require(DefaultActionCatalog.actions.first { $0.name == "Update Tags..." })))
+        #expect(library.notes.first { $0.id == first.id }?.tags == ["added", "old"])
+        host.promptFields = ["oldTag": "old", "newTag": "renamed"]
+        #expect(runner.run(try #require(DefaultActionCatalog.actions.first { $0.name == "Rename Tag..." })))
+        #expect(library.notes.filter { $0.tags.contains("renamed") }.count == 2)
+        #expect(library.notes.allSatisfy { !$0.tags.contains("old") })
+    }
 }
 
 @MainActor private final class DefaultCatalogHost: ActionHost {
     var calls: [(String, [String: Any])] = []
     var promptIndex = 0
+    var promptFields: [String: Any] = [:]
     func perform(_ operation: String, values: [String: Any]) throws -> Any? {
         calls.append((operation, values))
-        if operation == "prompt" { return ["index": promptIndex, "fields": [:]] }
+        if operation == "prompt" { return ["index": promptIndex, "fields": promptFields] }
         return true
     }
 }

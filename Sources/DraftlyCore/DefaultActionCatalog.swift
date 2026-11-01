@@ -158,8 +158,11 @@ public enum DefaultActionCatalog {
             transform("Smart Parentheses", "parentheses", "return '(' + text + ')';"),
             transform("Smart Brackets", "ellipsis.rectangle", "return '[' + text + ']';"),
             transform("Smart Braces", "curlybraces", "return '{' + text + '}';"),
+            separator("With Options", "Tools"),
             script("Change Case...", "Tools", "textformat", changeCaseOptions),
-            script("Sort Lines...", "Tools", "arrow.up.arrow.down", sortLineOptions)
+            script("Sort Lines...", "Tools", "arrow.up.arrow.down", sortLineOptions),
+            script("Encode...", "Tools", "lock", encodeOptions),
+            script("Decode...", "Tools", "lock.open", decodeOptions)
         ]
     }
 
@@ -171,8 +174,11 @@ public enum DefaultActionCatalog {
             script("Trash", "Processing", "trash", "draft.isTrashed = true; draft.update();"),
             script("Stats", "Processing", "chart.bar", "app.displayInfoMessage(draft.content.length + ' characters');"),
             separator("Tags & Flags", "Processing"),
+            script("Update Tags...", "Processing", "tag", updateTags),
+            script("Rename Tag...", "Processing", "tag.slash", renameTag),
             script("Flag", "Processing", "flag.fill", "draft.isFlagged = true; draft.update();"),
             script("Unflag", "Processing", "flag", "draft.isFlagged = false; draft.update();"),
+            separator("Workspaces", "Processing"),
             separator("Templates", "Processing"),
             action("New Draft with Template", "Processing", "doc.badge.plus", [.init("createDraft", ["template": "[[draft]]", "openInEditor": "true"]) ]),
             action("Apply Template", "Processing", "doc.text", [.init("insertText", ["template": "[[draft]]"]) ]),
@@ -250,6 +256,48 @@ public enum DefaultActionCatalog {
     }
     """
 
+    private static let encodeOptions = optionTransform(title: "Encode", firstTitle: "URL Component",
+        firstValue: "url", secondTitle: "HTML", secondValue: "html",
+        first: "encodeURIComponent(text)", second: "HTML.escape(text)")
+
+    private static let decodeOptions = optionTransform(title: "Decode", firstTitle: "URL Component",
+        firstValue: "url", secondTitle: "HTML", secondValue: "html",
+        first: "decodeURIComponent(text)", second: "HTML.unescape(text)")
+
+    private static let updateTags = """
+    var p=Prompt.create(); p.title='Update Tags';
+    p.addTextField('tags','Tags',draft.tags.join(', ')); p.addButton('Update','update',true);
+    if(!p.show()){context.cancel();} else {
+        draft.tags=p.fieldValues.tags.split(',').map(function(tag){return tag.trim();}).filter(function(tag){return tag.length>0;});
+        draft.update();
+    }
+    """
+
+    private static let renameTag = """
+    var p=Prompt.create(); p.title='Rename Tag';
+    p.addTextField('oldTag','Current tag',''); p.addTextField('newTag','New tag',''); p.addButton('Rename','rename',true);
+    if(!p.show()){context.cancel();} else {
+        var oldTag=p.fieldValues.oldTag.trim(), newTag=p.fieldValues.newTag.trim();
+        if(!oldTag||!newTag){context.fail('Enter both tag names.');}
+        else { new Tag().renameTag(oldTag,newTag); }
+    }
+    """
+
+    private static func optionTransform(title: String, firstTitle: String, firstValue: String,
+                                        secondTitle: String, secondValue: String,
+                                        first: String, second: String) -> String {
+        """
+        var p=Prompt.create(); p.title='\(title)';
+        p.addButton('\(firstTitle)','\(firstValue)'); p.addButton('\(secondTitle)','\(secondValue)');
+        if(!p.show()){context.cancel();} else {
+            var r=editor.getSelectedRange(); if(!r[1]) r=[0,editor.getText().length];
+            var text=editor.getTextInRange(r[0],r[1]);
+            text=p.buttonPressed==='\(firstValue)' ? \(first) : \(second);
+            editor.setTextInRange(r[0],r[1],text); editor.setSelectedRange(r[0],text.length);
+        }
+        """
+    }
+
     private static func lineTransform(_ body: String) -> String {
         "var range=editor.getSelectedLineRange(); var text=editor.getTextInRange(range[0],range[1]); var change=text.split('\\n').map(function(line){\(body)}).join('\\n'); editor.setTextInRange(range[0],range[1],change); editor.setSelectedRange(range[0],change.length);"
     }
@@ -294,8 +342,8 @@ public enum DefaultActionCatalog {
             "Basic": ["Copy", "Share", "Mail", "Message", "Google Search", "Event", "Send to Reminders", "List in Reminders", "Print - Plain Text", "Services", "Save to Files", "Save to Files as...", "Save to iCloud Drive", "Append to iCloud Journal", "Save to Google Drive", "Append to Google Drive Journal", "Save to OneDrive", "Append to OneDrive Journal"],
             "Editing": ["Undo/Redo", "Undo", "Redo", "Cursor Movement", "Move Left", "Move Right", "Move Back by Word", "Move Forward by Word", "Commands", "Find", "Advanced Find", "Make Tasks", "Toggle Tasks", "Insert Date", "Insert Dictation", "Dictate New Draft", "Copy Selection", "Paste as Plain Text", "Mail", "Message", "Text Manipulation", "Indent", "Outdent", "Move Line Up", "Move Line Down", "Duplicate Line", "Previous Marker", "Next Marker", "Utility", "Toggle Theme"],
             "Markdown": ["Markdown Header (#)", "Markdown Bold (**)", "Markdown Emphasis (_)", "Markdown Link", "Inline Code (`)", "Markdown Footnote (^)", "Block Elements", "Markdown List", "Quote-Increase (>)", "Quote-Decrease", "Code Block (```)", "Markdown Table", "Preview", "Preview - RTL", "Utility", "Markdown Mail", "Copy as HTML", "Copy as Rich Text", "Copy as Rich Text w/o Styles", "Paste as Markdown", "Print - Markdown"],
-            "Tools": ["Change Selection", "UPPER", "lower", "Title", "Sort", "Straighten Quotes", "Strip Diacritics", "Strip Line Feed", "Hard Wrap", "Strip Extra Blank Lines", "Trim Whitespace", "Remove Blank Lines", "Smart Parentheses", "Smart Brackets", "Smart Braces", "Change Case...", "Sort Lines..."],
-            "Processing": ["Inbox", "Archive", "Save Version", "Trash", "Stats", "Tags & Flags", "Flag", "Unflag", "Templates", "New Draft with Template", "Apply Template", "Previous Placeholder <|>", "Next Placeholder <|>"]
+            "Tools": ["Change Selection", "UPPER", "lower", "Title", "Sort", "Straighten Quotes", "Strip Diacritics", "Strip Line Feed", "Hard Wrap", "Strip Extra Blank Lines", "Trim Whitespace", "Remove Blank Lines", "Smart Parentheses", "Smart Brackets", "Smart Braces", "With Options", "Change Case...", "Sort Lines...", "Encode...", "Decode..."],
+            "Processing": ["Inbox", "Archive", "Save Version", "Trash", "Stats", "Tags & Flags", "Update Tags...", "Rename Tag...", "Flag", "Unflag", "Workspaces", "Templates", "New Draft with Template", "Apply Template", "Previous Placeholder <|>", "Next Placeholder <|>"]
         ]
         return inventories[group]?.firstIndex(of: name) ?? 0
     }
