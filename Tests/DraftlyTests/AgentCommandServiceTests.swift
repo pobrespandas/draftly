@@ -16,7 +16,7 @@ struct AgentCommandServiceTests {
         var hostError: AgentErrorCode?
         var locked = false
         var generation = ""
-        var editors: [WindowModel] = []
+        var editors: [WindowModel] = [] { didSet { editorRegistry.refreshMembership() } }
         let editorDefaultsName = "Draftly-Agent-Editor-Tests-" + UUID().uuidString
         lazy var editorRegistry = AgentEditorRegistry(library: library, models: { [weak self] in self?.editors ?? [] })
         var onGeneration: (() -> Void)?
@@ -216,6 +216,17 @@ struct AgentCommandServiceTests {
         #expect(try summary(f.get(allowed, session: session))["versionToken"] == before)
         #expect(try f.response("drafts.get", session: session,
             targets: [.init(kind: .draft, id: hidden.id)]).outcome == .error(.notFound))
+    }
+
+    @Test func aWindowOpenedEditedAndClosedBetweenReadsChangesTheVersion() throws {
+        let f = try Fixture(), note = try f.note("Stored"), (_, session) = try f.connect()
+        defer { f.cleanEditorPreferences() }
+        let before = try summary(f.get(note, session: session))["versionToken"]
+        let model = try f.window(note); f.editors = [model]
+        model.editor.content = "Intermediate"; model.hasUnsavedChanges = true
+        model.editor.content = note.content; f.editors = []
+        #expect(try summary(f.get(note, session: session))["versionToken"] != before)
+        #expect(f.library.notes.first?.content == note.content)
     }
 
     @Test func registryObservationDoesNotRetainClosedWindowModels() throws {

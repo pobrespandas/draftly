@@ -945,7 +945,9 @@ binding. Neither the handshake nor its adapter activates the installed app.
 AgentEditorRegistry supplies a read-only view of pending text for one loaded
 library. The caller supplies its live WindowModels. The registry keeps weak
 model references and observes text, draft and dirty-state changes. Its per-draft
-generation detects edit-then-revert even between reads. Selection and focus do
+generation detects edit-then-revert even between reads. The application must call
+refreshMembership at window registration and removal. A lazy read alone cannot
+observe a window that opens and closes between requests. Selection and focus do
 not change that generation. Removed models lose their subscriptions.
 
 AgentDraftReading filters authority before resolving editor state. It uses the

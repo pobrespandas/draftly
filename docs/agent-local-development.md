@@ -118,7 +118,11 @@ sessions and removes its endpoint when stopped or destroyed.
 ## Validation and remaining acceptance
 
 The isolated host can receive an AgentEditorRegistry built from that same
-LibraryStore and a provider of live WindowModels. Current draft reads then use
+LibraryStore and a provider of live WindowModels. Call refreshMembership at
+window registration and removal, including when no agent request is active.
+This records a window opened, edited and closed between two reads. A read also
+refreshes the supplied models, but it cannot recover missed lifecycle events.
+Current draft reads then use
 pending text without saving or touching selection, focus or Undo. A conflicting
 pair of dirty editors returns editor_conflict. Search and sorting use projected
 text, after scope filtering. Historical revisions remain stored snapshots.

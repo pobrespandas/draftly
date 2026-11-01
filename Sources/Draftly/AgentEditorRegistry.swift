@@ -32,9 +32,17 @@ import AgentContracts
 
     func isBound(to library: LibraryStore) -> Bool { self.library === library }
 
-    func snapshot(_ stored: Note) throws -> Snapshot {
+    // Call at window registration and removal, even when no agent is reading.
+    func refreshMembership() { _ = trackedModels() }
+
+    private func trackedModels() -> [WindowModel] {
         let current = models().filter { $0.library === library }
         refresh(current)
+        return current
+    }
+
+    func snapshot(_ stored: Note) throws -> Snapshot {
+        let current = trackedModels()
         let pending = current.filter { $0.editor.noteID == stored.id && $0.hasUnsavedChanges }
         // Swift String equality folds canonically equivalent Unicode. Different
         // code units still represent different pending edits for this boundary.

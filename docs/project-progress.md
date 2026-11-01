@@ -5,6 +5,14 @@ Historical test reports describe only the versions they tested.
 
 ## Pending editor read projection — 1 November
 
+Follow-up lifecycle reproduction: a window could open, edit and close between
+reads without changing the version. That focused case failed before the new
+refreshMembership hook. The caller must use it at window registration and
+removal; lazy reads cannot recover missed lifecycle events. Afterwards all56
+focused cases and complete inventories passed (consumer1, contracts158, Core763,
+app1194: 2116 total), with Python286 and matrix0. The obsolete CI41307619354
+at57282bf was canceled for this correction. The replacement head still needs CI.
+
 Two focused cases first reproduced stale stored reads and missing conflict
 errors. AgentEditorRegistry now projects pending text for one bound library.
 It observes text, draft and dirty-state changes without retaining windows.
