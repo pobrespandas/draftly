@@ -49,6 +49,26 @@ name from this document unless the application explicitly registers a public
 field and its typed context. Permission to write a setting does not authorize
 an external file, system registration or a connection-grant change.
 
+## Encoded preference preparation
+
+`AgentEncodedPreferenceAccess` reads and prepares edits for the 44 field
+metadata entries stored in syntax, Markdown and shortcut JSON. It uses existing
+consumer defaults and setters. It removes one override on reset and retains
+unknown fields. Syntax addresses must match the resolved definition; feature
+addresses must name a declared feature. Shortcut reset retains imported additional binding fields and checks the
+effective default against conflicts. Global shortcut changes report the approval need.
+
+Reads report stored, inherited, default, system and invalid origins. They return
+only the requested typed value, not the encoded store. An invalid store stays
+unchanged. The caller supplies the resolved syntax and inherited value. Existing storage
+uses syntax names. The future scoped handler must check name collisions and
+alias effects; matching a UUID alone does not prove isolated preference storage.
+
+This component performs no persistence. It is not an authorized agent handler.
+The caller must still scope-check resources, obtain approval, compare versions,
+commit changes and record receipts. Device values, native integration settings,
+list defaults and default Workspace access remain separate work.
+
 ## Remaining application work
 
 1. Connect the reviewed application field catalog to the scoped schema handler.
