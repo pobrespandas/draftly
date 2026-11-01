@@ -3,6 +3,41 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Existing-draft update receipts — 1 November
+
+AgentDraftWriting now joins current admission and signed-key checks, read-version
+validation, editor coordination and atomic note/receipt storage. It implements
+all fields in the existing drafts.update schema, including explicit dates and
+nullable metadata. Existing-draft scope can cover one selected note; it does not
+require whole-library authority. Missing metadata remains unchanged.
+
+The same pure version encoding serves reads and receipt resources. Receipt
+versions use normalized stored data and the reserved editor generation. Before
+the final database commit, the writer checks admission, current key/grant, action
+exclusion and editor generation again. Recovery checks authority before looking
+up or returning a prior receipt. It does not repeat edits, revisions or Undo and
+does not replace later human text. The writer and reader must share one library
+and editor registry; requests must match the configured local library ID.
+
+The package-only commit boundary accepts date preservation and a final validation
+closure. Existing callers keep their defaults. Public APIs, record formats and
+backup exclusions are unchanged. The project change registers one app source.
+
+Six initial methods failed against an unavailable stub with eight issues. Final
+focused checks passed 71 tests across writer, editor, read and receipt suites.
+The writer has 11 methods covering every field, scope, nullable fields, reply
+loss, failed-save retry, revoked authority, commit-time revocation/editing, stale
+versions, admission failure and altered request/library/connection values.
+Complete results verified one consumer, 164 contract, 786 Core and 1252 app tests
+(2203 total). Python 294 and the structural audit passed. Local app and helper
+compilation passed.
+
+No external handler or key-issuance route is enabled yet. Native activation,
+creation/task-owned scope and remaining resource operations are still pending.
+Tests used neutral isolated libraries and offscreen text fixtures. No installed
+application, native permission, personal data or release changed. The earlier
+Typewriter interruption remains an unresolved observation; it was not fixed here.
+
 ## Editor mutation coordination — 1 November
 
 AgentEditorRegistry now coordinates a synchronous stored mutation across matching

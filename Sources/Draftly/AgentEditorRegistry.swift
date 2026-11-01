@@ -119,6 +119,12 @@ import AgentContracts
         }
     }
 
+    func validateMutationGeneration(for id: UUID, expected: String) throws {
+        guard valid else { throw AgentErrorCode.cancelled }
+        _ = trackedModels()
+        guard generations[id]?.uuidString == expected else { throw AgentErrorCode.editorConflict }
+    }
+
     private func controlled(_ model: WindowModel, update: () -> Void) {
         let id = ObjectIdentifier(model)
         controlledChanges.insert(id)
