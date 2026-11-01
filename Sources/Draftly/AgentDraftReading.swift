@@ -56,13 +56,21 @@ import AgentContracts
         }
     }
 
+    // This checks draft state, not authority. It does not reserve the state across an await.
+    func checkedSnapshot(for id: UUID, expectedVersion: String) throws -> AgentEditorRegistry.Snapshot {
+        guard !expectedVersion.isEmpty, expectedVersion.utf8.count <= 4096 else { throw AgentErrorCode.invalidInput }
+        guard let note = library.notes.first(where: { $0.id == id }) else { throw AgentErrorCode.notFound }
+        let state = try snapshot(note)
+        guard try versionToken(state) == expectedVersion else { throw AgentErrorCode.versionConflict }
+        return state
+    }
+
     private func snapshot(_ note: Note) throws -> AgentEditorRegistry.Snapshot {
         try editors?.snapshot(note) ?? .init(note: note, storedNote: note, generation: "")
     }
 
-    private func summary(_ state: AgentEditorRegistry.Snapshot, query: String = "") throws -> [String: AgentJSONValue] {
-        let note = state.note
-        var versioned = note
+    private func versionToken(_ state: AgentEditorRegistry.Snapshot) throws -> String {
+        var versioned = state.note
         versioned.accessedAt = nil
         var storedVersioned = state.storedNote
         storedVersioned.accessedAt = nil
@@ -70,10 +78,15 @@ import AgentContracts
         // A pending projection must not hide a concurrent stored-text change.
         let data = try encoder.encode([storedVersioned, versioned])
         // Length framing separates content bytes from the trusted editor generation.
-        let external = pendingEditorGeneration(note.id)
+        let external = pendingEditorGeneration(state.note.id)
         let generation = "\(external.utf8.count):" + external + state.generation
         var input = Data("\(data.count):".utf8); input.append(data); input.append(Data(generation.utf8))
-        let version = Data(HMAC<SHA256>.authenticationCode(for: input, using: versionKey)).base64EncodedString()
+        return Data(HMAC<SHA256>.authenticationCode(for: input, using: versionKey)).base64EncodedString()
+    }
+
+    private func summary(_ state: AgentEditorRegistry.Snapshot, query: String = "") throws -> [String: AgentJSONValue] {
+        let note = state.note
+        let version = try versionToken(state)
         return ["id": .string(note.id.uuidString), "title": .string(note.title),
             "preview": .string(String(DraftRowPresentation.preview(note, query: query).prefix(1024))),
             "tags": .array(note.tags.map(AgentJSONValue.string)), "flag": .integer(Int64(note.flag)),
