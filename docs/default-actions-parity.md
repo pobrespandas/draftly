@@ -243,7 +243,15 @@ opened the preview. The selected row kept its blue background after Cancel.
 A direct coordinate click on that selected row did not run it again.
 The check used the neutral QA draft and did not change its text.
 
-Draftly still uses a button for each action row. Its first click runs the action,
-and it has no persistent row selection. Replace this with native table selection,
-then check Return, double click, arrow keys, context menus, and group changes.
-The action bar remains a separate surface: its buttons execute on one click.
+Draftly now uses `NSTableView`. In native QA, a single click selected Stats
+without running it. Return and double click each opened its preview. Cancel
+kept the selected row. Up selected Trash without executing it, and Down returned
+to Stats. Right click showed Edit, Duplicate, and Delete. The selected row used
+the native blue background and kept its icon color. The action bar remains a
+separate surface: its buttons execute on one click.
+
+Two focused tests check selection without execution, Return, separators, invalid
+rows, disabled execution, selection identity after reordering, menu target
+identity, and clearing selection after a group change. The local app build and
+strict bundle signature check passed. Search section headings, accessibility
+secondary actions, and the preview window difference remain open.

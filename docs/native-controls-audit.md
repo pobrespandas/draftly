@@ -18,7 +18,7 @@ AppKit configuration can differ from the reference in either framework.
 | Menus | `PanelMenu` uses `NSButton` and `NSMenu` | Symbol dimensions and popup placement are set manually. Some control rows mix these buttons with SwiftUI plain buttons. |
 | Action group bar | `ActionGroupButton.swift`: AppKit buttons with hosted symbol content | Hover bezel configuration required correction. Press opacity is still customized. Two symbols are compositions. |
 | Editor action bar | `EditorActionBar.swift`: moved from SwiftUI plain buttons to AppKit accessory-bar buttons | Compare hover and pressed states against the supplied screenshots. |
-| Action list | `ActionListPanel.swift`: `ScrollView`, `LazyVStack`, buttons, custom `ActionRowButtonStyle` | Priority: manually implemented hover, press, opacity, and selection behavior. Reference accessibility exposes a table. |
+| Action list | `NativeActionTable.swift`: `NSTableView` with hosted row content | Native selection, arrow keys, double click, Return, and context menus. Row icons and separators still use SwiftUI. Search section headings and accessibility secondary actions need more comparison. |
 | Folder selector | `VisualControls.swift`: `FolderControl` uses buttons, capsules, and drawn separators | Priority: imitates a segmented control. Compare with `NSSegmentedControl` before replacing it. |
 | Editor footer and panel utilities | `EditorFooter.swift`, panel headers: mostly SwiftUI plain buttons | Priority: same interaction family as the reported hover mismatch. |
 | Filter sidebar | `DraftFiltersPanel.swift`: custom rows, chips, backgrounds, and buttons | Selection and focus are manually assembled. Review keyboard and pointer behavior. |
