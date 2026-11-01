@@ -2,12 +2,12 @@ import Foundation
 
 package enum AgentOperationSchemas {
     package static var operationNames: Set<String> {
-        AgentReadSchemas.operationNames.union(AgentActionSchemas.operationNames).union(AgentExecutionSchemas.operationNames)
+        AgentReadSchemas.operationNames.union(AgentActionSchemas.operationNames).union(AgentExecutionSchemas.operationNames).union(AgentWorkspaceSchemas.operationNames)
     }
 
     package static func schema(for operation: String) -> AgentOperationSchema? {
         AgentReadSchemas.schema(for: operation) ?? AgentActionSchemas.schema(for: operation)
-            ?? AgentExecutionSchemas.schema(for: operation)
+            ?? AgentExecutionSchemas.schema(for: operation) ?? AgentWorkspaceSchemas.schema(for: operation)
     }
 
     // This validates shape and target binding. It does not authorize or execute a request.
@@ -20,6 +20,9 @@ package enum AgentOperationSchemas {
         }
         if AgentActionSchemas.operationNames.contains(request.operation) {
             return try AgentActionSchemas.validatedParameters(for: request)
+        }
+        if AgentWorkspaceSchemas.operationNames.contains(request.operation) {
+            return try AgentWorkspaceSchemas.validatedParameters(for: request)
         }
         guard let schema = schema(for: request.operation) else { throw AgentErrorCode.unavailable }
         return try schema.validatedParameters(request.parameters)
@@ -46,12 +49,22 @@ package enum AgentOperationSchemas {
         switch request.operation {
         case "drafts.get": binding = ("draft", "id", .draft)
         case "actions.get": binding = ("action", "id", .action)
+        case "workspaces.get": binding = ("workspace", "id", .workspace)
+        case "workspaces.update": binding = ("resource", "id", .workspace)
         case "actionGroups.get": binding = ("group", "id", .actionGroup)
         case "actions.update", "actions.move": binding = ("resource", "id", .action)
         case "actionGroups.update": binding = ("resource", "id", .actionGroup)
         case "operations.get", "operations.wait", "operations.cancel", "operations.answerPrompt":
             binding = ("operation", "operationID", .operation)
         default: binding = nil
+        }
+        if request.operation == "workspaces.apply" {
+            for (key, kind) in [("workspaceID", AgentResourceKind.workspace), ("windowID", .window)] {
+                guard case .string(let rawID) = values[key],
+                      UUID(uuidString: rawID) == request.targets.first(where: { $0.kind == kind })?.id else {
+                    throw AgentSchemaError.invalidValue
+                }
+            }
         }
         if let binding {
             guard case .object(let object) = values[binding.field], case .string(let id) = object[binding.key],

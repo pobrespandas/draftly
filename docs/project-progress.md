@@ -19,13 +19,14 @@ cover isolation, expiry/revocation, target kinds, revision-token requirements,
 full-library backup authority, malformed/oversized messages, Unicode/decimal
 transport, and distinct pending/error/result states.
 
-Automatic validation passed 55 AgentContracts, 759 Core and 938 app tests with
+Automatic validation passed 66 AgentContracts, 759 Core and 938 app tests with
 complete result inventories, 285 Python tests, the structural matrix check,
 and the final local app build.
 See the [operation inventory](research/agent-operation-inventory.md) for reused
 characterization evidence and remaining schemas and runtime enforcement work.
-Thirty operations now have parameter/result schemas: eight discovery/draft reads,
-18 Action/group operations and four operation lifecycle routes.
+Thirty-nine operations now have parameter/result schemas: eight discovery/draft
+reads, 18 Action/group operations, four operation lifecycle routes and nine
+Workspace operations.
 They use one definition for validation, exported JSON Schema and request-local
 defaults. Chunk checks use UTF-16; result shapes separate summaries from content.
 The step effect catalog covers all 25 executor step types and always requires
@@ -43,7 +44,20 @@ to the busy error code. Its focused regression failed before the correction and
 passed afterward. The complete Swift suites, Python tests, structural matrix
 check and local build passed after this correction.
 
-Stage 1 is not closed: the other 98 operation schemas, detailed script/native
+Workspace permission review found two catalog gaps. Workspace queries now
+require draftsRead as well as workspacesRead. Applying a Workspace requires
+contextual effect authorization before theme or file references can load.
+The focused permission regression failed before the correction and passed after
+it. These checks remain unexposed baseline policy, not runtime enforcement.
+
+Workspace schemas preserve the canonical model and its string metadata without
+filling creation defaults. Queries share the draft page schema and do not replace
+saved filters. Shared resource rules bind update IDs and complete reorder lists.
+Apply results bind both the Workspace and window. Canonical fields that the model
+cannot retain fail explicitly; unknown metadata strings stay unchanged. No actual
+query, mutation, theme resolution or window application is enabled yet.
+
+Stage 1 is not closed: the other 89 operation schemas, detailed script/native
 effect checks and real executors still need implementation. Real agent clients have
 not been connected. The habitual app remains the released 0.1.3.
 
