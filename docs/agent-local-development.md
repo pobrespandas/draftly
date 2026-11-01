@@ -346,3 +346,26 @@ check a grant and does not reserve a snapshot across an `await`. A mutation
 handler must check current authority and signed retry keys, then check the live
 version immediately before mutation. Editor synchronization, Undo, receipts and
 recovery remain required before enabling that handler.
+
+## Coordinate a stored draft mutation
+
+Use `AgentEditorRegistry.synchronizeMutation` after current authorization and
+expected-version checks. It protects matching editor projections while the
+caller commits, then synchronizes the committed note through the existing Undo
+callback. It does not select or focus a window. Unconfirmed tag input remains
+editable; clean tag fields refresh from the saved note.
+
+The synchronous commit closure receives the candidate note and a reserved
+editor generation. It must return the normalized, committed note. The caller
+still owns durable storage and an atomic mutation receipt. The registry keeps
+that generation stable through its own synchronization and acknowledgement.
+Actual callback edits and navigation still invalidate it.
+
+A storage failure retains prior pending text and Undo. If no external state
+changed, it also restores the prior generation for a safe retry. A callback
+conflict after storage does not roll back committed data. Consult the durable
+receipt before retrying; never report rollback based only on a thrown error.
+
+This internal coordination is not an exposed write handler. Service key
+issuance, signed-key checks, receipts and recovery remain separate integration
+work. No normal application startup enables agent writes.

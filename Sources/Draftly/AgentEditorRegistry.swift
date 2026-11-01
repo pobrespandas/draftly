@@ -3,7 +3,7 @@ import Foundation
 import DraftlyCore
 import AgentContracts
 
-// Read pending text without saving, selecting or synchronizing an editor.
+// Track pending projections and coordinate explicit stored mutations.
 @MainActor final class AgentEditorRegistry {
     struct Snapshot {
         let note: Note
@@ -27,6 +27,8 @@ import AgentContracts
     private var entries: [ObjectIdentifier: Entry] = [:]
     private var generations: [UUID: UUID] = [:]
     private var valid = true
+    private var committing = false
+    private var controlledChanges: Set<ObjectIdentifier> = []
 
     init(library: LibraryStore, models: @escaping () -> [WindowModel]) {
         self.library = library; self.models = models
@@ -66,6 +68,64 @@ import AgentContracts
         return Snapshot(note: note, storedNote: stored, generation: generation.uuidString)
     }
 
+    // The caller owns authority, expected-version checks and the durable transaction.
+    func synchronizeMutation(_ note: Note, committing: (Note, String) throws -> Note) throws -> Snapshot {
+        guard valid else { throw AgentErrorCode.cancelled }
+        guard !self.committing else { throw AgentErrorCode.busy }
+        guard let stored = library.notes.first(where: { $0.id == note.id }) else { throw AgentErrorCode.notFound }
+        _ = try snapshot(stored)
+        let affected = trackedModels().filter { $0.editor.noteID == note.id }
+        let originals = affected.map { (model: $0, content: $0.editor.content, dirty: $0.hasUnsavedChanges) }
+        self.committing = true
+        defer { self.committing = false }
+        for model in affected { controlled(model) { model.hasUnsavedChanges = true } }
+        let previousGeneration = generations[note.id]
+        let generation = UUID()
+        generations[note.id] = generation
+        do {
+            let saved = try committing(note, generation.uuidString)
+            guard saved.id == note.id, DraftOperations.sameText(saved.content, note.content) else { throw AgentErrorCode.storageError }
+            guard valid else { throw AgentErrorCode.cancelled }
+            guard originals.allSatisfy({ $0.model.editor.noteID == note.id && DraftOperations.sameText($0.model.editor.content, $0.content) }) else {
+                throw AgentErrorCode.editorConflict
+            }
+            for original in originals {
+                let model = original.model
+                guard model.editor.noteID == note.id, DraftOperations.sameText(model.editor.content, original.content) else {
+                    throw AgentErrorCode.editorConflict
+                }
+                controlled(model) {
+                    model.editor.content = saved.content
+                    model.editor.selection = model.editor.safeSelection
+                    model.editor.acknowledgeSaved(saved)
+                    if DraftOperations.sameText(model.tagsText, stored.tags.joined(separator: ", ")) {
+                        model.tagsText = saved.tags.joined(separator: ", ")
+                    }
+                    model.hasUnsavedChanges = false
+                }
+                // Keep callbacks outside the controlled assignments. New edits must invalidate the version.
+                model.editor.synchronizeScriptEdit?()
+            }
+            return try snapshot(saved)
+        } catch {
+            for original in originals where original.model.editor.noteID == note.id
+                && DraftOperations.sameText(original.model.editor.content, original.content) {
+                controlled(original.model) {
+                    original.model.hasUnsavedChanges = original.dirty || original.model.editor.hasUnpersistedText
+                }
+            }
+            if generations[note.id] == generation { generations[note.id] = previousGeneration }
+            throw error
+        }
+    }
+
+    private func controlled(_ model: WindowModel, update: () -> Void) {
+        let id = ObjectIdentifier(model)
+        controlledChanges.insert(id)
+        defer { controlledChanges.remove(id) }
+        update()
+    }
+
     private func touch(_ id: UUID?) {
         guard let id, generations[id] != nil else { return }
         generations[id] = UUID()
@@ -91,11 +151,11 @@ import AgentContracts
                 },
                 model.editor.$content.dropFirst().sink { [weak self, weak entry] content in
                     guard let self, let entry, !DraftOperations.sameText(entry.content, content) else { return }
-                    self.touch(entry.noteID); entry.content = content
+                    if !self.controlledChanges.contains(id) { self.touch(entry.noteID) }; entry.content = content
                 },
                 model.$hasUnsavedChanges.dropFirst().sink { [weak self, weak entry] dirty in
                     guard let self, let entry, entry.dirty != dirty else { return }
-                    self.touch(entry.noteID); entry.dirty = dirty
+                    if !self.controlledChanges.contains(id) { self.touch(entry.noteID) }; entry.dirty = dirty
                 }
             ]
         }
