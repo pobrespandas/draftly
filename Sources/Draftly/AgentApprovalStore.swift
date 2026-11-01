@@ -43,8 +43,7 @@ import AgentContracts
     private let capacity: Int
     private var entries: [UUID: Entry] = [:]
     static let lifetime: TimeInterval = 300
-    // Internal normalization and binding budgets do not reduce the wire limit.
-    private static let maximumNormalizedBytes = AgentRequest.maximumBytes * 2
+    // The binding budget does not reduce the wire limit.
     private static let maximumBindingBytes = AgentRequest.maximumBytes * 4
 
     init(epoch: UUID = UUID(), capacity: Int = 256,
@@ -178,9 +177,8 @@ import AgentContracts
         -> (fingerprint: String, grantFingerprint: String, grant: AgentGrant) {
         guard !isLocked() else { invalidateForScreenLock(); throw AgentErrorCode.interactionRequired }
         // Reuse the wire and operation validators, including request-local defaults.
-        let checked = try AgentRequest.decode(JSONEncoder().encode(request))
-        let preferences = try AgentPreferenceCatalog.make()
-        let parameters = try AgentOperationSchemas.validatedParameters(for: checked, preferences: preferences)
+        let prepared = try AgentRequestBinding.prepare(request, preferences: AgentPreferenceCatalog.make())
+        let checked = prepared.request
         guard let grant = currentGrant(connectionID) else { throw AgentErrorCode.permissionDenied }
         if case .denied(let code) = AgentPermissionPolicy.evaluate(checked, connectionID: connectionID, grant: grant, now: now()) {
             throw code
@@ -188,9 +186,7 @@ import AgentContracts
         guard grant.capabilities.isSuperset(of: effects.capabilities),
               effects.targets.allSatisfy(grant.scope.permits),
               !effects.requiresLibraryScope || grant.scope == .library else { throw AgentErrorCode.permissionDenied }
-        let normalized = AgentRequest(requestID: checked.requestID, libraryID: checked.libraryID,
-            operation: checked.operation, targets: checked.targets, expectedVersion: checked.expectedVersion, parameters: parameters)
-        let requestValue = try JSONDecoder().decode(AgentJSONValue.self, from: encoded(normalized, maximum: Self.maximumNormalizedBytes))
+        let requestValue = prepared.value
         let effectValue = AgentJSONValue.object([
             "capabilities": .array(effects.capabilities.map(\.rawValue).sorted().map(AgentJSONValue.string)),
             "targets": references(effects.targets), "requiresLibraryScope": .bool(effects.requiresLibraryScope),
@@ -204,27 +200,15 @@ import AgentContracts
     }
 
     private func grantDigest(_ grant: AgentGrant) throws -> String {
-        let scope: AgentJSONValue
-        switch grant.scope { case .library: scope = .string("library")
-        case .resources(let values): scope = references(values) }
-        return try digest(.object([
-            "grantID": .string(grant.grantID.uuidString), "connectionID": .string(grant.connectionID.uuidString),
-            "libraryID": .string(grant.libraryID.uuidString), "scope": scope, "revoked": .bool(grant.revoked),
-            "expiresAt": .string(String(grant.expiresAt.timeIntervalSince1970.bitPattern, radix: 16)),
-            "capabilities": .array(grant.capabilities.map(\.rawValue).sorted().map(AgentJSONValue.string))
-        ]))
+        try digest(AgentRequestBinding.grantValue(grant))
     }
 
     private func references(_ values: Set<AgentResourceReference>) -> AgentJSONValue {
-        .array(values.sorted { ($0.kind.rawValue, $0.id.uuidString) < ($1.kind.rawValue, $1.id.uuidString) }
-            .map { .object(["kind": .string($0.kind.rawValue), "id": .string($0.id.uuidString)]) })
+        AgentRequestBinding.references(values)
     }
 
     private func encoded<T: Encodable>(_ value: T, maximum: Int = AgentRequest.maximumBytes) throws -> Data {
-        let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
-        let data = try encoder.encode(value)
-        guard data.count <= maximum else { throw AgentErrorCode.invalidInput }
-        return data
+        try AgentRequestBinding.encoded(value, maximum: maximum)
     }
 
     private func digest(_ value: AgentJSONValue, maximum: Int = AgentRequest.maximumBytes) throws -> String {
