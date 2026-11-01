@@ -11,7 +11,7 @@ struct DefaultActionCatalogTests {
         let actions = library!.orderedActions(on: .list)
         #expect(library!.groupNames == DefaultActionCatalog.groupNames)
         #expect(actions.count == DefaultActionCatalog.actions.count)
-        #expect(actions.count == 105)
+        #expect(actions.count == 110)
         #expect(Set(actions.map(\.id)).count == actions.count)
         #expect(Set(actions.flatMap(\.steps).map(\.id)).count == actions.flatMap(\.steps).count)
         #expect(actions.allSatisfy { !$0.symbol.isEmpty && $0.unsupportedSteps.isEmpty })
@@ -151,6 +151,38 @@ struct DefaultActionCatalogTests {
         #expect(library.notes.filter { $0.tags.contains("renamed") }.count == 2)
         #expect(library.notes.allSatisfy { !$0.tags.contains("old") })
     }
+
+    @Test func tableAndNumberActionsApplyReviewedValues() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let editor = EditorSession(); editor.load(try library.createNote(content: "| A |\n| - |"))
+        editor.selection = NSRange(location: 0, length: editor.content.utf16.count)
+        let host = DefaultCatalogHost(); let runner = ActionRunner(library: library, editor: editor, host: host)
+        host.promptFields = ["table": "| B |\n| - |"]
+        #expect(runner.run(try #require(DefaultActionCatalog.actions.first { $0.name == "Edit Markdown Table" })))
+        #expect(editor.content == "| B |\n| - |")
+        editor.content = "1234.5"; editor.selection = NSRange(location: 0, length: 6)
+        host.promptFields = ["decimals": 2]
+        #expect(runner.run(try #require(DefaultActionCatalog.actions.first { $0.name == "Format Number" })))
+        #expect(editor.content.replacingOccurrences(of: "\u{a0}", with: " ").contains("234"))
+        #expect(editor.content.hasSuffix("50"))
+    }
+
+    @Test func workspaceActionsUseSelectionAndExistingWorkspaceRouting() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        var workspace = Workspace(name: "Tagged"); workspace.tags = ["work"]; try library.saveWorkspace(workspace)
+        let editor = EditorSession(); editor.load(try library.createNote(content: "Existing"))
+        let host = DefaultCatalogHost(); let runner = ActionRunner(library: library, editor: editor, host: host)
+        var applied: [Workspace] = []; runner.applyWorkspace = { applied.append($0) }
+        #expect(runner.run(try #require(DefaultActionCatalog.actions.first { $0.name == "Select Workspace" })))
+        #expect(applied.last?.name == "Tagged")
+        host.promptFields = ["tag": "focus"]
+        #expect(runner.run(try #require(DefaultActionCatalog.actions.first { $0.name == "Filter by Tag" })))
+        #expect(applied.last?.tags == ["focus"])
+        #expect(runner.run(try #require(DefaultActionCatalog.actions.first { $0.name == "New Draft in Workspace" })))
+        #expect(editor.noteID != nil)
+        #expect(editor.content.isEmpty)
+        #expect(library.notes.first { $0.id == editor.noteID }?.tags == ["work"])
+    }
 }
 
 @MainActor private final class DefaultCatalogHost: ActionHost {
@@ -160,6 +192,7 @@ struct DefaultActionCatalogTests {
     func perform(_ operation: String, values: [String: Any]) throws -> Any? {
         calls.append((operation, values))
         if operation == "prompt" { return ["index": promptIndex, "fields": promptFields] }
+        if operation == "selectPrompt" { return ["index": 0] }
         return true
     }
 }

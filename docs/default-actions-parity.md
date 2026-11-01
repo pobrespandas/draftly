@@ -17,11 +17,11 @@ the same rule.
 ## Classification
 
 `supported` means that the shipped Draftly catalog can run the action with its
-current engine. `implementable` means that the behavior is reasonable but is
-not in this catalog revision. `blocked` means that safe parity needs a new
-service, account flow, paid service, or non-public contract.
+current engine. `blocked` means that safe parity needs a new service, account
+flow, paid service, or non-public contract. This revision has no remaining
+`implementable` entries.
 
-The catalog revision is 1. It contains 105 entries, including separators. All
+The catalog revision is 1. It contains 110 entries, including separators. All
 installed steps use supported Draftly step types. Separators keep their observed
 names and positions relative to installed actions.
 
@@ -73,7 +73,7 @@ names and positions relative to installed actions.
 | Block Elements | supported | Separator. |
 | List, Quote Increase, Quote Decrease, Code Block | supported | Edits the selected lines. |
 | Markdown Table | supported | Inserts a neutral two-column table. |
-| Edit Markdown Table | implementable | Needs an interactive table editor. |
+| Edit Markdown Table | supported | Opens the selected table in a review field, then replaces it atomically. |
 | Preview | supported | Uses the current Draftly Markdown renderer. |
 | Preview - RTL | supported | Uses the renderer in a right-to-left container. |
 | Swiss Preview, Foghorn Preview | blocked | The named Drafts presentation styles are not public Draftly resources. |
@@ -92,7 +92,7 @@ names and positions relative to installed actions.
 | UPPER, lower, Title, Sort | supported | Transforms the selection or complete draft. |
 | Straighten Quotes, Strip Diacritics, Strip Line Feed | supported | Uses local deterministic text transforms. |
 | Hard Wrap, Strip Extra Blank Lines, Trim Whitespace, Remove Blank Lines | supported | Uses local deterministic line transforms. |
-| Format Number | implementable | Needs locale and formatting choices. |
+| Format Number | supported | Formats a number or percentage with the current locale and a selected decimal count. |
 | Smart Parentheses, Smart Brackets, Smart Braces | supported | Wraps the selection. |
 | With Options | supported | Separator. |
 | Change Case..., Sort Lines... | supported | Shows a review prompt before applying the selected local transform. |
@@ -108,7 +108,7 @@ names and positions relative to installed actions.
 | Update Tags..., Rename Tag... | supported | Shows a review prompt, then updates the draft or renames the tag across the library. |
 | Flag, Unflag | supported | Updates the current draft flag. |
 | Workspaces | supported | Separator. |
-| Select Workspace, Filter by Tag, New Draft in Workspace | implementable | Need selection dialogs and workspace routing. |
+| Select Workspace, Filter by Tag, New Draft in Workspace | supported | Uses local selection dialogs and the existing workspace routing API. |
 | New Draft with Template, Apply Template | supported | Uses create-draft and insert-text steps. |
 | Previous Placeholder, Next Placeholder | supported | Selects the previous or next `<|>` marker. |
 

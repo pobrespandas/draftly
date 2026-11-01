@@ -129,6 +129,7 @@ public enum DefaultActionCatalog {
             script("Quote-Decrease", "Markdown", "decrease.quotelevel", lineTransform("return line.replace(/^> ?/, '');")),
             wrap("Code Block (```)", "```\n", "\n```", "curlybraces"),
             action("Markdown Table", "Markdown", "tablecells", [.init("insertText", ["template": "| Header | Header |\n| --- | --- |\n| Cell | Cell |"]) ]),
+            script("Edit Markdown Table", "Markdown", "tablecells.badge.ellipsis", editMarkdownTable),
             action("Preview", "Markdown", "eye", [.init("htmlpreview", ["template": "[[draft]]"])], legacyID: 4),
             script("Preview - RTL", "Markdown", "text.alignright", "var p=HTMLPreview.create(); p.show('<div dir=\"rtl\">'+MultiMarkdown.create().render(draft.content)+'</div>');"),
             separator("Utility", "Markdown"),
@@ -155,6 +156,7 @@ public enum DefaultActionCatalog {
             transform("Strip Extra Blank Lines", "text.badge.minus", "return text.replace(/\\n{3,}/g, '\\n\\n');"),
             transform("Trim Whitespace", "scissors", "return text.split('\\n').map(line => line.trim()).join('\\n').trim();"),
             transform("Remove Blank Lines", "line.3.horizontal.decrease", "return text.split('\\n').filter(line => line.trim()).join('\\n');"),
+            script("Format Number", "Tools", "number", formatNumber),
             transform("Smart Parentheses", "parentheses", "return '(' + text + ')';"),
             transform("Smart Brackets", "ellipsis.rectangle", "return '[' + text + ']';"),
             transform("Smart Braces", "curlybraces", "return '{' + text + '}';"),
@@ -179,6 +181,9 @@ public enum DefaultActionCatalog {
             script("Flag", "Processing", "flag.fill", "draft.isFlagged = true; draft.update();"),
             script("Unflag", "Processing", "flag", "draft.isFlagged = false; draft.update();"),
             separator("Workspaces", "Processing"),
+            script("Select Workspace", "Processing", "rectangle.3.group", selectWorkspace),
+            script("Filter by Tag", "Processing", "tag", filterByTag),
+            script("New Draft in Workspace", "Processing", "doc.badge.plus", newDraftInWorkspace),
             separator("Templates", "Processing"),
             action("New Draft with Template", "Processing", "doc.badge.plus", [.init("createDraft", ["template": "[[draft]]", "openInEditor": "true"]) ]),
             action("Apply Template", "Processing", "doc.text", [.init("insertText", ["template": "[[draft]]"]) ]),
@@ -283,6 +288,57 @@ public enum DefaultActionCatalog {
     }
     """
 
+    private static let editMarkdownTable = """
+    var r=editor.getSelectedLineRange(), text=editor.getTextInRange(r[0],r[1]);
+    var p=Prompt.create(); p.title='Edit Markdown Table'; p.addTextView('table','Markdown table',text); p.addButton('Apply','apply',true);
+    if(!p.show()){context.cancel();} else {
+        var replacement=String(p.fieldValues.table || '');
+        editor.setTextInRange(r[0],r[1],replacement); editor.setSelectedRange(r[0],replacement.length);
+    }
+    """
+
+    private static let formatNumber = """
+    var r=editor.getSelectedRange(); if(!r[1]) r=[0,editor.getText().length];
+    var raw=editor.getTextInRange(r[0],r[1]).trim();
+    var p=Prompt.create(); p.title='Format Number'; p.addNumberField('decimals','Decimal places',2,false); p.addButton('Number','number',true); p.addButton('Percent','percent');
+    if(!p.show()){context.cancel();} else {
+        var value=Number(raw), digits=Math.max(0,Math.min(20,Math.round(Number(p.fieldValues.decimals))));
+        if(!Number.isFinite(value)){context.fail('Select a valid number.');}
+        else {
+            if(p.buttonPressed==='percent') value*=100;
+            var replacement=value.toLocaleString(undefined,{minimumFractionDigits:digits,maximumFractionDigits:digits})+(p.buttonPressed==='percent'?'%':'');
+            editor.setTextInRange(r[0],r[1],replacement); editor.setSelectedRange(r[0],replacement.length);
+        }
+    }
+    """
+
+    private static let selectWorkspace = workspaceSelectionScript(body: "app.applyWorkspace(selected);")
+
+    private static let filterByTag = """
+    var p=Prompt.create(); p.title='Filter by Tag'; p.addTextField('tag','Tag',''); p.addButton('Filter','filter',true);
+    if(!p.show()){context.cancel();} else {
+        var tag=String(p.fieldValues.tag || '').trim();
+        if(!tag){context.fail('Enter a tag.');} else { var workspace=Workspace.create(); workspace.tagFilter=tag; app.applyWorkspace(workspace); }
+    }
+    """
+
+    private static let newDraftInWorkspace = workspaceSelectionScript(body: """
+    app.applyWorkspace(selected);
+    var created=Draft.create();
+    created.tags=selected.tagFilter.split(',').map(function(tag){return tag.trim();}).filter(function(tag){return tag && tag.charAt(0)!=='!';});
+    created.update(); editor.load(created);
+    """)
+
+    private static func workspaceSelectionScript(body: String) -> String {
+        """
+        var workspaces=Workspace.getAll(), picker=SelectPrompt.create(); picker.title='Select Workspace';
+        workspaces.forEach(function(workspace,index){picker.addItem(String(index),workspace.name);});
+        if(!workspaces.length){context.fail('Create a workspace first.');}
+        else if(!picker.show()){context.cancel();}
+        else { var selected=workspaces[Number(picker.selectedItem.id)]; \(body) }
+        """
+    }
+
     private static func optionTransform(title: String, firstTitle: String, firstValue: String,
                                         secondTitle: String, secondValue: String,
                                         first: String, second: String) -> String {
@@ -341,9 +397,9 @@ public enum DefaultActionCatalog {
         let inventories: [String: [String]] = [
             "Basic": ["Copy", "Share", "Mail", "Message", "Google Search", "Event", "Send to Reminders", "List in Reminders", "Print - Plain Text", "Services", "Save to Files", "Save to Files as...", "Save to iCloud Drive", "Append to iCloud Journal", "Save to Google Drive", "Append to Google Drive Journal", "Save to OneDrive", "Append to OneDrive Journal"],
             "Editing": ["Undo/Redo", "Undo", "Redo", "Cursor Movement", "Move Left", "Move Right", "Move Back by Word", "Move Forward by Word", "Commands", "Find", "Advanced Find", "Make Tasks", "Toggle Tasks", "Insert Date", "Insert Dictation", "Dictate New Draft", "Copy Selection", "Paste as Plain Text", "Mail", "Message", "Text Manipulation", "Indent", "Outdent", "Move Line Up", "Move Line Down", "Duplicate Line", "Previous Marker", "Next Marker", "Utility", "Toggle Theme"],
-            "Markdown": ["Markdown Header (#)", "Markdown Bold (**)", "Markdown Emphasis (_)", "Markdown Link", "Inline Code (`)", "Markdown Footnote (^)", "Block Elements", "Markdown List", "Quote-Increase (>)", "Quote-Decrease", "Code Block (```)", "Markdown Table", "Preview", "Preview - RTL", "Utility", "Markdown Mail", "Copy as HTML", "Copy as Rich Text", "Copy as Rich Text w/o Styles", "Paste as Markdown", "Print - Markdown"],
-            "Tools": ["Change Selection", "UPPER", "lower", "Title", "Sort", "Straighten Quotes", "Strip Diacritics", "Strip Line Feed", "Hard Wrap", "Strip Extra Blank Lines", "Trim Whitespace", "Remove Blank Lines", "Smart Parentheses", "Smart Brackets", "Smart Braces", "With Options", "Change Case...", "Sort Lines...", "Encode...", "Decode..."],
-            "Processing": ["Inbox", "Archive", "Save Version", "Trash", "Stats", "Tags & Flags", "Update Tags...", "Rename Tag...", "Flag", "Unflag", "Workspaces", "Templates", "New Draft with Template", "Apply Template", "Previous Placeholder <|>", "Next Placeholder <|>"]
+            "Markdown": ["Markdown Header (#)", "Markdown Bold (**)", "Markdown Emphasis (_)", "Markdown Link", "Inline Code (`)", "Markdown Footnote (^)", "Block Elements", "Markdown List", "Quote-Increase (>)", "Quote-Decrease", "Code Block (```)", "Markdown Table", "Edit Markdown Table", "Preview", "Preview - RTL", "Utility", "Markdown Mail", "Copy as HTML", "Copy as Rich Text", "Copy as Rich Text w/o Styles", "Paste as Markdown", "Print - Markdown"],
+            "Tools": ["Change Selection", "UPPER", "lower", "Title", "Sort", "Straighten Quotes", "Strip Diacritics", "Strip Line Feed", "Hard Wrap", "Strip Extra Blank Lines", "Trim Whitespace", "Remove Blank Lines", "Format Number", "Smart Parentheses", "Smart Brackets", "Smart Braces", "With Options", "Change Case...", "Sort Lines...", "Encode...", "Decode..."],
+            "Processing": ["Inbox", "Archive", "Save Version", "Trash", "Stats", "Tags & Flags", "Update Tags...", "Rename Tag...", "Flag", "Unflag", "Workspaces", "Select Workspace", "Filter by Tag", "New Draft in Workspace", "Templates", "New Draft with Template", "Apply Template", "Previous Placeholder <|>", "Next Placeholder <|>"]
         ]
         return inventories[group]?.firstIndex(of: name) ?? 0
     }
