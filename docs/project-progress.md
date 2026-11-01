@@ -3,6 +3,33 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Local host assembly — 1 November
+
+AgentLocalHost now constructs one real loaded-library binding, private metadata
+file, permission registry, read service, pairing coordinator and optional broker.
+All metadata and admission paths share its owner validator. The default native
+application check rejects an unprovisioned build before creating agent state.
+Construction does not enable or start transport. Human Settings commands and
+explicit resume/suspend/close commands control its lifetime. Close invalidates
+sessions and pending decisions before releasing the library lease.
+
+Fourteen assembly tests use real temporary SQLite stores and Unix sockets, with
+explicit in-memory credentials and signature substitutes. They cover Settings
+approval/Cancel, scoped reads, revoke, reopen, close, retained models/services,
+lock/resume, owner loss, transient contention, failed startup compensation and
+unreadable metadata. They also check that failed compensation reports
+outcomeUnknown rather than a false disabled preference. The first focused eight
+suites passed 125 tests; the final assembly suite passed 14 after that added
+error case. Complete final Swift results passed with verified inventories:
+1 consumer, 146 contracts, 763 Core and 1156 application tests. All 286 Python
+tests passed and the structural matrix has zero errors. The generated Xcode app
+build passed. No test opens a window,
+requests a permission, records audio or uses personal data.
+
+Normal AppController startup, locator publication, editor/lock adapters, signed
+helper packaging and real shared-Keychain acceptance remain pending. This does
+not activate access in the installed app or complete local agent functionality.
+
 ## Host checks for human pairing — 1 November
 
 AgentPairingCoordinator now requires an explicit host validator. Requests,
@@ -23,8 +50,8 @@ acceptance remain pending. No installed app or listener was activated.
 
 PR #51 passed its complete exact-head CI, including the required summary check,
 and merged as aa15c417. This also integrated PR #50 through the preserved history.
-The read-admission follow-up and this pairing change remain on their work branch
-until their own checks and review pass.
+PR #52 later passed complete exact-head CI and merged the read-admission and
+pairing follow-ups as 3afa1b3f. The local host assembly is a separate change.
 
 ## Host checks at read admission — 1 November
 

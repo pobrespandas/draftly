@@ -881,3 +881,24 @@ inodes in place. Ownership validation is required before every admitted request;
 a non-contention failure remains invalid until a new host epoch. The app factory
 and broker still need to consume this lease before normal activation. See
 [the binding decision](adr/0003-local-agent-library-binding.md).
+
+
+AgentLocalHost assembles one loaded library, AgentHostLease, private connection
+file, registry, command service, pairing coordinator and optional socket broker.
+It derives the library ID from the lease. Both admission paths and every metadata
+access use that same owner. Application identity must pass before state creation;
+tests inject an isolated backend explicitly.
+
+Construction does not listen or write an enabled preference. Human Settings
+commands can enable the broker. Explicit resume rechecks ownership, application
+identity and lock state. Suspension closes the broker and invalidates sessions
+and pending reviews. Close does that before releasing the lease. A discarded host
+has a MainActor-isolated deinitializer as a fallback; shutdown and library changes
+must call close explicitly rather than depend on deinitializer timing. See
+[Swift SE-0371](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0371-isolated-synchronous-deinit.md).
+
+A failed first enable compensates its new enabled preference. If that write also
+fails, it reports outcomeUnknown. Unreadable metadata is not repaired. Temporary
+ownership contention does not tear down a live broker. Normal AppController
+startup, locator publication, editor/lock adapters and signed helper provisioning
+remain separate, unfinished wiring; the assembly alone does not activate access.

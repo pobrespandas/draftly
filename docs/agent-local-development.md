@@ -192,14 +192,16 @@ its host setup before it supplies that Settings model or starts the broker.
 
 ## Local host ownership
 
-Create AgentLibraryLocation from the loaded LibraryStore, then AgentHostLease
-before the listener. Keep the lease for the whole broker lifetime. Validate it
-before each admission; a locator is not proof of ownership. Supply that same
-lease validator to AgentCommandService and AgentPairingCoordinator. Both require
-an explicit validator; in-memory substitutes belong only in test fixtures and
-the isolated manual preview. Stop the broker and
-invalidate its sessions before releasing the lease. The normal host factory and
-locator remain unfinished; low-level socket fixtures do not prove that wiring.
+Use AgentLocalHost to assemble the loaded library, lease, registry, service,
+pairing coordinator and broker. It supplies the same owner validator to both
+admission paths and private metadata access. Construction never listens. Use
+explicit lifecycle commands to resume, suspend and close it. Close before a
+library change or app shutdown; a locator is not proof of ownership.
+
+Normal AppController startup still needs editor and lock adapters, a locator and
+a provisioned signed helper. Keep it disconnected until those checks pass.
+In-memory credential and signature substitutes belong only in test fixtures and
+the isolated manual preview. Assembly tests do not prove signed acceptance.
 
 The private binding uses the actual store parent and a versioned identity file.
 Copies and replacements do not inherit grants. Failed record decoding never
