@@ -3,6 +3,26 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Local connection storage foundation — 1 November
+
+The application has a private metadata file and an internal connection registry.
+New access is disabled. New connections default to selected-resource reads and
+a one-hour grant. Metadata round trips retain the grant identity and expiry.
+Credentials are separate, and management results never include them. Unsupported
+metadata versions or security fields fail closed without overwriting the file.
+
+Nineteen headless tests cover real private-file replacement/reopening, conflicts,
+unsafe permissions, links, FIFOs and extended ACLs, plus credential validation,
+expiry, revocation, grant replacement and partial storage failures. Credential
+operations use injected memory adapters. Full Swift inventories, Python 286 and
+the structural matrix passed. No personal Keychain, signed helper or real client
+was used; those are not approved by these tests.
+
+The production Keychain adapter, pairing/management UI, secure transport and
+per-request command service remain pending. All operation handlers remain
+unavailable. Stored metadata is outside the library and sync/backup payloads.
+The installed app is unchanged.
+
 ## Protected approval foundation — 1 November
 
 AgentApprovalStore now binds one-use human consent to the normalized request,
@@ -116,7 +136,7 @@ full-library backup authority, malformed/oversized messages, Unicode/decimal
 transport, and distinct pending/error/result states.
 
 Automatic validation passed one package-consumer test, 127 AgentContracts,
-763 Core and 988 app tests with
+763 Core and 1007 app tests with
 complete result inventories, 286 Python tests, the structural matrix check,
 and the final local app build.
 See the [operation inventory](research/agent-operation-inventory.md) for reused
