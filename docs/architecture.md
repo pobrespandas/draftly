@@ -729,7 +729,7 @@ can fall back to a normal preview, as in the existing row presentation.
 AgentReadPages retains only resource IDs and order. Values remain current on
 each page; deleted members are skipped and new members are not added. Signed,
 opaque cursors bind the normalized query, targets, session and grant. They expire
-after at most five minutes or the grant deadline. Monotonic time bounds their
+after at most ten minutes or the grant deadline. Monotonic time bounds their
 lifetime. A replay reads the same membership position, not a cached content copy.
 There are at most 64 snapshots and one million retained IDs per service.
 
