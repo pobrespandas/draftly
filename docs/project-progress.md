@@ -3,6 +3,32 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Publication responsibility refactor — 1 November
+
+The concrete problem was mixed ownership in AgentLocalHost: transport and
+permission orchestration also managed retained publication attempts and cleanup
+errors. AgentHostPublications now owns that small state machine. The host keeps
+all authority checks and the original effect order. AgentHostLocator keeps file
+validation, serialization and exact-epoch replacement. No protocol or public API
+was added. A publication remains distinct from a grant, as defined in the glossary.
+
+The reference tag is pre-refactor-host-publications-2026-11-01 at 08070f9.
+Before editing, complete Swift inventories passed: 1 consumer, 146 contracts,
+763 Core and 1169 application tests. All 286 Python tests, the structural matrix
+and the local app build passed. This is a local checkpoint, not signed acceptance.
+After extraction, the 139 focused tests and all 2079 complete Swift tests passed
+with the same inventory. All 286 Python tests and the structural check passed.
+The generated local app build passed and kept its identity and URL scheme.
+No manual UI check was needed for this internal extraction; signed-helper
+acceptance remains outside this refactor. No test was removed or
+consolidated: the cleanup, contention and later-epoch cases cover different paths.
+
+Risk: preserve socket stop, session invalidation, publication withdrawal and lease
+release in that order. Both owner checks still surround publication, and the
+original cleanup retries and error results remain. The handoff now starts with a
+current checkpoint; earlier journals remain available as historical evidence.
+No new functionality or installed-app change belongs to this refactor.
+
 ## Private host locator — 1 November
 
 AgentHostLocator now publishes private atomic discovery hints with library ID,
@@ -41,14 +67,15 @@ tags, date and an unknown field to check that real payload changes remain visibl
 The 15 focused host tests passed, including the new regression case. Production,
 backup formats and collection ordering are unchanged.
 
-PR #53 CI 41297544381 remains failed and unmerged. Its host tests passed, but the
+The initial PR #53 CI run 41297544381 failed. Its host tests passed, but the
 application process returned zero with an unfinished XML report during
 TypewriterScrollingTests. No assertion failure or cause was recorded. Diagnostic
 run 41298598924 executes only that suite on main, without the new host changes.
 The isolated diagnostic passed; it does not identify the cause or prove that
 the original full-run interruption was pre-existing. Do not merge #53
-until a complete exact-head check passes. No deadline or retry was added. The assertion correction is commit ed30f41;
-PR #53 now has a new exact-head CI run 41298902468. It is still pending.
+until a complete exact-head check passes. No deadline or retry was added. The assertion correction is commit ed30f41.
+Its exact-head CI run 41298902468 later passed all required checks. PR #53 has
+not yet merged; the original interruption still has no confirmed cause.
 
 ## Local host assembly — 1 November
 

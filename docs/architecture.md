@@ -910,10 +910,12 @@ It is not authority and contains no credential. Atomic publication uses the
 existing private-file policy and expected-byte replacement. Readers use a pinned,
 bounded snapshot without creating directories, locks or files.
 
-AgentLocalHost publishes after creating its broker and checking ownership. Close
-stops transport first, then withdraws only its exact epochs. Failed withdrawal
-retains those epochs and a cleanup error for another explicit close or suspend.
-A later owner's entry survives. A stale hint never authorizes socket deletion or
+AgentLocalHost owns the order of transport and authority checks. It delegates
+publication attempts, retained epochs and cleanup errors to AgentHostPublications.
+The host finishes publication bookkeeping only after the second ownership check.
+Close stops transport before withdrawal. The publication component keeps failed
+epochs for another explicit cleanup attempt; AgentHostLocator still owns exact
+matching and durable replacement. A later owner's entry survives. A stale hint never authorizes socket deletion or
 connection access. Clients must still verify the real signed peer and authenticate.
 The helper discover command reads this catalog; automatic destination selection,
 client configuration export and normal app startup remain unfinished.
