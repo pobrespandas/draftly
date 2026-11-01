@@ -31,6 +31,8 @@ signing guides to install the released app.
   metadata, reused tests, and missing schema and execution work.
 - [Agent readiness audit](research/agent-readiness-audit-2026-10-31.md): current
   code boundaries, risks, and refactorings needed for that plan.
+- [Agent credential decision](adr/0001-agent-device-keychain.md): why credentials
+  use the device keychain and why the signed helper needs its own profile.
 
 ## Maintain and publish Draftly
 
