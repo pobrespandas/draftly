@@ -1065,3 +1065,19 @@ replacement. Valid replacements run from the highest offset to the lowest.
 Metadata remains unchanged. The resulting text is one editor mutation and one
 atomic note/receipt commit. A repeated signed request returns its prior receipt.
 AgentTextShapes owns the scalar-boundary check shared by chunk reads and patches.
+
+
+## Agent revision restoration
+
+The existing-draft writer also handles drafts.restoreVersion. It resolves the
+draft and revision targets by kind, so their input order does not choose the
+parent. The current grant must cover both targets. A missing revision or a
+revision from another draft returns not_found. The handler restores content only;
+other current note fields remain. It uses the same expected-draft version,
+editor synchronization, Undo and atomic receipt as update and patch.
+
+The writer resolves the revision again before the final commit and rejects a
+changed source. Recovery returns the stored result after authority checks,
+without applying the revision again. Preparation is not a stored copy of the
+revision: a new execution resolves the current revision by its explicit ID.
+Normal application startup still does not activate the local service.

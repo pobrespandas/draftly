@@ -508,7 +508,7 @@ struct AgentCommandServiceTests {
             guard case .object(let fields) = item, fields["available"] == .bool(true), case .string(let name) = fields["name"] else { return nil }
             return name
         })
-        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", AgentMutationSchemas.name, "drafts.update", "drafts.patch"]) && available.count == 12)
+        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", AgentMutationSchemas.name, "drafts.update", "drafts.patch", "drafts.restoreVersion"]) && available.count == 13)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.unavailable))
         #expect(f.library.notes.isEmpty)
         #expect(try f.values("server.capabilities", session: session)["capabilities"] == .array([.string("drafts.read"), .string("drafts.write")]))
@@ -623,7 +623,7 @@ struct AgentCommandServiceTests {
         let (_, session) = try f.connect(capabilities: [.draftsRead, .draftsWrite])
         let schemas = try f.values("server.schemas", session: session)
         guard case .array(let entries) = schemas["operations"] else { Issue.record("Missing schema entries"); return }
-        for name in ["mutations.prepare", "drafts.update", "drafts.patch"] {
+        for name in ["mutations.prepare", "drafts.update", "drafts.patch", "drafts.restoreVersion"] {
             let entry = entries.first { value in
                 guard case .object(let fields) = value else { return false }
                 return fields["name"] == .string(name)
