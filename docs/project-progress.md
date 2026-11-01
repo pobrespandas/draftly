@@ -5,32 +5,34 @@ Historical test reports describe only the versions they tested.
 
 ## Pending editor read projection — 1 November
 
-Follow-up lifecycle reproduction: a window could open, edit and close between
-reads without changing the version. That focused case failed before the new
-refreshMembership hook. The caller must use it at window registration and
-removal; lazy reads cannot recover missed lifecycle events. Afterwards all56
-focused cases and complete inventories passed (consumer1, contracts158, Core763,
-app1194: 2116 total), with Python286 and matrix0. The obsolete CI41307619354
-at57282bf was canceled for this correction. The replacement head still needs CI.
+AgentEditorRegistry projects current text for one bound library. Reads use that
+text for content, titles, previews, search and order after scope filtering.
+Divergent pending code units return editor_conflict. Clean stale views and other
+libraries cannot override pending text. The host and service reject a registry
+for another library before private host state is created.
 
-Two focused cases first reproduced stale stored reads and missing conflict
-errors. AgentEditorRegistry now projects pending text for one bound library.
-It observes text, draft and dirty-state changes without retaining windows.
-AgentDraftReading uses that text for content, titles, previews, search and order,
-after scope filtering. Different pending code units return editor_conflict.
-The generation records edit-then-revert between reads. Selection and focus do
-not change it. Clean stale windows and other libraries cannot override it.
+EditorSession supplies a package-only hasUnpersistedText check against its
+acknowledged baseline. The projection uses it as well as the window dirty flag.
+This catches Unicode changes before that flag changes. Normal save and scripting
+rules are unchanged. The registry keeps weak window references and records
+per-draft generations. Selection, focus and unrelated drafts do not change them.
 
-The registry is injectable through the host and service. A different library is
-rejected before private host state is created. A socket test returned pending
-text without saving it. All 55 focused cases passed. Complete Swift inventories
-passed: 1 consumer, 158 contracts, 763 Core and 1193 app (2115 total).
-All 286 Python tests and the structural matrix passed. Final helper and local
-app builds passed. Exact-head PR CI is still pending.
+The caller must invoke refreshMembership at window registration and removal.
+Lazy reads alone cannot observe a window opened, edited and closed between two
+requests. Three rounds of focused reproductions failed before their respective
+changes: stale reads/conflicts, missed membership and code-unit-only text.
+
+All62 focused cases passed (57 app, 5 Core). Complete inventories passed:
+consumer1, contracts158, Core764, app1195 (2118 total). Python286, matrix0 and
+final helper/local app builds passed. The socket case returned pending text
+without saving it. Other cases cover Unicode conflicts, edit/revert, weak
+lifetime, scope, selection, callbacks and wrong-library refusal.
 No public API, Note identity, library or backup format changed.
 
-These are headless, injected-host tests, not native UI or signed acceptance.
-Normal AppController wiring, system-lock handling, helper provisioning and
+CI41307619354 at57282bf was canceled as obsolete while fixing membership and
+Unicode regressions. The replacement head still needs exact-head CI. These are
+headless, injected-host tests, not native UI or signed acceptance. AppController
+wiring, lifecycle acceptance, system-lock handling, helper provisioning and
 editor mutations remain unfinished. No installed-app access is enabled.
 
 ## Stable library destinations — 1 November

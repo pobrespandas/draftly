@@ -19,6 +19,11 @@ public final class EditorSession: ObservableObject {
         guard noteID == note.id else { return }
         persistedDraft = (note.id, note.content)
     }
+    package var hasUnpersistedText: Bool {
+        guard let noteID else { return false }
+        guard let baseline = persistedDraft, baseline.id == noteID else { return true }
+        return !content.utf8.elementsEqual(baseline.content.utf8)
+    }
     public var safeSelection: NSRange {
         let count = (content as NSString).length
         let start = min(max(0, selection.location), count)

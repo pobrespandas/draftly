@@ -43,7 +43,9 @@ import AgentContracts
 
     func snapshot(_ stored: Note) throws -> Snapshot {
         let current = trackedModels()
-        let pending = current.filter { $0.editor.noteID == stored.id && $0.hasUnsavedChanges }
+        let pending = current.filter {
+            $0.editor.noteID == stored.id && ($0.hasUnsavedChanges || $0.editor.hasUnpersistedText)
+        }
         // Swift String equality folds canonically equivalent Unicode. Different
         // code units still represent different pending edits for this boundary.
         guard Set(pending.map { Data($0.editor.content.utf8) }).count <= 1 else {

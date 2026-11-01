@@ -954,7 +954,10 @@ AgentDraftReading filters authority before resolving editor state. It uses the
 same resolved text for content, titles, previews, search and list ordering.
 Matching dirty editors share one projection; different code units return
 editor_conflict. Clean stale views and other libraries cannot replace pending
-text. Reads never flush, synchronize, focus or change Undo. Stored metadata
+text. EditorSession supplies a package-internal hasUnpersistedText check against
+its acknowledged baseline. Exact bytes detect Unicode edits before the window
+dirty flag changes. This does not change the normal save or scripting rules.
+Reads never flush, synchronize, focus or change Undo. Stored metadata
 remains intact. The host and service reject a registry bound to another library.
 AppController wiring, editor mutations and the system-lock adapter remain
 unfinished. No installed-app access is enabled by this read adapter.

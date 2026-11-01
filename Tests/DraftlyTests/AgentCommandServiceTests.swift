@@ -167,7 +167,8 @@ struct AgentCommandServiceTests {
         let foreign = try LibraryStore(inMemory: true, seed: false)
         let a = try f.window(note, content: "Matching 🐼", dirty: true)
         let b = try f.window(note, content: "Matching 🐼", dirty: true)
-        let stale = try f.window(note, content: "Old clean text")
+        var staleNote = note; staleNote.content = "Old clean text"
+        let stale = try f.window(staleNote)
         let other = try f.window(note, content: "Foreign pending", dirty: true, library: foreign)
         f.editors = [stale, a, other, b]
         let first = try summary(f.get(note, session: session))
@@ -227,6 +228,20 @@ struct AgentCommandServiceTests {
         model.editor.content = note.content; f.editors = []
         #expect(try summary(f.get(note, session: session))["versionToken"] != before)
         #expect(f.library.notes.first?.content == note.content)
+    }
+
+    @Test func codeUnitOnlyEditsAreReadEvenBeforeTheWindowDirtyFlagChanges() throws {
+        let f = try Fixture(), note = try f.note("café"), (_, session) = try f.connect()
+        defer { f.cleanEditorPreferences() }
+        let model = try f.window(note); f.editors = [model]
+        model.editor.content = "cafe\u{0301}"
+        #expect(!model.hasUnsavedChanges)
+        let result = try f.get(note, session: session)
+        guard case .object(let chunk) = result["content"], case .string(let text) = chunk["text"] else {
+            Issue.record("Missing pending text"); return
+        }
+        #expect(Data(text.utf8) == Data(model.editor.content.utf8))
+        #expect(Data(try #require(f.library.notes.first).content.utf8) == Data(note.content.utf8))
     }
 
     @Test func registryObservationDoesNotRetainClosedWindowModels() throws {

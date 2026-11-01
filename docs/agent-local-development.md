@@ -126,6 +126,8 @@ Current draft reads then use
 pending text without saving or touching selection, focus or Undo. A conflicting
 pair of dirty editors returns editor_conflict. Search and sorting use projected
 text, after scope filtering. Historical revisions remain stored snapshots.
+Text is compared with the editor's acknowledged baseline by exact code units.
+The UI dirty flag can lag that text change; it is not the only pending-text test.
 Per-draft generations detect changes between reads, including edit and revert;
 selection changes and activity in other drafts do not affect the token.
 
