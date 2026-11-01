@@ -46,7 +46,9 @@ package struct AgentOperationDescriptor: Sendable {
         name == "actions.run" || name.hasPrefix("native.")
             || name == "preferences.update" || name == "preferences.reset"
             || name == "imports.commit" || name == "workspaces.apply"
-            || ["editor.open", "editor.navigate", "editor.preview"].contains(name)
+            || ["editor.open", "editor.navigate", "editor.preview", "themes.get", "themes.export",
+                "themes.update", "themes.duplicate", "themes.select", "themes.selectBuiltIn", "themes.reload",
+                "themes.install", "themes.replace", "syntaxes.get", "syntaxes.export", "syntaxes.install", "syntaxes.replace", "syntaxes.reload"].contains(name)
     }
 
     package func acceptsTargets(_ values: [AgentResourceReference]) -> Bool {
@@ -136,11 +138,18 @@ package enum AgentOperationCatalog {
         .init(name: "themes.update", owner: "InstalledThemeCommands", capabilities: [.appearanceManage], targets: .one(.theme), requiresExpectedVersion: true),
         .init(name: "themes.duplicate", owner: "InstalledThemeCommands", capabilities: [.appearanceManage], targets: .one(.theme), requiresExpectedVersion: true),
         .init(name: "themes.select", owner: "InstalledThemeCommands", capabilities: [.appearanceManage], targets: .one(.theme), requiresExpectedVersion: true),
-        .init(name: "themes.reload", owner: "InstalledThemeCommands", capabilities: [.appearanceManage], targets: .one(.theme), requiresExpectedVersion: true),
+        .init(name: "themes.selection", owner: "EditorThemePreferences", capabilities: [.appearanceRead], targets: .none),
+        .init(name: "themes.replace", owner: "ThemeFileAccess + InstalledThemeCommands", capabilities: [.appearanceManage, .filesRead], targets: .one(.theme), requiresExpectedVersion: true),
+        .init(name: "themes.selectBuiltIn", owner: "EditorThemePreferences + ThemeCatalog", capabilities: [.appearanceManage], targets: .none, requiresExpectedVersion: true),
+        .init(name: "themes.exportBuiltIn", owner: "ThemeInstallation", capabilities: [.appearanceRead], targets: .none),
+        .init(name: "themes.reload", owner: "InstalledThemeCommands", capabilities: [.appearanceManage, .filesRead], targets: .one(.theme), requiresExpectedVersion: true),
         .init(name: "themes.install", owner: "InstalledThemeCommands", capabilities: [.appearanceManage, .filesRead], targets: .none),
         .init(name: "themes.delete", owner: "InstalledThemeCommands", capabilities: [.appearanceManage, .destructiveRequest], targets: .one(.theme), requiresExpectedVersion: true, requiresHumanApproval: true),
         .init(name: "syntaxes.list", owner: "SyntaxDefinition + ScriptSyntax", capabilities: [.appearanceRead], targets: .none),
         .init(name: "syntaxes.get", owner: "SyntaxDefinition + ScriptSyntax", capabilities: [.appearanceRead], targets: .one(.syntax)),
+        .init(name: "syntaxes.getBuiltIn", owner: "ScriptSyntax", capabilities: [.appearanceRead], targets: .none),
+        .init(name: "syntaxes.exportBuiltIn", owner: "ScriptSyntax", capabilities: [.appearanceRead], targets: .none),
+        .init(name: "syntaxes.reload", owner: "SyntaxFileAccess", capabilities: [.appearanceManage, .filesRead], targets: .one(.syntax), requiresExpectedVersion: true),
         .init(name: "syntaxes.export", owner: "SyntaxDefinition + ScriptSyntax", capabilities: [.appearanceRead], targets: .one(.syntax)),
         .init(name: "syntaxes.install", owner: "SyntaxImportPreparation + ApplicationURLRouter", capabilities: [.appearanceManage, .filesRead], targets: .none),
         .init(name: "syntaxes.replace", owner: "SyntaxImportPreparation + ApplicationURLRouter", capabilities: [.appearanceManage, .filesRead], targets: .one(.syntax), requiresExpectedVersion: true),

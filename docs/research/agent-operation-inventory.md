@@ -87,11 +87,18 @@ remain required before execution. This inventory is not evidence of functionalit
 | themes.update | InstalledThemeCommands | appearanceManage | theme | version |
 | themes.duplicate | InstalledThemeCommands | appearanceManage | theme | version |
 | themes.select | InstalledThemeCommands | appearanceManage | theme | version |
-| themes.reload | InstalledThemeCommands | appearanceManage | theme | version |
+| themes.selection | EditorThemePreferences | appearanceRead | none | none |
+| themes.replace | ThemeFileAccess + InstalledThemeCommands | appearanceManage,filesRead | theme | version |
+| themes.selectBuiltIn | EditorThemePreferences + ThemeCatalog | appearanceManage | none | version |
+| themes.exportBuiltIn | ThemeInstallation | appearanceRead | none | none |
+| themes.reload | InstalledThemeCommands | appearanceManage,filesRead | theme | version |
 | themes.install | InstalledThemeCommands | appearanceManage,filesRead | none | none |
 | themes.delete | InstalledThemeCommands | appearanceManage,destructiveRequest | theme | version,human |
 | syntaxes.list | SyntaxDefinition + ScriptSyntax | appearanceRead | none | none |
 | syntaxes.get | SyntaxDefinition + ScriptSyntax | appearanceRead | syntax | none |
+| syntaxes.getBuiltIn | ScriptSyntax | appearanceRead | none | none |
+| syntaxes.exportBuiltIn | ScriptSyntax | appearanceRead | none | none |
+| syntaxes.reload | SyntaxFileAccess | appearanceManage,filesRead | syntax | version |
 | syntaxes.export | SyntaxDefinition + ScriptSyntax | appearanceRead | syntax | none |
 | syntaxes.install | SyntaxImportPreparation + ApplicationURLRouter | appearanceManage,filesRead | none | none |
 | syntaxes.replace | SyntaxImportPreparation + ApplicationURLRouter | appearanceManage,filesRead | syntax | version |
@@ -428,3 +435,55 @@ requests without expectedVersion even though grant evaluation rejected them.
 The gateway now enforces the catalog's required nonempty version header before
 family-specific validation. This does not compare a version with live state;
 that comparison remains a handler requirement.
+
+
+## Appearance contracts
+
+Twenty-three theme and syntax operations now have schemas. The inventory now
+contains 136 names and 90 schemas; 46 operations still need schemas. Added
+explicit built-in selection/read/export routes, theme selection state, targeted
+theme replacement and syntax Reload. Built-ins use their existing names, not
+invented persistent UUIDs. Installed definitions keep their existing UUIDs.
+The independent fixture records these deliberate inventory additions.
+
+Canonical themes retain unknown root fields, including imported Drafts source.
+Canonical syntax records retain the exact source string and its unknown grammar
+fields. Shape validation checks wire types; the existing theme validator, Drafts
+importer and SyntaxDefinition parser must validate their semantics before any
+save. No replacement parser or color rules were added. Creation leaves absent
+constructor fields absent rather than writing inspector defaults.
+
+Input sources distinguish inline UTF-8 text, a prepared transfer, a relative
+path in an authorized bookmark, an installation link and an HTTPS source. The exported JSON Schema and validation share
+the same exclusive alternatives and required fields. Exact source fields prevent
+mixed destinations. Relative paths reject traversal and
+absolute paths; live-file mode requires a bookmarked source. Installation links
+are limited to the expected theme/syntax endpoint and unique supported query
+keys. They cannot open Actions or callback URLs. These checks do not authorize
+file roots, resolve symlinks, verify transfer ownership, authorize HTTP hosts or
+redirects, fetch bytes or install anything. Contextual effect review remains
+mandatory, including file-backed reads and reloads.
+
+Installation fails on an existing identity/name unless the caller uses the
+explicit targeted replacement route with a version check. A built-in link can
+report its named built-in instead of inventing an installed resource. Replies
+must report exactly one of those outcomes. Replacement retains the target ID;
+duplication requires a different ID. Delete replies bind their target IDs.
+Exports bind the resource or built-in name, chosen format, version and UTF-16
+chunk. Native, Drafts-source and installation-link formats remain distinct;
+unsupported conversions must return a real error, not synthetic data.
+
+Theme selection reads the effective existing reference without rewriting stored
+preferences. The reference is null if its definition cannot be disclosed under
+the resource scope; the opaque local selection token contains no readable ID. Its version represents the local light/dark selection slot.
+Selecting an installed definition also needs expectedThemeVersion; it does not
+reuse the definition token as the local preference token. Installation selects
+nothing unless selectAppearance and expectedSelectionVersion are both present.
+Selection receipts are required only for that requested effect. Future handlers
+must preserve the existing save/install-before-selection order and record any
+completed effects if later selection fails. No rollback is claimed.
+
+These remain unexposed contracts. Actual imports, storage failures, unknown-field
+persistence, local bookmarks, shared definitions, syntax features, render changes,
+selection and Undo still need handler tests and native acceptance. The habitual
+app, identities, library and CloudKit container remain unchanged.

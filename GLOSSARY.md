@@ -100,6 +100,10 @@ Incoming text held separately from an editor draft until it is saved or discarde
 **Theme**:
 A named definition of colors for the editor and its interface.
 
+**Built-in theme**:
+A theme supplied with Draftly and selected by its defined name. It is separate
+from a theme installed in the library.
+
 **Custom theme**:
 A theme definition saved in the library for use without its original external file.
 
@@ -125,6 +129,10 @@ _Avoid_: Query (when referring to the complete request)
 The recent find requests available for reuse on this device.
 
 ### Syntax
+
+**Built-in syntax**:
+A syntax supplied with Draftly and identified by its defined name. It is separate
+from a syntax installed in the library.
 
 **Syntax feature**:
 An optional behavior declared by a syntax, with a default value that the user can

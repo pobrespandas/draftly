@@ -121,4 +121,17 @@ struct AgentPermissionPolicyTests {
         }
     }
 
+    @Test func fileAppearanceOperationsKeepResourceAndDestinationAuthorityPending() {
+        let theme = AgentResourceReference(kind: .theme, id: UUID())
+        #expect(evaluate("themes.get", targets: [theme], grant: grant([.appearanceRead], scope: .library))
+            == .needsEffectAuthorization(.library, humanApproval: false))
+        #expect(evaluate("themes.reload", targets: [theme], version: "snapshot",
+            grant: grant([.appearanceManage], scope: .library)) == .denied(.permissionDenied))
+        let access = grant([.appearanceManage, .filesRead], scope: .library)
+        #expect(evaluate("themes.reload", targets: [theme], version: "snapshot", grant: access)
+            == .needsEffectAuthorization(.library, humanApproval: false))
+        #expect(evaluate("syntaxes.install", grant: access) == .needsEffectAuthorization(.library, humanApproval: false))
+        #expect(evaluate("themes.selection", grant: grant([.appearanceRead], scope: .library)) == .permitted(.library))
+    }
+
 }

@@ -2,12 +2,12 @@ import Foundation
 
 package enum AgentOperationSchemas {
     package static var operationNames: Set<String> {
-        AgentReadSchemas.operationNames.union(AgentActionSchemas.operationNames).union(AgentExecutionSchemas.operationNames).union(AgentWorkspaceSchemas.operationNames).union(AgentDraftSchemas.operationNames).union(AgentEditorSchemas.operationNames)
+        AgentReadSchemas.operationNames.union(AgentActionSchemas.operationNames).union(AgentExecutionSchemas.operationNames).union(AgentWorkspaceSchemas.operationNames).union(AgentDraftSchemas.operationNames).union(AgentEditorSchemas.operationNames).union(AgentAppearanceSchemas.operationNames)
     }
 
     package static func schema(for operation: String) -> AgentOperationSchema? {
         AgentReadSchemas.schema(for: operation) ?? AgentActionSchemas.schema(for: operation)
-            ?? AgentExecutionSchemas.schema(for: operation) ?? AgentWorkspaceSchemas.schema(for: operation) ?? AgentDraftSchemas.schema(for: operation) ?? AgentEditorSchemas.schema(for: operation)
+            ?? AgentExecutionSchemas.schema(for: operation) ?? AgentWorkspaceSchemas.schema(for: operation) ?? AgentDraftSchemas.schema(for: operation) ?? AgentEditorSchemas.schema(for: operation) ?? AgentAppearanceSchemas.schema(for: operation)
     }
 
     // This validates shape and target binding. It does not authorize or execute a request.
@@ -33,6 +33,9 @@ package enum AgentOperationSchemas {
         if AgentEditorSchemas.operationNames.contains(request.operation) {
             return try AgentEditorSchemas.validatedParameters(for: request)
         }
+        if AgentAppearanceSchemas.operationNames.contains(request.operation) {
+            return try AgentAppearanceSchemas.validatedParameters(for: request)
+        }
         guard let schema = schema(for: request.operation) else { throw AgentErrorCode.unavailable }
         return try schema.validatedParameters(request.parameters)
     }
@@ -40,6 +43,8 @@ package enum AgentOperationSchemas {
     package static func validateResult(_ values: [String: AgentJSONValue], for operation: String) throws {
         if AgentReadSchemas.operationNames.contains(operation) {
             try AgentReadSchemas.validateResult(values, for: operation)
+        } else if AgentAppearanceSchemas.operationNames.contains(operation) {
+            try AgentAppearanceSchemas.validateResult(values, for: operation)
         } else if AgentEditorSchemas.operationNames.contains(operation) {
             try AgentEditorSchemas.validateResult(values, for: operation)
         } else if AgentExecutionSchemas.operationNames.contains(operation) {
@@ -61,6 +66,10 @@ package enum AgentOperationSchemas {
         }
         if AgentEditorSchemas.operationNames.contains(request.operation) {
             try AgentEditorSchemas.validateResult(values, for: request)
+            return
+        }
+        if AgentAppearanceSchemas.operationNames.contains(request.operation) {
+            try AgentAppearanceSchemas.validateResult(values, for: request)
             return
         }
         try validateResult(values, for: request.operation)
