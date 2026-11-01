@@ -162,6 +162,28 @@ struct AgentLocalTransportTests {
         #expect(f.credentialReads == 0)
     }
 
+    @Test func bindingTheHostLibraryPreservesTheRetryKey() async throws {
+        let server = try listener(), libraryID = UUID()
+        defer { server.close() }
+        let task = Task {
+            let peer = try await server.accept()
+            defer { peer.close() }
+            _ = try await peer.readFrame(maximumBytes: AgentLocalHandshake.maximumBytes)
+            try await peer.writeFrame(JSONEncoder().encode(AgentLocalHandshake.Welcome(libraryID: libraryID)))
+            let received = try AgentRequest.decode(await peer.readFrame())
+            #expect(received.libraryID == libraryID && received.retryKey == "opaque.signed-key")
+            try await peer.writeFrame(JSONEncoder().encode(AgentResponse(requestID: received.requestID, outcome: .error(.unavailable))))
+        }
+        defer { task.cancel() }
+        let client = try await AgentLocalClient.connect(path: server.path, connectionID: UUID(),
+            credential: Data(repeating: 1, count: 32), validateServer: { _ in })
+        let request = AgentRequest(requestID: UUID(), libraryID: nil, operation: "drafts.create", retryKey: "opaque.signed-key")
+        let response = try JSONDecoder().decode(AgentResponse.self, from: await client.request(JSONEncoder().encode(request)))
+        #expect(response.outcome == .error(.unavailable))
+        try await task.value
+        await client.close()
+    }
+
     @Test func clientRejectsAResponseForAnotherRequest() async throws {
         let server = try listener()
         defer { server.close() }

@@ -42,4 +42,14 @@ struct AgentToolInputTests {
         #expect(properties["parameters"] == parameters)
         #expect(root["not"] == .object(["required": .array([.string("parameters"), .string("parametersJSON")])]))
     }
+    @Test func mutationToolsCarryTheRetryKeyWithoutTreatingItAsAParameter() throws {
+        let operation = try #require(AgentOperationCatalog.operation(named: "drafts.create"))
+        let request = try AgentToolInput.request(operation: operation, arguments: [
+            "requestID": .string(UUID().uuidString), "retryKey": .string("opaque.signed-key"),
+            "parameters": .object(["content": .string("Neutral 🐼")])])
+        let root = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(request)) as? [String: Any])
+        #expect(root["retryKey"] as? String == "opaque.signed-key")
+        #expect(request.parameters["retryKey"] == nil)
+    }
+
 }

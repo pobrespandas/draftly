@@ -11,6 +11,7 @@ enum AgentRequestBinding {
     static func prepare(_ request: AgentRequest, preferences: AgentPreferenceRegistry) throws -> Prepared {
         let checked = try AgentRequest.decode(JSONEncoder().encode(request))
         let parameters = try AgentOperationSchemas.validatedParameters(for: checked, preferences: preferences)
+        // Exclude the retry key from the request that the key itself authenticates.
         let normalized = AgentRequest(requestID: checked.requestID, libraryID: checked.libraryID,
             operation: checked.operation, targets: checked.targets, expectedVersion: checked.expectedVersion, parameters: parameters)
         let value = try JSONDecoder().decode(AgentJSONValue.self,

@@ -42,11 +42,15 @@ package enum AgentToolInput {
                 return .init(kind: type, id: uuid)
             }
             guard operation.acceptsTargets(targets) else { throw AgentErrorCode.invalidInput }
-            var requestID = UUID(), expectedVersion: String?
+            var requestID = UUID(), expectedVersion: String?, retryKey: String?
             if case .string(let text) = values["requestID"], let id = UUID(uuidString: text) { requestID = id }
             if case .string(let text) = values["expectedVersion"] { expectedVersion = text }
+            if case .string(let text) = values["retryKey"] {
+                guard text.utf8.count <= AgentRequest.maximumRetryKeyBytes else { throw AgentErrorCode.invalidInput }
+                retryKey = text
+            }
             return AgentRequest(requestID: requestID, libraryID: nil, operation: operation.name,
-                                targets: targets, expectedVersion: expectedVersion, parameters: parameters)
+                                targets: targets, expectedVersion: expectedVersion, retryKey: retryKey, parameters: parameters)
         } catch { throw AgentErrorCode.invalidInput }
     }
 
@@ -66,6 +70,7 @@ package enum AgentToolInput {
             "parameters": .init(shape: .object(.init(fields: [:], allowsAdditionalFields: true))),
             "parametersJSON": .init(shape: .string(maximum: AgentRequest.maximumBytes))
         ]
+        if !operation.isReadOnly { fields["retryKey"] = .init(shape: .string(minimum: 1, maximum: AgentRequest.maximumRetryKeyBytes)) }
         if operation.requiresExpectedVersion { fields["expectedVersion"] = .init(shape: .string(minimum: 1, maximum: 4096), required: true) }
         return .init(fields: fields)
     }

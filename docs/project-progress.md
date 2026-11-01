@@ -3,6 +3,21 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Retry key transport envelope — 1 November
+
+The optional retryKey field now survives request decoding, named CLI/MCP tool
+input and local-client library binding. Empty keys and keys over 4096 UTF-8 bytes
+are rejected. The same limit applies to signed key verification. Old requests
+without this field retain their representation. Canonical request fingerprints
+exclude the key that authenticates them. This does not enable a write handler.
+
+Three contract methods first failed with five issues. Final focused58 passed,
+including real socket propagation and verification of a request carrying its own
+signed key. Complete results verified1consumer/164contracts/774Core/1221app
+(2160 total). Python294 and the structural matrix passed. App and helper
+compilation passed. No UI or native permission
+checks were invoked. Service issuance and guarded mutation dispatch remain next.
+
 ## Signed retry-key engine — 1 November
 
 AgentRetryKeys binds a normalized request hash, connection hash, complete grant

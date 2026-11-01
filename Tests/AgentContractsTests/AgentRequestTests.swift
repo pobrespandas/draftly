@@ -75,4 +75,22 @@ struct AgentRequestTests {
         #expect(acceptsBoundary)
     }
 
+    @Test func retryKeySurvivesEnvelopeRoundTripAndOldRequestsStayCompatible() throws {
+        let original = AgentRequest(requestID: UUID(), libraryID: UUID(), operation: "drafts.create")
+        var root = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(original)) as? [String: Any])
+        #expect(root["retryKey"] == nil)
+        root["retryKey"] = "opaque.signed-key"
+        let decoded = try AgentRequest.decode(JSONSerialization.data(withJSONObject: root))
+        let output = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(decoded)) as? [String: Any])
+        #expect(output["retryKey"] as? String == "opaque.signed-key")
+    }
+
+    @Test(arguments: ["", String(repeating: "x", count: 4097), String(repeating: "🐼", count: 1025)])
+    func invalidRetryKeyBudgetsAreRejected(value: String) throws {
+        let request = AgentRequest(requestID: UUID(), libraryID: UUID(), operation: "drafts.create")
+        var root = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(request)) as? [String: Any])
+        root["retryKey"] = value
+        #expect(throws: AgentErrorCode.invalidInput) { try AgentRequest.decode(JSONSerialization.data(withJSONObject: root)) }
+    }
+
 }
