@@ -1,5 +1,4 @@
 import AppKit
-import QuartzCore
 import SwiftUI
 
 struct LibrarySplitView: NSViewControllerRepresentable {
@@ -25,18 +24,14 @@ final class LibrarySplitController: NSSplitViewController {
     private var restoredMinimumThickness: [Int: CGFloat] = [:]
     private var panelWidths: [CGFloat] = [240, 280, 0, 260]
     private var pendingPanels: [AnyView]?
-    private let animationsEnabled: @MainActor () -> Bool
     private var completedInitialLayout = false
     private var applyingPanelPositions = false
     private var lastContainerWidth: CGFloat?
     private var pendingDivider: (index: Int, widths: [CGFloat])?
     private var sidebarContentInset: CGFloat = 0
 
-    init(model: WindowModel, panels: [AnyView], animationsEnabled: @escaping @MainActor () -> Bool = {
-        !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-    }) {
+    init(model: WindowModel, panels: [AnyView]) {
         self.model = model
-        self.animationsEnabled = animationsEnabled
         hosts = panels.map { NSHostingController(rootView: $0) }
         super.init(nibName: nil, bundle: nil)
         splitView.isVertical = true
@@ -194,7 +189,7 @@ final class LibrarySplitController: NSSplitViewController {
             if !collapsed[index] {
                 let target = restoredWidths[index]
                 restoredMinimumThickness[index] = item.minimumThickness
-                // Set the native expansion target before animation starts.
+                // Set the native expansion target before changing visibility.
                 item.minimumThickness = max(0, target - (index == 0 ? sidebarContentInset : 0))
                 let width = splitView.arrangedSubviews[index].widthAnchor.constraint(equalToConstant: target)
                 width.priority = .defaultHigh
@@ -202,25 +197,13 @@ final class LibrarySplitController: NSSplitViewController {
                 restoredWidthConstraints.append(width)
             }
         }
-        let animate = view.window?.isVisible == true && animationsEnabled()
-        if !animate {
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0
+            context.allowsImplicitAnimation = false
             for (item, hidden) in zip(splitViewItems, collapsed) { item.isCollapsed = hidden }
             applyPanelPositions(restoredWidths, collapsed: collapsed)
-            DispatchQueue.main.async { [weak self] in self?.finishVisibilityUpdate() }
-            return
         }
-        if zip(splitViewItems, collapsed).contains(where: { $0.isCollapsed && !$1 }) {
-            primeExpansionWidths(restoredWidths, collapsed: collapsed)
-        }
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.2
-            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            for (item, hidden) in zip(splitViewItems, collapsed) where item.isCollapsed != hidden {
-                item.animator().isCollapsed = hidden
-            }
-        } completionHandler: { [weak self] in
-            MainActor.assumeIsolated { self?.finishVisibilityUpdate() }
-        }
+        finishVisibilityUpdate()
     }
 
     private func applyPanelPositions(_ widths: [CGFloat], collapsed: [Bool]) {
@@ -253,18 +236,6 @@ final class LibrarySplitController: NSSplitViewController {
         if !collapsed[0] {
             splitView.setPosition(widths[0], ofDividerAt: 0)
             view.layoutSubtreeIfNeeded()
-        }
-    }
-
-    private func primeExpansionWidths(_ widths: [CGFloat], collapsed: [Bool]) {
-        let original = splitViewItems.map(\.isCollapsed)
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0
-            context.allowsImplicitAnimation = false
-            for (item, hidden) in zip(splitViewItems, collapsed) { item.isCollapsed = hidden }
-            applyPanelPositions(widths, collapsed: collapsed)
-            for (item, hidden) in zip(splitViewItems, original) { item.isCollapsed = hidden }
-            applyPanelPositions(panelWidths, collapsed: original)
         }
     }
 

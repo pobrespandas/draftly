@@ -26,7 +26,21 @@ When only filters were closed, the list reading was 280.5 points in both
 apps. Opening filters restored 239.5 and 280. These half-point differences
 occur in both native layouts. They do not show accumulated width drift.
 
-No panel implementation change was needed for these tested transitions.
+The settled layouts matched before the animation change below.
+
+## Immediate visibility changes
+
+The user reported that Drafts does not appear to animate panel visibility.
+Draftly had an explicit 0.2-second ease-in/ease-out transition that was not
+supported by the settled-layout comparison. Removed that transition. Panel
+visibility now changes directly in a zero-duration context with implicit
+animation disabled. Width restoration and pending content updates finish in
+the same update. The expansion preflight is no longer needed.
+
+After this change, the same 15 panel tests passed again. The Debug build and
+strict QA signature check passed. In the updated QA app, closing Actions
+changed the editor reading from 452 to 713 points. Reopening restored 452;
+the left panels stayed at 239.5 and 280 points.
 
 ## Automated evidence
 
@@ -45,8 +59,8 @@ python3 scripts/run-swift-tests.py --diagnostic-suite LibrarySplitViewTests --ou
 
 The native checks verify the settled layouts. They do not measure animation
 duration or easing frame by frame. The headless tests do not establish visual
-animation parity. The current code uses a 0.2-second ease-in/ease-out animation
-and respects Reduce Motion. The matching reference timing remains unmeasured.
+animation parity. The change to immediate visibility follows the user's native
+observation. Exact reference timing remains unmeasured.
 
 A native drag attempt returned `noWindowsAvailable`. Custom width retention
 is covered by the automated tests, but this review did not complete a matching
