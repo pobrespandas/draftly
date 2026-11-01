@@ -59,7 +59,7 @@ package enum AgentWorkspaceSchemas {
             "workspaces.create": .init(parameters: .init(fields: ["workspace": r(.object(newDefinition))]), result: AgentResourceShapes.updated),
             "workspaces.update": .init(parameters: .init(fields: ["workspace": r(.object(definition))]), result: AgentResourceShapes.updated),
             "workspaces.duplicate": .init(parameters: .init(fields: ["name": o(text)]), result: AgentResourceShapes.updated),
-            "workspaces.reorder": .init(parameters: .init(fields: ["order": r(.array(.uuid, maximum: 10_000))]), result: AgentResourceShapes.reordered),
+            "workspaces.reorder": .init(parameters: .init(fields: ["order": r(.array(.uuid, maximum: AgentRequest.maximumTargets))]), result: AgentResourceShapes.reordered),
             "workspaces.delete": .init(parameters: none, result: AgentResourceShapes.deleted),
             "workspaces.apply": .init(parameters: none, result: .init(fields: [
                 "workspaceID": r(.uuid), "windowID": r(.uuid)

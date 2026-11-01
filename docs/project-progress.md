@@ -57,6 +57,11 @@ Apply results bind both the Workspace and window. Canonical fields that the mode
 cannot retain fail explicitly; unknown metadata strings stay unchanged. No actual
 query, mutation, theme resolution or window application is enabled yet.
 
+Agent batches now share one limit of 10,000 resource targets across transport,
+policy, order lists and mutation receipts. A focused regression failed before
+the correction because requests could exceed the receipt capacity. The limit
+prevents accepting a batch whose complete result cannot be represented.
+
 Stage 1 is not closed: the other 89 operation schemas, detailed script/native
 effect checks and real executors still need implementation. Real agent clients have
 not been connected. The habitual app remains the released 0.1.3.
