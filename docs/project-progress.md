@@ -3,6 +3,30 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Default action integration completed — 1 November
+
+PR64 exact head5a5e7ec passed CI41326158201, including the required macOS
+summary. Native results verified1/161/785/1222 and BUILD SUCCEEDED. Merged with
+an exact-head guard as81ec89a377e23876a82c66e2ea62a93a6aa1758b. This is source
+integration only. Native panel binding, automatic empty-cloud initialization,
+installation and release remain separate checks.
+
+## Signed adapter Keychain acceptance — 1 November
+
+A manual probe compiled the production AgentCredentialKeychain adapter into two
+isolated app-like packages. One used the principal application identity and its
+existing profile. The other used the helper identity and new helper profile.
+Both used Developer ID, hardened runtime and the dedicated agent access group.
+The application created a random neutral item, read it, passed its expected
+bytes through a pipe to the helper and checked a matching result. It removed the
+item and confirmed absence. The unsigned probe failed permission_denied before
+creation. No existing connection or personal credential was queried.
+
+The build script only compiles. Signing and native execution remain explicit
+manual steps; automatic tests never invoke them. This acceptance covers adapter
+sharing on this Mac. App embedding, helper replacement, graphical lock behavior
+and notarization remain pending. No installed application or release changed.
+
 ## Default action initial selection — 1 November
 
 A new-window regression reproduced two failures: General stayed selected while
@@ -14,8 +38,7 @@ remain unchanged. Empty catalogs fall back to All Actions.
 Three focused methods passed, including three selection variants. Full results
 verified1consumer/161contracts/785Core/1222app (2169 total). Python294, the
 structural matrix and local app/helper builds passed. No visible windows,
-permissions or personal data were used. Native panel binding acceptance and
-exact-head PR64 CI remain pending. The app was not installed or published.
+permissions or personal data were used. Native panel binding acceptance remains pending. The app was not installed or published.
 
 ## Default action integration review — 1 November
 
@@ -33,7 +56,7 @@ No native synchronization, installed app change or release is claimed.
 
 Review also found an initial group mismatch: WindowModel starts with General,
 but the new catalog starts with Basic. Reproduce and correct that issue in a
-separate change before updating PR64. Exact-head CI and merge remain pending.
+separate change before updating PR64. The initial-selection section records that fix.
 
 ## Signed retry-key engine — 1 November
 
