@@ -3,6 +3,20 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Encoded preference access — 1 November
+
+The application can now prepare typed reads and edits for 44 encoded preference
+field entries: syntax options, Markdown options and command shortcuts. Existing
+setters and conflict rules remain authoritative. Reset removes one known override
+and retains additional imported fields. Syntax references must match the resolved
+definition. Feature names must be declared by that definition.
+
+This is a preparation component. It performs no persistence, native registration
+or authorization. Actual handlers still need grants, scoped syntax resolution,
+name-collision checks, version comparison, approval and commit receipts. Device
+values, native settings, list defaults and default Workspace access remain open.
+No app endpoint or installed-app change is enabled by this component.
+
 ## Preference defaults preparation — 1 November
 
 Settings and editor consumers now share the existing editor, capture, General,
@@ -35,7 +49,7 @@ full-library backup authority, malformed/oversized messages, Unicode/decimal
 transport, and distinct pending/error/result states.
 
 Automatic validation passed one package-consumer test, 127 AgentContracts,
-759 Core and 944 app tests with
+759 Core and 952 app tests with
 complete result inventories, 286 Python tests, the structural matrix check,
 and the final local app build.
 See the [operation inventory](research/agent-operation-inventory.md) for reused

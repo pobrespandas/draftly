@@ -546,6 +546,18 @@ build boundary, not an authorization mechanism. Typed readers, writers and nativ
 bindings remain separate application work. When wiring Settings consumers, use the
 [preference source inventory](research/agent-preference-inventory.md).
 
+AgentEncodedPreferenceAccess prepares known syntax, Markdown and shortcut JSON
+edits and reads their typed values. It uses existing option setters and command
+conflict rules. Reset removes the selected known override and retains imported
+additional fields. Its output is a prepared change, not a persistence receipt.
+It has no storage or native-service dependency. Callers must still enforce grants,
+versions, human approval and commit rules before applying it.
+
+Syntax preference storage uses existing syntax names. Checking the resolved UUID
+does not establish that a name is unique. The future handler must check aliases
+and name collisions before a scoped change. This adapter does not grant access
+to every definition with the same name.
+
 The catalog records ownership, target shape, expected-version and human approval
 requirements. Catalog entries have no handlers. Execution and native effects
 require an additional authorization result, even when the connection has the
