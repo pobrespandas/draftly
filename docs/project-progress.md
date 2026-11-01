@@ -7,8 +7,8 @@ Historical test reports describe only the versions they tested.
 
 The concrete problem was mixed ownership in AgentLocalHost: transport and
 permission orchestration also managed retained publication attempts and cleanup
-errors. AgentHostPublications now owns that small state machine. The host keeps
-all authority checks and the original effect order. AgentHostLocator keeps file
+errors. AgentHostPublications now owns retained attempts and cleanup results.
+The host keeps all authority checks and the original effect order. AgentHostLocator keeps file
 validation, serialization and exact-epoch replacement. No protocol or public API
 was added. A publication remains distinct from a grant, as defined in the glossary.
 
@@ -23,13 +23,19 @@ No manual UI check was needed for this internal extraction; signed-helper
 acceptance remains outside this refactor. No test was removed or
 consolidated: the cleanup, contention and later-epoch cases cover different paths.
 
-Risk: preserve socket stop, session invalidation, publication withdrawal and lease
-release in that order. Both owner checks still surround publication, and the
+The preserved order is socket stop, session invalidation, publication withdrawal
+and lease release. Both owner checks still surround publication, and the
 original cleanup retries and error results remain. The handoff now starts with a
 current checkpoint; earlier journals remain available as historical evidence.
 No new functionality or installed-app change belongs to this refactor.
 Its assembly and discovery prerequisites are integrated through PRs #53 and #54.
-The refactoring itself still needs its own exact-head CI and merge.
+PR #55 passed all required checks in exact-head CI 41301495867 and merged as
+24366fa. CI verified the complete Swift inventory above and the local app build.
+The refactoring stage is integrated; the installed app and release are unchanged.
+
+The next functional step is stable library routing with expected-library checks
+during pairing and authentication. The [full agent plan](plans/draftly-for-agents.md)
+remains unfinished; this refactor does not complete local agent access.
 
 ## Private host locator — 1 November
 
