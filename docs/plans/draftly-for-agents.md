@@ -81,7 +81,10 @@ Pair with an ephemeral challenge displayed by the app and approved by the person
 Store a distinct high-entropy credential for each approved connection in Keychain.
 The helper accepts a connection UUID and obtains its credential from Keychain.
 Limit Keychain access to the signed app and helper; verify this in the installed
-package. Never put a token in command arguments, files, URLs, logs, or MCP tool
+package. Use the data protection keychain and the provisioned access group from
+[the credential decision](../adr/0001-agent-device-keychain.md). Put the helper
+inside an app-like wrapper so it can carry its own profile. Keep its absolute
+executable path available for client configuration. Never put a token in command arguments, files, URLs, logs, or MCP tool
 descriptions. A session is tied to its connection, grant,
 library, and service epoch. Expiry defaults to one hour. The user can explicitly
 choose renewable access; every request still checks expiry and revocation.

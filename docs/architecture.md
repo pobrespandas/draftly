@@ -741,3 +741,32 @@ protected pairing/management UI, lock notifications, stable host library identit
 live-editor generation adapter, Unix socket and CLI/MCP remain pending. Tests use
 an in-memory library and fake credentials. They do not prove signed-helper access,
 real pairing, native approval, remote access or synchronization.
+
+### Agent credential integration
+
+AgentLocalSecurity depends only on AgentContracts and Apple Foundation, Security
+and LocalAuthentication. It is package-internal. The helper can use it without
+linking the application or Core Data. AgentCredentialKeychainAccess is the small
+application adapter that maps its operations into AgentConnectionRegistry.
+
+The system backend uses SecItem with the data protection keychain, an exact
+access group, a connection UUID account, no synchronization and
+WhenUnlockedThisDeviceOnly protection. A fresh noninteractive LAContext goes into
+every query. Create never updates an existing item. Read never returns partial,
+malformed or unexpected-size data. Remove is limited to that one connection item.
+Only a genuine item-not-found status becomes absence or successful repeated
+removal. Errors do not include raw native messages or credential bytes.
+
+Before each call, AgentCredentialIdentity checks the current running code's Apple
+signature, fixed team and role identifier. SecTask supplies current entitlements;
+the adapter checks the exact group and rejects debug/injection permissions. The
+helper cannot select the application role to bypass the running-code check.
+These checks supplement the OS profile/access-group enforcement. They do not
+sandbox software running as the same macOS user or deliberately signed by the
+team's signing authority.
+
+No existing entitlements, profiles or credentials change in this unit. It cannot
+operate from the unsigned test runner or a QA identity. Real app/helper profiles
+and signed replacement checks remain required before activation. The shared group
+and helper wrapper choice are recorded in
+[the credential decision](adr/0001-agent-device-keychain.md).

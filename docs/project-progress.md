@@ -3,6 +3,39 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Device-local credential adapter — 1 November
+
+AgentLocalSecurity provides a dedicated data-protection Keychain adapter shared
+by the application and future helper. It has no library, editor or view dependency. The
+application maps it to the existing registry through a small adapter. Items use
+the exact agent access group, a connection UUID, device-only unlocked protection
+and a noninteractive authentication context. Create is exclusive. The helper can
+read; only the application adapter can create or remove an item.
+
+Current-process validation pins the Apple signature, team and role identifier.
+It checks the exact group and rejects debug/injection entitlements before any
+SecItem call. The OS must also authorize the group. Missing items, denied access,
+interaction requirements, cancellation, unavailable service and storage failures
+remain distinct. There is no fallback to legacy or Action credentials.
+
+Eleven headless tests inject the native item calls. They check queries, roles,
+create-only behavior, failures and registry integration. The real test process is
+rejected by production identity validation before the injected item boundary.
+No real credential or personal Keychain item is used.
+
+Full Swift inventories passed: 1 consumer, 127 contracts, 763 Core and 1036
+application tests. Python 286, the structural matrix and the local Xcode build
+passed. These checks do not prove signed sharing.
+
+The existing app entitlements and profiles remain unchanged. Pairing cannot use
+this adapter until both app and helper profiles authorize the group and real
+sharing is verified. Package the helper in an app-like wrapper; see the
+[credential decision](adr/0001-agent-device-keychain.md). Signed sharing, lock
+behavior and replacement across signed versions remain pending.
+
+PR #44 exact head 5c02fc7 passed CI 41280392312 and merged as 3a5e770.
+The authenticated read service is integrated, not installed or enabled.
+
 ## Authenticated read service — 1 November
 
 AgentCommandService now authenticates internal sessions and executes eight read
@@ -24,7 +57,7 @@ matrix and the local Xcode build passed. Real client and UI acceptance remain pe
 See [architecture](architecture.md#authenticated-agent-reads) for exact limits.
 
 This is an internal service, not enabled agent access in the installed app.
-Production Keychain restrictions, pairing/management UI, lock notifications,
+Signed Keychain verification, pairing/management UI, lock notifications,
 stable host library identity, live editor generations, Unix socket, CLI/MCP,
 mutations, receipts and native-effect enforcement remain required. Remote access
 is future work. The full local agent objective remains unfinished.
