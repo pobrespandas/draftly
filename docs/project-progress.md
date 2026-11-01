@@ -28,6 +28,8 @@ release in that order. Both owner checks still surround publication, and the
 original cleanup retries and error results remain. The handoff now starts with a
 current checkpoint; earlier journals remain available as historical evidence.
 No new functionality or installed-app change belongs to this refactor.
+Its assembly and discovery prerequisites are integrated through PRs #53 and #54.
+The refactoring itself still needs its own exact-head CI and merge.
 
 ## Private host locator — 1 November
 
@@ -51,7 +53,8 @@ focused run passed 39 tests before the separate backup assertion correction.
 Complete local Swift results then passed with verified inventories: 1 consumer,
 146 contracts, 763 Core and 1169 application tests. All 286 Python tests passed
 and the structural matrix has zero errors. The helper and generated local app
-builds passed. Helper help and two negative discovery smoke checks passed,
+builds passed. Discovery PR #54 passed exact-head CI 41300584226 and merged as
+9338a4f; that does not prove signed-helper acceptance. Helper help and two negative discovery smoke checks passed,
 without creating state. These do not prove positive signed-helper discovery.
 The earlier full run found the independent backup-comparison fixture defect
 recorded below; its correction has a separate commit.
@@ -74,8 +77,8 @@ run 41298598924 executes only that suite on main, without the new host changes.
 The isolated diagnostic passed; it does not identify the cause or prove that
 the original full-run interruption was pre-existing. Do not merge #53
 until a complete exact-head check passes. No deadline or retry was added. The assertion correction is commit ed30f41.
-Its exact-head CI run 41298902468 later passed all required checks. PR #53 has
-not yet merged; the original interruption still has no confirmed cause.
+Its exact-head CI run 41298902468 later passed all required checks. PR #53
+merged as 0a38ac4. The original interruption still has no confirmed cause.
 
 ## Local host assembly — 1 November
 
