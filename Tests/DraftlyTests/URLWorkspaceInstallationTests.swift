@@ -5,6 +5,36 @@ import Testing
 
 @Suite("Workspace URL installation") @MainActor
 struct URLWorkspaceInstallationTests {
+    @Test func equivalentMetadataKeyOrderDoesNotRequestReplacement() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let url = try link(["uuid": UUID().uuidString, "name": "Neutral",
+                            "future": ["a": 1, "b": "café 🐼"]])
+        var original = try WorkspaceInstallation.decode(url)
+        let values = original.apiOptions
+        let keys = values.keys.sorted().reversed()
+        let pairs = try keys.map { key -> String in
+            let keyData = try JSONSerialization.data(withJSONObject: key, options: .fragmentsAllowed)
+            let valueData = try JSONSerialization.data(withJSONObject: values[key]!, options: [.fragmentsAllowed, .sortedKeys])
+            return String(decoding: keyData, as: UTF8.self) + ":" + String(decoding: valueData, as: UTF8.self)
+        }
+        original.scriptMetadata?["api"] = "{\n" + pairs.joined(separator: ",\n") + "\n}"
+        try library.saveWorkspace(original)
+        let before = try library.backupData()
+        #expect(try ApplicationURLRouter.installWorkspace(url, library: library) { _ in
+            Issue.record("Equivalent metadata requested replacement."); return false
+        })
+        #expect(try library.backupData() == before)
+        #expect(library.workspaces == [original])
+        let changed = try link(["uuid": original.id.uuidString, "name": "Neutral",
+                                "future": ["a": 2, "b": "café 🐼"]])
+        var reviewed = false
+        #expect(try !ApplicationURLRouter.installWorkspace(changed, library: library) { _ in
+            reviewed = true; return false
+        })
+        #expect(reviewed)
+        #expect(try library.backupData() == before)
+    }
+
     private func link(_ values: [String: Any]) throws -> URL {
         var components = URLComponents()
         components.scheme = "draftly"; components.host = "workspace"

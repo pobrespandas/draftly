@@ -512,6 +512,46 @@ writer lock and operation journals cover the publication sequence. See
 [CI/CD](ci-cd.md) and [release operations](releasing.md).
 
 
+## Local connection metadata and authentication
+
+AgentConnectionRegistry owns human-only connection management and credential
+validation. A new configuration disables access. New grants default to selected
+resources and draft reads for one hour. Grant replacement rotates authorization
+identity while retaining the connection credential. The renewable choice is
+stored; authentication does not silently extend an expired grant.
+
+AgentConnectionFile stores metadata under a trusted application-owned parent.
+It opens a private Agents directory by descriptor, checks ownership, modes and
+extended ACLs, and rejects symbolic links, hard links and non-regular files.
+The directory uses mode 0700 and files use 0600. Replacement compares the expected
+bytes under a nonblocking lock, writes a private temporary file, synchronizes it,
+renames it and synchronizes the directory. A failure after rename can return
+outcome_unknown. This file is not part of the library, CloudKit or user backups.
+
+The parent path is resolved physically before opening it with O_NOFOLLOW_ANY;
+Foundation can abbreviate the system /private/var alias back to /var. The child
+directory and files are not resolved through links. Extended ACL allow entries
+fail closed; no ACL and deny-only ACLs remain valid. See Apple's
+[secure file guidance](https://developer.apple.com/library/archive/documentation/Security/Conceptual/SecureCodingGuide/Articles/RaceConditions.html)
+and [ACL implementation](https://github.com/apple-oss-distributions/Libc/blob/main/posix1e/acl_file.c).
+
+The versioned metadata decoder rejects unsupported security fields rather than
+dropping restrictions. Credentials are separate injected operations and never
+appear in metadata or management results. Authentication uses a cryptographic
+comparison and rechecks metadata before accepting the grant. This is internal
+validation, not a connected transport or complete Keychain integration.
+
+Management verifies stored bytes. Failed changes block the connection in this
+process and notify authority listeners. Revocation persists denial before removing
+the credential; a failed cleanup is reported separately. If storage and credential
+cleanup both fail, report outcome_unknown and retain the runtime block. Do not
+claim durable revocation in that case. Native Keychain restrictions for the signed
+app/helper, pairing UI, listener ownership and per-request service checks remain
+required before enabling access. Agent file handlers must also reject writes to
+this control metadata and other control stores, even when a broader bookmark
+contains them. A data-file grant must not become permission to edit grants.
+This does not sandbox unrelated software already running as the same OS user.
+
 ## Protected approval state
 
 AgentApprovalStore is an application-owned, in-memory state machine. It uses
