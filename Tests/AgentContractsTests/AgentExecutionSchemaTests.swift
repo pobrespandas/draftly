@@ -94,4 +94,11 @@ struct AgentExecutionSchemaTests {
             try AgentOperationSchemas.validateResult(["operation": .object(result)], for: "operations.get")
         }
     }
+
+    @Test func aBusyReportCannotBeRelabelledAsAStorageFailure() {
+        let value = snapshot(state: .failed, report: report(status: "failure", reason: "busy"), error: .storageError)
+        #expect(throws: AgentSchemaError.self) {
+            try AgentOperationSchemas.validateResult(["operation": .object(value)], for: "operations.get")
+        }
+    }
 }

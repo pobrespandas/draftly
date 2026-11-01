@@ -46,6 +46,12 @@ package enum AgentExecutionSchemas {
             default: matches = false
             }
             guard matches, state == .succeeded || success.isEmpty else { throw AgentSchemaError.invalidValue }
+            if state == .failed {
+                guard case .object(let error) = snapshot["error"], case .string(let code) = error["code"],
+                      (reason == "busy") == (code == AgentErrorCode.busy.rawValue) else {
+                    throw AgentSchemaError.invalidValue
+                }
+            }
         } else if name == "actions.run", state.isTerminal, state != .outcomeUnknown {
             throw AgentSchemaError.invalidValue
         }
