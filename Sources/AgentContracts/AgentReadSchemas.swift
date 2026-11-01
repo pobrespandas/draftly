@@ -16,21 +16,7 @@ package enum AgentReadSchemas {
     package static func validateResult(_ values: [String: AgentJSONValue], for operation: String) throws {
         guard let schema = schemas[operation] else { throw AgentErrorCode.unavailable }
         try schema.result.validate(values)
-        if operation == "drafts.get", case .object(let chunk) = values["content"],
-           case .string(let text) = chunk["text"], case .bool(let hasMore) = chunk["hasMore"] {
-            func integer(_ name: String) throws -> Int64 {
-                switch chunk[name] {
-                case .integer(let value): return value
-                case .number(let value): return NSDecimalNumber(decimal: value).int64Value
-                default: throw AgentSchemaError.invalidValue
-                }
-            }
-            let offset = try integer("offset"), length = try integer("length"), total = try integer("totalLength")
-            guard offset <= total, length <= total - offset,
-                  Int64(text.utf16.count) == length, hasMore == (length < total - offset) else {
-                throw AgentSchemaError.invalidValue
-            }
-        }
+        if operation == "drafts.get" { _ = try AgentTextShapes.validateChunk(values["content"]) }
     }
 
     private static func required(_ shape: AgentValueShape) -> AgentFieldShape {
@@ -111,16 +97,8 @@ package enum AgentReadSchemas {
             ])),
             "drafts.list": .init(parameters: query, result: draftPage),
             "drafts.search": .init(parameters: search, result: draftPage),
-            "drafts.get": .init(parameters: .init(fields: [
-                "offset": optional(.integer(minimum: 0), default: .integer(0)),
-                "length": optional(.integer(minimum: 1, maximum: 65_536), default: .integer(65_536))
-            ]), result: .init(fields: [
-                "draft": required(.object(summary)),
-                "content": required(.object(.init(fields: [
-                    "text": required(text), "offset": required(count),
-                    "length": required(.integer(minimum: 0, maximum: 65_536)),
-                    "totalLength": required(count), "hasMore": required(.boolean)
-                ])))
+            "drafts.get": .init(parameters: AgentTextShapes.chunkParameters, result: .init(fields: [
+                "draft": required(.object(summary)), "content": required(.object(AgentTextShapes.chunk))
             ])),
             "drafts.versions": .init(parameters: .init(fields: page.merging([
                 "includeContent": optional(.boolean, default: .bool(false))

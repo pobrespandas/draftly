@@ -42,6 +42,7 @@ remain required before execution. This inventory is not evidence of functionalit
 | editor.replaceRange | EditorSession + WindowModel | editorWrite,draftsWrite | window | version |
 | editor.setSelection | EditorSession + WindowModel | editorWrite,draftsWrite | window | version |
 | editor.replaceAll | EditorSession + WindowModel | editorWrite,draftsWrite | window | version |
+| editor.listTasks | SyntaxDefinition + EditorSession | editorRead,draftsRead | window | none |
 | editor.tasks | EditorSession + WindowModel | editorWrite,draftsWrite | window | version |
 | editor.undo | EditorSession + WindowModel | editorWrite,draftsWrite | window | version |
 | editor.redo | EditorSession + WindowModel | editorWrite,draftsWrite | window | version |
@@ -387,3 +388,43 @@ Arrays and objects export the same nonempty bounds used by validation. Batch
 request targets, policy checks, order lists and receipts share a 10,000 target
 limit. A regression demonstrated that larger requests were previously accepted
 although their complete receipts could not fit the result shape.
+
+
+## Editor contracts
+
+Fifteen editor operations now have schemas. Added editor.listTasks as an explicit
+read operation; editor.tasks remains a versioned mutation. Reading syntax task
+marks does not require write authority. The catalog and independent fixture now
+contain 129 operation names. There are 67 schemas; 62 operations still need them.
+No editor handler is enabled.
+
+Editor snapshots use explicit window and draft identities, opaque version tokens,
+bounded UTF-16 content chunks and selection ranges. Empty editors cannot report
+content, dirty state or match items. Find, markers, links and task marks use
+paginated results. Syntax fields come from the existing shared definition;
+internal rule indices are not public identities. Task mutations specify the
+captured state and its range plus complete/reset/advance. Runtime code must
+resolve the current task again after checking its editor version.
+
+Opening requires either an explicit window with its expected window version or
+an explicit newWindow request. It does not choose the active window. Focus is
+false by default; the existing ui.present capability is still required. Window
+and draft identities bind replies. Selection and preview replies must match the
+requested change. Navigate uses previous/next; future handlers must retain the
+existing visible-row order and clamp behavior without visiting unauthorized
+notes. Open, navigate and preview require contextual effect review for resolved
+windows, destination drafts and external resources.
+
+AgentTextShapes shares UTF-16 range and content-chunk checks among draft reads,
+patches and editor contracts. It checks integer bounds, overflow, chunk lengths
+and continuation flags. It does not prove scalar boundaries in unseen content.
+The existing literal/regex query and syntax task APIs are checked in contract
+tests. Actual editor synchronization, query errors, pending text, storage errors,
+Undo/Redo, cursor ownership, file effects and focus still need runtime and manual
+acceptance. No windows, native permissions or personal data were used in tests.
+
+A separate regression demonstrated that the schema gateway accepted mutation
+requests without expectedVersion even though grant evaluation rejected them.
+The gateway now enforces the catalog's required nonempty version header before
+family-specific validation. This does not compare a version with live state;
+that comparison remains a handler requirement.

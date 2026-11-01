@@ -109,4 +109,16 @@ struct AgentPermissionPolicyTests {
             == .needsEffectAuthorization(.library, humanApproval: false))
     }
 
+    @Test func readingTaskMarksDoesNotNeedWriteAuthorityAndPresentationNeedsEffectReview() {
+        let window = AgentResourceReference(kind: .window, id: UUID())
+        let read = grant([.editorRead, .draftsRead], scope: .library)
+        #expect(evaluate("editor.listTasks", targets: [window], grant: read) == .permitted(.library))
+        #expect(evaluate("editor.tasks", targets: [window], version: "snapshot", grant: read) == .denied(.permissionDenied))
+        let presentation = grant([.presentUI, .draftsRead], scope: .library)
+        for operation in ["editor.open", "editor.navigate", "editor.preview"] {
+            #expect(evaluate(operation, targets: operation == "editor.open" ? [draft] : [window],
+                version: "snapshot", grant: presentation) == .needsEffectAuthorization(.library, humanApproval: false))
+        }
+    }
+
 }

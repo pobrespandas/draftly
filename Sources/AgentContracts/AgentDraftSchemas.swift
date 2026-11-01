@@ -49,17 +49,9 @@ package enum AgentDraftSchemas {
         guard case .array(let values) = value else { throw AgentSchemaError.invalidValue }
         let edits = try values.map { value -> (offset: Int64, end: Int64) in
             guard case .object(let fields) = value else { throw AgentSchemaError.invalidValue }
-            func count(_ key: String) throws -> Int64 {
-                switch fields[key] {
-                case .integer(let value): return value
-                case .number(let value): return NSDecimalNumber(decimal: value).int64Value
-                default: throw AgentSchemaError.invalidValue
-                }
-            }
-            let offset = try count("offset"), length = try count("length")
-            let (end, overflow) = offset.addingReportingOverflow(length)
-            guard !overflow else { throw AgentSchemaError.invalidValue }
-            return (offset, end)
+            return try AgentTextShapes.bounds(.object([
+                "offset": fields["offset"] ?? .null, "length": fields["length"] ?? .null
+            ]))
         }.sorted { $0.offset < $1.offset }
         for index in edits.indices.dropFirst() {
             let previous = edits[index - 1], current = edits[index]

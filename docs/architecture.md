@@ -519,6 +519,11 @@ result envelopes, JSON values, stable errors, the planned operation catalog,
 and pure baseline grant evaluation. It depends on Foundation only. No app
 route, socket, network listener, or MCP server uses it yet.
 
+AgentTextShapes owns wire-level UTF-16 ranges and content chunks for draft reads,
+patches and editor contracts. It checks integer bounds, overflow, text lengths
+and continuation flags. Handlers must still check live content and scalar
+boundaries. It does not own text replacement, selection or Undo.
+
 The catalog records ownership, target shape, expected-version and human approval
 requirements. Catalog entries have no handlers. Execution and native effects
 require an additional authorization result, even when the connection has the
