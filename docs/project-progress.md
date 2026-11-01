@@ -3,6 +3,16 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Patch branch combined validation — 1 November
+
+Merge9bc3472 preserves local-route headd2ac2c6 and native diagnostics. The only
+conflict was the progress document; both records remain. The missing-registry
+test also checks the patch route. Complete combined results verified
+1/166/786/1260 (2213) Swift tests. Python303 and the structural audit passed.
+This result does not explain the earlier interrupted runs. Normal app startup
+remains inactive. Local app/helper builds passed. PR acceptance remains a
+separate check.
+
 ## Agent UTF-16 patch handler — 1 November
 
 The separate patch branch adds drafts.patch to the prepared existing-draft writer
