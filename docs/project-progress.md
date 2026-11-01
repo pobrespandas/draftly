@@ -134,6 +134,22 @@ Agents tab. Normal agent startup remains disabled; no helper is bundled.
 These checks do not establish complete visual parity, VM or offline acceptance,
 or a new CloudKit synchronization matrix. Existing cloud action catalogs remain
 unchanged. Explicit default installation remains available in Settings.
+## Agent revision restoration — 1 November
+
+A separate branch adds drafts.restoreVersion through the existing-draft writer
+and local dispatcher. Target order does not choose the draft; both targets need
+granted scope and the revision must belong to the draft. Only content is restored.
+Expected versions, editor synchronization, Undo and atomic receipts remain shared.
+No catalog or library format changed. The configured service has13 handlers.
+
+Initial two methods failed against the unavailable handler. Focused65 checks
+passed for target order, explicit scope, wrong parent, Unicode, Undo, receipt
+recovery and storage-failure retry. Full strict Swift verified1/166/786/1263
+(2216). A later66-test run included a new official SDK/real-socket restoration
+case with hidden-note preservation. Python303 and the structural audit passed.
+Local app/helper builds also passed. Normal startup remains inactive. No
+installed application, native permission, personal data or release changed.
+
 
 ## Patch branch combined validation — 1 November
 
