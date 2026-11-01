@@ -3,6 +3,28 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Atomic note mutation receipts — 1 November
+
+The package-only LibraryStore boundary stages notes and an agent mutation receipt
+in one existing Core Data transaction. Public note saves share the same staging
+rules. A matching committed request returns its receipt without repeating edits.
+Different request hashes or targets are rejected. Receipt reads reject pending
+context changes, and the write boundary preserves pre-existing uncommitted work.
+Receipts omit raw requests and credentials and are excluded from backups.
+
+Nine new Core test methods cover reopening/reply loss, failures before and after
+receipt staging, conflicts, invalid metadata, thirty-day expiry, clock rollback,
+backup exclusion, pending changes, malformed records and unknown record kinds.
+The pending-state regression failed before its guard and passed afterwards.
+All20 focused methods passed. Complete results verified1consumer/161contracts/
+774Core/1210app (2146 total). Python294, matrix0, helper and local app builds passed.
+Tests used neutral temporary or in-memory libraries. No personal data was used.
+
+This is a storage primitive, not an exposed write handler. Signed retry keys,
+request normalization, authorization/CAS/editor integration, receipt pruning and
+restore-epoch invalidation remain before writes can be enabled. The installed
+app and release are unchanged. No action defaults or theme catalog was edited.
+
 ## Read cursor lifetime contract — 1 November
 
 Read cursors now use the accepted ten-minute maximum, bounded by the grant
