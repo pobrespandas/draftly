@@ -3,6 +3,19 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Authenticated preference discovery — 1 November
+
+preferences.schema now serves the authoritative typed preference descriptors.
+It checks preferences.read, validates selected IDs and binds opaque page cursors
+to the normalized query, session and grant. Descriptor discovery reads no stored
+settings or credentials. Preference values and mutations remain separate work.
+
+Three behavioral cases first failed because the operation was unavailable.
+Final focused49 passed, including complete descriptor coverage, permission and
+ID rejection, cross-session/filter cursor rejection and expiry. Complete Swift
+results verified1consumer/161contracts/765Core/1207app (2134 total). Python294,
+matrix0, helper build and local app build passed. No native activation is claimed.
+
 ## Isolated agent helper packaging — 1 November
 
 The new packaging command builds an app-like wrapper for draftly-agent in a new
