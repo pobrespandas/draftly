@@ -2,6 +2,19 @@
 
 ## Visual review — 1 November 2026
 
+The user identified hover and click behavior in the five group buttons as a
+separate mismatch. The bar now uses five AppKit momentary buttons with inline
+bezels shown on pointer entry. The existing symbol views are passive children;
+they do not intercept pointer events. Button tracking and activation belong to
+each native control. Pressed opacity applies only to that control's symbol.
+No symbol, tint, spacing, or size changed in this adjustment.
+
+The Debug build and strict QA signature check passed. Native QA clicks opened
+Basic, Editing, Markdown, Tools, and Processing independently. A ten-second
+Tools click also selected Tools. The returned state confirms activation after
+the tool call; it does not prove a continuous held-state capture. Exact hover
+and held-state visual parity still needs direct observation.
+
 Catalog revision 4 replaces the Stats character-count message with the four
 observed steps: reject empty text, calculate nine statistics, set theme colors,
 and show an HTML table. Notifications and logs use errors only. An unchanged

@@ -99,10 +99,10 @@ struct ActionListPanel: View {
                 ScrollView(.horizontal) {
                     HStack(spacing: 20) {
                         ForEach(Array(groups.enumerated()), id: \.element) { index, group in
-                            Button { model.actionGroup = group } label: {
-                                ActionGroupIcon(symbol: ActionCatalogPresentation.groupSymbol(group, groups: library.actionGroups))
-                                    .font(.system(size: 18)).foregroundStyle(ActionTint.color(ActionCatalogPresentation.groupColor(group, groups: library.actionGroups)) ?? .secondary)
-                            }.buttonStyle(.plain).help(group).accessibilityLabel(group)
+                            ActionGroupButton(title: group,
+                                symbol: ActionCatalogPresentation.groupSymbol(group, groups: library.actionGroups),
+                                color: ActionTint.color(ActionCatalogPresentation.groupColor(group, groups: library.actionGroups)) ?? .secondary
+                            ) { model.actionGroup = group }.frame(width: 22, height: 22)
                         }
                     }.padding(.horizontal, 16).frame(height: 60)
                 }.scrollIndicators(.hidden)
@@ -130,7 +130,7 @@ struct ActionListPanel: View {
     }
 }
 
-private struct ActionGroupIcon: View {
+struct ActionGroupIcon: View {
     let symbol: String
     var body: some View {
         Group {
