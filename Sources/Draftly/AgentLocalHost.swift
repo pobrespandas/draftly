@@ -10,6 +10,8 @@ import AgentLocalSecurity
     let connections: AgentConnectionRegistry
     let pairing: AgentPairingCoordinator
     let service: AgentCommandService
+    private let library: LibraryStore
+    private let editors: AgentEditorRegistry?
     private let lease: AgentHostLease
     private let publications: AgentHostPublications
     var locatorCleanupError: AgentErrorCode? { publications.cleanupError }
@@ -57,6 +59,7 @@ import AgentLocalSecurity
         }), credentials: credentials ?? AgentCredentialKeychain(role: .application).registryAccess,
             authorityChanged: { id in owner?.authorityChanged(id) })
         self.lease = lease; self.publications = AgentHostPublications(locator: locator); libraryID = lease.libraryID; connections = registry
+        self.library = library; self.editors = editors
         self.socketParentDirectory = socketParentDirectory
         self.validateApplication = validateApplication; self.validateHelper = validateHelper
         self.isLocked = isLocked; self.resolveTargets = resolveTargets
@@ -76,6 +79,10 @@ import AgentLocalSecurity
     // Explicit close is the normal shutdown path. This is a fallback for a
     // discarded host; it preserves the same ordering on MainActor.
     isolated deinit { close() }
+
+    func isBound(to library: LibraryStore, editors: AgentEditorRegistry) -> Bool {
+        !closed && self.library === library && self.editors === editors && editors.isBound(to: library)
+    }
 
     func close() {
         guard !closed else { publications.withdraw(); return }; closed = true
