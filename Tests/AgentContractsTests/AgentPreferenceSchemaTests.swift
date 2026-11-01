@@ -174,4 +174,17 @@ struct AgentPreferenceSchemaTests {
             try AgentOperationSchemas.validateResult(["items": .array([.object(changed)]), "nextCursor": .null], for: input, preferences: catalog)
         }
     }
+    @Test func inheritedOrSystemValuesCannotBecomeUntypedNullSuccess() throws {
+        let catalog = try registry()
+        for (id, origin, context) in [("syntax.fontSize", "inherited", ["syntax": syntax]),
+                                      ("application.launchAtLogin", "system", [:])] {
+            let input = request("preferences.get", [item(id, extra: context)])
+            let value = item(id, extra: context.merging(["effectiveValue": .null, "valueOrigin": .string(origin),
+                "hasOverride": .bool(false), "versionToken": .string("field")], uniquingKeysWith: { _, new in new }))
+            #expect(throws: AgentSchemaError.self) {
+                try AgentOperationSchemas.validateResult(["items": .array([value]), "versionToken": .string("batch")], for: input, preferences: catalog)
+            }
+        }
+    }
+
 }

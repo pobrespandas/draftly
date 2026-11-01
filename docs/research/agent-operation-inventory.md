@@ -509,6 +509,9 @@ Addresses distinguish device settings, syntax overrides, syntax features and
 commands. Installed syntax IDs remain UUIDs; built-ins use known names. Duplicate
 addresses cannot hide behind UUID case or canonically equivalent Unicode. Reads
 retain stored/default/inherited/system/invalid origin without exposing raw data.
+Resolved values must match their declared type, including inherited and system
+values. Only a declared nullable value or an explicit invalid-store state can
+return null. A regression caught untyped null replies before this correction.
 Reading a default does not insert it into the request or write storage. Updates
 and resets accept only selected known fields. Writer receipts contain addresses
 and version tokens, not readable values. Replies must cover the requested set.

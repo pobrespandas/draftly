@@ -8,7 +8,7 @@ package enum AgentPreferenceSchemas {
     }
     private static let token = AgentResourceShapes.token
     private static let rawObject = AgentValueShape.object(.init(fields: [:], allowsAdditionalFields: true))
-    private static let origins = ["stored", "default", "inherited", "system", "invalid"]
+    private static let resolvedOrigins = ["stored", "default", "inherited", "system"]
 
     package static func schema(for operation: String, registry: AgentPreferenceRegistry) -> AgentOperationSchema? {
         let writable = registry.fields.filter(\.writable)
@@ -38,11 +38,14 @@ package enum AgentPreferenceSchemas {
                 "limit": o(.integer(minimum: 1, maximum: 200), default: .integer(50)), "cursor": o(token)
             ]), result: .init(fields: ["items": r(.array(.oneOf(descriptors), maximum: 200)), "nextCursor": r(.nullable(token))]))
         case "preferences.get":
-            let values = registry.fields.map { field in
-                AgentValueShape.object(registry.addressShape(field, extra: [
-                    "effectiveValue": r(.nullable(field.value)), "valueOrigin": r(.string(choices: origins)),
-                    "hasOverride": r(.boolean), "versionToken": r(token)
-                ]))
+            let values = registry.fields.flatMap { field -> [AgentValueShape] in
+                [false, true].map { invalid in
+                    .object(registry.addressShape(field, extra: [
+                        "effectiveValue": r(invalid ? .nullable(field.value) : field.value),
+                        "valueOrigin": r(.string(choices: invalid ? ["invalid"] : resolvedOrigins)),
+                        "hasOverride": r(.boolean), "versionToken": r(token)
+                    ]))
+                }
             }
             return .init(parameters: .init(fields: ["items": r(.array(.oneOf(readAddresses), minimum: 1, maximum: 200))]),
                 result: .init(fields: ["items": r(.array(.oneOf(values), minimum: 1, maximum: 200)), "versionToken": r(token)]))
@@ -112,7 +115,7 @@ package enum AgentPreferenceSchemas {
                     if origin == "stored" || origin == "invalid" {
                         guard override else { throw AgentSchemaError.invalidValue }
                     } else if override { throw AgentSchemaError.invalidValue }
-                    if fields["effectiveValue"] != .null || origin == "stored" || origin == "default" {
+                    if fields["effectiveValue"] != .null || origin != "invalid" {
                         try field.value.validate(fields["effectiveValue"] ?? .null)
                     }
                     fields.removeValue(forKey: "effectiveValue"); fields.removeValue(forKey: "valueOrigin")

@@ -19,7 +19,7 @@ cover isolation, expiry/revocation, target kinds, revision-token requirements,
 full-library backup authority, malformed/oversized messages, Unicode/decimal
 transport, and distinct pending/error/result states.
 
-Automatic validation passed 126 AgentContracts, 759 Core and 938 app tests with
+Automatic validation passed 127 AgentContracts, 759 Core and 938 app tests with
 complete result inventories, 285 Python tests, the structural matrix check,
 and the final local app build.
 See the [operation inventory](research/agent-operation-inventory.md) for reused
@@ -101,7 +101,9 @@ Requests cannot register fields or read raw storage names. Typed contexts separa
 device, syntax, feature and command settings. Defaults, inheritance, read-only
 state and approval requirements stay distinct. The production allowlist is not
 yet built; use the new preference source inventory before connecting consumers.
-The fixture registry is not evidence of application field coverage.
+The fixture registry is not evidence of application field coverage. A separate
+regression rejects null replies for resolved nonnullable inherited/system values;
+declared system inheritance and invalid-store states remain distinct.
 
 Bookmark contracts expose metadata only, preserve requested Unicode names,
 reject arbitrary paths and self-approval fields, and bind Forget results to their
