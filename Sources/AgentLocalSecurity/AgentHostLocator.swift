@@ -39,6 +39,13 @@ import AgentContracts
         try Self.decode(directory.readSnapshot("hosts.json", maximumBytes: Self.maximumBytes))
     }
 
+    package func endpoint(for libraryID: UUID) throws -> Endpoint {
+        guard let endpoint = try endpoints().first(where: { $0.libraryID == libraryID }) else {
+            throw AgentErrorCode.unavailable
+        }
+        return endpoint
+    }
+
     // The application must hold and validate the library lease around this call.
     // Replacing a stale hint does not touch its socket or any other library.
     package func publish(_ endpoint: Endpoint) throws {

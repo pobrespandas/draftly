@@ -3,6 +3,25 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Stable library destinations — 1 November
+
+The helper accepts --library UUID, with an optional absolute --state-parent,
+where explicit --socket access was accepted. AgentHostDestination owns argument
+parsing and formatting. Its transport adapter resolves that exact local library
+and supplies the expectation during pairing and authentication. Each physical
+connection reads the current publication. Failed requests are not replayed.
+A later explicit request can use a reopened host. No fallback selects a different
+library or removes stale state. Corrupt and unsafe catalogs retain their errors.
+
+Focused results passed: 70 app cases and 16 contract cases. Cases cover missing
+state without writes, two libraries, misleading hints, refusal before credential
+reads, reopened hosts, no replay and legacy explicit sockets without a catalog.
+The helper and local app builds passed. Six executable smoke checks passed,
+including refusal of unprovisioned identity without creating state directories.
+These are isolated, injected-signature tests, not signed-helper acceptance.
+Full integrated validation and CI remain pending. Normal app startup, helper
+provisioning, configuration export and the remaining handlers are unfinished.
+
 ## Local host test fixture lifetime — 1 November
 
 The new routing tests exposed an unowned fixture capture during late broker

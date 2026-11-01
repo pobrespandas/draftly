@@ -18,6 +18,7 @@ struct AgentLocalHostTests {
         var secrets: [UUID: Data] = [:]
         var credentialReads = 0
         var applicationChecks = 0
+        var connectionAttempts = 0
 
         init() throws {
             root = FileManager.default.temporaryDirectory.appendingPathComponent("Draftly-Local-Host-" + UUID().uuidString)
@@ -91,6 +92,77 @@ struct AgentLocalHostTests {
             #expect(try await peer.cancel().state == .cancelled)
             await peer.close()
         } catch { await peer.close(); throw error }
+    }
+
+    @Test func libraryDestinationBindsPairingWhileExplicitSocketKeepsItsLegacyChallenge() async throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let host = try f.host(); defer { host.close() }
+        try host.setEnabledFromUserInterface(true)
+        for destination: AgentHostDestination in [.library(host.libraryID, stateParent: f.root.path),
+            .socket(try #require(host.endpoint))] {
+            let peer = try await destination.pair(name: "Neutral QA", validateServer: { _ in })
+            let challenge = await peer.challenge
+            let expected: UUID? = if case .library = destination { host.libraryID } else { nil }
+            #expect(challenge.libraryID == expected && challenge.code != nil)
+            await peer.close()
+        }
+        #expect(f.secrets.isEmpty)
+    }
+
+    @Test func explicitSocketDestinationStillAuthenticatesWithoutADiscoveryCatalog() async throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let host = try f.host(); defer { host.close() }
+        try host.setEnabledFromUserInterface(true)
+        let record = try f.connect(host), catalog = f.root.appendingPathComponent("Agents/hosts.json")
+        try FileManager.default.removeItem(at: catalog)
+        let destination = AgentHostDestination.socket(try #require(host.endpoint))
+        let client = try await destination.connect(connectionID: record.id, credential: #require(f.secrets[record.id]), validateServer: { _ in })
+        #expect(await client.libraryID == host.libraryID)
+        #expect(!FileManager.default.fileExists(atPath: catalog.path))
+        await client.close()
+    }
+
+    @Test func misleadingLocatorCannotPairOrAuthenticateAgainstAnotherLibrary() async throws {
+        let f = try Fixture(), other = try Fixture(); defer { f.cleanup(); other.cleanup() }
+        let first = try f.host(), second = try other.host(); defer { first.close(); second.close() }
+        try first.setEnabledFromUserInterface(true); try second.setEnabledFromUserInterface(true)
+        let locator = try AgentHostLocator(parentDirectory: f.root)
+        try locator.publish(.init(libraryID: first.libraryID, socketPath: #require(second.endpoint)))
+        let destination = AgentHostDestination.library(first.libraryID, stateParent: f.root.path)
+        await #expect(throws: AgentErrorCode.permissionDenied) {
+            try await destination.pair(name: "Neutral QA", validateServer: { _ in })
+        }
+        await #expect(throws: AgentErrorCode.permissionDenied) {
+            try await destination.connect(connectionID: UUID(), credential: Data(repeating: 7, count: 32), validateServer: { _ in })
+        }
+        #expect(second.pairing.pendingFromUserInterface().isEmpty)
+        #expect(other.credentialReads == 0 && other.secrets.isEmpty && f.secrets.isEmpty)
+    }
+
+    @Test func aLaterExplicitRequestResolvesTheReopenedHostWithoutReplayingAFailedRequest() async throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let first = try f.host(); defer { first.close() }
+        try first.setEnabledFromUserInterface(true)
+        let record = try f.connect(first), credential = try #require(f.secrets[record.id])
+        let destination = AgentHostDestination.library(first.libraryID, stateParent: f.root.path)
+        let helper = AgentHelperConnection(connect: {
+            await MainActor.run { f.connectionAttempts += 1 }
+            return try await destination.connect(connectionID: record.id, credential: credential, validateServer: { _ in })
+        })
+        do {
+            let request = AgentRequest(requestID: UUID(), libraryID: nil, operation: "server.status")
+            let initial = try await helper.request(request)
+            guard case .result = initial.outcome else { throw AgentErrorCode.executionError }
+            first.close()
+            let next = try f.host(); defer { next.close() }
+            try next.resumeIfEnabled()
+            await #expect(throws: AgentErrorCode.unavailable) { try await helper.request(request) }
+            #expect(f.connectionAttempts == 1)
+            let response = try await helper.request(.init(requestID: UUID(), libraryID: nil, operation: "server.status"))
+            #expect(f.connectionAttempts == 2)
+            guard case .result = response.outcome else { throw AgentErrorCode.executionError }
+            await helper.close()
+        } catch { await helper.close(); throw error }
     }
 
     @Test func onlyListeningHostsPublishAndResumingUsesAFreshEpoch() throws {
