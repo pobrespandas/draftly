@@ -17,6 +17,7 @@ struct AgentDraftWritingTests {
         var ticks: TimeInterval = 100
         var grant: AgentGrant?
         var admissionError: AgentErrorCode?
+        var onAdmission: (() throws -> Void)?
         lazy var editors = AgentEditorRegistry(library: library, models: { [unowned self] in self.models })
         lazy var reader = AgentDraftReading(library: library,
             pages: AgentReadPages(now: { [unowned self] in self.wall }, uptime: { [unowned self] in self.ticks }),
@@ -38,6 +39,7 @@ struct AgentDraftWritingTests {
             try AgentDraftWriting(library: library, libraryID: libraryID, reader: reader, editors: editors, keys: keys,
                 now: { [unowned self] in self.wall }, validateAdmission: { [unowned self] in
                     if let error = self.admissionError { throw error }
+                    try self.onAdmission?()
                 })
         }
         func model() -> WindowModel {
@@ -119,6 +121,109 @@ struct AgentDraftWritingTests {
                 targets: input.targets, expectedVersion: input.expectedVersion, retryKey: ticket.value, parameters: input.parameters)
             _ = try writer.update(signed, connectionID: f.connectionID)
             #expect(f.library.notes.first?.content.utf8.elementsEqual((content + " appended").utf8) == true)
+        }
+    }
+
+    @Test func restoringARevisionUsesItsParentRegardlessOfTargetOrder() throws {
+        let f = try Fixture(); defer { f.close() }
+        let model = f.model(), writer = try f.writer()
+        let revision = Revision(noteID: f.note.id, content: "Old e\u{0301} 🐼")
+        try f.library.saveRevision(revision)
+        f.grant = AgentGrant(connectionID: f.connectionID, libraryID: f.libraryID,
+            expiresAt: f.wall.addingTimeInterval(3600), capabilities: [.draftsRead, .draftsWrite],
+            scope: .resources([.init(kind: .draft, id: f.note.id), .init(kind: .revision, id: revision.id)]))
+        let input = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "drafts.restoreVersion",
+            targets: [.init(kind: .revision, id: revision.id), .init(kind: .draft, id: f.note.id)], expectedVersion: try f.token())
+        let key = try writer.prepare(input, connectionID: f.connectionID)
+        let signed = AgentRequest(requestID: input.requestID, libraryID: input.libraryID, operation: input.operation,
+            targets: input.targets, expectedVersion: input.expectedVersion, retryKey: key.value)
+        let receipt = try writer.update(signed, connectionID: f.connectionID)
+        #expect(f.library.notes.first?.content.utf8.elementsEqual(revision.content.utf8) == true)
+        #expect(f.library.notes.first?.scriptMetadata == f.note.scriptMetadata)
+        #expect(model.editor.content.utf8.elementsEqual(revision.content.utf8))
+        try AgentDraftSchemas.validateResult(["resource": .object(["id": .string(f.note.id.uuidString),
+            "versionToken": .string(try #require(receipt.resources.first?.versionToken))])], for: signed)
+        let revisions = f.library.revisions
+        #expect(try writer.update(signed, connectionID: f.connectionID) == receipt)
+        #expect(f.library.revisions == revisions)
+        model.editor.performUndo?(false)
+        #expect(model.editor.content == f.note.content)
+        _ = model.flush()
+    }
+
+    @Test func restorationRollsBackOnSaveFailureAndCanRetryTheSameRequest() throws {
+        let f = try Fixture(); defer { f.close() }
+        let model = f.model(), writer = try f.writer()
+        let revision = Revision(noteID: f.note.id, content: "Neutral old content")
+        try f.library.saveRevision(revision)
+        let input = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "drafts.restoreVersion",
+            targets: [.init(kind: .draft, id: f.note.id), .init(kind: .revision, id: revision.id)], expectedVersion: try f.token())
+        let key = try writer.prepare(input, connectionID: f.connectionID)
+        let signed = AgentRequest(requestID: input.requestID, libraryID: input.libraryID, operation: input.operation,
+            targets: input.targets, expectedVersion: input.expectedVersion, retryKey: key.value)
+        f.library.beforeBatchCommit = { throw AgentErrorCode.storageError }
+        #expect(throws: AgentErrorCode.storageError) { try writer.update(signed, connectionID: f.connectionID) }
+        #expect(model.editor.content == f.note.content && f.library.notes.first?.content == f.note.content)
+        f.library.beforeBatchCommit = nil
+        let receipt = try writer.update(signed, connectionID: f.connectionID)
+        #expect(model.editor.content == revision.content)
+        #expect(try writer.update(signed, connectionID: f.connectionID) == receipt)
+        _ = model.flush()
+    }
+
+    @Test func restorationRejectsASourceChangedAfterResolutionBeforeStaging() throws {
+        let f = try Fixture(); defer { f.close() }
+        var revision = Revision(noteID: f.note.id, content: "Neutral old revision")
+        try f.library.saveRevision(revision)
+        let writer = try f.writer()
+        let input = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "drafts.restoreVersion",
+            targets: [.init(kind: .draft, id: f.note.id), .init(kind: .revision, id: revision.id)], expectedVersion: try f.token())
+        let key = try writer.prepare(input, connectionID: f.connectionID)
+        let signed = AgentRequest(requestID: input.requestID, libraryID: input.libraryID, operation: input.operation,
+            targets: input.targets, expectedVersion: input.expectedVersion, retryKey: key.value)
+        var admissions = 0
+        f.onAdmission = {
+            admissions += 1
+            if admissions == 2 {
+                revision.content = "Concurrent neutral revision"
+                try f.library.saveRevision(revision)
+            }
+        }
+        #expect(throws: AgentErrorCode.versionConflict) { try writer.update(signed, connectionID: f.connectionID) }
+        #expect(admissions >= 2)
+        #expect(f.library.notes.first?.content == f.note.content)
+        #expect(f.library.revisions.first { $0.id == revision.id }?.content == revision.content)
+    }
+
+    @Test func restorationRejectsARevisionFromAnotherDraft() throws {
+        let f = try Fixture(); defer { f.close() }
+        let revision = Revision(noteID: UUID(), content: "Unrelated neutral revision")
+        try f.library.saveRevision(revision)
+        let input = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "drafts.restoreVersion",
+            targets: [.init(kind: .draft, id: f.note.id), .init(kind: .revision, id: revision.id)], expectedVersion: try f.token())
+        #expect(throws: AgentErrorCode.notFound) { try f.writer().prepare(input, connectionID: f.connectionID) }
+        #expect(f.library.notes.first?.content == f.note.content)
+    }
+
+    @Test func restorationRechecksRevisionScopeAndExistenceBeforeWriting() throws {
+        for missing in [false, true] {
+            let f = try Fixture(); defer { f.close() }
+            let revision = Revision(noteID: f.note.id, content: "Neutral prior version")
+            try f.library.saveRevision(revision)
+            let writer = try f.writer()
+            let input = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "drafts.restoreVersion",
+                targets: [.init(kind: .draft, id: f.note.id), .init(kind: .revision, id: revision.id)], expectedVersion: try f.token())
+            let key = try writer.prepare(input, connectionID: f.connectionID)
+            let signed = AgentRequest(requestID: input.requestID, libraryID: input.libraryID, operation: input.operation,
+                targets: input.targets, expectedVersion: input.expectedVersion, retryKey: key.value)
+            if missing { try f.library.deleteRevision(revision.id) }
+            else {
+                f.grant = AgentGrant(connectionID: f.connectionID, libraryID: f.libraryID,
+                    expiresAt: f.wall.addingTimeInterval(3600), capabilities: [.draftsRead, .draftsWrite],
+                    scope: .resources([.init(kind: .draft, id: f.note.id)]))
+            }
+            #expect(throws: AgentErrorCode.notFound) { try writer.update(signed, connectionID: f.connectionID) }
+            #expect(f.library.notes.first?.content == f.note.content)
         }
     }
 

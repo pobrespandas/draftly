@@ -3,6 +3,47 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Patch integration and final restoration checks — 1 November
+
+PR79 passed every actual check at333e642 in CI41341691455. Native results
+verified1/166/786/1260 and BUILD SUCCEEDED. Guarded merge317b5f0 preserves both
+histories. The restoration branch took that ancestry via c463ab2 with no source
+tree difference. A final complete run verified1/166/786/1265 (2218), Python303
+and the structural audit passed. Prior local app/helper builds use unchanged
+production sources.
+
+A later regression injects a revision change through admission before mutation
+staging. It avoids a nested Core Data commit. The final validation rejects the
+old resolved source with version_conflict, retains the original draft and keeps
+the concurrent revision change. All19 writer methods passed. This added test
+is covered by that focused run, not the earlier full inventory. No native UI,
+permissions, installed app or release changed. Settings remains independent.
+
+## Revision authority regression — 1 November
+
+An additional writer test removes revision scope or deletes the revision between
+preparation and execution. Both paths return not_found and leave the current
+note unchanged. All18 writer methods passed. The prior complete2216Swift run
+predates this one added test; this focused run validates the added regression.
+No production code changed in this follow-up.
+
+## Agent revision restoration — 1 November
+
+A separate branch adds drafts.restoreVersion through the existing-draft writer
+and local dispatcher. Target order does not choose the draft; both targets need
+granted scope and the revision must belong to the draft. Only content is restored.
+Expected versions, editor synchronization, Undo and atomic receipts remain shared.
+No catalog or library format changed. The configured service has13 handlers.
+
+Initial two methods failed against the unavailable handler. Focused65 checks
+passed for target order, explicit scope, wrong parent, Unicode, Undo, receipt
+recovery and storage-failure retry. Full strict Swift verified1/166/786/1263
+(2216). A later66-test run included a new official SDK/real-socket restoration
+case with hidden-note preservation. Python303 and the structural audit passed.
+Local app/helper builds also passed. Normal startup remains inactive. No
+installed application, native permission, personal data or release changed.
+
+
 ## Patch branch combined validation — 1 November
 
 Merge9bc3472 preserves local-route headd2ac2c6 and native diagnostics. The only
