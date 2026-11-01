@@ -30,7 +30,7 @@ enum ActionCatalogPresentation {
         guard let original = defaults[source.id], source.name == original.name, source.group == original.group else { return source }
         var action = source
         if source.presentation.barLabel == nil {
-            action.presentation.barLabel = ["Insert Dictation": "Insert", "Dictate New Draft": "New", "Paste as Plain Text": "Paste"][source.name]
+            action.presentation.barLabel = ["Insert Dictation": "Insert", "Dictate New Draft": "New", "Paste as Plain Text": "Paste", "Save Version": "Version"][source.name]
         }
         let symbols: [String: String] = [
             "Mail": "envelope.fill", "Message": "message.fill", "Google Search": "doc.text.magnifyingglass",

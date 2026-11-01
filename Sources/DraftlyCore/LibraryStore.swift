@@ -47,7 +47,7 @@ public final class LibraryStore: ObservableObject {
         // Correct only the exact local default. Keep edits and deleted actions intact.
         if cloudIdentifier == nil {
             for action in actions {
-                if let corrected = DefaultActionCatalog.correctedInbox(action) {
+                if let corrected = DefaultActionCatalog.correctedDefaultAction(action) {
                     try saveAction(corrected)
                 }
             }

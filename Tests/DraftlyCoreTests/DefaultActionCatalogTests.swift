@@ -20,11 +20,31 @@ struct DefaultActionCatalogTests {
         #expect(saved.content == note.content && saved.tags == note.tags)
     }
 
-    @Test func reopeningCorrectsOnlyTheUnchangedLegacyInbox() throws {
+    @Test func saveVersionCreatesDistinctSnapshotsEvenWhenTextIsUnchanged() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Version QA 🐼")
+        let editor = EditorSession()
+        editor.load(note)
+        let runner = ActionRunner(library: library, editor: editor, host: DefaultCatalogHost())
+        let action = try #require(DefaultActionCatalog.actions.first { $0.name == "Save Version" })
+        let previousIDs = Set(library.revisions.map(\.id))
+        #expect(runner.run(action))
+        #expect(runner.run(action))
+        let added = library.revisions.filter { !previousIDs.contains($0.id) }
+        #expect(added.count == 2)
+        #expect(added.allSatisfy { $0.noteID == note.id && $0.content == note.content })
+        let saved = try #require(library.notes.first { $0.id == note.id })
+        #expect(saved.content == note.content)
+        #expect(saved.modifiedAt == note.modifiedAt)
+        #expect(saved.tags == note.tags && saved.isArchived == note.isArchived)
+    }
+
+    @Test(arguments: ["Inbox", "Save Version"])
+    func reopeningCorrectsOnlyUnchangedLegacyActions(_ name: String) throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: folder) }
         var library: LibraryStore? = try LibraryStore(directory: folder, seed: false)
-        let legacy = DefaultActionCatalog.legacyInboxSeparator
+        let legacy = name == "Inbox" ? DefaultActionCatalog.legacyInboxSeparator : DefaultActionCatalog.legacySaveVersion
         try library!.saveAction(legacy)
         library = nil
         library = try LibraryStore(directory: folder)

@@ -2,6 +2,18 @@
 
 ## Visual review — 1 November 2026
 
+Read-only inspection of Drafts Save Version confirmed `draft.saveVersion();`
+and the bar label Version. Catalog revision 3 uses that script and label.
+The local migration also replaces an exact unchanged legacy Save Version.
+Edited and deleted actions remain unchanged.
+
+Validation passed: 25 core catalog and version contract tests, local Debug
+build, and strict QA signature verification. In the isolated QA app, two runs
+added two distinct revisions of the same neutral draft. History grew from
+three entries to five. Both new entries retained the same 20-character text.
+The test also checks that content, modification date, tags, and archive state
+remain unchanged. Normal action execution stores the editor selection metadata.
+
 The bar now supports an icon and a nonempty label together. Default dictation
 and paste actions use Insert, New, and Paste. An explicit empty label remains
 empty. The full action name remains the accessibility label. Thirteen focused
@@ -64,7 +76,7 @@ current engine. `blocked` means that safe parity needs a new service, account
 flow, paid service, or non-public contract. This revision has no remaining
 `implementable` entries.
 
-The catalog revision is 2. It contains 110 entries, including separators. All
+The catalog revision is 3. It contains 110 entries, including separators. All
 installed steps use supported Draftly step types. Separators keep their observed
 names and positions relative to installed actions.
 
@@ -147,7 +159,8 @@ names and positions relative to installed actions.
 | --- | --- | --- |
 | Inbox | supported | Sets `draft.isArchived` to false and saves the draft. |
 | Tags & Flags, Templates | supported | Separators. |
-| Archive, Save Version, Trash | supported | Uses the current draft update contract. |
+| Archive, Trash | supported | Uses the current draft update contract. |
+| Save Version | supported | Calls `draft.saveVersion()` to create an explicit snapshot, even when text is unchanged. |
 | Stats | supported | Displays a local character count. |
 | Update Tags..., Rename Tag... | supported | Shows a review prompt, then updates the draft or renames the tag across the library. |
 | Flag, Unflag | supported | Updates the current draft flag. |
