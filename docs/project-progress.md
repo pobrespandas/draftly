@@ -3,6 +3,22 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Signed adapter Keychain acceptance — 1 November
+
+A manual probe compiled the production AgentCredentialKeychain adapter into two
+isolated app-like packages. One used the principal application identity and its
+existing profile. The other used the helper identity and new helper profile.
+Both used Developer ID, hardened runtime and the dedicated agent access group.
+The application created a random neutral item, read it, passed its expected
+bytes through a pipe to the helper and checked a matching result. It removed the
+item and confirmed absence. The unsigned probe failed permission_denied before
+creation. No existing connection or personal credential was queried.
+
+The build script only compiles. Signing and native execution remain explicit
+manual steps; automatic tests never invoke them. This acceptance covers adapter
+sharing on this Mac. App embedding, helper replacement, graphical lock behavior
+and notarization remain pending. No installed application or release changed.
+
 ## Isolated agent helper packaging — 1 November
 
 The new packaging command builds an app-like wrapper for draftly-agent in a new

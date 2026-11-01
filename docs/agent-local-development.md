@@ -308,3 +308,10 @@ This prepares a wrapper, not a public release. The enclosing app still needs its
 own Keychain entitlement and a valid profile. Verify actual app/helper sharing,
 locked-session behavior, embedding, outer signing and notarization before normal
 activation. A local build or mocked signing test proves none of those checks.
+
+## Check real Keychain sharing
+
+Use the [manual probe](../Tools/AgentKeychainProbe/README.md) when both signing
+profiles are available. Its build command does not execute the probe. Keep the
+signed exercise separate from automatic tests. The probe uses a new neutral
+connection and checks cleanup. It does not query existing connections.
