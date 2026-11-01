@@ -35,6 +35,14 @@ All checks used neutral isolated data and offscreen text fixtures. No native
 permission, installed app or release changed. Receipt integration, service key
 issuance, guarded handlers and native activation remain pending.
 
+## Unicode correction integrated — 1 November
+
+PR74 exact head a1f29f1 passed CI41329568126, including the required macOS
+summary. Native results verified1/164/786/1233 and BUILD SUCCEEDED. Guarded
+merge 129be2c1a99aacc949135d1ce3ce4b3f8480ae6c preserves both histories.
+The editor mutation branch took that ancestry with no change to its validated
+source tree. The installed application and release remain unchanged.
+
 ## Exact Unicode content correction — 1 November
 
 Canonically equivalent strings can contain different code units. The editor
