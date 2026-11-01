@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import DraftlyCore
+import AgentContracts
 
 extension Notification.Name {
     static let draftlyOpenNote = Notification.Name("DraftlyOpenNote")
@@ -69,7 +70,13 @@ private enum PendingMenuAction {
 @MainActor
 final class AppController: ObservableObject {
     static let shared = AppController()
-    @Published var library: LibraryStore?
+    @Published var library: LibraryStore? {
+        didSet {
+            guard oldValue !== library else { return }
+            cachedAgentEditors?.invalidate(); cachedAgentEditors = nil
+        }
+    }
+    private var cachedAgentEditors: AgentEditorRegistry?
     @Published var startupError: String?
     @Published var agentSettings: AgentConnectionsSettingsModel?
     @Published var globalShortcutErrors: [String: String] = [:]
@@ -106,6 +113,19 @@ final class AppController: ObservableObject {
     init() { recentDrafts = RecentDraftStore(); start() }
     init(library: LibraryStore, recentDrafts: RecentDraftStore, agentSettings: AgentConnectionsSettingsModel? = nil) {
         self.library = library; self.recentDrafts = recentDrafts; self.agentSettings = agentSettings
+    }
+    isolated deinit { cachedAgentEditors?.invalidate() }
+
+    func agentEditorRegistry(for library: LibraryStore) throws -> AgentEditorRegistry {
+        guard self.library === library else { throw AgentErrorCode.invalidInput }
+        if let registry = cachedAgentEditors, registry.isBound(to: library) { return registry }
+        let registry = AgentEditorRegistry(library: library, models: { [weak self, weak library] in
+            guard let self, let library, self.library === library else { return [] }
+            return self.windows.allObjects
+        })
+        registry.refreshMembership()
+        cachedAgentEditors = registry
+        return registry
     }
     func start() {
         do {
@@ -204,6 +224,7 @@ final class AppController: ObservableObject {
             return
         }
         windows.add(model)
+        cachedAgentEditors?.refreshMembership()
         if model.window?.isKeyWindow == true { commandWindow = model }
         _ = consumePendingDraft(for: model)
     }
@@ -221,6 +242,7 @@ final class AppController: ObservableObject {
         }
         request.model = model
         windows.add(model)
+        cachedAgentEditors?.refreshMembership()
         if model.window?.isKeyWindow == true { commandWindow = model }
         guard !request.completed, let window = model.window else { return }
         guard windowOpenRequests.contains(requestID), model.library === library else {
@@ -274,6 +296,7 @@ final class AppController: ObservableObject {
         if pendingTargetModel === model || (model.window != nil && pendingTargetWindow === model.window)
             || (pendingExcludedModels != nil && pendingExcludedModels?.contains(ObjectIdentifier(model)) == false) { pendingNoteID = nil }
         windows.remove(model)
+        cachedAgentEditors?.refreshMembership()
         if commandWindow === model { commandWindow = nil }
     }
     @discardableResult func consumePendingDraft(for model: WindowModel) -> Bool {

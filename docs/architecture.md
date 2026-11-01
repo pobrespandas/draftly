@@ -963,5 +963,12 @@ Version tokens cover both the stored Note and the projected Note, with access
 dates excluded from both. A concurrent stored-text change cannot hide behind
 unchanged pending text, even when an import preserves dates. Only the projected
 text is returned; the version material remains inside the application.
-AppController wiring, editor mutations and the system-lock adapter remain
-unfinished. No installed-app access is enabled by this read adapter.
+AppController lazily owns one read registry for its current library. Both normal
+and requested-window registration refresh membership, as does window removal.
+Changing the library or releasing the controller invalidates the old registry.
+An invalid registry cannot reattach or return stored-text fallbacks. The factory
+rejects another library. This creates no listener or permission settings.
+Host startup and shutdown, editor mutations and the system-lock adapter remain
+unfinished. Registry invalidation is not a substitute for closing the host and
+invalidating all its authority when the application context changes.
+No installed-app access is enabled by this read adapter.

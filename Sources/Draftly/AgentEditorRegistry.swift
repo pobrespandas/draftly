@@ -26,15 +26,21 @@ import AgentContracts
     private let models: () -> [WindowModel]
     private var entries: [ObjectIdentifier: Entry] = [:]
     private var generations: [UUID: UUID] = [:]
+    private var valid = true
 
     init(library: LibraryStore, models: @escaping () -> [WindowModel]) {
         self.library = library; self.models = models
     }
 
-    func isBound(to library: LibraryStore) -> Bool { self.library === library }
+    func isBound(to library: LibraryStore) -> Bool { valid && self.library === library }
+
+    func invalidate() {
+        valid = false
+        entries.removeAll(); generations.removeAll()
+    }
 
     // Call at window registration and removal, even when no agent is reading.
-    func refreshMembership() { _ = trackedModels() }
+    func refreshMembership() { if valid { _ = trackedModels() } }
 
     private func trackedModels() -> [WindowModel] {
         let current = models().filter { $0.library === library }
@@ -43,6 +49,7 @@ import AgentContracts
     }
 
     func snapshot(_ stored: Note) throws -> Snapshot {
+        guard valid else { throw AgentErrorCode.cancelled }
         let current = trackedModels()
         let pending = current.filter {
             $0.editor.noteID == stored.id && ($0.hasUnsavedChanges || $0.editor.hasUnpersistedText)

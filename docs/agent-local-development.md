@@ -131,9 +131,14 @@ The UI dirty flag can lag that text change; it is not the only pending-text test
 Per-draft generations detect changes between reads, including edit and revert;
 selection changes and activity in other drafts do not affect the token.
 
-This does not connect the registry to normal AppController startup. Before
-activation, supply the actual live models, verify lifecycle removal and complete
-the system-lock and signed-helper acceptance. Editor mutations remain unfinished.
+For application assembly, use AppController.agentEditorRegistry(for:). It checks
+the current library, caches one instance and supplies the actual registered
+models. Its registration/removal paths refresh membership. Library changes and
+controller release invalidate the old registry. The factory is lazy; normal
+startup does not create a listener or enable permissions by requesting it.
+Before activation, connect host shutdown to application context changes, verify
+the lifecycle in native use and complete system-lock and signed-helper acceptance.
+Editor mutations remain unfinished.
 
 Headless tests use real local sockets and temporary files, fake credentials and
 in-memory libraries. They cover framing, limits, timeouts, cancellation, scoped
