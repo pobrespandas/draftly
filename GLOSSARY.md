@@ -280,6 +280,10 @@ An opaque reference to a resource's stored editable state and pending editor
 changes. It is used to detect a stale view of that state. It does not grant access
 and is distinct from a saved revision.
 
+**Agent mutation receipt**:
+The durable result of a library change associated with one request and connection.
+It identifies completed work during a retry. It does not grant access.
+
 **Agent approval**:
 The user's one-use consent to a specific requested operation and its effects.
 It does not widen the connection's grant or carry over to a replacement grant.
