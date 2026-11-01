@@ -3,6 +3,26 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Native and Workspace preference coordination — 1 November
+
+The application has adapters for login registration, Spotlight and the default
+Workspace reference. Native coordination uses the existing models and reports
+pending approval, unavailable service, busy state, failure and cancellation.
+A native effect completion is separate from the verified local reset and operation record.
+Human approval is required for both native settings; Spotlight changes require
+full-library authority. No adapter issues that approval or enables an endpoint.
+
+Workspace reference reads and preparation check capabilities and resource scope
+before lookup. The common target-membership rule also serves baseline request
+policy. Missing stored references remain unchanged and do not become successful
+new references. Reset prepares removal without applying a Workspace.
+
+Twelve new headless application tests passed with injected native services and
+temporary preference domains. Full Swift inventories, Python 286, structural
+matrix and local Xcode build passed. These checks are not real OS integration
+acceptance. All preference operations still need the authenticated command
+service, version checks, protected approvals and durable operation records.
+
 ## Scalar and list preference preparation — 1 November
 
 Typed adapters now read 30 scalar preference fields and nine local list fields
@@ -15,9 +35,10 @@ The adapters share a concrete typed reading value.
 Eight new application tests cover defaults without writes, typed Unicode and
 numeric values, invalid values, private/native-field rejection, list round trips,
 legacy precedence and reset. All complete Swift inventories passed after the
-change. Python 286 and the structural matrix check passed. Native integrations,
-a scope-checked default Workspace, authorization and atomic commit receipts
-remain open. No local endpoint or installed-app change is enabled.
+change. Python 286 and the structural matrix check passed. Native and Workspace
+coordination is described above. Authorization, verified local writes and
+operation records remain open. No local endpoint or installed-app change is
+enabled.
 
 ## Partial list option decoding — 1 November
 
@@ -73,7 +94,7 @@ full-library backup authority, malformed/oversized messages, Unicode/decimal
 transport, and distinct pending/error/result states.
 
 Automatic validation passed one package-consumer test, 127 AgentContracts,
-763 Core and 960 app tests with
+763 Core and 972 app tests with
 complete result inventories, 286 Python tests, the structural matrix check,
 and the final local app build.
 See the [operation inventory](research/agent-operation-inventory.md) for reused
