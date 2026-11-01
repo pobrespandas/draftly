@@ -36,8 +36,9 @@ class AgentHelperPackagingTests(unittest.TestCase):
             return plistlib.dumps(self.profile)
         if "--entitlements" in command and "-d" in command:
             return plistlib.dumps(self.rights)
-        if "--extract-certificates" in command:
-            Path(command[command.index("--extract-certificates") + 1] + "0").write_bytes(self.certificate)
+        for argument in command:
+            if argument.startswith("--extract-certificates="):
+                Path(argument.split("=", 1)[1] + "0").write_bytes(self.certificate)
         return b""
 
     def package(self):
@@ -57,7 +58,10 @@ class AgentHelperPackagingTests(unittest.TestCase):
         verification = next(c for c in self.calls if "--verify" in c)
         self.assertIn("runtime", signing)
         self.assertIn("-R", verification)
+        self.assertTrue(verification[verification.index("-R") + 1].startswith("=anchor apple generic"))
         self.assertIn(module.IDENTIFIER, verification[verification.index("-R") + 1])
+        extraction = next(c for c in self.calls if any(a.startswith("--extract-certificates") for a in c))
+        self.assertTrue(any(a.startswith("--extract-certificates=") for a in extraction))
         self.assertFalse(result["keychainSharingVerified"])
         self.assertFalse(result["notarizationVerified"])
 
@@ -99,7 +103,7 @@ class AgentHelperPackagingTests(unittest.TestCase):
         self.rights["com.apple.security.get-task-allow"] = True
         with self.assertRaisesRegex(ValueError, "entitlements"):
             self.package()
-        self.assertFalse(any("--extract-certificates" in c for c in self.calls))
+        self.assertFalse(any(any(a.startswith("--extract-certificates") for a in c) for c in self.calls))
         self.output = self.root / "other-candidate"
         self.rights.pop("com.apple.security.get-task-allow")
         self.certificate = b"different public certificate"
