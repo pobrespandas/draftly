@@ -3,6 +3,21 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Preference defaults preparation — 1 November
+
+Settings and editor consumers now share the existing editor, capture, General,
+HTML and Markdown defaults. This removes duplicate values before the application
+preference catalog is connected. Legacy Boolean conversion and invalid HTML
+marker fallback stay unchanged. Reading a default does not persist it.
+
+Automatic checks passed 49 focused tests across seven suites and the local
+Xcode app build. The three new characterization tests also passed before the
+extraction. The generated Xcode target uses the package name `draftly` to read
+package-only constants from Core. No public API or persisted format changed.
+No native acceptance is claimed; this unit changes no controls or permissions.
+The actual field catalog, preference handlers and local agent endpoint remain
+pending. The installed application is unchanged.
+
 ## Current priority
 
 Local agent access is in stage 1. The user accepted the full

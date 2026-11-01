@@ -50,8 +50,8 @@ struct EditorSpacingPreferences: View {
     var fontName: String
     var fontSize: Double
     var legacyLineSpacing: Double
-    @AppStorage(EditorParagraphLayout.lineHeightKey) private var lineHeightMultiple = 0.0
-    @AppStorage(EditorParagraphLayout.paragraphSpacingKey) private var paragraphSpacing = 0.0
+    @AppStorage(EditorParagraphLayout.lineHeightKey) private var lineHeightMultiple = EditorPreferenceDefaults.lineHeightMultiple
+    @AppStorage(EditorParagraphLayout.paragraphSpacingKey) private var paragraphSpacing = EditorPreferenceDefaults.paragraphSpacing
     private var font: NSFont {
         fontName == "System" ? .systemFont(ofSize: fontSize)
             : NSFont(name: fontName, size: fontSize) ?? .monospacedSystemFont(ofSize: fontSize, weight: .regular)
@@ -80,8 +80,8 @@ struct EditorLayoutPreferences: View {
     @ObservedObject var library: LibraryStore
     @AppStorage("editor.horizontalMargin") private var horizontal = EditorTextLayout.horizontalMargin
     @AppStorage("editor.verticalMargin") private var vertical = EditorTextLayout.verticalMargin
-    @AppStorage("editor.maximumWidth") private var maximum = 0.0
-    @AppStorage("editor.typewriter") private var typewriter = false
+    @AppStorage("editor.maximumWidth") private var maximum = EditorPreferenceDefaults.maximumWidth
+    @AppStorage("editor.typewriter") private var typewriter = EditorPreferenceDefaults.typewriter
     @AppStorage(EditorThemePreferences.key) private var themeReferences = Data()
     @State private var editing: EditorTheme?
     @State private var editingDark: Bool?

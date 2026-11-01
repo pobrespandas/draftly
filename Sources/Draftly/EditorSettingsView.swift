@@ -49,15 +49,15 @@ struct EditorSettingsView: View {
     @State private var textInputError: String?
     @State private var syntaxFontError: String?
     @AppStorage(EditorSyntaxFontPreferences.key) private var syntaxFonts = "{}"
-    @AppStorage("editor.fontName") private var fontName = "System"
+    @AppStorage("editor.fontName") private var fontName = EditorPreferenceDefaults.fontName
     @AppStorage(EditorSyntaxDisplayPreferences.key) private var displayOptions = "{}"
     @State private var displayOptionsError: String?
-    @AppStorage("editor.highlightInsertionPoint") private var highlightInsertionPoint = false
-    @AppStorage("editor.monospaceFontName") private var monospaceFontName = "System Monospace"
-    @AppStorage("editor.fontSize") private var fontSize = 17.0
-    @AppStorage("editor.lineSpacing") private var lineSpacing = 2.0
-    @AppStorage("editor.focusOnListSelection") private var focusOnListSelection = false
-    @AppStorage("editor.cursorOnListSelection") private var cursorOnListSelection = "last"
+    @AppStorage("editor.highlightInsertionPoint") private var highlightInsertionPoint = EditorPreferenceDefaults.highlightInsertionPoint
+    @AppStorage("editor.monospaceFontName") private var monospaceFontName = EditorPreferenceDefaults.monospaceFontName
+    @AppStorage("editor.fontSize") private var fontSize = EditorPreferenceDefaults.fontSize
+    @AppStorage("editor.lineSpacing") private var lineSpacing = EditorPreferenceDefaults.lineSpacing
+    @AppStorage("editor.focusOnListSelection") private var focusOnListSelection = EditorPreferenceDefaults.focusOnListSelection
+    @AppStorage("editor.cursorOnListSelection") private var cursorOnListSelection = EditorPreferenceDefaults.cursorOnListSelection
     private var installedFontOptions: [EditorFontOptions.Choice] {
         EditorFontOptions.installed(families: NSFontManager.shared.availableFontFamilies) { family in
             (NSFontManager.shared.availableMembers(ofFontFamily: family) ?? []).compactMap { member in

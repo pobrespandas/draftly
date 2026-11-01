@@ -1,6 +1,7 @@
 import Foundation
 
 public enum MarkdownPreferences {
+    package static let defaultEngine = "multi"
     public static let engineKey = "markdown.processor"
     public static let multiKey = "markdown.options.multi"
     public static let githubKey = "markdown.options.github"
@@ -51,7 +52,7 @@ public enum MarkdownPreferences {
     }
 
     public static func render(_ text: String, syntax: String = "Markdown", defaults: UserDefaults = .standard) throws -> String {
-        let preferred = defaults.string(forKey: engineKey) ?? "multi"
+        let preferred = defaults.string(forKey: engineKey) ?? defaultEngine
         let engine = syntax == "MultiMarkdown" ? "multi" : syntax == "GitHub Markdown" ? "github" : preferred == "github" ? "github" : "multi"
         let json = defaults.string(forKey: engine == "multi" ? multiKey : githubKey) ?? "{}"
         return try ScriptMarkdown.render(text, engine: engine, options: options(engine: engine, json: json))
