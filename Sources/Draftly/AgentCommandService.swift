@@ -12,7 +12,7 @@ import AgentContracts
         let grantID: UUID
     }
     static let implementedOperations: Set<String> = ["server.status", "server.capabilities", "server.schemas",
-        "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions"]
+        "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions", "preferences.schema"]
     private let libraryID: UUID
     private let connections: AgentConnectionRegistry
     private let validateHost: () throws -> Void
@@ -21,6 +21,8 @@ import AgentContracts
     private let appVersion: String
     private let preferences: AgentPreferenceRegistry
     private let pages: AgentReadPages
+    private let preferenceDescriptorIDs: [UUID]
+    private let preferenceDescriptors: [UUID: AgentPreferenceField]
     private let drafts: AgentDraftReading
     private var sessions: [UUID: Authorization] = [:]
 
@@ -32,7 +34,12 @@ import AgentContracts
         guard editors?.isBound(to: library) ?? true else { throw AgentErrorCode.invalidInput }
         self.libraryID = libraryID; self.connections = connections; self.appVersion = appVersion
         self.validateHost = validateHost
-        self.isLocked = isLocked; self.now = now; self.preferences = try AgentPreferenceCatalog.make()
+        self.isLocked = isLocked; self.now = now
+        let preferences = try AgentPreferenceCatalog.make()
+        self.preferences = preferences
+        let descriptors = preferences.fields.map { (UUID(), $0) }
+        preferenceDescriptorIDs = descriptors.map { $0.0 }
+        preferenceDescriptors = Dictionary(uniqueKeysWithValues: descriptors)
         let pages = AgentReadPages(now: now, uptime: uptime)
         self.pages = pages
         drafts = AgentDraftReading(library: library, pages: pages, editors: editors, pendingEditorGeneration: pendingEditorGeneration)
@@ -136,6 +143,18 @@ import AgentContracts
                 "scope": .object(["allResources": .bool(grant.scope == .library), "resources": .array(references.map {
                     .object(["kind": .string($0.kind.rawValue), "id": .string($0.id.uuidString)])
                 })]), "expiresAt": .string(APIValues.date(grant.expiresAt))]
+        case "preferences.schema":
+            let selected: Set<String>?
+            if case .array(let ids) = parameters["ids"] {
+                selected = Set(ids.compactMap { if case .string(let id) = $0 { return id }; return nil })
+            } else { selected = nil }
+            return try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
+                parameters: parameters, expiresAt: grant.expiresAt, ids: {
+                    preferenceDescriptorIDs.filter { id in
+                        guard let field = preferenceDescriptors[id] else { return false }
+                        return selected?.contains(field.id) ?? true
+                    }
+                }, value: { id in preferenceDescriptors[id].map { preferences.descriptor($0) } })
         case "server.schemas":
             let names: [String]
             if case .array(let selected) = parameters["operations"] {

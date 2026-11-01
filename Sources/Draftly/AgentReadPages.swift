@@ -15,6 +15,7 @@ import AgentContracts
         let expiresAt: Date
         let startedAt: TimeInterval
     }
+    private static let lifetime: TimeInterval = 600
     private var snapshots: [UUID: Snapshot] = [:]
     private let key = SymmetricKey(size: .bits256)
     private let now: () -> Date
@@ -57,7 +58,7 @@ import AgentContracts
             }
             id = UUID(); offset = 0
             snapshot = Snapshot(owner: owner, query: binding, ids: members,
-                expiresAt: min(expiresAt, now().addingTimeInterval(300)), startedAt: uptime())
+                expiresAt: min(expiresAt, now().addingTimeInterval(Self.lifetime)), startedAt: uptime())
         }
         let limit = Int(try AgentTextShapes.count(parameters["limit"]))
         var index = offset, items: [AgentJSONValue] = []
@@ -79,6 +80,6 @@ import AgentContracts
     private func live(_ snapshot: Snapshot) -> Bool {
         let timestamp = now(), elapsed = uptime() - snapshot.startedAt
         return timestamp.timeIntervalSinceReferenceDate.isFinite && elapsed.isFinite && elapsed >= 0
-            && elapsed < 300 && timestamp < snapshot.expiresAt
+            && elapsed < Self.lifetime && timestamp < snapshot.expiresAt
     }
 }

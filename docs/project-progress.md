@@ -19,6 +19,76 @@ manual steps; automatic tests never invoke them. This acceptance covers adapter
 sharing on this Mac. App embedding, helper replacement, graphical lock behavior
 and notarization remain pending. No installed application or release changed.
 
+## Signed retry-key engine — 1 November
+
+AgentRetryKeys binds a normalized request hash, connection hash, complete grant
+fingerprint, host epoch and issuance clocks under an HMAC signature. Keys contain
+no request content or credential. They expire after thirty days and reject clock
+rollback, changed or expired authority, tampering and a closed manager. Verification
+is stateless, so receipt cleanup cannot make an expired key executable again.
+
+AgentRequestBinding now supplies the common normalization and grant snapshot for
+approvals and keys. Existing approval behavior remains covered. Six initial key
+methods failed against the unavailable stub; the existing sixteen approval
+methods passed after extraction. Final focused25 passed (nine new key methods).
+Fixtures were corrected to use the actual create defaults and required merge
+order; no contract was changed to fit them. Complete results verified1consumer/
+161contracts/774Core/1219app (2155 total). Python294, matrix0 and helper/local app
+builds passed. The project change only registers the two new application files.
+
+Key issuance is not exposed through CLI/MCP yet. Envelope integration, guarded
+mutation dispatch, task-owned target grants, editor CAS, restart recovery and
+pruning remain pending. This engine does not replace permission or effect approval
+checks and does not enable installed agent access. The installed app is unchanged.
+
+## Atomic note mutation receipts — 1 November
+
+The package-only LibraryStore boundary stages notes and an agent mutation receipt
+in one existing Core Data transaction. Public note saves share the same staging
+rules. A matching committed request returns its receipt without repeating edits.
+Different request hashes or targets are rejected. Receipt reads reject pending
+context changes, and the write boundary preserves pre-existing uncommitted work.
+Receipts omit raw requests and credentials and are excluded from backups.
+
+Nine new Core test methods cover reopening/reply loss, failures before and after
+receipt staging, conflicts, invalid metadata, thirty-day expiry, clock rollback,
+backup exclusion, pending changes, malformed records and unknown record kinds.
+The pending-state regression failed before its guard and passed afterwards.
+All20 focused methods passed. Complete results verified1consumer/161contracts/
+774Core/1210app (2146 total). Python294, matrix0, helper and local app builds passed.
+Tests used neutral temporary or in-memory libraries. No personal data was used.
+
+This is a storage primitive, not an exposed write handler. Signed retry keys,
+request normalization, authorization/CAS/editor integration, receipt pruning and
+restore-epoch invalidation remain before writes can be enabled. The installed
+app and release are unchanged. No action defaults or theme catalog was edited.
+
+## Read cursor lifetime contract — 1 November
+
+Read cursors now use the accepted ten-minute maximum, bounded by the grant
+expiry and both wall and monotonic clocks. The previous implementation used five
+minutes. Pairing challenges and human approvals retain their five-minute limits.
+This changes the cursor contract, not a test wait or execution timeout.
+
+The new 599-second read failed before the correction. All37 focused service
+methods then passed, including exact 600-second expiry, a shorter grant and
+monotonic rollback. Full Swift results verified1consumer/161contracts/765Core/
+1210app (2137 total). Python294, matrix0 and the helper build passed. Local app
+compilation passed. Exact-head CI remains pending for this correction. No installed access was enabled.
+
+## Authenticated preference discovery — 1 November
+
+preferences.schema now serves the authoritative typed preference descriptors.
+It checks preferences.read, validates selected IDs and binds opaque page cursors
+to the normalized query, session and grant. Descriptor discovery reads no stored
+settings or credentials. Preference values and mutations remain separate work.
+
+Three behavioral cases first failed because the operation was unavailable.
+Final focused49 passed, including complete descriptor coverage, permission and
+ID rejection, cross-session/filter cursor rejection and expiry. Complete Swift
+results verified1consumer/161contracts/765Core/1207app (2134 total). Python294,
+matrix0, helper build and local app build passed. No native activation is claimed.
+
 ## Isolated agent helper packaging — 1 November
 
 The new packaging command builds an app-like wrapper for draftly-agent in a new

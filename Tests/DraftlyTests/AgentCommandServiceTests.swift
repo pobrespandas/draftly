@@ -90,6 +90,49 @@ struct AgentCommandServiceTests {
         }
     }
 
+    @Test func preferenceDescriptorsPageFromTheAuthoritativeCatalogWithoutReadingSettings() throws {
+        let f = try Fixture(), (_, session) = try f.connect(capabilities: [.preferencesRead])
+        let catalog = try AgentPreferenceCatalog.make()
+        var returned: [AgentJSONValue] = [], cursor: AgentJSONValue?
+        repeat {
+            var parameters: [String: AgentJSONValue] = ["limit": .integer(7)]
+            if let cursor { parameters["cursor"] = cursor }
+            let page = try f.values("preferences.schema", session: session, parameters: parameters)
+            guard case .array(let descriptors) = page["items"] else { throw AgentErrorCode.executionError }
+            returned += descriptors
+            cursor = page["nextCursor"] == .null ? nil : page["nextCursor"]
+        } while cursor != nil
+        let expected = try JSONDecoder().decode([AgentJSONValue].self,
+            from: JSONEncoder().encode(catalog.fields.map { catalog.descriptor($0) }))
+        #expect(returned == expected)
+        #expect(AgentCommandService.implementedOperations.contains("preferences.schema"))
+    }
+
+    @Test func preferenceDiscoveryRequiresReadCapabilityAndValidKnownIDs() throws {
+        let f = try Fixture(), (_, reader) = try f.connect(), (_, settings) = try f.connect(capabilities: [.preferencesRead])
+        #expect(try f.response("preferences.schema", session: reader).outcome == .error(.permissionDenied))
+        #expect(try f.response("preferences.schema", session: settings,
+            parameters: ["ids": .array([.string("secret.credential")])]).outcome == .error(.invalidInput))
+        let page = try f.values("preferences.schema", session: settings,
+            parameters: ["ids": .array([.string("editor.fontSize")])])
+        #expect(try items(page).map { $0["id"] } == [.string("editor.fontSize")])
+    }
+
+    @Test func preferenceCursorCannotCrossSessionsOrFiltersAndExpires() throws {
+        let f = try Fixture(), (_, first) = try f.connect(capabilities: [.preferencesRead]),
+            (_, other) = try f.connect(capabilities: [.preferencesRead])
+        let page = try f.values("preferences.schema", session: first, parameters: ["limit": .integer(1)])
+        let cursor = try #require(page["nextCursor"])
+        #expect(cursor != .null)
+        #expect(try f.response("preferences.schema", session: other,
+            parameters: ["cursor": cursor]).outcome == .error(.invalidInput))
+        #expect(try f.response("preferences.schema", session: first,
+            parameters: ["cursor": cursor, "ids": .array([.string("editor.fontSize")])]).outcome == .error(.invalidInput))
+        f.wall += 601; f.uptime += 601
+        #expect(try f.response("preferences.schema", session: first,
+            parameters: ["cursor": cursor]).outcome == .error(.invalidInput))
+    }
+
     @Test func lostHostDeniesStartupAuthenticationAndExistingSessions() throws {
         let f = try Fixture(), (record, session) = try f.connect()
         f.hostError = .versionConflict
@@ -350,6 +393,44 @@ struct AgentCommandServiceTests {
         #expect(try f.values("drafts.list", session: session, parameters: next) == result)
     }
 
+    @Test func cursorLivesForTenMinutesButNotBeyondEitherClockBoundary() throws {
+        let f = try Fixture(); _ = try f.note("a"); _ = try f.note("b")
+        let (_, session) = try f.connect()
+        let cursor = try #require(f.values("drafts.list", session: session,
+            parameters: ["limit": .integer(1)])["nextCursor"])
+        f.wall += 599; f.uptime += 599
+        #expect(try items(f.values("drafts.list", session: session,
+            parameters: ["cursor": cursor])).count == 1)
+        f.uptime += 1
+        #expect(try f.response("drafts.list", session: session,
+            parameters: ["cursor": cursor]).outcome == .error(.invalidInput))
+    }
+
+    @Test func cursorDoesNotExtendAShortGrantOrSurviveMonotonicRollback() throws {
+        let f = try Fixture(); _ = try f.note("a"); _ = try f.note("b")
+        let record = try f.connections.connectFromUserInterface(name: "Neutral short grant", libraryID: f.libraryID,
+            scope: .library, expiresAt: f.wall.addingTimeInterval(90))
+        let session = try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        let cursor = try #require(f.values("drafts.list", session: session,
+            parameters: ["limit": .integer(1)])["nextCursor"])
+        f.uptime -= 1
+        #expect(try f.response("drafts.list", session: session,
+            parameters: ["cursor": cursor]).outcome == .error(.invalidInput))
+        f.wall += 90; f.uptime += 91
+        #expect(try f.response("drafts.list", session: session,
+            parameters: ["cursor": cursor]).outcome == .error(.permissionDenied))
+    }
+
+    @Test func cursorWallDeadlineCanExpireBeforeTheMonotonicDeadline() throws {
+        let f = try Fixture(); _ = try f.note("a"); _ = try f.note("b")
+        let (_, session) = try f.connect()
+        let cursor = try #require(f.values("drafts.list", session: session,
+            parameters: ["limit": .integer(1)])["nextCursor"])
+        f.wall += 600
+        #expect(try f.response("drafts.list", session: session,
+            parameters: ["cursor": cursor]).outcome == .error(.invalidInput))
+    }
+
     @Test func cursorsRejectOtherSessionsChangedQueriesForgeryExpiryAndRestart() throws {
         let f = try Fixture(); _ = try f.note("a"); _ = try f.note("b")
         let (record, session) = try f.connect(), (_, other) = try f.connect()
@@ -365,7 +446,7 @@ struct AgentCommandServiceTests {
             #expect(try f.response("drafts.list", session: session,
                 parameters: ["cursor": .string(parts.joined(separator: "."))]).outcome == .error(.invalidInput))
         }
-        f.uptime += 300
+        f.uptime += 600
         #expect(try f.response("drafts.list", session: session, parameters: parameters).outcome == .error(.invalidInput))
         f.service = try f.makeService()
         #expect(try f.response("server.status", session: session).outcome == .error(.permissionDenied))
@@ -427,7 +508,7 @@ struct AgentCommandServiceTests {
             guard case .object(let fields) = item, fields["available"] == .bool(true), case .string(let name) = fields["name"] else { return nil }
             return name
         })
-        #expect(operations.count == 136 && available == AgentReadSchemas.operationNames && available.count == 8)
+        #expect(operations.count == 136 && available == AgentReadSchemas.operationNames.union(["preferences.schema"]) && available.count == 9)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.unavailable))
         #expect(f.library.notes.isEmpty)
         #expect(try f.values("server.capabilities", session: session)["capabilities"] == .array([.string("drafts.read"), .string("drafts.write")]))

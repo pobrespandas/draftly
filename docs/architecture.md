@@ -706,10 +706,16 @@ that attempt. Normal startup still needs to supply the real lease validator.
 Closing a session, explicit invalidation or observing a locked
 screen removes its cursors. Unlocking does not restore that session.
 
-The service owns an explicit set of eight read handlers. server.schemas reports
+The service owns an explicit set of read handlers. server.schemas reports
 that set independently of the contract inventory. New catalog or schema entries
 do not become executable by registration. Other operations return a real error.
 No permission-management or approval method becomes an agent tool.
+
+preferences.schema returns descriptors from AgentPreferenceCatalog only. It needs
+preferences.read, validates selected field IDs and uses the same session-bound
+pagination as resource reads. Private page IDs are service-local. The operation
+returns no stored values and reads no preference domain or Keychain item.
+preferences.get, update and reset remain separate unfinished handlers.
 
 AgentDraftReading uses LibraryStore and the existing Workspace evaluator. It
 filters authorized drafts before search, sorting, previews or counts. Summary
@@ -723,7 +729,7 @@ can fall back to a normal preview, as in the existing row presentation.
 AgentReadPages retains only resource IDs and order. Values remain current on
 each page; deleted members are skipped and new members are not added. Signed,
 opaque cursors bind the normalized query, targets, session and grant. They expire
-after at most five minutes or the grant deadline. Monotonic time bounds their
+after at most ten minutes or the grant deadline. Monotonic time bounds their
 lifetime. A replay reads the same membership position, not a cached content copy.
 There are at most 64 snapshots and one million retained IDs per service.
 
@@ -976,3 +982,53 @@ cancels Quit. Closure invalidates transport, sessions and pending pairing.
 Normal host startup, editor mutations and the system-lock adapter remain
 unfinished.
 No installed-app access is enabled by this read adapter.
+
+## Atomic library mutation receipts
+
+LibraryStore.commitNotes is a package-only persistence boundary. It stages notes
+through the same rules as saveNotes, then stages an agentMutationReceipt record
+and commits both through the existing Core Data writer. A Sendable result builder
+receives the normalized note values. It derives opaque resource version tokens
+without access to the actor-owned store. No second writer or model entity is added.
+
+A receipt contains the request ID, connection identifier hash, normalized request
+hash, commit date, affected IDs and resulting version tokens. It contains no raw
+request, draft content or credential. Reuse with a different request hash or target
+set is rejected. A committed matching request returns its stored receipt without
+staging edits or calling the builder again. Retained receipts expire after thirty
+days. Backup exports omit them; unknown existing record kinds remain intact.
+
+Receipt reads reject a context with pending changes. The write boundary also
+rejects pre-existing pending work, preserving it rather than committing or rolling
+it back. Errors while staging notes, building the receipt or preparing the save
+roll back the new batch together. A lost reply can be reconciled after reopening.
+
+This storage primitive does not authorize a request. Agent handlers must validate
+current grants, expected versions, editor conflicts and signed retry keys before
+using it or returning a receipt. Retry-key issuance, receipt pruning, restore-epoch
+invalidation, editor coordination and operation dispatch remain unfinished.
+Agent writes stay unavailable until those boundaries are implemented and tested.
+
+## Signed retry keys
+
+AgentRetryKeys signs a bounded payload that binds the normalized request hash,
+connection hash, complete grant fingerprint, host epoch and issuance clocks.
+It checks current base authority on issue and verification. The signature is
+checked before decoding the payload. The token contains hashes and clocks, not
+request content or a credential. It cannot grant access or approve native effects.
+
+Keys expire after thirty days using both wall and monotonic clocks. An earlier
+grant expiry, revocation, scope change or replacement denies use. Clock rollback
+fails closed. Verification needs no in-memory request list or retained receipt.
+Closing the manager is final. A new secret or host epoch rejects prior keys.
+
+AgentRequestBinding is the shared normalization boundary for approval fingerprints
+and retry keys. It uses the wire and operation validators, applies documented
+defaults, preserves target order and Unicode scalars, and bounds encoded data.
+Grant binding includes its identity, library, capabilities, scope, expiry and
+revocation. The existing approval tests retain their behavior.
+
+This key engine is not yet a transport endpoint. The command service still needs
+key issuance, request-envelope integration and a guarded mutation dispatcher.
+Durable recovery across app restart, restore-epoch handling, receipt pruning,
+editor CAS and task-owned targets remain required. Keys do not bypass those steps.
