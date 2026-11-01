@@ -2,6 +2,15 @@
 
 ## Visual review — 1 November 2026
 
+The bar now supports an icon and a nonempty label together. Default dictation
+and paste actions use Insert, New, and Paste. An explicit empty label remains
+empty. The full action name remains the accessibility label. Thirteen focused
+presentation tests passed. QA displayed Insert and New beside native symbols.
+
+Read-only inspection of Drafts Inbox confirmed one script step:
+`draft.isArchived = false; draft.update();`. The Draftly Inbox separator still
+needs a catalog correction and an upgrade path for unchanged installed copies.
+
 The action list and editor bar now share default appearance rules. Rules match
 the catalog ID, name, and group. They replace an unchanged default symbol and
 an unset tint. Custom symbols, explicit tints, and unrelated action IDs remain

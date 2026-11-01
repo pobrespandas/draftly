@@ -5,12 +5,14 @@ import AppKit
 struct ActionBarLabel: Equatable {
     let text: String
     let usesIcon: Bool
+    let showsText: Bool
     let accessibilityLabel: String
 
     init(_ action: DraftAction) {
         let label = action.presentation.barLabel ?? ""
         text = label.isEmpty ? action.name : label
         usesIcon = action.presentation.barUsesIcon ?? true
+        showsText = !usesIcon || !label.isEmpty
         accessibilityLabel = action.name
     }
 }
@@ -48,11 +50,12 @@ struct EditorActionBar: View {
     private func configuredActionButton(_ action: DraftAction) -> some View {
         let label = ActionBarLabel(action)
         return Button { model.run(action) } label: {
-            Group {
+            HStack(spacing: 4) {
                 if label.usesIcon {
                     Image(systemName: action.symbol).font(.system(size: 17, weight: .regular)).frame(width: 22)
-                } else {
-                    Text(label.text).font(.system(size: 13)).lineLimit(1).fixedSize()
+                }
+                if label.showsText {
+                    Text(label.text).font(.system(size: 13)).foregroundStyle(Color.secondary).lineLimit(1).fixedSize()
                 }
             }.foregroundStyle(ActionTint.color(action.presentation.tintColor) ?? barColor(action.name))
         }.buttonStyle(.plain).help(action.name).accessibilityLabel(label.accessibilityLabel)

@@ -56,6 +56,7 @@ struct ActionCatalogPresentationTests {
     @Test func barLabelsRespectTextChoiceAndKeepFullNameForAccessibility() {
         var action = DraftAction(name: "Full action café 🐼", steps: [])
         #expect(ActionBarLabel(action).text == action.name && ActionBarLabel(action).usesIcon)
+        #expect(!ActionBarLabel(action).showsText)
         action.presentation.barLabel = "Short 🐼"
         action.presentation.barUsesIcon = false
         let text = ActionBarLabel(action)
@@ -65,7 +66,11 @@ struct ActionCatalogPresentationTests {
         #expect(ActionBarLabel(action).text == action.name)
         action.presentation.barUsesIcon = true
         #expect(ActionBarLabel(action).usesIcon)
+        #expect(!ActionBarLabel(action).showsText)
         #expect(action.presentation.barLabel == "")
+        action.presentation.barLabel = "Insert"
+        #expect(ActionBarLabel(action).usesIcon && ActionBarLabel(action).showsText)
+        #expect(ActionBarLabel(action).text == "Insert")
     }
 
     private func action(_ name: String, group: String = "General", section: String = "", separator: Bool = false) -> DraftAction {
