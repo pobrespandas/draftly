@@ -799,7 +799,14 @@ an omitted library ID to the authenticated host and checks response request IDs.
 Framing or connection errors close the session. The JSON CLI returns error status
 for setup/transport and operation errors; accepted work is not completion.
 
-The executable imports only contracts, local security and transport. It has no
+The executable imports contracts, local security, transport and AgentMCP. It has no
 library writer, raw credential flag, global installation, background daemon or
-remote socket. MCP, signed helper wrapping/provisioning, pairing UI and normal
+remote socket. Signed helper wrapping/provisioning, pairing UI and normal
 app startup are pending. No app route starts this broker in the installed app.
+
+
+AgentMCP owns protocol presentation, not application authority. It uses the pinned
+MCP SDK with a bounded pipe transport. AgentToolInput shares tool names and request
+binding with the named CLI command. The application validates every request.
+Exact JSON text avoids lossy protocol numbers. The app target does not link MCP.
+See [ADR 0002](adr/0002-mcp-exact-bounded-stdio.md) for the limits and trade-offs.
