@@ -65,3 +65,10 @@ observation. Exact reference timing remains unmeasured.
 A native drag attempt returned `noWindowsAvailable`. Custom width retention
 is covered by the automated tests, but this review did not complete a matching
 manual drag sequence in both apps. No drag result is claimed.
+# Action panel toolbar contrast — 1 November 2026
+
+The action panel toggle stays enabled when the panel is closed and when no draft
+is saved. It now uses a template image, like the other panel toggles. AppKit
+controls its active and inactive window appearance. Panel visibility no longer
+changes the image to `secondaryLabelColor`, which looked disabled.
+

@@ -8,7 +8,6 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
     private weak var splitView: NSSplitView?
     private var subscriptions: Set<AnyCancellable> = []
     private var refreshPending = false
-    private var actionsVisible: Bool?
     private var floating: Bool?
     private(set) var floatingButton: NSButton?
     private var items: [NSToolbarItem.Identifier: NSToolbarItem] = [:]
@@ -92,7 +91,7 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
                 item.image = Self.panelToggleImage(filters: identifier.rawValue == "filters")
             }
             if identifier.rawValue == "actions" {
-                item.image = Self.actionsToggleImage(isVisible: model?.showActions ?? false)
+                item.image = Self.actionsToggleImage()
             }
             item.isBordered = identifier.rawValue != "float"
             item.target = self
@@ -109,13 +108,13 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
         image?.size = NSSize(width: 12, height: 12)
         return image
     }
-    static func actionsToggleImage(isVisible: Bool) -> NSImage? {
+    static func actionsToggleImage() -> NSImage? {
         let image = NSImage(size: NSSize(width: 18, height: 14), flipped: false) { _ in
-            (isVisible ? NSColor.labelColor : NSColor.secondaryLabelColor).setStroke()
+            NSColor.labelColor.setStroke()
             drawPanelOutline(dividerX: 12)
             return true
         }
-        image.isTemplate = false
+        image.isTemplate = true
         image.accessibilityDescription = "Toggle Actions"
         return image
     }
@@ -161,10 +160,6 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
     }
     private func refresh() {
         guard let model else { return }
-        if actionsVisible != model.showActions, let item = items[NSToolbarItem.Identifier("actions")] {
-            item.image = Self.actionsToggleImage(isVisible: model.showActions)
-            actionsVisible = model.showActions
-        }
         if floating != model.isFloating {
             floatingButton?.image = Self.floatToggleImage(isFloating: model.isFloating)
             floating = model.isFloating
