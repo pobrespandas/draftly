@@ -278,4 +278,59 @@ struct AgentPairingTransportTests {
         await client.close()
     }
 
+    @Test func libraryBoundPairingEchoesTheActualLibraryBeforeHumanApproval() async throws {
+        let f = try Fixture(), broker = try f.broker(); defer { broker.stop() }
+        let channel = try await AgentUnixChannel.connect(path: broker.path, validatePeer: { _ in })
+        let start: AgentJSONValue = .object(["apiVersion": .integer(1), "mode": .string("pair"),
+            "clientName": .string("Neutral bound client"), "expectedLibraryID": .string(f.libraryID.uuidString)])
+        try await channel.writeFrame(JSONEncoder().encode(start))
+        let data = try await channel.readFrame(maximumBytes: AgentPairingHandshake.maximumBytes, timeout: 15)
+        guard case .object(let fields) = try JSONDecoder().decode(AgentJSONValue.self, from: data),
+              case .string(let rawID) = fields["pairingID"], let id = UUID(uuidString: rawID) else {
+            Issue.record("Expected a bound pairing challenge"); channel.close(); return
+        }
+        #expect(fields["libraryID"] == .string(f.libraryID.uuidString))
+        #expect(f.pairing.pendingFromUserInterface().count == 1 && f.state.credentials.isEmpty && f.state.reads == 0)
+        try await channel.writeFrame(AgentPairingHandshake.encode(AgentPairingHandshake.Control(pairingID: id, command: .cancel)))
+        _ = try await channel.readFrame(maximumBytes: AgentPairingHandshake.maximumBytes, timeout: 15)
+        channel.close()
+    }
+
+    @Test func aDifferentExpectedPairingLibraryCreatesNoReviewOrCredential() async throws {
+        let f = try Fixture(), broker = try f.broker(); defer { broker.stop() }
+        let channel = try await AgentUnixChannel.connect(path: broker.path, validatePeer: { _ in })
+        defer { channel.close() }
+        let start: AgentJSONValue = .object(["apiVersion": .integer(1), "mode": .string("pair"),
+            "clientName": .string("Neutral bound client"), "expectedLibraryID": .string(UUID().uuidString)])
+        try await channel.writeFrame(JSONEncoder().encode(start))
+        let reply = try AgentPairingHandshake.Reply.decode(await channel.readFrame(maximumBytes: AgentPairingHandshake.maximumBytes, timeout: 15))
+        #expect(reply.error == .permissionDenied && reply.pairingID == nil)
+        #expect(f.pairing.pendingFromUserInterface().isEmpty && f.state.credentials.isEmpty && f.state.reads == 0)
+    }
+
+    @Test(arguments: [0, 1, 2])
+    func boundClientRequiresTheActualLibraryAcknowledgementBeforeShowingAChallenge(replyKind: Int) async throws {
+        let expected = UUID(), listener = try AgentUnixListener(parentDirectory: FileManager.default.temporaryDirectory)
+        let server = Task { @MainActor in
+            let channel = try await listener.accept(); defer { channel.close() }
+            let start = try AgentPairingHandshake.Start.decode(await channel.readFrame(maximumBytes: AgentPairingHandshake.maximumBytes, timeout: 15))
+            #expect(start.expectedLibraryID == expected)
+            let actual: UUID? = replyKind == 0 ? expected : replyKind == 1 ? UUID() : nil
+            try await channel.writeFrame(AgentPairingHandshake.encode(AgentPairingHandshake.Reply(
+                pairingID: UUID(), code: UUID().uuidString, expiresAt: Date().addingTimeInterval(300), libraryID: actual)))
+            do { _ = try await channel.readFrame(); return false } catch { return true }
+        }
+        defer { server.cancel(); listener.close() }
+        if replyKind == 0 {
+            let client = try await AgentPairingClient.connect(path: listener.path, name: "Neutral", expectedLibraryID: expected, validateServer: { _ in })
+            #expect(await client.challenge.libraryID == expected)
+            await client.close()
+        } else {
+            await #expect(throws: AgentErrorCode.permissionDenied) {
+                try await AgentPairingClient.connect(path: listener.path, name: "Neutral", expectedLibraryID: expected, validateServer: { _ in })
+            }
+        }
+        #expect(try await server.value)
+    }
+
 }

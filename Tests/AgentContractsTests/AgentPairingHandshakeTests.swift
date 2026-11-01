@@ -85,4 +85,34 @@ struct AgentPairingHandshakeTests {
         #expect(AgentConnectionName.isValid(name))
         #expect(throws: AgentErrorCode.invalidInput) { try AgentPairingHandshake.encode(AgentPairingHandshake.Start(clientName: name)) }
     }
+    @Test func boundChallengesAcknowledgeTheLibraryWhileLegacyShapesRemainUnchanged() throws {
+        let library = UUID()
+        for expected in [nil, library] as [UUID?] {
+            let data = try AgentPairingHandshake.encode(AgentPairingHandshake.Start(clientName: "Neutral café 🐼", expectedLibraryID: expected))
+            #expect(try AgentPairingHandshake.Start.decode(data).expectedLibraryID == expected)
+            guard case .object(let fields) = try JSONDecoder().decode(AgentJSONValue.self, from: data) else { throw AgentErrorCode.invalidInput }
+            let base: Set<String> = ["apiVersion", "mode", "clientName"]
+            #expect(Set(fields.keys) == (expected == nil ? base : base.union(["expectedLibraryID"])))
+            let challenge = AgentPairingHandshake.Reply(pairingID: UUID(), code: UUID().uuidString, expiresAt: Date(), libraryID: expected)
+            let encoded = try AgentPairingHandshake.encode(challenge)
+            #expect(try AgentPairingHandshake.Reply.decode(encoded).libraryID == expected)
+            guard case .object(let reply) = try JSONDecoder().decode(AgentJSONValue.self, from: encoded) else { throw AgentErrorCode.invalidInput }
+            let replyKeys: Set<String> = ["apiVersion", "pairingID", "code", "expiresAt"]
+            #expect(Set(reply.keys) == (expected == nil ? replyKeys : replyKeys.union(["libraryID"])))
+        }
+    }
+
+    @Test func malformedLibraryConstraintsAndAcknowledgementsNeverFallBackToUnboundMode() throws {
+        let start = try AgentPairingHandshake.encode(AgentPairingHandshake.Start(clientName: "Neutral"))
+        let challenge = try AgentPairingHandshake.encode(AgentPairingHandshake.Reply(pairingID: UUID(), code: UUID().uuidString, expiresAt: Date()))
+        guard case .object(let base) = try JSONDecoder().decode(AgentJSONValue.self, from: start),
+              case .object(let reply) = try JSONDecoder().decode(AgentJSONValue.self, from: challenge) else { throw AgentErrorCode.invalidInput }
+        for invalid: AgentJSONValue in [.null, .bool(true), .integer(1), .string(""), .string("not a UUID"), .array([]), .object([:])] {
+            var changed = base; changed["expectedLibraryID"] = invalid
+            #expect(throws: AgentErrorCode.invalidInput) { try AgentPairingHandshake.Start.decode(JSONEncoder().encode(AgentJSONValue.object(changed))) }
+            var changedReply = reply; changedReply["libraryID"] = invalid
+            #expect(throws: AgentErrorCode.invalidInput) { try AgentPairingHandshake.Reply.decode(JSONEncoder().encode(AgentJSONValue.object(changedReply))) }
+        }
+    }
+
 }

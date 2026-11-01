@@ -3,6 +3,22 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Expected-library handshake binding — 1 November
+
+Pairing and credential authentication now accept an optional expectedLibraryID.
+A mismatch is permissionDenied before a review or credential lookup. Bound
+challenges acknowledge the library; clients reject missing or wrong library
+responses. Absent expectations retain the existing JSON shapes and explicit
+socket access. Present invalid/null IDs fail rather than silently fall back.
+
+Three raw-socket tests first reproduced the unsupported binding. After the
+implementation, 76 app and 14 contract tests passed across six focused suites.
+The generated local app build also passed.
+New tests cover legacy shapes, invalid types, correct/wrong library requests,
+zero credential reads on refusal and clients checking acknowledgements.
+This is transport-level binding, not signed-helper or normal-app acceptance.
+Stable CLI lookup and routing are the next adapter step.
+
 ## Publication responsibility refactor — 1 November
 
 The concrete problem was mixed ownership in AgentLocalHost: transport and

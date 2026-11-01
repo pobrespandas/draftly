@@ -919,3 +919,15 @@ matching and durable replacement. A later owner's entry survives. A stale hint n
 connection access. Clients must still verify the real signed peer and authenticate.
 The helper discover command reads this catalog; automatic destination selection,
 client configuration export and normal app startup remain unfinished.
+
+
+Bound local handshakes carry an optional expectedLibraryID. It narrows the
+connection to one device-local library binding; it grants no authority. Pairing
+checks it before creating a challenge. Server authentication checks it before credential
+lookup. A bound challenge acknowledges the actual library, and both clients check
+the server response before returning a usable connection or challenge.
+
+Absent expectations retain the legacy wire shapes. A present invalid or null
+expectation is rejected, never treated as unbound mode. Bound clients also reject
+missing or mismatched acknowledgements. Stable CLI library selection remains a
+separate adapter step; this handshake change does not activate the installed app.

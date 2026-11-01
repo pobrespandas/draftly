@@ -197,4 +197,47 @@ struct AgentLocalTransportTests {
         f.locked = true
         #expect(throws: AgentErrorCode.permissionDenied) { try f.broker() }
     }
+    @Test func libraryBoundAuthenticationRejectsTheWrongLibraryBeforeReadingCredentials() async throws {
+        let f = try Fixture(), record = try f.connection(), broker = try f.broker(); defer { broker.stop() }
+        for expected in [UUID(), f.libraryID] {
+            let channel = try await AgentUnixChannel.connect(path: broker.path, validatePeer: { _ in })
+            let hello: AgentJSONValue = .object(["apiVersion": .integer(1), "connectionID": .string(record.id.uuidString),
+                "credential": .string(try #require(f.credentials[record.id]).base64EncodedString()),
+                "expectedLibraryID": .string(expected.uuidString)])
+            try await channel.writeFrame(JSONEncoder().encode(hello))
+            let reply = try AgentLocalHandshake.Welcome.decode(await channel.readFrame(maximumBytes: AgentLocalHandshake.maximumBytes, timeout: 15))
+            if expected == f.libraryID {
+                #expect(reply.libraryID == f.libraryID && reply.error == nil && f.credentialReads == 1)
+            } else {
+                #expect(reply.error == .permissionDenied && reply.libraryID == nil && f.credentialReads == 0)
+            }
+            channel.close()
+        }
+    }
+
+    @Test(arguments: [false, true])
+    func boundAuthenticationClientChecksTheWelcomeBeforeReturning(matching: Bool) async throws {
+        let expected = UUID(), listener = try listener()
+        let server = Task { @MainActor in
+            let channel = try await listener.accept(); defer { channel.close() }
+            let hello = try AgentLocalHandshake.Hello.decode(await channel.readFrame(maximumBytes: AgentLocalHandshake.maximumBytes, timeout: 15))
+            #expect(hello.expectedLibraryID == expected)
+            try await channel.writeFrame(JSONEncoder().encode(AgentLocalHandshake.Welcome(libraryID: matching ? expected : UUID())))
+            do { _ = try await channel.readFrame(); return false } catch { return true }
+        }
+        defer { server.cancel(); listener.close() }
+        if matching {
+            let client = try await AgentLocalClient.connect(path: listener.path, connectionID: UUID(), credential: Data(repeating: 3, count: 32),
+                expectedLibraryID: expected, validateServer: { _ in })
+            #expect(await client.libraryID == expected)
+            await client.close()
+        } else {
+            await #expect(throws: AgentErrorCode.permissionDenied) {
+                try await AgentLocalClient.connect(path: listener.path, connectionID: UUID(), credential: Data(repeating: 3, count: 32),
+                    expectedLibraryID: expected, validateServer: { _ in })
+            }
+        }
+        #expect(try await server.value)
+    }
+
 }

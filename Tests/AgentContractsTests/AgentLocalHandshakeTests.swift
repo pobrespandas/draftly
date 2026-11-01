@@ -35,4 +35,25 @@ struct AgentLocalHandshakeTests {
         #expect(throws: AgentErrorCode.invalidInput) { try AgentLocalHandshake.Hello.decode(data) }
         #expect(throws: AgentErrorCode.invalidInput) { try AgentLocalHandshake.Welcome.decode(data) }
     }
+    @Test func expectedLibraryIsOptionalButNeverChangesTheLegacyHelloShape() throws {
+        let id = UUID(), library = UUID(), secret = Data(repeating: 7, count: 32)
+        for expected in [nil, library] as [UUID?] {
+            let data = try JSONEncoder().encode(AgentLocalHandshake.Hello(connectionID: id, credential: secret, expectedLibraryID: expected))
+            let decoded = try AgentLocalHandshake.Hello.decode(data)
+            #expect(decoded.expectedLibraryID == expected && decoded.connectionID == id && decoded.credential == secret)
+            guard case .object(let fields) = try JSONDecoder().decode(AgentJSONValue.self, from: data) else { throw AgentErrorCode.invalidInput }
+            let base: Set<String> = ["apiVersion", "connectionID", "credential"]
+            #expect(Set(fields.keys) == (expected == nil ? base : base.union(["expectedLibraryID"])))
+        }
+    }
+
+    @Test func aPresentExpectedLibraryMustBeAUUIDRatherThanAnImplicitFallback() throws {
+        let data = try JSONEncoder().encode(AgentLocalHandshake.Hello(connectionID: UUID(), credential: Data(repeating: 7, count: 32)))
+        guard case .object(let root) = try JSONDecoder().decode(AgentJSONValue.self, from: data) else { throw AgentErrorCode.invalidInput }
+        for invalid: AgentJSONValue in [.null, .bool(false), .integer(1), .string(""), .string("not a UUID"), .array([]), .object([:])] {
+            var changed = root; changed["expectedLibraryID"] = invalid
+            #expect(throws: AgentErrorCode.invalidInput) { try AgentLocalHandshake.Hello.decode(JSONEncoder().encode(AgentJSONValue.object(changed))) }
+        }
+    }
+
 }

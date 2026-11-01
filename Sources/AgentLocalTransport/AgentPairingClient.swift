@@ -13,9 +13,9 @@ package actor AgentPairingClient {
         self.channel = channel; self.challenge = challenge
     }
 
-    package static func connect(path: String, name: String,
+    package static func connect(path: String, name: String, expectedLibraryID: UUID? = nil,
         validateServer: @escaping @Sendable (Data) throws -> Void) async throws -> AgentPairingClient {
-        let start = try AgentPairingHandshake.encode(AgentPairingHandshake.Start(clientName: name))
+        let start = try AgentPairingHandshake.encode(AgentPairingHandshake.Start(clientName: name, expectedLibraryID: expectedLibraryID))
         let channel = try await AgentUnixChannel.connect(path: path, validatePeer: validateServer)
         do {
             try await channel.writeFrame(start, timeout: 15)
@@ -24,6 +24,7 @@ package actor AgentPairingClient {
             guard reply.pairingID != nil, reply.code != nil, reply.expiresAt != nil, reply.state == nil else {
                 throw AgentErrorCode.invalidInput
             }
+            guard expectedLibraryID == nil || reply.libraryID == expectedLibraryID else { throw AgentErrorCode.permissionDenied }
             return AgentPairingClient(channel: channel, challenge: reply)
         } catch { channel.close(); throw error }
     }
