@@ -1008,3 +1008,27 @@ current grants, expected versions, editor conflicts and signed retry keys before
 using it or returning a receipt. Retry-key issuance, receipt pruning, restore-epoch
 invalidation, editor coordination and operation dispatch remain unfinished.
 Agent writes stay unavailable until those boundaries are implemented and tested.
+
+## Signed retry keys
+
+AgentRetryKeys signs a bounded payload that binds the normalized request hash,
+connection hash, complete grant fingerprint, host epoch and issuance clocks.
+It checks current base authority on issue and verification. The signature is
+checked before decoding the payload. The token contains hashes and clocks, not
+request content or a credential. It cannot grant access or approve native effects.
+
+Keys expire after thirty days using both wall and monotonic clocks. An earlier
+grant expiry, revocation, scope change or replacement denies use. Clock rollback
+fails closed. Verification needs no in-memory request list or retained receipt.
+Closing the manager is final. A new secret or host epoch rejects prior keys.
+
+AgentRequestBinding is the shared normalization boundary for approval fingerprints
+and retry keys. It uses the wire and operation validators, applies documented
+defaults, preserves target order and Unicode scalars, and bounds encoded data.
+Grant binding includes its identity, library, capabilities, scope, expiry and
+revocation. The existing approval tests retain their behavior.
+
+This key engine is not yet a transport endpoint. The command service still needs
+key issuance, request-envelope integration and a guarded mutation dispatcher.
+Durable recovery across app restart, restore-epoch handling, receipt pruning,
+editor CAS and task-owned targets remain required. Keys do not bypass those steps.

@@ -3,6 +3,28 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Signed retry-key engine — 1 November
+
+AgentRetryKeys binds a normalized request hash, connection hash, complete grant
+fingerprint, host epoch and issuance clocks under an HMAC signature. Keys contain
+no request content or credential. They expire after thirty days and reject clock
+rollback, changed or expired authority, tampering and a closed manager. Verification
+is stateless, so receipt cleanup cannot make an expired key executable again.
+
+AgentRequestBinding now supplies the common normalization and grant snapshot for
+approvals and keys. Existing approval behavior remains covered. Six initial key
+methods failed against the unavailable stub; the existing sixteen approval
+methods passed after extraction. Final focused25 passed (nine new key methods).
+Fixtures were corrected to use the actual create defaults and required merge
+order; no contract was changed to fit them. Complete results verified1consumer/
+161contracts/774Core/1219app (2155 total). Python294, matrix0 and helper/local app
+builds passed. The project change only registers the two new application files.
+
+Key issuance is not exposed through CLI/MCP yet. Envelope integration, guarded
+mutation dispatch, task-owned target grants, editor CAS, restart recovery and
+pruning remain pending. This engine does not replace permission or effect approval
+checks and does not enable installed agent access. The installed app is unchanged.
+
 ## Atomic note mutation receipts — 1 November
 
 The package-only LibraryStore boundary stages notes and an agent mutation receipt
