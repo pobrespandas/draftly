@@ -1099,3 +1099,12 @@ for focus. Reads do not save or change editor state. A draftless editor with
 unbound content returns unavailable rather than pretending to be an empty draft.
 Chunk reads share the same scalar-boundary handling as drafts.get. Full installed
 host activation and editor mutations remain separate unfinished work.
+
+Editor query reads reuse EditorFindQuery and SyntaxDefinition. The registry
+resolves each window's syntax through LibraryStore with that window's local
+preferences. Syntax reads return unavailable when the definition cannot be read.
+The command service projects only the fields declared in the agent schema;
+internal task rule indexes do not leave the host. Cursors bind to the editor
+version and, for syntax reads, the source and effective feature state. A changed
+query, editor state or syntax state rejects an old cursor. These reads do not
+run task mutations, link navigation or editor commands.

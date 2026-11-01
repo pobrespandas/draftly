@@ -30,6 +30,17 @@ import AgentContracts
         }
     }
 
+    func syntaxDefinition(windowID: UUID) throws -> SyntaxDefinition {
+        guard valid else { throw AgentErrorCode.cancelled }
+        guard let model = trackedModels().first(where: { entries[ObjectIdentifier($0)]?.windowID == windowID }) else {
+            throw AgentErrorCode.notFound
+        }
+        do {
+            return try library.syntaxDefinition(named: model.currentNote?.syntax ?? "Markdown",
+                defaults: model.dependencies.preferences.defaults)
+        } catch { throw AgentErrorCode.unavailable }
+    }
+
     @MainActor private final class Entry {
         let windowID = UUID()
         var generation = UUID()

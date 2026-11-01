@@ -285,6 +285,36 @@ struct AgentMCPTests {
         }
     }
 
+    @Test func sdkReadsSyntaxMetadataFromPendingEditorWithoutSaving() async throws {
+        try await run(editorAccess: true) { r in
+            let tools = try await r.client.listTools().tools
+            for name in ["draftly_editor_markers", "draftly_editor_links", "draftly_editor_listTasks"] {
+                #expect(try #require(tools.first { $0.name == name }).annotations.readOnlyHint == true)
+            }
+            let listed = try await r.client.callTool(name: "draftly_editor_windows")
+            guard case .result(.object(let page)) = try response(listed.content).outcome,
+                  case .array(let entries) = page["items"], entries.count == 1,
+                  case .object(let entry) = entries[0], case .string(let id) = entry["windowID"] else {
+                Issue.record("Missing scoped editor"); return
+            }
+            let model = try #require(r.editorModels.first)
+            let content = "# Café 🐼\n- [x] neutral\n[[d:Café]]"
+            model.editor.content = content
+            let selection = model.editor.selection
+            for name in ["draftly_editor_markers", "draftly_editor_links", "draftly_editor_listTasks"] {
+                let read = try await r.client.callTool(name: name, arguments: [
+                    "targets": .array([.object(["kind": .string("window"), "id": .string(id)])])])
+                #expect(read.isError == false)
+                guard case .result(.object(let values)) = try response(read.content).outcome,
+                      case .array(let items) = values["items"] else { Issue.record("Missing syntax items"); return }
+                #expect(items.count == 1)
+            }
+            #expect(model.editor.content == content && model.editor.selection == selection && model.hasUnsavedChanges)
+            #expect(r.library.notes.first { $0.id == r.notes[0].id }?.content == r.notes[0].content)
+            #expect(r.library.revisions.isEmpty)
+        }
+    }
+
     @Test func sdkFindsPendingUnicodeWithoutSavingOrSelecting() async throws {
         try await run(editorAccess: true) { r in
             let tools = try await r.client.listTools().tools

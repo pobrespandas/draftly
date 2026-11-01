@@ -134,6 +134,29 @@ Agents tab. Normal agent startup remains disabled; no helper is bundled.
 These checks do not establish complete visual parity, VM or offline acceptance,
 or a new CloudKit synchronization matrix. Existing cloud action catalogs remain
 unchanged. Explicit default installation remains available in Settings.
+## Editor syntax reads — 1 November
+
+The isolated syntax-read branch adds editor.markers, editor.links and
+editor.listTasks. It uses SyntaxDefinition and each window's injected local
+preferences. It reads pending text without changing selection or storage.
+Task states remain those of the grammar. Internal rule indexes are excluded.
+Missing definitions return unavailable. Both resource scopes are required.
+Cursors reject changes to text, syntax source or local feature state.
+
+The first custom-grammar regression failed while handlers were unavailable.
+Final focused results passed 46 app and 6 contract tests. The official SDK suite
+passed 12 tests, including a new case for all three syntax reads. Coverage includes
+Unicode ranges, intermediate task states, pagination, missing scope, changed
+syntax, missing syntax and feature changes. The local app build and structural
+audit passed. All 303 Python checks passed. The complete Swift run passed the contract and
+Core stages, then the app command exited 1 without an XML report. The last log
+was a parameterized TypewriterScrollingTests case and included an XML parser
+message. There was no assertion that explains the interruption. Isolated
+Typewriter checks passed both with default execution and with the exact serial
+runner and XML inventory verification. The two adjacent suites also passed together: all 18 methods matched the XML
+inventory. This does not explain the full-run interruption. Integration is not
+accepted. No installed app, native permission or release changed.
+
 ## Editor find reads — 1 November
 
 The isolated editor-find branch adds editor.find to the local dispatcher.
