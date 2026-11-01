@@ -66,7 +66,8 @@ alias effects; matching a UUID alone does not prove isolated preference storage.
 
 This component performs no persistence. It is not an authorized agent handler.
 The caller must still scope-check resources, obtain approval, compare versions,
-commit changes and record receipts. Native integration settings and default Workspace access remain separate work.
+commit changes and record receipts. Native integration coordination and default Workspace access use the adapters below;
+all request authorization and persistence remain separate work.
 
 ## Device and list preparation
 
@@ -82,9 +83,30 @@ selected field and its legacy override. Unknown fields remain intact. Missing
 list fields now use existing defaults; present invalid fields still fail decoding.
 Applied Workspaces and their shared definitions are not changed.
 
-These adapters do not commit writes or authorize requests. Remaining bindings
-include launch-at-login, Spotlight and a scope-checked default Workspace, then
-version checks, atomic persistence and receipts for all preference operations.
+These adapters do not commit writes or authorize requests. Native and reference
+adapters are described below. All fields still need the scoped command service,
+version checks, verified local writes and operation records.
+
+## Native and Workspace coordination
+
+`AgentNativePreferenceAccess` coordinates the existing login-item and Spotlight
+models. It uses injected models in tests. Pending system approval is not success.
+Busy, unavailable, failed and cancelled operations stay distinct. Completed native
+effects are not rolled back on failure or cancellation.
+
+Both native changes require human approval. Spotlight changes also require
+whole-library authority because its index can expose all saved notes. These are
+requirements for the future command service, not grants issued by this adapter.
+Reset removes the login registration or selects the existing Spotlight default.
+A completed Spotlight reset reports that its local override still needs removal
+with a verified local write. Native effect completion is not a full write receipt.
+The caller supplies override presence from the persistent preference domain.
+
+`AgentWorkspacePreferenceAccess` requires preference capabilities and checks
+Workspace-read capability and resource scope before looking up a referenced ID.
+Missing or invalid saved references are kept and reported as invalid. A reset
+prepares removal of the local reference; it does not apply or modify a Workspace.
+The future service must also check session lifetime, connection and library.
 
 ## Remaining application work
 
@@ -93,10 +115,11 @@ version checks, atomic persistence and receipts for all preference operations.
    inherited and system defaults, command contexts and protected native changes.
 2. Keep the shared default constants used by Settings and editor consumers.
    The characterization tests preserve values and legacy Boolean conversion.
-3. Finish typed storage commits and native adapters. Preparation tests now cover
-   malformed data, unknown fields, per-field reset, inheritance and conflicts.
-   Storage failure and native status still need injected-adapter tests. Use
-   temporary domains; keep personal preferences outside automated tests.
+3. Finish typed storage commits and local write-ahead operation records.
+   Preparation and injected-model tests cover
+   malformed data, unknown fields, per-field reset, inheritance, conflicts and
+   native status/failure/cancellation. Durable storage failure and real system
+   acceptance remain pending. Use temporary domains in automated tests.
 4. Connect grant checks, version tokens, receipts and protected approval. Check
    reference scope before returning metadata or changing configuration.
 5. Verify live effects, editor state and Undo in isolated QA. No preference or

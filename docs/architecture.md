@@ -559,6 +559,17 @@ its legacy mirror changes. AgentPreferenceReading gives these adapters a shared
 typed result. None commits a mutation, registers an OS service or applies a
 Workspace. The future command service owns those effects and their authorization.
 
+AgentNativePreferenceAccess coordinates existing native preference models. It
+reports native effect completion separately from the verified local reset and operation record.
+Human approval is required for both settings; Spotlight changes require full
+library scope. The adapter does not issue approvals. Its availability and failure
+tests use injected service closures, not the real OS services.
+
+AgentWorkspacePreferenceAccess checks capabilities and target scope before
+resolving a default Workspace. AgentResourceScope.permits is the common membership
+rule used by this adapter and baseline request policy. The command service must
+still validate session lifetime, connection and library before calling adapters.
+
 Syntax preference storage uses existing syntax names. Checking the resolved UUID
 does not establish that a name is unique. The future handler must check aliases
 and name collisions before a scoped change. This adapter does not grant access

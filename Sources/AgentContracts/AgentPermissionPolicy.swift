@@ -16,6 +16,10 @@ package enum AgentCapability: String, Codable, Sendable, CaseIterable {
 package enum AgentResourceScope: Equatable, Sendable {
     case library
     case resources(Set<AgentResourceReference>)
+
+    package func permits(_ target: AgentResourceReference) -> Bool {
+        switch self { case .library: true; case .resources(let allowed): allowed.contains(target) }
+    }
 }
 
 package struct AgentGrant: Sendable {
@@ -59,8 +63,7 @@ package enum AgentPermissionPolicy {
         }
         if operation.requiresLibraryScope, grant.scope != .library { return .denied(.permissionDenied) }
         guard operation.acceptsTargets(request.targets) else { return .denied(.invalidInput) }
-        if case .resources(let allowed) = grant.scope,
-           !Set(request.targets).isSubset(of: allowed) { return .denied(.notFound) }
+        guard request.targets.allSatisfy(grant.scope.permits) else { return .denied(.notFound) }
         if operation.requiresExpectedVersion,
            request.expectedVersion?.isEmpty != false { return .denied(.invalidInput) }
         if operation.requiresEffectAuthorization {
