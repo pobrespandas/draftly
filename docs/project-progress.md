@@ -3,6 +3,33 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Private host locator — 1 November
+
+AgentHostLocator now publishes private atomic discovery hints with library ID,
+publication epoch and Unix socket path. Its strict versioned catalog rejects
+malformed, unknown, oversized, duplicate and unsafe records. Snapshot readers create no
+metadata or lock files. A later epoch and other libraries survive old cleanup.
+AgentLocalHost publishes only after broker creation and owner validation. Stop
+closes transport before withdrawal and retains exact epochs and a cleanup error
+when withdrawal fails. Explicit later close/suspend can retry safely.
+
+The helper now has discover, with an optional explicit state parent for QA. It
+checks its own provisioned identity first. It returns hints, not credentials or
+proof of live authorization. Automatic destination selection, client configuration
+export and signed-helper acceptance remain pending. The normal app is unchanged.
+
+Seven locator tests and five host integration cases cover read-only discovery,
+private modes/aliases/FIFO, bounds, Unicode paths, directory replacement, catalog
+capacity, publication/resume, cleanup contention and old-close safety. The final
+focused run passed 39 tests before the separate backup assertion correction.
+Complete local Swift results then passed with verified inventories: 1 consumer,
+146 contracts, 763 Core and 1169 application tests. All 286 Python tests passed
+and the structural matrix has zero errors. The helper and generated local app
+builds passed. Helper help and two negative discovery smoke checks passed,
+without creating state. These do not prove positive signed-helper discovery.
+The earlier full run found the independent backup-comparison fixture defect
+recorded below; its correction has a separate commit.
+
 ## Host backup assertion and CI investigation — 1 November
 
 The host read-preservation test compared raw backup bytes. A full local run
@@ -18,8 +45,10 @@ PR #53 CI 41297544381 remains failed and unmerged. Its host tests passed, but th
 application process returned zero with an unfinished XML report during
 TypewriterScrollingTests. No assertion failure or cause was recorded. Diagnostic
 run 41298598924 executes only that suite on main, without the new host changes.
-This is not a passed gate or a confirmed pre-existing defect. Do not merge #53
-until a complete exact-head check passes. No deadline or retry was added.
+The isolated diagnostic passed; it does not identify the cause or prove that
+the original full-run interruption was pre-existing. Do not merge #53
+until a complete exact-head check passes. No deadline or retry was added. The assertion correction is commit ed30f41;
+PR #53 now has a new exact-head CI run 41298902468. It is still pending.
 
 ## Local host assembly — 1 November
 

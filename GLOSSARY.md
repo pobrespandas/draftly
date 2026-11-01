@@ -267,6 +267,10 @@ A device-local identity that connects agent authorization to one local copy of
 a library. Copying or replacing that library does not transfer authorization
 automatically.
 
+**Agent host publication**:
+A device-local notice of a Draftly library endpoint for one advertised host
+lifetime. It does not prove availability or grant access.
+
 **Agent operation**:
 A request for work in Draftly with an identifiable outcome and the grant under
 which it was accepted.

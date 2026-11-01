@@ -13,6 +13,7 @@ import AgentMCP
             print("Usage: draftly-agent {json|status|capabilities|mcp} --connection UUID --socket ABSOLUTE_PATH")
             print("       draftly-agent call OPERATION --connection UUID --socket ABSOLUTE_PATH < arguments.json")
             print("       draftly-agent connect --name CLIENT_NAME --socket ABSOLUTE_PATH")
+            print("       draftly-agent discover [--state-parent ABSOLUTE_PATH]")
             print("json reads a full request from stdin. call reads targets and parameters, using shared tool schemas.")
             print("Local access requires approval in Draftly. Never put credentials in arguments or configuration.")
             return
@@ -20,6 +21,7 @@ import AgentMCP
         if args == ["--version"] { print("draftly-agent protocol 1; MCP baseline 2025-11-25"); return }
         let isMCP = args.first == "mcp"
         do {
+            if args.first == "discover" { try discover(args); return }
             if args.first == "connect" { try await pair(args); return }
             guard let mode = args.first, ["json", "status", "capabilities", "call", "mcp"].contains(mode) else { throw AgentErrorCode.invalidInput }
             let offset = mode == "call" ? 2 : 1
@@ -70,6 +72,28 @@ import AgentMCP
             }
             exit(AgentCLIStatus.exitCode(code))
         }
+    }
+
+    @MainActor private static func discover(_ args: [String]) throws {
+        let parent: URL
+        if args.count == 1 {
+            guard let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+                throw AgentErrorCode.unavailable
+            }
+            parent = support.appendingPathComponent("Draftly", isDirectory: true)
+        } else {
+            guard args.count == 3, args[1] == "--state-parent", args[2].hasPrefix("/") else {
+                throw AgentErrorCode.invalidInput
+            }
+            parent = URL(fileURLWithPath: args[2], isDirectory: true)
+        }
+        try AgentCredentialIdentity.validateCurrentProcess(.helper)
+        let endpoints: [AgentHostLocator.Endpoint]
+        do { endpoints = try AgentHostLocator(parentDirectory: parent).endpoints() }
+        catch AgentErrorCode.notFound { endpoints = [] }
+        // Stale hints are possible. Only a signed, authenticated socket can prove
+        // that a discovered host is available to this connection.
+        try FileHandle.standardOutput.write(contentsOf: JSONEncoder().encode(endpoints) + Data([10]))
     }
 
     @MainActor private static func pair(_ args: [String]) async throws {

@@ -11,6 +11,9 @@ import AgentLocalSecurity
     let pairing: AgentPairingCoordinator
     let service: AgentCommandService
     private let lease: AgentHostLease
+    private let locator: AgentHostLocator
+    private var publications: [AgentHostLocator.Endpoint] = []
+    private(set) var locatorCleanupError: AgentErrorCode?
     private let socketParentDirectory: URL
     private let validateApplication: () throws -> Void
     private let validateHelper: @Sendable (Data) throws -> Void
@@ -33,7 +36,13 @@ import AgentLocalSecurity
         try validateApplication()
         let lease = try AgentHostLease(location: AgentLibraryLocation(library: library))
         let file: AgentConnectionFile
-        do { file = try AgentConnectionFile(parentDirectory: lease.location.url.deletingLastPathComponent()) }
+        let locator: AgentHostLocator
+        do {
+            let parent = lease.location.url.deletingLastPathComponent()
+            file = try AgentConnectionFile(parentDirectory: parent)
+            locator = try AgentHostLocator(parentDirectory: parent)
+            _ = try locator.endpoints()
+        }
         catch { lease.close(); throw error }
         weak var owner: AgentLocalHost?
         let validateOwner: () throws -> Void = {
@@ -46,7 +55,7 @@ import AgentLocalSecurity
             try validateOwner(); try file.replace(data, expected: expected)
         }), credentials: credentials ?? AgentCredentialKeychain(role: .application).registryAccess,
             authorityChanged: { id in owner?.authorityChanged(id) })
-        self.lease = lease; libraryID = lease.libraryID; connections = registry
+        self.lease = lease; self.locator = locator; libraryID = lease.libraryID; connections = registry
         self.socketParentDirectory = socketParentDirectory
         self.validateApplication = validateApplication; self.validateHelper = validateHelper
         self.isLocked = isLocked; self.resolveTargets = resolveTargets
@@ -67,7 +76,7 @@ import AgentLocalSecurity
     isolated deinit { close() }
 
     func close() {
-        guard !closed else { return }; closed = true
+        guard !closed else { withdrawPublications(); return }; closed = true
         suspend()
         lease.close()
     }
@@ -75,6 +84,7 @@ import AgentLocalSecurity
     func suspend() {
         broker?.stop(); broker = nil
         service.invalidateAll(); pairing.invalidatePending()
+        withdrawPublications()
     }
 
     // Reopen only by an explicit lifecycle command. Construction never listens.
@@ -83,8 +93,22 @@ import AgentLocalSecurity
             try requireReady()
             guard try connections.permitsTransportStart() else { suspend(); return }
             guard broker == nil else { return }
-            broker = try AgentSocketBroker(service: service, parentDirectory: socketParentDirectory,
+            let candidate = try AgentSocketBroker(service: service, parentDirectory: socketParentDirectory,
                 pairing: pairing, validateHelper: validateHelper)
+            let entry = try AgentHostLocator.Endpoint(libraryID: libraryID, socketPath: candidate.path)
+            do {
+                try validateOwnership()
+                publications.append(entry)
+                try locator.publish(entry)
+                try validateOwnership()
+                // A successful replacement makes earlier hints for this library obsolete.
+                publications = [entry]; locatorCleanupError = nil
+                broker = candidate
+            } catch {
+                candidate.stop()
+                withdrawPublications()
+                throw error
+            }
         } catch {
             if (error as? AgentErrorCode) != .busy { suspend() }
             throw error
@@ -121,6 +145,21 @@ import AgentLocalSecurity
                 guard let self else { throw AgentErrorCode.cancelled }
                 try self.setEnabledFromUserInterface(enabled)
             })
+    }
+
+    private func withdrawPublications() {
+        var failure: AgentErrorCode?
+        for entry in publications {
+            do {
+                try locator.withdraw(entry)
+                publications.removeAll { $0 == entry }
+            } catch {
+                // Keep failed cleanup visible and retain the exact epochs for
+                // another explicit suspend/close. Never remove another owner.
+                failure = (error as? AgentErrorCode) ?? .storageError
+            }
+        }
+        locatorCleanupError = failure
     }
 
     private func requireReady() throws {

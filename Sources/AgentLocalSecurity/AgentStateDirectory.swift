@@ -7,23 +7,39 @@ import AgentContracts
     private let descriptor: Int32
     private let path: String
 
-    package init(parentDirectory: URL) throws {
+    package init(parentDirectory: URL, createIfMissing: Bool = true) throws {
         guard parentDirectory.isFileURL else { throw AgentErrorCode.invalidInput }
-        guard let physical = realpath(parentDirectory.path, nil) else { throw AgentErrorCode.storageError }
+        guard let physical = realpath(parentDirectory.path, nil) else {
+            throw !createIfMissing && errno == ENOENT ? AgentErrorCode.notFound : .storageError
+        }
         defer { free(physical) }
         let parent = Darwin.open(physical, O_RDONLY | O_DIRECTORY | O_NOFOLLOW_ANY | O_CLOEXEC)
         guard parent >= 0 else { throw AgentErrorCode.storageError }
         defer { Darwin.close(parent) }
         try AgentPrivateFilePolicy.validateTrustedParent(parent)
-        guard mkdirat(parent, "Agents", mode_t(0o700)) == 0 || errno == EEXIST else { throw AgentErrorCode.storageError }
+        if createIfMissing {
+            guard mkdirat(parent, "Agents", mode_t(0o700)) == 0 || errno == EEXIST else { throw AgentErrorCode.storageError }
+        }
         let directory = openat(parent, "Agents", O_RDONLY | O_DIRECTORY | O_NOFOLLOW_ANY | O_CLOEXEC)
-        guard directory >= 0 else { throw AgentErrorCode.permissionDenied }
+        guard directory >= 0 else {
+            throw !createIfMissing && errno == ENOENT ? AgentErrorCode.notFound : .permissionDenied
+        }
         do { try AgentPrivateFilePolicy.validate(directory, kind: .directory) }
         catch { Darwin.close(directory); throw error }
         descriptor = directory; path = String(cString: physical) + "/Agents"
     }
 
     deinit { Darwin.close(descriptor) }
+
+    // Atomic publication readers need a bounded snapshot, not a writer lock.
+    // This path creates no directory, lock or metadata file.
+    package func readSnapshot(_ name: String, maximumBytes: Int) throws -> Data? {
+        try validateName(name); try validateBudget(maximumBytes)
+        try validateCurrentLocation()
+        let data = try readUnlocked(name, maximumBytes: maximumBytes)
+        try validateCurrentLocation()
+        return data
+    }
 
     package func read(_ name: String, lockName: String, maximumBytes: Int) throws -> Data? {
         try validateName(name)
