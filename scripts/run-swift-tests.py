@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """Run headless Swift tests and require complete machine-readable results."""
 import argparse
+from datetime import datetime, timezone
+import json
+import os
+import stat
+import time
 from collections import Counter
 from pathlib import Path
 import subprocess
@@ -61,19 +66,108 @@ def verify_results(expected, reports):
     return Counter(name.split(".", 1)[0] for name in actual)
 
 
+def capture_native_crashes(source, destination, started_at):
+    """Copy bounded, fresh test-process reports from an isolated CI runner."""
+    copied, skipped = [], 0
+    try:
+        if source.is_symlink():
+            return {"state": "unavailable", "files": []}
+        candidates = sorted(source.iterdir())
+    except OSError:
+        return {"state": "unavailable", "files": []}
+    for path in candidates:
+        if not re.fullmatch(r"(?:DraftlyTests|swiftpm-testing-helper|swift-test|xctest)[_-].+\.(?:ips|crash)", path.name):
+            continue
+        descriptor = None
+        try:
+            descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+            info = os.fstat(descriptor)
+            if not stat.S_ISREG(info.st_mode) or info.st_mtime < started_at:
+                continue
+            if info.st_size > 2 * 1024 * 1024 or len(copied) >= 4:
+                skipped += 1
+                continue
+            data = bytearray()
+            while len(data) <= 2 * 1024 * 1024:
+                chunk = os.read(descriptor, min(65536, 2 * 1024 * 1024 + 1 - len(data)))
+                if not chunk:
+                    break
+                data.extend(chunk)
+            if len(data) > 2 * 1024 * 1024:
+                skipped += 1
+                continue
+            destination.mkdir(parents=True, exist_ok=True)
+            (destination / path.name).write_bytes(data)
+            copied.append(path.name)
+        except OSError:
+            skipped += 1
+        finally:
+            if descriptor is not None:
+                os.close(descriptor)
+    return {"state": "scanned", "files": copied, "skipped": skipped}
+
+
+def collect_ci_crashes(output):
+    if os.environ.get("GITHUB_ACTIONS") != "true":
+        raise ValueError("Native crash collection is restricted to the isolated CI runner.")
+    for path in sorted(output.glob("*/process.json")):
+        if path.is_symlink() or path.parent.is_symlink():
+            continue
+        record = json.loads(path.read_text())
+        started = datetime.fromisoformat(record["startedAt"])
+        if started.tzinfo is None or record.get("scope") != "swift_cli":
+            raise ValueError("The test process record has no valid start time or scope.")
+        record["nativeCrashReports"] = capture_native_crashes(
+            Path.home() / "Library/Logs/DiagnosticReports", path.parent / "native-crashes", started.timestamp())
+        path.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n")
+
+
 def run_target(module, expected, output, *, concurrent_app=False, test_filter=None):
     output.mkdir(parents=True, exist_ok=True)
     reports = [output / "results.xml", output / "results-swift-testing.xml"]
     for report in reports:
         report.unlink(missing_ok=True)
-    with (output / "tests.log").open("w") as log:
-        command = ["swift", "test", "--filter", test_filter or module, "--xunit-output", str(reports[0])]
-        if module != "DraftlyTests" or not concurrent_app:
-            command.append("--no-parallel")
-        process = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT)
+    command = ["swift", "test", "--filter", test_filter or module, "--xunit-output", str(reports[0])]
+    if module != "DraftlyTests" or not concurrent_app:
+        command.append("--no-parallel")
+    started = time.monotonic()
+    started_at = time.time()
+    record = {"scope": "swift_cli", "command": command,
+              "startedAt": datetime.now(timezone.utc).isoformat(), "state": "invocation_started",
+              "returnCode": None, "signal": None, "elapsedSeconds": None, "verification": "not_run"}
+
+    def save_record():
+        (output / "process.json").write_text(json.dumps(record, indent=2, sort_keys=True) + "\n")
+
+    save_record()
+    try:
+        with (output / "tests.log").open("w") as log:
+            process = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT)
+    except OSError:
+        record.update(state="launch_failed", elapsedSeconds=time.monotonic() - started)
+        save_record()
+        raise
+    record.update(state="exited", returnCode=process.returncode,
+                  signal=-process.returncode if process.returncode < 0 else None,
+                  elapsedSeconds=time.monotonic() - started,
+                  finishedAt=datetime.now(timezone.utc).isoformat())
+    save_record()
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        record["nativeCrashReports"] = capture_native_crashes(
+            Path.home() / "Library/Logs/DiagnosticReports", output / "native-crashes", started_at)
+        save_record()
     if process.returncode:
         raise ValueError("Swift tests failed. See " + str(output / "tests.log"))
-    return verify_results(expected, reports)
+    try:
+        counts = verify_results(expected, reports)
+    except ValueError:
+        record["verification"] = "rejected"
+        save_record()
+        raise
+    record["verification"] = "passed"
+    save_record()
+    return counts
+
 
 
 def run(output, *, concurrent_app=False, diagnostic_suite=None):
@@ -105,11 +199,22 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path,
                         help="Keep logs and XML in this directory. Default: temporary files.")
+    parser.add_argument("--collect-native-crashes", action="store_true",
+                        help="Collect delayed crash reports in CI without running tests.")
     parser.add_argument("--concurrent-app", action="store_true",
                         help="Diagnose concurrent AppKit tests. Default: serial app tests.")
     parser.add_argument("--diagnostic-suite", choices=["LibrarySplitViewTests", "TypewriterScrollingTests", "ThemeRenderingTests"],
                         help="Run one suite for diagnosis, not release acceptance.")
     args = parser.parse_args()
+    if args.collect_native_crashes:
+        if args.output_dir is None:
+            parser.error("--collect-native-crashes requires --output-dir")
+        try:
+            collect_ci_crashes(args.output_dir.resolve())
+        except (ValueError, OSError, KeyError) as error:
+            print("Native crash collection failed: " + str(error))
+            return 1
+        return 0
     temporary = args.output_dir is None
     folder = Path(tempfile.mkdtemp(prefix="Draftly-Tests-")) if temporary else args.output_dir
     try:

@@ -137,6 +137,9 @@ jobs:
           test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleName' "$app/Contents/Info.plist")" = Draftly
           test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleURLTypes:0:CFBundleURLSchemes:0' "$app/Contents/Info.plist")" = draftly
           codesign --verify --deep --strict "$app"
+      - name: Collect delayed native test crash reports
+        if: failure()
+        run: python scripts/run-swift-tests.py --output-dir "$RUNNER_TEMP/draftly-test-results" --collect-native-crashes
       - name: Upload test results on failure
         if: failure()
         uses: actions/upload-artifact@v4

@@ -34,6 +34,32 @@ This branch remains separate from PR76 until its main integration is validated.
 Normal app startup, native activation, remaining write operations and full agent
 acceptance remain pending. No installed application or release changed.
 
+## Native test interruption diagnostics — 1 November
+
+CI41337022036 rejected the incomplete app XML on PR76 e09e790. The last logged
+case was URLActionInstallationTests.draftlyGroupLinkInstallsGroupAndOrderedActionsAtomically;
+Typewriter had already reported completion. A local17-test diagnostic of both
+suites passed. This does not establish the interruption cause. Preserve artifact
+13095643499 and the failed run; do not describe the failure as fixed.
+
+A separate infrastructure change records each Swift CLI invocation and report
+verification. It retains a zero exit even when XML is rejected and distinguishes
+signal exits. It records no environment variables. CI can collect bounded fresh
+crash reports for known test processes, then collect delayed reports before
+artifact upload. Local runs do not read system crash logs. Tests cover old files,
+symlinks, unrelated reports, size/count limits, local refusal and delayed capture
+without executing tests. Incomplete reports still fail; no retries or deadline
+changes were added.
+
+Initial diagnostic tests failed because no process records existed. Final20
+focused checks and303 Python tests passed. The complete enhanced runner verified
+1/164/786/1252 (2203) Swift and four passed CLI/verification records. No local
+system crash directory was read. Structural checks and local app/helper builds passed. The next exact-head CI
+result remains separate evidence; the prior interruption is still unexplained.
+
+The route branch f92f5b0 and patch branch f4543bc remain preserved independently.
+Normal app activation and the full local-agent objective remain unfinished.
+
 ## Theme ancestry integration — 1 November
 
 The draft-update branch merged main at de5a851 after PR66 completed. Merge
