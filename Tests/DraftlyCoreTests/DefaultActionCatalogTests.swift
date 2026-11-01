@@ -11,7 +11,7 @@ struct DefaultActionCatalogTests {
         let actions = library!.orderedActions(on: .list)
         #expect(library!.groupNames == DefaultActionCatalog.groupNames)
         #expect(actions.count == DefaultActionCatalog.actions.count)
-        #expect(actions.count == 90)
+        #expect(actions.count == 94)
         #expect(Set(actions.map(\.id)).count == actions.count)
         #expect(Set(actions.flatMap(\.steps).map(\.id)).count == actions.flatMap(\.steps).count)
         #expect(actions.allSatisfy { !$0.symbol.isEmpty && $0.unsupportedSteps.isEmpty })
@@ -86,6 +86,24 @@ struct DefaultActionCatalogTests {
         let rich = try #require(DefaultActionCatalog.actions.first { $0.name == "Copy as Rich Text" })
         #expect(runner.run(rich))
         #expect((host.calls.first { $0.0 == "htmlToClipboard" }?.1["html"] as? String)?.contains("<strong>HELLO</strong>") == true)
+    }
+
+    @Test func syncedDriveActionsUseExplicitBookmarksAndPortablePaths() throws {
+        let actions = DefaultActionCatalog.actions
+        for (name, bookmark, mode, fileName) in [
+            ("Save to Google Drive", "Google Drive", "create", "[[safe_title]].md"),
+            ("Append to Google Drive Journal", "Google Drive", "append", "Journal.md"),
+            ("Save to OneDrive", "OneDrive", "create", "[[safe_title]].md"),
+            ("Append to OneDrive Journal", "OneDrive", "append", "Journal.md")
+        ] {
+            let step = try #require(actions.first { $0.name == name }?.steps.first)
+            #expect(step.type == "file")
+            #expect(step.values["useBookmark"] == "true")
+            #expect(step.values["bookmarkName"] == bookmark)
+            #expect(step.values["writeType"] == mode)
+            #expect(step.values["name"] == fileName)
+            #expect(step.values["folderTemplate"] == nil)
+        }
     }
 }
 

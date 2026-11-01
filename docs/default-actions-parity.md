@@ -21,7 +21,7 @@ current engine. `implementable` means that the behavior is reasonable but is
 not in this catalog revision. `blocked` means that safe parity needs a new
 service, account flow, paid service, or non-public contract.
 
-The catalog revision is 1. It contains 90 entries, including separators. All
+The catalog revision is 1. It contains 94 entries, including separators. All
 installed steps use supported Draftly step types. Separators keep their observed
 names and positions relative to installed actions.
 
@@ -39,8 +39,10 @@ names and positions relative to installed actions.
 | Save to Files, Save to Files as... | supported | Uses the existing safe file and export routes. |
 | Save to iCloud Drive, Append to iCloud Journal | implementable | Needs an explicit user-selected destination. Do not assume an iCloud folder. |
 | Dropbox actions | blocked | Need OAuth and a Dropbox API client. |
-| Google Drive and Google Docs actions | blocked | Need OAuth and Google APIs. |
-| OneDrive and OneNote actions | blocked | Need Microsoft authentication and APIs. |
+| Save to Google Drive, Append to Google Drive Journal | supported | Uses an explicit `Google Drive` folder bookmark. Google Drive for desktop performs synchronization. |
+| Save as Google Doc | blocked | Creating a native Google document needs OAuth and the Google Docs API. |
+| Save to OneDrive, Append to OneDrive Journal | supported | Uses an explicit `OneDrive` folder bookmark. OneDrive performs synchronization. |
+| OneNote actions | blocked | Need Microsoft authentication and the OneNote API. |
 | WordPress and Ghost actions | blocked | Need per-site authentication and publishing contracts. |
 | Box actions | blocked | Need OAuth and a Box API client. |
 | AI, Using ChatGPT & AI, Apps | blocked | These are separators or guidance tied to Drafts services. Draftly does not copy service marketing entries. |
@@ -118,3 +120,7 @@ Existing stores do not receive defaults during an update. Settings > Maintenance
 can install explicit copies. Restored groups use names such as `Basic (Default)`
 and `Basic (Default 2)`. Each restored group, action, and step gets a new ID. The
 write is atomic. A failed write keeps the prior catalog unchanged.
+
+Google Drive and OneDrive actions require folder bookmarks with those exact
+names. The user selects each synchronized folder once in Bookmark Settings.
+Draftly does not discover a provider folder or request provider credentials.

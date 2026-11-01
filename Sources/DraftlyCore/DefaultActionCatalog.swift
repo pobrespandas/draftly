@@ -70,7 +70,11 @@ public enum DefaultActionCatalog {
             action("Print - Plain Text", "Basic", "printer", [.init("print", ["template": "[[draft]]", "format": "plainText"]) ]),
             separator("Services", "Basic"),
             action("Save to Files", "Basic", "folder", [.init("file", ["template": "[[draft]]", "name": "[[safe_title]].txt"])], legacyID: 3),
-            action("Save to Files as...", "Basic", "folder.badge.plus", [.init("export", ["template": "[[draft]]", "name": "[[safe_title]].txt"])])
+            action("Save to Files as...", "Basic", "folder.badge.plus", [.init("export", ["template": "[[draft]]", "name": "[[safe_title]].txt"]) ]),
+            bookmarkedFile("Save to Google Drive", bookmark: "Google Drive", symbol: "externaldrive.badge.icloud", mode: "create", name: "[[safe_title]].md", template: "[[draft]]"),
+            bookmarkedFile("Append to Google Drive Journal", bookmark: "Google Drive", symbol: "text.badge.plus", mode: "append", name: "Journal.md", template: "\n\n[[draft]]"),
+            bookmarkedFile("Save to OneDrive", bookmark: "OneDrive", symbol: "externaldrive.badge.icloud", mode: "create", name: "[[safe_title]].md", template: "[[draft]]"),
+            bookmarkedFile("Append to OneDrive Journal", bookmark: "OneDrive", symbol: "text.badge.plus", mode: "append", name: "Journal.md", template: "\n\n[[draft]]")
         ]
     }
 
@@ -197,6 +201,17 @@ public enum DefaultActionCatalog {
         return value
     }
 
+    private static func bookmarkedFile(_ name: String, bookmark: String, symbol: String, mode: String,
+                                       name fileName: String, template: String) -> DraftAction {
+        action(name, "Basic", symbol, [.init("file", [
+            "template": template,
+            "name": fileName,
+            "useBookmark": "true",
+            "bookmarkName": bookmark,
+            "writeType": mode
+        ])])
+    }
+
     private static func wrap(_ name: String, _ prefix: String, _ suffix: String, _ symbol: String, line: Bool = false) -> DraftAction {
         let source = line ? lineTransform("return \(quoted(prefix)) + line + \(quoted(suffix));") : "var text = editor.getSelectedText(); editor.setSelectedText(\(quoted(prefix)) + text + \(quoted(suffix)));"
         return script(name, "Markdown", symbol, source)
@@ -247,7 +262,7 @@ public enum DefaultActionCatalog {
 
     private static func actionsBefore(_ name: String, in group: String) -> Int {
         let inventories: [String: [String]] = [
-            "Basic": ["Copy", "Share", "Mail", "Message", "Google Search", "Event", "Send to Reminders", "List in Reminders", "Print - Plain Text", "Services", "Save to Files", "Save to Files as..."],
+            "Basic": ["Copy", "Share", "Mail", "Message", "Google Search", "Event", "Send to Reminders", "List in Reminders", "Print - Plain Text", "Services", "Save to Files", "Save to Files as...", "Save to Google Drive", "Append to Google Drive Journal", "Save to OneDrive", "Append to OneDrive Journal"],
             "Editing": ["Undo/Redo", "Undo", "Redo", "Cursor Movement", "Move Left", "Move Right", "Move Back by Word", "Move Forward by Word", "Commands", "Find", "Advanced Find", "Make Tasks", "Toggle Tasks", "Insert Date", "Insert Dictation", "Dictate New Draft", "Copy Selection", "Paste as Plain Text", "Mail", "Message", "Text Manipulation", "Indent", "Outdent", "Move Line Up", "Move Line Down", "Duplicate Line", "Previous Marker", "Next Marker", "Utility", "Toggle Theme"],
             "Markdown": ["Markdown Header (#)", "Markdown Bold (**)", "Markdown Emphasis (_)", "Markdown Link", "Inline Code (`)", "Markdown Footnote (^)", "Block Elements", "Markdown List", "Quote-Increase (>)", "Quote-Decrease", "Code Block (```)", "Markdown Table", "Preview", "Preview - RTL", "Utility", "Markdown Mail", "Copy as HTML", "Copy as Rich Text", "Paste as Markdown", "Print - Markdown"],
             "Tools": ["Change Selection", "UPPER", "lower", "Title", "Sort", "Straighten Quotes", "Strip Diacritics", "Strip Line Feed", "Hard Wrap", "Strip Extra Blank Lines", "Trim Whitespace", "Remove Blank Lines", "Smart Parentheses", "Smart Brackets", "Smart Braces"],
