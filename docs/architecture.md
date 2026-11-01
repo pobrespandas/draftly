@@ -810,3 +810,14 @@ MCP SDK with a bounded pipe transport. AgentToolInput shares tool names and requ
 binding with the named CLI command. The application validates every request.
 Exact JSON text avoids lossy protocol numbers. The app target does not link MCP.
 See [ADR 0002](adr/0002-mcp-exact-bounded-stdio.md) for the limits and trade-offs.
+
+
+AgentPairingCoordinator owns short-lived requests before a connection exists.
+The caller supplies an untrusted client label after signed-helper verification.
+Only human-interface methods prepare and approve a grant. Review IDs bind the
+shown choices; exact target IDs are resolved again before persistence. Polling
+returns lifecycle state and, after approval, a connection UUID, never a credential.
+The registry remains the sole owner of persistent grants and credential creation.
+A failed commit terminates the pairing attempt rather than retrying a write.
+Clock and lock dependencies are explicit for headless tests. Runtime lock,
+disable and shutdown events must invalidate pending decisions before activation.

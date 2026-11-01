@@ -252,6 +252,11 @@ These terms describe the proposed agent interface, not a shipped capability.
 A user-approved connection through which an external agent requests work in
 Draftly. It can be disabled independently of other connections.
 
+**Agent pairing challenge**:
+A short-lived request to connect an agent to Draftly. The person compares its
+code and reviews access before approving it. The challenge does not authorize
+library work and does not contain the connection credential.
+
 **Agent grant**:
 The user's authorization for a Draftly agent connection to perform specified
 work on specified library resources for a limited time. A replacement grant is

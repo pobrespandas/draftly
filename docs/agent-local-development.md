@@ -123,3 +123,19 @@ revocation, exact decimals, duplicate IDs, oversized input and broken output.
 A compiled unsigned helper completed MCP initialization, refused private access,
 closed cleanly on EOF and rejected oversized input with exit status 2. These
 checks do not prove signed helper installation or human pairing.
+
+
+## Pairing lifecycle integration
+
+AgentPairingCoordinator is ready for the human setup flow. It is not exposed by
+MCP or the current socket handshake. Verify the signed helper before request().
+Show the comparison code and treat the client name as an untrusted label. Resolve
+selected resource IDs from the current library, then prepare a human review.
+Approve with that review ID and the displayed code. Replacing a review invalidates
+its old ID. A saved query must first become a visible, fixed selection of IDs.
+
+Poll state without creating credentials. Human denial, caller cancellation,
+five-minute expiry and lifecycle invalidation are terminal. On lock, disable,
+library closure or service restart, invalidate pending decisions. A failed
+persistence attempt requires a new challenge; do not retry the same approval.
+Signed packaging, setup UI and the pre-authentication route remain unfinished.
