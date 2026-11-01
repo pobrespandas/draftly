@@ -10,7 +10,7 @@ struct AgentCatalogTests {
         let catalog = AgentOperationCatalog.operations
         #expect(Set(required) == Set(catalog.map(\.name)))
         #expect(catalog.count == Set(catalog.map(\.name)).count)
-        #expect(catalog.allSatisfy { !$0.owner.isEmpty && !$0.hasHandler })
+        #expect(catalog.allSatisfy { !$0.owner.isEmpty })
     }
 
     @Test(arguments: ["drafts.purge", "actions.delete", "actionGroups.delete", "workspaces.delete", "themes.delete", "syntaxes.delete", "backups.requestRestore", "native.shell", "native.appleScript", "native.shortcut"])

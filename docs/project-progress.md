@@ -3,6 +3,32 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Authenticated read service — 1 November
+
+AgentCommandService now authenticates internal sessions and executes eight read
+operations against the application library. Each request checks current connection
+authority and validates its contract. Discovery reports actual handler availability;
+registering a contract alone cannot make it executable. All mutation handlers and
+the remaining read families are unavailable.
+
+Draft reads filter by scope before counts, queries, previews and revisions. They
+reuse Workspace rules and the existing preview formatter. Paging freezes only IDs
+and order, with signed session/grant-bound cursors. Text chunks use UTF-16 without
+splitting Unicode scalars. No read updates access dates or persists an edit.
+
+Seventeen new headless tests use in-memory libraries and fake credentials. They cover scoped
+reads, current authorization, paging, Unicode, revision ownership, malformed input,
+version tokens and oversized output. Full inventories passed: 1 consumer,
+127 contracts, 763 Core and 1025 application tests. Python 286, the structural
+matrix and the local Xcode build passed. Real client and UI acceptance remain pending.
+See [architecture](architecture.md#authenticated-agent-reads) for exact limits.
+
+This is an internal service, not enabled agent access in the installed app.
+Production Keychain restrictions, pairing/management UI, lock notifications,
+stable host library identity, live editor generations, Unix socket, CLI/MCP,
+mutations, receipts and native-effect enforcement remain required. Remote access
+is future work. The full local agent objective remains unfinished.
+
 ## Workspace installation regression found in connection CI — 1 November
 
 PR #43 CI 41278698974 failed an existing Workspace URL test. Repeated decoding
@@ -17,7 +43,8 @@ the library remains unchanged, and checks that a real unknown-field change still
 requires review. The regression failed before the fix and passed after it.
 All four Swift inventories passed: 1 consumer, 127 contracts, 763 Core and 1008
 application tests. Python 286, the structural matrix and the local Xcode build
-passed. PR CI must pass on the new commit before integration. No manual app
+passed. PR #43 exact head 35991f5 passed CI 41279495897 and merged as 71f0e3e.
+No manual app
 installation or native acceptance is claimed by this change.
 
 ## Local connection storage foundation — 1 November
@@ -35,9 +62,9 @@ operations use injected memory adapters. Full Swift inventories, Python 286 and
 the structural matrix passed. No personal Keychain, signed helper or real client
 was used; those are not approved by these tests.
 
-The production Keychain adapter, pairing/management UI, secure transport and
-per-request command service remain pending. All operation handlers remain
-unavailable. Stored metadata is outside the library and sync/backup payloads.
+The production Keychain adapter, pairing/management UI and secure transport remain
+pending. The read service above is not connected to those components or to the
+installed app. Stored metadata is outside the library and sync/backup payloads.
 The installed app is unchanged.
 
 ## Protected approval foundation — 1 November

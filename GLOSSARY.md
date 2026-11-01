@@ -269,3 +269,7 @@ It does not widen the connection's grant or carry over to a replacement grant.
 **Agent preference address**:
 A named Draftly setting together with the syntax, command, or feature to which
 it applies. It identifies one setting within the agent interface.
+
+**Agent read snapshot**:
+The fixed membership and order of resources for one paged query under one grant.
+Each page reads current values; the snapshot does not freeze resource content.

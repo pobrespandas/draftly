@@ -39,9 +39,6 @@ package struct AgentOperationDescriptor: Sendable {
         self.requiresHumanApproval = requiresHumanApproval
     }
 
-    // Catalog presence is not implementation or permission to execute.
-    package var hasHandler: Bool { false }
-
     package var requiresEffectAuthorization: Bool {
         name == "actions.run" || name.hasPrefix("native.")
             || name == "preferences.update" || name == "preferences.reset"

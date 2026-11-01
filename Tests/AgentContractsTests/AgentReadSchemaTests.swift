@@ -45,7 +45,7 @@ struct AgentReadSchemaTests {
         #expect(AgentReadSchemas.schema(for: "missing.operation") == nil)
         #expect(throws: AgentErrorCode.unavailable) { try AgentReadSchemas.validateResult([:], for: "actions.run") }
         for name in AgentReadSchemas.operationNames {
-            #expect(try #require(AgentOperationCatalog.operation(named: name)).hasHandler == false)
+            #expect(try #require(AgentOperationCatalog.operation(named: name)).name == name)
         }
     }
 

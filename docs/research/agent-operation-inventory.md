@@ -1,8 +1,10 @@
 # Agent operation inventory
 
-Status: contracts only. No endpoint or handler is enabled.
+Status: eight read handlers exist in the internal application service. No endpoint
+is enabled. The installed app has no agent client access yet.
 
-Snapshot date: 31 October 2026. The table records the first implementation unit.
+Snapshot date: 31 October 2026. Read-handler update: 1 November 2026.
+The table records the required inventory, not implementation completion.
 
 The authoritative operation names, permission families, resource target rules,
 and expected-version/approval requirements are in
@@ -10,6 +12,13 @@ and expected-version/approval requirements are in
 The first contract tests validate message safety and baseline grants. Operation
 parameter/result schemas, native destination grants, and per-member handler tests
 remain required before execution. This inventory is not evidence of functionality.
+
+AgentCommandService implements server.status, server.capabilities, server.schemas,
+library.summary, drafts.list, drafts.search, drafts.get and drafts.versions. Its
+runtime handler set determines availability. The contract catalog cannot claim
+execution availability. All other operations return an explicit unavailable or
+authorization error. See [architecture](../architecture.md#authenticated-agent-reads)
+for scope, paging, output limits and the pending transport/UI acceptance.
 
 | Operation | Existing owner or planned boundary | Capability names in code | Targets | Additional requirements |
 | --- | --- | --- | --- | --- |
