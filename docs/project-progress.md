@@ -3,6 +3,22 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Patch integration and final restoration checks — 1 November
+
+PR79 passed every actual check at333e642 in CI41341691455. Native results
+verified1/166/786/1260 and BUILD SUCCEEDED. Guarded merge317b5f0 preserves both
+histories. The restoration branch took that ancestry via c463ab2 with no source
+tree difference. A final complete run verified1/166/786/1265 (2218), Python303
+and the structural audit passed. Prior local app/helper builds use unchanged
+production sources.
+
+A later regression injects a revision change through admission before mutation
+staging. It avoids a nested Core Data commit. The final validation rejects the
+old resolved source with version_conflict, retains the original draft and keeps
+the concurrent revision change. All19 writer methods passed. This added test
+is covered by that focused run, not the earlier full inventory. No native UI,
+permissions, installed app or release changed. Settings remains independent.
+
 ## Revision authority regression — 1 November
 
 An additional writer test removes revision scope or deletes the revision between
