@@ -134,3 +134,10 @@ iCloud Drive, Google Drive, and OneDrive actions require folder bookmarks with
 those exact names. The user selects each synchronized folder once in Bookmark
 Settings. Draftly does not discover a provider folder or request provider
 credentials.
+
+### Initial group selection
+
+New windows select the first list-visible group when General is absent. The
+panel also checks its selection when it first appears and when catalog data
+changes. Existing visible selections and All Actions remain selected. This
+prevents the Basic catalog from opening as an empty General list.

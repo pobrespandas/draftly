@@ -3,6 +3,20 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Default action initial selection — 1 November
+
+A new-window regression reproduced two failures: General stayed selected while
+only the new Basic catalog was present, so the list had no actions. WindowModel
+now reconciles selection with list-visible groups. The panel uses that same rule
+on first appearance and later catalog changes. All Actions and valid selections
+remain unchanged. Empty catalogs fall back to All Actions.
+
+Three focused methods passed, including three selection variants. Full results
+verified1consumer/161contracts/785Core/1222app (2169 total). Python294, the
+structural matrix and local app/helper builds passed. No visible windows,
+permissions or personal data were used. Native panel binding acceptance and
+exact-head PR64 CI remain pending. The app was not installed or published.
+
 ## Default action integration review — 1 November
 
 The integration branch preserves PR64 and main through merge commits6f5a8da
