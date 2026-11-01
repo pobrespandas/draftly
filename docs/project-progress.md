@@ -82,6 +82,12 @@ Shared text validation preserves the existing draft range rules. No editor
 command, actual Undo, window opening or live query runs through agents yet.
 PR #33 merged at `620781c`; PR #34 merged at `d4d7c63` after required CI passed.
 
+Import-source contracts now share exclusive input alternatives with exported
+JSON Schema. They distinguish inline text, staged transfers, bookmarked relative
+paths, installation links and HTTPS sources. Path and URL checks do not grant
+file or network access. A focused regression detected missing required fields in
+the exported alternatives before this was corrected.
+
 Stage 1 is not closed: the other 62 operation schemas, detailed script/native
 effect checks and real executors still need implementation. Real agent clients have
 not been connected. The habitual app remains the released 0.1.3.
