@@ -3,6 +3,15 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Exact JSON integer-boundary correction — 1 November
+
+AgentJSONValue previously tried Int64 before Decimal. Foundation could round a
+near-integer fraction before the agent schema checked it. The decoder now reads
+Decimal first and selects Int64 only when the value is exactly integral and in
+range. Strings, booleans and null remain distinct. Three focused tests cover
+fractions, integer boundaries and nonnumeric values. The new fraction regression
+failed before the fix and passed after it. No library format changes.
+
 ## Local socket and JSON helper — 1 November
 
 AgentLocalTransport now provides bounded Unix-socket framing and a local client.

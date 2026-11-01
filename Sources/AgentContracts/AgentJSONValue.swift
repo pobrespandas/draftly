@@ -14,9 +14,15 @@ package enum AgentJSONValue: Equatable, Sendable, Codable {
         let value = try decoder.singleValueContainer()
         if value.decodeNil() { self = .null }
         else if let item = try? value.decode(Bool.self) { self = .bool(item) }
-        else if let item = try? value.decode(Int64.self) { self = .integer(item) }
-        else if let item = try? value.decode(Decimal.self), !item.isNaN { self = .number(item) }
         else if let item = try? value.decode(String.self) { self = .string(item) }
+        else if let item = try? value.decode(Decimal.self), !item.isNaN {
+            var input = item, rounded = Decimal()
+            NSDecimalRound(&rounded, &input, 0, .plain)
+            // Integer decoding can round a near-integer JSON token. Check Decimal first.
+            if rounded == item, item >= Decimal(Int64.min), item <= Decimal(Int64.max) {
+                self = .integer(NSDecimalNumber(decimal: item).int64Value)
+            } else { self = .number(item) }
+        }
         else if let item = try? value.decode([AgentJSONValue].self) { self = .array(item) }
         else { self = .object(try value.decode([String: AgentJSONValue].self)) }
     }
