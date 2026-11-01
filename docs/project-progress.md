@@ -19,8 +19,11 @@ reads, reopened hosts, no replay and legacy explicit sockets without a catalog.
 The helper and local app builds passed. Six executable smoke checks passed,
 including refusal of unprovisioned identity without creating state directories.
 These are isolated, injected-signature tests, not signed-helper acceptance.
-Full integrated validation and CI remain pending. Normal app startup, helper
-provisioning, configuration export and the remaining handlers are unfinished.
+The full branch inventory passed: 1 consumer, 152 contracts, 763 Core and
+1183 app cases (2099 total). All 286 Python tests and the structural matrix
+passed. Integration with the separate CLI refactor and exact-head CI remain
+pending. Normal app startup, helper provisioning, configuration export and the
+remaining handlers are unfinished.
 
 ## Local host test fixture lifetime — 1 November
 
