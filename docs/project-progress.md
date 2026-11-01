@@ -3,6 +3,32 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Stable local library binding and ownership — 1 November
+
+AgentLibraryLocation now identifies the loaded SQLite store without changing its
+metadata or Note data. AgentHostLease keeps a local library ID across reopen and
+holds both location and physical-file locks. A coherent closed database copy gets
+another agent binding even when its Core Data UUID is unchanged. Replacing the
+file at the same path also requires a fresh binding. Aliases share one owner.
+
+Corrupt or foreign identity records fail without repair. Deletion cannot bypass
+a held owner. Validation checks the loaded store, current paths and saved binding;
+a changed owner stays invalid for that host epoch. Normal host startup and locator
+publication still need to use these checks. No installed app or listener was
+activated. See [the decision](adr/0003-local-agent-library-binding.md).
+
+Focused tests use temporary real SQLite stores and preserve draft IDs and content.
+They cover reopen, copies, replacement, aliases, moves, Unicode paths, lock
+release, temporary contention, metadata changes, corrupt records, deleted identity
+files and unsupported storage. Sixteen host tests and six state-directory tests
+were added. Final complete Swift inventories passed: 1 consumer, 146 agent
+contracts, 763 Core and 1131 application tests. All 286 Python tests passed. The
+structural matrix has zero errors. The generated local app build passed. These
+are automatic filesystem/SQLite checks, not signed host or normal startup
+acceptance. PR #50's selected CI jobs passed, but GitHub
+did not report its required summary check. It remains unmerged; this branch keeps
+all its commits and will receive its own full exact-head validation.
+
 ## Private local state extraction — 1 November
 
 AgentStateDirectory now owns the private agent directory, bounded reads, atomic

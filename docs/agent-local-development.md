@@ -188,3 +188,19 @@ refuses pairing before credential access. This is not signed-use acceptance.
 For human review controls, editing copies and the isolated native preview, use
 [Agent connection Settings](agent-connections-ui.md). The normal app still needs
 its host setup before it supplies that Settings model or starts the broker.
+
+
+## Local host ownership
+
+Create AgentLibraryLocation from the loaded LibraryStore, then AgentHostLease
+before the listener. Keep the lease for the whole broker lifetime. Validate it
+before each admission; a locator is not proof of ownership. Stop the broker and
+invalidate its sessions before releasing the lease. The normal host factory and
+locator remain unfinished; low-level socket fixtures do not prove that wiring.
+
+The private binding uses the actual store parent and a versioned identity file.
+Copies and replacements do not inherit grants. Failed record decoding never
+silently creates a replacement. A deleted identity cannot bypass an active owner.
+See [ADR 0003](adr/0003-local-agent-library-binding.md) for the identity rules.
+Agent state paths must also remain protected from future file-write tools; a
+folder grant must not become a way to edit grants or bypass the app writer.

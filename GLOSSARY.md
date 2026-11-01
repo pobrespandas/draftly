@@ -262,6 +262,11 @@ The user's authorization for a Draftly agent connection to perform specified
 work on specified library resources for a limited time. A replacement grant is
 a new authorization, even when it allows the same work.
 
+**Agent library binding**:
+A device-local identity that connects agent authorization to one local copy of
+a library. Copying or replacing that library does not transfer authorization
+automatically.
+
 **Agent operation**:
 A request for work in Draftly with an identifiable outcome and the grant under
 which it was accepted.
