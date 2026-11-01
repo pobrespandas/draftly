@@ -3,6 +3,37 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Isolated agent helper packaging — 1 November
+
+The new packaging command builds an app-like wrapper for draftly-agent in a new
+output directory. It checks the helper profile identity, team, expiry, Keychain
+group and certificates before signing. It verifies the signed Apple requirement,
+exact required entitlements and the permitted leaf certificate. Existing output
+is preserved. Errors propagate and leave only the isolated candidate.
+
+All294 Python tests passed, including eight new packaging cases. The structural
+matrix passed. A real negative invocation rejected the installed principal-app
+profile before creating output or requesting a signature. No helper profile is
+installed yet. Positive signed packaging, embedding, runtime Keychain sharing,
+lock behavior and notarization remain pending. No installed app or release changed.
+The prior Swift2130 inventory and app/helper builds apply to client configuration;
+this scripts-only stage did not repeat them or claim new native acceptance.
+
+### Signed helper check
+
+Apple registered Draftly Agent and generated its Developer ID profile after
+explicit user confirmations. The isolated helper package passed real signing,
+exact code requirement, entitlements and profile certificate checks. Its discover
+command passed self-identity validation and returned an empty isolated catalog,
+without creating state, a credential or a grant. Actual Keychain sharing and
+notarization are still pending.
+
+The first real run found two codesign argument defects. Literal requirements
+need the equals prefix, and the certificate extraction option needs its optional
+value attached with equals. Both now have failing-then-passing regression
+assertions. All294 Python tests passed again. This correction changes packaging
+only. It does not replace or enable the installed application.
+
 ## Copyable MCP client configuration — 1 November
 
 The helper configuration command prints a stdio mcpServers object with its own
