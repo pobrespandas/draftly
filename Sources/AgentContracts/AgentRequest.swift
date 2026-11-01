@@ -34,6 +34,7 @@ package struct AgentResourceReference: Hashable, Codable, Sendable {
 package struct AgentRequest: Codable, Equatable, Sendable {
     package static let version = 1
     package static let maximumBytes = 8 * 1024 * 1024
+    package static let maximumTargets = 10_000
 
     package let apiVersion: Int
     package let requestID: UUID
@@ -61,7 +62,7 @@ package struct AgentRequest: Codable, Equatable, Sendable {
         do {
             let request = try JSONDecoder().decode(Self.self, from: data)
             guard request.apiVersion == version, !request.operation.isEmpty,
-                  request.operation.utf8.count <= 128,
+                  request.operation.utf8.count <= 128, request.targets.count <= maximumTargets,
                   Set(request.targets).count == request.targets.count,
                   request.expectedVersion.map({ !$0.isEmpty }) ?? true else {
                 throw AgentErrorCode.invalidInput

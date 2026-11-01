@@ -86,7 +86,7 @@ package enum AgentActionSchemas {
         let updated = AgentResourceShapes.updated
         let deleted = AgentResourceShapes.deleted
         let reordered = AgentResourceShapes.reordered
-        let order = AgentObjectShape(fields: ["order": r(.array(.uuid, maximum: 10_000))])
+        let order = AgentObjectShape(fields: ["order": r(.array(.uuid, maximum: AgentRequest.maximumTargets))])
         let duplicate = AgentObjectShape(fields: ["name": o(text)])
         var list = page.fields
         list["groupID"] = o(.uuid)

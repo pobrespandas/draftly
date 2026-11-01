@@ -11,10 +11,10 @@ package enum AgentResourceShapes {
         "resource": .init(shape: .object(receipt), required: true)
     ])
     package static let deleted = AgentObjectShape(fields: [
-        "deletedIDs": .init(shape: .array(.uuid, maximum: 10_000), required: true)
+        "deletedIDs": .init(shape: .array(.uuid, maximum: AgentRequest.maximumTargets), required: true)
     ])
     package static let reordered = AgentObjectShape(fields: [
-        "resources": .init(shape: .array(.object(receipt), maximum: 10_000), required: true)
+        "resources": .init(shape: .array(.object(receipt), maximum: AgentRequest.maximumTargets), required: true)
     ])
 
     package static func validateDefinitionID(_ value: AgentJSONValue?, target: AgentResourceReference?) throws {

@@ -2,12 +2,12 @@ import Foundation
 
 package enum AgentOperationSchemas {
     package static var operationNames: Set<String> {
-        AgentReadSchemas.operationNames.union(AgentActionSchemas.operationNames).union(AgentExecutionSchemas.operationNames).union(AgentWorkspaceSchemas.operationNames)
+        AgentReadSchemas.operationNames.union(AgentActionSchemas.operationNames).union(AgentExecutionSchemas.operationNames).union(AgentWorkspaceSchemas.operationNames).union(AgentDraftSchemas.operationNames)
     }
 
     package static func schema(for operation: String) -> AgentOperationSchema? {
         AgentReadSchemas.schema(for: operation) ?? AgentActionSchemas.schema(for: operation)
-            ?? AgentExecutionSchemas.schema(for: operation) ?? AgentWorkspaceSchemas.schema(for: operation)
+            ?? AgentExecutionSchemas.schema(for: operation) ?? AgentWorkspaceSchemas.schema(for: operation) ?? AgentDraftSchemas.schema(for: operation)
     }
 
     // This validates shape and target binding. It does not authorize or execute a request.
@@ -23,6 +23,9 @@ package enum AgentOperationSchemas {
         }
         if AgentWorkspaceSchemas.operationNames.contains(request.operation) {
             return try AgentWorkspaceSchemas.validatedParameters(for: request)
+        }
+        if AgentDraftSchemas.operationNames.contains(request.operation) {
+            return try AgentDraftSchemas.validatedParameters(for: request)
         }
         guard let schema = schema(for: request.operation) else { throw AgentErrorCode.unavailable }
         return try schema.validatedParameters(request.parameters)
@@ -43,6 +46,10 @@ package enum AgentOperationSchemas {
         guard let descriptor = AgentOperationCatalog.operation(named: request.operation),
               request.apiVersion == AgentRequest.version, descriptor.acceptsTargets(request.targets) else {
             throw AgentSchemaError.invalidValue
+        }
+        if AgentDraftSchemas.operationNames.contains(request.operation) {
+            try AgentDraftSchemas.validateResult(values, for: request)
+            return
         }
         try validateResult(values, for: request.operation)
         let binding: (field: String, key: String, kind: AgentResourceKind)?

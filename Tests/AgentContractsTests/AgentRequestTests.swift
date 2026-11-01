@@ -58,4 +58,21 @@ struct AgentRequestTests {
         #expect(!AgentOperationState.waitingForUser.isTerminal)
         #expect(!AgentOperationState.running.isTerminal)
     }
+    @Test func batchTargetsCannotExceedTheReceiptCapacity() throws {
+        let targets = (0..<10_001).map { _ in AgentResourceReference(kind: .draft, id: UUID()) }
+        let input = AgentRequest(requestID: UUID(), libraryID: UUID(), operation: "drafts.archive",
+            targets: targets, expectedVersion: "snapshot")
+        #expect(throws: AgentErrorCode.invalidInput) { try AgentRequest.decode(JSONEncoder().encode(input)) }
+        let rejectsOversizedBatch = !AgentTargetRule.many(.draft).accepts(targets)
+        #expect(rejectsOversizedBatch)
+        let allowed = Array(targets.prefix(10_000))
+        let boundary = AgentRequest(requestID: UUID(), libraryID: UUID(), operation: "drafts.archive",
+            targets: allowed, expectedVersion: "snapshot")
+        let decoded = try AgentRequest.decode(JSONEncoder().encode(boundary))
+        let preservesTargets = decoded.targets == allowed
+        #expect(preservesTargets)
+        let acceptsBoundary = AgentTargetRule.many(.draft).accepts(allowed)
+        #expect(acceptsBoundary)
+    }
+
 }

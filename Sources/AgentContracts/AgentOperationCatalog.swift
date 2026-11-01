@@ -7,7 +7,7 @@ package enum AgentTargetRule: Sendable {
     case pair(AgentResourceKind, AgentResourceKind)
 
     func accepts(_ targets: [AgentResourceReference]) -> Bool {
-        guard Set(targets).count == targets.count else { return false }
+        guard targets.count <= AgentRequest.maximumTargets, Set(targets).count == targets.count else { return false }
         switch self {
         case .none: return targets.isEmpty
         case .one(let kind): return targets.count == 1 && targets[0].kind == kind
