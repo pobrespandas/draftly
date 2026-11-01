@@ -40,7 +40,8 @@ public final class LibraryStore: ObservableObject {
         container = persistence.container
         syncStatus = cloudIdentifier != nil && !inMemory ? "Connecting to iCloud…" : inMemory ? "Test storage" : "Local storage · iCloud is not configured"
         try reload()
-        if seed && persistence.isNewStore {
+        // A new local cache does not prove that the iCloud library is empty.
+        if seed && persistence.isNewStore && cloudIdentifier == nil {
             try installActionCatalog(groups: DefaultActionCatalog.groups, actions: DefaultActionCatalog.actions)
         }
         syncCoordinator = LibrarySyncCoordinator(container: container, cloudIdentifier: self.cloudIdentifier,

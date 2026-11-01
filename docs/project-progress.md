@@ -3,6 +3,24 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Default action integration review — 1 November
+
+The integration branch preserves PR64 and main through merge commits6f5a8da
+and3d22b0b. A new local cache no longer triggers default action installation when
+CloudKit is requested. This prevents local initialization before cloud actions
+arrive. Explicit installation preserves existing identities and unknown fields.
+Automatic installation after a confirmed empty CloudKit import remains pending.
+
+The configuration regression failed with two issues before the guard. All13
+catalog tests then passed. Full Swift results verified1consumer/161contracts/
+785Core/1219app (2166 total). Python294, structural matrix, helper build and
+local app build passed. Tests used isolated data and did not access CloudKit.
+No native synchronization, installed app change or release is claimed.
+
+Review also found an initial group mismatch: WindowModel starts with General,
+but the new catalog starts with Basic. Reproduce and correct that issue in a
+separate change before updating PR64. Exact-head CI and merge remain pending.
+
 ## Signed retry-key engine — 1 November
 
 AgentRetryKeys binds a normalized request hash, connection hash, complete grant

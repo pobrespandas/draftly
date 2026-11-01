@@ -25,6 +25,22 @@ struct DefaultActionCatalogTests {
         #expect(Set(reopened.actions.map(\.id)) == Set(actions.map(\.id)))
     }
 
+    @Test func aCloudRequestedStoreWaitsForExplicitCatalogInstallation() throws {
+        // The memory backend suppresses CloudKit I/O while exercising the requested configuration.
+        let library = try LibraryStore(inMemory: true, cloudIdentifier: "iCloud.neutral.catalog-fixture")
+        #expect(library.cloudIdentifier == nil)
+        #expect(library.actions.isEmpty && library.actionGroups.isEmpty)
+        var arriving = try #require(DefaultActionCatalog.actions.first { $0.name == "Copy" })
+        arriving.name = "My neutral copy"
+        arriving.steps = [ActionStep("clipboard", ["template": "Keep my neutral template 🐼"])]
+        arriving.unknownFields["futureField"] = .string("keep")
+        try library.saveAction(arriving)
+        let result = try library.reinstallDefaultActions()
+        #expect(result.actionCount == 110)
+        #expect(library.actions.first(where: { $0.id == arriving.id }) == arriving)
+        #expect(library.actions.count == 111)
+    }
+
     @Test func existingCustomCatalogDoesNotReceiveUnrequestedDefaults() throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: folder) }

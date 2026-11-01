@@ -118,7 +118,14 @@ A new persistent store receives revision 1 once. Draftly does not use an empty
 action list as a signal to seed data. If a person deletes every default action,
 the next launch keeps the library empty.
 
-Existing stores do not receive defaults during an update. Settings > Maintenance
+Existing stores do not receive defaults during an update. Automatic seeding runs
+only for a new local library without a CloudKit configuration. A new local cache
+does not prove that its iCloud library is empty. Cloud-backed libraries wait for
+imported actions or an explicit installation. Automatic initialization after a
+confirmed empty CloudKit import remains pending; no synchronization acceptance is
+claimed by the in-memory configuration test.
+
+Settings > Maintenance
 can install explicit copies. Restored groups use names such as `Basic (Default)`
 and `Basic (Default 2)`. Each restored group, action, and step gets a new ID. The
 write is atomic. A failed write keeps the prior catalog unchanged.
