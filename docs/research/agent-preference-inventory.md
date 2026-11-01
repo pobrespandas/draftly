@@ -66,8 +66,25 @@ alias effects; matching a UUID alone does not prove isolated preference storage.
 
 This component performs no persistence. It is not an authorized agent handler.
 The caller must still scope-check resources, obtain approval, compare versions,
-commit changes and record receipts. Device values, native integration settings,
-list defaults and default Workspace access remain separate work.
+commit changes and record receipts. Native integration settings and default Workspace access remain separate work.
+
+## Device and list preparation
+
+`AgentDevicePreferenceAccess` reads 30 known scalar fields from an explicitly
+supplied preference domain. It returns declared defaults for absent values and
+reports invalid stored types without changing them. It prepares typed writes or
+removal of one key. The legacy line-spacing field stays read-only. This adapter
+cannot edit native registrations or resource references.
+
+`AgentListPreferenceAccess` reads through DraftListDefaults and prepares list
+option data plus the corresponding legacy key change. Reset removes only the
+selected field and its legacy override. Unknown fields remain intact. Missing
+list fields now use existing defaults; present invalid fields still fail decoding.
+Applied Workspaces and their shared definitions are not changed.
+
+These adapters do not commit writes or authorize requests. Remaining bindings
+include launch-at-login, Spotlight and a scope-checked default Workspace, then
+version checks, atomic persistence and receipts for all preference operations.
 
 ## Remaining application work
 
@@ -76,9 +93,10 @@ list defaults and default Workspace access remain separate work.
    inherited and system defaults, command contexts and protected native changes.
 2. Keep the shared default constants used by Settings and editor consumers.
    The characterization tests preserve values and legacy Boolean conversion.
-3. Add typed getters and mutations with temporary domains and injected native
-   adapters. Test malformed data, storage failure, unknown fields, per-field
-   reset, inheritance and conflicts. Do not read personal preferences in tests.
+3. Finish typed storage commits and native adapters. Preparation tests now cover
+   malformed data, unknown fields, per-field reset, inheritance and conflicts.
+   Storage failure and native status still need injected-adapter tests. Use
+   temporary domains; keep personal preferences outside automated tests.
 4. Connect grant checks, version tokens, receipts and protected approval. Check
    reference scope before returning metadata or changing configuration.
 5. Verify live effects, editor state and Undo in isolated QA. No preference or

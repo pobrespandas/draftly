@@ -74,14 +74,8 @@ import DraftlyCore
             requiresHumanApproval: try registry.requiresHumanApproval(item))
     }
 
-    struct Reading {
-        let effectiveValue: AgentJSONValue
-        let origin: String
-        let hasOverride: Bool
-    }
-
     static func read(address item: AgentJSONValue, configuration: String,
-                     syntax: SyntaxDefinition? = nil, inherited: AgentJSONValue? = nil) throws -> Reading {
+                     syntax: SyntaxDefinition? = nil, inherited: AgentJSONValue? = nil) throws -> AgentPreferenceReading {
         let registry = try AgentPreferenceCatalog.make()
         let address = try registry.address(item), field = try registry.field(address.id)
         let path: [String]
@@ -120,21 +114,21 @@ import DraftlyCore
             origin = "default"
         } else { throw AgentErrorCode.unavailable }
         guard let root = try? JSONDecoder().decode([String: AgentJSONValue].self, from: Data(configuration.utf8)) else {
-            return Reading(effectiveValue: fallback, origin: "invalid", hasOverride: true)
+            return AgentPreferenceReading(effectiveValue: fallback, origin: "invalid", hasOverride: true)
         }
         var object = root
         for component in path.dropLast() {
-            guard let stored = object[component] else { return Reading(effectiveValue: fallback, origin: origin, hasOverride: false) }
-            guard case .object(let fields) = stored else { return Reading(effectiveValue: fallback, origin: "invalid", hasOverride: true) }
+            guard let stored = object[component] else { return AgentPreferenceReading(effectiveValue: fallback, origin: origin, hasOverride: false) }
+            guard case .object(let fields) = stored else { return AgentPreferenceReading(effectiveValue: fallback, origin: "invalid", hasOverride: true) }
             object = fields
         }
-        guard let stored = object[path.last!] else { return Reading(effectiveValue: fallback, origin: origin, hasOverride: false) }
+        guard let stored = object[path.last!] else { return AgentPreferenceReading(effectiveValue: fallback, origin: origin, hasOverride: false) }
         do {
             let value: AgentJSONValue
             if address.id == "commands.shortcut" {
                 if case .object(let fields) = stored,
                    ["key", "modifiers", "keyCode"].allSatisfy({ fields[$0] == nil }) {
-                    return Reading(effectiveValue: fallback, origin: origin, hasOverride: false)
+                    return AgentPreferenceReading(effectiveValue: fallback, origin: origin, hasOverride: false)
                 }
                 let binding = try JSONDecoder().decode(CommandBinding.self, from: JSONEncoder().encode(stored))
                 guard binding.key.isEmpty || binding.key.count == 1 else { throw AgentErrorCode.invalidInput }
@@ -144,8 +138,8 @@ import DraftlyCore
                 value = try bindingValue(CommandShortcuts.binding(command, configuration: configuration))
             } else { value = stored }
             try field.value.validate(value)
-            return Reading(effectiveValue: value, origin: "stored", hasOverride: true)
-        } catch { return Reading(effectiveValue: fallback, origin: "invalid", hasOverride: true) }
+            return AgentPreferenceReading(effectiveValue: value, origin: "stored", hasOverride: true)
+        } catch { return AgentPreferenceReading(effectiveValue: fallback, origin: "invalid", hasOverride: true) }
     }
 
     private static func bindingValue(_ binding: CommandBinding) throws -> AgentJSONValue {
