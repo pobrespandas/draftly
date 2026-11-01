@@ -5,6 +5,7 @@ import DraftlyCore
 // Existing-draft writes only. No transport or normal-startup activation.
 @MainActor final class AgentDraftWriting {
     private let libraryID: UUID
+    static let operationNames: Set<String> = ["drafts.update", "drafts.patch"]
     private let library: LibraryStore
     private let reader: AgentDraftReading
     private let editors: AgentEditorRegistry
@@ -26,7 +27,7 @@ import DraftlyCore
         updating = true; defer { updating = false }
         do {
             let request = try AgentRequest.decode(JSONEncoder().encode(request))
-            guard request.operation == "drafts.update" else { throw AgentErrorCode.unavailable }
+            guard Self.operationNames.contains(request.operation) else { throw AgentErrorCode.unavailable }
             guard request.retryKey == nil else { throw AgentErrorCode.invalidInput }
             guard request.libraryID == libraryID else { throw AgentErrorCode.permissionDenied }
             try validateAdmission()
@@ -35,11 +36,13 @@ import DraftlyCore
             let mutation = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
             if try recoveredReceipt(for: mutation, target: target.id) == nil {
                 guard !ActionRunner.isExecuting(in: library) else { throw AgentErrorCode.busy }
-                _ = try reader.checkedSnapshot(for: target.id, expectedVersion: expected)
+                let snapshot = try reader.checkedSnapshot(for: target.id, expectedVersion: expected)
+                _ = try applying(request.operation, parameters: AgentDraftSchemas.validatedParameters(for: request), to: snapshot.note)
             }
             try validateAdmission(); _ = try keys.verify(ticket.value, request: request, connectionID: connectionID)
             return ticket
         } catch let error as LibraryMutationReceiptError { throw receiptError(error) }
+        catch is AgentSchemaError { throw AgentErrorCode.invalidInput }
     }
 
     func update(_ request: AgentRequest, connectionID: UUID) throws -> LibraryMutationReceipt {
@@ -47,13 +50,12 @@ import DraftlyCore
         updating = true; defer { updating = false }
         do {
             let request = try AgentRequest.decode(JSONEncoder().encode(request))
-            guard request.operation == "drafts.update", let key = request.retryKey else { throw AgentErrorCode.invalidInput }
+            guard Self.operationNames.contains(request.operation), let key = request.retryKey else { throw AgentErrorCode.invalidInput }
             guard request.libraryID == libraryID else { throw AgentErrorCode.permissionDenied }
             try validateAdmission()
             let ticket = try keys.verify(key, request: request, connectionID: connectionID)
             let parameters = try AgentDraftSchemas.validatedParameters(for: request)
-            guard let target = request.targets.first, let expected = request.expectedVersion,
-                  case .object(let changes) = parameters["changes"] else { throw AgentErrorCode.invalidInput }
+            guard let target = request.targets.first, let expected = request.expectedVersion else { throw AgentErrorCode.invalidInput }
             let mutation = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
             // Check authority before returning any receipt, including recovery after a lost reply.
             if let previous = try recoveredReceipt(for: mutation, target: target.id) {
@@ -62,12 +64,15 @@ import DraftlyCore
             }
             guard !ActionRunner.isExecuting(in: library) else { throw AgentErrorCode.busy }
             let initial = try reader.checkedSnapshot(for: target.id, expectedVersion: expected)
-            let note = try applying(changes, to: initial.note)
+            let note = try applying(request.operation, parameters: parameters, to: initial.note)
+            let preserveDates: Bool
+            if case .object(let changes) = parameters["changes"] { preserveDates = changes["modifiedAt"] != nil }
+            else { preserveDates = false }
             var receipt: LibraryMutationReceipt?
             _ = try editors.synchronizeMutation(note) { value, generation in
                 try validateAdmission(); _ = try keys.verify(key, request: request, connectionID: connectionID)
                 receipt = try library.commitNotes([value], mutation: mutation, at: now(),
-                    preserveDates: changes["modifiedAt"] != nil, validateCommit: {
+                    preserveDates: preserveDates, validateCommit: {
                         try self.validateAdmission()
                         _ = try self.keys.verify(key, request: request, connectionID: connectionID)
                         guard !ActionRunner.isExecuting(in: self.library) else { throw AgentErrorCode.busy }
@@ -99,6 +104,30 @@ import DraftlyCore
         case .pendingChanges: .busy
         case .invalidReceipt: .storageError
         }
+    }
+
+    private func applying(_ operation: String, parameters: [String: AgentJSONValue], to original: Note) throws -> Note {
+        if operation == "drafts.update", case .object(let changes) = parameters["changes"] {
+            return try applying(changes, to: original)
+        }
+        guard operation == "drafts.patch", case .array(let edits) = parameters["edits"] else { throw AgentErrorCode.invalidInput }
+        let source = original.content as NSString
+        let replacements = try edits.map { edit -> (NSRange, String) in
+            guard case .object(let fields) = edit, case .string(let replacement) = fields["text"] else { throw AgentErrorCode.invalidInput }
+            let bounds = try AgentTextShapes.bounds(.object(["offset": fields["offset"] ?? .null,
+                "length": fields["length"] ?? .null]), totalLength: Int64(source.length))
+            guard let start = Int(exactly: bounds.offset), let end = Int(exactly: bounds.end),
+                  AgentTextShapes.isScalarBoundary(start, in: source), AgentTextShapes.isScalarBoundary(end, in: source) else {
+                throw AgentErrorCode.invalidInput
+            }
+            return (NSRange(location: start, length: end - start), replacement)
+        }
+        let text = NSMutableString(string: original.content)
+        for (range, replacement) in replacements.sorted(by: { $0.0.location > $1.0.location }) {
+            text.replaceCharacters(in: range, with: replacement)
+        }
+        var note = original; note.content = text as String
+        return note
     }
 
     private func applying(_ changes: [String: AgentJSONValue], to original: Note) throws -> Note {

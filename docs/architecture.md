@@ -1035,14 +1035,15 @@ remain required. Keys do not bypass those steps.
 
 ## Local mutation preparation and update routing
 
-AgentCommandService exposes mutations.prepare and drafts.update when it has an
+AgentCommandService exposes mutations.prepare, drafts.update and drafts.patch
+when it has an
 explicit AgentEditorRegistry for the same library. Without that registry, the
 service remains read-only. Normal app startup does not yet activate this service.
 
 Preparation accepts an unsigned AgentRequest inside a typed request field. The
 service binds an omitted library ID to its own library. It checks the inner
 operation, current grant, scope, version and editor state before it returns a
-signed retry key. It currently supports drafts.update only. Preparation changes
+signed retry key. It supports drafts.update and drafts.patch. Preparation changes
 no note. A request that already has a retry key cannot request another key through
 this wrapper. CLI and MCP use the same service route; neither renews keys silently.
 
@@ -1052,3 +1053,15 @@ writes. An explicit preparation of the same committed intent can recover its
 receipt without repeating the edit. Preparation is not approval for native effects.
 Host-owner loss closes the key manager and removes write handlers. A temporary
 busy result denies only that attempt.
+
+
+## Agent UTF-16 patches
+
+AgentDraftWriting applies drafts.patch through the same admission, version,
+editor and receipt boundary as drafts.update. All ranges refer to the original
+UTF-16 snapshot. Schema checks reject overlapping edits and repeated offsets.
+Live checks reject out-of-bounds ranges and split surrogate pairs before any
+replacement. Valid replacements run from the highest offset to the lowest.
+Metadata remains unchanged. The resulting text is one editor mutation and one
+atomic note/receipt commit. A repeated signed request returns its prior receipt.
+AgentTextShapes owns the scalar-boundary check shared by chunk reads and patches.

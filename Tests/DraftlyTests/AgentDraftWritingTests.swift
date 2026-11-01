@@ -66,6 +66,62 @@ struct AgentDraftWritingTests {
         }
     }
 
+    @Test func patchUsesOneUTF16SnapshotAndOneUndoableCommit() throws {
+        let f = try Fixture(); defer { f.close() }
+        let model = f.model(), writer = try f.writer()
+        let edits: AgentJSONValue = .array([
+            .object(["offset": .integer(9), "length": .integer(4), "text": .string("e\u{0301}")]),
+            .object(["offset": .integer(0), "length": .integer(8), "text": .string("New")]),
+            .object(["offset": .integer(14), "length": .integer(2), "text": .string("🐻")])])
+        let input = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "drafts.patch",
+            targets: [.init(kind: .draft, id: f.note.id)], expectedVersion: try f.token(), parameters: ["edits": edits])
+        let ticket = try writer.prepare(input, connectionID: f.connectionID)
+        let request = AgentRequest(requestID: input.requestID, libraryID: input.libraryID, operation: input.operation,
+            targets: input.targets, expectedVersion: input.expectedVersion, retryKey: ticket.value, parameters: input.parameters)
+        let receipt = try writer.update(request, connectionID: f.connectionID)
+        #expect(f.library.notes.first?.content.utf8.elementsEqual("New e\u{0301} 🐻".utf8) == true)
+        #expect(model.editor.content == "New e\u{0301} 🐻")
+        #expect(f.library.notes.first?.scriptMetadata == f.note.scriptMetadata)
+        let revisions = f.library.revisions
+        #expect(try writer.update(request, connectionID: f.connectionID) == receipt)
+        #expect(f.library.revisions == revisions)
+        model.editor.performUndo?(false)
+        #expect(model.editor.content == f.note.content)
+        _ = model.flush()
+    }
+
+    @Test func patchRejectsSplitScalarsAndOutOfBoundsWithoutACommit() throws {
+        for (offset, length) in [(15, 0), (14, 1), (17, 0), (16, 1)] {
+            let f = try Fixture(); defer { f.close() }
+            let writer = try f.writer()
+            let input = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "drafts.patch",
+                targets: [.init(kind: .draft, id: f.note.id)], expectedVersion: try f.token(), parameters: ["edits": .array([
+                    .object(["offset": .integer(Int64(offset)), "length": .integer(Int64(length)), "text": .string("x")])])])
+            #expect(throws: AgentErrorCode.invalidInput) { try writer.prepare(input, connectionID: f.connectionID) }
+            let key = try f.keys.issue(input, connectionID: f.connectionID)
+            let signed = AgentRequest(requestID: input.requestID, libraryID: input.libraryID, operation: input.operation,
+                targets: input.targets, expectedVersion: input.expectedVersion, retryKey: key.value, parameters: input.parameters)
+            #expect(throws: AgentErrorCode.invalidInput) { try writer.update(signed, connectionID: f.connectionID) }
+            #expect(f.library.notes.first?.content == f.note.content)
+        }
+    }
+
+    @Test func patchAllowsAnInsertionAtTheEndOfEmptyAndNonemptyDrafts() throws {
+        for content in ["", "cafe\u{0301} 🐼"] {
+            let f = try Fixture(); defer { f.close() }
+            var source = f.note; source.content = content; try f.library.saveNote(source)
+            let writer = try f.writer()
+            let input = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "drafts.patch",
+                targets: [.init(kind: .draft, id: source.id)], expectedVersion: try f.token(), parameters: ["edits": .array([
+                    .object(["offset": .integer(Int64(content.utf16.count)), "length": .integer(0), "text": .string(" appended")])])])
+            let ticket = try writer.prepare(input, connectionID: f.connectionID)
+            let signed = AgentRequest(requestID: input.requestID, libraryID: input.libraryID, operation: input.operation,
+                targets: input.targets, expectedVersion: input.expectedVersion, retryKey: ticket.value, parameters: input.parameters)
+            _ = try writer.update(signed, connectionID: f.connectionID)
+            #expect(f.library.notes.first?.content.utf8.elementsEqual((content + " appended").utf8) == true)
+        }
+    }
+
     @Test func everyUpdateFieldPersistsAndReceiptMatchesTheNextRead() throws {
         let f = try Fixture(); defer { f.close() }
         let model = f.model(), writer = try f.writer()

@@ -13,7 +13,7 @@ import AgentContracts
     }
     private static let readOperations: Set<String> = ["server.status", "server.capabilities", "server.schemas",
         "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions", "preferences.schema"]
-    static let implementedOperations = readOperations.union([AgentMutationSchemas.name, "drafts.update"])
+    static let implementedOperations = readOperations.union([AgentMutationSchemas.name]).union(AgentDraftWriting.operationNames)
     private var availableOperations: Set<String> { writes == nil ? Self.readOperations : Self.implementedOperations }
     private let retryKeys: AgentRetryKeys
     private var writes: AgentDraftWriting?
@@ -163,7 +163,7 @@ import AgentContracts
             let ticket = try writes.prepare(bound, connectionID: grant.connectionID)
             return ["requestID": .string(bound.requestID.uuidString), "retryKey": .string(ticket.value),
                 "expiresAt": .string(APIValues.date(min(ticket.expiresAt, grant.expiresAt)))]
-        case "drafts.update":
+        case "drafts.update", "drafts.patch":
             guard let writes else { throw AgentErrorCode.unavailable }
             let receipt = try writes.update(request, connectionID: grant.connectionID)
             guard let resource = receipt.resources.first else { throw AgentErrorCode.storageError }
