@@ -3,6 +3,57 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Stable library destinations — 1 November
+
+The helper accepts --library UUID, with an optional absolute --state-parent,
+where explicit --socket access was accepted. AgentHostDestination owns argument
+parsing and formatting. Its transport adapter resolves that exact local library
+and supplies the expectation during pairing and authentication. Each physical
+connection reads the current publication. Failed requests are not replayed.
+A later explicit request can use a reopened host. No fallback selects a different
+library or removes stale state. Corrupt and unsafe catalogs retain their errors.
+
+Focused results passed: 70 app cases and 16 contract cases. Cases cover missing
+state without writes, two libraries, misleading hints, refusal before credential
+reads, reopened hosts, no replay and legacy explicit sockets without a catalog.
+The helper and local app builds passed. Six executable smoke checks passed,
+including refusal of unprovisioned identity without creating state directories.
+These are isolated, injected-signature tests, not signed-helper acceptance.
+The full branch inventory passed: 1 consumer, 152 contracts, 763 Core and
+1183 app cases (2099 total). All 286 Python tests and the structural matrix
+passed. After merging the validated CLI refactor from main, complete Swift
+inventories passed: 1 consumer, 158 contracts, 763 Core and 1183 app (2105
+total). Python286, matrix0 and both final builds passed. Three executable checks
+kept stdin open and proved status/capabilities and invalid calls do not read it.
+Exact-head functional PR CI remains pending. Normal app startup, helper provisioning, configuration export and the
+remaining handlers are unfinished.
+
+## Local host test fixture lifetime — 1 November
+
+The new routing tests exposed an unowned fixture capture during late broker
+pairing cleanup. The test process aborted after the fixture went away. Host
+callbacks now retain their injected test state. The fixture does not retain the
+host, so this adds no ownership cycle. A focused case drops the caller's fixture
+reference while a host can still pair and cancel. It passed. Routing and transport
+focused tests also passed (61 app, 2 contracts) after this test-only correction.
+Production cancellation, timeouts and cleanup rules are unchanged.
+
+## Expected-library handshake binding — 1 November
+
+Pairing and credential authentication now accept an optional expectedLibraryID.
+A mismatch is permissionDenied before a review or credential lookup. Bound
+challenges acknowledge the library; clients reject missing or wrong library
+responses. Absent expectations retain the existing JSON shapes and explicit
+socket access. Present invalid/null IDs fail rather than silently fall back.
+
+Three raw-socket tests first reproduced the unsupported binding. After the
+implementation, 76 app and 14 contract tests passed across six focused suites.
+The generated local app build also passed.
+New tests cover legacy shapes, invalid types, correct/wrong library requests,
+zero credential reads on refusal and clients checking acknowledgements.
+This is transport-level binding, not signed-helper or normal-app acceptance.
+The stable CLI adapter above now uses this handshake binding.
+
 ## CLI request preparation refactor — 1 November
 
 The helper entry point mixed request preparation with stream and connection
@@ -22,10 +73,11 @@ These counts describe execution, not compatibility. No native UI check was
 needed for this internal extraction. Signed-helper acceptance is still pending.
 No existing test was removed. No UI or native permission path changed.
 
-The separate expected-library implementation remains in branch
-agent/library-bound-connections-20261101 at 81c7b24. Its incomplete routing
-adapter is preserved in the named library-routing stash. Neither belongs to
-this behavior-preserving refactor. Local agent access remains unfinished.
+Expected-library binding and routing were developed separately, as recorded
+above. Neither belongs to this behavior-preserving refactor. The extra recovery
+stash remains preserved. PR #57 passed exact-head CI 41305076276 and merged
+as 33c91df. Its checks included the native build and the required summary.
+Local agent access remains unfinished.
 
 ## Publication responsibility refactor — 1 November
 

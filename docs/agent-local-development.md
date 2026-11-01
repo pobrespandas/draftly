@@ -31,9 +31,24 @@ The JSON command is:
 draftly-agent json --connection APPROVED_UUID --socket ABSOLUTE_SOCKET_PATH < request.json
 ```
 
-This command requires the signed setup that is still pending. The socket argument
-is currently explicit; a private locator and automatic app startup remain future
-work. Do not use this temporary path as permanent client configuration.
+This command requires the signed setup that is still pending. Explicit socket
+access remains supported. For a stable destination, replace --socket with:
+
+```text
+draftly-agent json --connection APPROVED_UUID --library LIBRARY_UUID < request.json
+```
+
+Use the device-local libraryID returned by discover. It is not a draft ID or a
+Core Data store UUID. For an isolated library, add --state-parent followed by its
+absolute parent directory. The same destination arguments work with status,
+capabilities, call, mcp and connect. Parsing keeps paths with spaces and Unicode.
+
+The helper resolves that exact library on each new physical connection. A missing
+host returns unavailable; it never chooses another available library. Unsafe or
+corrupt state returns its error without repair. Bound pairing and authentication
+also check the actual server library. There is no fallback to an unbound handshake.
+A lost connection does not replay the failed operation. A later explicit request
+can resolve a new publication. Automatic app startup remains future work.
 
 Input is one bounded JSON request, terminated by end-of-file. For example:
 
@@ -81,16 +96,17 @@ Verification occurs before a credential is sent or accepted.
 
 Each frame has a four-byte unsigned big-endian payload length and UTF-8 JSON.
 Empty frames and frames above eight MiB are invalid. Authentication frames have
-a separate 1024-byte limit. Hello contains only apiVersion, connectionID and the
-32-byte credential. Welcome contains either libraryID or an error, never a session
-handle. The server keeps that handle privately and checks current authority on
+a separate 1024-byte limit. Hello contains apiVersion, connectionID, the
+32-byte credential and an optional expectedLibraryID. Welcome contains either
+libraryID or an error, never a session handle. The server keeps that handle
+privately and checks current authority on
 every request. The client rejects replies for another request ID.
 
 A listener creates a new random directory under a trusted user-owned temporary
 parent. Directory mode is 0700; socket mode is 0600. The shared private-file policy
 rejects unsafe owners, modes, links and extended allow ACLs. Cleanup checks the
-owned inode and never removes unrelated stale endpoints. A stable locator and
-single-broker-per-library coordination still need implementation.
+owned inode and never removes unrelated stale endpoints. AgentHostLease provides
+single-owner coordination. The private locator holds discovery hints only.
 
 Socket I/O runs on bounded worker queues, not MainActor. A broker admits at most
 eight client connections. Authentication has a 15-second deadline; normal frames
@@ -106,8 +122,9 @@ reads, revocation, peer rejection and cleanup. They do not request system
 permissions or read personal data.
 
 Complete signed app/helper provisioning and packaging, real Keychain sharing,
-human pairing and management, stable host library identity, live editor and lock
-notifications, locator publication before enabling normal app access.
+human pairing and management, live editor and lock notifications before enabling
+normal app access. Host identity and publication are implemented in the isolated
+assembly; this is not signed installation acceptance.
 Mutations, receipts, native-effect enforcement and the remaining operation families
 are separate unfinished work. Remote access remains a future stage.
 
@@ -139,7 +156,7 @@ Poll state without creating credentials. Human denial, caller cancellation,
 five-minute expiry and lifecycle invalidation are terminal. On lock, disable,
 library closure or service restart, invalidate pending decisions. A failed
 persistence attempt requires a new challenge; do not retry the same approval.
-Signed packaging, setup UI, locator and normal app startup remain unfinished.
+Signed packaging, setup UI and normal app startup remain unfinished.
 
 
 ## Pairing command and wire protocol
@@ -162,7 +179,10 @@ The terminal reply is pairing history, not proof of current authorization.
 The app broker accepts either the existing credential introduction or a distinct
 pairing introduction. Pairing frames have a 4096-byte budget and strict keys.
 The challenge response contains pairingID, a comparison code and expiresAt in
-Unix seconds. A control frame contains only apiVersion, pairingID and poll or
+Unix seconds. A bound introduction also carries expectedLibraryID; its challenge
+must acknowledge the same libraryID before the CLI displays the code. An absent
+expectation keeps the legacy message shape. Invalid or null IDs are rejected.
+A control frame contains only apiVersion, pairingID and poll or
 cancel. A client cannot query another conversation's ID. The initial and each
 subsequent frame has a 15-second I/O deadline. Disconnect cancels pending work.
 At most two pairing waits use the broker's eight client slots.
@@ -198,7 +218,7 @@ admission paths and private metadata access. Construction never listens. Use
 explicit lifecycle commands to resume, suspend and close it. Close before a
 library change or app shutdown; a locator is not proof of ownership.
 
-Normal AppController startup still needs editor and lock adapters, a locator and
+Normal AppController startup still needs editor and lock adapters and
 a provisioned signed helper. Keep it disconnected until those checks pass.
 In-memory credential and signature substitutes belong only in test fixtures and
 the isolated manual preview. Assembly tests do not prove signed acceptance.
@@ -220,10 +240,11 @@ identity before reading. An absent catalog returns an empty JSON array.
 
 Each result contains libraryID, epochID and socketPath. The host publishes no
 credentials or business data there. Results can be stale. A successful discovery
-is not proof that a host is live or authorized. Normal CLI commands still use
-an explicit socket; verify the signed peer and authenticate through the existing
-credential route. Automatic library selection and exported client configuration
-are not implemented yet.
+is not proof that a host is live or authorized. Use --library UUID to select that
+exact library, or keep explicit --socket access. Both routes verify the signed
+peer and authenticate through the credential route. The library route also
+checks the server's library acknowledgement. Client configuration export and
+automatic app startup are not implemented yet.
 
 The host withdraws only its own epoch. A failed withdrawal leaves transport
 stopped and records locatorCleanupError. Another explicit suspend or close can

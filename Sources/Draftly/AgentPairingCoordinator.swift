@@ -63,8 +63,9 @@ import AgentContracts
 
     // Called only after the pairing transport has verified the signed helper.
     // The supplied name remains an untrusted display label.
-    func request(clientName: String) throws -> Challenge {
+    func request(clientName: String, expectedLibraryID: UUID? = nil) throws -> Challenge {
         try requireAvailable()
+        guard expectedLibraryID == nil || expectedLibraryID == libraryID else { throw AgentErrorCode.permissionDenied }
         guard AgentConnectionMetadata.validName(clientName) else { throw AgentErrorCode.invalidInput }
         refresh()
         try requireAvailable()

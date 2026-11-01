@@ -906,7 +906,7 @@ must call close explicitly rather than depend on deinitializer timing. See
 A failed first enable compensates its new enabled preference. If that write also
 fails, it reports outcomeUnknown. Unreadable metadata is not repaired. Temporary
 ownership contention does not tear down a live broker. Normal AppController
-startup, locator publication, editor/lock adapters and signed helper provisioning
+startup, editor/lock adapters and signed helper provisioning
 remain separate, unfinished wiring; the assembly alone does not activate access.
 
 
@@ -923,5 +923,21 @@ Close stops transport before withdrawal. The publication component keeps failed
 epochs for another explicit cleanup attempt; AgentHostLocator still owns exact
 matching and durable replacement. A later owner's entry survives. A stale hint never authorizes socket deletion or
 connection access. Clients must still verify the real signed peer and authenticate.
-The helper discover command reads this catalog; automatic destination selection,
-client configuration export and normal app startup remain unfinished.
+The helper discover command reads this catalog. AgentHostDestination parses and
+formats explicit socket or stable library destinations. Its transport adapter
+resolves the exact library from this read-only catalog for each new connection
+and passes expectedLibraryID to both clients. A missing host never selects a
+different library. No client removes stale entries. Failed requests are not
+replayed. Client configuration export and normal app startup remain unfinished.
+
+
+Bound local handshakes carry an optional expectedLibraryID. It narrows the
+connection to one device-local library binding; it grants no authority. Pairing
+checks it before creating a challenge. Server authentication checks it before credential
+lookup. A bound challenge acknowledges the actual library, and both clients check
+the server response before returning a usable connection or challenge.
+
+Absent expectations retain the legacy wire shapes. A present invalid or null
+expectation is rejected, never treated as unbound mode. Bound clients also reject
+missing or mismatched acknowledgements. Stable CLI library selection uses this
+binding. Neither the handshake nor its adapter activates the installed app.

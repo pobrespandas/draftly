@@ -7,14 +7,19 @@ package enum AgentLocalHandshake {
         package let apiVersion: Int
         package let connectionID: UUID
         package let credential: Data
+        package let expectedLibraryID: UUID?
 
-        package init(connectionID: UUID, credential: Data) throws {
+        package init(connectionID: UUID, credential: Data, expectedLibraryID: UUID? = nil) throws {
             guard credential.count == 32 else { throw AgentErrorCode.invalidInput }
             self.apiVersion = AgentRequest.version; self.connectionID = connectionID; self.credential = credential
+            self.expectedLibraryID = expectedLibraryID
         }
 
         package static func decode(_ data: Data) throws -> Self {
-            try keys(data, required: ["apiVersion", "connectionID", "credential"])
+            let root = try keys(data, required: ["apiVersion", "connectionID", "credential"], optional: ["expectedLibraryID"])
+            if let expected = root["expectedLibraryID"] {
+                guard let text = expected as? String, UUID(uuidString: text) != nil else { throw AgentErrorCode.invalidInput }
+            }
             do {
                 let value = try JSONDecoder().decode(Self.self, from: data)
                 guard value.apiVersion == AgentRequest.version, value.credential.count == 32 else { throw AgentErrorCode.invalidInput }
@@ -47,10 +52,12 @@ package enum AgentLocalHandshake {
         }
     }
 
-    private static func keys(_ data: Data, required: Set<String>) throws {
+    private static func keys(_ data: Data, required: Set<String>, optional: Set<String> = []) throws -> [String: Any] {
         guard data.count <= maximumBytes,
-              let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any], Set(root.keys) == required else {
+              let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              Set(root.keys).isSuperset(of: required), Set(root.keys).isSubset(of: required.union(optional)) else {
             throw AgentErrorCode.invalidInput
         }
+        return root
     }
 }

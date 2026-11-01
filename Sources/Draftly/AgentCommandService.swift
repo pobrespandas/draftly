@@ -36,8 +36,9 @@ import AgentContracts
         drafts = AgentDraftReading(library: library, pages: pages, pendingEditorGeneration: pendingEditorGeneration)
     }
 
-    func authenticate(connectionID: UUID, credential: Data) throws -> Session {
+    func authenticate(connectionID: UUID, credential: Data, expectedLibraryID: UUID? = nil) throws -> Session {
         try validateAdmission()
+        guard expectedLibraryID == nil || expectedLibraryID == libraryID else { throw AgentErrorCode.permissionDenied }
         let grant = try connections.authenticate(connectionID, candidate: credential, libraryID: libraryID)
         try validateAdmission()
         guard sessions.count < 128 else { throw AgentErrorCode.busy }

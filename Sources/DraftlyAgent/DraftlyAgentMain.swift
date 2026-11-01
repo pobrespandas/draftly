@@ -14,6 +14,7 @@ import AgentMCP
             print("       draftly-agent call OPERATION --connection UUID --socket ABSOLUTE_PATH < arguments.json")
             print("       draftly-agent connect --name CLIENT_NAME --socket ABSOLUTE_PATH")
             print("       draftly-agent discover [--state-parent ABSOLUTE_PATH]")
+            print("Replace --socket PATH with --library UUID [--state-parent ABSOLUTE_PATH] for stable library selection.")
             print("json reads a full request from stdin. call reads targets and parameters, using shared tool schemas.")
             print("Local access requires approval in Draftly. Never put credentials in arguments or configuration.")
             return
@@ -25,12 +26,13 @@ import AgentMCP
             if args.first == "connect" { try await pair(args); return }
             guard let mode = args.first, ["json", "status", "capabilities", "call", "mcp"].contains(mode) else { throw AgentErrorCode.invalidInput }
             let offset = mode == "call" ? 2 : 1
-            guard args.count == offset + 4, args[offset] == "--connection", let id = UUID(uuidString: args[offset + 1]),
-                  args[offset + 2] == "--socket" else { throw AgentErrorCode.invalidInput }
-            let path = args[offset + 3], store = AgentCredentialKeychain(role: .helper)
+            guard (args.count == offset + 4 || args.count == offset + 6), args[offset] == "--connection",
+                  let id = UUID(uuidString: args[offset + 1]) else { throw AgentErrorCode.invalidInput }
+            let destination = try AgentHostDestination(cliArguments: Array(args.dropFirst(offset + 2)))
+            let store = AgentCredentialKeychain(role: .helper)
             let connection = AgentHelperConnection(connect: {
                 guard let credential = try await store.read(id) else { throw AgentErrorCode.permissionDenied }
-                return try await AgentLocalClient.connect(path: path, connectionID: id, credential: credential,
+                return try await destination.connect(connectionID: id, credential: credential,
                     validateServer: { try AgentPeerIdentity.validate($0, role: .application) })
             })
             if isMCP {
@@ -66,18 +68,8 @@ import AgentMCP
     }
 
     @MainActor private static func discover(_ args: [String]) throws {
-        let parent: URL
-        if args.count == 1 {
-            guard let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
-                throw AgentErrorCode.unavailable
-            }
-            parent = support.appendingPathComponent("Draftly", isDirectory: true)
-        } else {
-            guard args.count == 3, args[1] == "--state-parent", args[2].hasPrefix("/") else {
-                throw AgentErrorCode.invalidInput
-            }
-            parent = URL(fileURLWithPath: args[2], isDirectory: true)
-        }
+        guard args.count == 1 || (args.count == 3 && args[1] == "--state-parent") else { throw AgentErrorCode.invalidInput }
+        let parent = try AgentHostDestination.stateParentDirectory(args.count == 3 ? args[2] : nil)
         try AgentCredentialIdentity.validateCurrentProcess(.helper)
         let endpoints: [AgentHostLocator.Endpoint]
         do { endpoints = try AgentHostLocator(parentDirectory: parent).endpoints() }
@@ -88,11 +80,12 @@ import AgentMCP
     }
 
     @MainActor private static func pair(_ args: [String]) async throws {
-        guard args.count == 5, args[1] == "--name", args[3] == "--socket", args[4].hasPrefix("/") else { throw AgentErrorCode.invalidInput }
+        guard args.count >= 3, args[1] == "--name" else { throw AgentErrorCode.invalidInput }
+        let destination = try AgentHostDestination(cliArguments: Array(args.dropFirst(3)))
         _ = try AgentPairingHandshake.encode(AgentPairingHandshake.Start(clientName: args[2]))
         // Verify this helper before asking the app to show any pairing request.
         try AgentCredentialIdentity.validateCurrentProcess(.helper)
-        let client = try await AgentPairingClient.connect(path: args[4], name: args[2],
+        let client = try await destination.pair(name: args[2],
             validateServer: { try AgentPeerIdentity.validate($0, role: .application) })
         do {
             let challenge = await client.challenge

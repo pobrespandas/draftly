@@ -8,15 +8,16 @@ package actor AgentLocalClient {
 
     private init(channel: AgentUnixChannel, libraryID: UUID) { self.channel = channel; self.libraryID = libraryID }
 
-    package static func connect(path: String, connectionID: UUID, credential: Data,
+    package static func connect(path: String, connectionID: UUID, credential: Data, expectedLibraryID: UUID? = nil,
                                 validateServer: @escaping @Sendable (Data) throws -> Void) async throws -> AgentLocalClient {
-        let hello = try AgentLocalHandshake.Hello(connectionID: connectionID, credential: credential)
+        let hello = try AgentLocalHandshake.Hello(connectionID: connectionID, credential: credential, expectedLibraryID: expectedLibraryID)
         let channel = try await AgentUnixChannel.connect(path: path, validatePeer: validateServer)
         do {
             try await channel.writeFrame(JSONEncoder().encode(hello), timeout: 15)
             let welcome = try AgentLocalHandshake.Welcome.decode(await channel.readFrame(maximumBytes: AgentLocalHandshake.maximumBytes, timeout: 15))
             if let error = welcome.error { throw error }
             guard let libraryID = welcome.libraryID else { throw AgentErrorCode.invalidInput }
+            guard expectedLibraryID == nil || expectedLibraryID == libraryID else { throw AgentErrorCode.permissionDenied }
             return AgentLocalClient(channel: channel, libraryID: libraryID)
         } catch { channel.close(); throw error }
     }

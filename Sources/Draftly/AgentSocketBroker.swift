@@ -67,7 +67,7 @@ import AgentLocalTransport
                 }
                 let authenticated: AgentCommandService.Session, libraryID: UUID
                 do {
-                    authenticated = try service.authenticate(connectionID: hello.connectionID, credential: hello.credential)
+                    authenticated = try service.authenticate(connectionID: hello.connectionID, credential: hello.credential, expectedLibraryID: hello.expectedLibraryID)
                     session = authenticated
                     libraryID = try service.authorizedLibraryID(for: authenticated)
                 }
@@ -98,10 +98,10 @@ import AgentLocalTransport
                                       candidate: Result<AgentPairingCoordinator, any Error>) async {
         do {
             let pairing = try candidate.get()
-            let challenge = try pairing.request(clientName: start.clientName)
+            let challenge = try pairing.request(clientName: start.clientName, expectedLibraryID: start.expectedLibraryID)
             defer { try? pairing.cancel(challenge.id) }
             try await channel.writeFrame(AgentPairingHandshake.encode(AgentPairingHandshake.Reply(
-                pairingID: challenge.id, code: challenge.code, expiresAt: challenge.expiresAt)), timeout: 15)
+                pairingID: challenge.id, code: challenge.code, expiresAt: challenge.expiresAt, libraryID: start.expectedLibraryID)), timeout: 15)
             while !Task.isCancelled {
                 let control = try AgentPairingHandshake.Control.decode(await channel.readFrame(maximumBytes: AgentPairingHandshake.maximumBytes, timeout: 15))
                 guard control.pairingID == challenge.id else { throw AgentErrorCode.invalidInput }
