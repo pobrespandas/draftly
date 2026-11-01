@@ -3,6 +3,20 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Combined agent transport validation — 1 November
+
+The retry-envelope branch now preserves the merged default action catalog and
+the signed Keychain probe branch. Only continuation documentation conflicted;
+both records remain. No runtime rules changed during this integration.
+Complete results verified1consumer/164contracts/785Core/1224app (2174 total).
+Python294, structural matrix, local app build and helper build passed.
+The integrated tree is committed separately from its original feature commit.
+
+PR71 still requires its refreshed exact-head CI before merge. The envelope
+branch will then take main ancestry and enter review. Normal agent activation,
+key issuance and guarded writes remain pending. This check did not install or
+release the app, exercise personal data or repeat microphone acceptance.
+
 ## Retry key transport envelope — 1 November
 
 The optional retryKey field now survives request decoding, named CLI/MCP tool
