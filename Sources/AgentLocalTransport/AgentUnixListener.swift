@@ -9,7 +9,7 @@ package final class AgentUnixListener: @unchecked Sendable {
     private let directory: Int32
     private let directoryIdentity: (dev_t, ino_t)
     private let socketIdentity: (dev_t, ino_t)
-    private let socket: AgentSocketDescriptor
+    private let socket: AgentIODescriptor
     private let queue = DispatchQueue(label: "com.pobrespandas.draftly.agent.accept", qos: .utility)
     private let cleanupLock = NSLock()
     private var cleaned = false
@@ -30,11 +30,11 @@ package final class AgentUnixListener: @unchecked Sendable {
         guard rootFD >= 0 else { rmdir(root); throw AgentErrorCode.permissionDenied }
         let fd = Darwin.socket(AF_UNIX, SOCK_STREAM, 0)
         guard fd >= 0 else { Darwin.close(rootFD); rmdir(root); throw AgentErrorCode.unavailable }
-        let descriptor = AgentSocketDescriptor(fd), socketPath = root + "/s"
+        let descriptor = AgentIODescriptor(fd), socketPath = root + "/s"
         var ownSocket: (dev_t, ino_t)?
         do {
             try AgentPrivateFilePolicy.validate(rootFD, kind: .directory)
-            try AgentSocketDescriptor.configure(fd)
+            try AgentIODescriptor.configureSocket(fd)
             let address = try AgentUnixAddress(socketPath)
             var value = address.value
             let result = withUnsafePointer(to: &value) {

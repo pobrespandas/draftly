@@ -26,10 +26,11 @@ package struct AgentOperationDescriptor: Sendable {
     package let requiresExpectedVersion: Bool
     package let requiresLibraryScope: Bool
     package let requiresHumanApproval: Bool
+    package let isReadOnly: Bool
 
     package init(name: String, owner: String, capabilities: Set<AgentCapability>, targets: AgentTargetRule,
                  requiresExpectedVersion: Bool = false, requiresLibraryScope: Bool = false,
-                 requiresHumanApproval: Bool = false) {
+                 requiresHumanApproval: Bool = false, isReadOnly: Bool = false) {
         self.name = name
         self.owner = owner
         self.capabilities = capabilities
@@ -37,6 +38,7 @@ package struct AgentOperationDescriptor: Sendable {
         self.requiresExpectedVersion = requiresExpectedVersion
         self.requiresLibraryScope = requiresLibraryScope
         self.requiresHumanApproval = requiresHumanApproval
+        self.isReadOnly = isReadOnly
     }
 
     package var requiresEffectAuthorization: Bool {
@@ -61,14 +63,14 @@ package enum AgentOperationCatalog {
     private static let byName = Dictionary(uniqueKeysWithValues: operations.map { ($0.name, $0) })
 
     package static let operations: [AgentOperationDescriptor] = [
-        .init(name: "server.status", owner: "AgentCommandService", capabilities: [], targets: .none),
-        .init(name: "server.capabilities", owner: "AgentCommandService", capabilities: [], targets: .none),
-        .init(name: "server.schemas", owner: "AgentCommandService", capabilities: [], targets: .none),
-        .init(name: "library.summary", owner: "LibraryStore", capabilities: [.draftsRead], targets: .none),
-        .init(name: "drafts.list", owner: "LibraryStore + DraftCommands", capabilities: [.draftsRead], targets: .none),
-        .init(name: "drafts.search", owner: "LibraryStore + DraftCommands", capabilities: [.draftsRead], targets: .none),
-        .init(name: "drafts.get", owner: "LibraryStore + DraftCommands", capabilities: [.draftsRead], targets: .one(.draft)),
-        .init(name: "drafts.versions", owner: "LibraryStore + DraftCommands", capabilities: [.draftsRead], targets: .one(.draft)),
+        .init(name: "server.status", owner: "AgentCommandService", capabilities: [], targets: .none, isReadOnly: true),
+        .init(name: "server.capabilities", owner: "AgentCommandService", capabilities: [], targets: .none, isReadOnly: true),
+        .init(name: "server.schemas", owner: "AgentCommandService", capabilities: [], targets: .none, isReadOnly: true),
+        .init(name: "library.summary", owner: "LibraryStore", capabilities: [.draftsRead], targets: .none, isReadOnly: true),
+        .init(name: "drafts.list", owner: "LibraryStore + DraftCommands", capabilities: [.draftsRead], targets: .none, isReadOnly: true),
+        .init(name: "drafts.search", owner: "LibraryStore + DraftCommands", capabilities: [.draftsRead], targets: .none, isReadOnly: true),
+        .init(name: "drafts.get", owner: "LibraryStore + DraftCommands", capabilities: [.draftsRead], targets: .one(.draft), isReadOnly: true),
+        .init(name: "drafts.versions", owner: "LibraryStore + DraftCommands", capabilities: [.draftsRead], targets: .one(.draft), isReadOnly: true),
         .init(name: "drafts.create", owner: "LibraryStore + DraftCommands", capabilities: [.draftsWrite], targets: .none),
         .init(name: "drafts.update", owner: "LibraryStore + DraftCommands", capabilities: [.draftsWrite], targets: .one(.draft), requiresExpectedVersion: true),
         .init(name: "drafts.patch", owner: "LibraryStore + DraftCommands", capabilities: [.draftsWrite], targets: .one(.draft), requiresExpectedVersion: true),

@@ -3,6 +3,32 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Local MCP adapter — 1 November
+
+Implemented the official Swift MCP SDK 0.12.1 over bounded stdio. Shared metadata
+binds named CLI calls and MCP tools to the same application requests. Available
+tools respect grants and host schemas. Scoped draft resources retain pagination
+sessions. The review prompt reads data without changing notes. Typed decimals
+that would lose precision are rejected; parametersJSON preserves exact input.
+
+Automatic validation: complete Swift inventories passed (1 consumer, 140 agent
+contracts, 763 Core, 1060 application tests). All 286 Python tests passed. The
+structural matrix has zero errors. Real SDK tests cover pipes, the Unix bridge,
+concurrent discovery, revocation, resource scope and malformed or oversized input.
+The compiled unsigned helper passed initialization, authorization refusal, clean
+EOF and oversized-line checks. No personal data or native permissions were used.
+
+The earlier pipe implementation rescanned partial lines and stalled a large-input
+test. Incremental scanning fixed it; deadlines were not increased. The exact
+number decoder correction is a separate commit. The generated local app and helper builds passed. Signed installation and
+human pairing remain unverified.
+
+Normal app activation remains pending: signed helper packaging and Keychain
+sharing, human pairing/management, locator and host/editor adapters. Mutations,
+durable receipts, native authorization and remaining contracts are not complete.
+Remote access remains future. PR #46 was integrated as 1040a3e after its required
+CI passed; this MCP work is a separate change. The habitual app is unchanged.
+
 ## Exact JSON integer-boundary correction — 1 November
 
 AgentJSONValue previously tried Int64 before Decimal. Foundation could round a

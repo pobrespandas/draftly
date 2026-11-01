@@ -10,6 +10,7 @@ permission to connect to a personal library.
 - AgentLocalSecurity owns credential access, process identity and private-file
   policy. It does not depend on the library or the application.
 - AgentLocalTransport owns Unix sockets, bounded frames and the local client.
+- AgentMCP maps shared operation metadata to the pinned official MCP SDK.
 - AgentSocketBroker connects authenticated socket sessions to AgentCommandService.
 - draftly-agent is the helper executable. It imports no Core Data or app model.
 
@@ -48,9 +49,28 @@ unavailable capability, and 1 for other failures. A result or accepted operation
 accepted does not mean the operation has finished. Credentials are never command
 arguments, input fields, configuration or log output.
 
-Only JSON mode exists in this unit. MCP stdio and the official SDK are still
-pending. No remote listener, daemon, global symlink or client configuration is
-installed.
+The helper also supports status, capabilities, call OPERATION and mcp. The call
+command reads a tool argument object from stdin. MCP uses newline-delimited
+JSON-RPC over stdio and the official Swift SDK 0.12.1. Its selected protocol
+baseline is 2025-11-25. Batches are rejected in this profile.
+
+MCP advertises only available operations with granted capabilities and schemas.
+The current host implements eight read operations. Resources use scoped draft
+pages and opaque cursors. The draftly_review_draft prompt reads an authorized
+draft; it does not mutate it. Draft content remains untrusted data.
+
+Tool arguments use targets and parameters. Use parametersJSON, an exact JSON
+object string, instead of parameters when a decimal cannot survive SDK decoding.
+The two forms are mutually exclusive. Non-read operations require an explicit
+requestID. Neither form selects another operation, library or grant. Responses
+contain exact JSON text. See [ADR 0002](adr/0002-mcp-exact-bounded-stdio.md).
+
+AgentHelperConnection serializes requests and retains the session for cursors.
+Its heartbeat keeps the socket alive without extending authority. Failed work is
+not replayed. Revocation closes the host client. Pipe input has an eight-MiB line
+limit, bounded buffering and at most 16 active requests. Output completion releases
+an active slot. No remote listener, daemon, global symlink or client configuration
+is installed.
 
 ## Private wire protocol
 
@@ -87,7 +107,7 @@ permissions or read personal data.
 
 Complete signed app/helper provisioning and packaging, real Keychain sharing,
 human pairing and management, stable host library identity, live editor and lock
-notifications, locator publication and MCP before enabling normal app access.
+notifications, locator publication before enabling normal app access.
 Mutations, receipts, native-effect enforcement and the remaining operation families
 are separate unfinished work. Remote access remains a future stage.
 
@@ -96,3 +116,10 @@ For the credential/profile decision, read
 provides kSecGuestAttributeAudit. The SDK sys/un.h provides LOCAL_PEERTOKEN.
 [Apple's Security source](https://github.com/apple-oss-distributions/Security/blob/main/OSX/libsecurity_codesigning/lib/SecCode.cpp)
 explains why audit-token lookup replaces PID-based lookup.
+
+Real SDK client/server tests use owned pipes and the Unix bridge. They cover
+concurrent discovery, scoped resource pages, UTF-16 reads, review prompts,
+revocation, exact decimals, duplicate IDs, oversized input and broken output.
+A compiled unsigned helper completed MCP initialization, refused private access,
+closed cleanly on EOF and rejected oversized input with exit status 2. These
+checks do not prove signed helper installation or human pairing.

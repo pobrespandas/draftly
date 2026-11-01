@@ -4,7 +4,7 @@ import AgentContracts
 import AgentLocalSecurity
 
 // Borrowing keeps a descriptor alive while close interrupts pending I/O.
-package final class AgentSocketDescriptor: @unchecked Sendable {
+package final class AgentIODescriptor: @unchecked Sendable {
     private let lock = NSLock()
     private var descriptor: Int32
     private var closed = false
@@ -37,7 +37,7 @@ package final class AgentSocketDescriptor: @unchecked Sendable {
         return try operation(fd)
     }
 
-    package static func configure(_ fd: Int32) throws {
+    package static func configureSocket(_ fd: Int32) throws {
         var noSignal: Int32 = 1
         let flags = fcntl(fd, F_GETFL)
         guard flags >= 0, fcntl(fd, F_SETFL, flags | O_NONBLOCK) == 0,
@@ -66,13 +66,13 @@ package final class AgentSocketDescriptor: @unchecked Sendable {
 }
 
 package final class AgentUnixChannel: @unchecked Sendable {
-    private let socket: AgentSocketDescriptor
+    private let socket: AgentIODescriptor
     private let queue = DispatchQueue(label: "com.pobrespandas.draftly.agent.socket", qos: .utility)
 
     package init(descriptor: Int32) throws {
-        do { try AgentSocketDescriptor.configure(descriptor) }
+        do { try AgentIODescriptor.configureSocket(descriptor) }
         catch { Darwin.close(descriptor); throw error }
-        socket = AgentSocketDescriptor(descriptor)
+        socket = AgentIODescriptor(descriptor)
     }
 
     package func close() { socket.close() }
