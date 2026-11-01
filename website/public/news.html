@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="News, release notes, and development updates from Draftly for Mac.">
+  <title>News — Draftly</title>
+  <link rel="icon" href="icon.png">
+  <style>
+    :root { color-scheme: light dark; --bg: #fafafa; --surface: #fff; --text: #1d1d1f; --muted: #626269; --line: #dcdce0; --accent: #0067d5; --subtle: #f1f2f4; }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    a { color: inherit; }
+    .wrap { width: min(100% - 56px, 960px); margin: auto; }
+    header { border-bottom: 1px solid var(--line); }
+    nav { min-height: 72px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+    .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 650; letter-spacing: -.02em; }
+    .brand img { width: 32px; height: 32px; }
+    .navlinks { display: flex; align-items: center; gap: 24px; font-size: 14px; }
+    .navlinks a { color: var(--muted); text-decoration: none; }
+    .navlinks a:hover, .navlinks a[aria-current="page"] { color: var(--text); }
+    .github-link { display: inline-flex; align-items: center; justify-content: center; }
+    .github-link svg { width: 20px; height: 20px; fill: currentColor; }
+    .hero { padding: 88px 0 58px; max-width: 720px; }
+    .eyebrow { color: var(--accent); font-size: 13px; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; }
+    h1 { margin: 14px 0 18px; font-size: clamp(48px, 8vw, 76px); line-height: 1.02; letter-spacing: -.055em; }
+    .lead { margin: 0; color: var(--muted); font-size: 20px; max-width: 650px; }
+    .feed { border-top: 1px solid var(--line); }
+    article { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 44px; padding: 54px 0 58px; border-bottom: 1px solid var(--line); }
+    .meta { color: var(--muted); font-size: 14px; }
+    .version { display: block; margin-top: 7px; color: var(--accent); font-weight: 650; }
+    article h2 { margin: 0 0 14px; font-size: clamp(27px, 4vw, 38px); line-height: 1.14; letter-spacing: -.035em; }
+    article p { margin: 0 0 14px; color: var(--muted); }
+    .details { margin: 20px 0 0; padding-left: 20px; color: var(--muted); }
+    .details li { margin: 8px 0; }
+    .link { display: inline-flex; margin-top: 8px; color: var(--accent); font-weight: 600; text-underline-offset: 3px; }
+    .latest { margin-top: 24px; padding: 18px 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+    .latest strong { display: block; margin-bottom: 3px; }
+    footer { padding: 28px 0; color: var(--muted); font-size: 13px; }
+    .foot { display: flex; justify-content: space-between; gap: 20px; }
+    @media (max-width: 680px) {
+      .wrap { width: min(100% - 36px, 960px); }
+      .hero { padding: 60px 0 42px; }
+      article { grid-template-columns: 1fr; gap: 12px; padding: 40px 0 44px; }
+      .navlinks { gap: 14px; }
+      .navlinks a:first-child { display: none; }
+      .foot { display: block; }
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #111113; --surface: #1d1d20; --text: #f4f4f6; --muted: #aaaab1; --line: #38383e; --accent: #69adff; --subtle: #242428; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <nav class="wrap" aria-label="Main navigation">
+    <a class="brand" href="/"><img src="icon.png" alt="">Draftly</a>
+    <div class="navlinks"><a href="/#features">Features</a><a href="actions.html">Actions</a><a href="news.html" aria-current="page">News</a><a class="github-link" href="https://github.com/pobrespandas/draftly" aria-label="Draftly on GitHub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.226 17.284c-2.965-.36-5.054-2.493-5.054-5.256 0-1.123.404-2.336 1.078-3.144-.292-.741-.247-2.314.09-2.965.898-.112 2.111.36 2.83 1.01.853-.269 1.752-.404 2.853-.404 1.1 0 1.999.135 2.807.382.696-.629 1.932-1.1 2.83-.988.315.606.36 2.179.067 2.942.72.854 1.101 2 1.101 3.167 0 2.763-2.089 4.852-5.098 5.234.763.494 1.28 1.572 1.28 2.807v2.336c0 .674.561 1.056 1.235.786 4.066-1.55 7.255-5.615 7.255-10.646C23.5 6.188 18.334 1 11.978 1 5.62 1 .5 6.188.5 12.545c0 4.986 3.167 9.12 7.435 10.669.606.225 1.19-.18 1.19-.786V20.63a2.9 2.9 0 0 1-1.078.224c-1.483 0-2.359-.808-2.987-2.313-.247-.607-.517-.966-1.034-1.033-.27-.023-.359-.135-.359-.27 0-.27.45-.471.898-.471.652 0 1.213.404 1.797 1.235.45.651.921.943 1.483.943.561 0 .92-.202 1.437-.719.382-.381.674-.718.944-.943"/></svg></a></div>
+  </nav>
+</header>
+<main>
+  <div class="wrap hero">
+    <div class="eyebrow">What’s new</div>
+    <h1>News from Draftly.</h1>
+    <p class="lead">Release notes and development updates for the writing space on Mac.</p>
+    <div class="latest"><strong>Latest release: Draftly 0.1.3</strong><span>Available for macOS 26 or later.</span></div>
+  </div>
+  <section class="feed" aria-label="Draftly news">
+    <div class="wrap">
+      <article>
+        <div class="meta"><time datetime="2026-10-31">October 31, 2026</time><span class="version">Draftly 0.1.3</span></div>
+        <div><h2>A more dependable draft list</h2><p>This update fixes a draft-list click that could move focus from the editor without opening the selected draft. A single click now selects and opens the draft.</p><a class="link" href="https://github.com/pobrespandas/draftly/releases/tag/v0.1.3">View release details</a></div>
+      </article>
+      <article>
+        <div class="meta"><time datetime="2026-10-31">October 31, 2026</time><span class="version">Draftly 0.1.2</span></div>
+        <div><h2>Update and reinstall validation</h2><p>This release validates the public update and reinstall process. It retains the app features and clean-install correction from Draftly 0.1.1. It does not add new app features.</p><a class="link" href="https://github.com/pobrespandas/draftly/releases/tag/v0.1.2">View release details</a></div>
+      </article>
+      <article>
+        <div class="meta"><time datetime="2026-10-31">October 31, 2026</time><span class="version">Draftly 0.1.1</span></div>
+        <div><h2>A fix for clean installations</h2><p>This update fixes a startup error on clean installations when no local preferences exist. Existing preferences and libraries remain unchanged.</p><a class="link" href="https://github.com/pobrespandas/draftly/releases/tag/v0.1.1">View release details</a></div>
+      </article>
+      <article>
+        <div class="meta"><time datetime="2026-10-31">October 31, 2026</time><span class="version">Draftly 0.1.0</span></div>
+        <div>
+          <h2>The first public release</h2>
+          <p>Draftly 0.1.0 brings writing, capture, organization, and actions together in a native Mac app.</p>
+          <ul class="details">
+            <li>Capture and organize drafts with tags, flags, and Workspaces.</li>
+            <li>Edit plain text, Markdown, HTML, MultiMarkdown, and TaskPaper.</li>
+            <li>Use Actions to transform, share, and export your writing.</li>
+            <li>Export and restore full library backups.</li>
+          </ul>
+          <a class="link" href="https://github.com/pobrespandas/draftly/releases/tag/v0.1.0">View release details</a>
+        </div>
+      </article>
+    </div>
+  </section>
+</main>
+<footer><div class="wrap foot"><span>© Pobres Pandas · Draftly</span><span><a href="https://github.com/pobrespandas/draftly">Source code on GitHub</a> · Made for macOS</span></div></footer>
+</body>
+</html>
