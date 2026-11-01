@@ -14,8 +14,12 @@ The initial regression failed because the handler was unavailable. After the
 implementation, an older exact handler-count expectation needed an update.
 The final focused run passed 44 application and 6 contract tests. Cases include
 UTF-16 ranges, case-insensitive defaults, invalid regex, empty results, zero-length
-matches, missing draft scope and stale cursors. Local app compilation and the structural audit passed. Complete suites and
-SDK coverage for this added handler remain pending. No installed app or release changed.
+matches, missing draft scope and stale cursors. Local app compilation and the structural audit passed. The official SDK/socket
+case passed with all 11 MCP tests. Its first fixture used an invalid top-level
+query; moving that input into parameters corrected the fixture. The case checks
+read-only metadata, UTF-16 ranges and preservation of selection and storage.
+The complete runner verified 1 consumer, 166 contract, 786 Core and 1272 app
+tests. All 303 Python tests passed. Integration remains pending behind PR80. No installed app or release changed.
 
 The isolated ThemeRenderingTests CI diagnostic 41343722483 passed. This does
 not explain or replace the rejected incomplete full report in PR80.
