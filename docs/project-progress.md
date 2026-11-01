@@ -3,6 +3,15 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Local-route combined validation — 1 November
+
+Merge cc7ba82 preserves the update branch and theme catalog ancestry. Complete
+combined Swift results verified 1/166/786/1256 (2209). Python294, the structural
+audit and local app/helper builds passed. A later focused run passed47 after adding service-recreation checks:
+a key from the old service is rejected, and an explicit new preparation recovers
+the committed receipt with the original response. This is a service fixture check,
+not an installed-app restart or native acceptance. No application data was changed.
+
 ## Local mutation routes — 1 November
 
 The configured command service now exposes mutations.prepare and drafts.update.

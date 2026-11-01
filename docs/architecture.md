@@ -706,7 +706,8 @@ that attempt. Normal startup still needs to supply the real lease validator.
 Closing a session, explicit invalidation or observing a locked
 screen removes its cursors. Unlocking does not restore that session.
 
-The service owns an explicit set of read handlers. server.schemas reports
+The service owns an explicit set of handlers. Read handlers are always configured;
+mutation routes also require the bound editor registry. server.schemas reports
 that set independently of the contract inventory. New catalog or schema entries
 do not become executable by registration. Other operations return a real error.
 No permission-management or approval method becomes an agent tool.
@@ -1005,9 +1006,9 @@ roll back the new batch together. A lost reply can be reconciled after reopening
 
 This storage primitive does not authorize a request. Agent handlers must validate
 current grants, expected versions, editor conflicts and signed retry keys before
-using it or returning a receipt. Retry-key issuance, receipt pruning, restore-epoch
-invalidation, editor coordination and operation dispatch remain unfinished.
-Agent writes stay unavailable until those boundaries are implemented and tested.
+using it or returning a receipt. The existing-draft writer and service routes below
+apply those checks. Receipt pruning, restore-epoch invalidation and dispatch for
+other resource mutations remain unfinished. Normal app startup remains inactive.
 
 ## Signed retry keys
 

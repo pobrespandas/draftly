@@ -617,7 +617,7 @@ struct AgentCommandServiceTests {
     }
     @Test func preparesAndExecutesAnAuthorizedUpdateWithoutChangingDuringPreparation() throws {
         let f = try Fixture(), note = try f.note("Neutral original 🐼")
-        let (_, session) = try f.connect(scope: .resources([.init(kind: .draft, id: note.id)]), capabilities: [.draftsRead, .draftsWrite])
+        let (record, session) = try f.connect(scope: .resources([.init(kind: .draft, id: note.id)]), capabilities: [.draftsRead, .draftsWrite])
         guard case .string(let version) = try summary(f.get(note, session: session))["versionToken"] else { Issue.record("Missing version"); return }
         let mutation = AgentRequest(requestID: UUID(), libraryID: nil, operation: "drafts.update",
             targets: [.init(kind: .draft, id: note.id)], expectedVersion: version,
@@ -642,6 +642,19 @@ struct AgentCommandServiceTests {
             targets: mutation.targets, expectedVersion: version, retryKey: recoveryKey, parameters: mutation.parameters)
         let response = try JSONDecoder().decode(AgentResponse.self, from: f.service.respond(to: JSONEncoder().encode(recovery), session: session))
         #expect(response == reply)
+        #expect(f.library.notes.first?.content == "Updated 🐼")
+        f.service = try f.makeService()
+        let reopened = try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        let oldKeyResponse = try JSONDecoder().decode(AgentResponse.self,
+            from: f.service.respond(to: JSONEncoder().encode(signed), session: reopened))
+        #expect(oldKeyResponse.outcome == .error(.invalidInput))
+        let afterRestart = try f.values("mutations.prepare", session: reopened, parameters: ["request": frame])
+        guard case .string(let freshKey) = afterRestart["retryKey"] else { Issue.record("Missing fresh key"); return }
+        let fresh = AgentRequest(requestID: mutation.requestID, libraryID: f.libraryID, operation: mutation.operation,
+            targets: mutation.targets, expectedVersion: version, retryKey: freshKey, parameters: mutation.parameters)
+        let receipt = try JSONDecoder().decode(AgentResponse.self,
+            from: f.service.respond(to: JSONEncoder().encode(fresh), session: reopened))
+        #expect(receipt == reply)
         #expect(f.library.notes.first?.content == "Updated 🐼")
     }
 
