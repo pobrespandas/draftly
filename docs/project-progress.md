@@ -32,6 +32,21 @@ lock behavior and notarization remain pending. No installed app or release chang
 The prior Swift2130 inventory and app/helper builds apply to client configuration;
 this scripts-only stage did not repeat them or claim new native acceptance.
 
+### Signed helper check
+
+Apple registered Draftly Agent and generated its Developer ID profile after
+explicit user confirmations. The isolated helper package passed real signing,
+exact code requirement, entitlements and profile certificate checks. Its discover
+command passed self-identity validation and returned an empty isolated catalog,
+without creating state, a credential or a grant. Actual Keychain sharing and
+notarization are still pending.
+
+The first real run found two codesign argument defects. Literal requirements
+need the equals prefix, and the certificate extraction option needs its optional
+value attached with equals. Both now have failing-then-passing regression
+assertions. All294 Python tests passed again. This correction changes packaging
+only. It does not replace or enable the installed application.
+
 ## Copyable MCP client configuration — 1 November
 
 The helper configuration command prints a stdio mcpServers object with its own

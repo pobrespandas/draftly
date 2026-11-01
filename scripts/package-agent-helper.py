@@ -79,7 +79,7 @@ def package(executable, profile_path, output, identity, version, build, runner=r
         entitlements.write_bytes(plistlib.dumps(rights))
         runner(["codesign", "--force", "--sign", identity, "--options", "runtime", "--timestamp",
                 "--entitlements", str(entitlements), str(app)])
-        requirement = ('anchor apple generic and certificate leaf[subject.OU] = "' + TEAM
+        requirement = ('=anchor apple generic and certificate leaf[subject.OU] = "' + TEAM
                        + '" and identifier "' + IDENTIFIER + '"')
         runner(["codesign", "--verify", "--deep", "--strict", "-R", requirement, str(app)])
         actual = plistlib.loads(runner(["codesign", "-d", "--entitlements", ":-", str(app)], capture=True))
@@ -87,7 +87,7 @@ def package(executable, profile_path, output, identity, version, build, runner=r
                 key in actual and actual[key] is not False for key in UNSAFE):
             raise ValueError("The signed helper has unexpected entitlements.")
         certificate = str(Path(work) / "certificate")
-        runner(["codesign", "-d", "--extract-certificates", certificate, str(app)])
+        runner(["codesign", "-d", "--extract-certificates=" + certificate, str(app)])
         if Path(certificate + "0").read_bytes() not in profile["DeveloperCertificates"]:
             raise ValueError("The signing certificate is not permitted by the helper profile.")
     return {"app": str(app.absolute()), "bundleIdentifier": IDENTIFIER,
