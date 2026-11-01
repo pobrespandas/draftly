@@ -33,14 +33,14 @@ struct AgentPairingTransportTests {
         lazy var pairing: AgentPairingCoordinator = {
             let state = state, library = library
             return AgentPairingCoordinator(registry: registry, libraryID: libraryID,
-                now: { state.wall }, uptime: { state.elapsed }, isLocked: { state.locked }, resolveTargets: { targets in
+                now: { state.wall }, uptime: { state.elapsed }, validateHost: {}, isLocked: { state.locked }, resolveTargets: { targets in
                     Set(targets.filter { target in target.kind == .draft && library.notes.contains { $0.id == target.id } })
                 })
         }()
         func service() throws -> AgentCommandService {
             let state = state
             return try AgentCommandService(library: library, libraryID: libraryID, connections: registry,
-                appVersion: "Neutral QA", isLocked: { state.locked }, pendingEditorGeneration: { _ in "" })
+                appVersion: "Neutral QA", validateHost: {}, isLocked: { state.locked }, pendingEditorGeneration: { _ in "" })
         }
         init() throws { library = try LibraryStore(inMemory: true, seed: false); try registry.setEnabledFromUserInterface(true) }
         func broker(pairingEnabled: Bool = true) throws -> AgentSocketBroker {

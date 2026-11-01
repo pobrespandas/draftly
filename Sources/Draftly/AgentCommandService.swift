@@ -15,6 +15,7 @@ import AgentContracts
         "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions"]
     private let libraryID: UUID
     private let connections: AgentConnectionRegistry
+    private let validateHost: () throws -> Void
     private let isLocked: () -> Bool
     private let now: () -> Date
     private let appVersion: String
@@ -24,10 +25,11 @@ import AgentContracts
     private var sessions: [UUID: Authorization] = [:]
 
     init(library: LibraryStore, libraryID: UUID, connections: AgentConnectionRegistry, appVersion: String,
-         isLocked: @escaping () -> Bool, now: @escaping () -> Date = Date.init,
+         validateHost: @escaping () throws -> Void, isLocked: @escaping () -> Bool, now: @escaping () -> Date = Date.init,
          uptime: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
          pendingEditorGeneration: @escaping (UUID) -> String) throws {
         self.libraryID = libraryID; self.connections = connections; self.appVersion = appVersion
+        self.validateHost = validateHost
         self.isLocked = isLocked; self.now = now; self.preferences = try AgentPreferenceCatalog.make()
         let pages = AgentReadPages(now: now, uptime: uptime)
         self.pages = pages
@@ -35,9 +37,9 @@ import AgentContracts
     }
 
     func authenticate(connectionID: UUID, credential: Data) throws -> Session {
-        guard !isLocked() else { invalidateAll(); throw AgentErrorCode.permissionDenied }
+        try validateAdmission()
         let grant = try connections.authenticate(connectionID, candidate: credential, libraryID: libraryID)
-        guard !isLocked() else { invalidateAll(); throw AgentErrorCode.permissionDenied }
+        try validateAdmission()
         guard sessions.count < 128 else { throw AgentErrorCode.busy }
         let id = UUID()
         sessions[id] = Authorization(connectionID: connectionID, grantID: grant.grantID)
@@ -50,7 +52,11 @@ import AgentContracts
 
     func authorizedLibraryID(for session: Session) throws -> UUID { try authorize(session).libraryID }
 
-    func permitsTransportStart() throws -> Bool { try !isLocked() && connections.permitsTransportStart() }
+    func permitsTransportStart() throws -> Bool {
+        guard !isLocked() else { return false }
+        try validateAdmission()
+        return try connections.permitsTransportStart()
+    }
 
     func invalidate(connectionID: UUID) {
         for id in sessions.filter({ $0.value.connectionID == connectionID }).keys {
@@ -92,8 +98,19 @@ import AgentContracts
         }
     }
 
-    private func authorize(_ session: Session) throws -> AgentGrant {
+    private func validateAdmission() throws {
         guard !isLocked() else { invalidateAll(); throw AgentErrorCode.permissionDenied }
+        do { try validateHost() }
+        catch {
+            // A transient lock collision denies this attempt. A lost owner must
+            // not regain old sessions after a new host epoch.
+            if (error as? AgentErrorCode) != .busy { invalidateAll() }
+            throw error
+        }
+    }
+
+    private func authorize(_ session: Session) throws -> AgentGrant {
+        try validateAdmission()
         guard let authority = sessions[session.id],
               let grant = try connections.grantForAuthenticatedConnection(authority.connectionID),
               grant.grantID == authority.grantID, grant.libraryID == libraryID else {

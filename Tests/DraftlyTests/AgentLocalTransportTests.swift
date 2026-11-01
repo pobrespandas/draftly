@@ -35,7 +35,7 @@ struct AgentLocalTransportTests {
         init() throws {
             library = try LibraryStore(inMemory: true, seed: false)
             service = try AgentCommandService(library: library, libraryID: libraryID, connections: registry, appVersion: "QA",
-                isLocked: { [unowned self] in self.locked }, pendingEditorGeneration: { _ in "" })
+                validateHost: {}, isLocked: { [unowned self] in self.locked }, pendingEditorGeneration: { _ in "" })
             try registry.setEnabledFromUserInterface(true)
         }
         func connection(scope: AgentResourceScope = .library) throws -> AgentConnectionRecord {

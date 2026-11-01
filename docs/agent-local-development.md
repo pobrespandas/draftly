@@ -194,7 +194,10 @@ its host setup before it supplies that Settings model or starts the broker.
 
 Create AgentLibraryLocation from the loaded LibraryStore, then AgentHostLease
 before the listener. Keep the lease for the whole broker lifetime. Validate it
-before each admission; a locator is not proof of ownership. Stop the broker and
+before each admission; a locator is not proof of ownership. Supply that same
+lease validator to AgentCommandService and AgentPairingCoordinator. Both require
+an explicit validator; in-memory substitutes belong only in test fixtures and
+the isolated manual preview. Stop the broker and
 invalidate its sessions before releasing the lease. The normal host factory and
 locator remain unfinished; low-level socket fixtures do not prove that wiring.
 

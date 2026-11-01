@@ -34,7 +34,7 @@ struct AgentMCPTests {
             record = try registry.connectFromUserInterface(name: "SDK QA", libraryID: libraryID,
                 scope: .resources(Set(notes.map { .init(kind: .draft, id: $0.id) })))
             let service = try AgentCommandService(library: library, libraryID: libraryID, connections: registry, appVersion: "QA",
-                isLocked: { false }, pendingEditorGeneration: { _ in "" })
+                validateHost: {}, isLocked: { false }, pendingEditorGeneration: { _ in "" })
             broker = try AgentSocketBroker(service: service, parentDirectory: FileManager.default.temporaryDirectory, validateHelper: { _ in })
             helper = AgentHelperConnection(connect: { [unowned self] in try await self.localClient() })
         }

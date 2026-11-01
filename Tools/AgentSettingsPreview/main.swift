@@ -22,7 +22,7 @@ import AgentContracts
             memory.bytes = data
         }), credentials: .init(read: { memory.credentials[$0] }, create: { memory.credentials[$0] = $1 },
                                remove: { memory.credentials.removeValue(forKey: $0) }), authorityChanged: { _ in })
-        let pairing = AgentPairingCoordinator(registry: registry, libraryID: libraryID, isLocked: { false },
+        let pairing = AgentPairingCoordinator(registry: registry, libraryID: libraryID, validateHost: {}, isLocked: { false },
             resolveTargets: { $0.intersection(targets) })
         self.registry = registry; self.pairing = pairing
         model = try AgentConnectionsSettingsModel(libraryID: libraryID, registry: registry, pairing: pairing,

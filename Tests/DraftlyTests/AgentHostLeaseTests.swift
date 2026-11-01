@@ -26,6 +26,25 @@ struct AgentHostLeaseTests {
         try JSONEncoder().encode(AgentJSONValue.object(fields)).write(to: url)
     }
 
+    @Test func commandAdmissionUsesTheRealLeaseAndStopsAfterOwnershipCloses() throws {
+        let root = try root(); defer { try? FileManager.default.removeItem(at: root) }
+        let library = try LibraryStore(directory: root, seed: false)
+        let lease = try AgentHostLease(location: AgentLibraryLocation(library: library))
+        defer { lease.close() }
+        var metadata: Data?
+        let registry = AgentConnectionRegistry(metadata: .init(read: { metadata }, replace: { data, expected in
+            guard metadata == expected else { throw AgentErrorCode.versionConflict }
+            metadata = data
+        }), credentials: .init(read: { _ in nil }, create: { _, _ in }, remove: { _ in }), authorityChanged: { _ in })
+        try registry.setEnabledFromUserInterface(true)
+        let service = try AgentCommandService(library: library, libraryID: lease.libraryID, connections: registry,
+            appVersion: "Neutral QA", validateHost: { try lease.validate() }, isLocked: { false },
+            pendingEditorGeneration: { _ in "" })
+        #expect(try service.permitsTransportStart())
+        lease.close()
+        #expect(throws: AgentErrorCode.cancelled) { try service.permitsTransportStart() }
+    }
+
     @Test func identitySurvivesARealStoreReopenWithoutChangingMetadataOrDrafts() throws {
         let root = try root(); defer { try? FileManager.default.removeItem(at: root) }
         let library = try LibraryStore(directory: root, seed: false)
