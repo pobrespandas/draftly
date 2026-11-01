@@ -19,15 +19,14 @@ cover isolation, expiry/revocation, target kinds, revision-token requirements,
 full-library backup authority, malformed/oversized messages, Unicode/decimal
 transport, and distinct pending/error/result states.
 
-Automatic validation passed 111 AgentContracts, 759 Core and 938 app tests with
+Automatic validation passed one package-consumer test, 127 AgentContracts,
+759 Core and 938 app tests with
 complete result inventories, 285 Python tests, the structural matrix check,
 and the final local app build.
 See the [operation inventory](research/agent-operation-inventory.md) for reused
 characterization evidence and remaining schemas and runtime enforcement work.
-Ninety operations now have parameter/result schemas: eight discovery/draft
-reads, 13 draft mutations, 18 Action/group operations, four operation lifecycle
-routes, nine Workspace operations, 15 editor operations and 23 theme/syntax
-operations.
+Contract definitions now cover 97 operation names: 93 static schemas and four
+registry-bound preference forms. The application field catalog is not connected.
 They use one definition for validation, exported JSON Schema and request-local
 defaults. Chunk checks use UTF-16; result shapes separate summaries from content.
 The step effect catalog covers all 25 executor step types and always requires
@@ -98,7 +97,26 @@ File-backed reads and writes still require contextual effect review. All actual
 parsers, imports, persistence, rendering and local preference changes remain
 handler and native acceptance work. PR #35 passed CI and merged at `2b8478b`.
 
-Stage 1 is not closed: the other 46 operation schemas, detailed script/native
+Preference contracts now require an explicit application-supplied field registry.
+Requests cannot register fields or read raw storage names. Typed contexts separate
+device, syntax, feature and command settings. Defaults, inheritance, read-only
+state and approval requirements stay distinct. The production allowlist is not
+yet built; use the new preference source inventory before connecting consumers.
+A separate consumer module now checks construction without @testable access.
+It reproduced inaccessible synthesized initializers before explicit package
+constructors were added. The fixture registry is not evidence of application
+field coverage. A separate
+regression rejects null replies for resolved nonnullable inherited/system values;
+declared system inheritance and invalid-store states remain distinct.
+
+Bookmark contracts expose metadata only, preserve requested Unicode names,
+reject arbitrary paths and self-approval fields, and bind Forget results to their
+target. Stable local bookmark IDs, protected picker approval and scope filtering
+remain application work. Creating a bookmark does not grant agent file access.
+PR #36 passed required CI and merged at `229db77`.
+
+Stage 1 is not closed: the production preference catalog, the other 39 operation
+schemas, detailed script/native
 effect checks and real executors still need implementation. Real agent clients have
 not been connected. The habitual app remains the released 0.1.3.
 

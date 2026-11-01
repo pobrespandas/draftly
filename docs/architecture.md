@@ -530,6 +530,15 @@ share exclusive input alternatives. The application must still authorize roots,
 resolve symlinks, check transfer ownership and authorize every HTTP destination.
 The contract target performs none of those effects.
 
+AgentPreferenceRegistry is an explicit application-supplied field allowlist.
+It defines typed addresses, defaults, schemas and approval requirements. It has
+no storage reader or writer. Field and object-shape constructors use package
+access. A separate consumer test target imports the module without @testable;
+it checks the same construction boundary that application code will use. Requests cannot register fields; a missing registry
+returns unavailable. The production field catalog and native bindings remain
+separate application work. When wiring Settings consumers, use the
+[preference source inventory](research/agent-preference-inventory.md).
+
 The catalog records ownership, target shape, expected-version and human approval
 requirements. Catalog entries have no handlers. Execution and native effects
 require an additional authorization result, even when the connection has the

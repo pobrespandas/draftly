@@ -9,6 +9,8 @@ package indirect enum AgentValueShape: Sendable {
     case uuid
     case utcDate
     case integer(minimum: Int64 = .min, maximum: Int64 = .max)
+    case number(minimum: Decimal? = nil, exclusiveMinimum: Decimal? = nil, maximum: Decimal? = nil)
+    case null
     case boolean
     case array(AgentValueShape, minimum: Int = 0, maximum: Int)
     case object(AgentObjectShape)
@@ -45,7 +47,17 @@ package indirect enum AgentValueShape: Sendable {
             guard rounded == number, number >= Decimal(minimum), number <= Decimal(maximum) else {
                 throw AgentSchemaError.invalidValue
             }
-        case (.boolean, .bool): break
+        case let (.number(minimum, exclusiveMinimum, maximum), _):
+            let number: Decimal
+            switch value {
+            case .integer(let value): number = Decimal(value)
+            case .number(let value): number = value
+            default: throw AgentSchemaError.invalidValue
+            }
+            guard !number.isNaN, minimum.map({ number >= $0 }) ?? true,
+                  exclusiveMinimum.map({ number > $0 }) ?? true,
+                  maximum.map({ number <= $0 }) ?? true else { throw AgentSchemaError.invalidValue }
+        case (.null, .null), (.boolean, .bool): break
         case let (.array(shape, minimum, maximum), .array(items)):
             guard items.count >= minimum, items.count <= maximum else { throw AgentSchemaError.invalidValue }
             for item in items { try shape.validate(item) }
@@ -76,6 +88,13 @@ package indirect enum AgentValueShape: Sendable {
             return .object(["type": .string("string"), "format": .string("date-time"), "pattern": .string(Self.utcPattern)])
         case let .integer(minimum, maximum):
             return .object(["type": .string("integer"), "minimum": .integer(minimum), "maximum": .integer(maximum)])
+        case let .number(minimum, exclusiveMinimum, maximum):
+            var fields: [String: AgentJSONValue] = ["type": .string("number")]
+            if let minimum { fields["minimum"] = .number(minimum) }
+            if let exclusiveMinimum { fields["exclusiveMinimum"] = .number(exclusiveMinimum) }
+            if let maximum { fields["maximum"] = .number(maximum) }
+            return .object(fields)
+        case .null: return .object(["type": .string("null")])
         case .boolean: return .object(["type": .string("boolean")])
         case let .array(shape, minimum, maximum):
             return .object(["type": .string("array"), "items": shape.jsonSchema, "minItems": .integer(Int64(minimum)), "maxItems": .integer(Int64(maximum))])
@@ -93,12 +112,20 @@ package struct AgentFieldShape: Sendable {
     package let shape: AgentValueShape
     package var required = false
     package var defaultValue: AgentJSONValue? = nil
+
+    package init(shape: AgentValueShape, required: Bool = false, defaultValue: AgentJSONValue? = nil) {
+        self.shape = shape; self.required = required; self.defaultValue = defaultValue
+    }
 }
 
 package struct AgentObjectShape: Sendable {
     package let fields: [String: AgentFieldShape]
     package var allowsAdditionalFields = false
     package var minimumFields = 0
+
+    package init(fields: [String: AgentFieldShape], allowsAdditionalFields: Bool = false, minimumFields: Int = 0) {
+        self.fields = fields; self.allowsAdditionalFields = allowsAdditionalFields; self.minimumFields = minimumFields
+    }
 
     package func validate(_ values: [String: AgentJSONValue]) throws {
         guard values.count >= minimumFields,
