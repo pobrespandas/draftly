@@ -40,7 +40,7 @@ struct AgentPairingTransportTests {
         func service() throws -> AgentCommandService {
             let state = state
             return try AgentCommandService(library: library, libraryID: libraryID, connections: registry,
-                appVersion: "Neutral QA", isLocked: { state.locked }, pendingEditorGeneration: { _ in "" })
+                appVersion: "Neutral QA", validateHost: {}, isLocked: { state.locked }, pendingEditorGeneration: { _ in "" })
         }
         init() throws { library = try LibraryStore(inMemory: true, seed: false); try registry.setEnabledFromUserInterface(true) }
         func broker(pairingEnabled: Bool = true) throws -> AgentSocketBroker {

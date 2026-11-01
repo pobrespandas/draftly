@@ -699,7 +699,11 @@ AgentCommandService accepts bounded serialized requests under an internal sessio
 handle. Only credential authentication can create a handle. Requests cannot choose
 one. Each dispatch checks the current registry, host library, grant identity,
 capabilities, targets, expiry and lock state. It checks authority again before
-returning data. Closing a session, explicit invalidation or observing a locked
+returning data. A required injected host validator runs before transport start,
+before and after credential authentication, and at both read-authority checks.
+A lost owner clears sessions and cursors. Temporary lock contention denies only
+that attempt. Normal startup still needs to supply the real lease validator.
+Closing a session, explicit invalidation or observing a locked
 screen removes its cursors. Unlocking does not restore that session.
 
 The service owns an explicit set of eight read handlers. server.schemas reports

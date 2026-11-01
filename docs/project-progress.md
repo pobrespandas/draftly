@@ -3,6 +3,22 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Host checks at read admission — 1 November
+
+AgentCommandService now requires an explicit host validator. It checks ownership
+before transport start, before and after credential authentication, and before
+and after each read. A lost owner clears sessions and cursors; restoring the
+proof does not restore those sessions. Temporary contention returns busy without
+revoking an otherwise valid session. Existing locked-start behavior is unchanged.
+
+Three specific service tests cover denied startup/authentication, stale sessions,
+temporary contention and ownership loss during a read. A real temporary SQLite
+lease test verifies admission after ownership closes. The five affected suites
+passed 72 tests. The local app build passed. Transport and MCP fixtures
+explicitly inject their test validator.
+Normal host construction, pairing admission, locator publication and signed helper
+acceptance remain pending. The installed app and released package are unchanged.
+
 ## Stable local library binding and ownership — 1 November
 
 AgentLibraryLocation now identifies the loaded SQLite store without changing its

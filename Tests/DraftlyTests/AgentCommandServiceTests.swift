@@ -13,6 +13,7 @@ struct AgentCommandServiceTests {
         var secrets: [UUID: Data] = [:]
         var wall = Date(timeIntervalSince1970: 1_700_000_000)
         var uptime: TimeInterval = 100
+        var hostError: AgentErrorCode?
         var locked = false
         var generation = ""
         var onGeneration: (() -> Void)?
@@ -33,7 +34,9 @@ struct AgentCommandServiceTests {
         }
         func makeService() throws -> AgentCommandService {
             try AgentCommandService(library: library, libraryID: libraryID, connections: connections,
-                appVersion: "QA", isLocked: { [unowned self] in self.locked }, now: { [unowned self] in self.wall },
+                appVersion: "QA", validateHost: { [unowned self] in
+                    if let error = self.hostError { throw error }
+                }, isLocked: { [unowned self] in self.locked }, now: { [unowned self] in self.wall },
                 uptime: { [unowned self] in self.uptime }, pendingEditorGeneration: { [unowned self] _ in
                     self.onGeneration?(); return self.generation
                 })
@@ -73,6 +76,36 @@ struct AgentCommandServiceTests {
             try values("drafts.get", session: session, targets: [.init(kind: .draft, id: note.id)], parameters: parameters)
         }
     }
+
+    @Test func lostHostDeniesStartupAuthenticationAndExistingSessions() throws {
+        let f = try Fixture(), (record, session) = try f.connect()
+        f.hostError = .versionConflict
+        #expect(throws: AgentErrorCode.versionConflict) { try f.service.permitsTransportStart() }
+        #expect(throws: AgentErrorCode.versionConflict) {
+            try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        }
+        #expect(try f.response("server.status", session: session).outcome == .error(.versionConflict))
+        f.hostError = nil
+        #expect(try f.response("server.status", session: session).outcome == .error(.permissionDenied))
+    }
+
+    @Test func temporaryHostContentionDeniesOnlyTheCurrentAttempt() throws {
+        let f = try Fixture(), (_, session) = try f.connect()
+        f.hostError = .busy
+        #expect(try f.response("server.status", session: session).outcome == .error(.busy))
+        f.hostError = nil
+        #expect(try f.values("server.status", session: session)["accessEnabled"] == .bool(true))
+    }
+
+    @Test func hostLostDuringReadingDiscardsContentAndInvalidatesTheSession() throws {
+        let f = try Fixture(), note = try f.note("Neutral ownership"), (_, session) = try f.connect()
+        f.onGeneration = { f.hostError = .versionConflict }
+        #expect(try f.response("drafts.get", session: session,
+            targets: [.init(kind: .draft, id: note.id)]).outcome == .error(.versionConflict))
+        f.onGeneration = nil; f.hostError = nil
+        #expect(try f.response("server.status", session: session).outcome == .error(.permissionDenied))
+    }
+
     private func items(_ values: [String: AgentJSONValue]) throws -> [[String: AgentJSONValue]] {
         guard case .array(let items) = values["items"] else { throw AgentErrorCode.executionError }
         return try items.map { guard case .object(let fields) = $0 else { throw AgentErrorCode.executionError }; return fields }
