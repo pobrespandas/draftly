@@ -487,3 +487,43 @@ These remain unexposed contracts. Actual imports, storage failures, unknown-fiel
 persistence, local bookmarks, shared definitions, syntax features, render changes,
 selection and Undo still need handler tests and native acceptance. The habitual
 app, identities, library and CloudKit container remain unchanged.
+
+
+## Typed Settings and bookmark contracts
+
+There are now 93 static schemas and four registry-bound preference forms for
+136 planned operations. Thirty-nine operations still need contract definitions.
+No handler is enabled. The production preference field catalog is not connected;
+fixture fields do not prove coverage of actual Settings controls. See the
+[preference source inventory](agent-preference-inventory.md) for audited owners
+and the remaining application binding work.
+
+AgentPreferenceRegistry accepts trusted field declarations from application code.
+Requests cannot add fields or choose raw storage keys. Without a supplied registry,
+preference operations return unavailable. Each field declares its value shape,
+context, default source, writable state and approval requirements. Decimal number
+validation preserves finite numeric values and rejects strings, booleans, NaN
+and invalid bounds. Generated JSON Schema uses the same constraints.
+
+Addresses distinguish device settings, syntax overrides, syntax features and
+commands. Installed syntax IDs remain UUIDs; built-ins use known names. Duplicate
+addresses cannot hide behind UUID case or canonically equivalent Unicode. Reads
+retain stored/default/inherited/system/invalid origin without exposing raw data.
+Reading a default does not insert it into the request or write storage. Updates
+and resets accept only selected known fields. Writer receipts contain addresses
+and version tokens, not readable values. Replies must cover the requested set.
+
+Command-specific and field-level approval requirements are separate from grant
+evaluation. A global shortcut or login change can require protected human consent
+while an ordinary local option does not. interactive only permits the app to ask;
+it is not approval. Native adapters, conflicts, syntax-feature existence, reference
+scope, storage failures and field-level reset behavior remain application work.
+Descriptor output must match the trusted registry, including types and defaults.
+
+Bookmark list replies contain names, local IDs and versions, not paths or saved
+permission data. Add requests preserve Unicode names and require a native human
+folder choice; an arbitrary path or self-approval field is rejected. Adding a
+bookmark does not grant the connection file authority. Forget replies bind the
+requested identity. The existing name-based store still needs a stable local ID
+adapter and scope filtering before these routes can run. No folder, preference,
+service registration, native permission or grant was changed by these tests.

@@ -134,4 +134,13 @@ struct AgentPermissionPolicyTests {
         #expect(evaluate("themes.selection", grant: grant([.appearanceRead], scope: .library)) == .permitted(.library))
     }
 
+    @Test func bookmarkCreationNeedsHumanConsentAndDoesNotGrantNativeAccess() {
+        let bookmark = AgentResourceReference(kind: .bookmark, id: UUID())
+        #expect(evaluate("bookmarks.requestAdd", grant: grant([.preferencesRead], scope: .library)) == .denied(.permissionDenied))
+        let writer = grant([.preferencesWrite], scope: .library)
+        #expect(evaluate("bookmarks.requestAdd", grant: writer) == .needsHumanApproval(.library))
+        #expect(evaluate("bookmarks.forget", targets: [bookmark], version: "snapshot", grant: writer) == .needsHumanApproval(.library))
+        #expect(evaluate("native.http", grant: writer) == .denied(.permissionDenied))
+    }
+
 }
