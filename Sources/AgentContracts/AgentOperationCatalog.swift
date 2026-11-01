@@ -46,6 +46,7 @@ package struct AgentOperationDescriptor: Sendable {
         name == "actions.run" || name.hasPrefix("native.")
             || name == "preferences.update" || name == "preferences.reset"
             || name == "imports.commit" || name == "workspaces.apply"
+            || ["editor.open", "editor.navigate", "editor.preview"].contains(name)
     }
 
     package func acceptsTargets(_ values: [AgentResourceReference]) -> Bool {
@@ -90,6 +91,7 @@ package enum AgentOperationCatalog {
         .init(name: "editor.replaceRange", owner: "EditorSession + WindowModel", capabilities: [.editorWrite, .draftsWrite], targets: .one(.window), requiresExpectedVersion: true),
         .init(name: "editor.setSelection", owner: "EditorSession + WindowModel", capabilities: [.editorWrite, .draftsWrite], targets: .one(.window), requiresExpectedVersion: true),
         .init(name: "editor.replaceAll", owner: "EditorSession + WindowModel", capabilities: [.editorWrite, .draftsWrite], targets: .one(.window), requiresExpectedVersion: true),
+        .init(name: "editor.listTasks", owner: "SyntaxDefinition + EditorSession", capabilities: [.editorRead, .draftsRead], targets: .one(.window)),
         .init(name: "editor.tasks", owner: "EditorSession + WindowModel", capabilities: [.editorWrite, .draftsWrite], targets: .one(.window), requiresExpectedVersion: true),
         .init(name: "editor.undo", owner: "EditorSession + WindowModel", capabilities: [.editorWrite, .draftsWrite], targets: .one(.window), requiresExpectedVersion: true),
         .init(name: "editor.redo", owner: "EditorSession + WindowModel", capabilities: [.editorWrite, .draftsWrite], targets: .one(.window), requiresExpectedVersion: true),

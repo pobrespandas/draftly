@@ -12,21 +12,21 @@ result envelopes, stable errors, typed resource references, a planned operation
 catalog and baseline grant evaluation. It adds no app route, CLI, socket, MCP
 server, Keychain entry, native permission or network listener.
 
-The catalog declares 128 planned operations and enables none. Baseline decisions
+The catalog declares 129 planned operations and enables none. Baseline decisions
 retain the resource scope; Actions and native requests require further effect
 authorization. Irreversible operations require human approval. The new tests
 cover isolation, expiry/revocation, target kinds, revision-token requirements,
 full-library backup authority, malformed/oversized messages, Unicode/decimal
 transport, and distinct pending/error/result states.
 
-Automatic validation passed 79 AgentContracts, 759 Core and 938 app tests with
+Automatic validation passed 92 AgentContracts, 759 Core and 938 app tests with
 complete result inventories, 285 Python tests, the structural matrix check,
 and the final local app build.
 See the [operation inventory](research/agent-operation-inventory.md) for reused
 characterization evidence and remaining schemas and runtime enforcement work.
-Fifty-two operations now have parameter/result schemas: eight discovery/draft
+Sixty-seven operations now have parameter/result schemas: eight discovery/draft
 reads, 13 draft mutations, 18 Action/group operations, four operation lifecycle
-routes and nine Workspace operations.
+routes, nine Workspace operations and 15 editor operations.
 They use one definition for validation, exported JSON Schema and request-local
 defaults. Chunk checks use UTF-16; result shapes separate summaries from content.
 The step effect catalog covers all 25 executor step types and always requires
@@ -74,7 +74,15 @@ The schema gateway now rejects missing or empty expectedVersion headers for
 mutations independently of grant evaluation. Its regression failed before the
 correction. Live version comparison remains an unimplemented handler boundary.
 
-Stage 1 is not closed: the other 76 operation schemas, detailed script/native
+Editor contracts add a separate task-mark read operation, explicit window/new
+window selection, no focus by default, bounded snapshots and versioned edits.
+Window and draft IDs bind replies; selection and preview replies must reflect
+the request. Open, navigation and preview still require contextual effect review.
+Shared text validation preserves the existing draft range rules. No editor
+command, actual Undo, window opening or live query runs through agents yet.
+PR #33 merged at `620781c`; PR #34 merged at `d4d7c63` after required CI passed.
+
+Stage 1 is not closed: the other 62 operation schemas, detailed script/native
 effect checks and real executors still need implementation. Real agent clients have
 not been connected. The habitual app remains the released 0.1.3.
 

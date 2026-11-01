@@ -27,6 +27,7 @@ editor.links
 editor.replaceRange
 editor.setSelection
 editor.replaceAll
+editor.listTasks
 editor.tasks
 editor.undo
 editor.redo
