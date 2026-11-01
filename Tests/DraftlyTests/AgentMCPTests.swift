@@ -285,6 +285,34 @@ struct AgentMCPTests {
         }
     }
 
+    @Test func sdkFindsPendingUnicodeWithoutSavingOrSelecting() async throws {
+        try await run(editorAccess: true) { r in
+            let tools = try await r.client.listTools().tools
+            #expect(try #require(tools.first { $0.name == "draftly_editor_find" }).annotations.readOnlyHint == true)
+            let listed = try await r.client.callTool(name: "draftly_editor_windows")
+            guard case .result(.object(let page)) = try response(listed.content).outcome,
+                  case .array(let entries) = page["items"], entries.count == 1,
+                  case .object(let entry) = entries[0], case .string(let id) = entry["windowID"] else {
+                Issue.record("Missing scoped editor"); return
+            }
+            let model = try #require(r.editorModels.first)
+            let selection = model.editor.selection
+            let found = try await r.client.callTool(name: "draftly_editor_find", arguments: [
+                "targets": .array([.object(["kind": .string("window"), "id": .string(id)])]),
+                "parameters": .object(["query": .string("🐼")])])
+            #expect(found.isError == false)
+            guard case .result(.object(let values)) = try response(found.content).outcome else {
+                Issue.record("Missing search result"); return
+            }
+            let expected = (model.editor.content as NSString).range(of: "🐼")
+            #expect(values["items"] == .array([.object(["range": .object([
+                "offset": .integer(Int64(expected.location)), "length": .integer(2)])])]))
+            #expect(model.editor.selection == selection && model.hasUnsavedChanges)
+            #expect(r.library.notes.first { $0.id == r.notes[0].id }?.content == r.notes[0].content)
+            #expect(r.library.revisions.isEmpty)
+        }
+    }
+
     @Test func sdkReadsOnlyAuthorizedPendingEditorsWithoutSavingThem() async throws {
         try await run(editorAccess: true) { r in
             let tools = try await r.client.listTools().tools
