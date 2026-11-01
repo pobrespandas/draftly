@@ -3,6 +3,14 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Revision authority regression — 1 November
+
+An additional writer test removes revision scope or deletes the revision between
+preparation and execution. Both paths return not_found and leave the current
+note unchanged. All18 writer methods passed. The prior complete2216Swift run
+predates this one added test; this focused run validates the added regression.
+No production code changed in this follow-up.
+
 ## Agent revision restoration — 1 November
 
 A separate branch adds drafts.restoreVersion through the existing-draft writer

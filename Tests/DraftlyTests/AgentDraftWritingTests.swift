@@ -179,6 +179,28 @@ struct AgentDraftWritingTests {
         #expect(f.library.notes.first?.content == f.note.content)
     }
 
+    @Test func restorationRechecksRevisionScopeAndExistenceBeforeWriting() throws {
+        for missing in [false, true] {
+            let f = try Fixture(); defer { f.close() }
+            let revision = Revision(noteID: f.note.id, content: "Neutral prior version")
+            try f.library.saveRevision(revision)
+            let writer = try f.writer()
+            let input = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "drafts.restoreVersion",
+                targets: [.init(kind: .draft, id: f.note.id), .init(kind: .revision, id: revision.id)], expectedVersion: try f.token())
+            let key = try writer.prepare(input, connectionID: f.connectionID)
+            let signed = AgentRequest(requestID: input.requestID, libraryID: input.libraryID, operation: input.operation,
+                targets: input.targets, expectedVersion: input.expectedVersion, retryKey: key.value)
+            if missing { try f.library.deleteRevision(revision.id) }
+            else {
+                f.grant = AgentGrant(connectionID: f.connectionID, libraryID: f.libraryID,
+                    expiresAt: f.wall.addingTimeInterval(3600), capabilities: [.draftsRead, .draftsWrite],
+                    scope: .resources([.init(kind: .draft, id: f.note.id)]))
+            }
+            #expect(throws: AgentErrorCode.notFound) { try writer.update(signed, connectionID: f.connectionID) }
+            #expect(f.library.notes.first?.content == f.note.content)
+        }
+    }
+
     @Test func everyUpdateFieldPersistsAndReceiptMatchesTheNextRead() throws {
         let f = try Fixture(); defer { f.close() }
         let model = f.model(), writer = try f.writer()
