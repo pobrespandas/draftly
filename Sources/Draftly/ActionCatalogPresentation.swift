@@ -71,7 +71,8 @@ enum ActionCatalogPresentation {
                 "Remove Blank Lines": "yellow", "Format Number": "yellow", "Archive": "gray", "Trash": "red",
                 "Update Tags...": "orange", "Rename Tag...": "red", "Flag": "orange", "Unflag": "gray",
                 "Select Workspace": "gray", "Filter by Tag": "gray", "New Draft in Workspace": "green",
-                "Apply Template": "indigo", "Previous Placeholder <|>": "yellow", "Next Placeholder <|>": "yellow"
+                "Apply Template": "indigo", "Previous Placeholder <|>": "yellow", "Next Placeholder <|>": "yellow",
+                "Inbox": "indigo"
             ]
             action.presentation.tintColor = colors[source.name] ?? "blue"
         }

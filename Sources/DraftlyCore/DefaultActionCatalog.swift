@@ -8,7 +8,7 @@ public struct DefaultActionCatalogInstallation: Equatable, Sendable {
 
 public enum DefaultActionCatalog {
     public static let referenceVersion = "Drafts 54.1.2 (947)"
-    public static let revision = 1
+    public static let revision = 2
     public static let groupNames = ["Basic", "Editing", "Markdown", "Tools", "Processing"]
 
     public static var groups: [ActionGroupRecord] {
@@ -170,7 +170,7 @@ public enum DefaultActionCatalog {
 
     private static var processing: [DraftAction] {
         [
-            separator("Inbox", "Processing"),
+            script("Inbox", "Processing", "tray.and.arrow.down", "draft.isArchived = false; draft.update();"),
             script("Archive", "Processing", "archivebox", "draft.isArchived = true; draft.update();"),
             script("Save Version", "Processing", "clock.arrow.circlepath", "draft.update();"),
             script("Trash", "Processing", "trash", "draft.isTrashed = true; draft.update();"),
@@ -190,6 +190,13 @@ public enum DefaultActionCatalog {
             script("Previous Placeholder <|>", "Processing", "chevron.left", placeholder(after: false)),
             script("Next Placeholder <|>", "Processing", "chevron.right", placeholder(after: true))
         ]
+    }
+
+    static var legacyInboxSeparator: DraftAction { separator("Inbox", "Processing") }
+
+    static func correctedInbox(_ source: DraftAction) -> DraftAction? {
+        guard source == legacyInboxSeparator else { return nil }
+        return processing.first { $0.name == "Inbox" }
     }
 
     private static func action(_ name: String, _ group: String, _ symbol: String, _ steps: [ActionStep], legacyID: Int? = nil, shortcut: String = "") -> DraftAction {

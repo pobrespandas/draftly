@@ -44,6 +44,14 @@ public final class LibraryStore: ObservableObject {
         if seed && persistence.isNewStore && cloudIdentifier == nil {
             try installActionCatalog(groups: DefaultActionCatalog.groups, actions: DefaultActionCatalog.actions)
         }
+        // Correct only the exact local default. Keep edits and deleted actions intact.
+        if cloudIdentifier == nil {
+            for action in actions {
+                if let corrected = DefaultActionCatalog.correctedInbox(action) {
+                    try saveAction(corrected)
+                }
+            }
+        }
         syncCoordinator = LibrarySyncCoordinator(container: container, cloudIdentifier: self.cloudIdentifier,
             onRemoteChange: { [weak self] in
                 do { try self?.reload() } catch { self?.error = error.localizedDescription }

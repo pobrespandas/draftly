@@ -4,6 +4,45 @@ import Testing
 
 @Suite("Initial action catalog") @MainActor
 struct DefaultActionCatalogTests {
+    @Test func inboxRestoresAnArchivedDraftWithoutChangingItsTextOrTags() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        var note = try library.createNote(content: "Inbox QA 🐼")
+        note.isArchived = true
+        note.tags = ["neutral"]
+        try library.saveNote(note)
+        let editor = EditorSession()
+        editor.load(note)
+        let inbox = try #require(DefaultActionCatalog.actions.first { $0.name == "Inbox" })
+        #expect(!inbox.isSeparator)
+        #expect(ActionRunner(library: library, editor: editor, host: DefaultCatalogHost()).run(inbox))
+        let saved = try #require(library.notes.first { $0.id == note.id })
+        #expect(!saved.isArchived)
+        #expect(saved.content == note.content && saved.tags == note.tags)
+    }
+
+    @Test func reopeningCorrectsOnlyTheUnchangedLegacyInbox() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        var library: LibraryStore? = try LibraryStore(directory: folder, seed: false)
+        let legacy = DefaultActionCatalog.legacyInboxSeparator
+        try library!.saveAction(legacy)
+        library = nil
+        library = try LibraryStore(directory: folder)
+        let corrected = try #require(library!.actions.first { $0.id == legacy.id })
+        #expect(!corrected.isSeparator && corrected.steps.count == 1)
+        library = nil
+        library = try LibraryStore(directory: folder)
+        #expect(library!.actions == [corrected])
+        var edited = legacy
+        edited.presentation.description = "My section"
+        try library!.saveAction(edited)
+        library = nil
+        library = try LibraryStore(directory: folder)
+        #expect(library!.actions == [edited])
+        try library!.deleteAction(edited.id)
+        library = nil
+        #expect(try LibraryStore(directory: folder).actions.isEmpty)
+    }
     @Test func firstOpenInstallsVersionedGroupsAndReopenPreservesEdits() throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: folder) }

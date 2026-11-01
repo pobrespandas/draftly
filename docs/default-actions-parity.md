@@ -8,8 +8,16 @@ empty. The full action name remains the accessibility label. Thirteen focused
 presentation tests passed. QA displayed Insert and New beside native symbols.
 
 Read-only inspection of Drafts Inbox confirmed one script step:
-`draft.isArchived = false; draft.update();`. The Draftly Inbox separator still
-needs a catalog correction and an upgrade path for unchanged installed copies.
+`draft.isArchived = false; draft.update();`. Catalog revision 2 uses this script.
+On local library open, an exact revision 1 Inbox separator becomes this action.
+The comparison includes all stored fields. Changed or deleted entries remain
+unchanged. Cloud libraries and restored copies with new IDs are not migrated.
+
+Revision 2 validation passed: 15 catalog tests and 13 presentation tests, local
+Debug build, and strict QA signature verification. On restart, the isolated
+QA library changed the original separator to an Inbox button. A neutral draft
+was archived, then returned through that button. Archive became empty and
+Inbox showed the same draft and text. No personal draft was used.
 
 The action list and editor bar now share default appearance rules. Rules match
 the catalog ID, name, and group. They replace an unchanged default symbol and
@@ -27,8 +35,8 @@ Computer Use compared Basic, Editing, Markdown, Tools, and Processing with
 Drafts. The QA app showed the corrected Basic colors, distinct group icons,
 and one copy of each Editing action. Some custom Drafts symbols and service
 logos remain native approximations. This is not pixel-exact or functional
-parity acceptance. The catalog still has functional differences, including
-its Inbox separator where the observed Drafts group has an Inbox action.
+parity acceptance. The catalog still has functional differences that require
+action-by-action review.
 
 The local Debug build and strict QA signature check passed. The focused catalog,
 presentation, and editing tests passed: 35 tests in three suites. In isolated QA,
@@ -56,7 +64,7 @@ current engine. `blocked` means that safe parity needs a new service, account
 flow, paid service, or non-public contract. This revision has no remaining
 `implementable` entries.
 
-The catalog revision is 1. It contains 110 entries, including separators. All
+The catalog revision is 2. It contains 110 entries, including separators. All
 installed steps use supported Draftly step types. Separators keep their observed
 names and positions relative to installed actions.
 
@@ -137,7 +145,8 @@ names and positions relative to installed actions.
 
 | Observed entry | Status | Draftly behavior or reason |
 | --- | --- | --- |
-| Inbox, Tags & Flags, Templates | supported | Separators. |
+| Inbox | supported | Sets `draft.isArchived` to false and saves the draft. |
+| Tags & Flags, Templates | supported | Separators. |
 | Archive, Save Version, Trash | supported | Uses the current draft update contract. |
 | Stats | supported | Displays a local character count. |
 | Update Tags..., Rename Tag... | supported | Shows a review prompt, then updates the draft or renames the tag across the library. |
@@ -149,7 +158,7 @@ names and positions relative to installed actions.
 
 ## Persistence and restoration
 
-A new persistent store receives revision 1 once. Draftly does not use an empty
+A new persistent store receives the current catalog once. Draftly does not use an empty
 action list as a signal to seed data. If a person deletes every default action,
 the next launch keeps the library empty.
 
