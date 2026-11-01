@@ -5,14 +5,18 @@ import CloudKit
 @MainActor
 final class LibraryRecordPersistence {
     let container: NSPersistentContainer
+    let isNewStore: Bool
     private var records: [String: NSManagedObject] = [:]
 
     init(inMemory: Bool, cloudIdentifier: String?, directory: URL?) throws {
         let model = Self.model()
+        let persistentURL = inMemory ? nil : Self.storeURL(directory: directory)
+        isNewStore = inMemory || persistentURL.map { !FileManager.default.fileExists(atPath: $0.path) } == true
+        if !inMemory { try Self.createStoreDirectory(directory: directory) }
         if let cloudIdentifier, !inMemory {
             let cloud = NSPersistentCloudKitContainer(name: "Draftly", managedObjectModel: model)
             container = cloud
-            let description = NSPersistentStoreDescription(url: try Self.storeURL(directory: directory))
+            let description = NSPersistentStoreDescription(url: persistentURL!)
             let options = NSPersistentCloudKitContainerOptions(containerIdentifier: cloudIdentifier)
             options.databaseScope = .private
             description.cloudKitContainerOptions = options
@@ -25,7 +29,7 @@ final class LibraryRecordPersistence {
             let description = NSPersistentStoreDescription()
             description.type = inMemory ? NSInMemoryStoreType : NSSQLiteStoreType
             if !inMemory {
-                description.url = try Self.storeURL(directory: directory)
+                description.url = persistentURL
                 description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
                 description.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
             }
@@ -39,9 +43,13 @@ final class LibraryRecordPersistence {
         container.viewContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
     }
 
-    private static func storeURL(directory: URL?) throws -> URL {
+    private static func createStoreDirectory(directory: URL?) throws {
         let folder = directory ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Draftly", isDirectory: true)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+    }
+
+    private static func storeURL(directory: URL?) -> URL {
+        let folder = directory ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Draftly", isDirectory: true)
         return folder.appendingPathComponent("Library.sqlite")
     }
 

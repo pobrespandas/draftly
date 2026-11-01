@@ -1,6 +1,6 @@
 import Combine
 import AppKit
-import DraftlyCore
+@_spi(DraftlyInternal) import DraftlyCore
 
 @MainActor
 final class WindowModel: ObservableObject {
@@ -133,6 +133,7 @@ final class WindowModel: ObservableObject {
         self.saveDraft = saveDraft ?? { try library.saveNote($0) }
         self.onAccessDraft = onAccessDraft
         runner = ActionRunner(library: library, editor: editor, host: host)
+        reconcileActionGroup()
         listPreferencesSubscription = NotificationCenter.default.publisher(
             for: UserDefaults.didChangeNotification, object: dependencies.preferences.defaults)
             .receive(on: DispatchQueue.main)
@@ -185,6 +186,12 @@ final class WindowModel: ObservableObject {
             self.window?.makeFirstResponder(nil)
         }
     }
+    func reconcileActionGroup() {
+        let groups = library.groupNames(on: .list)
+        guard actionGroup != "All Actions", !groups.contains(actionGroup) else { return }
+        actionGroup = groups.first ?? "All Actions"
+    }
+
     func setFiltersVisible(_ visible: Bool) {
         if visible { leftPanels = .filters }
         else if showFilters { leftPanels = .drafts }
