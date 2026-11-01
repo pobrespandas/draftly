@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 import DraftlyCore
 import AgentContracts
 
@@ -13,8 +14,11 @@ import AgentContracts
     }
     private static let readOperations: Set<String> = ["server.status", "server.capabilities", "server.schemas",
         "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions", "preferences.schema"]
-    static let implementedOperations = readOperations.union([AgentMutationSchemas.name]).union(AgentDraftWriting.operationNames)
-    private var availableOperations: Set<String> { writes == nil ? Self.readOperations : Self.implementedOperations }
+    private static let editorReadOperations: Set<String> = ["editor.windows", "editor.get"]
+    static let implementedOperations = readOperations.union([AgentMutationSchemas.name]).union(AgentDraftWriting.operationNames).union(editorReadOperations)
+    private var availableOperations: Set<String> { editorRegistry == nil ? Self.readOperations : (writes == nil ? Self.readOperations.union(Self.editorReadOperations) : Self.implementedOperations) }
+    private let editorRegistry: AgentEditorRegistry?
+    private let windowReadKey = SymmetricKey(size: .bits256)
     private let retryKeys: AgentRetryKeys
     private var writes: AgentDraftWriting?
     private let libraryID: UUID
@@ -37,6 +41,7 @@ import AgentContracts
          pendingEditorGeneration: @escaping (UUID) -> String) throws {
         guard editors?.isBound(to: library) ?? true else { throw AgentErrorCode.invalidInput }
         self.libraryID = libraryID; self.connections = connections; self.appVersion = appVersion
+        self.editorRegistry = editors
         self.validateHost = validateHost
         self.isLocked = isLocked; self.now = now
         let preferences = try AgentPreferenceCatalog.make()
@@ -155,6 +160,8 @@ import AgentContracts
                 "scope": .object(["allResources": .bool(grant.scope == .library), "resources": .array(references.map {
                     .object(["kind": .string($0.kind.rawValue), "id": .string($0.id.uuidString)])
                 })]), "expiresAt": .string(APIValues.date(grant.expiresAt))]
+        case "editor.windows", "editor.get":
+            return try readEditor(request, parameters: parameters, grant: grant, sessionID: sessionID)
         case "mutations.prepare":
             guard let writes else { throw AgentErrorCode.unavailable }
             let input = try AgentMutationSchemas.mutation(from: parameters)
@@ -193,4 +200,48 @@ import AgentContracts
         default: return try drafts.read(request, parameters: parameters, grant: grant, sessionID: sessionID)
         }
     }
+    private func readEditor(_ request: AgentRequest, parameters: [String: AgentJSONValue], grant: AgentGrant,
+                            sessionID: UUID) throws -> [String: AgentJSONValue] {
+        guard let editorRegistry else { throw AgentErrorCode.unavailable }
+        func authorized(_ snapshot: AgentEditorRegistry.WindowSnapshot) -> Bool {
+            guard grant.scope.permits(.init(kind: .window, id: snapshot.id)) else { return false }
+            return snapshot.draftID.map { grant.scope.permits(.init(kind: .draft, id: $0)) } ?? true
+        }
+        func values(_ snapshot: AgentEditorRegistry.WindowSnapshot) throws -> [String: AgentJSONValue] {
+            let selection: AgentJSONValue = .object(["offset": .integer(Int64(snapshot.selection.location)),
+                "length": .integer(Int64(snapshot.selection.length))])
+            let state: AgentJSONValue = .object(["windowID": .string(snapshot.id.uuidString), "generation": .string(snapshot.generation.uuidString),
+                "draftID": snapshot.draftID.map { .string($0.uuidString) } ?? .null,
+                "content": .string(snapshot.content), "selection": selection, "dirty": .bool(snapshot.dirty)])
+            let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
+            let token = Data(HMAC<SHA256>.authenticationCode(for: try encoder.encode(state), using: windowReadKey)).base64EncodedString()
+            return ["windowID": .string(snapshot.id.uuidString),
+                "draftID": snapshot.draftID.map { .string($0.uuidString) } ?? .null,
+                "versionToken": .string(token)]
+        }
+        if request.operation == "editor.windows" {
+            return try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
+                parameters: parameters, expiresAt: grant.expiresAt, ids: {
+                    try editorRegistry.windowSnapshots().filter(authorized).map(\.id)
+                }, value: { id in
+                    guard let snapshot = try editorRegistry.windowSnapshots().first(where: { $0.id == id }), authorized(snapshot) else { return nil }
+                    var result = try values(snapshot)
+                    result["title"] = .string(Note(content: snapshot.content).title)
+                    result["hasUnsavedChanges"] = .bool(snapshot.dirty)
+                    return .object(result)
+                })
+        }
+        guard let id = request.targets.first?.id,
+              let snapshot = try editorRegistry.windowSnapshots().first(where: { $0.id == id }), authorized(snapshot) else {
+            throw AgentErrorCode.notFound
+        }
+        guard snapshot.draftID != nil || (snapshot.content.isEmpty && !snapshot.dirty) else { throw AgentErrorCode.unavailable }
+        var result = try values(snapshot)
+        result["content"] = .object(try AgentDraftReading.chunk(snapshot.content, parameters: parameters))
+        result["selection"] = .object(["offset": .integer(Int64(snapshot.selection.location)),
+            "length": .integer(Int64(snapshot.selection.length))])
+        result["hasUnsavedChanges"] = .bool(snapshot.dirty)
+        return result
+    }
+
 }

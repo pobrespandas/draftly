@@ -10,7 +10,30 @@ import AgentContracts
         let storedNote: Note
         let generation: String
     }
+    struct WindowSnapshot {
+        let id: UUID
+        let draftID: UUID?
+        let generation: UUID
+        let content: String
+        let selection: NSRange
+        let dirty: Bool
+    }
+
+    func windowSnapshots() throws -> [WindowSnapshot] {
+        guard valid else { throw AgentErrorCode.cancelled }
+        var seen: Set<ObjectIdentifier> = []
+        return trackedModels().compactMap { model in
+            guard seen.insert(ObjectIdentifier(model)).inserted, let entry = entries[ObjectIdentifier(model)] else { return nil }
+            return WindowSnapshot(id: entry.windowID, draftID: model.editor.noteID, generation: entry.generation,
+                content: model.editor.content, selection: model.editor.safeSelection,
+                dirty: model.hasUnsavedChanges || model.editor.hasUnpersistedText)
+        }
+    }
+
     @MainActor private final class Entry {
+        let windowID = UUID()
+        var generation = UUID()
+        var selection: NSRange
         weak var model: WindowModel?
         var noteID: UUID?
         var content: String
@@ -20,6 +43,7 @@ import AgentContracts
         init(_ model: WindowModel) {
             self.model = model; noteID = model.editor.noteID
             content = model.editor.content; dirty = model.hasUnsavedChanges
+            selection = model.editor.selection
         }
     }
     private let library: LibraryStore
@@ -153,15 +177,19 @@ import AgentContracts
             entry.subscriptions = [
                 model.editor.$noteID.dropFirst().sink { [weak self, weak entry] id in
                     guard let self, let entry, entry.noteID != id else { return }
-                    self.touch(entry.noteID); self.touch(id); entry.noteID = id
+                    self.touch(entry.noteID); self.touch(id); entry.noteID = id; entry.generation = UUID()
                 },
                 model.editor.$content.dropFirst().sink { [weak self, weak entry] content in
                     guard let self, let entry, !DraftOperations.sameText(entry.content, content) else { return }
-                    if !self.controlledChanges.contains(id) { self.touch(entry.noteID) }; entry.content = content
+                    if !self.controlledChanges.contains(id) { self.touch(entry.noteID) }; entry.content = content; entry.generation = UUID()
+                },
+                model.editor.$selection.dropFirst().sink { [weak entry] selection in
+                    guard let entry, entry.selection != selection else { return }
+                    entry.selection = selection; entry.generation = UUID()
                 },
                 model.$hasUnsavedChanges.dropFirst().sink { [weak self, weak entry] dirty in
                     guard let self, let entry, entry.dirty != dirty else { return }
-                    if !self.controlledChanges.contains(id) { self.touch(entry.noteID) }; entry.dirty = dirty
+                    if !self.controlledChanges.contains(id) { self.touch(entry.noteID) }; entry.dirty = dirty; entry.generation = UUID()
                 }
             ]
         }

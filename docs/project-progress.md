@@ -3,6 +3,39 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Authorized editor reads — 1 November
+
+The local service adds editor.windows and editor.get with an explicit registry.
+Window IDs belong to tracked models and change after removal and registration.
+Both the window and its current draft must be in scope. Reads preserve pending
+text, selection, dirty state and storage. Pagination uses existing session-bound
+cursors. Text chunks share scalar-boundary rules with draft reads. Window versions
+use a distinct generation for selection and content changes, including reverts;
+draft versions retain their existing selection-independent behavior.
+
+Initial two service tests failed four issues while handlers were absent. A new
+selection-revert test caught a repeated token, then passed with window generations.
+MCP coverage caught missing read-only catalog metadata; the two new read handlers
+now declare it. The SDK fixture also required explicit optional-note unwrapping.
+Final focused53 app and9 contract checks passed. Complete final results verified
+1/166/786/1270 (2223) Swift. Python303 and the structural audit passed. Helper
+and local app compilation passed. The SDK test verifies
+that another window's text is excluded without saving either pending editor.
+No visible window, permission or personal data was used by automated tests.
+Normal installed host activation and editor mutations remain unfinished.
+
+## Restoration CI interruption — 1 November
+
+PR80 CI41342870313 failed at0c4b10a. Artifact13097984150 is retained locally in
+.build/agent-revision-ci-results. process.json reports Swift CLI0 and rejected
+incomplete XML, with no collected native crash report. The last logged start was
+ThemeRenderingTests.linkThemeChangesAndLinkModeRestoreNativeAttributesWithoutChangingText.
+That is not a proven crash location or cause. No acceptance bypass or deadline
+change occurred. Diagnostic run41343722483 targets ThemeRenderingTests on the
+same head; it is not a retry of the complete acceptance and cannot replace it.
+PR80 remains unmerged. Earlier incomplete reports remain unresolved observations.
+
+
 ## Patch integration and final restoration checks — 1 November
 
 PR79 passed every actual check at333e642 in CI41341691455. Native results
