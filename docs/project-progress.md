@@ -3,6 +3,21 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Private local state extraction — 1 November
+
+AgentStateDirectory now owns the private agent directory, bounded reads, atomic
+CAS replacement and advisory file locks. AgentConnectionFile delegates to it and
+keeps connections.json, connections.lock and its byte format unchanged. The
+shared file policy still owns permission, ACL and link checks. Credentials remain
+outside these files.
+
+The focused metadata, registry, Settings and state-directory suites passed 43
+checks. Existing file tests retain their names and coverage. New checks cover
+independent files, byte budgets, invalid names, held lock lifetime, inode and
+directory replacement, unsafe aliases and exclusion by an actual child process.
+The generated local app build passed. This is an extraction for the host identity
+and ownership work; it does not activate a listener or prove signed access.
+
 ## Human connection review and Settings — 1 November
 
 Implemented the grant editing copy, human Settings model and native review and

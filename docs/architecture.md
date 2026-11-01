@@ -849,3 +849,11 @@ none until signed helper, Keychain, locator and lifecycle integration are ready.
 The separate Tools/AgentSettingsPreview host uses memory fixtures and never opens
 an agent endpoint. Its build script does not launch it; manual Computer Use is a
 separate step. See [connection UI](agent-connections-ui.md) for verified cases.
+
+
+AgentStateDirectory owns bounded local metadata I/O and file-lock lifetimes.
+AgentPrivateFilePolicy remains the common owner, mode, ACL and link rule.
+AgentConnectionFile selects the existing connection filenames and budget; it no
+longer contains another atomic-write implementation. A held AgentStateFileLock
+keeps its descriptor and directory alive. Release leaves the lock inode in place.
+Long-lived host owners can also validate the current path and inode before work.
