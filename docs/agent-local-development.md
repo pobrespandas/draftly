@@ -209,3 +209,23 @@ silently creates a replacement. A deleted identity cannot bypass an active owner
 See [ADR 0003](adr/0003-local-agent-library-binding.md) for the identity rules.
 Agent state paths must also remain protected from future file-write tools; a
 folder grant must not become a way to edit grants or bypass the app writer.
+
+
+## Discover a local host
+
+The helper supports `discover` and `discover --state-parent ABSOLUTE_PATH`.
+The default parent is the normal Draftly Application Support folder. Use a
+neutral library folder for isolated QA. The helper verifies its own provisioned
+identity before reading. An absent catalog returns an empty JSON array.
+
+Each result contains libraryID, epochID and socketPath. The host publishes no
+credentials or business data there. Results can be stale. A successful discovery
+is not proof that a host is live or authorized. Normal CLI commands still use
+an explicit socket; verify the signed peer and authenticate through the existing
+credential route. Automatic library selection and exported client configuration
+are not implemented yet.
+
+The host withdraws only its own epoch. A failed withdrawal leaves transport
+stopped and records locatorCleanupError. Another explicit suspend or close can
+retry that exact cleanup without removing a later owner. Readers do not remove
+stale records or sockets. The private catalog is excluded from library backups.

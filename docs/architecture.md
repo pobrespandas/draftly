@@ -902,3 +902,18 @@ fails, it reports outcomeUnknown. Unreadable metadata is not repaired. Temporary
 ownership contention does not tear down a live broker. Normal AppController
 startup, locator publication, editor/lock adapters and signed helper provisioning
 remain separate, unfinished wiring; the assembly alone does not activate access.
+
+
+AgentHostLocator stores bounded discovery hints in the private local agent
+state directory. A hint contains only library ID, publication epoch ID and socket path.
+It is not authority and contains no credential. Atomic publication uses the
+existing private-file policy and expected-byte replacement. Readers use a pinned,
+bounded snapshot without creating directories, locks or files.
+
+AgentLocalHost publishes after creating its broker and checking ownership. Close
+stops transport first, then withdraws only its exact epochs. Failed withdrawal
+retains those epochs and a cleanup error for another explicit close or suspend.
+A later owner's entry survives. A stale hint never authorizes socket deletion or
+connection access. Clients must still verify the real signed peer and authenticate.
+The helper discover command reads this catalog; automatic destination selection,
+client configuration export and normal app startup remain unfinished.

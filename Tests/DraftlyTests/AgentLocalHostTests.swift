@@ -76,6 +76,83 @@ struct AgentLocalHostTests {
         }
     }
 
+    @Test func onlyListeningHostsPublishAndResumingUsesAFreshEpoch() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let host = try f.host(); defer { host.close() }
+        let locator = try AgentHostLocator(parentDirectory: f.root)
+        #expect(try locator.endpoints().isEmpty)
+        #expect(!FileManager.default.fileExists(atPath: f.root.appendingPathComponent("Agents/hosts.lock").path))
+        try host.setEnabledFromUserInterface(true)
+        let first = try #require(locator.endpoints().first)
+        #expect(first.libraryID == host.libraryID && first.socketPath == host.endpoint)
+        host.suspend()
+        #expect(try locator.endpoints().isEmpty && host.locatorCleanupError == nil)
+        try host.resumeIfEnabled()
+        let next = try #require(locator.endpoints().first)
+        #expect(next.libraryID == first.libraryID && next.epochID != first.epochID && next.socketPath != first.socketPath)
+        host.close()
+        #expect(try locator.endpoints().isEmpty)
+    }
+
+    @Test func locatorCleanupContentionIsVisibleAndDoesNotKeepTheSocketAlive() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let host = try f.host(); defer { host.close() }
+        try host.setEnabledFromUserInterface(true)
+        let locator = try AgentHostLocator(parentDirectory: f.root), entry = try #require(locator.endpoints().first)
+        let directory = try AgentStateDirectory(parentDirectory: f.root), lock = try directory.acquireLock("hosts.lock")
+        defer { lock.release() }
+        // Readers use the complete atomic snapshot even while a writer lock is held.
+        #expect(try locator.endpoints() == [entry])
+        host.suspend()
+        #expect(host.endpoint == nil && host.locatorCleanupError == .busy)
+        #expect(!FileManager.default.fileExists(atPath: entry.socketPath))
+        #expect(try locator.endpoints() == [entry])
+        lock.release(); host.suspend()
+        #expect(try locator.endpoints().isEmpty && host.locatorCleanupError == nil)
+    }
+
+    @Test func stoppingAnOldPublicationDoesNotRemoveADifferentEpoch() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let host = try f.host(); defer { host.close() }
+        try host.setEnabledFromUserInterface(true)
+        let locator = try AgentHostLocator(parentDirectory: f.root)
+        let replacement = try AgentHostLocator.Endpoint(libraryID: host.libraryID, socketPath: "/tmp/da-neutral-other/s")
+        try locator.publish(replacement)
+        host.suspend()
+        #expect(try locator.endpoints() == [replacement] && host.locatorCleanupError == nil)
+    }
+
+    @Test func retryingOldCloseAfterCleanupContentionDoesNotDeleteTheNewHostHint() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let first = try f.host(); try first.setEnabledFromUserInterface(true)
+        let locator = try AgentHostLocator(parentDirectory: f.root), old = try #require(locator.endpoints().first)
+        let directory = try AgentStateDirectory(parentDirectory: f.root), lock = try directory.acquireLock("hosts.lock")
+        defer { lock.release() }
+        first.close()
+        #expect(first.endpoint == nil && first.locatorCleanupError == .busy)
+        lock.release()
+        let next = try f.host(); defer { next.close() }
+        try next.resumeIfEnabled()
+        let current = try #require(locator.endpoints().first)
+        #expect(current.libraryID == old.libraryID && current.epochID != old.epochID)
+        first.close()
+        #expect(try first.locatorCleanupError == nil && locator.endpoints() == [current])
+        #expect(next.endpoint == current.socketPath)
+    }
+
+    @Test func corruptLocatorPreventsListeningWithoutRepairingTheCatalog() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let host = try f.host(); defer { host.close() }
+        try host.setEnabledFromUserInterface(true); host.suspend()
+        let file = f.root.appendingPathComponent("Agents/hosts.json"), invalid = Data("not a locator".utf8)
+        try invalid.write(to: file)
+        #expect(throws: AgentErrorCode.storageError) { try host.resumeIfEnabled() }
+        #expect(host.endpoint == nil && f.secrets.isEmpty)
+        #expect(try Data(contentsOf: file) == invalid)
+        host.close()
+        #expect(throws: AgentErrorCode.storageError) { try f.host() }
+    }
+
     @Test func constructionBindsTheLoadedLibraryWithoutEnablingOrWritingPreferences() throws {
         let f = try Fixture(); defer { f.cleanup() }
         _ = try f.library.createNote(content: "Neutral preserved 🐼")
