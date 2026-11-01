@@ -3,6 +3,87 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Native test interruption diagnostics — 1 November
+
+CI41337022036 rejected the incomplete app XML on PR76 e09e790. The last logged
+case was URLActionInstallationTests.draftlyGroupLinkInstallsGroupAndOrderedActionsAtomically;
+Typewriter had already reported completion. A local17-test diagnostic of both
+suites passed. This does not establish the interruption cause. Preserve artifact
+13095643499 and the failed run; do not describe the failure as fixed.
+
+A separate infrastructure change records each Swift CLI invocation and report
+verification. It retains a zero exit even when XML is rejected and distinguishes
+signal exits. It records no environment variables. CI can collect bounded fresh
+crash reports for known test processes, then collect delayed reports before
+artifact upload. Local runs do not read system crash logs. Tests cover old files,
+symlinks, unrelated reports, size/count limits, local refusal and delayed capture
+without executing tests. Incomplete reports still fail; no retries or deadline
+changes were added.
+
+Initial diagnostic tests failed because no process records existed. Final20
+focused checks and303 Python tests passed. The complete enhanced runner verified
+1/164/786/1252 (2203) Swift and four passed CLI/verification records. No local
+system crash directory was read. Structural checks and local app/helper builds passed. The next exact-head CI
+result remains separate evidence; the prior interruption is still unexplained.
+
+The route branch f92f5b0 and patch branch f4543bc remain preserved independently.
+Normal app activation and the full local-agent objective remain unfinished.
+
+## Theme ancestry integration — 1 November
+
+The draft-update branch merged main at de5a851 after PR66 completed. Merge
+ df0fc9a preserves both histories and the 14-theme public catalog. No conflict
+resolution changed either implementation. The combined local tree passed complete
+Swift checks: one consumer, 164 contract, 786 Core and 1252 app tests (2203 total).
+Python294 and the structural audit passed. Helper and local app compilation passed. New exact-head PR checks must also
+pass before integration.
+
+The separate local-route branch remains pushed at 1d47518. Its newer operation
+catalog and CLI/MCP tests are not part of this PR. The site was not deployed.
+
+## Existing-draft update receipts — 1 November
+
+AgentDraftWriting now joins current admission and signed-key checks, read-version
+validation, editor coordination and atomic note/receipt storage. It implements
+all fields in the existing drafts.update schema, including explicit dates and
+nullable metadata. Existing-draft scope can cover one selected note; it does not
+require whole-library authority. Missing metadata remains unchanged.
+
+The same pure version encoding serves reads and receipt resources. Receipt
+versions use normalized stored data and the reserved editor generation. Before
+the final database commit, the writer checks admission, current key/grant, action
+exclusion and editor generation again. Recovery checks authority before looking
+up or returning a prior receipt. It does not repeat edits, revisions or Undo and
+does not replace later human text. The writer and reader must share one library
+and editor registry; requests must match the configured local library ID.
+
+The package-only commit boundary accepts date preservation and a final validation
+closure. Existing callers keep their defaults. Public APIs, record formats and
+backup exclusions are unchanged. The project change registers one app source.
+
+Six initial methods failed against an unavailable stub with eight issues. Final
+focused checks passed 71 tests across writer, editor, read and receipt suites.
+The writer has 11 methods covering every field, scope, nullable fields, reply
+loss, failed-save retry, revoked authority, commit-time revocation/editing, stale
+versions, admission failure and altered request/library/connection values.
+Complete results verified one consumer, 164 contract, 786 Core and 1252 app tests
+(2203 total). Python 294 and the structural audit passed. Local app and helper
+compilation passed.
+
+No external handler or key-issuance route is enabled yet. Native activation,
+creation/task-owned scope and remaining resource operations are still pending.
+Tests used neutral isolated libraries and offscreen text fixtures. No installed
+application, native permission, personal data or release changed. The earlier
+Typewriter interruption remains an unresolved observation; it was not fixed here.
+
+## Editor coordination integrated — 1 November
+
+PR75 exact head a3d7ebc passed CI41331687422, including the required macOS
+summary. Native results verified1/164/786/1241 and BUILD SUCCEEDED. Guarded
+merge 1b510422f6a9e275f763dddc5cc9c3d9b257b3ef preserves both histories.
+The draft-update branch took that main ancestry without changing its validated
+source tree. This does not resolve the earlier unexplained test interruption.
+
 ## Editor mutation coordination — 1 November
 
 AgentEditorRegistry now coordinates a synchronous stored mutation across matching

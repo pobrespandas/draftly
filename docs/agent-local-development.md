@@ -369,3 +369,27 @@ receipt before retrying; never report rollback based only on a thrown error.
 This internal coordination is not an exposed write handler. Service key
 issuance, signed-key checks, receipts and recovery remain separate integration
 work. No normal application startup enables agent writes.
+
+## Existing-draft update storage
+
+`AgentDraftWriting.update` combines admission checks, a current signed retry key,
+the read version, editor coordination and an atomic note/receipt transaction. It
+supports every field in the existing `drafts.update` schema. Explicit modified
+dates use the package-only preservation option; other updates keep the existing
+automatic modification-date rule. Omitted script metadata remains unchanged.
+
+Receipt recovery checks current admission and authority before returning a
+previous result. It does not apply the mutation or add Undo again. A removed
+grant or resource scope cannot read an old receipt. Before the final commit,
+the writer rechecks admission, the key, execution exclusion and the reserved
+editor state. A failed gate rolls back the note, revisions and receipt together.
+
+Read summaries and receipt versions use the same pure encoding. The receipt
+uses normalized stored data and the editor generation reserved for that commit.
+Subsequent human edits can invalidate that version; recovery still returns the
+original committed receipt without overwriting newer pending text.
+
+This is an internal writer. Service key issuance, CLI/MCP routing and normal
+activation are not connected yet. Creation needs task-owned target scope; it is
+not implemented by this existing-draft path. Do not treat this storage check as
+native sync, public release or completed agent access.

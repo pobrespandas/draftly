@@ -65,23 +65,50 @@ import AgentContracts
         return state
     }
 
+    func isBound(to library: LibraryStore, editors: AgentEditorRegistry) -> Bool {
+        self.library === library && self.editors === editors && editors.isBound(to: library)
+    }
+
+    func validateMutationSnapshot(_ initial: AgentEditorRegistry.Snapshot, expectedVersion: String,
+                                  reservedGeneration: String) throws {
+        guard let editors else { throw AgentErrorCode.unavailable }
+        try editors.validateMutationGeneration(for: initial.note.id, expected: reservedGeneration)
+        guard let current = library.notes.first(where: { $0.id == initial.note.id }) else { throw AgentErrorCode.notFound }
+        let state = AgentEditorRegistry.Snapshot(note: initial.note, storedNote: current, generation: initial.generation)
+        guard try versionToken(state) == expectedVersion else { throw AgentErrorCode.versionConflict }
+    }
+
+    func mutationResources(for id: UUID, generation: String) -> @Sendable ([Note]) throws -> [LibraryMutationReceipt.Resource] {
+        let key = versionKey, external = pendingEditorGeneration(id)
+        return { notes in
+            guard notes.count == 1, let note = notes.first, note.id == id else { throw AgentErrorCode.storageError }
+            return [LibraryMutationReceipt.Resource(id: id,
+                versionToken: try Self.version(note: note, stored: note, generation: generation, external: external, key: key))]
+        }
+    }
+
     private func snapshot(_ note: Note) throws -> AgentEditorRegistry.Snapshot {
         try editors?.snapshot(note) ?? .init(note: note, storedNote: note, generation: "")
     }
 
     private func versionToken(_ state: AgentEditorRegistry.Snapshot) throws -> String {
-        var versioned = state.note
+        try Self.version(note: state.note, stored: state.storedNote, generation: state.generation,
+            external: pendingEditorGeneration(state.note.id), key: versionKey)
+    }
+
+    nonisolated private static func version(note: Note, stored: Note, generation: String,
+                                           external: String, key: SymmetricKey) throws -> String {
+        var versioned = note
         versioned.accessedAt = nil
-        var storedVersioned = state.storedNote
+        var storedVersioned = stored
         storedVersioned.accessedAt = nil
         let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
         // A pending projection must not hide a concurrent stored-text change.
         let data = try encoder.encode([storedVersioned, versioned])
         // Length framing separates content bytes from the trusted editor generation.
-        let external = pendingEditorGeneration(state.note.id)
-        let generation = "\(external.utf8.count):" + external + state.generation
+        let generation = "\(external.utf8.count):" + external + generation
         var input = Data("\(data.count):".utf8); input.append(data); input.append(Data(generation.utf8))
-        return Data(HMAC<SHA256>.authenticationCode(for: input, using: versionKey)).base64EncodedString()
+        return Data(HMAC<SHA256>.authenticationCode(for: input, using: key)).base64EncodedString()
     }
 
     private func summary(_ state: AgentEditorRegistry.Snapshot, query: String = "") throws -> [String: AgentJSONValue] {
