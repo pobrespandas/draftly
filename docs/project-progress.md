@@ -3,6 +3,16 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Local host test fixture lifetime — 1 November
+
+The new routing tests exposed an unowned fixture capture during late broker
+pairing cleanup. The test process aborted after the fixture went away. Host
+callbacks now retain their injected test state. The fixture does not retain the
+host, so this adds no ownership cycle. A focused case drops the caller's fixture
+reference while a host can still pair and cancel. It passed. Routing and transport
+focused tests also passed (61 app, 2 contracts) after this test-only correction.
+Production cancellation, timeouts and cleanup rules are unchanged.
+
 ## Expected-library handshake binding — 1 November
 
 Pairing and credential authentication now accept an optional expectedLibraryID.

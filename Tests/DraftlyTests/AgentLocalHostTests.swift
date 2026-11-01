@@ -32,16 +32,16 @@ struct AgentLocalHostTests {
             try? FileManager.default.removeItem(at: root)
         }
         func host(socketParent: URL = FileManager.default.temporaryDirectory) throws -> AgentLocalHost {
-            try AgentLocalHost(library: library, appVersion: "Neutral QA", isLocked: { [unowned self] in self.locked },
-                pendingEditorGeneration: { _ in "" }, resolveTargets: { [unowned self] targets in
+            try AgentLocalHost(library: library, appVersion: "Neutral QA", isLocked: { [self] in self.locked },
+                pendingEditorGeneration: { _ in "" }, resolveTargets: { [self] targets in
                     Set(targets.filter { target in target.kind == .draft && self.library.notes.contains { $0.id == target.id } })
                 }, socketParentDirectory: socketParent,
-                credentials: .init(read: { [unowned self] id in self.credentialReads += 1; return self.secrets[id] },
-                    create: { [unowned self] id, value in
+                credentials: .init(read: { [self] id in self.credentialReads += 1; return self.secrets[id] },
+                    create: { [self] id, value in
                         guard self.secrets[id] == nil else { throw AgentErrorCode.versionConflict }
                         self.secrets[id] = value
-                    }, remove: { [unowned self] in self.secrets.removeValue(forKey: $0) }),
-                validateApplication: { [unowned self] in
+                    }, remove: { [self] in self.secrets.removeValue(forKey: $0) }),
+                validateApplication: { [self] in
                     self.applicationChecks += 1
                     try self.onApplicationCheck?()
                     if let error = self.applicationError { throw error }
@@ -74,6 +74,23 @@ struct AgentLocalHostTests {
             let request = AgentRequest(requestID: UUID(), libraryID: nil, operation: operation)
             return try JSONDecoder().decode(AgentResponse.self, from: service.respond(to: JSONEncoder().encode(request), session: session))
         }
+    }
+
+    @Test func hostCallbacksRetainTheirFixtureWhilePairingCanStillUseIt() async throws {
+        var fixture: Fixture? = try Fixture()
+        weak var retained = fixture
+        let host = try #require(fixture).host()
+        defer { host.close(); retained?.cleanup() }
+        try host.setEnabledFromUserInterface(true)
+        fixture = nil
+        // Closed sockets can still finish a broker callback on MainActor.
+        // Its injected state must live as long as those callbacks can use it.
+        _ = try #require(retained)
+        let peer = try await AgentPairingClient.connect(path: #require(host.endpoint), name: "Neutral QA", validateServer: { _ in })
+        do {
+            #expect(try await peer.cancel().state == .cancelled)
+            await peer.close()
+        } catch { await peer.close(); throw error }
     }
 
     @Test func onlyListeningHostsPublishAndResumingUsesAFreshEpoch() throws {
