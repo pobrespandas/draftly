@@ -19,14 +19,14 @@ cover isolation, expiry/revocation, target kinds, revision-token requirements,
 full-library backup authority, malformed/oversized messages, Unicode/decimal
 transport, and distinct pending/error/result states.
 
-Automatic validation passed 66 AgentContracts, 759 Core and 938 app tests with
+Automatic validation passed 79 AgentContracts, 759 Core and 938 app tests with
 complete result inventories, 285 Python tests, the structural matrix check,
 and the final local app build.
 See the [operation inventory](research/agent-operation-inventory.md) for reused
 characterization evidence and remaining schemas and runtime enforcement work.
-Thirty-nine operations now have parameter/result schemas: eight discovery/draft
-reads, 18 Action/group operations, four operation lifecycle routes and nine
-Workspace operations.
+Fifty-two operations now have parameter/result schemas: eight discovery/draft
+reads, 13 draft mutations, 18 Action/group operations, four operation lifecycle
+routes and nine Workspace operations.
 They use one definition for validation, exported JSON Schema and request-local
 defaults. Chunk checks use UTF-16; result shapes separate summaries from content.
 The step effect catalog covers all 25 executor step types and always requires
@@ -62,7 +62,15 @@ policy, order lists and mutation receipts. A focused regression failed before
 the correction because requests could exceed the receipt capacity. The limit
 prevents accepting a batch whose complete result cannot be represented.
 
-Stage 1 is not closed: the other 89 operation schemas, detailed script/native
+Draft mutation contracts cover creation, explicit changes, original-snapshot
+UTF-16 patches, duplication, ordered merge, organization, flags, tags, syntax,
+revision restoration and purge. Patches reject ambiguous or overflowing ranges.
+Merge defaults to archive. Batch receipts cover all targets; duplicate and merge
+results need a new identity. These contracts do not mutate notes or implement
+version checks, transactions, editor coordination or Undo yet. PR #32 passed
+required CI and merged at `0a2b7ab`.
+
+Stage 1 is not closed: the other 76 operation schemas, detailed script/native
 effect checks and real executors still need implementation. Real agent clients have
 not been connected. The habitual app remains the released 0.1.3.
 

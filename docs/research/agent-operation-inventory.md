@@ -349,3 +349,41 @@ share these receipt and target-binding rules. There are now 39 schemas for 128
 planned operations. None has an executor. Persistence, cancellation, invalid
 reference handling, editor preservation and actual window application remain
 runtime acceptance work; schema tests do not prove these effects.
+
+
+## Draft mutation contracts
+
+Thirteen draft mutation operations now have schemas. Creation uses request-local
+content, tag, flag, syntax and Inbox defaults that match Note. It does not invent
+an identity, date or access history. Updates require a nonempty changes object;
+IDs and accessedAt are not writable through it. Explicit null and unknown string
+metadata remain unchanged. Unsupported fields fail instead of disappearing.
+
+Patches use nonempty lists of original-snapshot UTF-16 offsets, lengths and text.
+Validation rejects negative, fractional, overflowing, overlapping and duplicate
+start ranges. It retains the request order. Future handlers must check content
+bounds and Unicode scalar boundaries against the live version, reject editor
+conflicts, then apply replacements from the end. Shape validation cannot prove
+that a range exists in the current note.
+
+Merge requires at least two distinct authorized targets in an explicit complete
+order. The default destination is archive, matching LibraryStore.mergeNotes;
+separator and blank-line defaults remain unchanged. Duplicate and merge results
+must name a new resource. Batch receipts must cover every target exactly once.
+Revision restoration returns the draft identity, not the revision identity.
+A handler must also check that the revision belongs to that draft.
+
+Restore accepts no organization override: the existing command clears trash
+without clearing archive state. Purge accepts no self-approval field and still
+requires human approval. Tags use explicit add/remove/replace modes. Syntax uses
+exactly one name or identity. Runtime handlers must reuse shared TagRules,
+syntax resolution, DraftOperations and persistence rather than copy these rules.
+No actual note mutation, receipt transaction, pending-editor coordination or Undo
+behavior is enabled by this contract work.
+
+There are now 52 schemas for 128 planned operations; 76 still need schemas.
+All executors, the local broker, pairing and clients remain to be implemented.
+Arrays and objects export the same nonempty bounds used by validation. Batch
+request targets, policy checks, order lists and receipts share a 10,000 target
+limit. A regression demonstrated that larger requests were previously accepted
+although their complete receipts could not fit the result shape.

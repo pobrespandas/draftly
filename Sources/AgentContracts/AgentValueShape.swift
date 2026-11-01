@@ -10,7 +10,7 @@ package indirect enum AgentValueShape: Sendable {
     case utcDate
     case integer(minimum: Int64 = .min, maximum: Int64 = .max)
     case boolean
-    case array(AgentValueShape, maximum: Int)
+    case array(AgentValueShape, minimum: Int = 0, maximum: Int)
     case object(AgentObjectShape)
     case map(AgentValueShape)
     case nullable(AgentValueShape)
@@ -45,8 +45,8 @@ package indirect enum AgentValueShape: Sendable {
                 throw AgentSchemaError.invalidValue
             }
         case (.boolean, .bool): break
-        case let (.array(shape, maximum), .array(items)):
-            guard items.count <= maximum else { throw AgentSchemaError.invalidValue }
+        case let (.array(shape, minimum, maximum), .array(items)):
+            guard items.count >= minimum, items.count <= maximum else { throw AgentSchemaError.invalidValue }
             for item in items { try shape.validate(item) }
         case let (.object(shape), .object(fields)): try shape.validate(fields)
         case let (.map(shape), .object(fields)):
@@ -70,8 +70,8 @@ package indirect enum AgentValueShape: Sendable {
         case let .integer(minimum, maximum):
             return .object(["type": .string("integer"), "minimum": .integer(minimum), "maximum": .integer(maximum)])
         case .boolean: return .object(["type": .string("boolean")])
-        case let .array(shape, maximum):
-            return .object(["type": .string("array"), "items": shape.jsonSchema, "maxItems": .integer(Int64(maximum))])
+        case let .array(shape, minimum, maximum):
+            return .object(["type": .string("array"), "items": shape.jsonSchema, "minItems": .integer(Int64(minimum)), "maxItems": .integer(Int64(maximum))])
         case .object(let shape): return shape.jsonSchema
         case .map(let shape):
             return .object(["type": .string("object"), "additionalProperties": shape.jsonSchema])
@@ -90,9 +90,11 @@ package struct AgentFieldShape: Sendable {
 package struct AgentObjectShape: Sendable {
     package let fields: [String: AgentFieldShape]
     package var allowsAdditionalFields = false
+    package var minimumFields = 0
 
     package func validate(_ values: [String: AgentJSONValue]) throws {
-        guard allowsAdditionalFields || Set(values.keys).isSubset(of: Set(fields.keys)) else {
+        guard values.count >= minimumFields,
+              allowsAdditionalFields || Set(values.keys).isSubset(of: Set(fields.keys)) else {
             throw AgentSchemaError.invalidValue
         }
         for (key, field) in fields {
@@ -121,6 +123,6 @@ package struct AgentObjectShape: Sendable {
         }
         return .object(["type": .string("object"), "properties": .object(properties),
             "required": .array(fields.filter { $0.value.required }.keys.sorted().map(AgentJSONValue.string)),
-            "additionalProperties": .bool(allowsAdditionalFields)])
+            "additionalProperties": .bool(allowsAdditionalFields), "minProperties": .integer(Int64(minimumFields))])
     }
 }
