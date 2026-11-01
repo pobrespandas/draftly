@@ -35,13 +35,14 @@ full-library backup authority, malformed/oversized messages, Unicode/decimal
 transport, and distinct pending/error/result states.
 
 Automatic validation passed one package-consumer test, 127 AgentContracts,
-759 Core and 938 app tests with
-complete result inventories, 285 Python tests, the structural matrix check,
+759 Core and 944 app tests with
+complete result inventories, 286 Python tests, the structural matrix check,
 and the final local app build.
 See the [operation inventory](research/agent-operation-inventory.md) for reused
 characterization evidence and remaining schemas and runtime enforcement work.
 Contract definitions now cover 97 operation names: 93 static schemas and four
-registry-bound preference forms. The application field catalog is not connected.
+registry-bound preference forms. The application metadata catalog now declares 86 reviewed fields. Typed
+preference readers, writers and the scoped endpoint are not connected.
 They use one definition for validation, exported JSON Schema and request-local
 defaults. Chunk checks use UTF-16; result shapes separate summaries from content.
 The step effect catalog covers all 25 executor step types and always requires

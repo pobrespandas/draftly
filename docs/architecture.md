@@ -534,9 +534,16 @@ AgentPreferenceRegistry is an explicit application-supplied field allowlist.
 It defines typed addresses, defaults, schemas and approval requirements. It has
 no storage reader or writer. Field and object-shape constructors use package
 access. A separate consumer test target imports the module without @testable;
-it checks the same construction boundary that application code will use. Requests cannot register fields; a missing registry
-returns unavailable. The production field catalog and native bindings remain
-separate application work. When wiring Settings consumers, use the
+it checks the same construction boundary used by application code. Requests
+cannot register fields; a missing registry returns unavailable.
+
+AgentPreferenceCatalog builds the application metadata from existing option
+enums and shared defaults. It does not read UserDefaults, invoke native services
+or enable an endpoint. Its reviewed field IDs are frozen in application tests.
+The Swift package and standalone Xcode app both link AgentContracts. The Xcode
+target uses the same package identity for package-only declarations; this is a
+build boundary, not an authorization mechanism. Typed readers, writers and native
+bindings remain separate application work. When wiring Settings consumers, use the
 [preference source inventory](research/agent-preference-inventory.md).
 
 The catalog records ownership, target shape, expected-version and human approval
