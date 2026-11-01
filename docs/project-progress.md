@@ -12,8 +12,9 @@ Complete results verified1consumer/164contracts/785Core/1224app (2174 total).
 Python294, structural matrix, local app build and helper build passed.
 The integrated tree is committed separately from its original feature commit.
 
-PR71 still requires its refreshed exact-head CI before merge. The envelope
-branch will then take main ancestry and enter review. Normal agent activation,
+PR71 exact head dbe732f passed CI41327181686, including its required summary.
+It merged as2311dd822f654aa74c2174c6edeab3c5d6b38c89. The envelope branch
+took that main ancestry without changing its validated tree and can enter review. Normal agent activation,
 key issuance and guarded writes remain pending. This check did not install or
 release the app, exercise personal data or repeat microphone acceptance.
 
