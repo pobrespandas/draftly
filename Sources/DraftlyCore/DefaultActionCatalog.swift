@@ -71,6 +71,8 @@ public enum DefaultActionCatalog {
             separator("Services", "Basic"),
             action("Save to Files", "Basic", "folder", [.init("file", ["template": "[[draft]]", "name": "[[safe_title]].txt"])], legacyID: 3),
             action("Save to Files as...", "Basic", "folder.badge.plus", [.init("export", ["template": "[[draft]]", "name": "[[safe_title]].txt"]) ]),
+            bookmarkedFile("Save to iCloud Drive", bookmark: "iCloud Drive", symbol: "icloud.and.arrow.up", mode: "create", name: "[[safe_title]].md", template: "[[draft]]"),
+            bookmarkedFile("Append to iCloud Journal", bookmark: "iCloud Drive", symbol: "icloud.and.arrow.up.fill", mode: "append", name: "Journal.md", template: "\n\n[[draft]]"),
             bookmarkedFile("Save to Google Drive", bookmark: "Google Drive", symbol: "externaldrive.badge.icloud", mode: "create", name: "[[safe_title]].md", template: "[[draft]]"),
             bookmarkedFile("Append to Google Drive Journal", bookmark: "Google Drive", symbol: "text.badge.plus", mode: "append", name: "Journal.md", template: "\n\n[[draft]]"),
             bookmarkedFile("Save to OneDrive", bookmark: "OneDrive", symbol: "externaldrive.badge.icloud", mode: "create", name: "[[safe_title]].md", template: "[[draft]]"),
@@ -133,6 +135,7 @@ public enum DefaultActionCatalog {
             action("Markdown Mail", "Markdown", "envelope", [.init("mail", ["body": "[[draft]]", "subject": "[[title]]", "renderMarkdown": "true"]) ]),
             action("Copy as HTML", "Markdown", "chevron.left.forwardslash.chevron.right", [.init("clipboard", ["template": "[[draft]]", "output": "html"]) ]),
             action("Copy as Rich Text", "Markdown", "doc.richtext", [.init("clipboard", ["template": "[[draft]]", "output": "richText"]) ]),
+            script("Copy as Rich Text w/o Styles", "Markdown", "doc.plaintext", "app.htmlToClipboard('<div>'+HTML.escape(draft.content).replace(/\\n/g,'<br>')+'</div>');"),
             script("Paste as Markdown", "Markdown", "doc.on.clipboard", "editor.setSelectedText(app.getClipboard());"),
             action("Print - Markdown", "Markdown", "printer", [.init("print", ["template": "[[draft]]", "format": "markdown"]) ])
         ]
@@ -154,7 +157,9 @@ public enum DefaultActionCatalog {
             transform("Remove Blank Lines", "line.3.horizontal.decrease", "return text.split('\\n').filter(line => line.trim()).join('\\n');"),
             transform("Smart Parentheses", "parentheses", "return '(' + text + ')';"),
             transform("Smart Brackets", "ellipsis.rectangle", "return '[' + text + ']';"),
-            transform("Smart Braces", "curlybraces", "return '{' + text + '}';")
+            transform("Smart Braces", "curlybraces", "return '{' + text + '}';"),
+            script("Change Case...", "Tools", "textformat", changeCaseOptions),
+            script("Sort Lines...", "Tools", "arrow.up.arrow.down", sortLineOptions)
         ]
     }
 
@@ -221,6 +226,30 @@ public enum DefaultActionCatalog {
         script(name, "Tools", symbol, "var range=editor.getSelectedRange(); if(!range[1]) range=[0,editor.getText().length]; var text=editor.getTextInRange(range[0],range[1]); var change=(function(text){\(body)})(text); editor.setTextInRange(range[0],range[1],change); editor.setSelectedRange(range[0],change.length);")
     }
 
+    private static let changeCaseOptions = """
+    var p=Prompt.create(); p.title='Change Case';
+    p.addButton('UPPER','upper'); p.addButton('lower','lower'); p.addButton('Title','title');
+    if(!p.show()){context.cancel();} else {
+        var r=editor.getSelectedRange(); if(!r[1]) r=[0,editor.getText().length];
+        var text=editor.getTextInRange(r[0],r[1]);
+        if(p.buttonPressed==='upper') text=text.toUpperCase();
+        else if(p.buttonPressed==='lower') text=text.toLowerCase();
+        else text=text.toLowerCase().replace(/(^|\\s)\\S/g,function(c){return c.toUpperCase();});
+        editor.setTextInRange(r[0],r[1],text); editor.setSelectedRange(r[0],text.length);
+    }
+    """
+
+    private static let sortLineOptions = """
+    var p=Prompt.create(); p.title='Sort Lines';
+    p.addButton('Ascending','ascending'); p.addButton('Descending','descending');
+    if(!p.show()){context.cancel();} else {
+        var r=editor.getSelectedRange(); if(!r[1]) r=[0,editor.getText().length];
+        var lines=editor.getTextInRange(r[0],r[1]).split('\\n').sort(function(a,b){return a.localeCompare(b);});
+        if(p.buttonPressed==='descending') lines.reverse();
+        var text=lines.join('\\n'); editor.setTextInRange(r[0],r[1],text); editor.setSelectedRange(r[0],text.length);
+    }
+    """
+
     private static func lineTransform(_ body: String) -> String {
         "var range=editor.getSelectedLineRange(); var text=editor.getTextInRange(range[0],range[1]); var change=text.split('\\n').map(function(line){\(body)}).join('\\n'); editor.setTextInRange(range[0],range[1],change); editor.setSelectedRange(range[0],change.length);"
     }
@@ -262,10 +291,10 @@ public enum DefaultActionCatalog {
 
     private static func actionsBefore(_ name: String, in group: String) -> Int {
         let inventories: [String: [String]] = [
-            "Basic": ["Copy", "Share", "Mail", "Message", "Google Search", "Event", "Send to Reminders", "List in Reminders", "Print - Plain Text", "Services", "Save to Files", "Save to Files as...", "Save to Google Drive", "Append to Google Drive Journal", "Save to OneDrive", "Append to OneDrive Journal"],
+            "Basic": ["Copy", "Share", "Mail", "Message", "Google Search", "Event", "Send to Reminders", "List in Reminders", "Print - Plain Text", "Services", "Save to Files", "Save to Files as...", "Save to iCloud Drive", "Append to iCloud Journal", "Save to Google Drive", "Append to Google Drive Journal", "Save to OneDrive", "Append to OneDrive Journal"],
             "Editing": ["Undo/Redo", "Undo", "Redo", "Cursor Movement", "Move Left", "Move Right", "Move Back by Word", "Move Forward by Word", "Commands", "Find", "Advanced Find", "Make Tasks", "Toggle Tasks", "Insert Date", "Insert Dictation", "Dictate New Draft", "Copy Selection", "Paste as Plain Text", "Mail", "Message", "Text Manipulation", "Indent", "Outdent", "Move Line Up", "Move Line Down", "Duplicate Line", "Previous Marker", "Next Marker", "Utility", "Toggle Theme"],
-            "Markdown": ["Markdown Header (#)", "Markdown Bold (**)", "Markdown Emphasis (_)", "Markdown Link", "Inline Code (`)", "Markdown Footnote (^)", "Block Elements", "Markdown List", "Quote-Increase (>)", "Quote-Decrease", "Code Block (```)", "Markdown Table", "Preview", "Preview - RTL", "Utility", "Markdown Mail", "Copy as HTML", "Copy as Rich Text", "Paste as Markdown", "Print - Markdown"],
-            "Tools": ["Change Selection", "UPPER", "lower", "Title", "Sort", "Straighten Quotes", "Strip Diacritics", "Strip Line Feed", "Hard Wrap", "Strip Extra Blank Lines", "Trim Whitespace", "Remove Blank Lines", "Smart Parentheses", "Smart Brackets", "Smart Braces"],
+            "Markdown": ["Markdown Header (#)", "Markdown Bold (**)", "Markdown Emphasis (_)", "Markdown Link", "Inline Code (`)", "Markdown Footnote (^)", "Block Elements", "Markdown List", "Quote-Increase (>)", "Quote-Decrease", "Code Block (```)", "Markdown Table", "Preview", "Preview - RTL", "Utility", "Markdown Mail", "Copy as HTML", "Copy as Rich Text", "Copy as Rich Text w/o Styles", "Paste as Markdown", "Print - Markdown"],
+            "Tools": ["Change Selection", "UPPER", "lower", "Title", "Sort", "Straighten Quotes", "Strip Diacritics", "Strip Line Feed", "Hard Wrap", "Strip Extra Blank Lines", "Trim Whitespace", "Remove Blank Lines", "Smart Parentheses", "Smart Brackets", "Smart Braces", "Change Case...", "Sort Lines..."],
             "Processing": ["Inbox", "Archive", "Save Version", "Trash", "Stats", "Tags & Flags", "Flag", "Unflag", "Templates", "New Draft with Template", "Apply Template", "Previous Placeholder <|>", "Next Placeholder <|>"]
         ]
         return inventories[group]?.firstIndex(of: name) ?? 0

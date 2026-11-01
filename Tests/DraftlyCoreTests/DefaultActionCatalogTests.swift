@@ -11,7 +11,7 @@ struct DefaultActionCatalogTests {
         let actions = library!.orderedActions(on: .list)
         #expect(library!.groupNames == DefaultActionCatalog.groupNames)
         #expect(actions.count == DefaultActionCatalog.actions.count)
-        #expect(actions.count == 94)
+        #expect(actions.count == 99)
         #expect(Set(actions.map(\.id)).count == actions.count)
         #expect(Set(actions.flatMap(\.steps).map(\.id)).count == actions.flatMap(\.steps).count)
         #expect(actions.allSatisfy { !$0.symbol.isEmpty && $0.unsupportedSteps.isEmpty })
@@ -91,6 +91,8 @@ struct DefaultActionCatalogTests {
     @Test func syncedDriveActionsUseExplicitBookmarksAndPortablePaths() throws {
         let actions = DefaultActionCatalog.actions
         for (name, bookmark, mode, fileName) in [
+            ("Save to iCloud Drive", "iCloud Drive", "create", "[[safe_title]].md"),
+            ("Append to iCloud Journal", "iCloud Drive", "append", "Journal.md"),
             ("Save to Google Drive", "Google Drive", "create", "[[safe_title]].md"),
             ("Append to Google Drive Journal", "Google Drive", "append", "Journal.md"),
             ("Save to OneDrive", "OneDrive", "create", "[[safe_title]].md"),
@@ -105,12 +107,29 @@ struct DefaultActionCatalogTests {
             #expect(step.values["folderTemplate"] == nil)
         }
     }
+
+    @Test func optionActionsUseReviewPromptsAndApplyTheSelectedOperation() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let editor = EditorSession()
+        editor.load(try library.createNote(content: "beta\nAlpha"))
+        let host = DefaultCatalogHost()
+        let runner = ActionRunner(library: library, editor: editor, host: host)
+        host.promptIndex = 0
+        #expect(runner.run(try #require(DefaultActionCatalog.actions.first { $0.name == "Change Case..." })))
+        #expect(editor.content == "BETA\nALPHA")
+        host.promptIndex = 1
+        #expect(runner.run(try #require(DefaultActionCatalog.actions.first { $0.name == "Sort Lines..." })))
+        #expect(editor.content == "BETA\nALPHA")
+        #expect(host.calls.filter { $0.0 == "prompt" }.count == 2)
+    }
 }
 
 @MainActor private final class DefaultCatalogHost: ActionHost {
     var calls: [(String, [String: Any])] = []
+    var promptIndex = 0
     func perform(_ operation: String, values: [String: Any]) throws -> Any? {
         calls.append((operation, values))
+        if operation == "prompt" { return ["index": promptIndex, "fields": [:]] }
         return true
     }
 }
