@@ -510,3 +510,23 @@ Candidate creation, signed appcast preparation, GitHub staging, public asset
 verification, and site promotion keep their existing separate commands. The
 writer lock and operation journals cover the publication sequence. See
 [CI/CD](ci-cd.md) and [release operations](releasing.md).
+
+
+## Agent contract boundary — local stage 1
+
+AgentContracts is a package-internal target. It contains serialized request and
+result envelopes, JSON values, stable errors, the planned operation catalog,
+and pure baseline grant evaluation. It depends on Foundation only. No app
+route, socket, network listener, or MCP server uses it yet.
+
+The catalog records ownership, target shape, expected-version and human approval
+requirements. Catalog entries have no handlers. Execution and native effects
+require an additional authorization result, even when the connection has the
+baseline capability. Query decisions retain the explicit allowed scope for a
+future handler to filter results. These decisions do not authenticate callers,
+consume approvals, validate destinations, or apply edits.
+
+The independent required-operation fixture prevents accidental scope removal.
+The existing Swift inventory runner discovers the new test target without an
+alternate test command. See the [agent operation inventory](research/agent-operation-inventory.md)
+for current boundaries, reused characterization cases and remaining work.

@@ -13,6 +13,8 @@ signing guides to install the released app.
 
 ## Work on the code
 
+- [Development with agents](development-with-agents.md): use product direction,
+  principles, and evidence to make and verify decisions.
 - [Development](development.md): requirements, local builds, signing, data
   formats, and the repository map.
 - [Testing](testing.md): run checks, use isolated fixtures, and preserve coverage.
@@ -20,6 +22,15 @@ signing guides to install the released app.
 - [Glossary](../GLOSSARY.md): terms used in the code and guides.
 - [Product direction](../PRODUCT.md) and [constitution](../CONSTITUTION.md):
   the purpose and principles behind product decisions.
+
+## Planned agent access
+
+- [Draftly for agents](plans/draftly-for-agents.md): full local operation plan,
+  permissions, delivery stages, and a future private-network remote design.
+- [Agent operation inventory](research/agent-operation-inventory.md): contract
+  metadata, reused tests, and missing schema and execution work.
+- [Agent readiness audit](research/agent-readiness-audit-2026-10-31.md): current
+  code boundaries, risks, and refactorings needed for that plan.
 
 ## Maintain and publish Draftly
 

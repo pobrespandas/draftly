@@ -10,9 +10,9 @@
 
 ## Product decisions
 
-- For product, design, or architecture decisions, read `PRODUCT.md`,
-  `MISSION.md`, `VISION.md`, `VALUES.md`, and `CONSTITUTION.md`. They provide
-  revisable direction, values, and decision principles.
+- For product, design, or architecture decisions, use
+  [Development with agents](docs/development-with-agents.md). It explains
+  which direction, rules, and evidence to consult for the decision.
 
 ## Skills
 
