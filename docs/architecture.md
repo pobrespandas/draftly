@@ -770,3 +770,36 @@ operate from the unsigned test runner or a QA identity. Real app/helper profiles
 and signed replacement checks remain required before activation. The shared group
 and helper wrapper choice are recorded in
 [the credential decision](adr/0001-agent-device-keychain.md).
+
+### Local agent socket boundary
+
+AgentLocalTransport depends on AgentContracts and AgentLocalSecurity, not Core
+Data or application models. AgentPrivateFilePolicy is the common owner/mode/ACL
+rule for connection files and socket directories. AgentUnixListener owns one new
+private temporary endpoint. Cleanup checks its captured inode; it does not search
+for or delete other endpoints. Locator publication and one broker per library
+still need a coordinator before normal app activation.
+
+AgentUnixChannel uses length-prefixed bounded Data frames. Each connection has a
+serial worker queue. Descriptor borrowing keeps close/cancellation from reusing a
+file descriptor under pending I/O. Polling uses monotonic deadlines on those worker
+queues; MainActor does not poll or block on the socket. The broker admits at most
+eight clients. See [local development](agent-local-development.md) for limits.
+
+AgentPeerIdentity validates kernel audit tokens with public SecCode APIs. Both
+ends also check peer UID. This avoids trusting a claimed PID, name, path or
+connection UUID as process identity. The production helper checks the app before
+sending a credential; the production broker checks the helper before reading it.
+Injected peer validators exist for isolated tests, not as client configuration.
+
+AgentSocketBroker owns live application sessions. Hello authenticates a connection;
+Welcome returns the host library ID, never the private session handle. Every
+subsequent frame reaches AgentCommandService under that handle. The client binds
+an omitted library ID to the authenticated host and checks response request IDs.
+Framing or connection errors close the session. The JSON CLI returns error status
+for setup/transport and operation errors; accepted work is not completion.
+
+The executable imports only contracts, local security and transport. It has no
+library writer, raw credential flag, global installation, background daemon or
+remote socket. MCP, signed helper wrapping/provisioning, pairing UI and normal
+app startup are pending. No app route starts this broker in the installed app.

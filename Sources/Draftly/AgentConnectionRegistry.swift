@@ -36,6 +36,8 @@ import AgentContracts
 
     func configurationForUserInterface() throws -> AgentConnectionMetadata { try snapshot().configuration }
 
+    func permitsTransportStart() throws -> Bool { try !disabledUntilCommit && snapshot().configuration.enabled }
+
     func setEnabledFromUserInterface(_ enabled: Bool) throws {
         let old = try snapshot()
         var updated = old.configuration

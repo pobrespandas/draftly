@@ -1,6 +1,7 @@
 import Foundation
 import Darwin
 import AgentContracts
+import AgentLocalSecurity
 
 // Local connection metadata only. Credentials never belong in this file.
 @MainActor final class AgentConnectionFile {
@@ -16,10 +17,7 @@ import AgentContracts
         let parentFD = Darwin.open(physical, O_RDONLY | O_DIRECTORY | O_NOFOLLOW_ANY | O_CLOEXEC)
         guard parentFD >= 0 else { throw AgentErrorCode.storageError }
         defer { Darwin.close(parentFD) }
-        var info = stat()
-        guard fstat(parentFD, &info) == 0, info.st_uid == geteuid(),
-              info.st_mode & mode_t(0o022) == 0 else { throw AgentErrorCode.permissionDenied }
-        try Self.verifyACL(parentFD)
+        try AgentPrivateFilePolicy.validateTrustedParent(parentFD)
         guard mkdirat(parentFD, "Agents", mode_t(0o700)) == 0 || errno == EEXIST else { throw AgentErrorCode.storageError }
         let descriptor = openat(parentFD, "Agents", O_RDONLY | O_DIRECTORY | O_NOFOLLOW_ANY | O_CLOEXEC)
         guard descriptor >= 0 else { throw AgentErrorCode.permissionDenied }
@@ -98,30 +96,6 @@ import AgentContracts
     }
 
     private static func verify(_ descriptor: Int32, directory: Bool) throws {
-        var info = stat()
-        guard fstat(descriptor, &info) == 0, info.st_uid == geteuid(),
-              info.st_mode & mode_t(S_IFMT) == mode_t(directory ? S_IFDIR : S_IFREG),
-              info.st_mode & mode_t(0o777) == mode_t(directory ? 0o700 : 0o600),
-              directory || info.st_nlink == 1 else { throw AgentErrorCode.permissionDenied }
-        try verifyACL(descriptor)
-    }
-
-    private static func verifyACL(_ descriptor: Int32) throws {
-        guard let acl = acl_get_fd_np(descriptor, ACL_TYPE_EXTENDED) else {
-            // The descriptor is valid; Darwin uses ENOENT when it has no extended ACL.
-            if errno == ENOENT { return }
-            throw AgentErrorCode.permissionDenied
-        }
-        defer { acl_free(UnsafeMutableRawPointer(acl)) }
-        var entry: acl_entry_t?
-        var position = ACL_FIRST_ENTRY
-        while acl_get_entry(acl, position.rawValue, &entry) == 0 {
-            var tag = ACL_UNDEFINED_TAG
-            guard let entry, acl_get_tag_type(entry, &tag) == 0, tag == ACL_EXTENDED_DENY else {
-                throw AgentErrorCode.permissionDenied
-            }
-            position = ACL_NEXT_ENTRY
-        }
-        guard errno == EINVAL else { throw AgentErrorCode.permissionDenied }
+        try AgentPrivateFilePolicy.validate(descriptor, kind: directory ? .directory : .regular)
     }
 }
