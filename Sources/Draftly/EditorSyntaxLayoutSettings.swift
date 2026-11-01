@@ -7,11 +7,11 @@ struct EditorSyntaxLayoutSettings: View {
     let fontSize: Double
     let legacyLineSpacing: Double
     @AppStorage(EditorSyntaxLayoutPreferences.key) private var encoded = "{}"
-    @AppStorage(EditorParagraphLayout.lineHeightKey) private var lineHeight = 0.0
-    @AppStorage(EditorParagraphLayout.paragraphSpacingKey) private var paragraphs = 0.0
+    @AppStorage(EditorParagraphLayout.lineHeightKey) private var lineHeight = EditorPreferenceDefaults.lineHeightMultiple
+    @AppStorage(EditorParagraphLayout.paragraphSpacingKey) private var paragraphs = EditorPreferenceDefaults.paragraphSpacing
     @AppStorage("editor.horizontalMargin") private var horizontal = EditorTextLayout.horizontalMargin
     @AppStorage("editor.verticalMargin") private var vertical = EditorTextLayout.verticalMargin
-    @AppStorage("editor.maximumWidth") private var maximum = 0.0
+    @AppStorage("editor.maximumWidth") private var maximum = EditorPreferenceDefaults.maximumWidth
     @State private var error: String?
 
     private var layout: EditorSyntaxLayoutPreferences.Layout {

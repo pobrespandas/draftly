@@ -4,14 +4,14 @@ import DraftlyCore
 
 struct EditorBody: View {
     @AppStorage(EditorSyntaxDisplayPreferences.key) private var displayOptions = "{}"
-    @AppStorage("editor.highlightInsertionPoint") private var highlightInsertionPoint = false
-    @AppStorage(GeneralPreferences.showCustomTouchBarKey) private var showCustomTouchBar = true
-    @AppStorage(EditorParagraphLayout.lineHeightKey) private var lineHeightMultiple = 0.0
-    @AppStorage(EditorParagraphLayout.paragraphSpacingKey) private var paragraphSpacing = 0.0
+    @AppStorage("editor.highlightInsertionPoint") private var highlightInsertionPoint = EditorPreferenceDefaults.highlightInsertionPoint
+    @AppStorage(GeneralPreferences.showCustomTouchBarKey) private var showCustomTouchBar = GeneralPreferences.defaultTouchBar
+    @AppStorage(EditorParagraphLayout.lineHeightKey) private var lineHeightMultiple = EditorPreferenceDefaults.lineHeightMultiple
+    @AppStorage(EditorParagraphLayout.paragraphSpacingKey) private var paragraphSpacing = EditorPreferenceDefaults.paragraphSpacing
     @AppStorage(EditorIndentationPreferences.key) private var indentation = "{}"
     @AppStorage(SyntaxFeaturePreferences.key) private var syntaxFeatures = "{}"
     @AppStorage(EditorSyntaxFontPreferences.key) private var syntaxFonts = "{}"
-    @AppStorage("editor.monospaceFontName") private var monospaceFontName = "System Monospace"
+    @AppStorage("editor.monospaceFontName") private var monospaceFontName = EditorPreferenceDefaults.monospaceFontName
     @AppStorage(EditorSyntaxLayoutPreferences.key) private var syntaxLayouts = "{}"
     @AppStorage(EditorTextInputPreferences.key) private var textInputOptions = "{}"
     @ObservedObject var model: WindowModel

@@ -8,21 +8,21 @@ struct NativeEditor: NSViewRepresentable {
     @ObservedObject var session: EditorSession
     var fontName: String
     var fontSize: Double
-    var monospaceFontName = "System Monospace"
+    var monospaceFontName = EditorPreferenceDefaults.monospaceFontName
     var lineSpacing: Double
     var markdown: Bool
-    var lineHeightMultiple = 0.0
-    var paragraphSpacing = 0.0
+    var lineHeightMultiple = EditorPreferenceDefaults.lineHeightMultiple
+    var paragraphSpacing = EditorPreferenceDefaults.paragraphSpacing
     var syntax = "Markdown"
     var syntaxDefinition: SyntaxDefinition?
     var horizontalMargin = EditorTextLayout.horizontalMargin
     var verticalMargin = EditorTextLayout.verticalMargin
-    var maximumWidth = 0.0
+    var maximumWidth = EditorPreferenceDefaults.maximumWidth
     var theme: EditorTheme?
     var linksEnabled = false
     var isActive = true
-    var showCustomTouchBar = true
-    var highlightInsertionPoint = false
+    var showCustomTouchBar = GeneralPreferences.defaultTouchBar
+    var highlightInsertionPoint = EditorPreferenceDefaults.highlightInsertionPoint
     var showParagraphNumbers = false
     var touchBarModel: WindowModel?
     var textInput = EditorTextInputPreferences.Configuration()
@@ -394,7 +394,7 @@ final class DraftTextView: NSTextView {
 
     @discardableResult
     func pasteHTML(from pasteboard: NSPasteboard, defaults: UserDefaults = .standard) throws -> Bool {
-        guard defaults.object(forKey: HTMLPreferences.pasteKey) as? Bool ?? true,
+        guard defaults.object(forKey: HTMLPreferences.pasteKey) as? Bool ?? HTMLPreferences.booleanDefaults[HTMLPreferences.pasteKey]!,
               let html = pasteboard.string(forType: .html) else { return false }
         guard let converted = try NativeActionHost().performAPI("htmlToMarkdown", values: ["text": html, "options": HTMLPreferences.options(defaults: defaults)]) as? String else {
             throw DraftlyError.message("HTML could not be converted to Markdown.")
@@ -485,7 +485,7 @@ final class WindowAccessorView: NSView {
 }
 
 struct InlineMarkdownPreview: NSViewRepresentable {
-    @AppStorage(MarkdownPreferences.engineKey) private var processor = "multi"
+    @AppStorage(MarkdownPreferences.engineKey) private var processor = MarkdownPreferences.defaultEngine
     @AppStorage(MarkdownPreferences.multiKey) private var multiOptions = "{}"
     @AppStorage(MarkdownPreferences.githubKey) private var githubOptions = "{}"
     @ObservedObject var session: EditorSession

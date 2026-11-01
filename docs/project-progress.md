@@ -3,6 +3,21 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Preference defaults preparation — 1 November
+
+Settings and editor consumers now share the existing editor, capture, General,
+HTML and Markdown defaults. This removes duplicate values before the application
+preference catalog is connected. Legacy Boolean conversion and invalid HTML
+marker fallback stay unchanged. Reading a default does not persist it.
+
+Automatic checks passed 49 focused tests across seven suites and the local
+Xcode app build. The three new characterization tests also passed before the
+extraction. The generated Xcode target uses the package name `draftly` to read
+package-only constants from Core. No public API or persisted format changed.
+No native acceptance is claimed; this unit changes no controls or permissions.
+The actual field catalog, preference handlers and local agent endpoint remain
+pending. The installed application is unchanged.
+
 ## Current priority
 
 Local agent access is in stage 1. The user accepted the full
@@ -20,13 +35,14 @@ full-library backup authority, malformed/oversized messages, Unicode/decimal
 transport, and distinct pending/error/result states.
 
 Automatic validation passed one package-consumer test, 127 AgentContracts,
-759 Core and 938 app tests with
-complete result inventories, 285 Python tests, the structural matrix check,
+759 Core and 944 app tests with
+complete result inventories, 286 Python tests, the structural matrix check,
 and the final local app build.
 See the [operation inventory](research/agent-operation-inventory.md) for reused
 characterization evidence and remaining schemas and runtime enforcement work.
 Contract definitions now cover 97 operation names: 93 static schemas and four
-registry-bound preference forms. The application field catalog is not connected.
+registry-bound preference forms. The application metadata catalog now declares 86 reviewed fields. Typed
+preference readers, writers and the scoped endpoint are not connected.
 They use one definition for validation, exported JSON Schema and request-local
 defaults. Chunk checks use UTF-16; result shapes separate summaries from content.
 The step effect catalog covers all 25 executor step types and always requires

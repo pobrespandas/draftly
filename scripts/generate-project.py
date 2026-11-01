@@ -24,11 +24,13 @@ sparkle = add("sparkle", f'isa = XCSwiftPackageProductDependency; package = {spa
 sparklebuild = add("sparklebuild", f'isa = PBXBuildFile; productRef = {sparkle};')
 core = add("core", f'isa = XCSwiftPackageProductDependency; package = {local}; productName = DraftlyCore;')
 corebuild = add("corebuild", f'isa = PBXBuildFile; productRef = {core};')
+contracts = add("contracts", f'isa = XCSwiftPackageProductDependency; package = {local}; productName = AgentContracts;')
+contractsbuild = add("contractsbuild", f'isa = PBXBuildFile; productRef = {contracts};')
 sourcegroup = add("sourcegroup", 'isa = PBXGroup; path = Sources/Draftly; sourceTree = "<group>"; children = (' + ','.join(references) + ');')
 products = add("products", f'isa = PBXGroup; name = Products; sourceTree = "<group>"; children = ({app});')
 group = add("group", f'isa = PBXGroup; sourceTree = "<group>"; children = ({sourcegroup},{products});')
 sourcephase = add("sources", 'isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (' + ','.join(sources) + '); runOnlyForDeploymentPostprocessing = 0;')
-frameworks = add("frameworks", f'isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = ({corebuild},{sparklebuild}); runOnlyForDeploymentPostprocessing = 0;')
+frameworks = add("frameworks", f'isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = ({corebuild},{contractsbuild},{sparklebuild}); runOnlyForDeploymentPostprocessing = 0;')
 icon = add("appicon", 'isa = PBXFileReference; lastKnownFileType = image.icns; path = Resources/Draftly.icns; sourceTree = SOURCE_ROOT;')
 iconbuild = add("appiconbuild", f'isa = PBXBuildFile; fileRef = {icon};')
 menuicon = add("menuicon", 'isa = PBXFileReference; lastKnownFileType = image.pdf; path = Resources/DraftlyMenuMark.pdf; sourceTree = SOURCE_ROOT;')
@@ -38,12 +40,12 @@ signing = add("signing", 'isa = PBXFileReference; lastKnownFileType = text.xccon
 for config in ["Debug", "Release"]:
     active = 'YES' if config == 'Debug' else 'NO'
     add("project:" + config, f'isa = XCBuildConfiguration; name = {config}; buildSettings = {{ SDKROOT = macosx; MACOSX_DEPLOYMENT_TARGET = 26.0; SWIFT_VERSION = 6.0; CLANG_ENABLE_MODULES = YES; ONLY_ACTIVE_ARCH = {active}; }};')
-    settings = 'CODE_SIGN_STYLE = "$(DRAFTLY_CODE_SIGN_STYLE)"; PROVISIONING_PROFILE_SPECIFIER = "$(DRAFTLY_PROVISIONING_PROFILE)"; CODE_SIGN_ENTITLEMENTS = Configuration/Draftly.entitlements; INFOPLIST_FILE = Configuration/Info.plist; GENERATE_INFOPLIST_FILE = NO; PRODUCT_NAME = Draftly; ENABLE_HARDENED_RUNTIME = YES; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks"; SWIFT_EMIT_LOC_STRINGS = YES;'
+    settings = 'CODE_SIGN_STYLE = "$(DRAFTLY_CODE_SIGN_STYLE)"; PROVISIONING_PROFILE_SPECIFIER = "$(DRAFTLY_PROVISIONING_PROFILE)"; CODE_SIGN_ENTITLEMENTS = Configuration/Draftly.entitlements; INFOPLIST_FILE = Configuration/Info.plist; GENERATE_INFOPLIST_FILE = NO; PRODUCT_NAME = Draftly; ENABLE_HARDENED_RUNTIME = YES; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks"; SWIFT_EMIT_LOC_STRINGS = YES; OTHER_SWIFT_FLAGS = "$(inherited) -package-name draftly";'
     settings += ' SWIFT_OPTIMIZATION_LEVEL = "' + ('-Onone' if config == 'Debug' else '-O') + '";'
     add("app:" + config, f'isa = XCBuildConfiguration; name = {config}; baseConfigurationReference = {signing}; buildSettings = {{ {settings} }};')
 projectconfigs = add("projectconfigs", 'isa = XCConfigurationList; buildConfigurations = (' + ','.join(uid('project:' + c) for c in ['Debug','Release']) + '); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug;')
 appconfigs = add("appconfigs", 'isa = XCConfigurationList; buildConfigurations = (' + ','.join(uid('app:' + c) for c in ['Debug','Release']) + '); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug;')
-target = add("target", f'isa = PBXNativeTarget; buildConfigurationList = {appconfigs}; buildPhases = ({sourcephase},{frameworks},{resources}); buildRules = (); dependencies = (); name = Draftly; productName = Draftly; productReference = {app}; productType = "com.apple.product-type.application"; packageProductDependencies = ({core},{sparkle});')
+target = add("target", f'isa = PBXNativeTarget; buildConfigurationList = {appconfigs}; buildPhases = ({sourcephase},{frameworks},{resources}); buildRules = (); dependencies = (); name = Draftly; productName = Draftly; productReference = {app}; productType = "com.apple.product-type.application"; packageProductDependencies = ({core},{contracts},{sparkle});')
 project = add("project", f'isa = PBXProject; attributes = {{ BuildIndependentTargetsInParallel = YES; LastUpgradeCheck = 2710; }}; buildConfigurationList = {projectconfigs}; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en,Base); mainGroup = {group}; productRefGroup = {products}; projectDirPath = ""; projectRoot = ""; targets = ({target}); packageReferences = ({local},{sparkle_package});')
 directory = root / 'Draftly.xcodeproj'
 directory.mkdir(exist_ok=True)

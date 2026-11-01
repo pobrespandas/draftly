@@ -3,7 +3,7 @@ import AppKit
 import DraftlyCore
 
 struct MarkdownSettingsView: View {
-    @AppStorage(MarkdownPreferences.engineKey) private var processor = "multi"
+    @AppStorage(MarkdownPreferences.engineKey) private var processor = MarkdownPreferences.defaultEngine
     @AppStorage(MarkdownPreferences.multiKey) private var multiOptions = "{}"
     @AppStorage(MarkdownPreferences.githubKey) private var githubOptions = "{}"
 

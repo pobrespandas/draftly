@@ -20,6 +20,7 @@ struct SpotlightDraft: Equatable, Sendable {
 @MainActor
 final class SpotlightPreferences: ObservableObject {
     static let enabledKey = "application.indexDraftsInSpotlight"
+    static let defaultEnabled = false
     static let hasIndexKey = "application.spotlightHasIndex"
     @Published private(set) var isEnabled: Bool
     @Published private(set) var isChanging = false
@@ -65,7 +66,7 @@ final class SpotlightPreferences: ObservableObject {
          clear: @escaping () async throws -> Void) {
         self.defaults = defaults; self.isAvailable = isAvailable
         self.replace = replace; self.clear = clear
-        isEnabled = defaults.object(forKey: Self.enabledKey) as? Bool ?? false
+        isEnabled = defaults.object(forKey: Self.enabledKey) as? Bool ?? Self.defaultEnabled
     }
 
     func attach(to library: LibraryStore) {

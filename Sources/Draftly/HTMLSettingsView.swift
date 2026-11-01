@@ -3,15 +3,15 @@ import AppKit
 import DraftlyCore
 
 struct HTMLSettingsView: View {
-    @AppStorage(HTMLPreferences.pasteKey) private var paste = true
-    @AppStorage("html.strongMark") private var strong = "**"
-    @AppStorage("html.emphasisMark") private var emphasis = "_"
-    @AppStorage("html.ulItemMark") private var list = "-"
-    @AppStorage("html.inlineLinks") private var inlineLinks = true
-    @AppStorage("html.linksEachParagraph") private var linksEachParagraph = false
-    @AppStorage("html.ignoreLinks") private var ignoreLinks = false
-    @AppStorage("html.ignoreImages") private var ignoreImages = false
-    @AppStorage("html.ignoreEmphasis") private var ignoreEmphasis = false
+    @AppStorage(HTMLPreferences.pasteKey) private var paste = HTMLPreferences.booleanDefaults[HTMLPreferences.pasteKey]!
+    @AppStorage("html.strongMark") private var strong = HTMLPreferences.strongMarks[0]
+    @AppStorage("html.emphasisMark") private var emphasis = HTMLPreferences.emphasisMarks[0]
+    @AppStorage("html.ulItemMark") private var list = HTMLPreferences.listMarks[0]
+    @AppStorage("html.inlineLinks") private var inlineLinks = HTMLPreferences.booleanDefaults["html.inlineLinks"]!
+    @AppStorage("html.linksEachParagraph") private var linksEachParagraph = HTMLPreferences.booleanDefaults["html.linksEachParagraph"]!
+    @AppStorage("html.ignoreLinks") private var ignoreLinks = HTMLPreferences.booleanDefaults["html.ignoreLinks"]!
+    @AppStorage("html.ignoreImages") private var ignoreImages = HTMLPreferences.booleanDefaults["html.ignoreImages"]!
+    @AppStorage("html.ignoreEmphasis") private var ignoreEmphasis = HTMLPreferences.booleanDefaults["html.ignoreEmphasis"]!
 
     var body: some View {
         ScrollView {

@@ -7,12 +7,12 @@ struct SettingsView: View {
     @StateObject private var loginItem = LoginItemPreferences()
     @AppStorage("settings.selectedTab") private var selectedTab = "general"
     @AppStorage(ApplicationAppearance.preferenceKey) private var appearance = "System"
-    @AppStorage(GeneralPreferences.showInMenuBarKey) private var showInMenuBar = true
-    @AppStorage(GeneralPreferences.showMainWindowAtLaunchKey) private var showMainWindowAtLaunch = true
-    @AppStorage(GeneralPreferences.advancedFindKey) private var preferAdvancedFind = false
-    @AppStorage(GeneralPreferences.showCustomTouchBarKey) private var showCustomTouchBar = true
+    @AppStorage(GeneralPreferences.showInMenuBarKey) private var showInMenuBar = GeneralPreferences.defaultMenuBarVisibility
+    @AppStorage(GeneralPreferences.showMainWindowAtLaunchKey) private var showMainWindowAtLaunch = GeneralPreferences.defaultMainWindowVisibility
+    @AppStorage(GeneralPreferences.advancedFindKey) private var preferAdvancedFind = GeneralPreferences.defaultAdvancedFind
+    @AppStorage(GeneralPreferences.showCustomTouchBarKey) private var showCustomTouchBar = GeneralPreferences.defaultTouchBar
     @AppStorage(ActionMoveNavigation.preferenceKey) private var actionMoveNavigation = ActionMoveNavigation.createNew.rawValue
-    @AppStorage("capture.newDraftAfter") private var newDraftAfter = 300.0
+    @AppStorage("capture.newDraftAfter") private var newDraftAfter = CaptureDefaults.newDraftAfter
     var body: some View {
         TabView(selection: $selectedTab) {
             generalSettings

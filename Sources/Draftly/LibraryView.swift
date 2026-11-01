@@ -8,13 +8,13 @@ struct LibraryView: View {
     private let requestID: UUID?
     @SceneStorage("draftly.scene.editorDraftID") private var restoredDraftID = ""
     @State private var showTagSearch = false
-    @AppStorage("editor.fontName") private var fontName = "System"
-    @AppStorage("editor.fontSize") private var fontSize = 17.0
-    @AppStorage("editor.lineSpacing") private var lineSpacing = 2.0
+    @AppStorage("editor.fontName") private var fontName = EditorPreferenceDefaults.fontName
+    @AppStorage("editor.fontSize") private var fontSize = EditorPreferenceDefaults.fontSize
+    @AppStorage("editor.lineSpacing") private var lineSpacing = EditorPreferenceDefaults.lineSpacing
     @AppStorage("editor.horizontalMargin") private var horizontalMargin = EditorTextLayout.horizontalMargin
     @AppStorage("editor.verticalMargin") private var verticalMargin = EditorTextLayout.verticalMargin
-    @AppStorage("editor.maximumWidth") private var maximumWidth = 0.0
-    @AppStorage("editor.typewriter") private var typewriter = false
+    @AppStorage("editor.maximumWidth") private var maximumWidth = EditorPreferenceDefaults.maximumWidth
+    @AppStorage("editor.typewriter") private var typewriter = EditorPreferenceDefaults.typewriter
     @AppStorage("editor.theme") private var themeName = "System"
     @AppStorage(EditorThemePreferences.key) private var themeReferences = Data()
     @AppStorage(EditorThemePreferences.revisionKey) private var themeRevision = 0
@@ -25,7 +25,7 @@ struct LibraryView: View {
     }
     private var theme: EditorTheme? { themePresentation.theme }
     private var preferredScheme: ColorScheme? { themePresentation.dark.map { $0 ? .dark : .light } }
-    @AppStorage("capture.newDraftAfter") private var newDraftAfter = 300.0
+    @AppStorage("capture.newDraftAfter") private var newDraftAfter = CaptureDefaults.newDraftAfter
 
     init(library: LibraryStore, controller: AppController, requestID: UUID? = nil) {
         self.hub = controller

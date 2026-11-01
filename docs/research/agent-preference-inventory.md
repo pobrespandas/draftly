@@ -1,6 +1,8 @@
 # Agent preference source inventory
 
-Status: source audit, 1 November 2026. The application field catalog is not wired.
+Status: application metadata catalog implemented, 1 November 2026.
+`AgentPreferenceCatalog` declares 86 reviewed fields from the owners below.
+It performs no storage or native calls. No agent preference handler is enabled.
 The contract registry accepts explicit trusted fields. It never discovers fields
 from UserDefaults or from request data. Test fields are fixtures, not evidence
 that each setting has an application handler.
@@ -29,7 +31,8 @@ that each setting has an application handler.
 | Theme selection | `EditorThemePreferences`, `InstalledThemeCommands` | Use the dedicated theme selection contracts and separate slot/definition versions. Do not expose bookmark bytes. |
 | Folder bookmarks | `BookmarkPreferences`, `BookmarkSettingsView.swift` | Preserve names and the native folder picker. Add a stable local identity adapter before serving UUID-based requests. |
 
-These are source locations and requirements, not completed consumer tests.
+The catalog tests freeze the field IDs and compare defaults with these owners.
+These metadata checks do not prove live effects, persistence or native acceptance.
 Use the existing setters for JSON field edits. A reset removes only the selected
 known override. It does not delete an entire preference domain or discard unknown
 fields. Local application and window state stay separate from shared definitions.
@@ -48,11 +51,11 @@ an external file, system registration or a connection-grant change.
 
 ## Remaining application work
 
-1. Build the application field catalog from these owners. Check every Settings
-   and Editor Settings control against the catalog. Freeze that inventory in a
-   dedicated application test; the fixture registry is not a substitute.
-2. Reuse or extract shared default constants where views and consumers currently
-   repeat them. Preserve values and behavior with characterization tests.
+1. Connect the reviewed application field catalog to the scoped schema handler.
+   `AgentPreferenceCatalogTests` freezes 86 fields, including syntax contexts,
+   inherited and system defaults, command contexts and protected native changes.
+2. Keep the shared default constants used by Settings and editor consumers.
+   The characterization tests preserve values and legacy Boolean conversion.
 3. Add typed getters and mutations with temporary domains and injected native
    adapters. Test malformed data, storage failure, unknown fields, per-field
    reset, inheritance and conflicts. Do not read personal preferences in tests.
