@@ -13,16 +13,10 @@ package enum AgentActionSchemas {
         let values = try schema.validatedParameters(request.parameters)
         if request.operation == "actions.update" || request.operation == "actionGroups.update" {
             let key = request.operation == "actions.update" ? "action" : "group"
-            guard case .object(let definition) = values[key], case .string(let rawID) = definition["id"],
-                  UUID(uuidString: rawID) == request.targets.first?.id else { throw AgentSchemaError.invalidValue }
+            try AgentResourceShapes.validateDefinitionID(values[key], target: request.targets.first)
         }
         if request.operation == "actions.reorder" || request.operation == "actionGroups.reorder" {
-            guard case .array(let order) = values["order"] else { throw AgentSchemaError.invalidValue }
-            let ids = order.compactMap { value -> UUID? in
-                guard case .string(let text) = value else { return nil }; return UUID(uuidString: text)
-            }
-            guard ids.count == order.count, Set(ids).count == ids.count,
-                  Set(ids) == Set(request.targets.map(\.id)) else { throw AgentSchemaError.invalidValue }
+            try AgentResourceShapes.validateOrder(values["order"], targets: request.targets)
         }
         return values
     }
@@ -79,7 +73,6 @@ package enum AgentActionSchemas {
         "id": o(.uuid), "name": r(text), "symbol": o(text), "order": o(.integer()),
         "importedMetadata": o(rawObject)
     ])
-    private static let receipt = AgentObjectShape(fields: ["id": r(.uuid), "versionToken": r(token)])
     private static let summary = AgentObjectShape(fields: [
         "id": r(.uuid), "name": r(text), "symbol": r(text), "groupID": r(.uuid),
         "group": r(text), "versionToken": r(token)
@@ -90,9 +83,9 @@ package enum AgentActionSchemas {
 
     private static let schemas: [String: AgentOperationSchema] = {
         let none = AgentObjectShape(fields: [:])
-        let updated = AgentObjectShape(fields: ["resource": r(.object(receipt))])
-        let deleted = AgentObjectShape(fields: ["deletedIDs": r(.array(.uuid, maximum: 10_000))])
-        let reordered = AgentObjectShape(fields: ["resources": r(.array(.object(receipt), maximum: 10_000))])
+        let updated = AgentResourceShapes.updated
+        let deleted = AgentResourceShapes.deleted
+        let reordered = AgentResourceShapes.reordered
         let order = AgentObjectShape(fields: ["order": r(.array(.uuid, maximum: 10_000))])
         let duplicate = AgentObjectShape(fields: ["name": o(text)])
         var list = page.fields

@@ -72,7 +72,7 @@ remain required before execution. This inventory is not evidence of functionalit
 | operations.answerPrompt | AgentOperationRegistry | connection only | operation | version |
 | workspaces.list | Workspace + LibraryStore | workspacesRead | none | none |
 | workspaces.get | Workspace + LibraryStore | workspacesRead | workspace | none |
-| workspaces.query | Workspace + LibraryStore | workspacesRead | workspace | none |
+| workspaces.query | Workspace + LibraryStore | workspacesRead,draftsRead | workspace | none |
 | workspaces.create | LibraryStore | workspacesManage | none | none |
 | workspaces.update | LibraryStore | workspacesManage | workspace | version |
 | workspaces.duplicate | LibraryStore | workspacesManage | workspace | version |
@@ -322,3 +322,30 @@ The exported schema uses the same syntax pattern. The regression fails before
 the fix and passes afterward; valid leap days and high fractional precision
 remain accepted. This is a separate contract fix, not a change to existing app
 or scripting date behavior.
+
+
+## Workspace contracts
+
+Nine Workspace operations now have schemas. Canonical definitions match the
+existing Workspace Codable format. Updates preserve list options, optional
+fields and string metadata, including the existing API JSON string. Unknown
+canonical top-level fields fail explicitly because the current model cannot
+retain them. Unknown data inside scriptMetadata stays intact. Imported integers
+are not restricted to a view's picker range. Creation does not fill defaults;
+the future application handler must use WorkspaceDefaults.
+
+Queries accept pagination only. They use the saved Workspace evaluator, not a
+second query grammar or a replacement filter from the request. Their result
+schema is the same draft page used by drafts.list. Queries require both
+workspacesRead and draftsRead; a Workspace is not an access-control container.
+The handler must still filter each draft by the connection's resource scope.
+Applying a Workspace needs effect review before theme/file references can load.
+The permission regression failed before these catalog changes.
+
+Updates bind the definition ID to the target. Reorders cover all targets once.
+Apply results bind both the window and Workspace IDs. Write receipts contain
+identities and versions, not readable definitions. Action and Workspace contracts
+share these receipt and target-binding rules. There are now 39 schemas for 128
+planned operations. None has an executor. Persistence, cancellation, invalid
+reference handling, editor preservation and actual window application remain
+runtime acceptance work; schema tests do not prove these effects.

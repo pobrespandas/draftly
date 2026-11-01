@@ -67,7 +67,7 @@ package enum AgentReadSchemas {
         "tagged": optional(.boolean), "caseSensitive": optional(.boolean, default: .bool(false))
     ], uniquingKeysWith: { _, new in new }))
 
-    private static let draftPage = AgentObjectShape(fields: [
+    package static let draftPage = AgentObjectShape(fields: [
         "items": required(.array(.object(summary), maximum: 200)),
         "nextCursor": required(.nullable(token))
     ])
