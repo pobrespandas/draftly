@@ -27,6 +27,8 @@ signing guides to install the released app.
 
 - [Draftly for agents](plans/draftly-for-agents.md): full local operation plan,
   permissions, delivery stages, and a future private-network remote design.
+- [Agent operation inventory](research/agent-operation-inventory.md): contract
+  metadata, reused tests, and missing schema and execution work.
 - [Agent readiness audit](research/agent-readiness-audit-2026-10-31.md): current
   code boundaries, risks, and refactorings needed for that plan.
 

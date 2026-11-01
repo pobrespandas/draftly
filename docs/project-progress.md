@@ -5,6 +5,31 @@ Historical test reports describe only the versions they tested.
 
 ## Current priority
 
+Local agent access is in stage 1. The user accepted the full
+[agent plan](plans/draftly-for-agents.md); remote implementation stays deferred.
+The first code unit adds the package-internal AgentContracts target: request and
+result envelopes, stable errors, typed resource references, a planned operation
+catalog and baseline grant evaluation. It adds no app route, CLI, socket, MCP
+server, Keychain entry, native permission or network listener.
+
+The catalog declares 127 planned operations and enables none. Baseline decisions
+retain the resource scope; Actions and native requests require further effect
+authorization. Irreversible operations require human approval. The new tests
+cover isolation, expiry/revocation, target kinds, revision-token requirements,
+full-library backup authority, malformed/oversized messages, Unicode/decimal
+transport, and distinct pending/error/result states.
+
+Automatic validation passed 21 AgentContracts, 759 Core and 938 app tests with
+complete result inventories, 285 Python tests, the structural matrix check,
+and the final local app build.
+See the [operation inventory](research/agent-operation-inventory.md) for reused
+characterization evidence and remaining schemas and runtime enforcement work.
+Stage 1 is not closed: per-operation parameter/result schemas and the complete
+script/native authority map still need implementation. Real agent clients have
+not been connected. The habitual app remains the released 0.1.3.
+
+## Released first-click correction
+
 Repository cleanup and the human-readable documentation pass are integrated.
 The current fix addresses a draft-list click that only changed focus when the
 editor was focused. Native table click handling now owns that focus transition.

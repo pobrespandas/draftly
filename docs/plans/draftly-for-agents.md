@@ -1,7 +1,7 @@
 # Draftly for agents
 
-Status: implementation proposal. Updated: 31 October 2026.
-Code reviewed at `290d558`. This document plans work; it does not claim that
+Status: accepted; local stage 1 in progress. Updated: 31 October 2026.
+Code reviewed at `290d558`. This document tracks planned work; it does not claim that
 an agent interface, permissions, or remote access already exists.
 
 ## Goal and accepted decisions

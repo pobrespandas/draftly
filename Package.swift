@@ -9,6 +9,8 @@ let package = Package(
     targets: [
         .target(name: "CMultiMarkdown", path: "Vendor/CMultiMarkdown", exclude: ["LICENSE"], sources: ["src"], publicHeadersPath: "include", cSettings: [.headerSearchPath("src"), .define("DISABLE_OBJECT_POOL")]),
         .target(name: "CGFM", path: "Vendor/CGFM", exclude: ["COPYING", "src/case_fold_switch.inc", "src/entities.inc"], sources: ["src", "extensions"], publicHeadersPath: "include", cSettings: [.headerSearchPath("src"), .headerSearchPath("extensions"), .define("CMARK_GFM_STATIC_DEFINE"), .define("CMARK_GFM_EXTENSIONS_STATIC_DEFINE")]),
+        .target(name: "AgentContracts"),
+        .testTarget(name: "AgentContractsTests", dependencies: ["AgentContracts"], resources: [.copy("required-operations.txt")]),
         .target(name: "DraftlyCore", dependencies: ["CMultiMarkdown", "CGFM"], resources: [.process("Resources")]),
         .executableTarget(name: "Draftly", dependencies: ["DraftlyCore", .product(name: "Sparkle", package: "Sparkle")]),
         .executableTarget(name: "LibraryBenchmark", dependencies: ["DraftlyCore"], path: "Tools/LibraryBenchmark"),
