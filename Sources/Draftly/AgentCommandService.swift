@@ -48,6 +48,10 @@ import AgentContracts
         sessions.removeValue(forKey: session.id); pages.remove(sessionID: session.id)
     }
 
+    func authorizedLibraryID(for session: Session) throws -> UUID { try authorize(session).libraryID }
+
+    func permitsTransportStart() throws -> Bool { try !isLocked() && connections.permitsTransportStart() }
+
     func invalidate(connectionID: UUID) {
         for id in sessions.filter({ $0.value.connectionID == connectionID }).keys {
             sessions.removeValue(forKey: id); pages.remove(sessionID: id)

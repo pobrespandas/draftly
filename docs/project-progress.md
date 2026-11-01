@@ -3,6 +3,37 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Local socket and JSON helper — 1 November
+
+AgentLocalTransport now provides bounded Unix-socket framing and a local client.
+AgentSocketBroker authenticates those connections through AgentCommandService.
+The draftly-agent executable has a JSON command, help and protocol-version output.
+It links no app model or Core Data and reads credentials only through the dedicated
+helper Keychain adapter. No normal app route constructs the broker yet.
+
+Both peers must have the current UID and the expected signed process identity,
+checked from kernel audit tokens before credential transfer. Private directories
+and sockets use the shared file/ACL policy. Frames and authentication have size
+and time limits. Socket I/O stays off MainActor. Stop, deinitialization and
+cancellation close owned resources. Disabled or locked access cannot start a
+listener. Request authority remains checked by the application service.
+
+Four new handshake tests and thirteen socket tests passed. Socket tests use real
+local I/O, temporary paths, fake credentials and in-memory libraries. They verify
+scoped reads, revocation, peer rejection before credential lookup, size limits,
+timeouts, cancellation, response identity, private modes, symlinks and cleanup.
+Full Swift inventories passed: 1 consumer, 131 contracts, 763 Core and 1049 app.
+Python 286, the structural matrix, helper build and local Xcode build passed.
+Unsigned CLI smoke checks returned the expected errors without credential access.
+
+PR #45 exact head 50c3ce5 passed CI 41281420773 and merged as d93a536.
+The installed app remains unchanged. This helper is a build product, not an
+installed or provisioned client. Signed packaging/profiles, real Keychain sharing,
+human pairing/management, stable locator and single-broker coordination, live
+library/editor/lock adapters and MCP remain pending. JSON mode currently needs
+an explicit socket path. See [local development](agent-local-development.md).
+Other handlers, mutation receipts and native effects remain unfinished.
+
 ## Device-local credential adapter — 1 November
 
 AgentLocalSecurity provides a dedicated data-protection Keychain adapter shared

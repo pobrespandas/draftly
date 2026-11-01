@@ -33,6 +33,8 @@ signing guides to install the released app.
   code boundaries, risks, and refactorings needed for that plan.
 - [Agent credential decision](adr/0001-agent-device-keychain.md): why credentials
   use the device keychain and why the signed helper needs its own profile.
+- [Local agent development](agent-local-development.md): socket protocol, JSON
+  helper, isolated tests, and the setup that remains before activation.
 
 ## Maintain and publish Draftly
 
