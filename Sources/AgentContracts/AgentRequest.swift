@@ -1,6 +1,6 @@
 import Foundation
 
-package enum AgentErrorCode: String, Codable, Sendable, Error {
+package enum AgentErrorCode: String, Codable, Sendable, Error, CaseIterable {
     case invalidInput = "invalid_input"
     case permissionDenied = "permission_denied"
     case notFound = "not_found"
@@ -10,6 +10,7 @@ package enum AgentErrorCode: String, Codable, Sendable, Error {
     case interactionRequired = "interaction_required"
     case unavailable
     case storageError = "storage_error"
+    case executionError = "execution_error"
     case cancelled
     case timeout
     case outcomeUnknown = "outcome_unknown"

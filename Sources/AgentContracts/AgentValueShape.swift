@@ -11,6 +11,7 @@ package indirect enum AgentValueShape: Sendable {
     case boolean
     case array(AgentValueShape, maximum: Int)
     case object(AgentObjectShape)
+    case map(AgentValueShape)
     case nullable(AgentValueShape)
 
     package func validate(_ value: AgentJSONValue) throws {
@@ -43,6 +44,8 @@ package indirect enum AgentValueShape: Sendable {
             guard items.count <= maximum else { throw AgentSchemaError.invalidValue }
             for item in items { try shape.validate(item) }
         case let (.object(shape), .object(fields)): try shape.validate(fields)
+        case let (.map(shape), .object(fields)):
+            for value in fields.values { try shape.validate(value) }
         case (.nullable, .null): break
         case (.nullable(let shape), _): try shape.validate(value)
         default: throw AgentSchemaError.invalidValue
@@ -65,6 +68,8 @@ package indirect enum AgentValueShape: Sendable {
         case let .array(shape, maximum):
             return .object(["type": .string("array"), "items": shape.jsonSchema, "maxItems": .integer(Int64(maximum))])
         case .object(let shape): return shape.jsonSchema
+        case .map(let shape):
+            return .object(["type": .string("object"), "additionalProperties": shape.jsonSchema])
         case .nullable(let shape):
             return .object(["anyOf": .array([shape.jsonSchema, .object(["type": .string("null")])])])
         }
