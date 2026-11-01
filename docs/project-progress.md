@@ -3,6 +3,30 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Scalar and list preference preparation — 1 November
+
+Typed adapters now read 30 scalar preference fields and nine local list fields
+from an explicit temporary-testable preference domain. They prepare changes and
+per-field resets without writing them. Invalid legacy data is reported and kept.
+List reads use the existing consumer and preserve legacy-key precedence. Prepared
+list edits retain unknown fields and reset the selected legacy override too.
+The adapters share a concrete typed reading value.
+
+Eight new application tests cover defaults without writes, typed Unicode and
+numeric values, invalid values, private/native-field rejection, list round trips,
+legacy precedence and reset. All complete Swift inventories passed after the
+change. Python 286 and the structural matrix check passed. Native integrations,
+a scope-checked default Workspace, authorization and atomic commit receipts
+remain open. No local endpoint or installed-app change is enabled.
+
+## Partial list option decoding — 1 November
+
+DraftListOptions now uses its existing defaults for absent fields while retaining
+other saved options. Present values with invalid types, including null, still
+fail decoding. Complete records keep the same keys and round-trip behavior.
+This allows a per-field reset without discarding unrelated options. The new
+regressions failed before the correction; 18 focused Core/app cases then passed.
+
 ## Encoded preference access — 1 November
 
 The application can now prepare typed reads and edits for 44 encoded preference
@@ -49,7 +73,7 @@ full-library backup authority, malformed/oversized messages, Unicode/decimal
 transport, and distinct pending/error/result states.
 
 Automatic validation passed one package-consumer test, 127 AgentContracts,
-759 Core and 952 app tests with
+763 Core and 960 app tests with
 complete result inventories, 286 Python tests, the structural matrix check,
 and the final local app build.
 See the [operation inventory](research/agent-operation-inventory.md) for reused

@@ -553,6 +553,12 @@ additional fields. Its output is a prepared change, not a persistence receipt.
 It has no storage or native-service dependency. Callers must still enforce grants,
 versions, human approval and commit rules before applying it.
 
+AgentDevicePreferenceAccess handles reviewed scalar keys from an explicit
+preference domain. AgentListPreferenceAccess prepares the known list object and
+its legacy mirror changes. AgentPreferenceReading gives these adapters a shared
+typed result. None commits a mutation, registers an OS service or applies a
+Workspace. The future command service owns those effects and their authorization.
+
 Syntax preference storage uses existing syntax names. Checking the resolved UUID
 does not establish that a name is unique. The future handler must check aliases
 and name collisions before a scoped change. This adapter does not grant access
