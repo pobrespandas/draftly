@@ -821,3 +821,15 @@ The registry remains the sole owner of persistent grants and credential creation
 A failed commit terminates the pairing attempt rather than retrying a write.
 Clock and lock dependencies are explicit for headless tests. Runtime lock,
 disable and shutdown events must invalidate pending decisions before activation.
+
+
+The pairing introduction is a separate, bounded conversation on the same private
+socket. AgentPairingHandshake owns wire shapes; AgentConnectionName owns the
+shared name rule. AgentPairingClient owns one channel and caches terminal pairing
+history. It cannot read or create credentials. The broker verifies process identity
+before choosing either the normal credential route or the pairing route. Only
+poll and cancel controls exist in the latter route. Human decisions remain in
+AgentPairingCoordinator. Pending waits reserve at most two client slots.
+The async pairing session does not retain the broker; destruction closes its
+channels and cancels pending work. Normal authenticated requests still recheck
+current grants, so a pairing result cannot substitute for live authorization.

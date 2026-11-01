@@ -12,6 +12,7 @@ import AgentMCP
         if args == ["--help"] {
             print("Usage: draftly-agent {json|status|capabilities|mcp} --connection UUID --socket ABSOLUTE_PATH")
             print("       draftly-agent call OPERATION --connection UUID --socket ABSOLUTE_PATH < arguments.json")
+            print("       draftly-agent connect --name CLIENT_NAME --socket ABSOLUTE_PATH")
             print("json reads a full request from stdin. call reads targets and parameters, using shared tool schemas.")
             print("Local access requires approval in Draftly. Never put credentials in arguments or configuration.")
             return
@@ -19,6 +20,7 @@ import AgentMCP
         if args == ["--version"] { print("draftly-agent protocol 1; MCP baseline 2025-11-25"); return }
         let isMCP = args.first == "mcp"
         do {
+            if args.first == "connect" { try await pair(args); return }
             guard let mode = args.first, ["json", "status", "capabilities", "call", "mcp"].contains(mode) else { throw AgentErrorCode.invalidInput }
             let offset = mode == "call" ? 2 : 1
             guard args.count == offset + 4, args[offset] == "--connection", let id = UUID(uuidString: args[offset + 1]),
@@ -60,7 +62,7 @@ import AgentMCP
                 if case .error(let error) = result.outcome { exit(AgentCLIStatus.exitCode(error)) }
             } catch { await connection.close(); throw error }
         } catch {
-            let code = (error as? AgentErrorCode) ?? (error is DecodingError ? .invalidInput : .unavailable)
+            let code = (error as? AgentErrorCode) ?? (error is CancellationError ? .cancelled : error is DecodingError ? .invalidInput : .unavailable)
             if isMCP {
                 try? FileHandle.standardError.write(contentsOf: Data((code.rawValue + "\n").utf8))
             } else if let data = try? JSONEncoder().encode(AgentJSONValue.object(["error": .string(code.rawValue)])) {
@@ -68,6 +70,31 @@ import AgentMCP
             }
             exit(AgentCLIStatus.exitCode(code))
         }
+    }
+
+    @MainActor private static func pair(_ args: [String]) async throws {
+        guard args.count == 5, args[1] == "--name", args[3] == "--socket", args[4].hasPrefix("/") else { throw AgentErrorCode.invalidInput }
+        _ = try AgentPairingHandshake.encode(AgentPairingHandshake.Start(clientName: args[2]))
+        // Verify this helper before asking the app to show any pairing request.
+        try AgentCredentialIdentity.validateCurrentProcess(.helper)
+        let client = try await AgentPairingClient.connect(path: args[4], name: args[2],
+            validateServer: { try AgentPeerIdentity.validate($0, role: .application) })
+        do {
+            let challenge = await client.challenge
+            guard let code = challenge.code else { throw AgentErrorCode.invalidInput }
+            try FileHandle.standardError.write(contentsOf: Data(("Compare this code with the request shown by Draftly: " + code + "\n").utf8))
+            let reply = try await client.waitForDecision()
+            switch reply.state {
+            case .approved:
+                try FileHandle.standardOutput.write(contentsOf: AgentPairingHandshake.encode(reply) + Data([10]))
+                await client.close()
+            case .cancelled: throw AgentErrorCode.cancelled
+            case .expired: throw AgentErrorCode.timeout
+            case .failed: throw reply.error ?? AgentErrorCode.storageError
+            case .denied, .invalidated: throw AgentErrorCode.permissionDenied
+            case .pending, nil: throw AgentErrorCode.invalidInput
+            }
+        } catch { await client.close(); throw error }
     }
 
     private static func readInput() throws -> Data {

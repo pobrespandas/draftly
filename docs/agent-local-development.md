@@ -127,8 +127,9 @@ checks do not prove signed helper installation or human pairing.
 
 ## Pairing lifecycle integration
 
-AgentPairingCoordinator is ready for the human setup flow. It is not exposed by
-MCP or the current socket handshake. Verify the signed helper before request().
+AgentPairingCoordinator supports the human setup flow through the private socket
+handshake. It is not an MCP tool. The broker verifies the signed helper before
+request().
 Show the comparison code and treat the client name as an untrusted label. Resolve
 selected resource IDs from the current library, then prepare a human review.
 Approve with that review ID and the displayed code. Replacing a review invalidates
@@ -138,4 +139,47 @@ Poll state without creating credentials. Human denial, caller cancellation,
 five-minute expiry and lifecycle invalidation are terminal. On lock, disable,
 library closure or service restart, invalidate pending decisions. A failed
 persistence attempt requires a new challenge; do not retry the same approval.
-Signed packaging, setup UI and the pre-authentication route remain unfinished.
+Signed packaging, setup UI, locator and normal app startup remain unfinished.
+
+
+## Pairing command and wire protocol
+
+The helper supports this setup command:
+
+```text
+draftly-agent connect --name CLIENT_NAME --socket ABSOLUTE_SOCKET_PATH
+```
+
+The current executable requires signed provisioning before it can use this route.
+It validates its own identity, verifies the app peer and sends a bounded pairing
+introduction. It writes a comparison code to stderr. The person must review the
+request in Draftly; the command cannot approve itself. After human approval,
+stdout contains a pairing reply with the connection UUID. Configure subsequent
+commands with that UUID. The helper obtains its credential separately from
+Keychain. The pairing response never contains that credential or a library grant.
+The terminal reply is pairing history, not proof of current authorization.
+
+The app broker accepts either the existing credential introduction or a distinct
+pairing introduction. Pairing frames have a 4096-byte budget and strict keys.
+The challenge response contains pairingID, a comparison code and expiresAt in
+Unix seconds. A control frame contains only apiVersion, pairingID and poll or
+cancel. A client cannot query another conversation's ID. The initial and each
+subsequent frame has a 15-second I/O deadline. Disconnect cancels pending work.
+At most two pairing waits use the broker's eight client slots.
+
+AgentPairingClient owns the decision wait. The CLI uses its asynchronous
+half-second polling with a five-minute deadline.
+It returns the approved UUID once, or the existing error exit category for denial,
+cancellation, expiry, invalidation or failure. Cancel after completed approval
+reports that completed approval; it does not claim that the grant was revoked.
+If approval wins the race with deadline cancellation, the client returns the
+completed approval. A timeout is reported only when cancellation won while the
+request was still pending. Stopping the broker invalidates pending decisions and
+closes their channels.
+
+Headless tests cover real socket pairing, scoped normal authentication after
+approval, no credential reads while pending, denial, expiry, lock, disabled access,
+failed persistence, cross-conversation rejection, capacity, disconnect and broker
+destruction. Decoder tests cover authority injection, malformed replies and frame
+limits. The compiled unsigned helper passes help and invalid-input checks and
+refuses pairing before credential access. This is not signed-use acceptance.
