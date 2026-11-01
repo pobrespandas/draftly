@@ -27,6 +27,8 @@ struct SettingsView: View {
                 .tabItem { Label("HTML", systemImage: "chevron.left.forwardslash.chevron.right") }.tag("html")
             editorSettings
                 .tabItem { Label("Editor", systemImage: "textformat") }.tag("editor")
+            maintenanceSettings
+                .tabItem { Label("Maintenance", systemImage: "wrench.and.screwdriver") }.tag("maintenance")
             if let agents = controller.agentSettings {
                 AgentConnectionsSettingsView(model: agents)
                     .tabItem { Label("Agents", systemImage: "key") }.tag("agents")
@@ -46,6 +48,11 @@ struct SettingsView: View {
 
     @ViewBuilder private var editorSettings: some View {
         if let library = controller.library { EditorSettingsView(library: library) }
+        else { Text("Library unavailable").foregroundStyle(.secondary) }
+    }
+
+    @ViewBuilder private var maintenanceSettings: some View {
+        if let library = controller.library { MaintenanceSettingsView(library: library) }
         else { Text("Library unavailable").foregroundStyle(.secondary) }
     }
 

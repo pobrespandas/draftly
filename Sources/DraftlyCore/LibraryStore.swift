@@ -40,8 +40,9 @@ public final class LibraryStore: ObservableObject {
         container = persistence.container
         syncStatus = cloudIdentifier != nil && !inMemory ? "Connecting to iCloud…" : inMemory ? "Test storage" : "Local storage · iCloud is not configured"
         try reload()
-        if seed && actions.isEmpty {
-            for action in Self.defaultActions { try saveAction(action) }
+        // A new local cache does not prove that the iCloud library is empty.
+        if seed && persistence.isNewStore && cloudIdentifier == nil {
+            try installActionCatalog(groups: DefaultActionCatalog.groups, actions: DefaultActionCatalog.actions)
         }
         syncCoordinator = LibrarySyncCoordinator(container: container, cloudIdentifier: self.cloudIdentifier,
             onRemoteChange: { [weak self] in
@@ -251,6 +252,33 @@ public final class LibraryStore: ObservableObject {
             for action in values { try persist(action, id: action.id, kind: "action") }
             try beforeBatchCommit?(); try commit()
         } catch { container.viewContext.rollback(); try? reload(); throw error }
+    }
+    @discardableResult
+    public func reinstallDefaultActions() throws -> DefaultActionCatalogInstallation {
+        let bundle = DefaultActionCatalog.restoredBundle(existingGroupNames: groupNames)
+        try installActionCatalog(groups: bundle.groups, actions: bundle.actions)
+        return DefaultActionCatalogInstallation(groupNames: bundle.groups.map(\.name), actionCount: bundle.actions.count)
+    }
+    public func installActionCatalog(groups: [ActionGroupRecord], actions: [DraftAction]) throws {
+        guard Set(groups.map(\.id)).count == groups.count,
+              Set(groups.map(\.name)).count == groups.count,
+              Set(actions.map(\.id)).count == actions.count else {
+            throw DraftlyError.message("The action catalog contains duplicate identifiers or group names.")
+        }
+        let names = Set(groups.map(\.name))
+        guard actions.allSatisfy({ names.contains($0.group) }) else {
+            throw DraftlyError.message("Every catalog action must belong to an installed group.")
+        }
+        do {
+            for group in groups { try persist(group, id: group.id, kind: "actionGroup") }
+            for action in actions { try persist(action, id: action.id, kind: "action") }
+            try beforeBatchCommit?()
+            try commit()
+        } catch {
+            container.viewContext.rollback()
+            try? reload()
+            throw error
+        }
     }
     public func saveWorkspaces(_ values: [Workspace]) throws {
         do {
@@ -498,24 +526,5 @@ public final class LibraryStore: ObservableObject {
         }
     }
 
-    public static var defaultActions: [DraftAction] {
-        var copy = DraftAction(name: "Copy", steps: [ActionStep("clipboard", ["template": "[[draft]]"])])
-        copy.symbol = "doc.on.doc"; copy.shortcut = "1"
-        var share = DraftAction(name: "Share", steps: [ActionStep("share", ["template": "[[draft]]"])])
-        share.symbol = "square.and.arrow.up"
-        var file = DraftAction(name: "Save to File", steps: [ActionStep("file", ["template": "[[draft]]", "name": "[[safe_title]].md"])])
-        file.symbol = "folder"
-        var preview = DraftAction(name: "Markdown Preview", steps: [ActionStep("htmlpreview", ["template": "[[draft]]"])])
-        preview.symbol = "eye"
-        var task = DraftAction(name: "Add to Reminders", steps: [ActionStep("reminder", ["template": "[[draft]]"])])
-        task.symbol = "checklist"
-        var event = DraftAction(name: "Add Calendar Event", steps: [ActionStep("event", ["template": "[[draft]]"])])
-        event.symbol = "calendar"
-        let defaults = [copy, share, file, preview, task, event]
-        return defaults.enumerated().map { index, action in
-            var action = action
-            action.id = UUID(uuidString: String(format: "DAAF7100-0000-4000-8000-%012d", index + 1))!
-            return action
-        }
-    }
+    public static var defaultActions: [DraftAction] { DefaultActionCatalog.actions }
 }

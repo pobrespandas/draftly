@@ -325,3 +325,10 @@ Canonical request fingerprints exclude the retry key because the key signs
 that request. Authorization and signed-key verification remain separate checks.
 Service key issuance and guarded mutation dispatch are not implemented yet.
 Do not treat transport support as an available write handler.
+
+## Check real Keychain sharing
+
+Use the [manual probe](../Tools/AgentKeychainProbe/README.md) when both signing
+profiles are available. Its build command does not execute the probe. Keep the
+signed exercise separate from automatic tests. The probe uses a new neutral
+connection and checks cleanup. It does not query existing connections.

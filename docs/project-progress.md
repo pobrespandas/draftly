@@ -18,6 +18,61 @@ signed key. Complete results verified1consumer/164contracts/774Core/1221app
 compilation passed. No UI or native permission
 checks were invoked. Service issuance and guarded mutation dispatch remain next.
 
+## Default action integration completed — 1 November
+
+PR64 exact head5a5e7ec passed CI41326158201, including the required macOS
+summary. Native results verified1/161/785/1222 and BUILD SUCCEEDED. Merged with
+an exact-head guard as81ec89a377e23876a82c66e2ea62a93a6aa1758b. This is source
+integration only. Native panel binding, automatic empty-cloud initialization,
+installation and release remain separate checks.
+
+## Signed adapter Keychain acceptance — 1 November
+
+A manual probe compiled the production AgentCredentialKeychain adapter into two
+isolated app-like packages. One used the principal application identity and its
+existing profile. The other used the helper identity and new helper profile.
+Both used Developer ID, hardened runtime and the dedicated agent access group.
+The application created a random neutral item, read it, passed its expected
+bytes through a pipe to the helper and checked a matching result. It removed the
+item and confirmed absence. The unsigned probe failed permission_denied before
+creation. No existing connection or personal credential was queried.
+
+The build script only compiles. Signing and native execution remain explicit
+manual steps; automatic tests never invoke them. This acceptance covers adapter
+sharing on this Mac. App embedding, helper replacement, graphical lock behavior
+and notarization remain pending. No installed application or release changed.
+
+## Default action initial selection — 1 November
+
+A new-window regression reproduced two failures: General stayed selected while
+only the new Basic catalog was present, so the list had no actions. WindowModel
+now reconciles selection with list-visible groups. The panel uses that same rule
+on first appearance and later catalog changes. All Actions and valid selections
+remain unchanged. Empty catalogs fall back to All Actions.
+
+Three focused methods passed, including three selection variants. Full results
+verified1consumer/161contracts/785Core/1222app (2169 total). Python294, the
+structural matrix and local app/helper builds passed. No visible windows,
+permissions or personal data were used. Native panel binding acceptance remains pending. The app was not installed or published.
+
+## Default action integration review — 1 November
+
+The integration branch preserves PR64 and main through merge commits6f5a8da
+and3d22b0b. A new local cache no longer triggers default action installation when
+CloudKit is requested. This prevents local initialization before cloud actions
+arrive. Explicit installation preserves existing identities and unknown fields.
+Automatic installation after a confirmed empty CloudKit import remains pending.
+
+The configuration regression failed with two issues before the guard. All13
+catalog tests then passed. Full Swift results verified1consumer/161contracts/
+785Core/1219app (2166 total). Python294, structural matrix, helper build and
+local app build passed. Tests used isolated data and did not access CloudKit.
+No native synchronization, installed app change or release is claimed.
+
+Review also found an initial group mismatch: WindowModel starts with General,
+but the new catalog starts with Basic. Reproduce and correct that issue in a
+separate change before updating PR64. The initial-selection section records that fix.
+
 ## Signed retry-key engine — 1 November
 
 AgentRetryKeys binds a normalized request hash, connection hash, complete grant
