@@ -30,6 +30,14 @@ merge b23b7d3d7645c00f3f54e5e605b746cd8b57f5e3 preserves both histories.
 The draft-version branch took that ancestry with no change to its validated
 source tree. This is source integration, not installed agent activation.
 
+## Draft version check integrated — 1 November
+
+PR73 exact head ff797f6 passed CI41328646515, including its required macOS
+summary. Native results verified1/164/785/1230 and BUILD SUCCEEDED. Guarded
+merge a153539ea3927527ba82e6729c75db06031faf74 preserves both histories.
+The separate Unicode correction took that main ancestry with no change to its
+validated source tree. External mutation handlers remain unavailable.
+
 ## Draft expected-version check — 1 November
 
 Draft reads and the internal checkedSnapshot boundary now use one version
