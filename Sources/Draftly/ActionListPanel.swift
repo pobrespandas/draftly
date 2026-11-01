@@ -49,7 +49,7 @@ struct ActionListPanel: View {
                     .frame(height: 28).padding(.horizontal, 10).padding(.bottom, 8)
             }
             HStack(spacing: 9) {
-                Image(systemName: ActionCatalogPresentation.groupSymbol(model.actionGroup, groups: library.actionGroups, searching: !model.actionQuery.isEmpty)).font(.system(size: 18, weight: model.actionQuery.isEmpty ? .regular : .semibold)).foregroundStyle(.blue)
+                ActionGroupIcon(symbol: ActionCatalogPresentation.groupSymbol(model.actionGroup, groups: library.actionGroups, searching: !model.actionQuery.isEmpty)).foregroundStyle(ActionTint.color(ActionCatalogPresentation.groupColor(model.actionGroup, groups: library.actionGroups)) ?? .secondary)
                 Text(model.actionQuery.isEmpty ? model.actionGroup : "Search").font(.system(size: 22, weight: .regular)).foregroundStyle(.secondary)
                 Spacer()
             }.padding(.horizontal, 13).frame(height: 38)
@@ -66,10 +66,11 @@ struct ActionListPanel: View {
                             }
                             Group {
                                 if entry.kind == .separator {
-                                    HStack {
-                                        if !action.name.isEmpty { Text(action.name).font(.caption.weight(.semibold)).foregroundStyle(.secondary) }
-                                        Rectangle().fill(Color(nsColor: .separatorColor)).frame(height: 1)
-                                    }.padding(.horizontal, 20).padding(.vertical, 8).contentShape(Rectangle())
+                                    Text(action.name).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .padding(.horizontal, 8).frame(height: 22)
+                                        .background(Color.primary.opacity(0.055), in: RoundedRectangle(cornerRadius: 6))
+                                        .padding(.horizontal, 16).contentShape(Rectangle())
                                 } else {
                                     Button { model.run(action) } label: {
                                         HStack(spacing: 8) {
@@ -99,8 +100,8 @@ struct ActionListPanel: View {
                     HStack(spacing: 20) {
                         ForEach(Array(groups.enumerated()), id: \.element) { index, group in
                             Button { model.actionGroup = group } label: {
-                                Image(systemName: ActionCatalogPresentation.groupSymbol(group, groups: library.actionGroups))
-                                    .font(.system(size: 18)).foregroundStyle(model.actionGroup == group ? Color.blue : .secondary)
+                                ActionGroupIcon(symbol: ActionCatalogPresentation.groupSymbol(group, groups: library.actionGroups))
+                                    .font(.system(size: 18)).foregroundStyle(ActionTint.color(ActionCatalogPresentation.groupColor(group, groups: library.actionGroups)) ?? .secondary)
                             }.buttonStyle(.plain).help(group).accessibilityLabel(group)
                         }
                     }.padding(.horizontal, 16).frame(height: 60)
@@ -126,6 +127,24 @@ struct ActionListPanel: View {
         var action = DraftAction(name: "New Action", steps: [ActionStep("clipboard", ["template": "[[draft]]"])])
         action.group = model.actionGroup == "All Actions" ? "General" : model.actionGroup
         model.editingAction = action
+    }
+}
+
+private struct ActionGroupIcon: View {
+    let symbol: String
+    var body: some View {
+        Group {
+            if symbol == "text.badge.star" {
+                VStack(spacing: -3) {
+                    Image(systemName: "star").font(.system(size: 10))
+                    Text("md").font(.system(size: 11, weight: .bold))
+                }
+            } else if symbol == "curlybraces" {
+                Image(systemName: symbol).overlay { Image(systemName: "ellipsis").font(.system(size: 7)) }
+            } else {
+                Image(systemName: symbol)
+            }
+        }.font(.system(size: 18)).frame(width: 22, height: 22)
     }
 }
 

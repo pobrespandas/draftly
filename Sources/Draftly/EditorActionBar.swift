@@ -19,20 +19,15 @@ struct EditorActionBar: View {
     @ObservedObject var model: WindowModel
     @ObservedObject var session: EditorSession
     @ObservedObject var library: LibraryStore
-    private var groups: [String] { ["Editing"] + library.groupNames(on: .bar).filter { $0 != "Editing" } }
+    private var groups: [String] { library.groupNames(on: .bar) }
     var body: some View {
         ScrollView(.horizontal) {
             HStack(spacing: 20) {
-                PanelMenu(symbol: model.actionBarGroup == "Editing" ? "character.cursor.ibeam" : "arrow.up.right.square", help: "Select Action Group", items:
+                PanelMenu(symbol: ActionCatalogPresentation.groupSymbol(model.actionBarGroup, groups: library.actionGroups), help: "Select Action Group", items:
                     groups.map { group in PanelMenuItem(title: group, isOn: model.actionBarGroup == group) { model.actionBarGroup = group } }
                     + [.separator, PanelMenuItem(title: "Import Action Group…") { model.showActionImporter = true }],
                     symbolSize: 21
                 ).frame(width: 28, height: 28)
-                if model.actionBarGroup == "Editing" {
-                    ForEach(EditorBarCommand.allCases, id: \.self) { command in
-                        barButton(command.title, command.symbol) { command.perform(model: model, session: session) }
-                    }
-                }
                 ForEach(ActionCatalogPresentation.entries(library.orderedActions(on: .bar), on: .bar, group: model.actionBarGroup)) { entry in
                     if entry.kind == .separator {
                         Divider().frame(height: 18).help(entry.source.name)
@@ -43,11 +38,11 @@ struct EditorActionBar: View {
                 }
             }.padding(.horizontal, 12).frame(height: MainWindowStyle.editingBarHeight)
         }.scrollIndicators(.visible).frame(height: MainWindowStyle.editingBarHeight)
-            .onChange(of: library.actions) { _, _ in
-                if !groups.contains(model.actionBarGroup) { model.actionBarGroup = "Editing" }
+            .onChange(of: library.actions, initial: true) { _, _ in
+                if !groups.contains(model.actionBarGroup) { model.actionBarGroup = groups.first ?? "" }
             }
             .onChange(of: library.actionGroups) { _, _ in
-                if !groups.contains(model.actionBarGroup) { model.actionBarGroup = "Editing" }
+                if !groups.contains(model.actionBarGroup) { model.actionBarGroup = groups.first ?? "" }
             }
     }
     private func configuredActionButton(_ action: DraftAction) -> some View {
@@ -61,9 +56,6 @@ struct EditorActionBar: View {
                 }
             }.foregroundStyle(ActionTint.color(action.presentation.tintColor) ?? barColor(action.name))
         }.buttonStyle(.plain).help(action.name).accessibilityLabel(label.accessibilityLabel)
-    }
-    private func barButton(_ name: String, _ symbol: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) { Image(systemName: symbol).font(.system(size: 17, weight: .regular)).foregroundStyle(barColor(name)).frame(width: 22) }.buttonStyle(.plain).help(name).accessibilityLabel(name)
     }
     private func barColor(_ name: String) -> Color {
         if ["Move Left", "Move Right"].contains(name) { return .yellow }
@@ -92,6 +84,7 @@ enum ActionTint {
         case "green": return .green
         case "blue": return .blue
         case "purple": return .purple
+        case "indigo": return .indigo
         case "pink": return .pink
         default: return nil
         }

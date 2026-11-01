@@ -5,6 +5,39 @@ import DraftlyCore
 
 @Suite("Action catalog presentation")
 struct ActionCatalogPresentationTests {
+    @Test func editingBarContainsEachCatalogActionOnceWithoutSectionDividers() {
+        let entries = ActionCatalogPresentation.entries(DefaultActionCatalog.actions, on: .bar, group: "Editing")
+        #expect(entries.count == 25)
+        #expect(entries.allSatisfy { $0.kind == .action })
+        #expect(entries.filter { $0.source.name == "Undo" }.count == 1)
+    }
+    @Test func defaultsShareAppearanceAcrossSurfacesAndRetainExecution() throws {
+        let source = try #require(DefaultActionCatalog.actions.first { $0.name == "Move Left" && $0.group == "Editing" })
+        let list = try #require(ActionCatalogPresentation.entries([source], on: .list).first).source
+        let bar = try #require(ActionCatalogPresentation.entries([source], on: .bar).first).source
+        #expect(list == bar)
+        #expect(list.symbol == "chevron.left")
+        #expect(list.presentation.tintColor == "yellow")
+        #expect(list.steps == source.steps && list.id == source.id)
+        #expect(source.symbol == "arrow.left" && source.presentation.tintColor == nil)
+    }
+
+    @Test func customizedAndUnrelatedActionsKeepTheirAppearance() throws {
+        var source = try #require(DefaultActionCatalog.actions.first { $0.name == "Message" })
+        source.symbol = "star"
+        source.presentation.tintColor = "red"
+        #expect(ActionCatalogPresentation.displayAction(source) == source)
+        source.id = UUID()
+        source.presentation.tintColor = nil
+        #expect(ActionCatalogPresentation.displayAction(source) == source)
+    }
+
+    @Test func defaultGroupsHaveDistinctSymbolsAndStableColors() {
+        let groups = DefaultActionCatalog.groups
+        #expect(Set(groups.map { ActionCatalogPresentation.groupSymbol($0.name, groups: groups) }).count == 5)
+        #expect(ActionCatalogPresentation.groupColor("Editing", groups: groups) == "gray")
+        #expect(ActionCatalogPresentation.groupColor("Processing", groups: groups) == "blue")
+    }
     @Test func groupHeaderAndBarUseTheSameSymbolWhileSearchUsesItsOwnIcon() {
         var group = ActionGroupRecord(name: "Basic"); group.symbol = "arrow.up.forward.app"
         #expect(ActionCatalogPresentation.groupSymbol("Basic", groups: [group]) == "arrow.up.forward.app")

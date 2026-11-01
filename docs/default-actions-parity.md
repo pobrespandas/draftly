@@ -1,5 +1,31 @@
 # Default action parity
 
+## Visual review — 1 November 2026
+
+The action list and editor bar now share default appearance rules. Rules match
+the catalog ID, name, and group. They replace an unchanged default symbol and
+an unset tint. Custom symbols, explicit tints, and unrelated action IDs remain
+unchanged. The rules do not write to the library or change action steps.
+Restored copies with new IDs do not receive these display rules.
+
+The editor bar no longer prepends a second set of fixed editing commands.
+Editing has 25 catalog actions. Default section dividers appear only in the
+list. Imported dividers retain their visibility rules. The list uses rounded
+section backgrounds. The five default groups have distinct native symbols or
+native symbol-and-text compositions. Group colors no longer depend on selection.
+
+Computer Use compared Basic, Editing, Markdown, Tools, and Processing with
+Drafts. The QA app showed the corrected Basic colors, distinct group icons,
+and one copy of each Editing action. Some custom Drafts symbols and service
+logos remain native approximations. This is not pixel-exact or functional
+parity acceptance. The catalog still has functional differences, including
+its Inbox separator where the observed Drafts group has an Inbox action.
+
+The local Debug build and strict QA signature check passed. The focused catalog,
+presentation, and editing tests passed: 35 tests in three suites. In isolated QA,
+Undo from the editor bar removed neutral test text. Redo from the action list
+restored it. The neutral draft remains in the separate QA library.
+
 ## Reference
 
 This review used Drafts 54.1.2 (947) on 1 November 2026. Computer Use read the
