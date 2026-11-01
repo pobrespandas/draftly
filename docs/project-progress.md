@@ -3,6 +3,23 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Editor find reads — 1 November
+
+The isolated editor-find branch adds editor.find to the local dispatcher.
+It uses EditorFindQuery on pending editor text. It does not select, focus or
+save. Both window and draft scope are required. Cursors bind to the editor
+version, query, session and grant. Changed text rejects an old cursor.
+
+The initial regression failed because the handler was unavailable. After the
+implementation, an older exact handler-count expectation needed an update.
+The final focused run passed 44 application and 6 contract tests. Cases include
+UTF-16 ranges, case-insensitive defaults, invalid regex, empty results, zero-length
+matches, missing draft scope and stale cursors. Local app compilation and the structural audit passed. Complete suites and
+SDK coverage for this added handler remain pending. No installed app or release changed.
+
+The isolated ThemeRenderingTests CI diagnostic 41343722483 passed. This does
+not explain or replace the rejected incomplete full report in PR80.
+
 ## Authorized editor reads — 1 November
 
 The local service adds editor.windows and editor.get with an explicit registry.

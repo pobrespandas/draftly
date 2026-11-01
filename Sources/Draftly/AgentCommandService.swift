@@ -14,7 +14,7 @@ import AgentContracts
     }
     private static let readOperations: Set<String> = ["server.status", "server.capabilities", "server.schemas",
         "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions", "preferences.schema"]
-    private static let editorReadOperations: Set<String> = ["editor.windows", "editor.get"]
+    private static let editorReadOperations: Set<String> = ["editor.windows", "editor.get", "editor.find"]
     static let implementedOperations = readOperations.union([AgentMutationSchemas.name]).union(AgentDraftWriting.operationNames).union(editorReadOperations)
     private var availableOperations: Set<String> { editorRegistry == nil ? Self.readOperations : (writes == nil ? Self.readOperations.union(Self.editorReadOperations) : Self.implementedOperations) }
     private let editorRegistry: AgentEditorRegistry?
@@ -160,7 +160,7 @@ import AgentContracts
                 "scope": .object(["allResources": .bool(grant.scope == .library), "resources": .array(references.map {
                     .object(["kind": .string($0.kind.rawValue), "id": .string($0.id.uuidString)])
                 })]), "expiresAt": .string(APIValues.date(grant.expiresAt))]
-        case "editor.windows", "editor.get":
+        case "editor.windows", "editor.get", "editor.find":
             return try readEditor(request, parameters: parameters, grant: grant, sessionID: sessionID)
         case "mutations.prepare":
             guard let writes else { throw AgentErrorCode.unavailable }
@@ -237,6 +237,30 @@ import AgentContracts
         }
         guard snapshot.draftID != nil || (snapshot.content.isEmpty && !snapshot.dirty) else { throw AgentErrorCode.unavailable }
         var result = try values(snapshot)
+        if request.operation == "editor.find" {
+            guard case .string(let query) = parameters["query"] else { throw AgentErrorCode.invalidInput }
+            let matches: [NSRange]
+            do {
+                matches = try EditorFindQuery(query, caseSensitive: parameters["caseSensitive"] == .bool(true),
+                    regularExpression: parameters["regularExpression"] == .bool(true)).matches(in: snapshot.content)
+            } catch { throw AgentErrorCode.invalidInput }
+            guard matches.count <= 1_000_000 else { throw AgentErrorCode.busy }
+            // Bind cursors to this editor generation. Never serve ranges from old text.
+            var bound = parameters; bound["editorVersion"] = result["versionToken"]
+            let members = matches.indices.map { index in
+                UUID(uuid: (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    UInt8(truncatingIfNeeded: index >> 24), UInt8(truncatingIfNeeded: index >> 16),
+                    UInt8(truncatingIfNeeded: index >> 8), UInt8(truncatingIfNeeded: index)))
+            }
+            let ranges = Dictionary(uniqueKeysWithValues: zip(members, matches))
+            let page = try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
+                parameters: bound, expiresAt: grant.expiresAt, ids: { members }, value: { id in
+                    ranges[id].map { .object(["range": .object(["offset": .integer(Int64($0.location)),
+                        "length": .integer(Int64($0.length))])]) }
+                })
+            result.merge(page, uniquingKeysWith: { _, new in new })
+            return result
+        }
         result["content"] = .object(try AgentDraftReading.chunk(snapshot.content, parameters: parameters))
         result["selection"] = .object(["offset": .integer(Int64(snapshot.selection.location)),
             "length": .integer(Int64(snapshot.selection.length))])

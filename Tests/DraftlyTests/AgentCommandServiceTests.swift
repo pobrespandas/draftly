@@ -508,7 +508,7 @@ struct AgentCommandServiceTests {
             guard case .object(let fields) = item, fields["available"] == .bool(true), case .string(let name) = fields["name"] else { return nil }
             return name
         })
-        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", AgentMutationSchemas.name, "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get"]) && available.count == 15)
+        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", AgentMutationSchemas.name, "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.find"]) && available.count == 16)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.unavailable))
         #expect(f.library.notes.isEmpty)
         #expect(try f.values("server.capabilities", session: session)["capabilities"] == .array([.string("drafts.read"), .string("drafts.write")]))
@@ -615,6 +615,39 @@ struct AgentCommandServiceTests {
         #expect(recovered == text && offset == Int64(text.utf16.count))
         #expect(f.library.notes.first?.accessedAt == nil && f.library.revisions.isEmpty)
     }
+    @Test func editorFindReadsPendingUnicodeAndRejectsStalePageWithoutMutating() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let note = try f.note("Stored neutral")
+        let model = try f.window(note, content: "🐼 café CAFÉ café", dirty: true)
+        defer { model.hasUnsavedChanges = false }
+        model.editor.selection = NSRange(location: 3, length: 4)
+        f.editors = [model]
+        let (_, session) = try f.connect(capabilities: [.draftsRead, .editorRead])
+        let snapshot = try #require(f.editorRegistry.windowSnapshots().first)
+        let targets = [AgentResourceReference(kind: .window, id: snapshot.id)]
+        let parameters: [String: AgentJSONValue] = ["query": .string("café"), "limit": .integer(1)]
+        let first = try f.values("editor.find", session: session, targets: targets, parameters: parameters)
+        #expect(try items(first) == [["range": .object(["offset": .integer(3), "length": .integer(4)])]])
+        let cursor = try #require(first["nextCursor"])
+        #expect(cursor != .null)
+        var next = parameters; next["cursor"] = cursor
+        let second = try f.values("editor.find", session: session, targets: targets, parameters: next)
+        #expect(try items(second) == [["range": .object(["offset": .integer(8), "length": .integer(4)])]])
+        #expect(try f.response("editor.find", session: session, targets: targets,
+            parameters: ["query": .string("["), "regularExpression": .bool(true)]).outcome == .error(.invalidInput))
+        #expect(try items(f.values("editor.find", session: session, targets: targets,
+            parameters: ["query": .string("absent")])).isEmpty)
+        #expect(try items(f.values("editor.find", session: session, targets: targets,
+            parameters: ["query": .string("^"), "regularExpression": .bool(true)])) ==
+            [["range": .object(["offset": .integer(0), "length": .integer(0)])]])
+        let (_, windowOnly) = try f.connect(scope: .resources(Set(targets)), capabilities: [.draftsRead, .editorRead])
+        #expect(try f.response("editor.find", session: windowOnly, targets: targets, parameters: parameters).outcome == .error(.notFound))
+        #expect(model.editor.selection == NSRange(location: 3, length: 4) && model.hasUnsavedChanges)
+        #expect(f.library.notes.first?.content == "Stored neutral")
+        model.editor.content += " changed"
+        #expect(try f.response("editor.find", session: session, targets: targets, parameters: next).outcome == .error(.invalidInput))
+    }
+
     @Test func editorReadsUseExplicitWindowIDsAndKeepPendingTextUnchanged() throws {
         let f = try Fixture(); defer { f.cleanEditorPreferences() }
         let note = try f.note("Stored neutral")
