@@ -706,7 +706,8 @@ that attempt. Normal startup still needs to supply the real lease validator.
 Closing a session, explicit invalidation or observing a locked
 screen removes its cursors. Unlocking does not restore that session.
 
-The service owns an explicit set of read handlers. server.schemas reports
+The service owns an explicit set of handlers. Read handlers are always configured;
+mutation routes also require the bound editor registry. server.schemas reports
 that set independently of the contract inventory. New catalog or schema entries
 do not become executable by registration. Other operations return a real error.
 No permission-management or approval method becomes an agent tool.
@@ -1005,9 +1006,9 @@ roll back the new batch together. A lost reply can be reconciled after reopening
 
 This storage primitive does not authorize a request. Agent handlers must validate
 current grants, expected versions, editor conflicts and signed retry keys before
-using it or returning a receipt. Retry-key issuance, receipt pruning, restore-epoch
-invalidation, editor coordination and operation dispatch remain unfinished.
-Agent writes stay unavailable until those boundaries are implemented and tested.
+using it or returning a receipt. The existing-draft writer and service routes below
+apply those checks. Receipt pruning, restore-epoch invalidation and dispatch for
+other resource mutations remain unfinished. Normal app startup remains inactive.
 
 ## Signed retry keys
 
@@ -1028,7 +1029,26 @@ defaults, preserves target order and Unicode scalars, and bounds encoded data.
 Grant binding includes its identity, library, capabilities, scope, expiry and
 revocation. The existing approval tests retain their behavior.
 
-This key engine is not yet a transport endpoint. The command service still needs
-key issuance, request-envelope integration and a guarded mutation dispatcher.
-Durable recovery across app restart, restore-epoch handling, receipt pruning,
-editor CAS and task-owned targets remain required. Keys do not bypass those steps.
+The local service routes below connect key issuance and existing-draft updates.
+Native activation, restore-epoch handling, receipt pruning and task-owned targets
+remain required. Keys do not bypass those steps.
+
+## Local mutation preparation and update routing
+
+AgentCommandService exposes mutations.prepare and drafts.update when it has an
+explicit AgentEditorRegistry for the same library. Without that registry, the
+service remains read-only. Normal app startup does not yet activate this service.
+
+Preparation accepts an unsigned AgentRequest inside a typed request field. The
+service binds an omitted library ID to its own library. It checks the inner
+operation, current grant, scope, version and editor state before it returns a
+signed retry key. It currently supports drafts.update only. Preparation changes
+no note. A request that already has a retry key cannot request another key through
+this wrapper. CLI and MCP use the same service route; neither renews keys silently.
+
+The update route delegates to AgentDraftWriting. It checks authority before
+receipt recovery and uses the existing atomic note/receipt transaction for new
+writes. An explicit preparation of the same committed intent can recover its
+receipt without repeating the edit. Preparation is not approval for native effects.
+Host-owner loss closes the key manager and removes write handlers. A temporary
+busy result denies only that attempt.

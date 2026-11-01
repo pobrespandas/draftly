@@ -508,7 +508,7 @@ struct AgentCommandServiceTests {
             guard case .object(let fields) = item, fields["available"] == .bool(true), case .string(let name) = fields["name"] else { return nil }
             return name
         })
-        #expect(operations.count == 136 && available == AgentReadSchemas.operationNames.union(["preferences.schema"]) && available.count == 9)
+        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", AgentMutationSchemas.name, "drafts.update"]) && available.count == 11)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.unavailable))
         #expect(f.library.notes.isEmpty)
         #expect(try f.values("server.capabilities", session: session)["capabilities"] == .array([.string("drafts.read"), .string("drafts.write")]))
@@ -615,4 +615,94 @@ struct AgentCommandServiceTests {
         #expect(recovered == text && offset == Int64(text.utf16.count))
         #expect(f.library.notes.first?.accessedAt == nil && f.library.revisions.isEmpty)
     }
+    @Test func missingEditorTrackingKeepsMutationRoutesUnavailable() throws {
+        let f = try Fixture()
+        f.service = try AgentCommandService(library: f.library, libraryID: f.libraryID, connections: f.connections,
+            appVersion: "QA", validateHost: {}, isLocked: { false }, now: { f.wall },
+            uptime: { f.uptime }, pendingEditorGeneration: { _ in "" })
+        let (_, session) = try f.connect(capabilities: [.draftsRead, .draftsWrite])
+        let schemas = try f.values("server.schemas", session: session)
+        guard case .array(let entries) = schemas["operations"] else { Issue.record("Missing schema entries"); return }
+        for name in ["mutations.prepare", "drafts.update"] {
+            let entry = entries.first { value in
+                guard case .object(let fields) = value else { return false }
+                return fields["name"] == .string(name)
+            }
+            guard case .object(let fields) = entry else { Issue.record("Missing mutation descriptor"); continue }
+            #expect(fields["available"] == .bool(false))
+        }
+        #expect(try f.response("mutations.prepare", session: session).outcome == .error(.unavailable))
+        #expect(f.library.notes.isEmpty)
+    }
+
+    @Test func preparesAndExecutesAnAuthorizedUpdateWithoutChangingDuringPreparation() throws {
+        let f = try Fixture(), note = try f.note("Neutral original 🐼")
+        let (record, session) = try f.connect(scope: .resources([.init(kind: .draft, id: note.id)]), capabilities: [.draftsRead, .draftsWrite])
+        guard case .string(let version) = try summary(f.get(note, session: session))["versionToken"] else { Issue.record("Missing version"); return }
+        let mutation = AgentRequest(requestID: UUID(), libraryID: nil, operation: "drafts.update",
+            targets: [.init(kind: .draft, id: note.id)], expectedVersion: version,
+            parameters: ["changes": .object(["content": .string("Updated 🐼")])])
+        let frame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(mutation))
+        let prepared = try f.values("mutations.prepare", session: session, parameters: ["request": frame])
+        #expect(f.library.notes.first?.content == note.content)
+        guard case .string(let key) = prepared["retryKey"] else { Issue.record("Missing key"); return }
+        #expect(prepared["requestID"] == .string(mutation.requestID.uuidString))
+        let signed = AgentRequest(requestID: mutation.requestID, libraryID: f.libraryID, operation: mutation.operation,
+            targets: mutation.targets, expectedVersion: version, retryKey: key, parameters: mutation.parameters)
+        let reply = try JSONDecoder().decode(AgentResponse.self, from: f.service.respond(to: JSONEncoder().encode(signed), session: session))
+        guard case .result(.object(let result)) = reply.outcome else { Issue.record("Update failed: \(reply.outcome)"); return }
+        #expect(f.library.notes.first?.content == "Updated 🐼")
+        try AgentOperationSchemas.validateResult(result, for: signed)
+        let recovered = try JSONDecoder().decode(AgentResponse.self, from: f.service.respond(to: JSONEncoder().encode(signed), session: session))
+        #expect(recovered == reply)
+        // Explicit preparation of the committed intent must recover, not edit again.
+        let preparedAgain = try f.values("mutations.prepare", session: session, parameters: ["request": frame])
+        guard case .string(let recoveryKey) = preparedAgain["retryKey"] else { Issue.record("Missing recovery key"); return }
+        let recovery = AgentRequest(requestID: mutation.requestID, libraryID: f.libraryID, operation: mutation.operation,
+            targets: mutation.targets, expectedVersion: version, retryKey: recoveryKey, parameters: mutation.parameters)
+        let response = try JSONDecoder().decode(AgentResponse.self, from: f.service.respond(to: JSONEncoder().encode(recovery), session: session))
+        #expect(response == reply)
+        #expect(f.library.notes.first?.content == "Updated 🐼")
+        f.service = try f.makeService()
+        let reopened = try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        let oldKeyResponse = try JSONDecoder().decode(AgentResponse.self,
+            from: f.service.respond(to: JSONEncoder().encode(signed), session: reopened))
+        #expect(oldKeyResponse.outcome == .error(.invalidInput))
+        let afterRestart = try f.values("mutations.prepare", session: reopened, parameters: ["request": frame])
+        guard case .string(let freshKey) = afterRestart["retryKey"] else { Issue.record("Missing fresh key"); return }
+        let fresh = AgentRequest(requestID: mutation.requestID, libraryID: f.libraryID, operation: mutation.operation,
+            targets: mutation.targets, expectedVersion: version, retryKey: freshKey, parameters: mutation.parameters)
+        let receipt = try JSONDecoder().decode(AgentResponse.self,
+            from: f.service.respond(to: JSONEncoder().encode(fresh), session: reopened))
+        #expect(receipt == reply)
+        #expect(f.library.notes.first?.content == "Updated 🐼")
+    }
+
+    @Test func preparationCannotBypassWriteScopeOrRefreshAnExistingKey() throws {
+        let f = try Fixture(), note = try f.note("Neutral unchanged")
+        let (_, readSession) = try f.connect()
+        let (_, writeSession) = try f.connect(capabilities: [.draftsRead, .draftsWrite])
+        let (_, excludedSession) = try f.connect(scope: .resources([]), capabilities: [.draftsRead, .draftsWrite])
+        guard case .string(let version) = try summary(f.get(note, session: readSession))["versionToken"] else {
+            Issue.record("Missing version"); return
+        }
+        func frame(libraryID: UUID? = nil, retryKey: String? = nil, version: String? = nil) throws -> AgentJSONValue {
+            let request = AgentRequest(requestID: UUID(), libraryID: libraryID, operation: "drafts.update",
+                targets: [.init(kind: .draft, id: note.id)], expectedVersion: version,
+                retryKey: retryKey, parameters: ["changes": .object(["content": .string("Not committed")])])
+            return try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(request))
+        }
+        let intent = try frame(version: version)
+        #expect(try f.response("mutations.prepare", session: readSession, parameters: ["request": intent]).outcome == .error(.permissionDenied))
+        #expect(try f.response("mutations.prepare", session: excludedSession, parameters: ["request": intent]).outcome == .error(.notFound))
+        let invalid: [(AgentJSONValue, AgentErrorCode)] = [
+            (try frame(libraryID: UUID(), version: version), .permissionDenied),
+            (try frame(retryKey: "existing-key", version: version), .invalidInput),
+            (try frame(version: "stale-version"), .versionConflict)]
+        for (intent, error) in invalid {
+            #expect(try f.response("mutations.prepare", session: writeSession, parameters: ["request": intent]).outcome == .error(error))
+        }
+        #expect(f.library.notes.first?.content == note.content)
+    }
+
 }

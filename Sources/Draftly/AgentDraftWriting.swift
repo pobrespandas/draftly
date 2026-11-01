@@ -21,6 +21,27 @@ import DraftlyCore
         self.keys = keys; self.now = now; self.validateAdmission = validateAdmission
     }
 
+    func prepare(_ request: AgentRequest, connectionID: UUID) throws -> AgentRetryKeys.Ticket {
+        guard !updating else { throw AgentErrorCode.busy }
+        updating = true; defer { updating = false }
+        do {
+            let request = try AgentRequest.decode(JSONEncoder().encode(request))
+            guard request.operation == "drafts.update" else { throw AgentErrorCode.unavailable }
+            guard request.retryKey == nil else { throw AgentErrorCode.invalidInput }
+            guard request.libraryID == libraryID else { throw AgentErrorCode.permissionDenied }
+            try validateAdmission()
+            let ticket = try keys.issue(request, connectionID: connectionID)
+            guard let target = request.targets.first, let expected = request.expectedVersion else { throw AgentErrorCode.invalidInput }
+            let mutation = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
+            if try recoveredReceipt(for: mutation, target: target.id) == nil {
+                guard !ActionRunner.isExecuting(in: library) else { throw AgentErrorCode.busy }
+                _ = try reader.checkedSnapshot(for: target.id, expectedVersion: expected)
+            }
+            try validateAdmission(); _ = try keys.verify(ticket.value, request: request, connectionID: connectionID)
+            return ticket
+        } catch let error as LibraryMutationReceiptError { throw receiptError(error) }
+    }
+
     func update(_ request: AgentRequest, connectionID: UUID) throws -> LibraryMutationReceipt {
         guard !updating else { throw AgentErrorCode.busy }
         updating = true; defer { updating = false }
@@ -35,8 +56,7 @@ import DraftlyCore
                   case .object(let changes) = parameters["changes"] else { throw AgentErrorCode.invalidInput }
             let mutation = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
             // Check authority before returning any receipt, including recovery after a lost reply.
-            if let previous = try library.mutationReceipt(for: mutation, at: now()) {
-                guard previous.resources.count == 1, previous.resources.first?.id == target.id else { throw AgentErrorCode.storageError }
+            if let previous = try recoveredReceipt(for: mutation, target: target.id) {
                 try validateAdmission(); _ = try keys.verify(key, request: request, connectionID: connectionID)
                 return previous
             }
@@ -61,14 +81,24 @@ import DraftlyCore
             return receipt
         } catch let error as AgentErrorCode { throw error }
         catch let error as LibraryMutationReceiptError {
-            switch error {
-            case .requestConflict: throw AgentErrorCode.invalidInput
-            case .retryWindowExpired: throw AgentErrorCode.retryWindowExpired
-            case .pendingChanges: throw AgentErrorCode.busy
-            case .invalidReceipt: throw AgentErrorCode.storageError
-            }
+            throw receiptError(error)
         } catch is AgentSchemaError { throw AgentErrorCode.invalidInput }
         catch { throw AgentErrorCode.storageError }
+    }
+
+    private func recoveredReceipt(for mutation: LibraryMutationIdentity, target: UUID) throws -> LibraryMutationReceipt? {
+        guard let value = try library.mutationReceipt(for: mutation, at: now()) else { return nil }
+        guard value.resources.count == 1, value.resources.first?.id == target else { throw AgentErrorCode.storageError }
+        return value
+    }
+
+    private func receiptError(_ error: LibraryMutationReceiptError) -> AgentErrorCode {
+        switch error {
+        case .requestConflict: .invalidInput
+        case .retryWindowExpired: .retryWindowExpired
+        case .pendingChanges: .busy
+        case .invalidReceipt: .storageError
+        }
     }
 
     private func applying(_ changes: [String: AgentJSONValue], to original: Note) throws -> Note {

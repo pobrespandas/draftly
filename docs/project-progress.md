@@ -3,6 +3,65 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Local route validation follow-up — 1 November
+
+The combined run agent-routes-main-accepted returned CLI code1 with an incomplete
+app report. Its last log starts a toolbar separator test; no recorded assertion
+establishes the cause. A separate strict diagnostic verified all5 toolbar methods.
+Preserve the failed report. A passing isolated suite is not a root-cause fix.
+
+A new service contract test confirms that a missing editor registry leaves both
+mutation preparation and update unavailable, even with write capability. Its first
+fixture used the real clock with an expired synthetic grant; after injecting the
+fixture clock, all40 service tests passed. This corrected only the test setup.
+The final complete run verified 1/166/786/1257 (2210) Swift tests. The earlier
+interruption remains unresolved. Python303, the structural audit and local
+app/helper builds passed.
+Normal app activation remains pending.
+
+## Draft update integration accepted — 1 November
+
+PR76 passed every actual check at 3d2425f in CI41339030094, including the required
+macOS summary. Its native log verified 1/164/786/1252 Swift results and a successful
+app build. Guarded merge a6c1eb0 preserves both histories. The prior interrupted
+run remains unexplained; the passing diagnostic head is not a root-cause fix.
+
+The local-route branch took the accepted main ancestry via7632969. Its earlier
+run agent-routes-with-diagnostics stopped during the user pause and has no complete
+app report. It is not acceptance. A fresh combined check is recorded separately.
+No installed app, native permission or release changed.
+
+## Local-route combined validation — 1 November
+
+Merge cc7ba82 preserves the update branch and theme catalog ancestry. Complete
+combined Swift results verified 1/166/786/1256 (2209). Python294, the structural
+audit and local app/helper builds passed. A later focused run passed47 after adding service-recreation checks:
+a key from the old service is rejected, and an explicit new preparation recovers
+the committed receipt with the original response. This is a service fixture check,
+not an installed-app restart or native acceptance. No application data was changed.
+
+## Local mutation routes — 1 November
+
+The configured command service now exposes mutations.prepare and drafts.update.
+Preparation validates a typed unsigned request, current scope and expected version.
+It returns a signed key without changing notes. Update uses the existing writer,
+editor coordination and atomic receipt. CLI and the official MCP SDK use these
+same routes through the real private local socket. They do not renew keys silently.
+The service requires an explicit editor registry before it enables write handlers.
+
+New tests cover preparation without mutation, selected-note updates, Unicode,
+lost replies through MCP, CLI named calls, insufficient capability, excluded notes,
+wrong libraries, existing keys and stale versions. Complete Swift results verified
+one consumer, 166 contract, 786 Core and 1256 app tests (2209 total). A later
+focused run passed 47 tests after assertions were tightened to exact error codes.
+Python 294, the structural audit and local app/helper builds passed. Explicit
+preparation after a committed update also recovered the original response in a
+final 47-test focused run. No visible windows, native permissions or personal data were used.
+
+This branch remains separate from PR76 until its main integration is validated.
+Normal app startup, native activation, remaining write operations and full agent
+acceptance remain pending. No installed application or release changed.
+
 ## Native test interruption diagnostics — 1 November
 
 CI41337022036 rejected the incomplete app XML on PR76 e09e790. The last logged

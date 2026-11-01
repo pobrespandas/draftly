@@ -6,7 +6,7 @@ import AgentContracts
 struct AgentToolInputTests {
     @Test func namesAreUniqueAndResolveOnlyTheRequiredCatalog() throws {
         let names = AgentOperationCatalog.operations.map { AgentToolInput.name(for: $0.name) }
-        #expect(names.count == 136 && Set(names).count == names.count)
+        #expect(names.count == 137 && Set(names).count == names.count)
         for operation in AgentOperationCatalog.operations { #expect(AgentToolInput.operation(named: AgentToolInput.name(for: operation.name))?.name == operation.name) }
         #expect(AgentToolInput.operation(named: "run_any_script") == nil)
         #expect(Set(AgentOperationCatalog.operations.filter(\.isReadOnly).map(\.name)) == AgentReadSchemas.operationNames)
