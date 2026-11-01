@@ -968,7 +968,11 @@ and requested-window registration refresh membership, as does window removal.
 Changing the library or releasing the controller invalidates the old registry.
 An invalid registry cannot reattach or return stored-text fallbacks. The factory
 rejects another library. This creates no listener or permission settings.
-Host startup and shutdown, editor mutations and the system-lock adapter remain
-unfinished. Registry invalidation is not a substitute for closing the host and
-invalidating all its authority when the application context changes.
+AppController can adopt a prepared host only for its exact library and editor
+registry. Adoption does not start transport. A library change closes the host
+before publishing the new value. Owner release also closes it. Quit first
+flushes windows, then closes the host. A failed flush preserves the host and
+cancels Quit. Closure invalidates transport, sessions and pending pairing.
+Normal host startup, editor mutations and the system-lock adapter remain
+unfinished.
 No installed-app access is enabled by this read adapter.

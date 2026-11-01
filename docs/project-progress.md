@@ -3,6 +3,25 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Application-owned host lifecycle — 1 November
+
+AppController can adopt a prepared host for its exact library and editor registry.
+It closes the host before a library change, on owner release and after successful
+Quit saves. A save failure retains pending text and active sessions. Adoption
+alone starts no listener and creates no Settings model or permission.
+
+Five headless methods cover lifecycle ordering, retained hosts, save success and
+failure, idempotent adoption and rejection of foreign, closed or untracked hosts.
+The initial behavioral cases failed before the wiring. Final focused42 passed.
+Complete results verified consumer1, contracts158, Core764 and app1204 (2127).
+Python286 and matrix0 passed. Helper and local app compilations passed. Exact-head CI and native acceptance
+are still pending at this checkpoint.
+
+Normal startup remains disconnected. Signed helper provisioning, real Keychain
+sharing, native lock/session acceptance, mutations, receipts and the remaining
+agent operations still need implementation or acceptance. No installed app,
+website, release or user data changed.
+
 ## Application-owned editor membership — 1 November
 
 AppController now lazily supplies one AgentEditorRegistry for its current

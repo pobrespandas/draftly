@@ -71,12 +71,13 @@ private enum PendingMenuAction {
 final class AppController: ObservableObject {
     static let shared = AppController()
     @Published var library: LibraryStore? {
-        didSet {
-            guard oldValue !== library else { return }
-            cachedAgentEditors?.invalidate(); cachedAgentEditors = nil
+        willSet {
+            guard library !== newValue else { return }
+            closeAgentContext()
         }
     }
     private var cachedAgentEditors: AgentEditorRegistry?
+    private var agentHost: AgentLocalHost?
     @Published var startupError: String?
     @Published var agentSettings: AgentConnectionsSettingsModel?
     @Published var globalShortcutErrors: [String: String] = [:]
@@ -114,7 +115,28 @@ final class AppController: ObservableObject {
     init(library: LibraryStore, recentDrafts: RecentDraftStore, agentSettings: AgentConnectionsSettingsModel? = nil) {
         self.library = library; self.recentDrafts = recentDrafts; self.agentSettings = agentSettings
     }
-    isolated deinit { cachedAgentEditors?.invalidate() }
+    isolated deinit { closeAgentContext() }
+
+    func adoptAgentHost(_ host: AgentLocalHost) throws {
+        guard let library, let editors = cachedAgentEditors,
+              host.isBound(to: library, editors: editors) else { throw AgentErrorCode.invalidInput }
+        guard agentHost !== host else { return }
+        if let previous = agentHost { previous.close(); agentSettings = nil }
+        agentHost = host
+    }
+
+    func closeAgentContext() {
+        if let host = agentHost {
+            agentHost = nil; host.close(); agentSettings = nil
+        }
+        cachedAgentEditors?.invalidate(); cachedAgentEditors = nil
+    }
+
+    func prepareForTermination() -> Bool {
+        guard windows.allObjects.allSatisfy({ $0.flush() }) else { return false }
+        closeAgentContext()
+        return true
+    }
 
     func agentEditorRegistry(for library: LibraryStore) throws -> AgentEditorRegistry {
         guard self.library === library else { throw AgentErrorCode.invalidInput }

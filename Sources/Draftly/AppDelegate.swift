@@ -90,7 +90,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         let controller = AppController.shared
-        let flush = { controller.windows.allObjects.allSatisfy { $0.flush() } }
+        let flush = { controller.prepareForTermination() }
         guard let library = controller.library else { return flush() ? .terminateNow : .terminateCancel }
         return termination.request(busy: { ActionRunner.isExecuting(in: library) },
             changes: ActionRunner.executionBusyPublisher(in: library), flush: flush,
