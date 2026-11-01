@@ -38,6 +38,8 @@ struct SettingsView: View {
                 .tabItem { Label("Shortcuts", systemImage: "keyboard") }.tag("shortcuts")
         }
         .frame(width: 770, height: selectedTab == "bookmarks" ? 350 : 620)
+        .toolbarBackground(Color(nsColor: .windowBackgroundColor), for: .windowToolbar)
+        .toolbarBackgroundVisibility(.visible, for: .windowToolbar)
         .onChange(of: appearance) { _, value in
             NSApp.appearance = ApplicationAppearance.resolved(value).nativeAppearance
         }
