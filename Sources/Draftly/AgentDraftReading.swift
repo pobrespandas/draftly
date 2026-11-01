@@ -27,7 +27,7 @@ import AgentContracts
                 throw AgentErrorCode.notFound
             }
             let state = try snapshot(note)
-            return ["draft": .object(try summary(state)), "content": .object(try chunk(state.note.content, parameters: parameters))]
+            return ["draft": .object(try summary(state)), "content": .object(try Self.chunk(state.note.content, parameters: parameters))]
         case "drafts.list", "drafts.search":
             let workspace = try query(parameters)
             return try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
@@ -144,7 +144,7 @@ import AgentContracts
         return workspace
     }
 
-    private func chunk(_ content: String, parameters: [String: AgentJSONValue]) throws -> [String: AgentJSONValue] {
+    static func chunk(_ content: String, parameters: [String: AgentJSONValue]) throws -> [String: AgentJSONValue] {
         let text = content as NSString, total = text.length
         let offset = try AgentTextShapes.count(parameters["offset"]), requested = try AgentTextShapes.count(parameters["length"])
         guard offset <= Int64(total) else { throw AgentErrorCode.invalidInput }

@@ -17,6 +17,8 @@ struct AgentMCPTests {
         var notes: [Note] = []
         var hidden: Note!
         var revision: Revision?
+        var editorModels: [WindowModel] = []
+        var editorPreferences: TestPreferences?
         lazy var registry = AgentConnectionRegistry(metadata: .init(read: { [unowned self] in self.metadata }, replace: { [unowned self] data, _ in self.metadata = data }),
             credentials: .init(read: { [unowned self] in self.secrets[$0] }, create: { [unowned self] in self.secrets[$0] = $1 },
                                remove: { [unowned self] in self.secrets.removeValue(forKey: $0) }), authorityChanged: { _ in })
@@ -26,7 +28,7 @@ struct AgentMCPTests {
         var server: MCP.Server!
         let client = MCP.Client(name: "Neutral QA", version: "1", configuration: .strict)
 
-        init(count: Int, writeAccess: Bool = false, revisionAccess: Bool = false) throws {
+        init(count: Int, writeAccess: Bool = false, revisionAccess: Bool = false, editorAccess: Bool = false) throws {
             library = try LibraryStore(inMemory: true, seed: false)
             notes = (0..<count).map { Note(content: "Neutral \($0)\ne\u{301} 🐼") }
             hidden = Note(content: "Hidden private title")
@@ -35,13 +37,31 @@ struct AgentMCPTests {
                 let value = Revision(noteID: note.id, content: "Restored e\u{0301} 🐼")
                 try library.saveRevision(value); revision = value
             }
+            let editors: AgentEditorRegistry?
+            if editorAccess {
+                let preferences = try TestPreferences(prefix: "Draftly-Agent-SDK-Editor-")
+                editorPreferences = preferences
+                for note in notes + [try #require(hidden)] {
+                    var dependencies = WindowDependencies()
+                    dependencies.preferences = WindowPreferences(defaults: preferences.defaults)
+                    let model = WindowModel(library: library, dependencies: dependencies)
+                    model.editor.load(note, focusEditor: false)
+                    model.editor.content = "Pending " + note.content
+                    model.hasUnsavedChanges = true
+                    editorModels.append(model)
+                }
+                editors = AgentEditorRegistry(library: library, models: { [weak self] in self?.editorModels ?? [] })
+            } else { editors = writeAccess ? AgentEditorRegistry(library: library, models: { [] }) : nil }
+            var resources = notes.map { AgentResourceReference(kind: .draft, id: $0.id) }
+            resources += revision.map { [.init(kind: .revision, id: $0.id)] } ?? []
+            if editorAccess { resources += try editors?.windowSnapshots().map { .init(kind: .window, id: $0.id) } ?? [] }
             try registry.setEnabledFromUserInterface(true)
+            var capabilities: Set<AgentCapability> = writeAccess ? [.draftsRead, .draftsWrite] : [.draftsRead]
+            if editorAccess { capabilities.insert(.editorRead) }
             record = try registry.connectFromUserInterface(name: "SDK QA", libraryID: libraryID,
-                capabilities: writeAccess ? [.draftsRead, .draftsWrite] : [.draftsRead], scope: .resources(Set(notes.map { AgentResourceReference(kind: .draft, id: $0.id) } + (revision.map { [.init(kind: .revision, id: $0.id)] } ?? []))))
+                capabilities: capabilities, scope: .resources(Set(resources)))
             let service = try AgentCommandService(library: library, libraryID: libraryID, connections: registry, appVersion: "QA",
-                validateHost: {}, isLocked: { false },
-                editors: writeAccess ? AgentEditorRegistry(library: library, models: { [] }) : nil,
-                pendingEditorGeneration: { _ in "" })
+                validateHost: {}, isLocked: { false }, editors: editors, pendingEditorGeneration: { _ in "" })
             broker = try AgentSocketBroker(service: service, parentDirectory: FileManager.default.temporaryDirectory, validateHelper: { _ in })
             helper = AgentHelperConnection(connect: { [unowned self] in try await self.localClient() })
         }
@@ -65,10 +85,12 @@ struct AgentMCPTests {
         }
         func close() async {
             await client.disconnect(); await server?.stop(); await helper?.close(); broker?.stop()
+            editorModels.forEach { $0.hasUnsavedChanges = false }
+            editorModels.removeAll(); editorPreferences?.close()
         }
     }
-    private func run(count: Int = 1, writeAccess: Bool = false, revisionAccess: Bool = false, _ body: @MainActor (Runtime) async throws -> Void) async throws {
-        let runtime = try Runtime(count: count, writeAccess: writeAccess, revisionAccess: revisionAccess)
+    private func run(count: Int = 1, writeAccess: Bool = false, revisionAccess: Bool = false, editorAccess: Bool = false, _ body: @MainActor (Runtime) async throws -> Void) async throws {
+        let runtime = try Runtime(count: count, writeAccess: writeAccess, revisionAccess: revisionAccess, editorAccess: editorAccess)
         do { try await runtime.start(); try await body(runtime); await runtime.close() }
         catch { await runtime.close(); throw error }
     }
@@ -260,6 +282,30 @@ struct AgentMCPTests {
             #expect(result.isError == false)
             #expect(r.library.notes.first { $0.id == note.id }?.content.utf8.elementsEqual(revision.content.utf8) == true)
             #expect(r.library.notes.first { $0.id == r.hidden.id }?.content == r.hidden.content)
+        }
+    }
+
+    @Test func sdkReadsOnlyAuthorizedPendingEditorsWithoutSavingThem() async throws {
+        try await run(editorAccess: true) { r in
+            let tools = try await r.client.listTools().tools
+            let names = Set(["draftly_editor_windows", "draftly_editor_get"])
+            #expect(tools.filter { names.contains($0.name) }.count == 2)
+            #expect(tools.filter { names.contains($0.name) }.allSatisfy { $0.annotations.readOnlyHint == true })
+            let listed = try await r.client.callTool(name: "draftly_editor_windows")
+            guard case .result(.object(let page)) = try response(listed.content).outcome,
+                  case .array(let entries) = page["items"], entries.count == 1,
+                  case .object(let entry) = entries[0], case .string(let id) = entry["windowID"] else {
+                Issue.record("Missing scoped window"); return
+            }
+            let read = try await r.client.callTool(name: "draftly_editor_get", arguments: ["targets": .array([
+                .object(["kind": .string("window"), "id": .string(id)])])])
+            guard case .result(.object(let values)) = try response(read.content).outcome,
+                  case .object(let content) = values["content"] else { Issue.record("Missing editor content"); return }
+            #expect(content["text"] == .string("Pending " + (try #require(r.notes.first)).content))
+            #expect(values["hasUnsavedChanges"] == .bool(true))
+            #expect(r.library.notes.first { $0.id == r.notes[0].id }?.content == r.notes[0].content)
+            #expect(r.library.revisions.isEmpty)
+            #expect(r.editorModels.allSatisfy { $0.hasUnsavedChanges })
         }
     }
 

@@ -1081,3 +1081,21 @@ changed source. Recovery returns the stored result after authority checks,
 without applying the revision again. Preparation is not a stored copy of the
 revision: a new execution resolves the current revision by its explicit ID.
 Normal application startup still does not activate the local service.
+
+
+## Authorized editor snapshots
+
+AgentEditorRegistry assigns an ephemeral UUID to each tracked model. It keeps
+only weak model references. Removing membership invalidates that window ID;
+registering again creates another ID. Window generations track content, current
+draft, dirty state and selection. They remain separate from draft generations,
+so selection changes do not invalidate draft read versions.
+
+editor.windows pages authorized window identities. editor.get returns bounded
+UTF-16 text, selection, dirty state and a service-local HMAC version. Both the
+window and current draft must belong to the grant. The service rechecks the
+session before returning results. It does not choose a frontmost window or ask
+for focus. Reads do not save or change editor state. A draftless editor with
+unbound content returns unavailable rather than pretending to be an empty draft.
+Chunk reads share the same scalar-boundary handling as drafts.get. Full installed
+host activation and editor mutations remain separate unfinished work.
