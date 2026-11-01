@@ -47,6 +47,22 @@ struct AgentLocalHostTests {
                     if let error = self.applicationError { throw error }
                 }, validateHelper: { _ in })
         }
+        // Stored notes have no collection-order contract. Compare every backup
+        // field while keeping only that collection independent of fetch order.
+        func backupSnapshot(_ supplied: Data? = nil) throws -> AgentJSONValue {
+            let data = try supplied ?? library.backupData()
+            guard case .object(var fields) = try JSONDecoder().decode(AgentJSONValue.self, from: data),
+                  case .array(let notes) = fields["notes"] else { throw AgentErrorCode.storageError }
+            let identified = try notes.map { value -> (String, AgentJSONValue) in
+                guard case .object(let note) = value, case .string(let id) = note["id"], UUID(uuidString: id) != nil else {
+                    throw AgentErrorCode.storageError
+                }
+                return (id, value)
+            }
+            fields["notes"] = .array(identified.sorted { $0.0 < $1.0 }.map { $0.1 })
+            return .object(fields)
+        }
+
         func connect(_ host: AgentLocalHost, scope: AgentResourceScope = .library) throws -> AgentConnectionRecord {
             try host.connections.connectFromUserInterface(name: "Neutral QA", libraryID: host.libraryID, scope: scope)
         }
@@ -63,10 +79,10 @@ struct AgentLocalHostTests {
     @Test func constructionBindsTheLoadedLibraryWithoutEnablingOrWritingPreferences() throws {
         let f = try Fixture(); defer { f.cleanup() }
         _ = try f.library.createNote(content: "Neutral preserved 🐼")
-        let before = try f.library.backupData(), host = try f.host(); defer { host.close() }
+        let before = try f.backupSnapshot(), host = try f.host(); defer { host.close() }
         #expect(host.endpoint == nil && f.applicationChecks == 1 && f.credentialReads == 0 && f.secrets.isEmpty)
         #expect(try AgentConnectionFile(parentDirectory: f.root).read() == nil)
-        #expect(try f.library.backupData() == before)
+        #expect(try f.backupSnapshot() == before)
         #expect(throws: AgentErrorCode.busy) { try f.host() }
         host.close()
         let next = try f.host(); defer { next.close() }
@@ -77,7 +93,7 @@ struct AgentLocalHostTests {
         let f = try Fixture(); defer { f.cleanup() }
         let note = try f.library.createNote(content: "Allowed 🐼")
         _ = try f.library.createNote(content: "Hidden neutral")
-        let before = try f.library.backupData(), host = try f.host(); defer { host.close() }
+        let before = try f.backupSnapshot(), host = try f.host(); defer { host.close() }
         let target = AgentResourceReference(kind: .draft, id: note.id)
         let model = try host.makeSettingsModel(choices: { [.init(reference: target, title: "Allowed 🐼")] }, initialTargets: { [target] })
         try model.setEnabled(true)
@@ -97,7 +113,7 @@ struct AgentLocalHostTests {
             AgentRequest(requestID: UUID(), libraryID: nil, operation: "library.summary"))))
         guard case .result(.object(let values)) = response.outcome else { Issue.record("Expected scoped summary"); return }
         #expect(values["draftCount"] == .integer(1))
-        #expect(try f.library.backupData() == before)
+        #expect(try f.backupSnapshot() == before)
         try model.revoke(record.id)
         let denied = try JSONDecoder().decode(AgentResponse.self, from: await client.request(JSONEncoder().encode(
             AgentRequest(requestID: UUID(), libraryID: nil, operation: "server.status"))))
@@ -274,4 +290,25 @@ struct AgentLocalHostTests {
         #expect(throws: AgentErrorCode.permissionDenied) { try host.setEnabledFromUserInterface(true) }
         #expect(host.endpoint == nil && !FileManager.default.fileExists(atPath: path))
     }
+    @Test func backupPreservationIgnoresNoteFetchOrderButDetectsAllChangedPayload() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        _ = try f.library.createNote(content: "Neutral alpha 🐼")
+        _ = try f.library.createNote(content: "Neutral beta café")
+        let expected = try f.backupSnapshot()
+        guard case .object(var root) = try JSONDecoder().decode(AgentJSONValue.self, from: f.library.backupData()),
+              case .array(let notes) = root["notes"] else { throw AgentErrorCode.storageError }
+        root["notes"] = .array(notes.reversed())
+        #expect(try f.backupSnapshot(JSONEncoder().encode(AgentJSONValue.object(root))) == expected)
+        try f.library.reload()
+        #expect(try f.backupSnapshot() == expected)
+        for (key, changed) in [("content", AgentJSONValue.string("Changed")), ("id", .string(UUID().uuidString)),
+                               ("tags", .array([.string("changed")])), ("modifiedAt", .integer(0)),
+                               ("unknownImported", .object(["keep": .bool(true)]))] {
+            var changedNotes = notes
+            guard case .object(var note) = changedNotes[0] else { throw AgentErrorCode.storageError }
+            note[key] = changed; changedNotes[0] = .object(note); root["notes"] = .array(changedNotes)
+            #expect(try f.backupSnapshot(JSONEncoder().encode(AgentJSONValue.object(root))) != expected)
+        }
+    }
+
 }

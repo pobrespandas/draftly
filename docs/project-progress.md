@@ -3,6 +3,24 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Host backup assertion and CI investigation — 1 November
+
+The host read-preservation test compared raw backup bytes. A full local run
+observed a mismatch. Note collection order is not a storage contract: persistence
+decodes dictionary values, and reload can change that order. The fixture now
+compares every backup field while sorting only the note collection by identity.
+A regression case reverses the note order and explicitly changes content, ID,
+tags, date and an unknown field to check that real payload changes remain visible.
+The 15 focused host tests passed, including the new regression case. Production,
+backup formats and collection ordering are unchanged.
+
+PR #53 CI 41297544381 remains failed and unmerged. Its host tests passed, but the
+application process returned zero with an unfinished XML report during
+TypewriterScrollingTests. No assertion failure or cause was recorded. Diagnostic
+run 41298598924 executes only that suite on main, without the new host changes.
+This is not a passed gate or a confirmed pre-existing defect. Do not merge #53
+until a complete exact-head check passes. No deadline or retry was added.
+
 ## Local host assembly — 1 November
 
 AgentLocalHost now constructs one real loaded-library binding, private metadata
