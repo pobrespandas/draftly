@@ -3,6 +3,35 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Retry transport integrated — 1 November
+
+PR72 exact head67b1b7c passed CI41327756363, including the required macOS
+summary. Native results verified1/164/785/1224 and BUILD SUCCEEDED. Guarded
+merge b23b7d3d7645c00f3f54e5e605b746cd8b57f5e3 preserves both histories.
+The draft-version branch took that ancestry with no change to its validated
+source tree. This is source integration, not installed agent activation.
+
+## Draft expected-version check — 1 November
+
+Draft reads and the internal checkedSnapshot boundary now use one version
+calculation. The check compares stored and projected draft state and returns
+that snapshot without saving, selecting or synchronizing an editor. It preserves
+access-date exclusion and editor generation changes after edit-and-revert.
+It distinguishes invalid input, missing drafts, stale versions and divergent
+pending editors. It is not authorization or a reservation across an await.
+
+The first fixture build needed the actual clock arguments for AgentReadPages.
+After that fixture correction, five methods failed with six issues against an
+unavailable stub. Final focused46 passed across the new checks and existing read
+and editor membership suites. Complete results verified1consumer/164contracts/
+785Core/1230app (2180 total). Python294, matrix and local app/helper builds passed.
+All tests used neutral temporary preferences and in-memory libraries, without
+windows or native permission requests. No mutation handler was enabled.
+
+Service key issuance, permission rechecks, atomic receipt writes, editor
+synchronization/Undo and restart recovery remain before external writes.
+The installed app and release are unchanged.
+
 ## Combined agent transport validation — 1 November
 
 The retry-envelope branch now preserves the merged default action catalog and

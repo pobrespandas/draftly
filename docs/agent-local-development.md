@@ -332,3 +332,17 @@ Use the [manual probe](../Tools/AgentKeychainProbe/README.md) when both signing
 profiles are available. Its build command does not execute the probe. Keep the
 signed exercise separate from automatic tests. The probe uses a new neutral
 connection and checks cleanup. It does not query existing connections.
+
+## Check a draft version before mutation
+
+`AgentDraftReading.checkedSnapshot` checks an expected version with the same
+version calculation used by draft reads. It returns both stored and projected
+state. Stored changes, pending text changes and edit-then-revert generations
+invalidate the prior version. Access dates do not. Divergent pending editors
+produce `editor_conflict`; a missing draft produces `not_found`.
+
+This internal check does not save, select or synchronize an editor. It does not
+check a grant and does not reserve a snapshot across an `await`. A mutation
+handler must check current authority and signed retry keys, then check the live
+version immediately before mutation. Editor synchronization, Undo, receipts and
+recovery remain required before enabling that handler.
