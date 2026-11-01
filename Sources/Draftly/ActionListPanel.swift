@@ -97,14 +97,14 @@ struct ActionListPanel: View {
             if showGroupBar {
                 Divider()
                 ScrollView(.horizontal) {
-                    HStack(spacing: 20) {
+                    HStack(spacing: 10) {
                         ForEach(Array(groups.enumerated()), id: \.element) { index, group in
                             ActionGroupButton(title: group,
                                 symbol: ActionCatalogPresentation.groupSymbol(group, groups: library.actionGroups),
                                 color: ActionTint.color(ActionCatalogPresentation.groupColor(group, groups: library.actionGroups)) ?? .secondary
-                            ) { model.actionGroup = group }.frame(width: 22, height: 22)
+                            ) { model.actionGroup = group }.frame(width: 32, height: 26)
                         }
-                    }.padding(.horizontal, 16).frame(height: 60)
+                    }.padding(.horizontal, 11).frame(height: 60)
                 }.scrollIndicators(.hidden)
             }
         }.background(Color(nsColor: .textBackgroundColor))

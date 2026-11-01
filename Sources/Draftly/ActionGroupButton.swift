@@ -14,7 +14,8 @@ struct ActionGroupButton: NSViewRepresentable {
         let button = GroupButton()
         button.title = ""
         button.setButtonType(.momentaryPushIn)
-        button.bezelStyle = .inline
+        button.bezelStyle = .accessoryBar
+        button.isBordered = true
         button.showsBorderOnlyWhileMouseInside = true
         button.target = context.coordinator
         button.action = #selector(Coordinator.activate(_:))

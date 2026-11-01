@@ -3,11 +3,14 @@
 ## Visual review — 1 November 2026
 
 The user identified hover and click behavior in the five group buttons as a
-separate mismatch. The bar now uses five AppKit momentary buttons with inline
+separate mismatch. The bar now uses five AppKit momentary buttons with accessory-bar
 bezels shown on pointer entry. The existing symbol views are passive children;
 they do not intercept pointer events. Button tracking and activation belong to
 each native control. Pressed opacity applies only to that control's symbol.
-No symbol, tint, spacing, or size changed in this adjustment.
+The first inline-bezel attempt showed unwanted badge backgrounds. The user's
+screenshots rejected it. Group buttons now have wider hit areas with the same
+symbol positions. The editor action bar also uses native accessory-bar buttons.
+Its SF Symbols use explicit palettes so the native cell preserves action colors.
 
 The Debug build and strict QA signature check passed. Native QA clicks opened
 Basic, Editing, Markdown, Tools, and Processing independently. A ten-second
