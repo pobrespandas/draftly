@@ -115,15 +115,19 @@ acceptance remain pending. No installed application or release changed.
 A separate visual fix gives Settings an explicit window-background color and
 keeps the native toolbar background visible. Tab buttons remain native. This
 removes dependence on automatic background visibility across tab content changes.
-It is a candidate fix for the reported background wobble, not a proven diagnosis
-of macOS compositing. Only SettingsView changed.
+Tab changes also disable their SwiftUI transaction animation. This prevents the
+toolbar from returning to the centered capsule presentation during a tab change.
+Only SettingsView changed.
 
 Local app build and strict package signature verification passed. Manual isolated
-QA opened General, Markdown, HTML and Markdown again. Controls and final layout
-remained available; QA quit normally. Still-image Computer Use cannot certify
-absence of a transient animation artifact. Temporal user acceptance remains pending.
-No preference control or personal note was changed. The installed app was not
-replaced. QA used a fresh temporary library and separate preference domain.
+QA compared Drafts and Draftly Settings in the same session. Draftly first showed
+one centered capsule around all tab items. The combined change removed the capsule
+and retained a continuous toolbar background with one native selection frame, as
+in Drafts. The result remained stable when QA changed from Markdown to General.
+This accepts top-toolbar presentation only. It does not establish full Settings
+layout parity or diagnose macOS compositing. No preference control or personal
+note changed. The installed app was not replaced. QA used a separate preference
+domain and library.
 
 
 ## Native test interruption diagnostics — 1 November
