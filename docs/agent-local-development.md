@@ -12,6 +12,7 @@ permission to connect to a personal library.
 - AgentLocalTransport owns Unix sockets, bounded frames and the local client.
 - AgentMCP maps shared operation metadata to the pinned official MCP SDK.
 - AgentSocketBroker connects authenticated socket sessions to AgentCommandService.
+- AgentEditorRegistry projects pending editor text for an explicitly bound library.
 - draftly-agent is the helper executable. It imports no Core Data or app model.
 
 The broker is not started by any app route. Its constructor rejects disabled or
@@ -115,6 +116,24 @@ Descriptor borrowing prevents reuse during a pending operation. The broker close
 sessions and removes its endpoint when stopped or destroyed.
 
 ## Validation and remaining acceptance
+
+The isolated host can receive an AgentEditorRegistry built from that same
+LibraryStore and a provider of live WindowModels. Call refreshMembership at
+window registration and removal, including when no agent request is active.
+This records a window opened, edited and closed between two reads. A read also
+refreshes the supplied models, but it cannot recover missed lifecycle events.
+Current draft reads then use
+pending text without saving or touching selection, focus or Undo. A conflicting
+pair of dirty editors returns editor_conflict. Search and sorting use projected
+text, after scope filtering. Historical revisions remain stored snapshots.
+Text is compared with the editor's acknowledged baseline by exact code units.
+The UI dirty flag can lag that text change; it is not the only pending-text test.
+Per-draft generations detect changes between reads, including edit and revert;
+selection changes and activity in other drafts do not affect the token.
+
+This does not connect the registry to normal AppController startup. Before
+activation, supply the actual live models, verify lifecycle removal and complete
+the system-lock and signed-helper acceptance. Editor mutations remain unfinished.
 
 Headless tests use real local sockets and temporary files, fake credentials and
 in-memory libraries. They cover framing, limits, timeouts, cancellation, scoped

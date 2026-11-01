@@ -19,6 +19,25 @@ import Testing
 
 @Suite("Editor persistence contracts") @MainActor
 struct EditorPersistenceContractTests {
+    @Test func unpersistedTextUsesTheAcknowledgedBaselineAndExactCodeUnits() {
+        let editor = EditorSession()
+        #expect(!editor.hasUnpersistedText)
+        var note = Note(content: "café")
+        editor.load(note, focusEditor: false)
+        #expect(!editor.hasUnpersistedText)
+        editor.content = "cafe\u{0301}"
+        #expect(editor.hasUnpersistedText)
+        note.content = editor.content
+        editor.acknowledgeSaved(note)
+        #expect(!editor.hasUnpersistedText)
+        editor.selection = NSRange(location: 0, length: 1)
+        #expect(!editor.hasUnpersistedText)
+        editor.noteID = UUID()
+        #expect(editor.hasUnpersistedText)
+        editor.load(Note(content: ""), focusEditor: false)
+        #expect(!editor.hasUnpersistedText)
+    }
+
     private func setup() throws -> (LibraryStore, EditorSession, EditorPersistenceHost, ActionRunner) {
         let fixture = try ScriptTestFixture(content: "🐼 café", host: EditorPersistenceHost())
         fixture.editor.selection = NSRange(location: 3, length: 4)

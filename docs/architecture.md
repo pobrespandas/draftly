@@ -941,3 +941,27 @@ Absent expectations retain the legacy wire shapes. A present invalid or null
 expectation is rejected, never treated as unbound mode. Bound clients also reject
 missing or mismatched acknowledgements. Stable CLI library selection uses this
 binding. Neither the handshake nor its adapter activates the installed app.
+
+AgentEditorRegistry supplies a read-only view of pending text for one loaded
+library. The caller supplies its live WindowModels. The registry keeps weak
+model references and observes text, draft and dirty-state changes. Its per-draft
+generation detects edit-then-revert even between reads. The application must call
+refreshMembership at window registration and removal. A lazy read alone cannot
+observe a window that opens and closes between requests. Selection and focus do
+not change that generation. Removed models lose their subscriptions.
+
+AgentDraftReading filters authority before resolving editor state. It uses the
+same resolved text for content, titles, previews, search and list ordering.
+Matching dirty editors share one projection; different code units return
+editor_conflict. Clean stale views and other libraries cannot replace pending
+text. EditorSession supplies a package-internal hasUnpersistedText check against
+its acknowledged baseline. Exact bytes detect Unicode edits before the window
+dirty flag changes. This does not change the normal save or scripting rules.
+Reads never flush, synchronize, focus or change Undo. Stored metadata
+remains intact. The host and service reject a registry bound to another library.
+Version tokens cover both the stored Note and the projected Note, with access
+dates excluded from both. A concurrent stored-text change cannot hide behind
+unchanged pending text, even when an import preserves dates. Only the projected
+text is returned; the version material remains inside the application.
+AppController wiring, editor mutations and the system-lock adapter remain
+unfinished. No installed-app access is enabled by this read adapter.

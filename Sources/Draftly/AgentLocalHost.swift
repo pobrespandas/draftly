@@ -24,6 +24,7 @@ import AgentLocalSecurity
     var endpoint: String? { broker?.path }
 
     init(library: LibraryStore, appVersion: String,
+         editors: AgentEditorRegistry? = nil,
          isLocked: @escaping () -> Bool,
          pendingEditorGeneration: @escaping (UUID) -> String,
          resolveTargets: @escaping (Set<AgentResourceReference>) throws -> Set<AgentResourceReference>,
@@ -33,6 +34,7 @@ import AgentLocalSecurity
          validateHelper: @escaping @Sendable (Data) throws -> Void = { try AgentPeerIdentity.validate($0, role: .helper) }) throws {
         // Reject unprovisioned application builds before creating local state.
         try validateApplication()
+        guard editors?.isBound(to: library) ?? true else { throw AgentErrorCode.invalidInput }
         let lease = try AgentHostLease(location: AgentLibraryLocation(library: library))
         let file: AgentConnectionFile
         let locator: AgentHostLocator
@@ -61,6 +63,7 @@ import AgentLocalSecurity
         do {
             service = try AgentCommandService(library: library, libraryID: lease.libraryID, connections: registry,
                 appVersion: appVersion, validateHost: validateOwner, isLocked: isLocked,
+                editors: editors,
                 pendingEditorGeneration: pendingEditorGeneration)
         } catch { lease.close(); throw error }
         pairing = AgentPairingCoordinator(registry: registry, libraryID: lease.libraryID,

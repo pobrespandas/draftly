@@ -32,8 +32,8 @@ struct AgentLocalHostTests {
             }
             try? FileManager.default.removeItem(at: root)
         }
-        func host(socketParent: URL = FileManager.default.temporaryDirectory) throws -> AgentLocalHost {
-            try AgentLocalHost(library: library, appVersion: "Neutral QA", isLocked: { [self] in self.locked },
+        func host(editors: AgentEditorRegistry? = nil, socketParent: URL = FileManager.default.temporaryDirectory) throws -> AgentLocalHost {
+            try AgentLocalHost(library: library, appVersion: "Neutral QA", editors: editors, isLocked: { [self] in self.locked },
                 pendingEditorGeneration: { _ in "" }, resolveTargets: { [self] targets in
                     Set(targets.filter { target in target.kind == .draft && self.library.notes.contains { $0.id == target.id } })
                 }, socketParentDirectory: socketParent,
@@ -75,6 +75,41 @@ struct AgentLocalHostTests {
             let request = AgentRequest(requestID: UUID(), libraryID: nil, operation: operation)
             return try JSONDecoder().decode(AgentResponse.self, from: service.respond(to: JSONEncoder().encode(request), session: session))
         }
+    }
+
+    @Test func hostRejectsAnotherLibraryEditorRegistryBeforeCreatingPrivateState() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let other = try LibraryStore(inMemory: true, seed: false)
+        let editors = AgentEditorRegistry(library: other, models: { [] })
+        #expect(throws: AgentErrorCode.invalidInput) { try f.host(editors: editors) }
+        #expect(!FileManager.default.fileExists(atPath: f.root.appendingPathComponent("Agents").path))
+    }
+
+    @Test func socketReadsUseTheInjectedEditorRegistryWithoutSavingPendingText() async throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let domain = "Draftly-Agent-Host-Editor-" + UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: domain))
+        defer { defaults.removePersistentDomain(forName: domain) }
+        let note = try f.library.createNote(content: "Stored neutral")
+        var dependencies = WindowDependencies(); dependencies.preferences = WindowPreferences(defaults: defaults)
+        let model = WindowModel(library: f.library, dependencies: dependencies)
+        model.editor.load(note, focusEditor: false)
+        model.editor.content = "Pending neutral 🐼"; model.hasUnsavedChanges = true
+        let editors = AgentEditorRegistry(library: f.library, models: { [model] })
+        let before = try f.backupSnapshot(), host = try f.host(editors: editors)
+        defer { host.close() }
+        try host.setEnabledFromUserInterface(true)
+        let record = try f.connect(host), client = try await f.client(host, record: record)
+        do {
+            let request = AgentRequest(requestID: UUID(), libraryID: nil, operation: "drafts.get", targets: [.init(kind: .draft, id: note.id)])
+            let response = try JSONDecoder().decode(AgentResponse.self, from: await client.request(JSONEncoder().encode(request)))
+            guard case .result(.object(let values)) = response.outcome,
+                  case .object(let chunk) = values["content"] else { throw AgentErrorCode.executionError }
+            #expect(chunk["text"] == .string(model.editor.content))
+            #expect(model.hasUnsavedChanges && f.library.notes.first?.content == note.content)
+            #expect(try f.backupSnapshot() == before)
+            await client.close()
+        } catch { await client.close(); throw error }
     }
 
     @Test func hostCallbacksRetainTheirFixtureWhilePairingCanStillUseIt() async throws {

@@ -27,13 +27,15 @@ import AgentContracts
     init(library: LibraryStore, libraryID: UUID, connections: AgentConnectionRegistry, appVersion: String,
          validateHost: @escaping () throws -> Void, isLocked: @escaping () -> Bool, now: @escaping () -> Date = Date.init,
          uptime: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
+         editors: AgentEditorRegistry? = nil,
          pendingEditorGeneration: @escaping (UUID) -> String) throws {
+        guard editors?.isBound(to: library) ?? true else { throw AgentErrorCode.invalidInput }
         self.libraryID = libraryID; self.connections = connections; self.appVersion = appVersion
         self.validateHost = validateHost
         self.isLocked = isLocked; self.now = now; self.preferences = try AgentPreferenceCatalog.make()
         let pages = AgentReadPages(now: now, uptime: uptime)
         self.pages = pages
-        drafts = AgentDraftReading(library: library, pages: pages, pendingEditorGeneration: pendingEditorGeneration)
+        drafts = AgentDraftReading(library: library, pages: pages, editors: editors, pendingEditorGeneration: pendingEditorGeneration)
     }
 
     func authenticate(connectionID: UUID, credential: Data, expectedLibraryID: UUID? = nil) throws -> Session {

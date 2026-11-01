@@ -3,6 +3,42 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Pending editor read projection — 1 November
+
+AgentEditorRegistry projects current text for one bound library. Reads use that
+text for content, titles, previews, search and order after scope filtering.
+Divergent pending code units return editor_conflict. Clean stale views and other
+libraries cannot override pending text. The host and service reject a registry
+for another library before private host state is created.
+
+EditorSession supplies a package-only hasUnpersistedText check against its
+acknowledged baseline. The projection uses it as well as the window dirty flag.
+This catches Unicode changes before that flag changes. Normal save and scripting
+rules are unchanged. The registry keeps weak window references and records
+per-draft generations. Selection, focus and unrelated drafts do not change them.
+
+The caller must invoke refreshMembership at window registration and removal.
+Lazy reads alone cannot observe a window opened, edited and closed between two
+requests. Focused reproductions failed before their respective changes: stale reads and
+conflicts, missed membership, code-unit-only text, and a stored-content change
+hidden by pending text. Version material now includes both stored and projected
+Notes. Access dates are excluded from both.
+
+All63 focused cases passed (58 app, 5 Core). Complete inventories passed:
+consumer1, contracts158, Core764, app1196 (2119 total). Python286, matrix0 and
+final helper/local app builds passed. The socket case returned pending text
+without saving it. Other cases cover Unicode conflicts, edit/revert, weak
+lifetime, scope, selection, callbacks and wrong-library refusal.
+No public API, Note identity, library or backup format changed.
+
+CI41308744548 passed at178e2a8 before the stored-version reproduction. Its
+completed result could not be canceled and does not validate the later fix.
+The new head still needs exact-head CI. The earlier CI41307619354 was canceled
+as obsolete for membership and Unicode corrections. These are
+headless, injected-host tests, not native UI or signed acceptance. AppController
+wiring, lifecycle acceptance, system-lock handling, helper provisioning and
+editor mutations remain unfinished. No installed-app access is enabled.
+
 ## Stable library destinations — 1 November
 
 The helper accepts --library UUID, with an optional absolute --state-parent,
@@ -25,7 +61,8 @@ passed. After merging the validated CLI refactor from main, complete Swift
 inventories passed: 1 consumer, 158 contracts, 763 Core and 1183 app (2105
 total). Python286, matrix0 and both final builds passed. Three executable checks
 kept stdin open and proved status/capabilities and invalid calls do not read it.
-Exact-head functional PR CI remains pending. Normal app startup, helper provisioning, configuration export and the
+PR #58 passed exact-head CI 41306169094, including native build and required
+summary, and merged as 50cc5c9. Normal app startup, helper provisioning, configuration export and the
 remaining handlers are unfinished.
 
 ## Local host test fixture lifetime — 1 November
