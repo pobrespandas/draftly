@@ -88,4 +88,13 @@ struct AgentPermissionPolicyTests {
     @Test func noCapabilityAuthorizesAnUnknownOperation() {
         #expect(evaluate("agent.grantEverything", grant: grant(Set(AgentCapability.allCases), scope: .library)) == .denied(.unavailable))
     }
+
+    @Test func preferenceChangesAndImportedPayloadsNeedContextualEffectChecks() {
+        let settings = grant([.preferencesWrite], scope: .library)
+        for name in ["preferences.update", "preferences.reset"] {
+            #expect(evaluate(name, version: "v1", grant: settings) == .needsEffectAuthorization(.library, humanApproval: false))
+        }
+        let imported = grant([.draftsWrite, .filesRead], scope: .library)
+        #expect(evaluate("imports.commit", version: "v1", grant: imported) == .needsEffectAuthorization(.library, humanApproval: false))
+    }
 }

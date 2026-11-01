@@ -232,7 +232,8 @@ match NoteFolder and NoteSort. Advanced date filters and Workspace evaluation
 remain handler/schema work; unknown parameters fail instead of being ignored.
 
 List results contain summaries, never full content. library.summary returns
-only draftCount, not counts of Actions or other library objects. Full-content
+only draftCount, not counts of Actions or other library objects. The count
+means authorized saved drafts, including those in Trash. Full-content
 reads use UTF-16 offset and length, with a maximum chunk of 65,536 code units.
 Chunk results must match the text length, total length and hasMore state. A future
 handler must also verify the requested target, range boundaries and grant scope.
@@ -247,3 +248,23 @@ Sources: JSON Schema official [object reference](https://json-schema.org/underst
 and [string reference](https://json-schema.org/understanding-json-schema/reference/string),
 consulted 31 October 2026. Format annotations require format checking in an external
 validator; the Swift validator checks UUID and UTC date values directly.
+
+## Effect classification increment
+
+AgentStepEffectCatalog now describes potential effects for all 25 existing step
+types. A test compares its keys with DraftAction.supportedSteps. Enabled known
+steps return requiresRuntimeChecks; enabled unknown steps return unsupported;
+disabled steps return skipped. No result authorizes execution.
+
+The classification is conservative. A clipboard step can potentially read and
+write; a create step can potentially open a window. Actual parameters and
+runtime calls determine which grants are needed. Do not demand every potential
+capability in advance or use the classification to bypass runtime checks.
+Templates, initial configuration, final disposition and queued Actions have
+separate review requirements. Script runtime authority remains unfinished.
+
+Baseline permission evaluation also returns needsEffectAuthorization for
+preferences.update, preferences.reset and imports.commit. A general write grant
+cannot decide which setting or imported resource is safe. Field allowlists,
+resource classification and any required human approval remain handler work.
+No existing execution or preference route was changed.
