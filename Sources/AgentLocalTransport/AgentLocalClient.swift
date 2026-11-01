@@ -28,7 +28,7 @@ package actor AgentLocalClient {
         guard !inFlight else { throw AgentErrorCode.busy }
         let parsed = try AgentRequest.decode(data)
         let bound = AgentRequest(requestID: parsed.requestID, libraryID: parsed.libraryID ?? libraryID,
-            operation: parsed.operation, targets: parsed.targets, expectedVersion: parsed.expectedVersion, parameters: parsed.parameters)
+            operation: parsed.operation, targets: parsed.targets, expectedVersion: parsed.expectedVersion, retryKey: parsed.retryKey, parameters: parsed.parameters)
         inFlight = true; defer { inFlight = false }
         do {
             try await channel.writeFrame(JSONEncoder().encode(bound))

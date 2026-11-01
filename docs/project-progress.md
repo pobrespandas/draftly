@@ -3,6 +3,36 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Combined agent transport validation — 1 November
+
+The retry-envelope branch now preserves the merged default action catalog and
+the signed Keychain probe branch. Only continuation documentation conflicted;
+both records remain. No runtime rules changed during this integration.
+Complete results verified1consumer/164contracts/785Core/1224app (2174 total).
+Python294, structural matrix, local app build and helper build passed.
+The integrated tree is committed separately from its original feature commit.
+
+PR71 exact head dbe732f passed CI41327181686, including its required summary.
+It merged as2311dd822f654aa74c2174c6edeab3c5d6b38c89. The envelope branch
+took that main ancestry without changing its validated tree and can enter review. Normal agent activation,
+key issuance and guarded writes remain pending. This check did not install or
+release the app, exercise personal data or repeat microphone acceptance.
+
+## Retry key transport envelope — 1 November
+
+The optional retryKey field now survives request decoding, named CLI/MCP tool
+input and local-client library binding. Empty keys and keys over 4096 UTF-8 bytes
+are rejected. The same limit applies to signed key verification. Old requests
+without this field retain their representation. Canonical request fingerprints
+exclude the key that authenticates them. This does not enable a write handler.
+
+Three contract methods first failed with five issues. Final focused58 passed,
+including real socket propagation and verification of a request carrying its own
+signed key. Complete results verified1consumer/164contracts/774Core/1221app
+(2160 total). Python294 and the structural matrix passed. App and helper
+compilation passed. No UI or native permission
+checks were invoked. Service issuance and guarded mutation dispatch remain next.
+
 ## Default action integration completed — 1 November
 
 PR64 exact head5a5e7ec passed CI41326158201, including the required macOS

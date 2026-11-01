@@ -40,6 +40,16 @@ struct AgentRetryKeysTests {
         _ = try f.keys.verify(ticket.value, request: request, connectionID: f.connection)
     }
 
+    @Test func carryingTheSignedKeyDoesNotChangeItsRequestFingerprint() throws {
+        let f = Fixture(), request = f.request()
+        let ticket = try f.keys.issue(request, connectionID: f.connection)
+        let carried = AgentRequest(requestID: request.requestID, libraryID: request.libraryID,
+            operation: request.operation, targets: request.targets, expectedVersion: request.expectedVersion,
+            retryKey: ticket.value, parameters: request.parameters)
+        let result = try f.keys.verify(ticket.value, request: carried, connectionID: f.connection)
+        #expect(result.requestHash == ticket.requestHash)
+    }
+
     @Test func defaultsNormalizeButUnicodeScalarChangesAndRequestIDsDoNot() throws {
         let f = Fixture(), id = UUID(), request = f.request(id: id, content: "Café")
         let ticket = try f.keys.issue(request, connectionID: f.connection)

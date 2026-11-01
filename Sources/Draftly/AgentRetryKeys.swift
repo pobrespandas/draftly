@@ -53,7 +53,7 @@ import AgentContracts
     func verify(_ value: String, request: AgentRequest, connectionID: UUID) throws -> Ticket {
         let wall = now(), ticks = uptime()
         let binding = try binding(request, connectionID: connectionID, at: wall)
-        guard value.utf8.count <= 4096 else { throw AgentErrorCode.invalidInput }
+        guard value.utf8.count <= AgentRequest.maximumRetryKeyBytes else { throw AgentErrorCode.invalidInput }
         let parts = value.split(separator: ".", omittingEmptySubsequences: false)
         guard parts.count == 2, let data = Data(base64Encoded: String(parts[0])),
               let signature = Data(base64Encoded: String(parts[1])), signature.count == 32,

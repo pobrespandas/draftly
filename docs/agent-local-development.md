@@ -309,6 +309,23 @@ own Keychain entitlement and a valid profile. Verify actual app/helper sharing,
 locked-session behavior, embedding, outer signing and notarization before normal
 activation. A local build or mocked signing test proves none of those checks.
 
+## Retry key envelope
+
+Requests can carry an optional `retryKey` beside `expectedVersion`. The field
+is separate from operation parameters. Omitted keys remain compatible with
+existing read requests. A supplied key must contain between one and 4096 UTF-8
+bytes. The shared limit also applies to signed key verification.
+
+Named tools expose this optional field for operations outside the read-only
+catalog. CLI JSON and named-tool input preserve it. The local client keeps it
+when it binds a request to the authenticated host library. This transport support
+does not authorize a mutation or validate a signature.
+
+Canonical request fingerprints exclude the retry key because the key signs
+that request. Authorization and signed-key verification remain separate checks.
+Service key issuance and guarded mutation dispatch are not implemented yet.
+Do not treat transport support as an available write handler.
+
 ## Check real Keychain sharing
 
 Use the [manual probe](../Tools/AgentKeychainProbe/README.md) when both signing
