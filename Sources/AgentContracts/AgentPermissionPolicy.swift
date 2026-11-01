@@ -23,6 +23,7 @@ package enum AgentResourceScope: Equatable, Sendable {
 }
 
 package struct AgentGrant: Sendable {
+    package let grantID: UUID
     package let connectionID: UUID
     package let libraryID: UUID
     package let expiresAt: Date
@@ -31,7 +32,8 @@ package struct AgentGrant: Sendable {
     package let scope: AgentResourceScope
 
     package init(connectionID: UUID, libraryID: UUID, expiresAt: Date, revoked: Bool = false,
-                 capabilities: Set<AgentCapability>, scope: AgentResourceScope) {
+                 capabilities: Set<AgentCapability>, scope: AgentResourceScope, grantID: UUID = UUID()) {
+        self.grantID = grantID
         self.connectionID = connectionID
         self.libraryID = libraryID
         self.expiresAt = expiresAt

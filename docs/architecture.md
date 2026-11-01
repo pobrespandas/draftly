@@ -512,6 +512,33 @@ writer lock and operation journals cover the publication sequence. See
 [CI/CD](ci-cd.md) and [release operations](releasing.md).
 
 
+## Protected approval state
+
+AgentApprovalStore is an application-owned, in-memory state machine. It uses
+existing request and schema validators, then binds one approval to the normalized
+request, declared effect snapshot, grant identity and complete grant state, and
+service epoch. A private, per-store HMAC key keeps request content out of stored
+review metadata. Request text keeps its exact Unicode scalars and UTF-16 meaning.
+
+Reviews expire after at most five minutes and no later than the grant. Elapsed
+time also limits consent; backward or invalid clock readings invalidate it.
+Consumption is synchronous on MainActor and changes approved to consumed once.
+Decline, cancellation, expiry and invalidation remain distinct. The bounded store
+can reclaim terminal reviews. It is not an operation journal or a mutation receipt.
+
+Only trusted UI code can call the human-decision methods. No agent operation
+registers them. The service must check interaction rules before requesting or
+presenting a review. Future prompt-answer dispatch must not map an approval to an
+ordinary agent-answerable prompt. The future UI must display the trusted prepared
+operation and effects paired with the review fingerprint before allowing consent.
+
+The service must supply current grants and lock state, call invalidation on lock
+and revocation, and resolve effects again before consumption. A declared effect
+snapshot is not authority for an undeclared service or destination. Authentication,
+fine-grained native authorization, UI wiring and execution remain separate work.
+Grant replacement creates a new grant identity; reading stored grants must keep
+that identity stable rather than generate it again.
+
 ## Agent contract boundary — local stage 1
 
 AgentContracts is a package-internal target. It contains serialized request and

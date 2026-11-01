@@ -254,7 +254,8 @@ Draftly. It can be disabled independently of other connections.
 
 **Agent grant**:
 The user's authorization for a Draftly agent connection to perform specified
-work on specified library resources for a limited time.
+work on specified library resources for a limited time. A replacement grant is
+a new authorization, even when it allows the same work.
 
 **Agent operation**:
 A request for work in Draftly with an identifiable outcome and the grant under
@@ -262,7 +263,7 @@ which it was accepted.
 
 **Agent approval**:
 The user's one-use consent to a specific requested operation and its effects.
-It does not widen the connection's grant.
+It does not widen the connection's grant or carry over to a replacement grant.
 
 
 **Agent preference address**:
