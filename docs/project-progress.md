@@ -3,6 +3,23 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Workspace installation regression found in connection CI — 1 November
+
+PR #43 CI 41278698974 failed an existing Workspace URL test. Repeated decoding
+can produce a different JSON key order in imported API metadata. Direct string
+comparison then asks to replace an unchanged Workspace. This is independent of
+agent connection storage.
+
+The router now compares canonical copies of API metadata for installation only.
+It does not rewrite stored metadata, change Workspace equality, or ignore unknown
+fields. A deterministic regression changes key order and whitespace, checks that
+the library remains unchanged, and checks that a real unknown-field change still
+requires review. The regression failed before the fix and passed after it.
+All four Swift inventories passed: 1 consumer, 127 contracts, 763 Core and 1008
+application tests. Python 286, the structural matrix and the local Xcode build
+passed. PR CI must pass on the new commit before integration. No manual app
+installation or native acceptance is claimed by this change.
+
 ## Local connection storage foundation — 1 November
 
 The application has a private metadata file and an internal connection registry.

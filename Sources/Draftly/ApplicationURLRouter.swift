@@ -145,7 +145,7 @@ struct ApplicationURLRouter {
         guard let library else { throw DraftlyError.message("The library is unavailable.") }
         let incoming = try WorkspaceInstallation.decode(url)
         if let existing = library.workspaces.first(where: { $0.id == incoming.id }) {
-            if existing == incoming { return true }
+            if equivalentWorkspaceInstallation(existing, incoming) { return true }
             guard confirmReplacement(existing) else { return false }
             guard library.workspaces.first(where: { $0.id == incoming.id }) == existing else {
                 throw DraftlyError.message("The installed workspace changed. Open the link again to review the replacement.")
@@ -153,6 +153,20 @@ struct ApplicationURLRouter {
         }
         try library.saveWorkspace(incoming)
         return true
+    }
+
+    private static func equivalentWorkspaceInstallation(_ lhs: Workspace, _ rhs: Workspace) -> Bool {
+        func comparable(_ value: Workspace) -> Workspace {
+            var copy = value
+            if let text = value.scriptMetadata?["api"],
+               let object = try? JSONSerialization.jsonObject(with: Data(text.utf8)),
+               object is [String: Any],
+               let data = try? JSONSerialization.data(withJSONObject: object, options: .sortedKeys) {
+                copy.scriptMetadata?["api"] = String(decoding: data, as: UTF8.self)
+            }
+            return copy
+        }
+        return comparable(lhs) == comparable(rhs)
     }
 
     @discardableResult
