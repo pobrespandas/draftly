@@ -3,6 +3,28 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Protected approval foundation — 1 November
+
+AgentApprovalStore now binds one-use human consent to the normalized request,
+effect snapshot, grant identity/state and service epoch. It reuses existing
+validators and rejects declared capabilities or targets outside the grant.
+A replacement grant cannot reuse consent from the old grant. No approval tool is
+registered for agents. The actual human review UI is not connected yet.
+
+Sixteen headless tests cover exact consumption, default normalization, changed
+parameters/targets/versions/effects, Unicode, connection isolation, separate terminal
+states, time limits, clock rollback, grant replacement/edits, lock/restart,
+capacity, forged authority parameters and the wire-frame size boundary. A new
+boundary regression failed before normalization budgets were separated from the
+wire limit, then passed. Full Swift inventories, Python 286 and
+the structural matrix passed. This is internal state-machine evidence, not real
+human approval, authentication or complete native-effect authorization.
+
+The future service still needs stable stored grants, lock/revocation hooks, a
+fresh effect resolver, protected review UI and guarded execution. Approvals are
+memory-only, bounded and lost on restart. They do not replace mutation receipts
+or local write-ahead recovery. Installed app and personal data are unchanged.
+
 ## Native and Workspace preference coordination — 1 November
 
 The application has adapters for login registration, Spotlight and the default
@@ -94,7 +116,7 @@ full-library backup authority, malformed/oversized messages, Unicode/decimal
 transport, and distinct pending/error/result states.
 
 Automatic validation passed one package-consumer test, 127 AgentContracts,
-763 Core and 972 app tests with
+763 Core and 988 app tests with
 complete result inventories, 286 Python tests, the structural matrix check,
 and the final local app build.
 See the [operation inventory](research/agent-operation-inventory.md) for reused
