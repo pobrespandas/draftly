@@ -177,7 +177,7 @@ struct NativeEditor: NSViewRepresentable {
         }
         fileprivate func replaceSessionText(in textView: NSTextView, changedNote: Bool) -> Bool {
             if changedNote { textView.undoManager?.removeAllActions(); noteID = parent.session.noteID }
-            guard textView.string != parent.session.content else { return false }
+            guard !DraftOperations.sameText(textView.string, parent.session.content) else { return false }
             let previous = textView.string, selection = textView.selectedRange()
             if !changedNote { textView.undoManager?.registerUndo(withTarget: self) { target in target.restore(previous, selection: selection) } }
             textView.string = parent.session.content

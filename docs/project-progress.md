@@ -3,6 +3,25 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Exact Unicode content correction — 1 November
+
+Canonically equivalent strings can contain different code units. The editor
+could skip such a replacement, omit Undo, leave the draft clean and skip saving
+the new spelling. The library could also skip its revision and persisted value.
+
+DraftOperations.sameText now supplies one package-only content comparison.
+Editor synchronization, dirty detection, flush, saved baselines and library
+content/revision checks use exact UTF-8 bytes. Existing agent generation tracking
+uses the same rule. Note equality, public APIs and library formats are unchanged.
+This is a functional correction, separate from the agent version-check feature.
+
+All four new methods failed before the fix, with nine issues across app and Core
+results. Final focused checks passed 19 tests. Full results verified one consumer,
+164 contract, 786 Core and 1233 app tests (2184 total). All 294 Python tests, the
+structural matrix and local app/helper builds passed. The offscreen Undo fixture
+created no window. Persistence tests reopened a neutral temporary library.
+No personal data, native permission, installation or release was involved.
+
 ## Retry transport integrated — 1 November
 
 PR72 exact head67b1b7c passed CI41327756363, including the required macOS
@@ -10,6 +29,14 @@ summary. Native results verified1/164/785/1224 and BUILD SUCCEEDED. Guarded
 merge b23b7d3d7645c00f3f54e5e605b746cd8b57f5e3 preserves both histories.
 The draft-version branch took that ancestry with no change to its validated
 source tree. This is source integration, not installed agent activation.
+
+## Draft version check integrated — 1 November
+
+PR73 exact head ff797f6 passed CI41328646515, including its required macOS
+summary. Native results verified1/164/785/1230 and BUILD SUCCEEDED. Guarded
+merge a153539ea3927527ba82e6729c75db06031faf74 preserves both histories.
+The separate Unicode correction took that main ancestry with no change to its
+validated source tree. External mutation handlers remain unavailable.
 
 ## Draft expected-version check — 1 November
 

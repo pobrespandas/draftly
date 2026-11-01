@@ -90,7 +90,7 @@ import AgentContracts
                     self.touch(entry.noteID); self.touch(id); entry.noteID = id
                 },
                 model.editor.$content.dropFirst().sink { [weak self, weak entry] content in
-                    guard let self, let entry, !entry.content.utf8.elementsEqual(content.utf8) else { return }
+                    guard let self, let entry, !DraftOperations.sameText(entry.content, content) else { return }
                     self.touch(entry.noteID); entry.content = content
                 },
                 model.$hasUnsavedChanges.dropFirst().sink { [weak self, weak entry] dirty in

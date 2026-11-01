@@ -22,7 +22,7 @@ public final class EditorSession: ObservableObject {
     package var hasUnpersistedText: Bool {
         guard let noteID else { return false }
         guard let baseline = persistedDraft, baseline.id == noteID else { return true }
-        return !content.utf8.elementsEqual(baseline.content.utf8)
+        return !DraftOperations.sameText(content, baseline.content)
     }
     public var safeSelection: NSRange {
         let count = (content as NSString).length
