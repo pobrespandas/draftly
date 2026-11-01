@@ -310,3 +310,13 @@ check. They do not grant permissions. A future handler must validate fields
 against the live prompt, reject secure fields, check ownership and consume the
 proper token. No operation registry, prompt UI or permission grant is implemented
 by these schemas.
+
+## UTC validation regression
+
+A focused test demonstrated that ISO8601DateFormatter accepted 31 February and
+trailing text after a timestamp. AgentValueShape now checks the exact UTC syntax
+and verifies calendar components without rounding the fractional second.
+The exported schema uses the same syntax pattern. The regression fails before
+the fix and passes afterward; valid leap days and high fractional precision
+remain accepted. This is a separate contract fix, not a change to existing app
+or scripting date behavior.

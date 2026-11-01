@@ -19,7 +19,7 @@ cover isolation, expiry/revocation, target kinds, revision-token requirements,
 full-library backup authority, malformed/oversized messages, Unicode/decimal
 transport, and distinct pending/error/result states.
 
-Automatic validation passed 52 AgentContracts, 759 Core and 938 app tests with
+Automatic validation passed 54 AgentContracts, 759 Core and 938 app tests with
 complete result inventories, 285 Python tests, the structural matrix check,
 and the final local app build.
 See the [operation inventory](research/agent-operation-inventory.md) for reused
@@ -35,7 +35,9 @@ updates bind payload IDs to targets; reorder requests must cover the target set
 exactly once. Unknown Action/step/presentation data stays intact. Writes return
 receipts rather than scripts. Lifecycle results distinguish wait expiry,
 cancellation, timeout and ambiguous effects. actionGroups.get closes a missing
-explicit read path; it has no executor yet.
+explicit read path; it has no executor yet. A separate UTC validation regression
+rejects impossible calendar dates and trailing text while retaining valid leap
+days and fractional precision.
 
 Stage 1 is not closed: the other 98 operation schemas, detailed script/native
 effect checks and real executors still need implementation. Real agent clients have
