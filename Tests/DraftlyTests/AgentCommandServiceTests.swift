@@ -508,7 +508,7 @@ struct AgentCommandServiceTests {
             guard case .object(let fields) = item, fields["available"] == .bool(true), case .string(let name) = fields["name"] else { return nil }
             return name
         })
-        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", AgentMutationSchemas.name, "drafts.update", "drafts.patch"]) && available.count == 12)
+        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", AgentMutationSchemas.name, "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks"]) && available.count == 19)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.unavailable))
         #expect(f.library.notes.isEmpty)
         #expect(try f.values("server.capabilities", session: session)["capabilities"] == .array([.string("drafts.read"), .string("drafts.write")]))
@@ -615,6 +615,186 @@ struct AgentCommandServiceTests {
         #expect(recovered == text && offset == Int64(text.utf16.count))
         #expect(f.library.notes.first?.accessedAt == nil && f.library.revisions.isEmpty)
     }
+    @Test func editorSyntaxPagesRejectChangedRulesAndMissingScope() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let note = try f.note("# One\n# Two\n- [ ] a\n- [x] b\n[[d:One]] [[d:Two]]")
+        let model = try f.window(note); f.editors = [model]
+        let (_, session) = try f.connect(capabilities: [.editorRead, .draftsRead])
+        let id = try #require(f.editorRegistry.windowSnapshots().first).id
+        let targets = [AgentResourceReference(kind: .window, id: id)]
+        let (_, onlyWindow) = try f.connect(scope: .resources(Set(targets)), capabilities: [.editorRead, .draftsRead])
+        for operation in ["editor.markers", "editor.links", "editor.listTasks"] {
+            let page = try f.values(operation, session: session, targets: targets, parameters: ["limit": .integer(1)])
+            #expect(try items(page).count == 1)
+            let cursor = try #require(page["nextCursor"])
+            #expect(cursor != .null)
+            let next = try f.values(operation, session: session, targets: targets,
+                parameters: ["limit": .integer(1), "cursor": cursor])
+            #expect(try items(next).count == 1 && next["nextCursor"] == .null)
+            #expect(try f.response(operation, session: onlyWindow, targets: targets).outcome == .error(.notFound))
+        }
+        let page = try f.values("editor.markers", session: session, targets: targets, parameters: ["limit": .integer(1)])
+        var changed = note; changed.syntax = "Plain Text"
+        try f.library.saveNote(changed, preserveRevision: false)
+        #expect(try f.response("editor.markers", session: session, targets: targets,
+            parameters: ["limit": .integer(1), "cursor": try #require(page["nextCursor"])]).outcome == .error(.invalidInput))
+        #expect(try items(f.values("editor.markers", session: session, targets: targets)).isEmpty)
+        changed.syntax = "Missing neutral grammar"
+        try f.library.saveNote(changed, preserveRevision: false)
+        for operation in ["editor.markers", "editor.links", "editor.listTasks"] {
+            #expect(try f.response(operation, session: session, targets: targets).outcome == .error(.unavailable))
+        }
+        #expect(model.editor.content == note.content && !model.hasUnsavedChanges)
+        #expect(f.library.revisions.isEmpty)
+    }
+
+    @Test func editorSyntaxReadsUsePendingTextAndPreserveCustomTaskStates() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let definition = try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: [
+            "name": "Neutral agent grammar", "patterns": [], "indentationPatterns": [],
+            "featureKeys": [["id": "tasks", "name": "Tasks", "description": "Neutral tasks", "defaultValue": true]],
+            "navigationPatterns": [["match": "^# (.*)", "rangeCapture": "0", "labelCapture": "1", "prefix": "H1", "level": 0]],
+            "taskMarkDefinitions": [["match": #"(\[[ ~x]\])"#, "rangeType": "task",
+                "captures": ["state": "1", "interactive": "1"], "states": ["[ ]", "[~]", "[x]"],
+                "initialState": "[ ]", "completedState": ["[x]"], "featureKeys": "tasks"]],
+            "linkDefinitions": [["match": #"(<<)((web):([^>]+))(>>)"#,
+                "captures": ["prefix": "1", "link": "2", "key": "3", "value": "4", "suffix": "5"]]]]))
+        try f.library.saveSyntax(definition)
+        var note = try f.note("Stored neutral"); note.syntax = definition.name
+        try f.library.saveNote(note, preserveRevision: false)
+        let text = "# Café 🐼\n- [~] pending\n- [x] done\n<<web:café>>"
+        let model = try f.window(note, content: text, dirty: true)
+        defer { model.hasUnsavedChanges = false }
+        f.editors = [model]
+        let (_, session) = try f.connect(capabilities: [.editorRead, .draftsRead])
+        let id = try #require(f.editorRegistry.windowSnapshots().first).id
+        let targets = [AgentResourceReference(kind: .window, id: id)]
+        let markers = try items(f.values("editor.markers", session: session, targets: targets))
+        #expect(markers.first?["label"] == .string("Café 🐼"))
+        #expect(markers.first?["range"] == .object(["offset": .integer(0), "length": .integer(9)]))
+        let tasks = try items(f.values("editor.listTasks", session: session, targets: targets))
+        #expect(tasks.first?["state"] == .string("[~]"))
+        #expect(tasks.first?["isCompleted"] == .bool(false))
+        let links = try items(f.values("editor.links", session: session, targets: targets))
+        #expect(links.first?["key"] == .string("web") && links.first?["value"] == .string("café"))
+        let taskPage = try f.values("editor.listTasks", session: session, targets: targets, parameters: ["limit": .integer(1)])
+        let taskCursor = try #require(taskPage["nextCursor"])
+        #expect(taskCursor != .null)
+        model.dependencies.preferences.defaults.set(SyntaxFeaturePreferences.setting(false, feature: "tasks",
+            syntax: definition.name, encoded: "{}"), forKey: SyntaxFeaturePreferences.key)
+        #expect(try f.response("editor.listTasks", session: session, targets: targets,
+            parameters: ["limit": .integer(1), "cursor": taskCursor]).outcome == .error(.invalidInput))
+        #expect(try items(f.values("editor.listTasks", session: session, targets: targets)).isEmpty)
+        #expect(model.editor.content == text && model.hasUnsavedChanges)
+        #expect(f.library.notes.first?.content == "Stored neutral")
+        #expect(f.library.revisions.isEmpty)
+    }
+
+    @Test func editorFindReadsPendingUnicodeAndRejectsStalePageWithoutMutating() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let note = try f.note("Stored neutral")
+        let model = try f.window(note, content: "🐼 café CAFÉ café", dirty: true)
+        defer { model.hasUnsavedChanges = false }
+        model.editor.selection = NSRange(location: 3, length: 4)
+        f.editors = [model]
+        let (_, session) = try f.connect(capabilities: [.draftsRead, .editorRead])
+        let snapshot = try #require(f.editorRegistry.windowSnapshots().first)
+        let targets = [AgentResourceReference(kind: .window, id: snapshot.id)]
+        let parameters: [String: AgentJSONValue] = ["query": .string("café"), "limit": .integer(1)]
+        let first = try f.values("editor.find", session: session, targets: targets, parameters: parameters)
+        #expect(try items(first) == [["range": .object(["offset": .integer(3), "length": .integer(4)])]])
+        let cursor = try #require(first["nextCursor"])
+        #expect(cursor != .null)
+        var next = parameters; next["cursor"] = cursor
+        let second = try f.values("editor.find", session: session, targets: targets, parameters: next)
+        #expect(try items(second) == [["range": .object(["offset": .integer(8), "length": .integer(4)])]])
+        #expect(try f.response("editor.find", session: session, targets: targets,
+            parameters: ["query": .string("["), "regularExpression": .bool(true)]).outcome == .error(.invalidInput))
+        #expect(try items(f.values("editor.find", session: session, targets: targets,
+            parameters: ["query": .string("absent")])).isEmpty)
+        #expect(try items(f.values("editor.find", session: session, targets: targets,
+            parameters: ["query": .string("^"), "regularExpression": .bool(true)])) ==
+            [["range": .object(["offset": .integer(0), "length": .integer(0)])]])
+        let (_, windowOnly) = try f.connect(scope: .resources(Set(targets)), capabilities: [.draftsRead, .editorRead])
+        #expect(try f.response("editor.find", session: windowOnly, targets: targets, parameters: parameters).outcome == .error(.notFound))
+        #expect(model.editor.selection == NSRange(location: 3, length: 4) && model.hasUnsavedChanges)
+        #expect(f.library.notes.first?.content == "Stored neutral")
+        model.editor.content += " changed"
+        #expect(try f.response("editor.find", session: session, targets: targets, parameters: next).outcome == .error(.invalidInput))
+    }
+
+    @Test func editorReadsUseExplicitWindowIDsAndKeepPendingTextUnchanged() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let note = try f.note("Stored neutral")
+        let model = try f.window(note, content: "Pending e\u{0301} 🐼", dirty: true)
+        model.editor.selection = NSRange(location: 8, length: 2)
+        f.editors = [model]
+        let (_, session) = try f.connect(capabilities: [.draftsRead, .editorRead])
+        let entries = try items(f.values("editor.windows", session: session))
+        #expect(entries.count == 1)
+        guard let first = entries.first, case .string(let rawID) = first["windowID"], let id = UUID(uuidString: rawID) else {
+            Issue.record("Missing editor identity"); return
+        }
+        let values = try f.values("editor.get", session: session, targets: [.init(kind: .window, id: id)])
+        #expect(values["draftID"] == .string(note.id.uuidString))
+        guard case .object(let content) = values["content"] else { Issue.record("Missing editor chunk"); return }
+        #expect(content["text"] == .string(model.editor.content))
+        #expect(values["selection"] == .object(["offset": .integer(8), "length": .integer(2)]))
+        #expect(values["hasUnsavedChanges"] == .bool(true))
+        #expect(try items(f.values("editor.windows", session: session)).first?["windowID"] == first["windowID"])
+        #expect(f.library.notes.first?.content == note.content)
+        #expect(model.hasUnsavedChanges && model.editor.selection == NSRange(location: 8, length: 2))
+        model.hasUnsavedChanges = false
+    }
+
+    @Test func editorWindowEnumerationFiltersBothWindowAndDraftScopes() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let note = try f.note("Allowed neutral"), hidden = try f.note("Hidden neutral")
+        let allowed = try f.window(note), other = try f.window(hidden)
+        f.editors = [allowed, other]
+        let (_, all) = try f.connect(capabilities: [.draftsRead, .editorRead])
+        let entries = try items(f.values("editor.windows", session: all))
+        let entry = try #require(entries.first { $0["draftID"] == .string(note.id.uuidString) })
+        guard case .string(let rawID) = entry["windowID"], let id = UUID(uuidString: rawID) else { Issue.record("Missing window"); return }
+        let window = AgentResourceReference(kind: .window, id: id)
+        let (_, onlyWindow) = try f.connect(scope: .resources([window]), capabilities: [.draftsRead, .editorRead])
+        #expect(try items(f.values("editor.windows", session: onlyWindow)).isEmpty)
+        #expect(try f.response("editor.get", session: onlyWindow, targets: [window]).outcome == .error(.notFound))
+        let (_, scoped) = try f.connect(scope: .resources([window, .init(kind: .draft, id: note.id)]), capabilities: [.draftsRead, .editorRead])
+        #expect(try items(f.values("editor.windows", session: scoped)).count == 1)
+        f.editors = []
+        #expect(try f.response("editor.get", session: scoped, targets: [window]).outcome == .error(.notFound))
+    }
+
+    @Test func editorVersionsTrackSelectionAndReadsRejectSplitUTF16Scalars() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let note = try f.note("A🐼B"), model = try f.window(note)
+        f.editors = [model]
+        let (_, session) = try f.connect(capabilities: [.draftsRead, .editorRead])
+        let first = try #require(try items(f.values("editor.windows", session: session)).first)
+        guard case .string(let rawID) = first["windowID"], let id = UUID(uuidString: rawID) else { Issue.record("Missing window"); return }
+        let target = AgentResourceReference(kind: .window, id: id)
+        let before = try f.values("editor.get", session: session, targets: [target])
+        model.editor.selection = NSRange(location: 1, length: 2)
+        let after = try f.values("editor.get", session: session, targets: [target])
+        #expect(before["versionToken"] != after["versionToken"])
+        model.editor.selection = NSRange(location: 0, length: 0)
+        let reverted = try f.values("editor.get", session: session, targets: [target])
+        #expect(reverted["versionToken"] != before["versionToken"])
+        #expect(try f.response("editor.get", session: session, targets: [target],
+            parameters: ["offset": .integer(2), "length": .integer(1)]).outcome == .error(.invalidInput))
+        let chunk = try f.values("editor.get", session: session, targets: [target],
+            parameters: ["offset": .integer(1), "length": .integer(2)])
+        guard case .object(let content) = chunk["content"] else { Issue.record("Missing chunk"); return }
+        #expect(content["text"] == .string("🐼"))
+        f.editors = []
+        f.editors = [model]
+        let reopened = try #require(try items(f.values("editor.windows", session: session)).first)
+        #expect(reopened["windowID"] != first["windowID"])
+        #expect(try f.response("editor.get", session: session, targets: [target]).outcome == .error(.notFound))
+        #expect(f.library.notes.first?.content == note.content && f.library.revisions.isEmpty)
+    }
+
     @Test func missingEditorTrackingKeepsMutationRoutesUnavailable() throws {
         let f = try Fixture()
         f.service = try AgentCommandService(library: f.library, libraryID: f.libraryID, connections: f.connections,
@@ -623,7 +803,7 @@ struct AgentCommandServiceTests {
         let (_, session) = try f.connect(capabilities: [.draftsRead, .draftsWrite])
         let schemas = try f.values("server.schemas", session: session)
         guard case .array(let entries) = schemas["operations"] else { Issue.record("Missing schema entries"); return }
-        for name in ["mutations.prepare", "drafts.update", "drafts.patch"] {
+        for name in ["mutations.prepare", "drafts.update", "drafts.patch", "drafts.restoreVersion"] {
             let entry = entries.first { value in
                 guard case .object(let fields) = value else { return false }
                 return fields["name"] == .string(name)

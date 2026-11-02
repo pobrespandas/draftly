@@ -1065,3 +1065,46 @@ replacement. Valid replacements run from the highest offset to the lowest.
 Metadata remains unchanged. The resulting text is one editor mutation and one
 atomic note/receipt commit. A repeated signed request returns its prior receipt.
 AgentTextShapes owns the scalar-boundary check shared by chunk reads and patches.
+
+
+## Agent revision restoration
+
+The existing-draft writer also handles drafts.restoreVersion. It resolves the
+draft and revision targets by kind, so their input order does not choose the
+parent. The current grant must cover both targets. A missing revision or a
+revision from another draft returns not_found. The handler restores content only;
+other current note fields remain. It uses the same expected-draft version,
+editor synchronization, Undo and atomic receipt as update and patch.
+
+The writer resolves the revision again before the final commit and rejects a
+changed source. Recovery returns the stored result after authority checks,
+without applying the revision again. Preparation is not a stored copy of the
+revision: a new execution resolves the current revision by its explicit ID.
+Normal application startup still does not activate the local service.
+
+
+## Authorized editor snapshots
+
+AgentEditorRegistry assigns an ephemeral UUID to each tracked model. It keeps
+only weak model references. Removing membership invalidates that window ID;
+registering again creates another ID. Window generations track content, current
+draft, dirty state and selection. They remain separate from draft generations,
+so selection changes do not invalidate draft read versions.
+
+editor.windows pages authorized window identities. editor.get returns bounded
+UTF-16 text, selection, dirty state and a service-local HMAC version. Both the
+window and current draft must belong to the grant. The service rechecks the
+session before returning results. It does not choose a frontmost window or ask
+for focus. Reads do not save or change editor state. A draftless editor with
+unbound content returns unavailable rather than pretending to be an empty draft.
+Chunk reads share the same scalar-boundary handling as drafts.get. Full installed
+host activation and editor mutations remain separate unfinished work.
+
+Editor query reads reuse EditorFindQuery and SyntaxDefinition. The registry
+resolves each window's syntax through LibraryStore with that window's local
+preferences. Syntax reads return unavailable when the definition cannot be read.
+The command service projects only the fields declared in the agent schema;
+internal task rule indexes do not leave the host. Cursors bind to the editor
+version and, for syntax reads, the source and effective feature state. A changed
+query, editor state or syntax state rejects an old cursor. These reads do not
+run task mutations, link navigation or editor commands.

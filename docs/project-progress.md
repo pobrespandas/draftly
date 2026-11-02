@@ -3,6 +3,22 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Public 0.1.7 — 2 November
+
+[0.1.7/build8](https://github.com/pobrespandas/draftly/releases/tag/v0.1.7)
+is public from e86a125. Release workflow41468484366 passed. Its seven public
+assets matched the candidate; the public appcast matched the signed feed. Both
+site download buttons point to the0.1.7 DMG. Site promotion completed and the
+writer lock was released. The candidate passed signature, notarization and
+Gatekeeper checks; it contains no agent helper or test tracing library.
+
+Isolated local package replacement produced110 actions and five groups while
+preserving drafts. Two separate libraries on one Mac synchronized through the
+CloudKit Development container. This does not establish a Sparkle update or
+CloudKit Production acceptance. The habitual installation was not changed.
+During catalog stabilization, installation and updates replace all actions and
+groups, including custom entries, once per installation. Agents remain disabled.
+
 ## Public 0.1.6 — 2 November
 
 [0.1.6/build7](https://github.com/pobrespandas/draftly/releases/tag/v0.1.6)
@@ -134,6 +150,123 @@ Agents tab. Normal agent startup remains disabled; no helper is bundled.
 These checks do not establish complete visual parity, VM or offline acceptance,
 or a new CloudKit synchronization matrix. Existing cloud action catalogs remain
 unchanged. Explicit default installation remains available in Settings.
+## Editor syntax reads — 1 November
+
+The isolated syntax-read branch adds editor.markers, editor.links and
+editor.listTasks. It uses SyntaxDefinition and each window's injected local
+preferences. It reads pending text without changing selection or storage.
+Task states remain those of the grammar. Internal rule indexes are excluded.
+Missing definitions return unavailable. Both resource scopes are required.
+Cursors reject changes to text, syntax source or local feature state.
+
+The first custom-grammar regression failed while handlers were unavailable.
+Final focused results passed 46 app and 6 contract tests. The official SDK suite
+passed 12 tests, including a new case for all three syntax reads. Coverage includes
+Unicode ranges, intermediate task states, pagination, missing scope, changed
+syntax, missing syntax and feature changes. The local app build and structural
+audit passed. All 303 Python checks passed. The complete Swift run passed the contract and
+Core stages, then the app command exited 1 without an XML report. The last log
+was a parameterized TypewriterScrollingTests case and included an XML parser
+message. There was no assertion that explains the interruption. Isolated
+Typewriter checks passed both with default execution and with the exact serial
+runner and XML inventory verification. The two adjacent suites also passed together: all 18 methods matched the XML
+inventory. This does not explain the full-run interruption. Integration is not
+accepted. No installed app, native permission or release changed.
+
+## Editor find reads — 1 November
+
+The isolated editor-find branch adds editor.find to the local dispatcher.
+It uses EditorFindQuery on pending editor text. It does not select, focus or
+save. Both window and draft scope are required. Cursors bind to the editor
+version, query, session and grant. Changed text rejects an old cursor.
+
+The initial regression failed because the handler was unavailable. After the
+implementation, an older exact handler-count expectation needed an update.
+The final focused run passed 44 application and 6 contract tests. Cases include
+UTF-16 ranges, case-insensitive defaults, invalid regex, empty results, zero-length
+matches, missing draft scope and stale cursors. Local app compilation and the structural audit passed. The official SDK/socket
+case passed with all 11 MCP tests. Its first fixture used an invalid top-level
+query; moving that input into parameters corrected the fixture. The case checks
+read-only metadata, UTF-16 ranges and preservation of selection and storage.
+The complete runner verified 1 consumer, 166 contract, 786 Core and 1272 app
+tests. All 303 Python tests passed. Integration remains pending behind PR80. No installed app or release changed.
+
+The isolated ThemeRenderingTests CI diagnostic 41343722483 passed. This does
+not explain or replace the rejected incomplete full report in PR80.
+
+## Authorized editor reads — 1 November
+
+The local service adds editor.windows and editor.get with an explicit registry.
+Window IDs belong to tracked models and change after removal and registration.
+Both the window and its current draft must be in scope. Reads preserve pending
+text, selection, dirty state and storage. Pagination uses existing session-bound
+cursors. Text chunks share scalar-boundary rules with draft reads. Window versions
+use a distinct generation for selection and content changes, including reverts;
+draft versions retain their existing selection-independent behavior.
+
+Initial two service tests failed four issues while handlers were absent. A new
+selection-revert test caught a repeated token, then passed with window generations.
+MCP coverage caught missing read-only catalog metadata; the two new read handlers
+now declare it. The SDK fixture also required explicit optional-note unwrapping.
+Final focused53 app and9 contract checks passed. Complete final results verified
+1/166/786/1270 (2223) Swift. Python303 and the structural audit passed. Helper
+and local app compilation passed. The SDK test verifies
+that another window's text is excluded without saving either pending editor.
+No visible window, permission or personal data was used by automated tests.
+Normal installed host activation and editor mutations remain unfinished.
+
+## Restoration CI interruption — 1 November
+
+PR80 CI41342870313 failed at0c4b10a. Artifact13097984150 is retained locally in
+.build/agent-revision-ci-results. process.json reports Swift CLI0 and rejected
+incomplete XML, with no collected native crash report. The last logged start was
+ThemeRenderingTests.linkThemeChangesAndLinkModeRestoreNativeAttributesWithoutChangingText.
+That is not a proven crash location or cause. No acceptance bypass or deadline
+change occurred. Diagnostic run41343722483 targets ThemeRenderingTests on the
+same head; it is not a retry of the complete acceptance and cannot replace it.
+PR80 remains unmerged. Earlier incomplete reports remain unresolved observations.
+
+
+## Patch integration and final restoration checks — 1 November
+
+PR79 passed every actual check at333e642 in CI41341691455. Native results
+verified1/166/786/1260 and BUILD SUCCEEDED. Guarded merge317b5f0 preserves both
+histories. The restoration branch took that ancestry via c463ab2 with no source
+tree difference. A final complete run verified1/166/786/1265 (2218), Python303
+and the structural audit passed. Prior local app/helper builds use unchanged
+production sources.
+
+A later regression injects a revision change through admission before mutation
+staging. It avoids a nested Core Data commit. The final validation rejects the
+old resolved source with version_conflict, retains the original draft and keeps
+the concurrent revision change. All19 writer methods passed. This added test
+is covered by that focused run, not the earlier full inventory. No native UI,
+permissions, installed app or release changed. Settings remains independent.
+
+## Revision authority regression — 1 November
+
+An additional writer test removes revision scope or deletes the revision between
+preparation and execution. Both paths return not_found and leave the current
+note unchanged. All18 writer methods passed. The prior complete2216Swift run
+predates this one added test; this focused run validates the added regression.
+No production code changed in this follow-up.
+
+## Agent revision restoration — 1 November
+
+A separate branch adds drafts.restoreVersion through the existing-draft writer
+and local dispatcher. Target order does not choose the draft; both targets need
+granted scope and the revision must belong to the draft. Only content is restored.
+Expected versions, editor synchronization, Undo and atomic receipts remain shared.
+No catalog or library format changed. The configured service has13 handlers.
+
+Initial two methods failed against the unavailable handler. Focused65 checks
+passed for target order, explicit scope, wrong parent, Unicode, Undo, receipt
+recovery and storage-failure retry. Full strict Swift verified1/166/786/1263
+(2216). A later66-test run included a new official SDK/real-socket restoration
+case with hidden-note preservation. Python303 and the structural audit passed.
+Local app/helper builds also passed. Normal startup remains inactive. No
+installed application, native permission, personal data or release changed.
+
 
 ## Patch branch combined validation — 1 November
 

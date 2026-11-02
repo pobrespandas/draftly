@@ -5,7 +5,7 @@ import DraftlyCore
 // Existing-draft writes only. No transport or normal-startup activation.
 @MainActor final class AgentDraftWriting {
     private let libraryID: UUID
-    static let operationNames: Set<String> = ["drafts.update", "drafts.patch"]
+    static let operationNames: Set<String> = ["drafts.update", "drafts.patch", "drafts.restoreVersion"]
     private let library: LibraryStore
     private let reader: AgentDraftReading
     private let editors: AgentEditorRegistry
@@ -32,12 +32,12 @@ import DraftlyCore
             guard request.libraryID == libraryID else { throw AgentErrorCode.permissionDenied }
             try validateAdmission()
             let ticket = try keys.issue(request, connectionID: connectionID)
-            guard let target = request.targets.first, let expected = request.expectedVersion else { throw AgentErrorCode.invalidInput }
+            guard let target = request.targets.first(where: { $0.kind == .draft }), let expected = request.expectedVersion else { throw AgentErrorCode.invalidInput }
             let mutation = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
             if try recoveredReceipt(for: mutation, target: target.id) == nil {
                 guard !ActionRunner.isExecuting(in: library) else { throw AgentErrorCode.busy }
                 let snapshot = try reader.checkedSnapshot(for: target.id, expectedVersion: expected)
-                _ = try applying(request.operation, parameters: AgentDraftSchemas.validatedParameters(for: request), to: snapshot.note)
+                _ = try applying(request, parameters: AgentDraftSchemas.validatedParameters(for: request), to: snapshot.note)
             }
             try validateAdmission(); _ = try keys.verify(ticket.value, request: request, connectionID: connectionID)
             return ticket
@@ -55,7 +55,7 @@ import DraftlyCore
             try validateAdmission()
             let ticket = try keys.verify(key, request: request, connectionID: connectionID)
             let parameters = try AgentDraftSchemas.validatedParameters(for: request)
-            guard let target = request.targets.first, let expected = request.expectedVersion else { throw AgentErrorCode.invalidInput }
+            guard let target = request.targets.first(where: { $0.kind == .draft }), let expected = request.expectedVersion else { throw AgentErrorCode.invalidInput }
             let mutation = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
             // Check authority before returning any receipt, including recovery after a lost reply.
             if let previous = try recoveredReceipt(for: mutation, target: target.id) {
@@ -64,7 +64,8 @@ import DraftlyCore
             }
             guard !ActionRunner.isExecuting(in: library) else { throw AgentErrorCode.busy }
             let initial = try reader.checkedSnapshot(for: target.id, expectedVersion: expected)
-            let note = try applying(request.operation, parameters: parameters, to: initial.note)
+            let source = try restorationSource(request, parent: target.id)
+            let note = try applying(request, parameters: parameters, to: initial.note)
             let preserveDates: Bool
             if case .object(let changes) = parameters["changes"] { preserveDates = changes["modifiedAt"] != nil }
             else { preserveDates = false }
@@ -77,6 +78,13 @@ import DraftlyCore
                         _ = try self.keys.verify(key, request: request, connectionID: connectionID)
                         guard !ActionRunner.isExecuting(in: self.library) else { throw AgentErrorCode.busy }
                         try self.reader.validateMutationSnapshot(initial, expectedVersion: expected, reservedGeneration: generation)
+                        if let source {
+                            let current = try self.restorationSource(request, parent: target.id)
+                            guard current?.id == source.id, current?.date == source.date,
+                                  current?.content.utf8.elementsEqual(source.content.utf8) == true else {
+                                throw AgentErrorCode.versionConflict
+                            }
+                        }
                     }, makeResources: reader.mutationResources(for: target.id, generation: generation))
                 guard let stored = library.notes.first(where: { $0.id == target.id }) else { throw AgentErrorCode.storageError }
                 return stored
@@ -106,7 +114,21 @@ import DraftlyCore
         }
     }
 
-    private func applying(_ operation: String, parameters: [String: AgentJSONValue], to original: Note) throws -> Note {
+    private func restorationSource(_ request: AgentRequest, parent: UUID) throws -> Revision? {
+        guard request.operation == "drafts.restoreVersion" else { return nil }
+        guard let id = request.targets.first(where: { $0.kind == .revision })?.id,
+              let revision = library.revisions.first(where: { $0.id == id && $0.noteID == parent }) else {
+            throw AgentErrorCode.notFound
+        }
+        return revision
+    }
+
+    private func applying(_ request: AgentRequest, parameters: [String: AgentJSONValue], to original: Note) throws -> Note {
+        let operation = request.operation
+        if let revision = try restorationSource(request, parent: original.id) {
+            var note = original; note.content = revision.content
+            return note
+        }
         if operation == "drafts.update", case .object(let changes) = parameters["changes"] {
             return try applying(changes, to: original)
         }
