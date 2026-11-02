@@ -119,4 +119,22 @@ struct AgentAuthorizedActionHostTests {
         #expect(library.notes.first { $0.id == note.id }?.content == "Original")
         #expect(model.runner.authorizeScriptOperation == nil)
     }
+
+    @Test(arguments: [false, true]) func draftPolicyControlsScriptUpdate(canWrite: Bool) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Original")
+        let host = NativeActionHost(), now = Date()
+        var capabilities: Set<AgentCapability> = [.actionsRun, .draftsRead]
+        if canWrite { capabilities.insert(.draftsWrite) }
+        let grant = AgentGrant(connectionID: UUID(), libraryID: UUID(), expiresAt: now.addingTimeInterval(60),
+            capabilities: capabilities, scope: .resources([.init(kind: .draft, id: note.id)]))
+        let authority = AgentScriptAuthority(grant: grant, currentGrant: { grant }, validateHost: {},
+            isLocked: { false }, now: { now }, draftExists: { id in library.notes.contains { $0.id == id } })
+        let action = DraftAction(name: "Change", steps: [ActionStep("script", ["script": "draft.content='Changed'; draft.update();"])])
+        let result = try await AutomationActionExecution.run(action, noteID: note.id, library: library,
+            models: [], host: host, editorScope: .targetDraft,
+            scriptAuthorization: { operation, payload in try authority.authorize(operation, payload: payload) })
+        #expect(result.report.reason == (canWrite ? .success : .error), "\(result.message)")
+        #expect(library.notes.first { $0.id == note.id }?.content == (canWrite ? "Changed" : "Original"))
+    }
 }
