@@ -123,6 +123,12 @@ struct AgentCommandServiceTests {
         func send() throws -> AgentResponse {
             try JSONDecoder().decode(AgentResponse.self, from: f.service.respond(to: JSONEncoder().encode(signed), session: session))
         }
+        let originalGroup = f.library.actionGroupRecord(named: "Source")
+        var changedGroup = originalGroup; changedGroup.symbol = "star"
+        try f.library.saveActionGroup(changedGroup)
+        #expect(try send().outcome == .error(.versionConflict))
+        #expect(f.library.actions == [action])
+        try f.library.saveActionGroup(originalGroup)
         let result = try send()
         guard case .result = result.outcome else { Issue.record("Copy failed: \(result.outcome)"); return }
         #expect(try send() == result)
