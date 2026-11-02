@@ -215,3 +215,26 @@ The current host cleanup test is
 `scriptRequestKeepsLibraryBusyUntilInterruptedHostCleanupReturns(reason:)`.
 It replaces `scriptRequestKeepsLibraryBusyUntilCancelledHostCleanupReturns(timeout:)`.
 The API matrix uses the current name. Dated records retain the previous name.
+
+The action panel toolbar test now uses one attached controller fixture. It
+covers direct model changes, native button actions, both visibility states,
+no selected draft, and unrelated editor changes. It replaces the two previous
+image and enabled-appearance tests with
+`actionsToggleKeepsItsEnabledAppearanceAcrossVisibilityAndEditorChangesWithoutADraft()`.
+All other discovered test identities remain unchanged.
+
+Measured from baseline `98f9529`, target execution after discovery changed from
+96.152 seconds to 84.775 seconds in a complete local run (about 12 percent).
+An earlier run took 83.258 seconds. These measurements exclude the initial build.
+They do not predict total cold CI time.
+
+Three alternating warm runs of the consumer target gave median invocation times
+of 2.917 seconds with build planning and 1.458 seconds with `--skip-build`.
+The host cleanup test changed from 5.034 seconds to 0.025 seconds.
+The runner still requires fresh reports and an exact inventory match. It does
+not add retries or parallel execution.
+
+Validation passed: 2,223 Swift method identities, 304 Python tests, the action
+API matrix check, and a local signed app build. The previous inventory had
+2,224 identities. The only net removal is the consolidated toolbar case.
+These checks do not establish visible UI or cloud acceptance.
