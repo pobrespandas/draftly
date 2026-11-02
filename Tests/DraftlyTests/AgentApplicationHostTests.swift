@@ -17,6 +17,7 @@ struct AgentApplicationHostTests {
         let domain = "Draftly-Agent-Application-" + UUID().uuidString
         let secrets = Secrets()
         var locked = false
+        var protectedDataAvailable = true
         var app: AppController?
 
         init() throws {
@@ -152,7 +153,7 @@ struct AgentApplicationHostTests {
         let f = try Fixture(); defer { f.cleanup() }
         let app = try #require(f.app), secrets = f.secrets
         let note = try f.library.createNote(content: "Scoped draft")
-        try app.configureAgentHost(isLocked: { f.locked }, credentials: .init(read: { secrets.values[$0] },
+        try app.configureAgentHost(isLocked: { f.locked }, protectedDataAvailable: { f.protectedDataAvailable }, credentials: .init(read: { secrets.values[$0] },
             create: { secrets.values[$0] = $1 }, remove: { secrets.values.removeValue(forKey: $0) }),
             validateApplication: {}, validateHelper: { _ in })
         let settings = try #require(app.agentSettings)
@@ -162,6 +163,10 @@ struct AgentApplicationHostTests {
         #expect(throws: AgentErrorCode.permissionDenied) { try settings.setEnabled(true) }
         #expect(!settings.accessEnabled)
         f.locked = false
+        f.protectedDataAvailable = false
+        #expect(throws: AgentErrorCode.permissionDenied) { try settings.setEnabled(true) }
+        #expect(!settings.accessEnabled)
+        f.protectedDataAvailable = true
         try settings.setEnabled(true)
         #expect(settings.accessEnabled)
         app.closeAgentContext()
@@ -176,7 +181,7 @@ struct AgentApplicationHostTests {
         let window = WindowModel(library: f.library, dependencies: dependencies)
         window.editor.load(note, focusEditor: false)
         app.registerWindow(window)
-        try app.configureAgentHost(isLocked: { f.locked }, credentials: .init(read: { secrets.values[$0] },
+        try app.configureAgentHost(isLocked: { f.locked }, protectedDataAvailable: { f.protectedDataAvailable }, credentials: .init(read: { secrets.values[$0] },
             create: { secrets.values[$0] = $1 }, remove: { secrets.values.removeValue(forKey: $0) }),
             validateApplication: {}, validateHelper: { _ in })
         let settings = try #require(app.agentSettings)

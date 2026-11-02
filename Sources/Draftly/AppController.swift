@@ -153,6 +153,7 @@ final class AppController: ObservableObject {
     }
 
     func configureAgentHost(isLocked: @escaping () -> Bool,
+                            protectedDataAvailable: @escaping () -> Bool = { NSApplication.shared.isProtectedDataAvailable },
                             credentials: AgentConnectionRegistry.CredentialAccess? = nil,
                             validateApplication: @escaping () throws -> Void = { try AgentCredentialIdentity.validateCurrentProcess(.application) },
                             validateHelper: @escaping @Sendable (Data) throws -> Void = { try AgentPeerIdentity.validate($0, role: .helper) }) throws {
@@ -162,7 +163,7 @@ final class AppController: ObservableObject {
         let resources = AgentLibraryResourceChoices(library: library, editors: editors)
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
         let host = try AgentLocalHost(library: library, appVersion: version, editors: editors,
-            isLocked: { isLocked() || !NSApplication.shared.isProtectedDataAvailable },
+            isLocked: { isLocked() || !protectedDataAvailable() },
             pendingEditorGeneration: { _ in "" }, resolveTargets: { resources.resolve($0) },
             credentials: credentials, validateApplication: validateApplication, validateHelper: validateHelper)
         do { try adoptAgentHost(host) } catch { host.close(); throw error }
