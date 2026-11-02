@@ -132,6 +132,56 @@ struct AgentLocalHostTests {
         #expect(f.library.notes.first?.content == model.editor.content)
     }
 
+    @Test func stopWorkCancelsAHostActionWaitingForNativeEffectReview() async throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let note = try f.library.createNote(content: "Private neutral text")
+        let action = DraftAction(name: "Reviewed share", steps: [
+            ActionStep("share", ["template": "[[draft]]"]),
+            ActionStep("insertText", ["template": "ERROR: continued after Stop Work"])
+        ])
+        try f.library.saveAction(action)
+        let model = WindowModel(library: f.library); model.select(note.id)
+        let editors = AgentEditorRegistry(library: f.library, models: { [model] })
+        let host = try f.host(editors: editors, enableReviewedActions: true)
+        defer { host.close() }
+        try host.setEnabledFromUserInterface(true)
+        let record = try host.connections.connectFromUserInterface(name: "Reviewed execution", libraryID: host.libraryID,
+            capabilities: [.actionsRead, .actionsRun, .draftsRead, .draftsWrite, .editorWrite, .nativeUse], scope: .library)
+        let session = try host.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        func response(_ request: AgentRequest) throws -> AgentResponse {
+            try JSONDecoder().decode(AgentResponse.self,
+                from: host.service.respond(to: JSONEncoder().encode(request), session: session))
+        }
+        let read = try response(.init(requestID: UUID(), libraryID: host.libraryID, operation: "actions.get",
+            targets: [.init(kind: .action, id: action.id)]))
+        guard case .result(.object(let values)) = read.outcome,
+              case .string(let version) = values["versionToken"] else { Issue.record("Missing action version"); return }
+        let window = try #require(editors.windowSnapshots().first)
+        let admitted = try response(.init(requestID: UUID(), libraryID: host.libraryID, operation: "actions.run",
+            targets: [.init(kind: .action, id: action.id), .init(kind: .draft, id: note.id)], expectedVersion: version,
+            parameters: ["windowID": .string(window.id.uuidString), "interactive": .bool(true)]))
+        guard case .result(.object(let submission)) = admitted.outcome,
+              case .string(let rawID) = submission["operationID"], let id = UUID(uuidString: rawID) else {
+            Issue.record("Expected an accepted operation"); return
+        }
+        for _ in 0..<1000 where host.approvals.pendingFromUserInterface().isEmpty {
+            try await Task.sleep(for: .milliseconds(1))
+        }
+        let review = try #require(host.approvals.pendingFromUserInterface().first)
+        #expect(review.effects.snapshot["nativeOperation"] == .string("share"))
+        #expect(try host.operations.snapshot(id, connectionID: record.id).state == .waitingForUser)
+        try host.makeLibrarySettingsModel().stopWork()
+        for _ in 0..<1000 {
+            if !model.runner.isRunning && !model.actionPending { break }
+            try await Task.sleep(for: .milliseconds(1))
+        }
+        #expect(!model.runner.isRunning && !model.actionPending)
+        #expect(throws: AgentErrorCode.permissionDenied) { try host.operations.snapshot(id, connectionID: record.id) }
+        #expect(host.approvals.pendingFromUserInterface().isEmpty)
+        #expect(model.editor.content == note.content)
+        #expect(f.library.notes.first?.content == note.content)
+    }
+
     @Test func hostRejectsAnotherLibraryEditorRegistryBeforeCreatingPrivateState() throws {
         let f = try Fixture(); defer { f.cleanup() }
         let other = try LibraryStore(inMemory: true, seed: false)

@@ -18,6 +18,9 @@ builds keep agent access disabled.
   a result does not permit a replay within that host lifetime.
 - Host admission requires an explicit editor window and draft write permissions.
   Missing or unknown windows fail before execution.
+- Host tests execute a Unicode edit and query its terminal result. A share test
+  reaches human review, then Stop Work cancels execution before approval. The
+  next edit does not run, and the stopped connection cannot query results.
 
 ## Remaining integration
 
