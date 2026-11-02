@@ -15,8 +15,8 @@ import AgentContracts
     private static let readOperations: Set<String> = ["server.status", "server.capabilities", "server.schemas",
         "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions", "preferences.schema"]
     private static let editorReadOperations: Set<String> = ["editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks"]
-    static let implementedOperations = readOperations.union(["actions.list"]).union([AgentMutationSchemas.name]).union(AgentDraftWriting.operationNames).union(editorReadOperations)
-    private var availableOperations: Set<String> { editorRegistry == nil ? Self.readOperations.union(["actions.list"]) : (writes == nil ? Self.readOperations.union(Self.editorReadOperations).union(["actions.list"]) : Self.implementedOperations) }
+    static let implementedOperations = readOperations.union(["actions.list", "actions.get"]).union([AgentMutationSchemas.name]).union(AgentDraftWriting.operationNames).union(editorReadOperations)
+    private var availableOperations: Set<String> { editorRegistry == nil ? Self.readOperations.union(["actions.list", "actions.get"]) : (writes == nil ? Self.readOperations.union(Self.editorReadOperations).union(["actions.list", "actions.get"]) : Self.implementedOperations) }
     private let actionLibrary: LibraryStore
     private let actionVersionKey = SymmetricKey(size: .bits256)
     private let editorRegistry: AgentEditorRegistry?
@@ -149,9 +149,21 @@ import AgentContracts
         return grant
     }
 
+    private func actionVersion(_ action: DraftAction) throws -> String {
+        let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
+        return Data(HMAC<SHA256>.authenticationCode(for: try encoder.encode(action), using: actionVersionKey)).base64EncodedString()
+    }
+
     private func dispatch(_ request: AgentRequest, parameters: [String: AgentJSONValue], grant: AgentGrant,
                           sessionID: UUID) throws -> [String: AgentJSONValue] {
         switch request.operation {
+        case "actions.get":
+            guard let id = request.targets.first?.id,
+                  grant.scope.permits(.init(kind: .action, id: id)),
+                  let action = actionLibrary.actions.first(where: { $0.id == id }) else { throw AgentErrorCode.notFound }
+            let encoded = try JSONEncoder().encode(action)
+            let value = try JSONDecoder().decode(AgentJSONValue.self, from: encoded)
+            return ["action": value, "versionToken": .string(try actionVersion(action))]
         case "actions.list":
             let surface: ActionSurface?
             switch parameters["surface"] {
@@ -175,9 +187,7 @@ import AgentContracts
                     guard let action = self.actionLibrary.actions.first(where: { $0.id == id }), permitted(action),
                           let group = self.actionLibrary.actionGroupIdentifiers[action.group],
                           surface.map({ action.appears(on: $0) }) ?? true else { return nil }
-                    let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
-                    let payload = try encoder.encode(action)
-                    let token = Data(HMAC<SHA256>.authenticationCode(for: payload, using: self.actionVersionKey)).base64EncodedString()
+                    let token = try self.actionVersion(action)
                     return .object(["id": .string(action.id.uuidString), "name": .string(action.name),
                         "symbol": .string(action.symbol), "groupID": .string(group.uuidString),
                         "group": .string(action.group), "versionToken": .string(token)])

@@ -90,6 +90,23 @@ struct AgentCommandServiceTests {
         }
     }
 
+    @Test func actionGetRequiresScopeAndReturnsTheListedVersion() throws {
+        let f = try Fixture()
+        var allowed = DraftAction(name: "Allowed", steps: [])
+        let hidden = DraftAction(name: "Hidden", steps: [])
+        try f.library.saveActions([allowed, hidden])
+        let (_, session) = try f.connect(scope: .resources([.init(kind: .action, id: allowed.id)]), capabilities: [.actionsRead])
+        let listed = try f.values("actions.list", session: session, parameters: ["surface": .string("all")])
+        guard case .array(let items) = listed["items"], case .object(let summary) = items.first else { Issue.record("Missing action"); return }
+        let read = try f.values("actions.get", session: session, targets: [.init(kind: .action, id: allowed.id)])
+        #expect(read["versionToken"] == summary["versionToken"])
+        #expect(try f.response("actions.get", session: session, targets: [.init(kind: .action, id: hidden.id)]).outcome == .error(.notFound))
+        allowed.name = "Changed"
+        try f.library.saveAction(allowed)
+        let changed = try f.values("actions.get", session: session, targets: [.init(kind: .action, id: allowed.id)])
+        #expect(changed["versionToken"] != read["versionToken"])
+    }
+
     @Test func actionListFiltersScopeAndRechecksPages() throws {
         let f = try Fixture()
         let first = DraftAction(name: "Allowed A", steps: [])
@@ -530,7 +547,7 @@ struct AgentCommandServiceTests {
             guard case .object(let fields) = item, fields["available"] == .bool(true), case .string(let name) = fields["name"] else { return nil }
             return name
         })
-        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", AgentMutationSchemas.name, "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list"]) && available.count == 20)
+        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", AgentMutationSchemas.name, "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get"]) && available.count == 21)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.unavailable))
         #expect(f.library.notes.isEmpty)
         #expect(try f.values("server.capabilities", session: session)["capabilities"] == .array([.string("drafts.read"), .string("drafts.write")]))

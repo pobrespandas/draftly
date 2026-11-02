@@ -101,7 +101,7 @@ package enum AgentOperationCatalog {
         .init(name: "editor.navigate", owner: "WindowModel", capabilities: [.presentUI, .draftsRead], targets: .one(.window), requiresExpectedVersion: true),
         .init(name: "editor.preview", owner: "WindowModel", capabilities: [.presentUI, .draftsRead], targets: .one(.window)),
         .init(name: "actions.list", owner: "ActionCatalog + ActionEditingCopy", capabilities: [.actionsRead], targets: .none, isReadOnly: true),
-        .init(name: "actions.get", owner: "ActionCatalog + ActionEditingCopy", capabilities: [.actionsRead], targets: .one(.action)),
+        .init(name: "actions.get", owner: "ActionCatalog + ActionEditingCopy", capabilities: [.actionsRead], targets: .one(.action), isReadOnly: true),
         .init(name: "actions.stepSchemas", owner: "ActionCatalog + ActionEditingCopy", capabilities: [.actionsRead], targets: .none),
         .init(name: "actions.groups", owner: "ActionCatalog + ActionEditingCopy", capabilities: [.actionsRead], targets: .none),
         .init(name: "actions.create", owner: "LibraryStore + ActionEditingCopy", capabilities: [.actionsManage], targets: .none),
