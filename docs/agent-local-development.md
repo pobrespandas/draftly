@@ -652,3 +652,16 @@ LaunchServices registration was removed, and the usual app reopened with its
 This check used CLI, not an external MCP client. It does not establish input
 method composition support, durable editor receipts after restart, notarization,
 or production screen-lock behavior. Normal agent access remains disabled.
+
+### Installed print admission check — 2 November 2026
+
+The signed app at `b828459` accepted a scoped MCP print request. The native
+review showed the concrete print text, format and resource targets. Allow once
+reached the print adapter, which rejected the catalog's `plainText` format
+before showing a print sheet. The operation retained an unknown outcome and
+was not replayed. No print job was submitted.
+
+The adapter now accepts `plainText` as a text format, including case variants.
+The focused regression passed 54 tests in three suites. Installed print-sheet
+and cancellation acceptance remain pending on the corrected build. The QA
+connection was revoked, Stop Work disabled access, and QA quit normally.

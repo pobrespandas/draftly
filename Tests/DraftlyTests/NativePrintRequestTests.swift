@@ -140,6 +140,13 @@ struct NativePrintRequestTests {
         func cancelOwnedPresentation() { cancelled += 1 }
         func detach() { detached += 1; onFinish = nil }
     }
+    @Test(arguments: ["plainText", "PlainText", "plain", "Text"])
+    func catalogPlainTextFormatPreservesUnicode(format: String) throws {
+        let configuration = try NativePrintConfiguration(["format": format, "text": "QA café 🐼"])
+        #expect(configuration.format == .text)
+        #expect(configuration.text == "QA café 🐼")
+    }
+
     @Test func defaultFormatAndMarginsAreExplicit() throws {
         let configuration = try NativePrintConfiguration(["text": "Neutral café 🐼"])
         #expect(configuration.text == "Neutral café 🐼" && configuration.format == .text)
