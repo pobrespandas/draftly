@@ -69,7 +69,9 @@ connected to the agent service.
 Pending reviews retain normalized request fields and the resolved effect
 snapshot for the app to present in Settings. Listing them refreshes their
 validity first. Stop Work and permission changes invalidate reviews. Operation
-routing still needs to create and consume these reviews.
+routing can wait for a decision and recheck resolved effects before consuming
+it. Cancellation withdraws a pending review. The agent service still needs to
+route supported operations through this flow.
 For the guarded draft operations, the runner checks authority again before it
 returns a result to the script. If authority changes after an update, it stops
 the Action and records an unknown outcome even when the script catches the

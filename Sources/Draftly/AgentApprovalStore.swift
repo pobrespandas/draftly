@@ -90,6 +90,34 @@ import AgentContracts
             .map(\.review)
     }
 
+    // The caller supplies fresh effects again immediately before consumption.
+    // Cancellation removes a still-pending decision and does not start work.
+    func waitForApproval(_ request: AgentRequest, connectionID: UUID,
+                         resolveEffects: () throws -> Effects,
+                         sleep: () async throws -> Void = { try await Task.sleep(for: .milliseconds(200)) }) async throws {
+        try Task.checkCancellation()
+        let review = try requestReview(request, connectionID: connectionID, effects: resolveEffects())
+        do {
+            while true {
+                try Task.checkCancellation()
+                switch try statusForConnection(review.id, connectionID: connectionID) {
+                case .pending: try await sleep()
+                case .approved:
+                    try Task.checkCancellation()
+                    try consume(review.id, request: request, connectionID: connectionID, effects: resolveEffects())
+                    return
+                case .denied, .consumed: throw AgentErrorCode.permissionDenied
+                case .cancelled: throw AgentErrorCode.cancelled
+                case .expired: throw AgentErrorCode.timeout
+                case .invalidated: throw AgentErrorCode.versionConflict
+                }
+            }
+        } catch {
+            if Task.isCancelled { try? cancelFromConnection(review.id, connectionID: connectionID) }
+            throw error
+        }
+    }
+
     func approveFromUserInterface(_ id: UUID, reviewedFingerprint: String) throws {
         let entry = try liveEntry(id)
         guard entry.review.fingerprint == reviewedFingerprint else {

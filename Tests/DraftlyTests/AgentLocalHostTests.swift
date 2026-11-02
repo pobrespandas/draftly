@@ -405,6 +405,32 @@ struct AgentLocalHostTests {
         #expect(throws: AgentErrorCode.versionConflict) { try model.decideOperation(review, approved: true) }
     }
 
+    @Test func humanDecisionInSettingsReleasesWaitingOperationOnce() async throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let host = try f.host(); defer { host.close() }
+        let model = try host.makeLibrarySettingsModel()
+        try model.setEnabled(true)
+        let record = try host.connections.connectFromUserInterface(name: "Review test", libraryID: host.libraryID,
+            capabilities: [.preferencesRead, .preferencesWrite], scope: .library)
+        let request = AgentRequest(requestID: UUID(), libraryID: host.libraryID, operation: "preferences.update",
+            expectedVersion: "version", parameters: ["items": .array([.object([
+                "id": .string(SpotlightPreferences.enabledKey), "value": .bool(true)
+            ])])])
+        let effects = AgentApprovalStore.Effects(capabilities: [.preferencesWrite], targets: [],
+            requiresLibraryScope: false, snapshot: ["value": .bool(true)])
+        let task = Task { @MainActor in
+            try await host.approvals.waitForApproval(request, connectionID: record.id, resolveEffects: { effects })
+        }
+        for _ in 0..<100 where model.pendingOperationReviews.isEmpty {
+            await Task.yield(); model.refresh()
+        }
+        let review = try #require(model.pendingOperationReviews.first)
+        try model.decideOperation(review, approved: true)
+        try await task.value
+        #expect(try host.approvals.statusForConnection(review.id, connectionID: record.id) == .consumed)
+        #expect(throws: AgentErrorCode.permissionDenied) { try model.decideOperation(review, approved: true) }
+    }
+
     @Test func authenticatedRequestsRecordMetadataWithoutChangingTheirResultOnStorageFailure() async throws {
         let f = try Fixture(); defer { f.cleanup() }
         let host = try f.host(); defer { host.close() }

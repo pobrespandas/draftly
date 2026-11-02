@@ -83,6 +83,53 @@ struct AgentApprovalStoreTests {
         #expect(throws: AgentErrorCode.versionConflict) { try fixture.approve(review) }
     }
 
+    @Test func waitingConsumesOneHumanApproval() async throws {
+        let fixture = Fixture(), request = fixture.request()
+        var shownID: UUID?
+        try await fixture.store.waitForApproval(request, connectionID: fixture.connection,
+            resolveEffects: { fixture.effects() }, sleep: {
+                let review = try #require(fixture.store.pendingFromUserInterface().first)
+                shownID = review.id
+                try fixture.approve(review)
+            })
+        let id = try #require(shownID)
+        #expect(try fixture.store.statusForConnection(id, connectionID: fixture.connection) == .consumed)
+        #expect(fixture.store.pendingFromUserInterface().isEmpty)
+    }
+
+    @Test func waitingRejectsEffectsThatChangeDuringReview() async throws {
+        let fixture = Fixture(), request = fixture.request()
+        var version = "first", reviewID: UUID?
+        await #expect(throws: AgentErrorCode.versionConflict) {
+            try await fixture.store.waitForApproval(request, connectionID: fixture.connection,
+                resolveEffects: { fixture.effects(version: version) }, sleep: {
+                    let review = try #require(fixture.store.pendingFromUserInterface().first)
+                    reviewID = review.id
+                    try fixture.approve(review)
+                    version = "changed"
+                })
+        }
+        let id = try #require(reviewID)
+        #expect(try fixture.store.statusForConnection(id, connectionID: fixture.connection) == .invalidated)
+    }
+
+    @Test func cancellingWaitWithdrawsThePendingReview() async throws {
+        let fixture = Fixture(), request = fixture.request()
+        var reviewID: UUID?
+        let task = Task { @MainActor in
+            try await fixture.store.waitForApproval(request, connectionID: fixture.connection,
+                resolveEffects: { fixture.effects() }, sleep: {
+                    reviewID = fixture.store.pendingFromUserInterface().first?.id
+                    withUnsafeCurrentTask { $0?.cancel() }
+                    try Task.checkCancellation()
+                })
+        }
+        await #expect(throws: CancellationError.self) { try await task.value }
+        let id = try #require(reviewID)
+        #expect(fixture.store.pendingFromUserInterface().isEmpty)
+        #expect(try fixture.store.statusForConnection(id, connectionID: fixture.connection) == .cancelled)
+    }
+
     @Test func defaultNormalizationDoesNotMintAnotherReviewOrExtendExpiry() throws {
         let fixture = Fixture(), id = UUID()
         let review = try fixture.review(fixture.request(id: id))
