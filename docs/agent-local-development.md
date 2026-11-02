@@ -83,7 +83,8 @@ The operation registry tracks ownership, waiting, cancellation and completion.
 A cancellation request does not claim completion before the work returns.
 Unexpected interruption after work starts has an unknown outcome. Transport
 access to operation status and cancellation is connected. The reviewed QA host
-also connects a private durable journal. Installed restart acceptance is pending.
+also connects a private durable journal. Isolated installed restart checks are
+recorded in [the operation checkpoint](agent-operation-checkpoint.md).
 Within one host lifetime, repeated Action request IDs return the same operation.
 Changed request fields fail with a version conflict. Removing a completed
 operation does not permit its request ID to start work again. Request history
@@ -93,8 +94,8 @@ work as unknown. It never restarts a reserved request automatically.
 For the guarded draft operations, the runner checks authority again before it
 returns a result to the script. If authority changes after an update, it stops
 the Action and records an unknown outcome even when the script catches the
-error. The automation result and operation registry retain that state. This does
-not establish installed restart acceptance. Normal app activation remains disabled.
+error. The automation result and operation registry retain that state. Production
+acceptance remains pending. Normal app activation remains disabled.
 Creating an action requires access to the full library. Action changes use
 an expected version, a signed retry key, and an atomic action and receipt
 transaction. Recovery checks the current grant. A client with resource scope

@@ -55,6 +55,32 @@ quit, and its app bundle was retained outside Applications.
 This build used the QA lock adapter. It does not prove screen-lock handling,
 normal startup, notarization, restart recovery or production acceptance.
 
+## Installed MCP restart check — 2 November 2026
+
+A Developer ID QA build at commit `9ff8166` ran from Applications with the
+matching signed helper. A fixed test-library ID preserved the isolated library
+across process restarts. MCP submitted Share for a neutral Unicode draft.
+Native review showed the exact payload. Allow once opened the macOS share
+selector. Cancelling it produced a cancelled report and a failed share record.
+
+After a normal quit and reopen, access stayed paused and helper discovery
+returned no active host. Explicitly resuming access allowed CLI and MCP to read
+the exact saved report, including its execution ID. Repeating the original
+Action request returned the same cancelled operation. The journal still had one
+operation, and no new review or share selector appeared.
+
+A second MCP request reached the share selector. With no destination selected,
+the isolated app process was killed after its submitted effect record reached
+disk. On reopen, access stayed paused. After explicit resume, CLI and MCP
+reported `outcome_unknown` with an unknown share record. Repeating that request
+returned the same unknown operation. The journal contained exactly two
+operations and no native text payload.
+
+Revocation then made CLI authentication fail. Stop Work left access off. QA
+quit and its bundle was retained outside Applications. The usual app reopened
+with its ten drafts. This validates this isolated signed path, not screen-lock
+behavior, power-loss durability, notarization or named external clients.
+
 ## Remaining integration
 
 The reviewed QA host connects the private operation journal. It reserves request
@@ -63,7 +89,8 @@ atomic file replacement. A reopened registry returns saved terminal results.
 Interrupted work becomes `outcome_unknown`; confirmed effects remain recorded.
 The same request returns its operation ID without execution. Recovery requires
 the original grant and current access. Terminal records cannot be overwritten by
-a late executor. Installed restart acceptance remains pending.
+a late executor. The isolated installed restart checks above passed. Production
+acceptance remains pending.
 
 1. Complete result coverage and records for non-native effects. Native effect
    records are connected. Snapshot encoding checks the execution result schema.
@@ -72,8 +99,8 @@ a late executor. Installed restart acceptance remains pending.
 3. Verify the optional host execution path with native effects and installed
    clients before enabling it at application startup. Advertise only handlers
    that are connected and verified.
-4. Verify storage failures, capacity handling and signed installed restart
-   recovery before enabling normal access.
+4. Verify storage failures, capacity handling and production acceptance before
+   enabling normal access.
 5. Verify the installed signed app and helper through CLI and MCP, including
    pairing, scope isolation, cancellation, revocation and restart.
 
