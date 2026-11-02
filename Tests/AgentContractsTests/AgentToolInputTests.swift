@@ -11,7 +11,8 @@ struct AgentToolInputTests {
         #expect(AgentToolInput.operation(named: "run_any_script") == nil)
         #expect(Set(AgentOperationCatalog.operations.filter(\.isReadOnly).map(\.name)) == AgentReadSchemas.operationNames.union([
             "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks",
-            "actions.list", "actions.get", "actions.groups", "actionGroups.get", "activity.list"
+            "actions.list", "actions.get", "actions.stepSchemas", "actions.validateShortcut",
+            "actions.groups", "actionGroups.get", "activity.list"
         ]))
     }
     @Test func requestTargetsAndAuthorityCannotBeReboundByToolArguments() throws {
