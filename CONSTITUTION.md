@@ -46,6 +46,12 @@ Offer actions that help people use their writing. Make their effects clear and
 give people control over consequential operations. Compatibility with Drafts
 supports this goal; it does not override the writing experience.
 
+## Keep people in control of agent access
+
+Let people decide what an agent can access and do. Make the scope and effects
+of that access understandable. Require human confirmation for consequential
+operations and make it possible to revoke access.
+
 ## Design for change
 
 Give components clear responsibilities and interfaces. Keep related rules
