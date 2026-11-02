@@ -464,6 +464,30 @@ public final class LibraryStore: ObservableObject {
             try beforeBatchCommit?(); try commit()
         } catch { container.viewContext.rollback(); try? reload(); throw error }
     }
+    package func commitWorkspaces(_ values: [Workspace], mutation: LibraryMutationIdentity, at now: Date,
+                                  validateCommit: () throws -> Void = {},
+                                  makeResources: ([Workspace]) throws -> [LibraryMutationReceipt.Resource]) throws -> LibraryMutationReceipt {
+        let ids = Set(values.map(\.id))
+        guard !values.isEmpty, ids.count == values.count else { throw LibraryMutationReceiptError.invalidReceipt }
+        if let previous = try mutationReceipt(for: mutation, at: now) {
+            guard Set(previous.resources.map(\.id)) == ids else { throw LibraryMutationReceiptError.requestConflict }
+            return previous
+        }
+        do {
+            for workspace in values { try persist(workspace, id: workspace.id, kind: "workspace") }
+            let receipt = LibraryMutationReceipt(id: UUID(), mutation: mutation, committedAt: now,
+                                                 resources: try makeResources(values))
+            try receipt.validate()
+            guard Set(receipt.resources.map(\.id)) == ids else { throw LibraryMutationReceiptError.invalidReceipt }
+            try persist(receipt, id: receipt.id, kind: "agentMutationReceipt")
+            try beforeBatchCommit?()
+            try validateCommit()
+            try commit()
+            return receipt
+        } catch {
+            container.viewContext.rollback(); try? reload(); throw error
+        }
+    }
     private var actionCatalog: ActionCatalog {
         ActionCatalog(actions: actions, groups: actionGroups)
     }

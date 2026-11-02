@@ -14,6 +14,33 @@ struct LibraryMutationReceiptTests {
         notes.map { .init(id: $0.id, versionToken: "opaque-neutral-version") }
     }
 
+    @Test func workspaceMutationRollsBackAndReplaysAfterReopen() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let library = try LibraryStore(directory: root, seed: false)
+        let original = Workspace(name: "Original"), mutation = identity()
+        try library.saveWorkspace(original)
+        var changed = original; changed.name = "Changed"
+        #expect(throws: (any Error).self) {
+            try library.commitWorkspaces([changed], mutation: mutation, at: now,
+                validateCommit: { throw DraftlyError.message("Authority changed") }) { values in
+                    values.map { .init(id: $0.id, versionToken: "opaque-version") }
+                }
+        }
+        #expect(library.workspaces == [original])
+        #expect(try library.mutationReceipt(for: mutation, at: now) == nil)
+        let receipt = try library.commitWorkspaces([changed], mutation: mutation, at: now) { values in
+            values.map { .init(id: $0.id, versionToken: "opaque-version") }
+        }
+        let reopened = try LibraryStore(directory: root, seed: false)
+        let replay = try reopened.commitWorkspaces([changed], mutation: mutation, at: now.addingTimeInterval(1),
+            validateCommit: { Issue.record("A replay must not commit again") }) { _ in [] }
+        #expect(replay == receipt && reopened.workspaces == [changed])
+        #expect(throws: LibraryMutationReceiptError.requestConflict) {
+            try reopened.commitWorkspaces([Workspace(name: "Other")], mutation: mutation, at: now) { _ in [] }
+        }
+    }
+
     @Test func groupRenameRollsBackActionsAndImplicitGroupsOnFailure() throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         var first = DraftAction(name: "One", steps: []); first.group = "Original"
