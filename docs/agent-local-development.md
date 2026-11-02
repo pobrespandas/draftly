@@ -98,6 +98,10 @@ A later isolated MCP session read five groups across three pages and received
 the same order version on every page. The test connection was then revoked.
 Changes between pages have automated coverage.
 
+A signed isolated CLI run read a complete group, reversed its 18 actions, and
+received the same 18 resource receipts on retry. The connection was revoked
+and the test host stopped. This did not test a release installation.
+
 ## Current components
 
 - AgentContracts owns the request, response and authentication envelopes.
