@@ -277,6 +277,36 @@ public final class LibraryStore: ObservableObject {
         try installActionCatalog(groups: groups, actions: actions)
         return DefaultActionCatalogInstallation(groupNames: groups.map(\.name), actionCount: actions.count)
     }
+    private struct InstalledActionCatalog: Codable { let installation: String }
+
+    /// Replace the entire action catalog once for an application installation.
+    public func replaceActionCatalogIfNeeded(installation: String) throws {
+        guard !installation.isEmpty else { throw DraftlyError.message("The installation identity is missing.") }
+        let bytes = Array(SHA256.hash(data: Data(installation.utf8)).prefix(16))
+        let markerID = bytes.withUnsafeBufferPointer { NSUUID(uuidBytes: $0.baseAddress!) as UUID }
+        let markers = try persistence.decode("installedActionCatalog", InstalledActionCatalog.self)
+        guard !markers.contains(where: { $0.installation == installation }) else { return }
+        do {
+            for action in actions {
+                if let record = persistence.record(for: "action:\(action.id.uuidString)") { container.viewContext.delete(record) }
+            }
+            for group in actionGroups {
+                if let record = persistence.record(for: "actionGroup:\(group.id.uuidString)") { container.viewContext.delete(record) }
+            }
+            // Reload the record index so replacement IDs do not reuse deleted objects.
+            try persistence.reloadRecords()
+            for group in DefaultActionCatalog.groups { try persist(group, id: group.id, kind: "actionGroup") }
+            for action in DefaultActionCatalog.actions { try persist(action, id: action.id, kind: "action") }
+            try persist(InstalledActionCatalog(installation: installation), id: markerID, kind: "installedActionCatalog")
+            try beforeBatchCommit?()
+            try persistence.commit { try reload() }
+        } catch {
+            container.viewContext.rollback()
+            try? reload()
+            throw error
+        }
+    }
+
     public func installActionCatalog(groups: [ActionGroupRecord], actions: [DraftAction]) throws {
         guard Set(groups.map(\.id)).count == groups.count,
               Set(groups.map(\.name)).count == groups.count,

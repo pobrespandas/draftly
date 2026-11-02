@@ -211,25 +211,22 @@ A new persistent store receives the current catalog once. Draftly does not use a
 action list as a signal to seed data. If a person deletes every default action,
 the next launch keeps the library empty.
 
-Existing stores do not receive defaults during an update. Automatic seeding runs
-only for a new local library without a CloudKit configuration. A new local cache
-does not prove that its iCloud library is empty. Cloud-backed libraries wait for
-imported actions or an explicit installation. Automatic initialization after a
-confirmed empty CloudKit import remains pending; no synchronization acceptance is
-claimed by the in-memory configuration test.
+During catalog stabilization, the normal app replaces the entire action and
+group catalog once per application installation. This includes custom and edited
+actions and restores deleted defaults. Drafts and other library records remain.
+The installation identity includes the app version, build, directory creation
+time and file identity. Reopening that installation keeps subsequent edits.
+A new installation or update runs replacement again. The catalog and its
+installation marker are committed together. Failed writes preserve the previous
+catalog and can be tried again. QA and cloud test builds skip this startup path.
 
-Settings > Maintenance > Replace Default Actions replaces the canonical default
-records by ID. It restores deleted defaults and overwrites edited defaults,
-including their steps, symbols, and colors. Other action IDs remain unchanged,
-even when they have the same name or belong to a default group. Repeating the
-operation does not create duplicate groups or actions. The write is atomic.
-A failed write keeps the prior catalog unchanged. Existing independent copies
-in groups such as Basic (Default) remain independent.
+Settings > Maintenance retains explicit replacement of canonical defaults.
+That manual operation keeps unrelated action IDs. The temporary startup policy
+replaces all IDs. It ends when the default catalog is stable; preservation of
+personal edits and deletions remains planned for2.0.0.
 
-The copy-installation API remains available to existing callers. It creates
-independent suffixed groups. The Settings operation uses replacement instead.
-Automatic catalog updates that preserve edits and deletions are planned for
-2.0.0. This change does not add automatic installation to existing libraries.
+This startup implementation has isolated automatic tests. It does not establish
+cross-client CloudKit replacement acceptance.
 
 iCloud Drive, Google Drive, and OneDrive actions require folder bookmarks with
 those exact names. The user selects each synchronized folder once in Bookmark
