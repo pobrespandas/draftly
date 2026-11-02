@@ -16,7 +16,14 @@ import AgentLocalSecurity
     private let publications: AgentHostPublications
     private let activity: AgentActivityStore
     private(set) var activityRecordingError: AgentErrorCode?
-    private var activityGeneration = UUID()
+    private struct PendingActivity {
+        let connectionID: UUID
+        let requestID: UUID
+        let operation: String
+        let result: String
+    }
+    private var pendingActivity: [PendingActivity] = []
+    private var activityFlushScheduled = false
     var locatorCleanupError: AgentErrorCode? { publications.cleanupError }
     private let socketParentDirectory: URL
     private let validateApplication: () throws -> Void
@@ -36,7 +43,7 @@ import AgentLocalSecurity
     func clearActivity() throws {
         try validateOwnership()
         try activity.clear(libraryID: libraryID)
-        activityGeneration = UUID()
+        pendingActivity.removeAll()
         activityRecordingError = nil
     }
 
@@ -87,16 +94,8 @@ import AgentLocalSecurity
                 editors: editors,
                 pendingEditorGeneration: pendingEditorGeneration,
                 recordActivity: { connectionID, requestID, operation, result in
-                    guard let currentOwner = owner else { return }
-                    let generation = currentOwner.activityGeneration
-                    Task { @MainActor [weak currentOwner] in
-                        guard let currentOwner, currentOwner.activityGeneration == generation else { return }
-                        do {
-                            try currentOwner.validateOwnership()
-                            try activity.append(libraryID: currentOwner.libraryID, connectionID: connectionID,
-                                                requestID: requestID, operation: operation, result: result)
-                        } catch { currentOwner.activityRecordingError = (error as? AgentErrorCode) ?? .storageError }
-                    }
+                    owner?.enqueueActivity(.init(connectionID: connectionID, requestID: requestID,
+                                                 operation: operation, result: result))
                 })
         } catch { lease.close(); throw error }
         pairing = AgentPairingCoordinator(registry: registry, libraryID: lease.libraryID,
@@ -115,9 +114,33 @@ import AgentLocalSecurity
     }
 
     func close() {
-        guard !closed else { publications.withdraw(); return }; closed = true
+        guard !closed else { publications.withdraw(); return }
         suspend()
+        flushActivity()
+        closed = true
         lease.close()
+    }
+
+    private func enqueueActivity(_ entry: PendingActivity) {
+        guard pendingActivity.count < 1024 else { activityRecordingError = .busy; return }
+        pendingActivity.append(entry)
+        guard !activityFlushScheduled else { return }
+        activityFlushScheduled = true
+        Task { @MainActor [weak self] in self?.flushActivity() }
+    }
+
+    private func flushActivity() {
+        activityFlushScheduled = false
+        let entries = pendingActivity
+        pendingActivity.removeAll()
+        guard !entries.isEmpty else { return }
+        do {
+            try validateOwnership()
+            for entry in entries {
+                try activity.append(libraryID: libraryID, connectionID: entry.connectionID,
+                                    requestID: entry.requestID, operation: entry.operation, result: entry.result)
+            }
+        } catch { activityRecordingError = (error as? AgentErrorCode) ?? .storageError }
     }
 
     func suspend() {

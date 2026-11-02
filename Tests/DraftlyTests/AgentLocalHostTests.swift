@@ -437,6 +437,20 @@ struct AgentLocalHostTests {
         #expect(try host.recentActivity().count == 1)
     }
 
+    @Test func closingHostFlushesQueuedActivityBeforeReleasingTheLibrary() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let host = try f.host()
+        try host.setEnabledFromUserInterface(true)
+        let record = try f.connect(host)
+        let session = try host.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        let request = AgentRequest(requestID: UUID(), libraryID: host.libraryID, operation: "server.status")
+        let response = try JSONDecoder().decode(AgentResponse.self, from: host.service.respond(to: JSONEncoder().encode(request), session: session))
+        guard case .result = response.outcome else { Issue.record("Expected success"); return }
+        host.close()
+        let reopened = try f.host(); defer { reopened.close() }
+        #expect(try reopened.recentActivity().contains { $0.requestID == request.requestID && $0.result == "success" })
+    }
+
     @Test func closingAnEditorBeforePairingApprovalInvalidatesTheReview() throws {
         let f = try Fixture(); defer { f.cleanup() }
         let preferences = try TestPreferences(prefix: "Draftly-Agent-Window-Grant-")
