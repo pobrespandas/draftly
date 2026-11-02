@@ -16,6 +16,24 @@ struct AsyncFilePreviewStepTests {
         #expect(values["text"] as? String == "Title\nBody 🐼")
     }
 
+    @Test(arguments: ["markdown", "plainText", "html"])
+    func printRendersItsFormatBeforeNativeReview(format: String) async throws {
+        let host = FilePreviewStepHost()
+        let text = "# Title café 🐼\n\n**Bold**"
+        let f = try ScriptTestFixture(content: text, host: host)
+        let step = ActionStep("print", ["format": format, "template": "[[draft]]", "topMargin": "20"])
+        let report = await f.runner.runAsync(DraftAction(name: "Print", steps: [step]))
+        #expect(report.reason == .success && host.calls == ["print"])
+        let values = try #require(host.payloads.first)
+        #expect(values["format"] as? String == (format == "markdown" ? "html" : format))
+        #expect(values["topMargin"] as? String == "20")
+        let body = try #require(values["text"] as? String)
+        if format == "markdown" {
+            #expect(body.contains("<h1") && body.contains("<strong>Bold</strong>"))
+            #expect(body.contains("café 🐼"))
+        } else { #expect(body == text) }
+    }
+
     @Test func exportUsesItsDefaultRenderedName() async throws {
         let f = try ScriptTestFixture(content: "Title\nBody", host: FilePreviewStepHost())
         let report = await f.runner.runAsync(DraftAction(name: "Export", steps: [ActionStep("export")]))

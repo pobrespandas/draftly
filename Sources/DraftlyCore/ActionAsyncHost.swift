@@ -73,7 +73,10 @@ import Foundation
             let name = try await renderTemplateAsync(step.values["name"] ?? "[[safe_title]].txt", note: current)
             return try await nativeValue("shareFile", ["text": rendered, "name": name]) as? Bool != false
         case "print":
-            return try await nativeValue("print", step.values.merging(["text": rendered]) { _, new in new }) as? Bool != false
+            let markdown = step.values["format"] == "markdown"
+            let body = markdown ? try MarkdownPreferences.render(rendered, defaults: markdownDefaults) : rendered
+            let values = step.values.merging(["text": body, "format": markdown ? "html" : step.values["format"] ?? "plainText"]) { _, new in new }
+            return try await nativeValue("print", values) as? Bool != false
         case "prompt":
             let prompt = try await ActionTemplateBuilder.build(render: { try await self.renderTemplateAsync($0, note: current) }) { try ActionPromptStep(step, render: $0) }
             guard let tags = try prompt.tags(from: await nativeValue("prompt", prompt.values)) else { return false }
