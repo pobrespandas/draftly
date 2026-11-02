@@ -15,7 +15,9 @@ import DraftlyCore
               Set(request.targets) == Set([.init(kind: .action, id: action.id), .init(kind: .draft, id: draftID)]) else {
             throw AgentErrorCode.invalidInput
         }
+        try authority.validateRequestIdentity(request, connectionID: connectionID, draftID: draftID)
         func checkedSnapshot() throws -> [String: AgentJSONValue] {
+            try authority.validateRequestIdentity(request, connectionID: connectionID, draftID: draftID)
             try authority.authorizeNative("device", rootActionID: action.id)
             let snapshot = try currentSnapshot()
             guard snapshot["actionVersion"] == .string(expected),

@@ -33,6 +33,13 @@ import DraftlyCore
         self.reviewedNativeEffects = reviewedNativeEffects
     }
 
+    func validateRequestIdentity(_ request: AgentRequest, connectionID: UUID, draftID: UUID) throws {
+        let grant = try currentBaseline()
+        guard self.connectionID == connectionID, targetDraftID == draftID,
+              request.libraryID == nil || request.libraryID == libraryID else { throw AgentErrorCode.permissionDenied }
+        try requireUnchanged(grant)
+    }
+
     func authorize(_ operation: String, payload: String) throws {
         let grant = try currentBaseline()
         guard let data = payload.data(using: .utf8), data.count <= AgentRequest.maximumBytes,

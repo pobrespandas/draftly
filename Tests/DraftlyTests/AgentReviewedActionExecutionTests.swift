@@ -6,6 +6,25 @@ import DraftlyCore
 
 @Suite("Agent reviewed Action execution") @MainActor
 struct AgentReviewedActionExecutionTests {
+    @Test func executionIdentityCannotMoveAcrossConnectionsLibrariesOrDrafts() throws {
+        let connection = UUID(), library = UUID(), draft = UUID()
+        let grant = AgentGrant(connectionID: connection, libraryID: library, expiresAt: Date().addingTimeInterval(600),
+            capabilities: [.actionsRun, .draftsRead], scope: .library)
+        let authority = AgentScriptAuthority(grant: grant, currentGrant: { grant }, validateHost: {}, isLocked: { false },
+            draftExists: { $0 == draft }, targetDraftID: draft)
+        let request = AgentRequest(requestID: UUID(), libraryID: library, operation: "actions.run")
+        try authority.validateRequestIdentity(request, connectionID: connection, draftID: draft)
+        #expect(throws: AgentErrorCode.permissionDenied) {
+            try authority.validateRequestIdentity(request, connectionID: UUID(), draftID: draft)
+        }
+        #expect(throws: AgentErrorCode.permissionDenied) {
+            try authority.validateRequestIdentity(request, connectionID: connection, draftID: UUID())
+        }
+        let other = AgentRequest(requestID: UUID(), libraryID: UUID(), operation: "actions.run")
+        #expect(throws: AgentErrorCode.permissionDenied) {
+            try authority.validateRequestIdentity(other, connectionID: connection, draftID: draft)
+        }
+    }
     private final class Host: ActionHost {
         var shares = 0
         func supportsAsync(_ operation: String) -> Bool { operation == "share" }
