@@ -3,6 +3,24 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Default catalog replacement — 1 November
+
+Settings > Maintenance now replaces the canonical default actions by ID.
+It restores deleted defaults and overwrites edited defaults. Other action IDs
+remain unchanged. Default symbols, bar labels, and colors are stored in the
+catalog data. The list and bar share these appearance rules. Repeated
+replacement does not add duplicate groups. A failed write rolls back all changes.
+
+Automatic catalog updates that preserve edits and deletions are deferred to
+2.0.0. Existing libraries remain unchanged at launch. Independent copies from
+previous installations remain independent. See [catalog behavior](default-actions-parity.md).
+
+Focused catalog, presentation, and window selection tests passed (36 methods).
+The full Swift runner verified 2,226 method identities against fresh reports.
+The API matrix audit and local signed app build passed. Visible Settings and
+live CloudKit acceptance have not run.
+The usual app and its library remain unchanged.
+
 ## Public 0.1.5 — 1 November
 
 [0.1.5/build 6](https://github.com/pobrespandas/draftly/releases/tag/v0.1.5)
