@@ -146,7 +146,9 @@ struct NativeEditor: NSViewRepresentable {
             guard !updating, let textView else { return }
             parent.session.content = textView.string
             parent.session.selection = textView.selectedRange()
-            highlight(); textView.enclosingScrollView?.verticalRulerView?.needsDisplay = true; parent.onChange()
+            if !textView.hasMarkedText() { highlight() }
+            textView.enclosingScrollView?.verticalRulerView?.needsDisplay = true
+            parent.onChange()
         }
         func textViewDidChangeSelection(_ notification: Notification) {
             guard !updating, let textView else { return }; parent.session.selection = textView.selectedRange()
