@@ -139,7 +139,8 @@ def package(output, profile, notary_profile, tag, *, public_key=None, runner=sub
         signing = read_json(run_command([sys.executable, str(ROOT / "scripts/verify-cloud-signing.py"), str(app),
                             "--expected-bundle-identifier", BUNDLE, "--expected-team", TEAM,
                             "--expected-container", CONTAINER, "--expected-cloud-environment", "Production",
-                            "--expected-push-environment", "production", "--require-developer-id"],
+                            "--expected-push-environment", "production", "--require-developer-id",
+                            "--expected-keychain-group", TEAM + ".com.pobrespandas.draftly.agent-access"],
                             runner=runner, capture=True), "Signing verification")
         # Keep the submitted bytes and receipt if the wait is interrupted.
         submission = output / "notary-submission.zip"

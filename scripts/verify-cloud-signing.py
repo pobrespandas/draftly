@@ -22,7 +22,8 @@ def verify_developer_id(metadata, team):
 
 
 def verify(app, *, expected_bundle_identifier=None, expected_team=None, expected_container=None,
-           expected_cloud_environment=None, expected_push_environment=None, require_developer_id=False):
+           expected_cloud_environment=None, expected_push_environment=None, require_developer_id=False,
+           expected_keychain_group=None):
     app = Path(app)
     subprocess.run(["codesign", "--verify", "--deep", "--strict", str(app)], check=True)
     info = plistlib.loads((app / "Contents/Info.plist").read_bytes())
@@ -45,6 +46,13 @@ def verify(app, *, expected_bundle_identifier=None, expected_team=None, expected
         raise ValueError("The bundle identifier does not match the expected bundle identifier.")
     if expected_team is not None and team != expected_team:
         raise ValueError("The signature team does not match the expected team.")
+    if expected_keychain_group is not None:
+        groups = rights.get("keychain-access-groups", [])
+        permitted = allowed.get("keychain-access-groups", [])
+        if (not isinstance(groups, list) or expected_keychain_group not in groups
+                or not isinstance(permitted, list)
+                or not any(group in permitted for group in (expected_keychain_group, team + ".*"))):
+            raise ValueError("The agent Keychain group is missing or not permitted by the profile.")
     if expected_container is not None and container != expected_container:
         raise ValueError("The configured CloudKit container does not match the expected container.")
     application = rights.get("com.apple.application-identifier")
@@ -85,13 +93,15 @@ def main(argv=None):
     parser.add_argument("--expected-cloud-environment", choices=["Development", "Production"])
     parser.add_argument("--expected-push-environment", choices=["development", "production"])
     parser.add_argument("--require-developer-id", action="store_true")
+    parser.add_argument("--expected-keychain-group", help="Required signed and provisioned Keychain group.")
     args = parser.parse_args(argv)
     try:
         print(json.dumps(verify(args.app, expected_bundle_identifier=args.expected_bundle_identifier,
                                 expected_team=args.expected_team, expected_container=args.expected_container,
                                 expected_cloud_environment=args.expected_cloud_environment,
                                 expected_push_environment=args.expected_push_environment,
-                                require_developer_id=args.require_developer_id), indent=2))
+                                require_developer_id=args.require_developer_id,
+                                expected_keychain_group=args.expected_keychain_group), indent=2))
     except (OSError, ValueError, KeyError, subprocess.CalledProcessError) as error:
         raise SystemExit(f"Signing check failed: {error}")
 

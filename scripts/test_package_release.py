@@ -162,6 +162,8 @@ class PackageReleaseTests(unittest.TestCase):
             self.assertLess(commands.index(signed[-1]), next(i for i, command in enumerate(commands) if "verify-cloud-signing.py" in command[1]))
             verify = next(command for command in commands if "verify-cloud-signing.py" in command[1])
             self.assertIn("--require-developer-id", verify)
+            self.assertEqual(verify[verify.index("--expected-keychain-group") + 1],
+                             release.TEAM + ".com.pobrespandas.draftly.agent-access")
             self.assertLess(next(i for i, command in enumerate(commands) if command[:3] == ["xcrun", "notarytool", "wait"]),
                             next(i for i, command in enumerate(commands) if command[:3] == ["xcrun", "stapler", "staple"]))
             self.assertLess(next(i for i, command in enumerate(commands) if command[0] == "spctl"),
