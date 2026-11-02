@@ -53,6 +53,8 @@ class FakeRunner:
             archive = Path(command[command.index("-archivePath") + 1])
             contents = archive / "Products/Applications/Draftly.app/Contents"
             contents.mkdir(parents=True)
+            (contents / "MacOS").mkdir()
+            (contents / "MacOS/Draftly").write_bytes(b"production executable fixture")
             info = {"CFBundleIdentifier": release.BUNDLE, "CFBundleName": "Draftly",
                     "CFBundleShortVersionString": "0.1.0", "CFBundleVersion": "1",
                     "CFBundleURLTypes": [{"CFBundleURLSchemes": ["draftly"]}],
@@ -96,6 +98,22 @@ class PackageReleaseTests(unittest.TestCase):
         source = patch.object(release, "ROOT", root)
         source.start()
         self.addCleanup(source.stop)
+
+    def test_candidate_rejects_agent_qa_adapter_before_notarization(self):
+        class QARunner(FakeRunner):
+            def __call__(self, command, **kwargs):
+                result = super().__call__(command, **kwargs)
+                if command[0] == "xcodebuild":
+                    archive = Path(command[command.index("-archivePath") + 1])
+                    binary = archive / "Products/Applications/Draftly.app/Contents/MacOS/Draftly"
+                    binary.write_bytes(b"fixture --agent-isolated-qa fixture")
+                return result
+
+        with tempfile.TemporaryDirectory() as directory:
+            runner = QARunner()
+            with self.assertRaisesRegex(ValueError, "isolated agent QA"):
+                release.package(Path(directory) / "candidate", "QA profile", "QA notary", TAG, runner=runner)
+            self.assertFalse(any(command[:3] == ["xcrun", "notarytool", "submit"] for command in runner.commands))
 
     def test_ci_disk_image_finishes_before_candidate_is_ready(self):
         with tempfile.TemporaryDirectory() as directory:

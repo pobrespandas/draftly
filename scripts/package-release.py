@@ -64,6 +64,12 @@ def validate_metadata(source, built, *, public_key=None):
     return version, build
 
 
+def reject_agent_qa_build(app):
+    executable = app / "Contents/MacOS/Draftly"
+    if b"--agent-isolated-qa" in executable.read_bytes():
+        raise ValueError("The app contains the isolated agent QA adapter.")
+
+
 def run_command(command, *, runner=subprocess.run, capture=False):
     result = runner(command, cwd=ROOT, check=True, text=True, capture_output=capture,
                     env=toolchain.clean_environment())
@@ -160,6 +166,7 @@ def package(output, profile, notary_profile, tag, *, public_key=None, runner=sub
             raise ValueError("The source commit changed during the build.")
         built = plistlib.loads((app / "Contents/Info.plist").read_bytes())
         version, build = validate_metadata(source, built, public_key=public_key)
+        reject_agent_qa_build(app)
         if agent_profile is not None:
             embed_agent_helper(app, work, agent_profile, version, build, runner)
             if source_commit(tag, runner) != commit:
