@@ -162,7 +162,8 @@ final class AppController: ObservableObject {
             let directory = testing || cloudTesting ? FileManager.default.temporaryDirectory.appendingPathComponent("Draftly-UITesting").appendingPathComponent(testLibraryID.uuidString) : nil
             let store = try LibraryStore(cloudIdentifier: cloud, directory: directory, seed: !cloudTesting)
             let catalogQATesting = testing && ProcessInfo.processInfo.arguments.contains("--catalog-installation-testing")
-            if (!testing && !cloudTesting) || catalogQATesting {
+            let catalogCloudQATesting = cloudTesting && ProcessInfo.processInfo.arguments.contains("--catalog-cloud-installation-testing")
+            if (!testing && !cloudTesting) || catalogQATesting || catalogCloudQATesting {
                 let bundle = Bundle.main
                 let version = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
                 let build = bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
