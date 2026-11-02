@@ -64,7 +64,7 @@ struct AgentConnectionsSettingsView: View {
                                 }
                             }
                             Button("Edit permissions…") { try? model.beginEditing(record.id) }.disabled(record.revoked || !model.readable)
-                            Button(record.revoked ? "Retry credential cleanup" : "Revoke access", role: .destructive) { try? model.revoke(record.id) }
+                            Button(record.revoked ? "Clean up credential" : "Revoke access", role: .destructive) { try? model.revoke(record.id) }
                                 .disabled(!model.readable)
                         }
                     }
