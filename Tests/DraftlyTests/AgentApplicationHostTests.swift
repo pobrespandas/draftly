@@ -168,6 +168,26 @@ struct AgentApplicationHostTests {
         #expect(app.agentSettings == nil)
     }
 
+    @Test func applicationOffersOnlyCurrentlyOpenEditorWindows() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let app = try #require(f.app), secrets = f.secrets
+        let note = try f.library.createNote(content: "Window draft")
+        var dependencies = WindowDependencies(); dependencies.preferences = WindowPreferences(defaults: f.defaults)
+        let window = WindowModel(library: f.library, dependencies: dependencies)
+        window.editor.load(note, focusEditor: false)
+        app.registerWindow(window)
+        try app.configureAgentHost(isLocked: { f.locked }, credentials: .init(read: { secrets.values[$0] },
+            create: { secrets.values[$0] = $1 }, remove: { secrets.values.removeValue(forKey: $0) }),
+            validateApplication: {}, validateHelper: { _ in })
+        let settings = try #require(app.agentSettings)
+        let target = try #require(settings.resourceChoices().first(where: { $0.reference.kind == .window })?.reference)
+        let resources = AgentLibraryResourceChoices(library: f.library, editors: try app.agentEditorRegistry(for: f.library))
+        #expect(resources.resolve([target]) == [target])
+        app.unregisterWindow(window)
+        #expect(!settings.resourceChoices().contains { $0.reference == target })
+        #expect(resources.resolve([target]).isEmpty)
+    }
+
     @Test(arguments: [NSWorkspace.willSleepNotification, NSWorkspace.screensDidSleepNotification,
                       NSWorkspace.sessionDidResignActiveNotification])
     func workspaceSuspensionClosesAgentSessionsWithoutResumingAutomatically(_ name: Notification.Name) async throws {

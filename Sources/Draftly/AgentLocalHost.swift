@@ -185,7 +185,7 @@ import AgentLocalSecurity
     }
 
     func makeLibrarySettingsModel() throws -> AgentConnectionsSettingsModel {
-        let resources = AgentLibraryResourceChoices(library: library)
+        let resources = AgentLibraryResourceChoices(library: library, editors: editors)
         return try makeSettingsModel(choices: { resources.choices() })
     }
 

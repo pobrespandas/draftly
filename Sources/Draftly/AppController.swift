@@ -153,7 +153,7 @@ final class AppController: ObservableObject {
         guard let library else { throw AgentErrorCode.unavailable }
         guard agentHost == nil else { return }
         let editors = try agentEditorRegistry(for: library)
-        let resources = AgentLibraryResourceChoices(library: library)
+        let resources = AgentLibraryResourceChoices(library: library, editors: editors)
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
         let host = try AgentLocalHost(library: library, appVersion: version, editors: editors,
             isLocked: isLocked, pendingEditorGeneration: { _ in "" }, resolveTargets: { resources.resolve($0) },

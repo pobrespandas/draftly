@@ -24,6 +24,7 @@ struct AgentDraftResourceChoices {
 @MainActor
 struct AgentLibraryResourceChoices {
     let library: LibraryStore
+    var editors: AgentEditorRegistry? = nil
 
     func choices() -> [AgentConnectionsSettingsModel.ResourceChoice] {
         AgentDraftResourceChoices(library: library).choices() + library.actions.filter { !$0.isSeparator }.map { action in
@@ -31,6 +32,9 @@ struct AgentLibraryResourceChoices {
         } + library.groupNames.compactMap { name in
             guard let id = library.actionGroupIdentifiers[name] else { return nil }
             return .init(reference: .init(kind: .actionGroup, id: id), title: name)
+        } + ((try? editors?.windowSnapshots()) ?? []).map { window in
+            let title = library.notes.first(where: { $0.id == window.draftID })?.title ?? "Editor window"
+            return .init(reference: .init(kind: .window, id: window.id), title: title)
         }
     }
 
