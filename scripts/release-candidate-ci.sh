@@ -16,6 +16,10 @@ for name in RUNNER_TEMP RELEASE_TAG DRAFTLY_DEVELOPER_ID_PROFILE DRAFTLY_SPARKLE
         exit 1
     fi
 done
+if [[ "${DRAFTLY_AGENT_HELPER_ENABLED:-}" == "true" && -z "${APPLE_AGENT_PROFILE_B64:-}" ]]; then
+    echo "Release signing configuration is incomplete: APPLE_AGENT_PROFILE_B64." >&2
+    exit 1
+fi
 if [[ ! "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
     echo "The release tag is invalid." >&2
     exit 1
@@ -89,10 +93,16 @@ printf '%s' "$APPLE_NOTARY_API_KEY_B64" | base64 -D > "$workdir/notary.p8"
 notary_options=(--key "$workdir/notary.p8" --key-id "$APPLE_NOTARY_KEY_ID" --issuer "$APPLE_NOTARY_ISSUER_ID" --keychain "$keychain")
 xcrun notarytool store-credentials "Draftly Release CI" "${notary_options[@]}"
 
+agent_options=()
+if [[ "${DRAFTLY_AGENT_HELPER_ENABLED:-}" == "true" ]]; then
+    printf '%s' "$APPLE_AGENT_PROFILE_B64" | base64 -D > "$workdir/agent.provisionprofile"
+    agent_options=(--agent-profile "$workdir/agent.provisionprofile")
+fi
+
 # The build and its tools do not need the original CI secret values.
-unset APPLE_DEVELOPER_ID_P12_B64 APPLE_DEVELOPER_ID_P12_PASSWORD APPLE_DEVELOPER_ID_PROFILE_B64 \
+unset APPLE_DEVELOPER_ID_P12_B64 APPLE_DEVELOPER_ID_P12_PASSWORD APPLE_DEVELOPER_ID_PROFILE_B64 APPLE_AGENT_PROFILE_B64 \
     APPLE_NOTARY_API_KEY_B64 APPLE_NOTARY_KEY_ID APPLE_NOTARY_ISSUER_ID \
     DRAFTLY_SPARKLE_PRIVATE_KEY DRAFTLY_FIREBASE_ACCESS_TOKEN GH_TOKEN GITHUB_TOKEN
 python3 scripts/package-release.py --tag "$RELEASE_TAG" \
     --output ".build/release-candidates/$RELEASE_TAG" --profile "$DRAFTLY_DEVELOPER_ID_PROFILE" \
-    --notary-profile "Draftly Release CI" --public-key "$DRAFTLY_SPARKLE_PUBLIC_KEY" --dmg
+    --notary-profile "Draftly Release CI" --public-key "$DRAFTLY_SPARKLE_PUBLIC_KEY" --dmg ${agent_options[@]+"${agent_options[@]}"}
