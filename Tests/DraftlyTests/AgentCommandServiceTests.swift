@@ -90,6 +90,28 @@ struct AgentCommandServiceTests {
         }
     }
 
+    @Test func actionListFiltersScopeAndRechecksPages() throws {
+        let f = try Fixture()
+        let first = DraftAction(name: "Allowed A", steps: [])
+        let second = DraftAction(name: "Allowed B", steps: [])
+        let hidden = DraftAction(name: "Hidden", steps: [])
+        try f.library.saveActions([first, second, hidden])
+        let scope: Set<AgentResourceReference> = [.init(kind: .action, id: first.id), .init(kind: .action, id: second.id)]
+        let (_, session) = try f.connect(scope: .resources(scope), capabilities: [.actionsRead])
+        let (_, unauthorized) = try f.connect(capabilities: [.draftsRead])
+        #expect(try f.response("actions.list", session: unauthorized).outcome == .error(.permissionDenied))
+        let page = try f.values("actions.list", session: session, parameters: ["limit": .integer(1), "surface": .string("all")])
+        guard case .array(let items) = page["items"], case .object(let item) = items.first,
+              case .string(let cursor) = page["nextCursor"] else { Issue.record("Expected first action and cursor"); return }
+        #expect(item["id"] == .string(first.id.uuidString))
+        let (_, otherSession) = try f.connect(scope: .resources(scope), capabilities: [.actionsRead])
+        #expect(try f.response("actions.list", session: otherSession, parameters: ["limit": .integer(1), "surface": .string("all"), "cursor": .string(cursor)]).outcome == .error(.invalidInput))
+        try f.library.deleteAction(second.id)
+        let next = try f.values("actions.list", session: session, parameters: ["limit": .integer(1), "surface": .string("all"), "cursor": .string(cursor)])
+        #expect(next["items"] == .array([]))
+        #expect(next["nextCursor"] == .null)
+    }
+
     @Test func preferenceDescriptorsPageFromTheAuthoritativeCatalogWithoutReadingSettings() throws {
         let f = try Fixture(), (_, session) = try f.connect(capabilities: [.preferencesRead])
         let catalog = try AgentPreferenceCatalog.make()
@@ -508,7 +530,7 @@ struct AgentCommandServiceTests {
             guard case .object(let fields) = item, fields["available"] == .bool(true), case .string(let name) = fields["name"] else { return nil }
             return name
         })
-        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", AgentMutationSchemas.name, "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks"]) && available.count == 19)
+        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", AgentMutationSchemas.name, "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list"]) && available.count == 20)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.unavailable))
         #expect(f.library.notes.isEmpty)
         #expect(try f.values("server.capabilities", session: session)["capabilities"] == .array([.string("drafts.read"), .string("drafts.write")]))

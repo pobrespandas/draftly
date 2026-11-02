@@ -15,8 +15,10 @@ import AgentContracts
     private static let readOperations: Set<String> = ["server.status", "server.capabilities", "server.schemas",
         "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions", "preferences.schema"]
     private static let editorReadOperations: Set<String> = ["editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks"]
-    static let implementedOperations = readOperations.union([AgentMutationSchemas.name]).union(AgentDraftWriting.operationNames).union(editorReadOperations)
-    private var availableOperations: Set<String> { editorRegistry == nil ? Self.readOperations : (writes == nil ? Self.readOperations.union(Self.editorReadOperations) : Self.implementedOperations) }
+    static let implementedOperations = readOperations.union(["actions.list"]).union([AgentMutationSchemas.name]).union(AgentDraftWriting.operationNames).union(editorReadOperations)
+    private var availableOperations: Set<String> { editorRegistry == nil ? Self.readOperations.union(["actions.list"]) : (writes == nil ? Self.readOperations.union(Self.editorReadOperations).union(["actions.list"]) : Self.implementedOperations) }
+    private let actionLibrary: LibraryStore
+    private let actionVersionKey = SymmetricKey(size: .bits256)
     private let editorRegistry: AgentEditorRegistry?
     private let windowReadKey = SymmetricKey(size: .bits256)
     private let retryKeys: AgentRetryKeys
@@ -40,6 +42,7 @@ import AgentContracts
          editors: AgentEditorRegistry? = nil,
          pendingEditorGeneration: @escaping (UUID) -> String) throws {
         guard editors?.isBound(to: library) ?? true else { throw AgentErrorCode.invalidInput }
+        self.actionLibrary = library
         self.libraryID = libraryID; self.connections = connections; self.appVersion = appVersion
         self.editorRegistry = editors
         self.validateHost = validateHost
@@ -149,6 +152,36 @@ import AgentContracts
     private func dispatch(_ request: AgentRequest, parameters: [String: AgentJSONValue], grant: AgentGrant,
                           sessionID: UUID) throws -> [String: AgentJSONValue] {
         switch request.operation {
+        case "actions.list":
+            let surface: ActionSurface?
+            switch parameters["surface"] {
+            case .string("bar"): surface = .bar
+            case .string("search"): surface = .search
+            case .string("all"): surface = nil
+            default: surface = .list
+            }
+            let requestedGroup: UUID?
+            if case .string(let value) = parameters["groupID"] { requestedGroup = UUID(uuidString: value) }
+            else { requestedGroup = nil }
+            func permitted(_ action: DraftAction) -> Bool {
+                guard grant.scope.permits(.init(kind: .action, id: action.id)),
+                      let group = actionLibrary.actionGroupIdentifiers[action.group] else { return false }
+                return requestedGroup == nil || requestedGroup == group
+            }
+            return try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
+                parameters: parameters, expiresAt: grant.expiresAt,
+                ids: { self.actionLibrary.orderedActions(on: surface).filter(permitted).map(\.id) },
+                value: { id in
+                    guard let action = self.actionLibrary.actions.first(where: { $0.id == id }), permitted(action),
+                          let group = self.actionLibrary.actionGroupIdentifiers[action.group],
+                          surface.map({ action.appears(on: $0) }) ?? true else { return nil }
+                    let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
+                    let payload = try encoder.encode(action)
+                    let token = Data(HMAC<SHA256>.authenticationCode(for: payload, using: self.actionVersionKey)).base64EncodedString()
+                    return .object(["id": .string(action.id.uuidString), "name": .string(action.name),
+                        "symbol": .string(action.symbol), "groupID": .string(group.uuidString),
+                        "group": .string(action.group), "versionToken": .string(token)])
+                })
         case "server.status":
             return ["apiVersion": .integer(Int64(AgentRequest.version)), "appVersion": .string(appVersion), "accessEnabled": .bool(true)]
         case "server.capabilities":
