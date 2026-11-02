@@ -54,10 +54,12 @@ prompt and again before saving. Action execution remains unavailable until
 these checks and the approval flow cover every path and are connected to the
 agent service.
 An initial Action authority checks the current connection, target draft,
-Action scope, and permissions for script, include, configuration, and text
-insertion steps. Its completion check requires write permission. Other step
-types remain unavailable in this policy. Action version binding, runtime effect
-approval, and durable operation recovery still need integration.
+Action scope, approved definition, and permissions for script, include,
+configuration, and text insertion steps. Its completion check requires write
+permission. Other step types remain unavailable in this policy. Initial
+expansion and configuration still need a complete approved-snapshot binding,
+including safe rebinding after a configuration change. Runtime effect approval
+and durable operation recovery also need integration.
 For the guarded draft operations, the runner checks authority again before it
 returns a result to the script. If authority changes after an update, it stops
 the Action and records an unknown outcome even when the script catches the

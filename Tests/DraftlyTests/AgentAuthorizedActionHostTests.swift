@@ -358,7 +358,8 @@ struct AgentAuthorizedActionHostTests {
             capabilities: capabilities, scope: .resources([.init(kind: .draft, id: note.id), .init(kind: .action, id: action.id)]))
         let authority = AgentScriptAuthority(grant: grant, currentGrant: { grant }, validateHost: {},
             isLocked: { false }, now: { now }, draftExists: { $0 == note.id },
-            targetDraftID: note.id, editorDraftID: { model.editor.noteID })
+            targetDraftID: note.id, editorDraftID: { model.editor.noteID },
+            approvedActions: [action.id: action], currentAction: { id in library.actions.first { $0.id == id } })
         let result = try await AutomationActionExecution.run(action, noteID: note.id, library: library,
             models: [model], host: model.host, editorScope: .targetDraft,
             scriptAuthorization: { try authority.authorize($0, payload: $1) },

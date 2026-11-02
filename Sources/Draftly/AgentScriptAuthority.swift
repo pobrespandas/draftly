@@ -15,15 +15,19 @@ import DraftlyCore
     private let targetDraftID: UUID?
     private let editorDraftID: (() -> UUID?)?
     private let windowID: UUID?
+    private let approvedActions: [UUID: DraftAction]
+    private let currentAction: ((UUID) -> DraftAction?)?
 
     init(grant: AgentGrant, currentGrant: @escaping () throws -> AgentGrant?,
          validateHost: @escaping () throws -> Void, isLocked: @escaping () -> Bool,
          now: @escaping () -> Date = Date.init, draftExists: @escaping (UUID) -> Bool,
-         targetDraftID: UUID? = nil, editorDraftID: (() -> UUID?)? = nil, windowID: UUID? = nil) {
+         targetDraftID: UUID? = nil, editorDraftID: (() -> UUID?)? = nil, windowID: UUID? = nil,
+         approvedActions: [UUID: DraftAction] = [:], currentAction: ((UUID) -> DraftAction?)? = nil) {
         connectionID = grant.connectionID; grantID = grant.grantID; libraryID = grant.libraryID
         self.currentGrant = currentGrant; self.validateHost = validateHost
         self.isLocked = isLocked; self.now = now; self.draftExists = draftExists
         self.targetDraftID = targetDraftID; self.editorDraftID = editorDraftID; self.windowID = windowID
+        self.approvedActions = approvedActions; self.currentAction = currentAction
     }
 
     func authorize(_ operation: String, payload: String) throws {
@@ -80,6 +84,8 @@ import DraftlyCore
     func authorizeStep(owner: UUID, step: ActionStep) throws {
         let grant = try currentBaseline()
         try requireTarget(grant, actionID: owner)
+        let approved = try checkedAction(owner)
+        guard approved.steps.contains(step) else { throw AgentErrorCode.versionConflict }
         switch step.type {
         case "script", "includeAction", "configurationKey": break
         case "insertText":
@@ -94,18 +100,22 @@ import DraftlyCore
         default: throw AgentErrorCode.unavailable
         }
         try requireUnchanged(grant)
+        guard try checkedAction(owner) == approved else { throw AgentErrorCode.versionConflict }
     }
 
     func authorizeConfiguration(_ action: DraftAction) throws {
         let grant = try currentBaseline()
         try requireTarget(grant, actionID: action.id)
+        guard try checkedAction(action.id) == action else { throw AgentErrorCode.versionConflict }
         guard grant.capabilities.contains(.actionsManage) else { throw AgentErrorCode.permissionDenied }
         try requireUnchanged(grant)
+        guard try checkedAction(action.id) == action else { throw AgentErrorCode.versionConflict }
     }
 
     func authorizeCompletion(_ action: DraftAction, draftID: UUID) throws {
         let grant = try currentBaseline()
         try requireTarget(grant, actionID: action.id)
+        guard try checkedAction(action.id) == action else { throw AgentErrorCode.versionConflict }
         guard targetDraftID == draftID, editorDraftID?() == draftID,
               grant.capabilities.contains(.draftsWrite) else { throw AgentErrorCode.permissionDenied }
         if let windowID {
@@ -114,6 +124,7 @@ import DraftlyCore
             }
         }
         try requireUnchanged(grant)
+        guard try checkedAction(action.id) == action else { throw AgentErrorCode.versionConflict }
     }
 
     private func requireTarget(_ grant: AgentGrant, actionID: UUID) throws {
@@ -121,6 +132,13 @@ import DraftlyCore
               grant.scope.permits(.init(kind: .action, id: actionID)), draftExists(targetDraftID) else {
             throw AgentErrorCode.notFound
         }
+    }
+
+    private func checkedAction(_ id: UUID) throws -> DraftAction {
+        guard let approved = approvedActions[id], let current = currentAction?(id), current == approved else {
+            throw AgentErrorCode.versionConflict
+        }
+        return approved
     }
 
     func visibleDrafts(_ drafts: [Note]) throws -> [Note] {

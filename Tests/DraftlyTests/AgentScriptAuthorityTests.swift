@@ -62,7 +62,9 @@ struct AgentScriptAuthorityTests {
     }
 
     @Test func actionStepsAndCompletionRequireCurrentTargetAndPermissions() throws {
-        let draft = UUID(), action = DraftAction(name: "Write", steps: []), window = UUID()
+        let step = ActionStep("insertText", ["template": "Neutral"])
+        let share = ActionStep("share")
+        let draft = UUID(), action = DraftAction(name: "Write", steps: [step, share]), window = UUID()
         let now = Date(timeIntervalSince1970: 1_700_000_000), connection = UUID(), library = UUID(), grantID = UUID()
         let scope = AgentResourceScope.resources([.init(kind: .draft, id: draft), .init(kind: .action, id: action.id),
                                                   .init(kind: .window, id: window)])
@@ -71,16 +73,19 @@ struct AgentScriptAuthorityTests {
                   capabilities: permissions, scope: scope, grantID: grantID)
         }
         let full = makeGrant([.actionsRun, .draftsRead, .draftsWrite, .editorWrite, .actionsManage])
-        var current: AgentGrant? = full, selected: UUID? = draft
+        var current: AgentGrant? = full, selected: UUID? = draft, currentDefinition = action
         let authority = AgentScriptAuthority(grant: full, currentGrant: { current }, validateHost: {},
             isLocked: { false }, now: { now }, draftExists: { $0 == draft },
-            targetDraftID: draft, editorDraftID: { selected }, windowID: window)
-        let step = ActionStep("insertText", ["template": "Neutral"])
+            targetDraftID: draft, editorDraftID: { selected }, windowID: window,
+            approvedActions: [action.id: action], currentAction: { $0 == action.id ? currentDefinition : nil })
         try authority.authorizeStep(owner: action.id, step: step)
         try authority.authorizeCompletion(action, draftID: draft)
         try authority.authorizeConfiguration(action)
         #expect(throws: AgentErrorCode.notFound) { try authority.authorizeStep(owner: UUID(), step: step) }
-        #expect(throws: AgentErrorCode.unavailable) { try authority.authorizeStep(owner: action.id, step: ActionStep("share")) }
+        #expect(throws: AgentErrorCode.unavailable) { try authority.authorizeStep(owner: action.id, step: share) }
+        currentDefinition.name = "Changed"
+        #expect(throws: AgentErrorCode.versionConflict) { try authority.authorizeStep(owner: action.id, step: step) }
+        currentDefinition = action
         selected = UUID()
         #expect(throws: AgentErrorCode.permissionDenied) { try authority.authorizeStep(owner: action.id, step: step) }
         selected = draft; current = makeGrant([.actionsRun, .draftsRead, .draftsWrite])
