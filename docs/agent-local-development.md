@@ -25,7 +25,9 @@ connection was revoked and the host stopped. The run did not validate an
 installed release or screen-lock handling.
 An optional native host wrapper can check each concrete invocation before
 handoff and again after a result. If authority is lost after handoff, it reports
-an unknown outcome. It does not authorize scripts, library access, templates,
+an unknown outcome. It also retains an uncertainty flag when the native host
+throws after handoff, so an Action runner that converts errors to reports does
+not erase that fact. Use one wrapper per execution. It does not authorize scripts, library access, templates,
 or execution. The existing automation executor can now use the wrapper with
 either a visible editor or a headless editor. Agent Action execution remains
 unavailable. The executor has an opt-in target-draft editor scope that leaves

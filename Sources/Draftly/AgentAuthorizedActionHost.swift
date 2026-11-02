@@ -8,6 +8,7 @@ import DraftlyCore
     typealias Authorize = (String, [String: Any]) throws -> Void
     private let host: any ActionHost
     private let authorize: Authorize
+    private(set) var hasUncertainOutcome = false
 
     init(host: any ActionHost, authorize: @escaping Authorize) {
         self.host = host
@@ -19,9 +20,11 @@ import DraftlyCore
     func perform(_ operation: String, values: [String: Any]) throws -> Any? {
         try Task.checkCancellation()
         try authorize(operation, values)
-        let result = try host.perform(operation, values: values)
+        let result: Any?
+        do { result = try host.perform(operation, values: values) }
+        catch { hasUncertainOutcome = true; throw error }
         do { try authorize(operation, values); try Task.checkCancellation() }
-        catch { throw AgentErrorCode.outcomeUnknown }
+        catch { hasUncertainOutcome = true; throw AgentErrorCode.outcomeUnknown }
         return result
     }
 
@@ -32,9 +35,11 @@ import DraftlyCore
         }
         try Task.checkCancellation()
         try authorize(operation, values)
-        let result = try await host.performAsync(operation, payload: payload)
+        let result: String
+        do { result = try await host.performAsync(operation, payload: payload) }
+        catch { hasUncertainOutcome = true; throw error }
         do { try authorize(operation, values); try Task.checkCancellation() }
-        catch { throw AgentErrorCode.outcomeUnknown }
+        catch { hasUncertainOutcome = true; throw AgentErrorCode.outcomeUnknown }
         return result
     }
 
