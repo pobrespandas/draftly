@@ -136,6 +136,31 @@ private struct AgentOperationReviewSheet: View {
     @ObservedObject var model: AgentConnectionsSettingsModel
     let review: AgentApprovalStore.Review
     let dismiss: () -> Void
+    @State private var showTechnicalDetails = false
+
+    private var nativeTitle: String? {
+        guard case .string(let operation) = review.effects.snapshot["nativeOperation"] else { return nil }
+        switch operation {
+        case "clipboard": return "Copy text to the clipboard"
+        case "getClipboard": return "Read the current clipboard"
+        case "htmlToClipboard": return "Copy formatted text to the clipboard"
+        case "share": return "Share text"
+        case "shareFile": return "Share a text file"
+        case "print": return "Print text"
+        default: return nil
+        }
+    }
+
+    private var nativeFields: [(String, String)] {
+        guard case .object(let fields) = review.effects.snapshot["nativeParameters"] else { return [] }
+        return fields.keys.sorted().map { key in
+            let value = fields[key]!
+            let label = ["text": "Text", "html": "HTML content", "name": "File name", "format": "Format", "template": "Template"][key] ?? key
+            if case .string(let text) = value { return (label, text) }
+            let data = try? JSONEncoder().encode(value)
+            return (label, data.flatMap { String(data: $0, encoding: .utf8) } ?? "Unavailable")
+        }
+    }
 
     private var details: String? {
         func references(_ values: [AgentResourceReference]) -> AgentJSONValue {
@@ -159,15 +184,33 @@ private struct AgentOperationReviewSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Review operation").font(.headline)
-            Text(review.operation).font(.title3)
+            Text(nativeTitle ?? review.operation).font(.title3)
             Text((model.connections.first(where: { $0.id == review.connectionID })?.name ?? "Connection")
                  + " · " + review.connectionID.uuidString).textSelection(.enabled)
             Text("Expires " + review.expiresAt.formatted(date: .omitted, time: .standard))
                 .foregroundStyle(.secondary)
             Text("Check the request and its effects before allowing it once.")
             if let details {
-                ScrollView { Text(details).font(.system(.body, design: .monospaced)).textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading) }
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        if nativeTitle != nil {
+                            if review.effects.snapshot["nativeOperation"] == .string("getClipboard") {
+                                Text("This Action will read the current clipboard before preparing its next step.")
+                            }
+                            ForEach(Array(nativeFields.enumerated()), id: \.offset) { _, field in
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(field.0).font(.headline)
+                                    Text(field.1).textSelection(.enabled)
+                                }
+                            }
+                            DisclosureGroup("Technical details", isExpanded: $showTechnicalDetails) {
+                                Text(details).font(.system(.caption, design: .monospaced)).textSelection(.enabled)
+                            }
+                        } else {
+                            Text(details).font(.system(.body, design: .monospaced)).textSelection(.enabled)
+                        }
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+                }
             } else {
                 Text("The request details cannot be displayed.").foregroundStyle(.red)
             }
