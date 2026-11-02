@@ -699,3 +699,19 @@ interactive request and a single-use review. Failed writes stop following
 steps. The effect journal distinguishes confirmed writes, failed writes and
 unknown responses. Focused tests cover these paths. Installed clipboard review
 and actual pasteboard acceptance remain pending. Normal access remains off.
+
+### Installed clipboard write — 2 November 2026
+
+The signed app at `fd55684` and embedded helper passed a scoped MCP Copy check.
+The connection allowed only the source draft, its window and the Copy Action.
+The review showed “Copy text to the clipboard” and the exact neutral text.
+Technical details remained available in a collapsed disclosure.
+
+Allow once returned a succeeded operation with one completed clipboard effect.
+A native paste into a new temporary draft preserved the emoji and line break.
+The original draft remained unchanged. The connection was revoked and Stop Work
+turned access off. QA quit and its exact registration was removed.
+
+This checks plain-text replacement. Installed append, prepend, formatted output
+and denied clipboard-read behavior remain pending. No personal clipboard data
+was read through the agent connection.
