@@ -16,7 +16,7 @@ import AgentContracts
         "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions", "preferences.schema"]
     private static let editorReadOperations: Set<String> = ["editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks"]
     private static let actionReadOperations: Set<String> = ["actions.list", "actions.get", "actions.stepSchemas", "actions.groups", "actionGroups.get"]
-    static let implementedOperations = readOperations.union(actionReadOperations).union([AgentMutationSchemas.name, "actions.update"]).union(AgentDraftWriting.operationNames).union(editorReadOperations)
+    static let implementedOperations = readOperations.union(actionReadOperations).union([AgentMutationSchemas.name, "actions.update", "actions.validateShortcut"]).union(AgentDraftWriting.operationNames).union(editorReadOperations)
     private var availableOperations: Set<String> {
         var operations = editorRegistry == nil ? Self.readOperations.union(Self.actionReadOperations) : (writes == nil ? Self.readOperations.union(Self.editorReadOperations).union(Self.actionReadOperations) : Self.implementedOperations)
         if readActivity != nil { operations.insert("activity.list") }
@@ -268,6 +268,21 @@ import AgentContracts
     private func dispatch(_ request: AgentRequest, parameters: [String: AgentJSONValue], grant: AgentGrant,
                           sessionID: UUID) throws -> [String: AgentJSONValue] {
         switch request.operation {
+        case "actions.validateShortcut":
+            guard case .string(let key) = parameters["key"] else { throw AgentErrorCode.invalidInput }
+            let modifiers: [String]?
+            if case .array(let values) = parameters["modifiers"] {
+                modifiers = try values.map { guard case .string(let value) = $0 else { throw AgentErrorCode.invalidInput }; return value }
+            } else { modifiers = nil }
+            var candidate: DraftAction
+            if case .string(let value) = parameters["actionID"] {
+                guard let id = UUID(uuidString: value), let existing = actionLibrary.actions.first(where: { $0.id == id }) else {
+                    throw AgentErrorCode.notFound
+                }
+                candidate = existing
+            } else { candidate = DraftAction(name: "", steps: []) }
+            candidate.shortcut = key; candidate.shortcutModifiers = modifiers
+            return ["available": .bool(ActionShortcut.conflict(for: candidate, in: actionLibrary.actions) == nil)]
         case "actions.stepSchemas":
             return ["steps": .array(DraftAction.supportedSteps.sorted().map { type in
                 .object(["type": .string(type), "creationDefaults": .object(

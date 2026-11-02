@@ -148,6 +148,21 @@ struct AgentCommandServiceTests {
         #expect(try send(signed(retryKey), reopened).outcome == .error(.permissionDenied))
     }
 
+    @Test func shortcutValidationUsesEditorRulesAndRequiresLibraryScope() throws {
+        let f = try Fixture()
+        var action = DraftAction(name: "Existing", steps: []); action.shortcut = "q"
+        try f.library.saveAction(action)
+        let (_, full) = try f.connect(capabilities: [.actionsManage])
+        let (_, limited) = try f.connect(scope: .resources([.init(kind: .action, id: action.id)]), capabilities: [.actionsManage])
+        let parameters: [String: AgentJSONValue] = ["key": .string("q")]
+        #expect(try f.response("actions.validateShortcut", session: limited, parameters: parameters).outcome == .error(.permissionDenied))
+        #expect(try f.values("actions.validateShortcut", session: full, parameters: parameters)["available"] == .bool(false))
+        #expect(try f.values("actions.validateShortcut", session: full, parameters: ["key": .string("q"), "actionID": .string(action.id.uuidString)])["available"] == .bool(true))
+        #expect(try f.response("actions.validateShortcut", session: full, parameters: ["key": .string("q"), "actionID": .string(UUID().uuidString)]).outcome == .error(.notFound))
+        #expect(try f.values("actions.validateShortcut", session: full, parameters: ["key": .string("abc")])["available"] == .bool(false))
+        #expect(f.library.actions == [action])
+    }
+
     @Test func shortcutValidationDoesNotRevealActionsOutsideScope() throws {
         let f = try Fixture(), action = DraftAction(name: "Allowed", steps: [])
         var hidden = DraftAction(name: "Hidden", steps: []); hidden.shortcut = "q"
@@ -671,7 +686,7 @@ struct AgentCommandServiceTests {
             guard case .object(let fields) = item, fields["available"] == .bool(true), case .string(let name) = fields["name"] else { return nil }
             return name
         })
-        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", AgentMutationSchemas.name, "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.update", "actions.groups", "actionGroups.get"]) && available.count == 25)
+        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", AgentMutationSchemas.name, "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.update", "actions.validateShortcut", "actions.groups", "actionGroups.get"]) && available.count == 26)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.unavailable))
         #expect(f.library.notes.isEmpty)
         #expect(try f.values("server.capabilities", session: session)["capabilities"] == .array([.string("drafts.read"), .string("drafts.write")]))
