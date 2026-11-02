@@ -18,8 +18,11 @@ is a saved query and does not grant access to the drafts that match it. The
 query returns only drafts permitted by the same connection.
 Updates require an expected version and a signed retry key. They commit the
 workspace and receipt together. An update cannot change its position; ordering
-needs a separate operation. This update has automated tests but has not yet
-been checked with the signed helper.
+needs a separate operation. Automated tests cover authorization, conflicts,
+recovery, and revocation. A signed isolated run also updated one granted
+workspace, repeated the request, and read back the saved value. The test
+connection was revoked and the host stopped. The run did not validate an
+installed release or screen-lock handling.
 Creating an action requires access to the full library. Action changes use
 an expected version, a signed retry key, and an atomic action and receipt
 transaction. Recovery checks the current grant. A client with resource scope
