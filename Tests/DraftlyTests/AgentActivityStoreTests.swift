@@ -27,6 +27,8 @@ struct AgentActivityStoreTests {
         #expect(try reopened.entries(libraryID: other).count == 1)
         clock = clock.addingTimeInterval(31 * 24 * 60 * 60)
         #expect(try reopened.entries(libraryID: other).isEmpty)
+        let pruned = String(decoding: try Data(contentsOf: file), as: UTF8.self)
+        #expect(!pruned.contains(other.uuidString))
         try reopened.append(libraryID: library, connectionID: connection, requestID: UUID(), operation: "server.status", result: "success")
         #expect(try reopened.entries(libraryID: other).isEmpty)
     }

@@ -27,9 +27,11 @@ import AgentLocalSecurity
     }
 
     func entries(libraryID: UUID) throws -> [Entry] {
-        let (_, entries) = try snapshot()
-        let cutoff = now().addingTimeInterval(-retention)
-        return entries.filter { $0.libraryID == libraryID && $0.date >= cutoff }
+        let timestamp = now()
+        guard timestamp.timeIntervalSince1970.isFinite else { throw AgentErrorCode.unavailable }
+        let cutoff = timestamp.addingTimeInterval(-retention)
+        let entries = try update { $0.removeAll { $0.date < cutoff } }
+        return entries.filter { $0.libraryID == libraryID }
             .sorted { $0.date == $1.date ? $0.id.uuidString > $1.id.uuidString : $0.date > $1.date }
     }
 
@@ -40,7 +42,7 @@ import AgentLocalSecurity
               result == "success" || AgentErrorCode(rawValue: result) != nil else { throw AgentErrorCode.invalidInput }
         let entry = Entry(id: UUID(), libraryID: libraryID, connectionID: connectionID, requestID: requestID,
                           operation: operation, date: timestamp, result: result)
-        try update { entries in
+        _ = try update { entries in
             let cutoff = timestamp.addingTimeInterval(-retention)
             entries.removeAll { $0.date < cutoff }
             entries.append(entry)
@@ -49,7 +51,7 @@ import AgentLocalSecurity
     }
 
     func clear(libraryID: UUID) throws {
-        try update { $0.removeAll { $0.libraryID == libraryID } }
+        _ = try update { $0.removeAll { $0.libraryID == libraryID } }
     }
 
     private func snapshot() throws -> (Data?, [Entry]) {
@@ -67,15 +69,15 @@ import AgentLocalSecurity
         } catch { throw AgentErrorCode.storageError }
     }
 
-    private func update(_ change: (inout [Entry]) -> Void) throws {
+    private func update(_ change: (inout [Entry]) -> Void) throws -> [Entry] {
         for _ in 0..<3 {
             let (old, current) = try snapshot()
             var next = current; change(&next)
-            if next == current { return }
+            if next == current { return current }
             let data = try JSONEncoder().encode(next)
             do {
                 try directory.replace(file, lockName: lock, data: data, expected: old, maximumBytes: AgentRequest.maximumBytes)
-                return
+                return next
             } catch AgentErrorCode.versionConflict { continue }
         }
         throw AgentErrorCode.busy
