@@ -30,6 +30,18 @@ import AgentContracts
         }
     }
 
+    func executionModels(draftID: UUID, windowID: UUID? = nil) throws -> [WindowModel] {
+        guard valid else { throw AgentErrorCode.cancelled }
+        let candidates = trackedModels().filter { $0.editor.noteID == draftID }
+        if let windowID {
+            guard let selected = candidates.first(where: { entries[ObjectIdentifier($0)]?.windowID == windowID }) else {
+                throw AgentErrorCode.notFound
+            }
+            return [selected]
+        }
+        return candidates
+    }
+
     func syntaxDefinition(windowID: UUID) throws -> SyntaxDefinition {
         guard valid else { throw AgentErrorCode.cancelled }
         guard let model = trackedModels().first(where: { entries[ObjectIdentifier($0)]?.windowID == windowID }) else {

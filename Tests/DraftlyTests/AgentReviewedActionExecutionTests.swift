@@ -6,6 +6,22 @@ import DraftlyCore
 
 @Suite("Agent reviewed Action execution") @MainActor
 struct AgentReviewedActionExecutionTests {
+    @Test func executionEditorSelectionCannotUseAnotherDraftWindow() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let first = try library.createNote(content: "First"), second = try library.createNote(content: "Second")
+        let firstModel = WindowModel(library: library), secondModel = WindowModel(library: library)
+        firstModel.select(first.id); secondModel.select(second.id)
+        let registry = AgentEditorRegistry(library: library, models: { [firstModel, secondModel] })
+        let snapshots = try registry.windowSnapshots()
+        let secondWindow = try #require(snapshots.first { $0.draftID == second.id })
+        let selected = try registry.executionModels(draftID: first.id)
+        #expect(selected.count == 1 && selected.first === firstModel)
+        #expect(throws: AgentErrorCode.notFound) {
+            try registry.executionModels(draftID: first.id, windowID: secondWindow.id)
+        }
+        registry.invalidate()
+        #expect(throws: AgentErrorCode.cancelled) { try registry.executionModels(draftID: first.id) }
+    }
     @Test func executionIdentityCannotMoveAcrossConnectionsLibrariesOrDrafts() throws {
         let connection = UUID(), library = UUID(), draft = UUID()
         let grant = AgentGrant(connectionID: connection, libraryID: library, expiresAt: Date().addingTimeInterval(600),
