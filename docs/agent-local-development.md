@@ -48,6 +48,11 @@ for another action returned `not_found`. After revocation, the CLI returned
 an installed release, every client, or all supported operations. The signed
 test build must exclude `get-task-allow`; the host rejects it.
 
+A second isolated signed run granted action management for the test library.
+The helper prepared and created a neutral action. Repeating the same request
+returned the same receipt, and the catalog contained one copy. The activity
+view showed the requests. The test connection was revoked and stopped.
+
 ## Current components
 
 - AgentContracts owns the request, response and authentication envelopes.
