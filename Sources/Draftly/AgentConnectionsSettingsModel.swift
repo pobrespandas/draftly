@@ -99,6 +99,10 @@ import AgentContracts
 
     func mcpConfiguration(for id: UUID) -> String? {
         guard let record = try? currentRecord(id), !record.revoked else { return nil }
+        switch registry.displayStatusFromUserInterface(record, enabled: accessEnabled) {
+        case .active, .paused: break
+        case .inactive, .revoked, .needsReview: return nil
+        }
         return makeMCPConfiguration(id)
     }
 

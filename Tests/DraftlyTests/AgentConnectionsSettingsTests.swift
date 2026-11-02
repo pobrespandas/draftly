@@ -90,11 +90,15 @@ struct AgentConnectionsSettingsTests {
     @Test func mcpConfigurationRequiresCurrentNonrevokedConnectionInThisLibrary() throws {
         let f = Fixture()
         let local = try f.connect(), foreign = try f.connect(libraryID: UUID())
+        let expiring = try f.registry.connectFromUserInterface(name: "Expiring", libraryID: f.libraryID,
+            scope: .resources([]), expiresAt: f.wall.addingTimeInterval(1))
         var requests: [UUID] = []
         let model = try f.model(configuration: { id in requests.append(id); return "configuration" })
         #expect(model.mcpConfiguration(for: local.id) == "configuration")
         #expect(model.mcpConfiguration(for: foreign.id) == nil)
         #expect(model.mcpConfiguration(for: UUID()) == nil)
+        f.wall = f.wall.addingTimeInterval(2)
+        #expect(model.mcpConfiguration(for: expiring.id) == nil)
         try model.revoke(local.id)
         #expect(model.mcpConfiguration(for: local.id) == nil)
         #expect(requests == [local.id])
