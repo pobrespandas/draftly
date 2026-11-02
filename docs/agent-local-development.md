@@ -65,10 +65,11 @@ integration.
 The guarded native host can wait for a human decision before an asynchronous
 effect. It checks current authority again after the decision. Synchronous calls
 cannot wait and are denied when this decision is required. This hook is not yet
-connected to the approval interface or agent service.
+connected to the agent service.
 Pending reviews retain normalized request fields and the resolved effect
-snapshot for the app to present. Listing them refreshes their validity first.
-The approval interface and operation routing still need to be connected.
+snapshot for the app to present in Settings. Listing them refreshes their
+validity first. Stop Work and permission changes invalidate reviews. Operation
+routing still needs to create and consume these reviews.
 For the guarded draft operations, the runner checks authority again before it
 returns a result to the script. If authority changes after an update, it stops
 the Action and records an unknown outcome even when the script catches the

@@ -5,6 +5,7 @@ import AgentContracts
 struct AgentConnectionsSettingsView: View {
     @ObservedObject var model: AgentConnectionsSettingsModel
     @State private var confirmClearActivity = false
+    @State private var operationReview: AgentApprovalStore.Review?
 
     var body: some View {
         Form {
@@ -41,6 +42,21 @@ struct AgentConnectionsSettingsView: View {
                                 Button("Deny", role: .destructive) { try? model.denyPairing(challenge.id) }
                                 Button("Review…") { try? model.beginPairing(challenge.id) }
                             }
+                        }
+                    }
+                }
+            }
+            if !model.pendingOperationReviews.isEmpty {
+                Section("Operation requests") {
+                    ForEach(model.pendingOperationReviews) { review in
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text(review.operation)
+                                Text(model.connections.first(where: { $0.id == review.connectionID })?.name ?? "Local connection")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Button("Review…") { operationReview = review }
                         }
                     }
                 }
@@ -104,12 +120,71 @@ struct AgentConnectionsSettingsView: View {
             Button("Cancel", role: .cancel) {}
         } message: { Text("This removes the local activity history for this library.") }
         .background(AgentGrantSheetPresenter(model: model))
+        .sheet(item: $operationReview) { review in
+            AgentOperationReviewSheet(model: model, review: review, dismiss: { operationReview = nil })
+        }
         .task {
             while !Task.isCancelled {
                 model.refresh()
                 try? await Task.sleep(for: .seconds(2))
             }
         }
+    }
+}
+
+private struct AgentOperationReviewSheet: View {
+    @ObservedObject var model: AgentConnectionsSettingsModel
+    let review: AgentApprovalStore.Review
+    let dismiss: () -> Void
+
+    private var details: String? {
+        func references(_ values: [AgentResourceReference]) -> AgentJSONValue {
+            .array(values.sorted { ($0.kind.rawValue, $0.id.uuidString) < ($1.kind.rawValue, $1.id.uuidString) }
+                .map { .object(["kind": .string($0.kind.rawValue), "id": .string($0.id.uuidString)]) })
+        }
+        let value: AgentJSONValue = .object([
+            "parameters": .object(review.parameters),
+            "targets": references(review.targets),
+            "expectedVersion": review.expectedVersion.map(AgentJSONValue.string) ?? .null,
+            "effectTargets": references(Array(review.effects.targets)),
+            "effectCapabilities": .array(review.effects.capabilities.map(\.rawValue).sorted().map(AgentJSONValue.string)),
+            "requiresEntireLibrary": .bool(review.effects.requiresLibraryScope),
+            "effectDetails": .object(review.effects.snapshot)
+        ])
+        let encoder = JSONEncoder(); encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        guard let data = try? encoder.encode(value) else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Review operation").font(.headline)
+            Text(review.operation).font(.title3)
+            Text((model.connections.first(where: { $0.id == review.connectionID })?.name ?? "Connection")
+                 + " · " + review.connectionID.uuidString).textSelection(.enabled)
+            Text("Expires " + review.expiresAt.formatted(date: .omitted, time: .standard))
+                .foregroundStyle(.secondary)
+            Text("Check the request and its effects before allowing it once.")
+            if let details {
+                ScrollView { Text(details).font(.system(.body, design: .monospaced)).textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading) }
+            } else {
+                Text("The request details cannot be displayed.").foregroundStyle(.red)
+            }
+            if let error = model.lastError { Text(error.connectionMessage).foregroundStyle(.red) }
+            HStack {
+                Button("Close") { dismiss() }.keyboardShortcut(.cancelAction)
+                Spacer()
+                Button("Deny", role: .destructive) {
+                    if (try? model.decideOperation(review, approved: false)) != nil { dismiss() }
+                }
+                Button("Allow once") {
+                    if (try? model.decideOperation(review, approved: true)) != nil { dismiss() }
+                }.keyboardShortcut(.defaultAction)
+                    .disabled(details == nil || !model.pendingOperationReviews.contains { $0.id == review.id && $0.fingerprint == review.fingerprint })
+            }
+        }
+        .padding(20).frame(minWidth: 520, minHeight: 400)
     }
 }
 

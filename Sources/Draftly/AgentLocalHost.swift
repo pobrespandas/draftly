@@ -9,6 +9,7 @@ import AgentLocalSecurity
     let libraryID: UUID
     let connections: AgentConnectionRegistry
     let pairing: AgentPairingCoordinator
+    let approvals: AgentApprovalStore
     let service: AgentCommandService
     private let library: LibraryStore
     private let editors: AgentEditorRegistry?
@@ -82,6 +83,9 @@ import AgentLocalSecurity
         self.socketParentDirectory = socketParentDirectory
         self.validateApplication = validateApplication; self.validateHelper = validateHelper
         self.isLocked = isLocked; self.resolveTargets = resolveTargets
+        approvals = AgentApprovalStore(currentGrant: { id in
+            try? registry.grantForAuthenticatedConnection(id)
+        }, isLocked: isLocked)
         do {
             service = try AgentCommandService(library: library, libraryID: lease.libraryID, connections: registry,
                 appVersion: appVersion, validateHost: validateOwner, isLocked: isLocked,
@@ -143,6 +147,7 @@ import AgentLocalSecurity
     func suspend() {
         broker?.stop(); broker = nil
         service.invalidateAll(); pairing.invalidatePending()
+        approvals.invalidateForScreenLock()
         publications.withdraw()
     }
 
@@ -215,7 +220,18 @@ import AgentLocalSecurity
             }, eraseActivity: { [weak self] in
                 guard let self else { throw AgentErrorCode.cancelled }
                 try self.clearActivity()
-            }, activityRecordingError: { [weak self] in self?.activityRecordingError })
+            }, activityRecordingError: { [weak self] in self?.activityRecordingError },
+            pendingReviews: { [weak self] in
+                guard let self else { throw AgentErrorCode.cancelled }
+                try self.validateOwnership()
+                return self.approvals.pendingFromUserInterface()
+            }, decideReview: { [weak self] review, approved in
+                guard let self else { throw AgentErrorCode.cancelled }
+                try self.validateOwnership()
+                guard self.endpoint != nil else { throw AgentErrorCode.permissionDenied }
+                if approved { try self.approvals.approveFromUserInterface(review.id, reviewedFingerprint: review.fingerprint) }
+                else { try self.approvals.denyFromUserInterface(review.id) }
+            })
     }
 
     static func pairingCommand(libraryID: UUID, stateDirectory: URL, bundleURL: URL) -> String? {
@@ -268,5 +284,6 @@ import AgentLocalSecurity
     private func authorityChanged(_ id: UUID) {
         service.invalidate(connectionID: id)
         pairing.invalidatePending()
+        approvals.invalidateConnection(id)
     }
 }

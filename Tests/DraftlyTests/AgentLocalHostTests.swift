@@ -382,6 +382,29 @@ struct AgentLocalHostTests {
         _ = try host.service.authenticate(connectionID: record.id, credential: credential)
     }
 
+    @Test func operationReviewRequiresLiveHostAndStopWorkInvalidatesIt() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let host = try f.host(); defer { host.close() }
+        let model = try host.makeLibrarySettingsModel()
+        try model.setEnabled(true)
+        let record = try host.connections.connectFromUserInterface(name: "Review test", libraryID: host.libraryID,
+            capabilities: [.preferencesRead, .preferencesWrite], scope: .library)
+        let request = AgentRequest(requestID: UUID(), libraryID: host.libraryID, operation: "preferences.update",
+            expectedVersion: "version", parameters: ["items": .array([.object([
+                "id": .string(SpotlightPreferences.enabledKey), "value": .bool(true)
+            ])])])
+        let effects = AgentApprovalStore.Effects(capabilities: [.preferencesWrite], targets: [],
+            requiresLibraryScope: false, snapshot: ["value": .bool(true)])
+        let review = try host.approvals.requestReview(request, connectionID: record.id, effects: effects)
+        model.refresh()
+        #expect(model.pendingOperationReviews.map(\.id) == [review.id])
+        try model.stopWork()
+        #expect(model.pendingOperationReviews.isEmpty)
+        #expect(throws: AgentErrorCode.permissionDenied) { try model.decideOperation(review, approved: true) }
+        try model.setEnabled(true)
+        #expect(throws: AgentErrorCode.versionConflict) { try model.decideOperation(review, approved: true) }
+    }
+
     @Test func authenticatedRequestsRecordMetadataWithoutChangingTheirResultOnStorageFailure() async throws {
         let f = try Fixture(); defer { f.cleanup() }
         let host = try f.host(); defer { host.close() }
