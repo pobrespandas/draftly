@@ -69,6 +69,16 @@ import AgentContracts
         return Snapshot(id: id, state: entry.state, output: entry.output, error: entry.error)
     }
 
+    func control(_ request: AgentRequest, connectionID: UUID) throws -> (snapshot: Snapshot, cancellationAccepted: Bool) {
+        guard ["operations.get", "operations.cancel"].contains(request.operation),
+              request.targets.count == 1, let target = request.targets.first, target.kind == .operation,
+              request.parameters.isEmpty else { throw AgentErrorCode.invalidInput }
+        guard let entry = entries[target.id], entry.connectionID == connectionID else { throw AgentErrorCode.notFound }
+        guard request.libraryID == entry.grant.libraryID else { throw AgentErrorCode.permissionDenied }
+        let accepted = request.operation == "operations.cancel" ? try cancel(target.id, connectionID: connectionID) : false
+        return (try snapshot(target.id, connectionID: connectionID), accepted)
+    }
+
     func cancel(_ id: UUID, connectionID: UUID) throws -> Bool {
         guard let entry = entries[id], entry.connectionID == connectionID else { throw AgentErrorCode.notFound }
         try validate(entry.grant, targets: entry.targets)

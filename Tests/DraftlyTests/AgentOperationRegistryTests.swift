@@ -20,6 +20,12 @@ struct AgentOperationRegistryTests {
         }
         for _ in 0..<100 where try registry.snapshot(id, connectionID: connection).state == .queued { await Task.yield() }
         #expect(observedID == id)
+        let control = AgentRequest(requestID: UUID(), libraryID: library, operation: "operations.get",
+            targets: [.init(kind: .operation, id: id)])
+        #expect(try registry.control(control, connectionID: connection).snapshot.id == id)
+        let foreign = AgentRequest(requestID: UUID(), libraryID: UUID(), operation: "operations.cancel",
+            targets: [.init(kind: .operation, id: id)])
+        #expect(throws: AgentErrorCode.permissionDenied) { try registry.control(foreign, connectionID: connection) }
         #expect(throws: AgentErrorCode.notFound) { try registry.snapshot(id, connectionID: UUID()) }
         #expect(throws: AgentErrorCode.busy) { try registry.start(grant: grant, targets: []) { fatalError() } }
         try registry.setWaitingForUser(id, waiting: true)
