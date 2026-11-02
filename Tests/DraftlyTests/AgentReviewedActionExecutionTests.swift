@@ -38,19 +38,27 @@ struct AgentReviewedActionExecutionTests {
             targets: [.init(kind: .action, id: action.id), .init(kind: .draft, id: note.id)], expectedVersion: "v1")
         let host = Host()
         var waiting: [Bool] = []
-        let task = Task { @MainActor in
+        let operations = AgentOperationRegistry(currentGrant: { _ in grant }, validateHost: {}, isLocked: { false })
+        let operationID = try operations.startIdentified(grant: grant, targets: Set(request.targets)) { id in
             try await AgentReviewedActionExecution.run(action: action, draftID: note.id, request: request,
                 connectionID: connection, library: library, models: [model], host: host, authority: authority,
                 approvals: approvals, currentSnapshot: { ["actionVersion": .string("v1"), "draftVersion": .string("d1")] },
-                waitingForUser: { waiting.append($0) },
+                waitingForUser: { waiting.append($0); try operations.setWaitingForUser(id, waiting: $0) },
                 resolveModel: { models, _ in models.first })
         }
         for _ in 0..<1000 where approvals.pendingFromUserInterface().isEmpty { await Task.yield() }
         let review = try #require(approvals.pendingFromUserInterface().first)
         #expect(host.shares == 0 && review.effects.snapshot["nativeOperation"] == .string("share"))
         #expect(waiting == [true])
+        #expect(try operations.snapshot(operationID, connectionID: connection).state == .waitingForUser)
         try approvals.approveFromUserInterface(review.id, reviewedFingerprint: review.fingerprint)
-        let result = try await task.value
+        for _ in 0..<1000 {
+            if try operations.snapshot(operationID, connectionID: connection).state.isTerminal { break }
+            try await Task.sleep(for: .milliseconds(1))
+        }
+        let snapshot = try operations.snapshot(operationID, connectionID: connection)
+        let result = try #require(snapshot.output)
+        #expect(snapshot.state == .succeeded)
         #expect(result.report.reason == .success && host.shares == 1 && !result.outcomeUnknown)
         #expect(waiting == [true, false])
         #expect(try approvals.statusForConnection(review.id, connectionID: connection) == .consumed)
