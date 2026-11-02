@@ -23,6 +23,10 @@ builds keep agent access disabled.
   next edit does not run, and the stopped connection cannot query results.
 - Every execution authorization checks that the selected editor is still in the
   live window registry. Approval cannot restore access to a removed editor.
+- Action requests apply `timeoutSeconds` to the operation, including time spent
+  waiting for review. The default is 120 seconds. Expiry requests cancellation;
+  the operation stays active until execution returns. Confirmed cancellation
+  produces a timeout report. An uncertain effect remains `outcome_unknown`.
 
 ## Installed isolated check — 2 November 2026
 

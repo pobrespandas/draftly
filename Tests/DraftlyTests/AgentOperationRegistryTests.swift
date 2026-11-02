@@ -6,6 +6,41 @@ import DraftlyCore
 
 @Suite("Agent operation lifetime") @MainActor
 struct AgentOperationRegistryTests {
+    @Test(arguments: [true, false])
+    func requestDeadlineCancelsWorkWithoutInventingACertainOutcome(confirmedCancellation: Bool) async throws {
+        let connection = UUID(), library = UUID(), action = UUID(), draft = UUID()
+        let grant = AgentGrant(connectionID: connection, libraryID: library, expiresAt: Date().addingTimeInterval(600),
+            capabilities: [.actionsRun, .draftsRead], scope: .library)
+        let registry = AgentOperationRegistry(currentGrant: { _ in grant }, validateHost: {}, isLocked: { false })
+        let request = AgentRequest(requestID: UUID(), libraryID: library, operation: "actions.run",
+            targets: [.init(kind: .action, id: action), .init(kind: .draft, id: draft)], expectedVersion: "v1",
+            parameters: ["timeoutSeconds": .integer(1)])
+        var starts = 0
+        let id = try registry.startRequest(request, grant: grant) { _ in
+            starts += 1
+            do { try await Task.sleep(for: .seconds(30)) } catch {
+                if !confirmedCancellation { throw error }
+            }
+            return .init(report: .notStarted(actionID: action, reason: .cancelled, message: "Cancelled"),
+                noteID: draft, message: "Cancelled")
+        }
+        for _ in 0..<300 {
+            if try registry.snapshot(id, connectionID: connection).state.isTerminal { break }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        let result = try registry.snapshot(id, connectionID: connection)
+        if confirmedCancellation {
+            #expect(result.state == .timedOut && result.error == .timeout)
+            #expect(result.output?.report.reason == .timeout)
+        } else {
+            #expect(result.state == .outcomeUnknown && result.error == .outcomeUnknown)
+            #expect(result.output == nil)
+        }
+        _ = try result.wireValue()
+        #expect(try registry.startRequest(request, grant: grant) { _ in fatalError("Must not replay") } == id)
+        #expect(starts == 1)
+    }
+
     @Test func removingCompletedOperationDoesNotReplayItsRequest() async throws {
         let connection = UUID(), library = UUID(), action = UUID(), draft = UUID()
         let grant = AgentGrant(connectionID: connection, libraryID: library, expiresAt: Date().addingTimeInterval(600),

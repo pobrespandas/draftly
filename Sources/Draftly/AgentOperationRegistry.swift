@@ -48,6 +48,8 @@ import DraftlyCore
         var error: AgentErrorCode?
         var task: Task<Void, Never>?
         var cancellationRequested = false
+        var deadlineExpired = false
+        var deadlineTask: Task<Void, Never>?
     }
     private var entries: [UUID: Entry] = [:]
     private struct RequestKey: Hashable { let connectionID: UUID; let requestID: UUID }
@@ -85,6 +87,17 @@ import DraftlyCore
         }
         guard requests.count < capacity else { throw AgentErrorCode.busy }
         let id = try startIdentified(grant: grant, targets: Set(request.targets), work: work)
+        let seconds: Int64
+        if case .integer(let value) = prepared.request.parameters["timeoutSeconds"] { seconds = value }
+        else { seconds = 120 }
+        entries[id]?.deadlineTask = Task { @MainActor [weak self] in
+            do { try await Task.sleep(for: .seconds(seconds)) } catch { return }
+            guard let self, let entry = self.entries[id], !entry.state.isTerminal,
+                  !entry.cancellationRequested else { return }
+            self.entries[id]?.deadlineExpired = true
+            self.entries[id]?.cancellationRequested = true
+            self.entries[id]?.task?.cancel()
+        }
         requests[key] = (prepared.value, id)
         return id
     }
@@ -181,8 +194,15 @@ import DraftlyCore
               targets.allSatisfy(current.scope.permits), !isLocked() else { throw AgentErrorCode.permissionDenied }
     }
 
-    private func finish(_ id: UUID, output: AutomationActionExecution.Output) {
+    private func finish(_ id: UUID, output supplied: AutomationActionExecution.Output) {
         guard let entry = entries[id], !entry.state.isTerminal else { return }
+        entry.deadlineTask?.cancel()
+        var output = supplied
+        if entry.deadlineExpired && !output.outcomeUnknown && output.report.reason == .cancelled {
+            let message = "The agent operation timed out."
+            output = .init(report: output.report.timedOutAfterCancellation(message: message),
+                noteID: output.noteID, message: message, presentationHandled: output.presentationHandled)
+        }
         let state: AgentOperationState
         let error: AgentErrorCode?
         if output.outcomeUnknown { state = .outcomeUnknown; error = .outcomeUnknown }
@@ -199,10 +219,14 @@ import DraftlyCore
         entries[id]?.updatedAt = now()
         entries[id]?.output = state == .outcomeUnknown ? nil : output
         entries[id]?.task = nil
+        entries[id]?.deadlineTask = nil
     }
 
-    private func finish(_ id: UUID, error: AgentErrorCode) {
+    private func finish(_ id: UUID, error supplied: AgentErrorCode) {
         guard let entry = entries[id], !entry.state.isTerminal else { return }
+        let error: AgentErrorCode = entry.deadlineExpired && entry.state == .queued && supplied == .cancelled ? .timeout : supplied
+        entry.deadlineTask?.cancel()
+        entries[id]?.deadlineTask = nil
         if entry.state == .queued, let action = entry.targets.first(where: { $0.kind == .action }) {
             let reason: ActionTerminationReason = error == .cancelled ? .cancelled : error == .timeout ? .timeout
                 : error == .busy ? .busy : .error

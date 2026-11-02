@@ -133,8 +133,8 @@ struct AgentLocalHostTests {
         #expect(f.library.notes.first?.content == model.editor.content)
     }
 
-    @Test(arguments: [true, false])
-    func hostActionCannotContinueAfterStopWorkOrEditorRemoval(stopWork: Bool) async throws {
+    @Test(arguments: ["stopWork", "removeEditor", "timeout"])
+    func hostActionCannotContinueAfterInterruption(interruption: String) async throws {
         let f = try Fixture(); defer { f.cleanup() }
         let note = try f.library.createNote(content: "Private neutral text")
         let action = DraftAction(name: "Reviewed share", steps: [
@@ -162,7 +162,8 @@ struct AgentLocalHostTests {
         let window = try #require(editors.windowSnapshots().first)
         let admitted = try response(.init(requestID: UUID(), libraryID: host.libraryID, operation: "actions.run",
             targets: [.init(kind: .action, id: action.id), .init(kind: .draft, id: note.id)], expectedVersion: version,
-            parameters: ["windowID": .string(window.id.uuidString), "interactive": .bool(true)]))
+            parameters: ["windowID": .string(window.id.uuidString), "interactive": .bool(true),
+                         "timeoutSeconds": .integer(interruption == "timeout" ? 1 : 120)]))
         guard case .result(.object(let submission)) = admitted.outcome,
               case .string(let rawID) = submission["operationID"], let id = UUID(uuidString: rawID) else {
             Issue.record("Expected an accepted operation"); return
@@ -173,19 +174,19 @@ struct AgentLocalHostTests {
         let review = try #require(host.approvals.pendingFromUserInterface().first)
         #expect(review.effects.snapshot["nativeOperation"] == .string("share"))
         #expect(try host.operations.snapshot(id, connectionID: record.id).state == .waitingForUser)
-        if stopWork {
+        if interruption == "stopWork" {
             try host.makeLibrarySettingsModel().stopWork()
-        } else {
+        } else if interruption == "removeEditor" {
             registeredModels = []
             editors.refreshMembership()
             try host.approvals.approveFromUserInterface(review.id, reviewedFingerprint: review.fingerprint)
         }
-        for _ in 0..<1000 {
+        for _ in 0..<3000 {
             if !model.runner.isRunning && !model.actionPending { break }
             try await Task.sleep(for: .milliseconds(1))
         }
         #expect(!model.runner.isRunning && !model.actionPending)
-        if stopWork {
+        if interruption == "stopWork" {
             #expect(throws: AgentErrorCode.permissionDenied) { try host.operations.snapshot(id, connectionID: record.id) }
         } else {
             for _ in 0..<1000 {
@@ -193,8 +194,9 @@ struct AgentLocalHostTests {
                 try await Task.sleep(for: .milliseconds(1))
             }
             let finished = try host.operations.snapshot(id, connectionID: record.id)
-            #expect(finished.state == .failed)
+            #expect(finished.state == (interruption == "timeout" ? .timedOut : .failed))
             #expect(finished.output?.outcomeUnknown == false)
+            _ = try finished.wireValue()
         }
         #expect(host.approvals.pendingFromUserInterface().isEmpty)
         #expect(model.editor.content == note.content)
