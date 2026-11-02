@@ -107,8 +107,9 @@ and the test host stopped. This did not test a release installation.
 
 A signed isolated run granted access to one of two neutral workspaces. CLI
 listing and detail returned the granted workspace; the other returned not found.
-That helper required explicit request IDs. The read-only contract was corrected
-after the run and has automated coverage; it needs a new signed helper check.
+The first helper required explicit request IDs. A later signed run verified
+the corrected read-only contract without explicit IDs and confirmed the same
+resource boundary. Both test connections were revoked and their hosts stopped.
 
 ## Current components
 
