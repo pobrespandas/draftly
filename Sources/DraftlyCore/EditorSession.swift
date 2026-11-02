@@ -9,6 +9,7 @@ public final class EditorSession: ObservableObject {
     @Published public var focusToken = UUID()
     @Published public var typewriterScrollingEnabled = false
     public var synchronizeScriptEdit: (() -> Void)?
+    package var canApplyExternalEdit: (() -> Bool)?
     public var performUndo: ((Bool) -> Void)?
     public var focusForDictation: (() -> Bool)?
     public private(set) var recentNoteIDs: [UUID] = []

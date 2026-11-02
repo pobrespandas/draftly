@@ -559,19 +559,28 @@ handler must check current authority and signed retry keys, then check the live
 version immediately before mutation. Editor synchronization, Undo, receipts and
 recovery remain required before enabling that handler.
 
-## Prepared editor selection
+## Prepared editor commands
 
-The connected `editor.setSelection` handler requires an explicit window, access
-to its current draft, editor and draft write capabilities, and a current editor
-version. Prepare its retry key through `mutations.prepare`. Preparation does not
-move the cursor. Ranges use UTF-16 offsets and cannot split a surrogate pair.
+The connected `editor.setSelection` and `editor.replaceRange` handlers require
+an explicit window, access to its current draft, editor and draft write
+capabilities, and a current editor version. Prepare a retry key through
+`mutations.prepare`. Preparation does not edit text or move the cursor. Ranges
+use UTF-16 offsets and cannot split a surrogate pair.
 
-Execution checks authority and window generation before changing selection. It
-does not save text, change focus or invoke Undo. If the editor changes during a
-callback, the receipt stays unknown. A repeated confirmed request returns its
-prior result without moving the cursor again. Receipts are bounded and belong
-to the current host lifetime. A new host has new keys and window identities.
-Installed selection acceptance and the remaining editor mutations are pending.
+Execution checks authority and window generation. An attached native view must
+be synchronized and must not have marked text. Range replacement also requires
+the native edit callback and rejects running Actions. It marks edits pending
+before script-edit synchronization registers Undo. Normal autosave owns the
+stored change. Selection alone does not save text or invoke Undo.
+Neither command changes focus.
+
+If a callback interrupts the command, the receipt stays unknown. Text already
+applied remains pending. Repeated confirmed requests return their prior result
+without applying the edit or selection again. Receipts bind the request ID,
+parameters and original grant. Changed requests and grants cannot recover them.
+Receipts are bounded and belong to the current host lifetime. A new host has new
+keys and window identities. Offscreen native Undo/Redo checks passed. Installed
+selection and range acceptance and the remaining editor mutations are pending.
 
 ## Coordinate a stored draft mutation
 

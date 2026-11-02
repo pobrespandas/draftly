@@ -17,7 +17,7 @@ import AgentContracts
     private static let editorReadOperations: Set<String> = ["editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks"]
     private static let actionReadOperations: Set<String> = ["actions.list", "actions.get", "actions.stepSchemas", "actions.groups", "actionGroups.get"]
     private static let workspaceReadOperations: Set<String> = ["workspaces.list", "workspaces.get", "workspaces.query"]
-    static let implementedOperations = readOperations.union(actionReadOperations).union(workspaceReadOperations).union([AgentMutationSchemas.name, "editor.setSelection", "workspaces.update", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder"]).union(AgentDraftWriting.operationNames).union(editorReadOperations)
+    static let implementedOperations = readOperations.union(actionReadOperations).union(workspaceReadOperations).union([AgentMutationSchemas.name, "workspaces.update", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder"]).union(AgentDraftWriting.operationNames).union(AgentEditorWriting.operationNames).union(editorReadOperations)
     private var availableOperations: Set<String> {
         var operations = editorRegistry == nil ? Self.readOperations.union(Self.actionReadOperations).union(Self.workspaceReadOperations) : (writes == nil ? Self.readOperations.union(Self.editorReadOperations).union(Self.actionReadOperations).union(Self.workspaceReadOperations) : Self.implementedOperations)
         if readActivity != nil { operations.insert("activity.list") }
@@ -800,7 +800,7 @@ import AgentContracts
             let bound = AgentRequest(requestID: input.requestID, libraryID: input.libraryID ?? libraryID,
                 operation: input.operation, targets: input.targets, expectedVersion: input.expectedVersion, parameters: input.parameters)
             let ticket: AgentRetryKeys.Ticket
-            if bound.operation == "editor.setSelection" {
+            if AgentEditorWriting.operationNames.contains(bound.operation) {
                 guard let editorWrites else { throw AgentErrorCode.unavailable }
                 ticket = try editorWrites.prepare(bound, connectionID: grant.connectionID)
             } else if bound.operation == "workspaces.update" { ticket = try prepareWorkspaceUpdate(bound, connectionID: grant.connectionID) }
@@ -824,7 +824,7 @@ import AgentContracts
             let receipt = try writes.update(request, connectionID: grant.connectionID)
             guard let resource = receipt.resources.first else { throw AgentErrorCode.storageError }
             return ["resource": .object(["id": .string(resource.id.uuidString), "versionToken": .string(resource.versionToken)])]
-        case "editor.setSelection":
+        case "editor.setSelection", "editor.replaceRange":
             guard let editorWrites else { throw AgentErrorCode.unavailable }
             return try editorWrites.update(request, connectionID: grant.connectionID)
         case "preferences.schema":
