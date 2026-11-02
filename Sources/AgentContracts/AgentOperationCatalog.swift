@@ -106,7 +106,7 @@ package enum AgentOperationCatalog {
         .init(name: "actions.groups", owner: "ActionCatalog + ActionEditingCopy", capabilities: [.actionsRead], targets: .none, isReadOnly: true),
         .init(name: "actions.create", owner: "LibraryStore + ActionEditingCopy", capabilities: [.actionsManage], targets: .none, requiresLibraryScope: true),
         .init(name: "actions.update", owner: "LibraryStore + ActionEditingCopy", capabilities: [.actionsManage], targets: .one(.action), requiresExpectedVersion: true),
-        .init(name: "actions.duplicate", owner: "LibraryStore + ActionEditingCopy", capabilities: [.actionsManage], targets: .one(.action), requiresExpectedVersion: true),
+        .init(name: "actions.duplicate", owner: "LibraryStore + ActionEditingCopy", capabilities: [.actionsManage], targets: .one(.action), requiresExpectedVersion: true, requiresLibraryScope: true),
         .init(name: "actions.move", owner: "LibraryStore + ActionEditingCopy", capabilities: [.actionsManage], targets: .pair(.action, .actionGroup), requiresExpectedVersion: true),
         .init(name: "actions.reorder", owner: "LibraryStore + ActionEditingCopy", capabilities: [.actionsManage], targets: .many(.action), requiresExpectedVersion: true),
         .init(name: "actions.validateShortcut", owner: "LibraryStore + ActionEditingCopy", capabilities: [.actionsManage], targets: .none, requiresLibraryScope: true, isReadOnly: true),

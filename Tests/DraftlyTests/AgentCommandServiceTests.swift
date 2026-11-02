@@ -104,6 +104,40 @@ struct AgentCommandServiceTests {
         #expect(steps == expected)
     }
 
+    @Test func duplicateActionRequiresLibraryScopeAndDoesNotRepeatOnRecovery() throws {
+        let f = try Fixture()
+        var source = DraftAction(name: "Original", steps: [ActionStep("clipboard", ["template": "neutral"])])
+        source.shortcut = "q"
+        try f.library.saveAction(source)
+        let target = AgentResourceReference(kind: .action, id: source.id)
+        let (record, full) = try f.connect(capabilities: [.actionsRead, .actionsManage])
+        let (_, limited) = try f.connect(scope: .resources([target]), capabilities: [.actionsManage])
+        guard case .string(let version) = try f.values("actions.get", session: full, targets: [target])["versionToken"] else {
+            Issue.record("Missing version"); return
+        }
+        let intent = AgentRequest(requestID: UUID(), libraryID: nil, operation: "actions.duplicate", targets: [target], expectedVersion: version)
+        let frame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(intent))
+        #expect(try f.response("mutations.prepare", session: limited, parameters: ["request": frame]).outcome == .error(.permissionDenied))
+        let prepared = try f.values("mutations.prepare", session: full, parameters: ["request": frame])
+        guard case .string(let key) = prepared["retryKey"] else { Issue.record("Missing key"); return }
+        func send(_ key: String, _ session: AgentCommandService.Session) throws -> AgentResponse {
+            let request = AgentRequest(requestID: intent.requestID, libraryID: f.libraryID, operation: intent.operation,
+                                       targets: intent.targets, expectedVersion: version, retryKey: key)
+            return try JSONDecoder().decode(AgentResponse.self, from: f.service.respond(to: JSONEncoder().encode(request), session: session))
+        }
+        let response = try send(key, full)
+        guard case .result = response.outcome else { Issue.record("Duplicate failed: \(response.outcome)"); return }
+        let copy = try #require(f.library.actions.first(where: { $0.id != source.id }))
+        #expect(copy.name == "Original Copy" && copy.steps == source.steps && copy.shortcut.isEmpty)
+        #expect(try send(key, full) == response)
+        f.service = try f.makeService()
+        let reopened = try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        let retry = try f.values("mutations.prepare", session: reopened, parameters: ["request": frame])
+        guard case .string(let retryKey) = retry["retryKey"] else { Issue.record("Missing recovery key"); return }
+        #expect(try send(retryKey, reopened) == response)
+        #expect(f.library.actions.count == 2)
+    }
+
     @Test func moveActionRequiresBothResourcesAndRecoversTheResult() throws {
         let f = try Fixture()
         var action = DraftAction(name: "Move", steps: []); action.group = "Source"
@@ -753,7 +787,7 @@ struct AgentCommandServiceTests {
             guard case .object(let fields) = item, fields["available"] == .bool(true), case .string(let name) = fields["name"] else { return nil }
             return name
         })
-        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", AgentMutationSchemas.name, "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.move", "actions.validateShortcut", "actions.groups", "actionGroups.get"]) && available.count == 28)
+        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", AgentMutationSchemas.name, "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.validateShortcut", "actions.groups", "actionGroups.get"]) && available.count == 29)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.unavailable))
         #expect(f.library.notes.isEmpty)
         #expect(try f.values("server.capabilities", session: session)["capabilities"] == .array([.string("drafts.read"), .string("drafts.write")]))
