@@ -628,3 +628,26 @@ This is an internal writer. Service key issuance, CLI/MCP routing and normal
 activation are not connected yet. Creation needs task-owned target scope; it is
 not implemented by this existing-draft path. Do not treat this storage check as
 native sync, public release or completed agent access.
+
+### Installed editor command check — 2 November 2026
+
+The signed QA app and embedded helper at `e10eeaa` passed a local CLI check.
+The isolated library contained two neutral drafts. The connection allowed draft
+reads and writes and editor reads and writes for one draft and its window.
+It did not allow the entire library.
+
+`editor.setSelection` selected `café` after an emoji at UTF-16 offset 3 and
+length 4. `editor.replaceRange` replaced that range with `té`. Native Undo
+restored the original text and selection. Repeating the same request returned
+the saved result without applying the change again. Native Redo still restored
+the replacement. The editor read reported no pending changes after autosave.
+
+After the user selected the excluded draft, `editor.get` returned `not_found`.
+The excluded draft retained its text. Revocation then returned
+`permission_denied`. Stop Work disabled access. QA quit normally, its exact
+LaunchServices registration was removed, and the usual app reopened with its
+10 drafts.
+
+This check used CLI, not an external MCP client. It does not establish input
+method composition support, durable editor receipts after restart, notarization,
+or production screen-lock behavior. Normal agent access remains disabled.
