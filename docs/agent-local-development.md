@@ -67,6 +67,13 @@ CLI listed groups without a request ID, and MCP created a group and recovered
 the same receipt without a duplicate. The test connection was revoked and
 stopped. This was a QA app, not an installed release.
 
+A later isolated run used matching signed builds to rename a group through the
+CLI. Its 18 actions moved to the new name. All five group IDs stayed the same.
+Repeating the request returned the same receipt. A separate run read an empty
+test library, revoked the connection, and received `permission_denied` on the
+next CLI request. Both test hosts were stopped. These checks do not inspect the
+Keychain item separately or verify screen lock or an installed release.
+
 ## Current components
 
 - AgentContracts owns the request, response and authentication envelopes.
