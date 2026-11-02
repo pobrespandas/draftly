@@ -59,7 +59,10 @@ Another isolated signed run created an action group and repeated the request.
 The receipt was identical and the catalog contained one copy. The embedded helper
 in that test came from an earlier build. It required an explicit request ID for
 the read-only group listing. A release candidate must build the app and helper
-from the same revision. Repeat client acceptance with that packaged helper.
+from the same revision. A subsequent isolated run used matching signed builds:
+CLI listed groups without a request ID, and MCP created a group and recovered
+the same receipt without a duplicate. The test connection was revoked and
+stopped. This was a QA app, not an installed release.
 
 ## Current components
 
