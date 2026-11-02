@@ -123,6 +123,25 @@ struct AgentCommandServiceTests {
         #expect(try f.values("actions.groups", session: session)["items"] == .array([]))
     }
 
+    @Test func groupPagesDoNotCrossSessionsAndRecheckDeletedGroups() throws {
+        let f = try Fixture()
+        var first = DraftAction(name: "One", steps: []); first.group = "Alpha"
+        var second = DraftAction(name: "Two", steps: []); second.group = "Beta"
+        try f.library.saveActions([first, second])
+        let alpha = try #require(f.library.actionGroupIdentifiers["Alpha"])
+        let beta = try #require(f.library.actionGroupIdentifiers["Beta"])
+        let scope: Set<AgentResourceReference> = [.init(kind: .actionGroup, id: alpha), .init(kind: .actionGroup, id: beta)]
+        let (_, session) = try f.connect(scope: .resources(scope), capabilities: [.actionsRead])
+        let (_, other) = try f.connect(scope: .resources(scope), capabilities: [.actionsRead])
+        let firstPage = try f.values("actions.groups", session: session, parameters: ["limit": .integer(1)])
+        guard case .string(let cursor) = firstPage["nextCursor"] else { Issue.record("Missing group cursor"); return }
+        let parameters: [String: AgentJSONValue] = ["limit": .integer(1), "cursor": .string(cursor)]
+        #expect(try f.response("actions.groups", session: other, parameters: parameters).outcome == .error(.invalidInput))
+        try f.library.deleteAction(second.id)
+        let next = try f.values("actions.groups", session: session, parameters: parameters)
+        #expect(next["items"] == .array([]) && next["nextCursor"] == .null)
+    }
+
     @Test func actionListFiltersScopeAndRechecksPages() throws {
         let f = try Fixture()
         let first = DraftAction(name: "Allowed A", steps: [])
