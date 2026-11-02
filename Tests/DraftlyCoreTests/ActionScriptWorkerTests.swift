@@ -4,6 +4,35 @@ import Testing
 
 @Suite("Script worker host lifetime") @MainActor
 struct ActionScriptWorkerTests {
+    @Test(arguments: [false, true]) func deniedCompletionDoesNotApplyDispositionOrFlush(worker: Bool) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Original")
+        let editor = EditorSession(); editor.load(note)
+        let runner = ActionRunner(library: library, editor: editor)
+        var action = DraftAction(name: "Finish", steps: []); action.afterSuccess = "trash"
+        runner.authorizeActionCompletion = { candidate, id in
+            #expect(candidate.id == action.id && id == note.id)
+            editor.content = "Unapproved"
+            throw DraftlyError.message("Denied")
+        }
+        let report = worker ? await runner.runAsync(action) : runner.runReport(action)
+        #expect(report.reason == .error)
+        #expect(library.notes.first?.content == "Original" && library.notes.first?.trashedAt == nil)
+    }
+    @Test(arguments: [false, true]) func deniedStepDoesNotFlushPendingEditorChanges(worker: Bool) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Original")
+        let editor = EditorSession(); editor.load(note)
+        let runner = ActionRunner(library: library, editor: editor)
+        runner.authorizeActionStep = { _, _ in
+            editor.content = "Unapproved"
+            throw DraftlyError.message("Denied")
+        }
+        let action = DraftAction(name: "Create", steps: [ActionStep("createDraft", ["template": "Created"])])
+        let report = worker ? await runner.runAsync(action) : runner.runReport(action)
+        #expect(report.reason == .error)
+        #expect(library.notes.count == 1 && library.notes.first?.content == "Original")
+    }
     @Test func synchronousNativeStepRequiresAuthorizationBeforeCreation() throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let note = try library.createNote(content: "Original")

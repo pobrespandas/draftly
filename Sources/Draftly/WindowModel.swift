@@ -469,18 +469,21 @@ final class WindowModel: ObservableObject {
     func runActionOutcome(_ action: DraftAction, hostOverride: (any ActionHost)? = nil,
                           scriptAuthorization: ((String, String) throws -> Void)? = nil,
                           scriptDraftFilter: (([Note]) throws -> [Note])? = nil,
-                          stepAuthorization: ((UUID, ActionStep) throws -> Void)? = nil) async -> ActionOutcome? {
+                          stepAuthorization: ((UUID, ActionStep) throws -> Void)? = nil,
+                          completionAuthorization: ((DraftAction, UUID) throws -> Void)? = nil) async -> ActionOutcome? {
         guard !actionPending, !runner.isRunning else { return nil }
         actionPending = true
         let previousHost = runner.host
         let previousAuthorization = runner.authorizeScriptOperation
         let previousFilter = runner.filterScriptDrafts
         let previousStepAuthorization = runner.authorizeActionStep
+        let previousCompletionAuthorization = runner.authorizeActionCompletion
         if let hostOverride { runner.host = hostOverride }
         if let scriptAuthorization { runner.authorizeScriptOperation = scriptAuthorization }
         if scriptAuthorization != nil || scriptDraftFilter != nil { runner.filterScriptDrafts = scriptDraftFilter }
         if let stepAuthorization { runner.authorizeActionStep = stepAuthorization }
-        defer { runner.host = previousHost; runner.authorizeScriptOperation = previousAuthorization; runner.filterScriptDrafts = previousFilter; runner.authorizeActionStep = previousStepAuthorization; actionPending = false }
+        if let completionAuthorization { runner.authorizeActionCompletion = completionAuthorization }
+        defer { runner.host = previousHost; runner.authorizeScriptOperation = previousAuthorization; runner.filterScriptDrafts = previousFilter; runner.authorizeActionStep = previousStepAuthorization; runner.authorizeActionCompletion = previousCompletionAuthorization; actionPending = false }
         return await executeAction(action)
     }
     private func executeAction(_ action: DraftAction) async -> ActionOutcome? {

@@ -67,6 +67,7 @@ import Foundation
             try await performSteps(action.steps, owner: action.id, path: [action.id])
             try checkCancellation()
             try Task.checkCancellation()
+            try authorizeActionCompletion?(action, note.id)
             try flushEditor()
             try applySuccessEffects(action, noteID: note.id)
             bridgeStepID = nil

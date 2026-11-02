@@ -158,6 +158,23 @@ struct AgentAuthorizedActionHostTests {
         #expect(model.runner.authorizeActionStep == nil)
     }
 
+    @Test(arguments: [false, true]) func completionAuthorizationStopsFinalDisposition(visible: Bool) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Original")
+        let model = WindowModel(library: library); model.select(note.id)
+        var action = DraftAction(name: "Finish", steps: []); action.afterSuccess = "trash"
+        var checks = 0
+        let result = try await AutomationActionExecution.run(action, noteID: note.id, library: library,
+            models: visible ? [model] : [], host: model.host, editorScope: .targetDraft,
+            completionAuthorization: { candidate, id in
+                #expect(candidate.id == action.id && id == note.id)
+                checks += 1; throw AgentErrorCode.permissionDenied
+            }, resolveModel: { models, _ in models.first })
+        #expect(result.report.reason == .error && checks == 1)
+        #expect(library.notes.first?.trashedAt == nil)
+        #expect(model.runner.authorizeActionCompletion == nil)
+    }
+
     @Test(arguments: [false, true]) func draftPolicyControlsScriptUpdate(canWrite: Bool) async throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let note = try library.createNote(content: "Original")

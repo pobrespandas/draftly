@@ -33,6 +33,7 @@ public final class ActionRunner: ObservableObject {
     public var filterScriptDrafts: (([Note]) throws -> [Note])?
     // Recheckable authorization for a concrete enabled step before execution.
     public var authorizeActionStep: ((UUID, ActionStep) throws -> Void)?
+    public var authorizeActionCompletion: ((DraftAction, UUID) throws -> Void)?
     public private(set) var scriptOutcomeUnknown = false
     public var readTheme: (EditorThemeDefinition) throws -> EditorThemeDefinition = { try ThemeFileAccess.read($0) }
     public var selectedDrafts: (() -> [Note])?
@@ -171,7 +172,7 @@ public final class ActionRunner: ObservableObject {
                 result = .success; reason = .success
                 message = logs.last ?? "\(action.name) completed"
             } catch {
-                try? flushEditor()
+                if authorizeScriptOperation == nil && authorizeActionStep == nil && authorizeActionCompletion == nil { try? flushEditor() }
                 if error is CancellationError || (error as? ActionExecutionInterruption) == .cancelled || session.cancellationRequested {
                     result = .cancelled; reason = .cancelled
                     message = "\(action.name) cancelled"
@@ -250,7 +251,7 @@ public final class ActionRunner: ObservableObject {
             if completed && action.presentation.notifyOnSuccess { _ = try? platform("actionNotification", ["title": action.name, "message": message ?? "Complete"]) }
             return completed
         } catch {
-            try? flushEditor()
+            if authorizeScriptOperation == nil && authorizeActionStep == nil && authorizeActionCompletion == nil { try? flushEditor() }
             message = error.localizedDescription
             let cancelled = (error as? ActionExecutionInterruption) == .cancelled
             if (error as? ActionExecutionInterruption) == .timeout { terminationReason = .timeout }
@@ -308,6 +309,7 @@ public final class ActionRunner: ObservableObject {
         try checkCancellation()
         if context.objectForKeyedSubscript("__cancelled")?.toBool() == true { return false }
         if let failure = context.objectForKeyedSubscript("__failure"), !failure.isNull, !failure.isUndefined { throw DraftlyError.message(failure.toString()) }
+        try authorizeActionCompletion?(action, note.id)
         try flushEditor()
         try applySuccessEffects(action, noteID: note.id)
         return true
