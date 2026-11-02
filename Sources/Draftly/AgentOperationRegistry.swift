@@ -89,6 +89,7 @@ import AgentContracts
 
     func setWaitingForUser(_ id: UUID, waiting: Bool) throws {
         guard let entry = entries[id] else { throw AgentErrorCode.notFound }
+        try validate(entry.grant, targets: entry.targets)
         guard !entry.cancellationRequested else { throw AgentErrorCode.cancelled }
         if waiting && entry.state == .running { entries[id]?.state = .waitingForUser }
         else if !waiting && entry.state == .waitingForUser { entries[id]?.state = .running }
