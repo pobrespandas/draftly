@@ -34,12 +34,14 @@ with personal data or ship a build that defines this flag. A successful test
 does not validate lock behavior or normal startup.
 
 On 2 November, a Developer ID build with this flag and a signed embedded helper
-opened an isolated library. Settings showed access disabled at startup. After
-enabling it, the helper discovered the host and both sides showed the same
-pairing code. The Review button did not open a permission editor in that test.
-Stop work disabled access and the waiting helper returned unavailable. Pairing,
-credential sharing and an authenticated CLI or MCP session remain unverified.
-The signed test build must exclude `get-task-allow`; the host rejects it.
+opened an isolated library. Settings showed access disabled at startup. The
+helper discovered the host and both sides showed the same pairing code. A
+native sheet presented the permission review. The client received access to one
+action. The signed helper read that action through CLI and MCP, while a request
+for another action returned `not_found`. After revocation, the CLI returned
+`permission_denied`. Stop work disabled the host. This did not test lock state,
+an installed release, every client, or all supported operations. The signed
+test build must exclude `get-task-allow`; the host rejects it.
 
 ## Current components
 

@@ -103,14 +103,47 @@ struct AgentConnectionsSettingsView: View {
             Button("Clear activity", role: .destructive) { try? model.clearActivity() }
             Button("Cancel", role: .cancel) {}
         } message: { Text("This removes the local activity history for this library.") }
-        .sheet(isPresented: Binding(get: { model.draft != nil }, set: { if !$0 { model.cancelEditing() } })) {
-            AgentConnectionGrantEditor(model: model)
-        }
+        .background(AgentGrantSheetPresenter(model: model))
         .task {
             while !Task.isCancelled {
                 model.refresh()
                 try? await Task.sleep(for: .seconds(2))
             }
+        }
+    }
+}
+
+private struct AgentGrantSheetPresenter: NSViewRepresentable {
+    @ObservedObject var model: AgentConnectionsSettingsModel
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+    func makeNSView(context: Context) -> NSView { NSView() }
+    func updateNSView(_ view: NSView, context: Context) {
+        let coordinator = context.coordinator
+        DispatchQueue.main.async { [weak view, weak model] in
+            guard let model else { return }
+            coordinator.update(parent: view?.window, model: model)
+        }
+    }
+    static func dismantleNSView(_ view: NSView, coordinator: Coordinator) { coordinator.close() }
+
+    @MainActor final class Coordinator {
+        private var panel: NSPanel?
+        func update(parent: NSWindow?, model: AgentConnectionsSettingsModel) {
+            guard model.draft != nil else { close(); return }
+            guard panel == nil, let parent else { return }
+            let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 620, height: 620),
+                                styleMask: [.titled], backing: .buffered, defer: false)
+            panel.title = "Agent Permissions"
+            panel.contentViewController = NSHostingController(rootView: AgentConnectionGrantEditor(model: model))
+            self.panel = panel
+            parent.beginSheet(panel)
+        }
+        func close() {
+            guard let panel else { return }
+            self.panel = nil
+            if let parent = panel.sheetParent { parent.endSheet(panel) }
+            else { panel.orderOut(nil) }
         }
     }
 }
