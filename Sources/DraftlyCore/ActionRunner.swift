@@ -26,7 +26,7 @@ public final class ActionRunner: ObservableObject {
     public var currentWorkspace: (() -> Workspace)?
     public var uiOperation: (([String: Any]) throws -> Any?)?
     public var uiOperationAsync: (([String: Any], TimeInterval) async throws -> Any?)?
-    // Optional request check for callers that supply their own authority.
+    // Recheckable authority validation. Do not consume an approval here.
     // This does not cover native Action steps or initial and final effects.
     public var authorizeScriptOperation: ((String, String) throws -> Void)?
     // A guarded query must filter its input before it evaluates the query.
