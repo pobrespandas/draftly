@@ -168,6 +168,8 @@ struct SettingsView: View {
                     } else if loginItem.status == .unavailable {
                         Text("Login registration is unavailable for this app installation.")
                             .font(.caption).foregroundStyle(.secondary)
+                        Button("Retry Registration") { Task { await loginItem.setEnabled(true) } }
+                            .disabled(loginItem.isChanging)
                     }
                     if let error = loginItem.error {
                         Text(error).font(.caption).foregroundStyle(.red).textSelection(.enabled)

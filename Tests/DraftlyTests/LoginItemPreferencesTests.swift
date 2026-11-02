@@ -4,6 +4,16 @@ import Testing
 
 @MainActor
 struct LoginItemPreferencesTests {
+    @Test func unavailableRegistrationCanBeRetriedWithoutInventingSuccess() async {
+        var system = LoginItemPreferences.Status.unavailable
+        var attempts = 0
+        let model = LoginItemPreferences(readStatus: { system }, register: { attempts += 1 }, unregister: {})
+        await model.setEnabled(true)
+        #expect(attempts == 1 && model.status == .unavailable && !model.isRegistered)
+        system = .enabled
+        model.refresh()
+        #expect(model.isRegistered)
+    }
     @Test func registrationUsesSystemStateAndRefreshesExternalChanges() async {
         var system = LoginItemPreferences.Status.disabled
         var registrations = 0
