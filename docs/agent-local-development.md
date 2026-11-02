@@ -11,7 +11,7 @@ missing handlers describe the checkpoint at which each section was written.
 The current branch implements authenticated action and group reads, action
 step defaults, shortcut validation, `actions.create`, `actions.update`,
 `actions.duplicate`, `actions.move`, `actionGroups.create`, and
-`actionGroups.update`.
+`actionGroups.update`, and `actionGroups.duplicate`.
 Creating an action requires access to the full library. Action changes use
 an expected version, a signed retry key, and an atomic action and receipt
 transaction. Recovery checks the current grant. A client with resource scope
@@ -24,6 +24,8 @@ Creating a group requires full-library access. It rejects names and IDs that
 collide with existing groups and preserves implicit group identifiers.
 Editing a group also requires full-library access. A rename updates its actions
 in the same transaction and preserves the IDs of other groups.
+Duplicating a group requires full-library access. It copies the group's actions
+without their keyboard shortcuts and commits the copies and receipt together.
 
 The host does not start in the normal app. Agent access remains unavailable in
 released builds. The signed helper and host still need a real installed-app

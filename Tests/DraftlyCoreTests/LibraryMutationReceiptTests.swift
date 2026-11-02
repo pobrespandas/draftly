@@ -34,6 +34,32 @@ struct LibraryMutationReceiptTests {
         #expect(try library.mutationReceipt(for: mutation, at: now) == nil)
     }
 
+    @Test func groupCopyCommitsAllItemsOnceAndRollsBackOnFailure() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        var original = DraftAction(name: "Original", steps: []); original.group = "Source"
+        try library.saveAction(original)
+        let identifiers = library.actionGroupIdentifiers
+        let group = ActionGroupRecord(name: "Copy")
+        var copy = original; copy.id = UUID(); copy.group = group.name; copy.shortcut = ""
+        let mutation = identity()
+        #expect(throws: (any Error).self) {
+            try library.commitActionGroupCopy(group, actions: [copy], mutation: mutation, at: now,
+                validateCommit: { throw DraftlyError.message("Authority changed") }) {
+                    .init(id: $0.id, versionToken: "opaque-version")
+                }
+        }
+        #expect(library.actions == [original] && library.actionGroupIdentifiers == identifiers)
+        #expect(try library.mutationReceipt(for: mutation, at: now) == nil)
+        let receipt = try library.commitActionGroupCopy(group, actions: [copy], mutation: mutation, at: now,
+            validateCommit: {}) { .init(id: $0.id, versionToken: "opaque-version") }
+        let retry = try library.commitActionGroupCopy(group, actions: [copy], mutation: mutation, at: now,
+            validateCommit: { Issue.record("A retry must not commit again") }) {
+                .init(id: $0.id, versionToken: "opaque-version")
+            }
+        #expect(retry == receipt && library.actions.count == 2)
+        #expect(library.actions.contains(copy) && library.actionGroupIdentifiers["Source"] == identifiers["Source"])
+    }
+
     @Test func groupAndReceiptRollBackTogetherWhenCommitValidationFails() throws {
         let library = try LibraryStore(inMemory: true, seed: false), group = ActionGroupRecord(name: "Neutral"), mutation = identity()
         #expect(throws: (any Error).self) {

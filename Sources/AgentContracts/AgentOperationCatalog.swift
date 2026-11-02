@@ -114,7 +114,7 @@ package enum AgentOperationCatalog {
         .init(name: "actionGroups.get", owner: "LibraryStore + ActionCatalog", capabilities: [.actionsRead], targets: .one(.actionGroup), isReadOnly: true),
         .init(name: "actionGroups.create", owner: "LibraryStore + ActionCatalog", capabilities: [.actionsManage], targets: .none, requiresLibraryScope: true),
         .init(name: "actionGroups.update", owner: "LibraryStore + ActionCatalog", capabilities: [.actionsManage], targets: .one(.actionGroup), requiresExpectedVersion: true, requiresLibraryScope: true),
-        .init(name: "actionGroups.duplicate", owner: "LibraryStore + ActionCatalog", capabilities: [.actionsManage], targets: .one(.actionGroup), requiresExpectedVersion: true),
+        .init(name: "actionGroups.duplicate", owner: "LibraryStore + ActionCatalog", capabilities: [.actionsManage], targets: .one(.actionGroup), requiresExpectedVersion: true, requiresLibraryScope: true),
         .init(name: "actionGroups.reorder", owner: "LibraryStore + ActionCatalog", capabilities: [.actionsManage], targets: .many(.actionGroup), requiresExpectedVersion: true),
         .init(name: "actionGroups.delete", owner: "LibraryStore", capabilities: [.actionsManage, .destructiveRequest], targets: .one(.actionGroup), requiresExpectedVersion: true, requiresHumanApproval: true),
         .init(name: "actions.run", owner: "AutomationActionExecution + ActionRunner", capabilities: [.actionsRun, .draftsRead], targets: .pair(.action, .draft), requiresExpectedVersion: true),

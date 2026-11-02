@@ -324,6 +324,33 @@ public final class LibraryStore: ObservableObject {
             return receipt
         } catch { container.viewContext.rollback(); try? reload(); throw error }
     }
+    package func commitActionGroupCopy(_ group: ActionGroupRecord, actions copies: [DraftAction],
+                                       mutation: LibraryMutationIdentity, at now: Date,
+                                       validateCommit: () throws -> Void,
+                                       makeResource: (ActionGroupRecord) throws -> LibraryMutationReceipt.Resource) throws -> LibraryMutationReceipt {
+        if let previous = try mutationReceipt(for: mutation, at: now) { return previous }
+        let ids = Set(copies.map(\.id))
+        guard ids.count == copies.count, copies.allSatisfy({ $0.group == group.name }),
+              ids.isDisjoint(with: Set(actions.map(\.id))), !groupNames.contains(group.name),
+              !actionGroupIdentifiers.values.contains(group.id) else { throw LibraryMutationReceiptError.invalidReceipt }
+        do {
+            let identifiers = actionGroupIdentifiers
+            for (order, name) in groupNames.enumerated() where !actionGroups.contains(where: { $0.name == name }) {
+                guard let id = identifiers[name] else { throw LibraryMutationReceiptError.invalidReceipt }
+                var record = ActionGroupRecord(name: name); record.id = id; record.order = order
+                try persist(record, id: id, kind: "actionGroup")
+            }
+            for action in copies { try persist(action, id: action.id, kind: "action") }
+            try persist(group, id: group.id, kind: "actionGroup")
+            let receipt = LibraryMutationReceipt(id: UUID(), mutation: mutation, committedAt: now, resources: [try makeResource(group)])
+            try receipt.validate()
+            guard receipt.resources[0].id == group.id else { throw LibraryMutationReceiptError.invalidReceipt }
+            try persist(receipt, id: receipt.id, kind: "agentMutationReceipt")
+            try beforeBatchCommit?(); try validateCommit(); try commit()
+            return receipt
+        } catch { container.viewContext.rollback(); try? reload(); throw error }
+    }
+
     @discardableResult
     public func reinstallDefaultActions() throws -> DefaultActionCatalogInstallation {
         let bundle = DefaultActionCatalog.restoredBundle(existingGroupNames: groupNames)

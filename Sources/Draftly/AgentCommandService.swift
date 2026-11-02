@@ -16,7 +16,7 @@ import AgentContracts
         "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions", "preferences.schema"]
     private static let editorReadOperations: Set<String> = ["editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks"]
     private static let actionReadOperations: Set<String> = ["actions.list", "actions.get", "actions.stepSchemas", "actions.groups", "actionGroups.get"]
-    static let implementedOperations = readOperations.union(actionReadOperations).union([AgentMutationSchemas.name, "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.validateShortcut", "actionGroups.create", "actionGroups.update"]).union(AgentDraftWriting.operationNames).union(editorReadOperations)
+    static let implementedOperations = readOperations.union(actionReadOperations).union([AgentMutationSchemas.name, "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.validateShortcut", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate"]).union(AgentDraftWriting.operationNames).union(editorReadOperations)
     private var availableOperations: Set<String> {
         var operations = editorRegistry == nil ? Self.readOperations.union(Self.actionReadOperations) : (writes == nil ? Self.readOperations.union(Self.editorReadOperations).union(Self.actionReadOperations) : Self.implementedOperations)
         if readActivity != nil { operations.insert("activity.list") }
@@ -297,6 +297,22 @@ import AgentContracts
         return (updated, original, actionLibrary.actions.filter { $0.group == original.name })
     }
 
+    private func checkedGroupCopy(_ request: AgentRequest) throws -> (original: ActionGroupRecord, actions: [DraftAction], name: String) {
+        guard let id = request.targets.first?.id, let expected = request.expectedVersion,
+              let original = groups(in: .library).first(where: { $0.id == id }) else { throw AgentErrorCode.notFound }
+        guard try groupVersion(original) == expected else { throw AgentErrorCode.versionConflict }
+        let parameters: [String: AgentJSONValue]
+        do { parameters = try AgentActionSchemas.validatedParameters(for: request) }
+        catch { throw AgentErrorCode.invalidInput }
+        let proposed: String
+        if case .string(let value) = parameters["name"] { proposed = value }
+        else { proposed = original.name + " Copy" }
+        let name = proposed.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { throw AgentErrorCode.invalidInput }
+        guard !actionLibrary.groupNames.contains(name) else { throw AgentErrorCode.versionConflict }
+        return (original, actionLibrary.actions.filter { $0.group == original.name }, name)
+    }
+
     private func actionMutationReceipt(_ request: AgentRequest, ticket: AgentRetryKeys.Ticket) throws -> LibraryMutationReceipt? {
         let identity = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
         do {
@@ -306,7 +322,7 @@ import AgentContracts
                case .string(let raw) = group["id"] { expected = UUID(uuidString: raw) }
             else if request.operation == "actions.create", case .object(let action) = request.parameters["action"],
                case .string(let raw) = action["id"] { expected = UUID(uuidString: raw) }
-            else if request.operation == "actions.duplicate" { expected = nil }
+            else if request.operation == "actions.duplicate" || request.operation == "actionGroups.duplicate" { expected = nil }
             else if request.operation == "actionGroups.update" { expected = request.targets.first(where: { $0.kind == .actionGroup })?.id }
             else { expected = request.targets.first(where: { $0.kind == .action })?.id }
             guard receipt == nil || (receipt?.resources.count == 1 && (expected == nil || receipt?.resources.first?.id == expected)) else {
@@ -330,6 +346,7 @@ import AgentContracts
         if try actionMutationReceipt(request, ticket: ticket) == nil {
             if request.operation == "actionGroups.create" { try validateNewGroup(newActionGroup(request)) }
             else if request.operation == "actionGroups.update" { _ = try checkedGroupUpdate(request) }
+            else if request.operation == "actionGroups.duplicate" { _ = try checkedGroupCopy(request) }
             else if request.operation == "actions.create" { try validateNewAction(newAction(request)) }
             else if request.operation == "actions.duplicate" { try validateNewAction(checkedActionDuplicate(request)) }
             else if request.operation == "actions.move" { _ = try checkedActionMove(request) }
@@ -346,6 +363,27 @@ import AgentContracts
         if let previous = try actionMutationReceipt(request, ticket: ticket) {
             try validateAdmission(); _ = try retryKeys.verify(key, request: request, connectionID: connectionID)
             return previous
+        }
+        if request.operation == "actionGroups.duplicate" {
+            let source = try checkedGroupCopy(request)
+            var group = source.original; group.id = UUID(); group.name = source.name
+            let lastOrder = groups(in: .library).map(\.order).max() ?? -1
+            guard lastOrder < Int.max else { throw AgentErrorCode.invalidInput }
+            group.order = lastOrder + 1
+            let copies = source.actions.map { action in
+                var copy = action; copy.id = UUID(); copy.group = group.name; copy.shortcut = ""
+                return copy
+            }
+            let identity = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
+            do {
+                return try actionLibrary.commitActionGroupCopy(group, actions: copies, mutation: identity, at: now(), validateCommit: {
+                    try self.validateAdmission(); _ = try self.retryKeys.verify(key, request: request, connectionID: connectionID)
+                    let current = try self.checkedGroupCopy(request)
+                    guard current.original == source.original, current.actions == source.actions,
+                          current.name == source.name else { throw AgentErrorCode.versionConflict }
+                }, makeResource: { .init(id: $0.id, versionToken: try self.groupVersion($0)) })
+            } catch let error as AgentErrorCode { throw error }
+            catch { throw AgentErrorCode.storageError }
         }
         if request.operation == "actionGroups.create" || request.operation == "actionGroups.update" {
             let checked = request.operation == "actionGroups.update" ? try checkedGroupUpdate(request) : nil
@@ -506,10 +544,10 @@ import AgentContracts
             let input = try AgentMutationSchemas.mutation(from: parameters)
             let bound = AgentRequest(requestID: input.requestID, libraryID: input.libraryID ?? libraryID,
                 operation: input.operation, targets: input.targets, expectedVersion: input.expectedVersion, parameters: input.parameters)
-            let ticket = try ["actions.create", "actions.update", "actions.duplicate", "actions.move", "actionGroups.create", "actionGroups.update"].contains(bound.operation) ? prepareActionUpdate(bound, connectionID: grant.connectionID) : writes.prepare(bound, connectionID: grant.connectionID)
+            let ticket = try ["actions.create", "actions.update", "actions.duplicate", "actions.move", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate"].contains(bound.operation) ? prepareActionUpdate(bound, connectionID: grant.connectionID) : writes.prepare(bound, connectionID: grant.connectionID)
             return ["requestID": .string(bound.requestID.uuidString), "retryKey": .string(ticket.value),
                 "expiresAt": .string(APIValues.date(min(ticket.expiresAt, grant.expiresAt)))]
-        case "actions.create", "actions.update", "actions.duplicate", "actions.move", "actionGroups.create", "actionGroups.update":
+        case "actions.create", "actions.update", "actions.duplicate", "actions.move", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate":
             let receipt = try updateAction(request, connectionID: grant.connectionID)
             guard let resource = receipt.resources.first else { throw AgentErrorCode.storageError }
             return ["resource": .object(["id": .string(resource.id.uuidString), "versionToken": .string(resource.versionToken)])]
