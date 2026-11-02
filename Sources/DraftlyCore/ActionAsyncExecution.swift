@@ -22,6 +22,7 @@ import Foundation
                 for step in items where step.isEnabled != false {
                     try checkCancellation()
                     try Task.checkCancellation()
+                    try authorizeActionStep?(owner, step)
                     session.enter(actionID: owner, step: step)
                     bridgeStepID = step.id
                     if step.type == "includeAction" {

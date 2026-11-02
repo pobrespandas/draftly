@@ -140,6 +140,24 @@ struct AgentAuthorizedActionHostTests {
         #expect(model.runner.authorizeScriptOperation == nil)
     }
 
+    @Test(arguments: [false, true]) func stepAuthorizationStopsNativeDraftCreation(visible: Bool) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Original")
+        let model = WindowModel(library: library); model.select(note.id)
+        let step = ActionStep("createDraft", ["template": "Created"])
+        let action = DraftAction(name: "Create", steps: [step])
+        var denied = 0
+        let result = try await AutomationActionExecution.run(action, noteID: note.id, library: library,
+            models: visible ? [model] : [], host: model.host, editorScope: .targetDraft,
+            stepAuthorization: { owner, current in
+                #expect(owner == action.id && current.id == step.id)
+                denied += 1; throw AgentErrorCode.permissionDenied
+            }, resolveModel: { models, _ in models.first })
+        #expect(result.report.reason == .error && denied == 1)
+        #expect(library.notes.count == 1 && library.notes.first?.content == "Original")
+        #expect(model.runner.authorizeActionStep == nil)
+    }
+
     @Test(arguments: [false, true]) func draftPolicyControlsScriptUpdate(canWrite: Bool) async throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let note = try library.createNote(content: "Original")

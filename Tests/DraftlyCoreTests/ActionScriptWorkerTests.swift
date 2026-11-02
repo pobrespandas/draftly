@@ -4,6 +4,20 @@ import Testing
 
 @Suite("Script worker host lifetime") @MainActor
 struct ActionScriptWorkerTests {
+    @Test func synchronousNativeStepRequiresAuthorizationBeforeCreation() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Original")
+        let editor = EditorSession(); editor.load(note)
+        let runner = ActionRunner(library: library, editor: editor)
+        var denied = 0
+        runner.authorizeActionStep = { _, step in
+            if step.type == "createDraft" { denied += 1; throw DraftlyError.message("Denied") }
+        }
+        let action = DraftAction(name: "Create", steps: [ActionStep("createDraft", ["template": "Created"])])
+        let report = runner.runReport(action)
+        #expect(denied == 1 && report.reason == .error)
+        #expect(library.notes.count == 1 && library.notes.first?.content == "Original")
+    }
     @Test func synchronousScriptChecksAuthorizationBeforeUpdatingDraft() throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let note = try library.createNote(content: "Original")

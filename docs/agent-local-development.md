@@ -45,6 +45,9 @@ The policy rejects unclassified operations.
 This incomplete policy is not connected to an agent executor. It does not yet
 cover initial context, native Action steps, nested execution, final disposition,
 or the full runtime contract.
+The runner can also check each enabled Action step immediately before it runs.
+This check does not cover step expansion or initial configuration, which occur
+earlier, or final disposition. It is not enough to authorize Action execution.
 For the guarded draft operations, the runner checks authority again before it
 returns a result to the script. If authority changes after an update, it stops
 the Action and records an unknown outcome even when the script catches the

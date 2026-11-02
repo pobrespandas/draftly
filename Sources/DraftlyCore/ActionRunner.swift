@@ -31,6 +31,8 @@ public final class ActionRunner: ObservableObject {
     public var authorizeScriptOperation: ((String, String) throws -> Void)?
     // A guarded query must filter its input before it evaluates the query.
     public var filterScriptDrafts: (([Note]) throws -> [Note])?
+    // Recheckable authorization for a concrete enabled step before execution.
+    public var authorizeActionStep: ((UUID, ActionStep) throws -> Void)?
     public private(set) var scriptOutcomeUnknown = false
     public var readTheme: (EditorThemeDefinition) throws -> EditorThemeDefinition = { try ThemeFileAccess.read($0) }
     public var selectedDrafts: (() -> [Note])?
@@ -280,6 +282,7 @@ public final class ActionRunner: ObservableObject {
         func performSteps(_ items: [ActionStep], owner: UUID, path: Set<UUID>) throws -> Bool {
             for step in items where step.isEnabled != false {
                 try checkCancellation()
+                try authorizeActionStep?(owner, step)
                 activeSession?.enter(actionID: owner, step: step)
                 if context.objectForKeyedSubscript("__cancelled")?.toBool() == true { return false }
                 if let failure = context.objectForKeyedSubscript("__failure"), !failure.isNull, !failure.isUndefined { throw DraftlyError.message(failure.toString()) }

@@ -468,16 +468,19 @@ final class WindowModel: ObservableObject {
     }
     func runActionOutcome(_ action: DraftAction, hostOverride: (any ActionHost)? = nil,
                           scriptAuthorization: ((String, String) throws -> Void)? = nil,
-                          scriptDraftFilter: (([Note]) throws -> [Note])? = nil) async -> ActionOutcome? {
+                          scriptDraftFilter: (([Note]) throws -> [Note])? = nil,
+                          stepAuthorization: ((UUID, ActionStep) throws -> Void)? = nil) async -> ActionOutcome? {
         guard !actionPending, !runner.isRunning else { return nil }
         actionPending = true
         let previousHost = runner.host
         let previousAuthorization = runner.authorizeScriptOperation
         let previousFilter = runner.filterScriptDrafts
+        let previousStepAuthorization = runner.authorizeActionStep
         if let hostOverride { runner.host = hostOverride }
         if let scriptAuthorization { runner.authorizeScriptOperation = scriptAuthorization }
         if scriptAuthorization != nil || scriptDraftFilter != nil { runner.filterScriptDrafts = scriptDraftFilter }
-        defer { runner.host = previousHost; runner.authorizeScriptOperation = previousAuthorization; runner.filterScriptDrafts = previousFilter; actionPending = false }
+        if let stepAuthorization { runner.authorizeActionStep = stepAuthorization }
+        defer { runner.host = previousHost; runner.authorizeScriptOperation = previousAuthorization; runner.filterScriptDrafts = previousFilter; runner.authorizeActionStep = previousStepAuthorization; actionPending = false }
         return await executeAction(action)
     }
     private func executeAction(_ action: DraftAction) async -> ActionOutcome? {
