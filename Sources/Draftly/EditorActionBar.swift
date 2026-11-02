@@ -5,12 +5,14 @@ import AppKit
 struct ActionBarLabel: Equatable {
     let text: String
     let usesIcon: Bool
+    let showsText: Bool
     let accessibilityLabel: String
 
     init(_ action: DraftAction) {
         let label = action.presentation.barLabel ?? ""
         text = label.isEmpty ? action.name : label
         usesIcon = action.presentation.barUsesIcon ?? true
+        showsText = !usesIcon || !label.isEmpty
         accessibilityLabel = action.name
     }
 }
@@ -19,20 +21,15 @@ struct EditorActionBar: View {
     @ObservedObject var model: WindowModel
     @ObservedObject var session: EditorSession
     @ObservedObject var library: LibraryStore
-    private var groups: [String] { ["Editing"] + library.groupNames(on: .bar).filter { $0 != "Editing" } }
+    private var groups: [String] { library.groupNames(on: .bar) }
     var body: some View {
         ScrollView(.horizontal) {
-            HStack(spacing: 20) {
-                PanelMenu(symbol: model.actionBarGroup == "Editing" ? "character.cursor.ibeam" : "arrow.up.right.square", help: "Select Action Group", items:
+            HStack(spacing: 4) {
+                PanelMenu(symbol: ActionCatalogPresentation.groupSymbol(model.actionBarGroup, groups: library.actionGroups), help: "Select Action Group", items:
                     groups.map { group in PanelMenuItem(title: group, isOn: model.actionBarGroup == group) { model.actionBarGroup = group } }
                     + [.separator, PanelMenuItem(title: "Import Action Group…") { model.showActionImporter = true }],
                     symbolSize: 21
-                ).frame(width: 28, height: 28)
-                if model.actionBarGroup == "Editing" {
-                    ForEach(EditorBarCommand.allCases, id: \.self) { command in
-                        barButton(command.title, command.symbol) { command.perform(model: model, session: session) }
-                    }
-                }
+                ).frame(width: 28, height: 28).padding(.trailing, 8)
                 ForEach(ActionCatalogPresentation.entries(library.orderedActions(on: .bar), on: .bar, group: model.actionBarGroup)) { entry in
                     if entry.kind == .separator {
                         Divider().frame(height: 18).help(entry.source.name)
@@ -43,27 +40,20 @@ struct EditorActionBar: View {
                 }
             }.padding(.horizontal, 12).frame(height: MainWindowStyle.editingBarHeight)
         }.scrollIndicators(.visible).frame(height: MainWindowStyle.editingBarHeight)
-            .onChange(of: library.actions) { _, _ in
-                if !groups.contains(model.actionBarGroup) { model.actionBarGroup = "Editing" }
+            .onChange(of: library.actions, initial: true) { _, _ in
+                if !groups.contains(model.actionBarGroup) { model.actionBarGroup = groups.first ?? "" }
             }
             .onChange(of: library.actionGroups) { _, _ in
-                if !groups.contains(model.actionBarGroup) { model.actionBarGroup = "Editing" }
+                if !groups.contains(model.actionBarGroup) { model.actionBarGroup = groups.first ?? "" }
             }
     }
     private func configuredActionButton(_ action: DraftAction) -> some View {
         let label = ActionBarLabel(action)
-        return Button { model.run(action) } label: {
-            Group {
-                if label.usesIcon {
-                    Image(systemName: action.symbol).font(.system(size: 17, weight: .regular)).frame(width: 22)
-                } else {
-                    Text(label.text).font(.system(size: 13)).lineLimit(1).fixedSize()
-                }
-            }.foregroundStyle(ActionTint.color(action.presentation.tintColor) ?? barColor(action.name))
-        }.buttonStyle(.plain).help(action.name).accessibilityLabel(label.accessibilityLabel)
-    }
-    private func barButton(_ name: String, _ symbol: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) { Image(systemName: symbol).font(.system(size: 17, weight: .regular)).foregroundStyle(barColor(name)).frame(width: 22) }.buttonStyle(.plain).help(name).accessibilityLabel(name)
+        return NativeActionBarButton(name: label.accessibilityLabel,
+            symbol: label.usesIcon ? action.symbol : nil,
+            text: label.showsText ? label.text : "",
+            color: ActionTint.color(action.presentation.tintColor) ?? barColor(action.name)
+        ) { model.run(action) }.frame(height: 24)
     }
     private func barColor(_ name: String) -> Color {
         if ["Move Left", "Move Right"].contains(name) { return .yellow }
@@ -79,6 +69,48 @@ struct EditorActionBar: View {
 
 }
 
+private struct NativeActionBarButton: NSViewRepresentable {
+    let name: String
+    let symbol: String?
+    let text: String
+    let color: Color
+    let action: () -> Void
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeCoordinator() -> Coordinator { Coordinator(action: action) }
+    func makeNSView(context: Context) -> NSButton {
+        let button = NSButton(title: "", target: context.coordinator, action: #selector(Coordinator.activate(_:)))
+        button.setButtonType(.momentaryPushIn)
+        button.bezelStyle = .accessoryBar
+        button.showsBorderOnlyWhileMouseInside = true
+        button.imageScaling = .scaleProportionallyDown
+        return button
+    }
+    func updateNSView(_ button: NSButton, context: Context) {
+        context.coordinator.action = action
+        button.isEnabled = isEnabled
+        button.toolTip = name
+        button.setAccessibilityLabel(name)
+        button.image = symbol.flatMap { NSImage(systemSymbolName: $0, accessibilityDescription: nil)?
+            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 17, weight: .regular)
+                .applying(NSImage.SymbolConfiguration(paletteColors: [NSColor(color)]))) }
+        button.image?.isTemplate = false
+        button.imagePosition = symbol == nil ? .noImage : text.isEmpty ? .imageOnly : .imageLeading
+        button.contentTintColor = NSColor(color)
+        button.attributedTitle = NSAttributedString(string: text, attributes: [
+            .font: NSFont.systemFont(ofSize: 13), .foregroundColor: NSColor.secondaryLabelColor
+        ])
+    }
+    func sizeThatFits(_ proposal: ProposedViewSize, nsView: NSButton, context: Context) -> CGSize? {
+        CGSize(width: max(38, nsView.intrinsicContentSize.width), height: 24)
+    }
+    final class Coordinator: NSObject {
+        var action: () -> Void
+        init(action: @escaping () -> Void) { self.action = action }
+        @objc func activate(_ sender: NSButton) { action() }
+    }
+}
+
 // Keep unknown imported names in storage. Use the existing surface default.
 enum ActionTint {
     static let names = ["none", "gray", "red", "orange", "yellow", "green", "blue", "purple", "pink"]
@@ -92,6 +124,7 @@ enum ActionTint {
         case "green": return .green
         case "blue": return .blue
         case "purple": return .purple
+        case "indigo": return .indigo
         case "pink": return .pink
         default: return nil
         }

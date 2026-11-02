@@ -110,6 +110,46 @@ final 47-test focused run. No visible windows, native permissions or personal da
 This branch remains separate from PR76 until its main integration is validated.
 Normal app startup, native activation, remaining write operations and full agent
 acceptance remain pending. No installed application or release changed.
+## Native Settings toolbar candidate — 1 November
+
+Settings now embeds an NSTabViewController with the preference toolbar style.
+Each tab uses an NSImage system symbol. No symbol is rasterized or stretched.
+AppKit owns the toolbar items and selection. Child pages remain SwiftUI views.
+The controller disables crossfade transitions and retains the selected-tab
+preference. The toolbar background remains explicitly visible.
+
+Local Debug build and strict QA signature verification passed. Isolated QA
+opened Settings, switched between General and Bookmarks, restored the selected
+tab after restart, and opened Editor through the General page button. A ten-second
+press returned to an intact native symbol. This checks the state after release;
+it does not establish the appearance throughout the press or first hover.
+Exact interaction parity remains unverified. The installed app is unchanged.
+The candidate remains in the Settings worktree and separate QA app.
+
+### Earlier toolbar experiment
+
+A separate visual fix gives Settings an explicit window-background color and
+keeps the native toolbar background visible. Tab buttons remain native. This
+removes dependence on automatic background visibility across tab content changes.
+Tab changes also disable their SwiftUI transaction animation. This prevents the
+toolbar from returning to the centered capsule presentation during a tab change.
+Only SettingsView changed.
+
+Local app build and strict package signature verification passed. Manual isolated
+QA compared Drafts and Draftly Settings in the same session. Draftly first showed
+one centered capsule around all tab items. The combined change removed the capsule
+and retained a continuous toolbar background with one native selection frame, as
+in Drafts. The result remained stable when QA changed from Markdown to General.
+This accepts top-toolbar presentation only. It does not establish full Settings
+layout parity or diagnose macOS compositing. No preference control or personal
+note changed. The installed app was not replaced. QA used a separate preference
+domain and library.
+
+The first hover lifted a symbol. A tab click also moved the other symbols.
+The template-image experiment changed symbol shapes and was rejected. Source
+now uses native SF Symbols again. The QA app has been rebuilt and refreshed.
+Earlier static acceptance does not establish interaction parity.
+
 
 ## Native test interruption diagnostics — 1 November
 

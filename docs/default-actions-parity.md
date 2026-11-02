@@ -1,5 +1,96 @@
 # Default action parity
 
+## Visual review — 1 November 2026
+
+The user identified hover and click behavior in the five group buttons as a
+separate mismatch. The bar now uses five AppKit momentary buttons with accessory-bar
+bezels shown on pointer entry. The existing symbol views are passive children;
+they do not intercept pointer events. Button tracking and activation belong to
+each native control. Pressed opacity applies only to that control's symbol.
+The first inline-bezel attempt showed unwanted badge backgrounds. The user's
+screenshots rejected it. Group buttons now have wider hit areas with the same
+symbol positions. The editor action bar also uses native accessory-bar buttons.
+Its SF Symbols use explicit palettes so the native cell preserves action colors.
+
+The Debug build and strict QA signature check passed. Native QA clicks opened
+Basic, Editing, Markdown, Tools, and Processing independently. A ten-second
+Tools click also selected Tools. The returned state confirms activation after
+the tool call; it does not prove a continuous held-state capture. Exact hover
+and held-state visual parity still needs direct observation.
+
+Catalog revision 4 replaces the Stats character-count message with the four
+observed steps: reject empty text, calculate nine statistics, set theme colors,
+and show an HTML table. Notifications and logs use errors only. An unchanged
+legacy Stats action receives the correction on local library open.
+
+The reference action applies English syllable rules and repeated text
+normalization. These rules can produce counts that differ from the editor.
+The implementation preserves these results instead of substituting another
+readability algorithm. With `The cat sat on the mat. This is a simple test.`,
+Drafts and the QA app both displayed these values, in table order:
+12, 3, 3, 119.8, -2.9, 1, 1.8, -6.6, and 0.8.
+Eighteen catalog tests passed, including the observed values, empty text,
+unchanged content and modification date, and migration of intact defaults.
+The Debug build and strict QA signature check passed.
+
+Stats presentation is not fully accepted. Drafts opens a separate Preview
+window with controls above the table. Draftly uses its existing inline preview
+with controls below it. The reference loads Vollkorn from Google Fonts; the
+local preview uses the available font fallback. Those visual differences remain.
+
+Read-only inspection of Drafts Save Version confirmed `draft.saveVersion();`
+and the bar label Version. Catalog revision 3 uses that script and label.
+The local migration also replaces an exact unchanged legacy Save Version.
+Edited and deleted actions remain unchanged.
+
+Validation passed: 25 core catalog and version contract tests, local Debug
+build, and strict QA signature verification. In the isolated QA app, two runs
+added two distinct revisions of the same neutral draft. History grew from
+three entries to five. Both new entries retained the same 20-character text.
+The test also checks that content, modification date, tags, and archive state
+remain unchanged. Normal action execution stores the editor selection metadata.
+
+The bar now supports an icon and a nonempty label together. Default dictation
+and paste actions use Insert, New, and Paste. An explicit empty label remains
+empty. The full action name remains the accessibility label. Thirteen focused
+presentation tests passed. QA displayed Insert and New beside native symbols.
+
+Read-only inspection of Drafts Inbox confirmed one script step:
+`draft.isArchived = false; draft.update();`. Catalog revision 2 uses this script.
+On local library open, an exact revision 1 Inbox separator becomes this action.
+The comparison includes all stored fields. Changed or deleted entries remain
+unchanged. Cloud libraries and restored copies with new IDs are not migrated.
+
+Revision 2 validation passed: 15 catalog tests and 13 presentation tests, local
+Debug build, and strict QA signature verification. On restart, the isolated
+QA library changed the original separator to an Inbox button. A neutral draft
+was archived, then returned through that button. Archive became empty and
+Inbox showed the same draft and text. No personal draft was used.
+
+The action list and editor bar now share default appearance rules. Rules match
+the catalog ID, name, and group. They replace an unchanged default symbol and
+an unset tint. Custom symbols, explicit tints, and unrelated action IDs remain
+unchanged. The rules do not write to the library or change action steps.
+Restored copies with new IDs do not receive these display rules.
+
+The editor bar no longer prepends a second set of fixed editing commands.
+Editing has 25 catalog actions. Default section dividers appear only in the
+list. Imported dividers retain their visibility rules. The list uses rounded
+section backgrounds. The five default groups have distinct native symbols or
+native symbol-and-text compositions. Group colors no longer depend on selection.
+
+Computer Use compared Basic, Editing, Markdown, Tools, and Processing with
+Drafts. The QA app showed the corrected Basic colors, distinct group icons,
+and one copy of each Editing action. Some custom Drafts symbols and service
+logos remain native approximations. This is not pixel-exact or functional
+parity acceptance. The catalog still has functional differences that require
+action-by-action review.
+
+The local Debug build and strict QA signature check passed. The focused catalog,
+presentation, and editing tests passed: 35 tests in three suites. In isolated QA,
+Undo from the editor bar removed neutral test text. Redo from the action list
+restored it. The neutral draft remains in the separate QA library.
+
 ## Reference
 
 This review used Drafts 54.1.2 (947) on 1 November 2026. Computer Use read the
@@ -21,7 +112,7 @@ current engine. `blocked` means that safe parity needs a new service, account
 flow, paid service, or non-public contract. This revision has no remaining
 `implementable` entries.
 
-The catalog revision is 1. It contains 110 entries, including separators. All
+The catalog revision is 4. It contains 110 entries, including separators. All
 installed steps use supported Draftly step types. Separators keep their observed
 names and positions relative to installed actions.
 
@@ -102,9 +193,11 @@ names and positions relative to installed actions.
 
 | Observed entry | Status | Draftly behavior or reason |
 | --- | --- | --- |
-| Inbox, Tags & Flags, Templates | supported | Separators. |
-| Archive, Save Version, Trash | supported | Uses the current draft update contract. |
-| Stats | supported | Displays a local character count. |
+| Inbox | supported | Sets `draft.isArchived` to false and saves the draft. |
+| Tags & Flags, Templates | supported | Separators. |
+| Archive, Trash | supported | Uses the current draft update contract. |
+| Save Version | supported | Calls `draft.saveVersion()` to create an explicit snapshot, even when text is unchanged. |
+| Stats | supported | Shows nine reference readability statistics in an HTML table. Rejects an empty draft. Preview window and font parity remain pending. |
 | Update Tags..., Rename Tag... | supported | Shows a review prompt, then updates the draft or renames the tag across the library. |
 | Flag, Unflag | supported | Updates the current draft flag. |
 | Workspaces | supported | Separator. |
@@ -114,7 +207,7 @@ names and positions relative to installed actions.
 
 ## Persistence and restoration
 
-A new persistent store receives revision 1 once. Draftly does not use an empty
+A new persistent store receives the current catalog once. Draftly does not use an empty
 action list as a signal to seed data. If a person deletes every default action,
 the next launch keeps the library empty.
 
@@ -141,3 +234,24 @@ New windows select the first list-visible group when General is absent. The
 panel also checks its selection when it first appears and when catalog data
 changes. Existing visible selections and All Actions remain selected. This
 prevents the Basic catalog from opening as an empty General list.
+
+### Action list selection check — 1 November 2026
+
+In Drafts 54.1.2, a single click selected the Stats row without opening its
+preview. Return opened the preview. After Cancel, a double click on Stats also
+opened the preview. The selected row kept its blue background after Cancel.
+A direct coordinate click on that selected row did not run it again.
+The check used the neutral QA draft and did not change its text.
+
+Draftly now uses `NSTableView`. In native QA, a single click selected Stats
+without running it. Return and double click each opened its preview. Cancel
+kept the selected row. Up selected Trash without executing it, and Down returned
+to Stats. Right click showed Edit, Duplicate, and Delete. The selected row used
+the native blue background and kept its icon color. The action bar remains a
+separate surface: its buttons execute on one click.
+
+Two focused tests check selection without execution, Return, separators, invalid
+rows, disabled execution, selection identity after reordering, menu target
+identity, and clearing selection after a group change. The local app build and
+strict bundle signature check passed. Search section headings, accessibility
+secondary actions, and the preview window difference remain open.

@@ -2,6 +2,91 @@ import SwiftUI
 import AppKit
 import DraftlyCore
 
+private struct NativeSettingsTabs: NSViewControllerRepresentable {
+    struct Page {
+        let id: String
+        let title: String
+        let symbol: String
+        let content: AnyView
+
+        init<Content: View>(_ id: String, _ title: String, _ symbol: String, _ content: Content) {
+            self.id = id
+            self.title = title
+            self.symbol = symbol
+            self.content = AnyView(content)
+        }
+    }
+
+    @Binding var selection: String
+    let pages: [Page]
+
+    func makeNSViewController(context: Context) -> Controller {
+        let controller = Controller()
+        controller.tabStyle = .toolbar
+        controller.transitionOptions = []
+        return controller
+    }
+
+    func updateNSViewController(_ controller: Controller, context: Context) {
+        controller.isUpdating = true
+        defer { controller.isUpdating = false }
+        controller.onSelect = { selection = $0 }
+        let ids = controller.tabViewItems.compactMap { $0.identifier as? String }
+        if ids != pages.map(\.id) {
+            for item in controller.tabViewItems {
+                controller.removeTabViewItem(item)
+            }
+            for page in pages {
+                let host = NSHostingController(rootView: page.content)
+                host.sizingOptions = []
+                host.preferredContentSize = NSSize(width: 770, height: page.id == "bookmarks" ? 350 : 620)
+                host.title = page.title
+                let item = NSTabViewItem(viewController: host)
+                item.identifier = page.id
+                item.label = page.title
+                item.image = NSImage(systemSymbolName: page.symbol, accessibilityDescription: page.title)
+                controller.addTabViewItem(item)
+            }
+        } else {
+            for (item, page) in zip(controller.tabViewItems, pages) {
+                (item.viewController as? NSHostingController<AnyView>)?.rootView = page.content
+            }
+        }
+        if let index = pages.firstIndex(where: { $0.id == selection }),
+           controller.selectedTabViewItemIndex != index {
+            controller.selectedTabViewItemIndex = index
+        }
+        controller.configureWindow()
+    }
+
+    final class Controller: NSTabViewController {
+        var isUpdating = false
+        var onSelect: ((String) -> Void)?
+
+        override func viewDidAppear() {
+            super.viewDidAppear()
+            configureWindow()
+        }
+
+        func configureWindow() {
+            guard let window = view.window else { return }
+            window.toolbarStyle = .preference
+            window.titlebarAppearsTransparent = false
+            window.titlebarSeparatorStyle = .line
+            window.toolbar?.displayMode = .iconAndLabel
+            window.toolbar?.allowsUserCustomization = false
+            window.title = tabView.selectedTabViewItem?.label ?? "Settings"
+        }
+
+        override func tabView(_ tabView: NSTabView, didSelect tabViewItem: NSTabViewItem?) {
+            super.tabView(tabView, didSelect: tabViewItem)
+            configureWindow()
+            guard !isUpdating, let id = tabViewItem?.identifier as? String else { return }
+            onSelect?(id)
+        }
+    }
+}
+
 struct SettingsView: View {
     @ObservedObject var controller: AppController
     @StateObject private var loginItem = LoginItemPreferences()
@@ -14,36 +99,35 @@ struct SettingsView: View {
     @AppStorage(ActionMoveNavigation.preferenceKey) private var actionMoveNavigation = ActionMoveNavigation.createNew.rawValue
     @AppStorage("capture.newDraftAfter") private var newDraftAfter = CaptureDefaults.newDraftAfter
     var body: some View {
-        TabView(selection: $selectedTab) {
-            generalSettings
-                .tabItem { Label("General", systemImage: "gearshape") }.tag("general")
-            dataSettings
-                .tabItem { Label("iCloud", systemImage: "icloud") }.tag("icloud")
-            BookmarkSettingsView()
-                .tabItem { Label("Bookmarks", systemImage: "bookmark") }.tag("bookmarks")
-            MarkdownSettingsView()
-                .tabItem { Label("Markdown", systemImage: "star.circle.fill") }.tag("markdown")
-            HTMLSettingsView()
-                .tabItem { Label("HTML", systemImage: "chevron.left.forwardslash.chevron.right") }.tag("html")
-            editorSettings
-                .tabItem { Label("Editor", systemImage: "textformat") }.tag("editor")
-            maintenanceSettings
-                .tabItem { Label("Maintenance", systemImage: "wrench.and.screwdriver") }.tag("maintenance")
-            if let agents = controller.agentSettings {
-                AgentConnectionsSettingsView(model: agents)
-                    .tabItem { Label("Agents", systemImage: "key") }.tag("agents")
-            }
-            Form { ShortcutPreferences(app: controller) }
-                .formStyle(.grouped)
-                .tabItem { Label("Shortcuts", systemImage: "keyboard") }.tag("shortcuts")
-        }
+        NativeSettingsTabs(selection: $selectedTab, pages: pages)
         .frame(width: 770, height: selectedTab == "bookmarks" ? 350 : 620)
+        .navigationTitle(pages.first(where: { $0.id == selectedTab })?.title ?? "Settings")
+        .toolbarBackground(Color(nsColor: .windowBackgroundColor), for: .windowToolbar)
+        .toolbarBackgroundVisibility(.visible, for: .windowToolbar)
         .onChange(of: appearance) { _, value in
             NSApp.appearance = ApplicationAppearance.resolved(value).nativeAppearance
         }
         .onChange(of: showInMenuBar) { _, value in
             AppDelegate.current?.setStatusItemVisible(value)
         }
+    }
+
+    private var pages: [NativeSettingsTabs.Page] {
+        var pages: [NativeSettingsTabs.Page] = [
+            .init("general", "General", "gearshape", generalSettings),
+            .init("icloud", "iCloud", "icloud", dataSettings),
+            .init("bookmarks", "Bookmarks", "bookmark", BookmarkSettingsView()),
+            .init("markdown", "Markdown", "star.circle.fill", MarkdownSettingsView()),
+            .init("html", "HTML", "chevron.left.forwardslash.chevron.right", HTMLSettingsView()),
+            .init("editor", "Editor", "textformat", editorSettings),
+            .init("maintenance", "Maintenance", "wrench.and.screwdriver", maintenanceSettings)
+        ]
+        if let agents = controller.agentSettings {
+            pages.append(.init("agents", "Agents", "key", AgentConnectionsSettingsView(model: agents)))
+        }
+        pages.append(.init("shortcuts", "Shortcuts", "keyboard",
+                           Form { ShortcutPreferences(app: controller) }.formStyle(.grouped)))
+        return pages
     }
 
     @ViewBuilder private var editorSettings: some View {

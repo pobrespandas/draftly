@@ -49,7 +49,7 @@ struct ActionListPanel: View {
                     .frame(height: 28).padding(.horizontal, 10).padding(.bottom, 8)
             }
             HStack(spacing: 9) {
-                Image(systemName: ActionCatalogPresentation.groupSymbol(model.actionGroup, groups: library.actionGroups, searching: !model.actionQuery.isEmpty)).font(.system(size: 18, weight: model.actionQuery.isEmpty ? .regular : .semibold)).foregroundStyle(.blue)
+                ActionGroupIcon(symbol: ActionCatalogPresentation.groupSymbol(model.actionGroup, groups: library.actionGroups, searching: !model.actionQuery.isEmpty)).foregroundStyle(ActionTint.color(ActionCatalogPresentation.groupColor(model.actionGroup, groups: library.actionGroups)) ?? .secondary)
                 Text(model.actionQuery.isEmpty ? model.actionGroup : "Search").font(.system(size: 22, weight: .regular)).foregroundStyle(.secondary)
                 Spacer()
             }.padding(.horizontal, 13).frame(height: 38)
@@ -57,58 +57,61 @@ struct ActionListPanel: View {
             if entries.isEmpty {
                 PanelEmptyState(message: "No actions found")
             } else {
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(entries) { entry in
-                            let action = entry.source
-                            if let heading = entry.sectionHeading {
-                                Text(heading).font(.caption.weight(.semibold)).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 20).padding(.vertical, 6)
-                            }
-                            Group {
-                                if entry.kind == .separator {
-                                    HStack {
-                                        if !action.name.isEmpty { Text(action.name).font(.caption.weight(.semibold)).foregroundStyle(.secondary) }
-                                        Rectangle().fill(Color(nsColor: .separatorColor)).frame(height: 1)
-                                    }.padding(.horizontal, 20).padding(.vertical, 8).contentShape(Rectangle())
-                                } else {
-                                    Button { model.run(action) } label: {
-                                        HStack(spacing: 8) {
-                                            Image(systemName: action.unsupportedSteps.isEmpty ? action.symbol : "exclamationmark.triangle")
-                                                .font(.system(size: 18, weight: .regular)).frame(width: 21).foregroundStyle(actionColor(action))
-                                            Text(action.name).font(.system(size: MainWindowStyle.actionTitleSize)).lineLimit(1)
-                                            Spacer(minLength: 0)
-                                            if showKeyboardShortcuts, let label = ActionShortcut(action).displayLabel {
-                                                Text(label).font(.caption).foregroundStyle(.secondary).fixedSize()
-                                            }
-                                        }.padding(.horizontal, 20).frame(height: 28).contentShape(Rectangle())
-                                    }.buttonStyle(ActionRowButtonStyle()).disabled(!model.canRunActions)
-                                }
-                            }.contextMenu {
-                                Button("Edit…") { model.editingAction = action }
-                                Button("Duplicate") { var copy = action; copy.id = UUID(); copy.name += " Copy"; model.editingAction = copy }
-                                Divider()
-                                Button("Delete", role: .destructive) { model.perform { try library.deleteAction(action.id) } }
-                            }
-                        }
-                    }.padding(.top, 10)
-                }
+                NativeActionTable(entries: entries,
+                    selectionScope: model.actionGroup + "\n" + model.actionQuery,
+                    canRun: model.canRunActions,
+                    run: { model.run($0) },
+                    edit: { model.editingAction = $0 },
+                    duplicate: { action in
+                        var copy = action; copy.id = UUID(); copy.name += " Copy"
+                        model.editingAction = copy
+                    },
+                    delete: { action in model.perform { try library.deleteAction(action.id) } },
+                    content: { entry, emphasized in AnyView(actionRow(entry, emphasized: emphasized)) })
             }
             if showGroupBar {
                 Divider()
                 ScrollView(.horizontal) {
-                    HStack(spacing: 20) {
+                    HStack(spacing: 10) {
                         ForEach(Array(groups.enumerated()), id: \.element) { index, group in
-                            Button { model.actionGroup = group } label: {
-                                Image(systemName: ActionCatalogPresentation.groupSymbol(group, groups: library.actionGroups))
-                                    .font(.system(size: 18)).foregroundStyle(model.actionGroup == group ? Color.blue : .secondary)
-                            }.buttonStyle(.plain).help(group).accessibilityLabel(group)
+                            ActionGroupButton(title: group,
+                                symbol: ActionCatalogPresentation.groupSymbol(group, groups: library.actionGroups),
+                                color: ActionTint.color(ActionCatalogPresentation.groupColor(group, groups: library.actionGroups)) ?? .secondary
+                            ) { model.actionGroup = group }.frame(width: 32, height: 26)
                         }
-                    }.padding(.horizontal, 16).frame(height: 60)
+                    }.padding(.horizontal, 11).frame(height: 60)
                 }.scrollIndicators(.hidden)
             }
         }.background(Color(nsColor: .textBackgroundColor))
         .onChange(of: library.actions, initial: true) { _, _ in model.reconcileActionGroup() }
         .onChange(of: library.actionGroups) { _, _ in model.reconcileActionGroup() }
+    }
+    private func actionRow(_ entry: ActionCatalogPresentation.Entry, emphasized: Bool) -> some View {
+        let action = entry.source
+        return VStack(spacing: 0) {
+            if let heading = entry.sectionHeading {
+                Text(heading).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 10).frame(height: 28)
+            }
+            if entry.kind == .separator {
+                Text(action.name).font(.caption.weight(.semibold))
+                    .foregroundStyle(emphasized ? Color.white : .secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 8).frame(height: 22)
+                    .background(Color.primary.opacity(0.055), in: RoundedRectangle(cornerRadius: 6))
+            } else {
+                HStack(spacing: 8) {
+                    Image(systemName: action.unsupportedSteps.isEmpty ? action.symbol : "exclamationmark.triangle")
+                        .font(.system(size: 18, weight: .regular)).frame(width: 21).foregroundStyle(actionColor(action))
+                    Text(action.name).font(.system(size: MainWindowStyle.actionTitleSize))
+                        .foregroundStyle(emphasized ? Color.white : .primary).lineLimit(1)
+                    Spacer(minLength: 0)
+                    if showKeyboardShortcuts, let label = ActionShortcut(action).displayLabel {
+                        Text(label).font(.caption).foregroundStyle(emphasized ? Color.white : .secondary).fixedSize()
+                    }
+                }.padding(.horizontal, 4).frame(height: 28)
+            }
+        }
     }
     private func toggleSearch() {
         model.showActionSearch.toggle()
@@ -129,21 +132,20 @@ struct ActionListPanel: View {
     }
 }
 
-private struct ActionRowButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View { Interaction(configuration: configuration) }
-    private struct Interaction: View {
-        let configuration: ButtonStyle.Configuration
-        @Environment(\.isEnabled) private var isEnabled
-        @State private var isHovered = false
-        var body: some View {
-            configuration.label
-                .background {
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(Color.primary.opacity(isEnabled ? (configuration.isPressed ? 0.12 : isHovered ? 0.055 : 0) : 0))
-                        .padding(.horizontal, 12)
+struct ActionGroupIcon: View {
+    let symbol: String
+    var body: some View {
+        Group {
+            if symbol == "text.badge.star" {
+                VStack(spacing: -3) {
+                    Image(systemName: "star").font(.system(size: 10))
+                    Text("md").font(.system(size: 11, weight: .bold))
                 }
-                .opacity(isEnabled ? 1 : 0.45)
-                .onHover { isHovered = $0 }
-        }
+            } else if symbol == "curlybraces" {
+                Image(systemName: symbol).overlay { Image(systemName: "ellipsis").font(.system(size: 7)) }
+            } else {
+                Image(systemName: symbol)
+            }
+        }.font(.system(size: 18)).frame(width: 22, height: 22)
     }
 }

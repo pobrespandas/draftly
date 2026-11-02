@@ -64,7 +64,7 @@ jobs:
     needs: preflight
     if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.operation == 'release' && needs.preflight.outputs.package == 'true' }}
     runs-on: macos-26
-    timeout-minutes: 60
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
         with:
