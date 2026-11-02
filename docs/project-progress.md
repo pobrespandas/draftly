@@ -3,6 +3,66 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Catalog release CI interruption — 2 November
+
+PR #86 run `41380539924` passed tooling and the matrix check. Native execution
+returned CLI status zero with an incomplete app XML. The strict inventory
+verifier rejected it. Artifact `13113232443` retains the failed reports.
+The last logged test was
+`URLActionInstallationTests.draftlyGroupLinkInstallsGroupAndOrderedActionsAtomically`.
+The Typewriter suite had completed. This log position does not establish the
+cause. No assertion failure or matching crash report was captured.
+
+The crash collector now also accepts the actual `DraftlyPackageTests` executable
+name. Its bounded file checks and CI-only restriction remain unchanged.
+All 21 runner unit tests pass. This improves diagnostics; it does not prove that
+the interruption is fixed. A targeted hosted Typewriter diagnostic is separate
+from release acceptance. No merge, release tag, or publication has occurred.
+
+Run `41381660136` also stopped with CLI status zero and an incomplete XML.
+Its last log was a parameter case in the Typewriter native editor test.
+The expanded crash collector found no report. The isolated Typewriter run
+`41381508965` passed all three method identities. These results do not establish
+the cause of the complete-suite interruption.
+
+CI now loads a test-process-only exit tracer. It records `exit` and `_exit`
+call stacks and preserves their status. It does not change report validation,
+test selection, deadlines, or retries. The dylib is a CI diagnostic and is not
+bundled in the app. Local smoke checks preserved exit statuses 73 and 74 and
+captured their stacks. All 22 runner unit tests passed.
+
+Run `41382985447` stopped before the first target test. The trace dylib had only
+an arm64 slice. The hosted SDK lookup process required arm64e and rejected it.
+The tracer now includes both slices. Local SDK lookup and exit-status smoke
+checks passed with that universal dylib. This diagnostic failure is separate
+from the earlier incomplete test reports.
+
+Isolated native QA accepted Maintenance replacement and cancellation. The dialog
+explained replacement, restoration, and preservation of other actions. Replace
+reported 110 installed actions in the five canonical groups. Basic showed the
+reviewed blue, green, gray, orange, and red symbols; the editor bar also showed
+its colors. The Agents tab was absent. The QA app used a separate identity and
+library with CloudKit disabled, then quit. The usual app remained unchanged.
+This is local visual acceptance, not live CloudKit or final package acceptance.
+
+## Default catalog replacement — 1 November
+
+Settings > Maintenance now replaces the canonical default actions by ID.
+It restores deleted defaults and overwrites edited defaults. Other action IDs
+remain unchanged. Default symbols, bar labels, and colors are stored in the
+catalog data. The list and bar share these appearance rules. Repeated
+replacement does not add duplicate groups. A failed write rolls back all changes.
+
+Automatic catalog updates that preserve edits and deletions are deferred to
+2.0.0. Existing libraries remain unchanged at launch. Independent copies from
+previous installations remain independent. See [catalog behavior](default-actions-parity.md).
+
+Focused catalog, presentation, and window selection tests passed (36 methods).
+The full Swift runner verified 2,226 method identities against fresh reports.
+The API matrix audit and local signed app build passed. Visible Settings and
+live CloudKit acceptance have not run.
+The usual app and its library remain unchanged.
+
 ## Public 0.1.5 — 1 November
 
 [0.1.5/build 6](https://github.com/pobrespandas/draftly/releases/tag/v0.1.5)
