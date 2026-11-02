@@ -22,7 +22,7 @@ struct AgentScriptAuthorityTests {
         #expect(throws: AgentErrorCode.notFound) {
             try authority.authorize("findDraft", payload: "{\"uuid\":\"\(other.uuidString)\"}")
         }
-        #expect(throws: AgentErrorCode.permissionDenied) { try authority.authorize("queryDrafts", payload: "{}") }
+        try authority.authorize("queryDrafts", payload: "{}")
         #expect(throws: AgentErrorCode.unavailable) { try authority.authorize("renameTag", payload: "{}") }
         current = grant([.actionsRun, .draftsRead], .library)
         try authority.authorize("queryDrafts", payload: "{}")

@@ -39,8 +39,9 @@ The Action runner also accepts an optional per-request script check before
 dispatch, including asynchronous requests. Tests deny a draft update in both
 visible and headless automation and in the synchronous script path. The check
 is not itself an authorization policy. A separate draft policy checks current
-grants, scope, and lock state for draft lookup and update. It permits unfiltered
-queries only with full-library access and rejects unclassified operations.
+grants, scope, and lock state for draft lookup and update. Guarded draft queries
+filter their input before evaluation and fail closed if no filter is installed.
+The policy rejects unclassified operations.
 This incomplete policy is not connected to an agent executor. It does not yet
 cover initial context, native Action steps, nested execution, final disposition,
 or the full runtime contract.

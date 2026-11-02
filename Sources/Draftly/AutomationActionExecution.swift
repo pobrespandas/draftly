@@ -83,6 +83,7 @@ import DraftlyCore
                     hostOverride: (any ActionHost)? = nil,
                     editorScope: EditorScope = .library,
                     scriptAuthorization: ((String, String) throws -> Void)? = nil,
+                    scriptDraftFilter: (([Note]) throws -> [Note])? = nil,
                     resolveModel: ModelResolver = { AutomationActionExecution.visibleModel($0, noteID: $1) },
                     registerClose: CloseRegistration = { AutomationActionExecution.registerOwnerClose($0, close: $1) }) async throws -> Output {
         guard !Task.isCancelled else {
@@ -138,6 +139,7 @@ import DraftlyCore
             editor = EditorSession(); editor.load(note)
             runner = ActionRunner(library: library, editor: editor, host: hostOverride ?? host)
             runner.authorizeScriptOperation = scriptAuthorization
+            runner.filterScriptDrafts = scriptDraftFilter
         }
         var subscriptions: [AnyCancellable] = []
         var previous = Dictionary(uniqueKeysWithValues: library.notes.map { ($0.id, $0.content) })
@@ -167,7 +169,8 @@ import DraftlyCore
         if let model {
             let operation = Task { @MainActor in
                 guard !lifetime.closed, !Task.isCancelled else { return Optional<WindowModel.ActionOutcome>.none }
-                return await model.runActionOutcome(action, hostOverride: hostOverride, scriptAuthorization: scriptAuthorization)
+                return await model.runActionOutcome(action, hostOverride: hostOverride, scriptAuthorization: scriptAuthorization,
+                                                    scriptDraftFilter: scriptDraftFilter)
             }
             lifetime.attach(operation)
             let completed = await withTaskCancellationHandler { await operation.value } onCancel: { operation.cancel() }

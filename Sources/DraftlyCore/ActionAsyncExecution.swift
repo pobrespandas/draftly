@@ -159,7 +159,8 @@ import Foundation
                 }
                 return response
             }
-            if host?.supportsAsync(request.operation) == true {
+            if !(request.operation == "queryDrafts" && authorizeScriptOperation != nil),
+               host?.supportsAsync(request.operation) == true {
                 let response = try await platformAsync(request.operation, payload: request.payload)
                 guard activeSession?.id == request.executionID, bridgeStepID == request.stepID else {
                     throw DraftlyError.message("The action was closed.")

@@ -10,9 +10,10 @@ struct AgentAuthorizedActionHostTests {
         var calls = 0
         var operations: [String] = []
         var failure: AgentErrorCode?
+        var asyncOperations: Set<String>?
         var finished = 0
         var onCall: (() -> Void)?
-        func supportsAsync(_ operation: String) -> Bool { true }
+        func supportsAsync(_ operation: String) -> Bool { asyncOperations?.contains(operation) ?? true }
         func perform(_ operation: String, values: [String: Any]) throws -> Any? {
             calls += 1; operations.append(operation); onCall?()
             if let failure { throw failure }
@@ -123,7 +124,8 @@ struct AgentAuthorizedActionHostTests {
     @Test(arguments: [false, true]) func draftPolicyControlsScriptUpdate(canWrite: Bool) async throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let note = try library.createNote(content: "Original")
-        let host = NativeActionHost(), now = Date()
+        let host = Host(), now = Date()
+        host.asyncOperations = ["device", "queryDrafts"]
         var capabilities: Set<AgentCapability> = [.actionsRun, .draftsRead]
         if canWrite { capabilities.insert(.draftsWrite) }
         let grant = AgentGrant(connectionID: UUID(), libraryID: UUID(), expiresAt: now.addingTimeInterval(60),
@@ -136,5 +138,33 @@ struct AgentAuthorizedActionHostTests {
             scriptAuthorization: { operation, payload in try authority.authorize(operation, payload: payload) })
         #expect(result.report.reason == (canWrite ? .success : .error), "\(result.message)")
         #expect(library.notes.first { $0.id == note.id }?.content == (canWrite ? "Changed" : "Original"))
+    }
+
+    @Test(arguments: [false, true]) func scriptQueryFiltersBeforeEvaluation(installFilter: Bool) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let visible = try library.createNote(content: "Visible")
+        let hidden = try library.createNote(content: "Hidden")
+        let host = Host(), now = Date()
+        host.asyncOperations = ["device", "queryDrafts"]
+        let grant = AgentGrant(connectionID: UUID(), libraryID: UUID(), expiresAt: now.addingTimeInterval(60),
+            capabilities: [.actionsRun, .draftsRead, .draftsWrite],
+            scope: .resources([.init(kind: .draft, id: visible.id)]))
+        let authority = AgentScriptAuthority(grant: grant, currentGrant: { grant }, validateHost: {},
+            isLocked: { false }, now: { now }, draftExists: { id in library.notes.contains { $0.id == id } })
+        let action = DraftAction(name: "Query", steps: [ActionStep("script", ["script":
+            "draft.content=Draft.query('', 'all').map(x=>x.content).join('|'); draft.update();"])])
+        var filterCalls = 0
+        let filter: (([Note]) throws -> [Note])? = installFilter ? { notes in
+            filterCalls += 1; return try authority.visibleDrafts(notes)
+        } : nil
+        let result = try await AutomationActionExecution.run(action, noteID: visible.id, library: library,
+            models: [], host: host, editorScope: .targetDraft,
+            scriptAuthorization: { operation, payload in try authority.authorize(operation, payload: payload) },
+            scriptDraftFilter: filter)
+        #expect(result.report.reason == (installFilter ? .success : .error), "\(result.message)")
+        #expect(filterCalls == (installFilter ? 1 : 0))
+        #expect(!host.operations.contains("queryDrafts"))
+        #expect(library.notes.first { $0.id == visible.id }?.content == "Visible")
+        #expect(library.notes.first { $0.id == hidden.id }?.content == "Hidden")
     }
 }

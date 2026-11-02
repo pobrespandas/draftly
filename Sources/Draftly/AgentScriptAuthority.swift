@@ -1,5 +1,6 @@
 import Foundation
 import AgentContracts
+import DraftlyCore
 
 // This policy covers the listed draft calls only. It does not authorize an Action.
 @MainActor final class AgentScriptAuthority {
@@ -40,7 +41,7 @@ import AgentContracts
             guard let raw = fields["uuid"] as? String, let id = UUID(uuidString: raw) else { throw AgentErrorCode.invalidInput }
             guard grant.scope.permits(.init(kind: .draft, id: id)), draftExists(id) else { throw AgentErrorCode.notFound }
         case "queryDrafts":
-            guard grant.capabilities.contains(.draftsRead), grant.scope == .library else { throw AgentErrorCode.permissionDenied }
+            guard grant.capabilities.contains(.draftsRead) else { throw AgentErrorCode.permissionDenied }
         default:
             throw AgentErrorCode.unavailable
         }
@@ -53,5 +54,21 @@ import AgentContracts
             throw AgentErrorCode.permissionDenied
         }
         guard !isLocked() else { throw AgentErrorCode.permissionDenied }
+    }
+
+    func visibleDrafts(_ drafts: [Note]) throws -> [Note] {
+        try authorize("queryDrafts", payload: "{}")
+        guard let grant = try currentGrant(), grant.connectionID == connectionID,
+              grant.grantID == grantID, grant.libraryID == libraryID, !grant.revoked,
+              grant.expiresAt > now(), grant.capabilities.isSuperset(of: [.actionsRun, .draftsRead]) else {
+            throw AgentErrorCode.permissionDenied
+        }
+        let result = drafts.filter { grant.scope.permits(.init(kind: .draft, id: $0.id)) }
+        try authorize("queryDrafts", payload: "{}")
+        guard let current = try currentGrant(), current.connectionID == connectionID,
+              current.libraryID == libraryID, current.grantID == grant.grantID, !current.revoked,
+              current.scope == grant.scope, current.capabilities == grant.capabilities,
+              current.expiresAt == grant.expiresAt else { throw AgentErrorCode.permissionDenied }
+        return result
     }
 }

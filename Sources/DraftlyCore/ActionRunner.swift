@@ -29,6 +29,8 @@ public final class ActionRunner: ObservableObject {
     // Optional request check for callers that supply their own authority.
     // This does not cover native Action steps or initial and final effects.
     public var authorizeScriptOperation: ((String, String) throws -> Void)?
+    // A guarded query must filter its input before it evaluates the query.
+    public var filterScriptDrafts: (([Note]) throws -> [Note])?
     public var readTheme: (EditorThemeDefinition) throws -> EditorThemeDefinition = { try ThemeFileAccess.read($0) }
     public var selectedDrafts: (() -> [Note])?
     public var applyWorkspace: ((Workspace) throws -> Void)?
