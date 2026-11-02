@@ -56,6 +56,43 @@ struct AgentNativeEffectApprovalTests {
         #expect(store.pendingFromUserInterface().isEmpty)
     }
 
+    @Test(arguments: ["shortcuts://run-shortcut?name=Neutral", "draftly://runAction?name=Neutral", "mailto:test@example.invalid"])
+    func applicationLinksNeedUnrestrictedPermission(url: String) async throws {
+        let connection = UUID(), library = UUID()
+        let grant = AgentGrant(connectionID: connection, libraryID: library, expiresAt: Date().addingTimeInterval(600),
+            capabilities: [.actionsRun, .draftsRead, .nativeUse], scope: .library)
+        let store = AgentApprovalStore(currentGrant: { _ in grant }, isLocked: { false })
+        let request = AgentRequest(requestID: UUID(), libraryID: library, operation: "actions.run",
+            targets: [.init(kind: .action, id: UUID()), .init(kind: .draft, id: UUID())],
+            expectedVersion: "v1", parameters: ["interactive": .bool(true)])
+        await #expect(throws: AgentErrorCode.permissionDenied) {
+            try await AgentNativeEffectApproval.wait(store: store, request: request, connectionID: connection,
+                operation: "openURL", values: ["url": url], currentSnapshot: { [:] })
+        }
+        #expect(store.pendingFromUserInterface().isEmpty)
+    }
+
+    @Test(arguments: ["https://example.invalid/?q=caf%C3%A9", "HTTP://example.invalid/"])
+    func webLinksUseNativePermissionAndConcreteReview(url: String) async throws {
+        let connection = UUID(), library = UUID()
+        let grant = AgentGrant(connectionID: connection, libraryID: library, expiresAt: Date().addingTimeInterval(600),
+            capabilities: [.actionsRun, .draftsRead, .nativeUse], scope: .library)
+        let store = AgentApprovalStore(currentGrant: { _ in grant }, isLocked: { false })
+        let request = AgentRequest(requestID: UUID(), libraryID: library, operation: "actions.run",
+            targets: [.init(kind: .action, id: UUID()), .init(kind: .draft, id: UUID())],
+            expectedVersion: "v1", parameters: ["interactive": .bool(true)])
+        let task = Task { @MainActor in
+            try await AgentNativeEffectApproval.wait(store: store, request: request, connectionID: connection,
+                operation: "openURL", values: ["url": url], currentSnapshot: { [:] })
+        }
+        for _ in 0..<1000 where store.pendingFromUserInterface().isEmpty { await Task.yield() }
+        let review = try #require(store.pendingFromUserInterface().first)
+        #expect(review.effects.capabilities == [.nativeUse])
+        #expect(review.effects.snapshot["nativeParameters"] == .object(["url": .string(url)]))
+        try store.approveFromUserInterface(review.id, reviewedFingerprint: review.fingerprint)
+        try await task.value
+    }
+
     @Test func unrestrictedEffectNeedsItsOwnCapability() async throws {
         let connection = UUID(), library = UUID(), action = UUID(), draft = UUID()
         let grant = AgentGrant(connectionID: connection, libraryID: library, expiresAt: Date().addingTimeInterval(600),

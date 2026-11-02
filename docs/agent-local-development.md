@@ -729,3 +729,10 @@ prove that a destination loaded or completed its own effects.
 Focused tests cover encoded Unicode destinations, rejection, changed authority,
 and waiting for approval before native handoff. Installed URL acceptance remains
 pending. Script URL calls are still outside the permitted script API.
+
+Web links use native permission. Application URL schemes can start automation
+outside Draftly. They also require `scripts.unrestricted` and library scope;
+ordinary native permission cannot authorize them. The current QA Settings do
+not offer unrestricted scripts, so these requests remain denied. Relative
+URLs are invalid. JavaScript, data and local file URLs are denied before review.
+Tests verify that application links cannot use the web-link permission path.

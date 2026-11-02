@@ -8,7 +8,16 @@ import AgentContracts
                      currentSnapshot: () throws -> [String: AgentJSONValue]) async throws {
         guard request.operation == "actions.run" else { throw AgentErrorCode.invalidInput }
         guard request.parameters["interactive"] == .bool(true) else { throw AgentErrorCode.interactionRequired }
-        let unrestricted = ["appleScript", "shortcut", "shell"].contains(operation)
+        let opensApplication: Bool
+        if operation == "openURL" {
+            guard let raw = values["url"] as? String, let url = URL(string: raw),
+                  let scheme = url.scheme?.lowercased(), !scheme.isEmpty else {
+                throw AgentErrorCode.invalidInput
+            }
+            guard !["javascript", "data", "file"].contains(scheme) else { throw AgentErrorCode.permissionDenied }
+            opensApplication = !["http", "https"].contains(scheme)
+        } else { opensApplication = false }
+        let unrestricted = opensApplication || ["appleScript", "shortcut", "shell"].contains(operation)
         let supported = ["share", "shareFile", "shareURL", "print", "mail", "message", "saveFile",
                          "clipboard", "getClipboard", "htmlToClipboard", "openURL", "appleScript", "shortcut", "shell"]
         guard supported.contains(operation) else { throw AgentErrorCode.unavailable }
