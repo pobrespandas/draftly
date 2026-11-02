@@ -37,6 +37,8 @@ struct AgentLibraryResourceChoices {
         } + library.groupNames.compactMap { name in
             guard let id = library.actionGroupIdentifiers[name] else { return nil }
             return .init(reference: .init(kind: .actionGroup, id: id), title: name)
+        } + library.workspaces.map { workspace in
+            .init(reference: .init(kind: .workspace, id: workspace.id), title: workspace.name)
         } + ((try? editors?.windowSnapshots()) ?? []).map { window in
             let title = window.draftID.flatMap { titles[$0] } ?? "Editor window"
             return .init(reference: .init(kind: .window, id: window.id), title: title)

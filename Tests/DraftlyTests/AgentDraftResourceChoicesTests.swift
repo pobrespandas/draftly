@@ -39,6 +39,18 @@ struct AgentDraftResourceChoicesTests {
         #expect(choices.resolve([draft, target]) == [draft])
     }
 
+    @Test func workspaceChoicesAndResolutionFollowTheLiveLibrary() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let workspace = Workspace(name: "Neutral workspace")
+        try library.saveWorkspace(workspace)
+        let choices = AgentLibraryResourceChoices(library: library)
+        let target = AgentResourceReference(kind: .workspace, id: workspace.id)
+        #expect(choices.choices().contains { $0.reference == target && $0.title == workspace.name })
+        #expect(choices.resolve([target]) == [target])
+        try library.deleteWorkspace(workspace.id)
+        #expect(choices.resolve([target]).isEmpty)
+    }
+
     @Test func revisionChoicesFollowTheExistingDraftAndRevision() throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let note = try library.createNote(content: "Draft with version")
