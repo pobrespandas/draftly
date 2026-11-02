@@ -14,6 +14,42 @@ struct LibraryMutationReceiptTests {
         notes.map { .init(id: $0.id, versionToken: "opaque-neutral-version") }
     }
 
+    @Test func actionAndReceiptCommitTogetherAndReplayAfterReopen() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let library = try LibraryStore(directory: root, seed: false)
+        let action = DraftAction(name: "Neutral", steps: []), mutation = identity()
+        let receipt = try library.commitActions([action], mutation: mutation, at: now) { actions in
+            actions.map { .init(id: $0.id, versionToken: "opaque-version") }
+        }
+        let reopened = try LibraryStore(directory: root, seed: false)
+        #expect(reopened.actions == [action])
+        let replay = try reopened.commitActions([action], mutation: mutation, at: now.addingTimeInterval(1)) { _ in
+            Issue.record("Replay must not stage another action"); return []
+        }
+        #expect(replay == receipt && reopened.actions == [action])
+        #expect(throws: LibraryMutationReceiptError.requestConflict) {
+            try reopened.commitActions([DraftAction(name: "Other", steps: [])], mutation: mutation, at: now) { _ in [] }
+        }
+    }
+
+    @Test func actionAndReceiptRollBackWhenFinalValidationFails() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let original = DraftAction(name: "Original", steps: [])
+        try library.saveAction(original)
+        var changed = original; changed.name = "Changed"
+        let mutation = identity()
+        #expect(throws: (any Error).self) {
+            try library.commitActions([changed], mutation: mutation, at: now,
+                validateCommit: { throw DraftlyError.message("Authority changed") }) { actions in
+                    actions.map { .init(id: $0.id, versionToken: "opaque-version") }
+                }
+        }
+        #expect(library.actions == [original])
+        #expect(try library.mutationReceipt(for: mutation, at: now) == nil)
+        #expect(!library.container.viewContext.hasChanges)
+    }
+
     @Test func noteAndReceiptSurviveReopenAndAReplyLossCannotRepeatEffects() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }

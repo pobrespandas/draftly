@@ -266,6 +266,31 @@ public final class LibraryStore: ObservableObject {
             try beforeBatchCommit?(); try commit()
         } catch { container.viewContext.rollback(); try? reload(); throw error }
     }
+    // The application checks authority and versions before the transaction commits.
+    package func commitActions(_ values: [DraftAction], mutation: LibraryMutationIdentity, at now: Date,
+                               validateCommit: () throws -> Void = {},
+                               makeResources: ([DraftAction]) throws -> [LibraryMutationReceipt.Resource]) throws -> LibraryMutationReceipt {
+        let ids = Set(values.map(\.id))
+        guard !values.isEmpty, ids.count == values.count else { throw LibraryMutationReceiptError.invalidReceipt }
+        if let previous = try mutationReceipt(for: mutation, at: now) {
+            guard Set(previous.resources.map(\.id)) == ids else { throw LibraryMutationReceiptError.requestConflict }
+            return previous
+        }
+        do {
+            for action in values { try persist(action, id: action.id, kind: "action") }
+            let receipt = LibraryMutationReceipt(id: UUID(), mutation: mutation, committedAt: now,
+                                                 resources: try makeResources(values))
+            try receipt.validate()
+            guard Set(receipt.resources.map(\.id)) == ids else { throw LibraryMutationReceiptError.invalidReceipt }
+            try persist(receipt, id: receipt.id, kind: "agentMutationReceipt")
+            try beforeBatchCommit?()
+            try validateCommit()
+            try commit()
+            return receipt
+        } catch {
+            container.viewContext.rollback(); try? reload(); throw error
+        }
+    }
     @discardableResult
     public func reinstallDefaultActions() throws -> DefaultActionCatalogInstallation {
         let bundle = DefaultActionCatalog.restoredBundle(existingGroupNames: groupNames)
