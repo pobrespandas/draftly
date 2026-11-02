@@ -161,7 +161,8 @@ final class AppController: ObservableObject {
             if cloudTesting && cloud == nil { throw DraftlyError.message("The iCloud test build has no CloudKit container.") }
             let directory = testing || cloudTesting ? FileManager.default.temporaryDirectory.appendingPathComponent("Draftly-UITesting").appendingPathComponent(testLibraryID.uuidString) : nil
             let store = try LibraryStore(cloudIdentifier: cloud, directory: directory, seed: !cloudTesting)
-            if !testing && !cloudTesting {
+            let catalogQATesting = testing && ProcessInfo.processInfo.arguments.contains("--catalog-installation-testing")
+            if (!testing && !cloudTesting) || catalogQATesting {
                 let bundle = Bundle.main
                 let version = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
                 let build = bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
