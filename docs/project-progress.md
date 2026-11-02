@@ -3,6 +3,50 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Public 0.1.6 — 2 November
+
+[0.1.6/build7](https://github.com/pobrespandas/draftly/releases/tag/v0.1.6)
+is public from70a5d4f. PR86 and PR88 passed protected CI before integration.
+Release run41385382234 completed rehearsal, signing, notarization, staging,
+publication and public verification. Seven assets downloaded without credentials
+matched their expected sizes and SHA256 hashes. The public feed matched the
+signed asset and selected0.1.6/build7. Both site buttons point to its DMG.
+Firebase promotion8c01f5bc03ff34f8 completed and the writer lock was released.
+
+The original candidate passed local signature, ticket and Gatekeeper checks.
+The ZIP contains neither an agent helper nor the test tracing library. Normal
+agent startup remains disabled. The habitual installation and library were not
+changed. Existing catalogs require Settings > Maintenance > Replace Default
+Actions to receive the new defaults. Native isolated QA checked Cancel, Replace,
+the110-action result and visible icon colors; the closed QA store had110 actions
+and five groups. This does not establish live CloudKit catalog acceptance.
+
+Earlier native test interruptions remain unexplained. The subsequent complete
+reports establish those runs, not a root-cause correction.
+
+## Stage zero reconciliation — 2 November
+
+Baseline inventory:98f9529. Version0.1.6/build7 was published from70a5d4f.
+Public verification is complete; main is available for subsequent integration.
+
+| Work | Current evidence | Next action |
+| --- | --- | --- |
+| Catalog replacement, PR86 | Merged433a7b4 after protected CI41383794456 passed. PR88 merged70a5d4f after CI41384674328 passed; v0.1.6/build7 tagged. | Release run41385382234 passed. Seven public assets and signed feed matched; site links point to0.1.6. Writer lock released. |
+| Test performance, PR85 | Protected CI41379668319 passed all required checks. Local timing and coverage are recorded in testing.md on its branch. | Integrate separately after publication. Local combined merge a761a71 passed23 runner tests and full Swift inventory1/166/793/1265. |
+| Settings background, PR78 | Patch targets the earlier SwiftUI TabView. Main now uses a native controller. | Closed as superseded on2November; branch preserved. Retain the visual acceptance requirement for the current controller. |
+| Revision restoration, PR80 | Focused evidence exists; hosted native report is incomplete. | Preserve branch. Revalidate against the current base before integration in the agents stage. |
+| Editor reads, at/editor-syntax-reads-20261101 | a591d2d, 97741bd, b4b98ab and 40228d8 are outside main. | Preserve commits; integrate snapshots/search/syntax reads with their dependencies in the agents stage. |
+| Earlier editor projection | 5ff376b is an ancestor of main. | Already integrated; do not duplicate it. |
+| Product documents | e0cf84d was carried into PR82 and merged as6340434. | Already integrated; do not cherry-pick again. |
+
+Two earlier Settings worktrees retain uncommitted SwiftUI background/transaction
+experiments. Recovery patches were saved outside Git; their source was left
+intact. They target the superseded selector, not the current native controller.
+The original workspace also retains independent user edits and website work.
+
+This inventory does not claim native parity or agent activation. The active
+release keeps agents disabled. Stage-zero closure still requires integration of PR85 and this reconciliation.
+
 ## Catalog release CI interruption — 2 November
 
 PR #86 run `41380539924` passed tooling and the matrix check. Native execution
