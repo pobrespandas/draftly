@@ -16,9 +16,10 @@ import AgentContracts
         "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions", "preferences.schema"]
     private static let editorReadOperations: Set<String> = ["editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks"]
     private static let actionReadOperations: Set<String> = ["actions.list", "actions.get", "actions.stepSchemas", "actions.groups", "actionGroups.get"]
-    static let implementedOperations = readOperations.union(actionReadOperations).union([AgentMutationSchemas.name, "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder"]).union(AgentDraftWriting.operationNames).union(editorReadOperations)
+    private static let workspaceReadOperations: Set<String> = ["workspaces.list", "workspaces.get"]
+    static let implementedOperations = readOperations.union(actionReadOperations).union(workspaceReadOperations).union([AgentMutationSchemas.name, "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder"]).union(AgentDraftWriting.operationNames).union(editorReadOperations)
     private var availableOperations: Set<String> {
-        var operations = editorRegistry == nil ? Self.readOperations.union(Self.actionReadOperations) : (writes == nil ? Self.readOperations.union(Self.editorReadOperations).union(Self.actionReadOperations) : Self.implementedOperations)
+        var operations = editorRegistry == nil ? Self.readOperations.union(Self.actionReadOperations).union(Self.workspaceReadOperations) : (writes == nil ? Self.readOperations.union(Self.editorReadOperations).union(Self.actionReadOperations).union(Self.workspaceReadOperations) : Self.implementedOperations)
         if readActivity != nil { operations.insert("activity.list") }
         return operations
     }
@@ -517,6 +518,11 @@ import AgentContracts
         return Data(HMAC<SHA256>.authenticationCode(for: data, using: actionVersionKey)).base64EncodedString()
     }
 
+    private func workspaceVersion(_ workspace: Workspace) throws -> String {
+        let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
+        return Data(HMAC<SHA256>.authenticationCode(for: try encoder.encode(workspace), using: actionVersionKey)).base64EncodedString()
+    }
+
     private func groups(in scope: AgentResourceScope) -> [ActionGroupRecord] {
         let identifiers = actionLibrary.actionGroupIdentifiers
         return actionLibrary.groupNames.enumerated().compactMap { order, name in
@@ -530,6 +536,22 @@ import AgentContracts
     private func dispatch(_ request: AgentRequest, parameters: [String: AgentJSONValue], grant: AgentGrant,
                           sessionID: UUID) throws -> [String: AgentJSONValue] {
         switch request.operation {
+        case "workspaces.get":
+            guard let id = request.targets.first?.id, grant.scope.permits(.init(kind: .workspace, id: id)),
+                  let workspace = actionLibrary.workspaces.first(where: { $0.id == id }) else { throw AgentErrorCode.notFound }
+            let value = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(workspace))
+            return ["workspace": value, "versionToken": .string(try workspaceVersion(workspace))]
+        case "workspaces.list":
+            return try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
+                parameters: parameters, expiresAt: grant.expiresAt,
+                ids: { self.actionLibrary.workspaces.filter { grant.scope.permits(.init(kind: .workspace, id: $0.id)) }.map(\.id) },
+                value: { id in
+                    guard grant.scope.permits(.init(kind: .workspace, id: id)),
+                          let workspace = self.actionLibrary.workspaces.first(where: { $0.id == id }) else { return nil }
+                    return .object(["id": .string(id.uuidString), "name": .string(workspace.name),
+                        "order": workspace.order.map { .integer(Int64($0)) } ?? .null,
+                        "versionToken": .string(try self.workspaceVersion(workspace))])
+                })
         case "actions.validateShortcut":
             guard case .string(let key) = parameters["key"] else { throw AgentErrorCode.invalidInput }
             let modifiers: [String]?
