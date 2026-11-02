@@ -45,6 +45,7 @@ import AgentLocalSecurity
 
     init(library: LibraryStore, appVersion: String,
          editors: AgentEditorRegistry? = nil,
+         enableReviewedActions: Bool = false,
          isLocked: @escaping () -> Bool,
          pendingEditorGeneration: @escaping (UUID) -> String,
          resolveTargets: @escaping (Set<AgentResourceReference>) throws -> Set<AgentResourceReference>,
@@ -104,7 +105,10 @@ import AgentLocalSecurity
                     guard let owner else { throw AgentErrorCode.cancelled }
                     try owner.validateOwnership()
                     return try activity.entries(libraryID: owner.libraryID).filter { $0.connectionID == connectionID && $0.grantID == grantID }
-                }, operations: operations)
+                }, operations: operations, submitAction: enableReviewedActions ? { request, grant in
+                    guard let owner else { throw AgentErrorCode.cancelled }
+                    return try owner.submitReviewedAction(request, grant: grant)
+                } : nil)
         } catch { lease.close(); throw error }
         pairing = AgentPairingCoordinator(registry: registry, libraryID: lease.libraryID,
             validateHost: validateOwner, isLocked: isLocked, resolveTargets: resolveTargets)
@@ -116,6 +120,37 @@ import AgentLocalSecurity
     // Explicit close is the normal shutdown path. This is a fallback for a
     // discarded host; it preserves the same ordering on MainActor.
     isolated deinit { close() }
+
+    private func submitReviewedAction(_ request: AgentRequest, grant: AgentGrant) throws -> UUID {
+        try validateOwnership()
+        guard let editors, case .string(let rawWindow) = request.parameters["windowID"],
+              let windowID = UUID(uuidString: rawWindow),
+              let draftID = request.targets.first(where: { $0.kind == .draft })?.id,
+              let actionID = request.targets.first(where: { $0.kind == .action })?.id,
+              let action = library.actions.first(where: { $0.id == actionID }) else { throw AgentErrorCode.interactionRequired }
+        guard grant.capabilities.isSuperset(of: [.draftsWrite, .editorWrite]),
+              grant.scope.permits(.init(kind: .window, id: windowID)) else { throw AgentErrorCode.permissionDenied }
+        let models = try editors.executionModels(draftID: draftID, windowID: windowID)
+        guard let model = models.first else { throw AgentErrorCode.notFound }
+        let approved = library.actions.filter { grant.scope.permits(.init(kind: .action, id: $0.id)) }
+        let authority = AgentScriptAuthority(grant: grant, currentGrant: { [weak self] in
+            guard let self else { throw AgentErrorCode.cancelled }
+            return try self.connections.grantForAuthenticatedConnection(grant.connectionID)
+        }, validateHost: { [weak self] in
+            guard let self else { throw AgentErrorCode.cancelled }; try self.validateOwnership()
+        }, isLocked: isLocked, draftExists: { [weak self] id in self?.library.notes.contains { $0.id == id } == true },
+            targetDraftID: draftID, editorDraftID: { [weak model] in model?.editor.noteID }, windowID: windowID,
+            approvedActions: Dictionary(uniqueKeysWithValues: approved.map { ($0.id, $0) }),
+            currentAction: { [weak self] id in self?.library.actions.first { $0.id == id } }, reviewedNativeEffects: true)
+        return try operations.startRequest(request, grant: grant) { [self] id in
+            try await AgentReviewedActionExecution.run(action: action, draftID: draftID, request: request,
+                connectionID: grant.connectionID, library: library, models: models, host: model.host,
+                authority: authority, approvals: approvals,
+                currentSnapshot: { try self.service.actionExecutionSnapshot(request, connectionID: grant.connectionID) },
+                waitingForUser: { try self.operations.setWaitingForUser(id, waiting: $0) },
+                resolveModel: { models, _ in models.first })
+        }
+    }
 
     func isBound(to library: LibraryStore, editors: AgentEditorRegistry) -> Bool {
         !closed && self.library === library && self.editors === editors && editors.isBound(to: library)
