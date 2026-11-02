@@ -17,7 +17,7 @@ import AgentContracts
     private static let editorReadOperations: Set<String> = ["editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks"]
     private static let actionReadOperations: Set<String> = ["actions.list", "actions.get", "actions.stepSchemas", "actions.groups", "actionGroups.get"]
     private static let workspaceReadOperations: Set<String> = ["workspaces.list", "workspaces.get", "workspaces.query"]
-    static let implementedOperations = readOperations.union(actionReadOperations).union(workspaceReadOperations).union([AgentMutationSchemas.name, "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder"]).union(AgentDraftWriting.operationNames).union(editorReadOperations)
+    static let implementedOperations = readOperations.union(actionReadOperations).union(workspaceReadOperations).union([AgentMutationSchemas.name, "workspaces.update", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder"]).union(AgentDraftWriting.operationNames).union(editorReadOperations)
     private var availableOperations: Set<String> {
         var operations = editorRegistry == nil ? Self.readOperations.union(Self.actionReadOperations).union(Self.workspaceReadOperations) : (writes == nil ? Self.readOperations.union(Self.editorReadOperations).union(Self.actionReadOperations).union(Self.workspaceReadOperations) : Self.implementedOperations)
         if readActivity != nil { operations.insert("activity.list") }
@@ -523,6 +523,72 @@ import AgentContracts
         return Data(HMAC<SHA256>.authenticationCode(for: try encoder.encode(workspace), using: actionVersionKey)).base64EncodedString()
     }
 
+    private func checkedWorkspaceUpdate(_ request: AgentRequest) throws -> Workspace {
+        guard let target = request.targets.first?.id, let expected = request.expectedVersion,
+              let original = actionLibrary.workspaces.first(where: { $0.id == target }) else { throw AgentErrorCode.notFound }
+        guard try workspaceVersion(original) == expected else { throw AgentErrorCode.versionConflict }
+        let parameters: [String: AgentJSONValue]
+        do { parameters = try AgentWorkspaceSchemas.validatedParameters(for: request) }
+        catch { throw AgentErrorCode.invalidInput }
+        guard let value = parameters["workspace"] else { throw AgentErrorCode.invalidInput }
+        let updated: Workspace
+        do { updated = try JSONDecoder().decode(Workspace.self, from: JSONEncoder().encode(value)) }
+        catch { throw AgentErrorCode.invalidInput }
+        guard updated.id == target, updated.order == original.order,
+              !updated.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw AgentErrorCode.invalidInput
+        }
+        return updated
+    }
+
+    private func workspaceReceipt(_ request: AgentRequest, ticket: AgentRetryKeys.Ticket) throws -> LibraryMutationReceipt? {
+        let identity = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
+        do {
+            let receipt = try actionLibrary.mutationReceipt(for: identity, at: now())
+            guard receipt == nil || (receipt?.resources.count == 1 && receipt?.resources.first?.id == request.targets.first?.id) else {
+                throw AgentErrorCode.storageError
+            }
+            return receipt
+        } catch let error as LibraryMutationReceiptError {
+            switch error {
+            case .requestConflict: throw AgentErrorCode.invalidInput
+            case .retryWindowExpired: throw AgentErrorCode.retryWindowExpired
+            case .pendingChanges: throw AgentErrorCode.busy
+            case .invalidReceipt: throw AgentErrorCode.storageError
+            }
+        }
+    }
+
+    private func prepareWorkspaceUpdate(_ request: AgentRequest, connectionID: UUID) throws -> AgentRetryKeys.Ticket {
+        guard request.retryKey == nil, request.libraryID == libraryID else { throw AgentErrorCode.invalidInput }
+        try validateAdmission()
+        let ticket = try retryKeys.issue(request, connectionID: connectionID)
+        if try workspaceReceipt(request, ticket: ticket) == nil { _ = try checkedWorkspaceUpdate(request) }
+        try validateAdmission(); _ = try retryKeys.verify(ticket.value, request: request, connectionID: connectionID)
+        return ticket
+    }
+
+    private func updateWorkspace(_ request: AgentRequest, connectionID: UUID) throws -> LibraryMutationReceipt {
+        guard let key = request.retryKey else { throw AgentErrorCode.invalidInput }
+        try validateAdmission()
+        let ticket = try retryKeys.verify(key, request: request, connectionID: connectionID)
+        if let previous = try workspaceReceipt(request, ticket: ticket) {
+            try validateAdmission(); _ = try retryKeys.verify(key, request: request, connectionID: connectionID)
+            return previous
+        }
+        let updated = try checkedWorkspaceUpdate(request)
+        let identity = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
+        do {
+            return try actionLibrary.commitWorkspaces([updated], mutation: identity, at: now(), validateCommit: {
+                try self.validateAdmission(); _ = try self.retryKeys.verify(key, request: request, connectionID: connectionID)
+                guard try self.checkedWorkspaceUpdate(request) == updated else { throw AgentErrorCode.versionConflict }
+            }, makeResources: { values in
+                try values.map { .init(id: $0.id, versionToken: try self.workspaceVersion($0)) }
+            })
+        } catch let error as AgentErrorCode { throw error }
+        catch { throw AgentErrorCode.storageError }
+    }
+
     private func groups(in scope: AgentResourceScope) -> [ActionGroupRecord] {
         let identifiers = actionLibrary.actionGroupIdentifiers
         return actionLibrary.groupNames.enumerated().compactMap { order, name in
@@ -652,12 +718,19 @@ import AgentContracts
             let input = try AgentMutationSchemas.mutation(from: parameters)
             let bound = AgentRequest(requestID: input.requestID, libraryID: input.libraryID ?? libraryID,
                 operation: input.operation, targets: input.targets, expectedVersion: input.expectedVersion, parameters: input.parameters)
-            let ticket = try ["actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder"].contains(bound.operation) ? prepareActionUpdate(bound, connectionID: grant.connectionID) : writes.prepare(bound, connectionID: grant.connectionID)
+            let ticket: AgentRetryKeys.Ticket
+            if bound.operation == "workspaces.update" { ticket = try prepareWorkspaceUpdate(bound, connectionID: grant.connectionID) }
+            else if ["actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder"].contains(bound.operation) { ticket = try prepareActionUpdate(bound, connectionID: grant.connectionID) }
+            else { ticket = try writes.prepare(bound, connectionID: grant.connectionID) }
             return ["requestID": .string(bound.requestID.uuidString), "retryKey": .string(ticket.value),
                 "expiresAt": .string(APIValues.date(min(ticket.expiresAt, grant.expiresAt)))]
         case "actionGroups.reorder", "actions.reorder":
             let receipt = try updateAction(request, connectionID: grant.connectionID)
             return ["resources": .array(receipt.resources.map { .object(["id": .string($0.id.uuidString), "versionToken": .string($0.versionToken)]) })]
+        case "workspaces.update":
+            let receipt = try updateWorkspace(request, connectionID: grant.connectionID)
+            guard let resource = receipt.resources.first else { throw AgentErrorCode.storageError }
+            return ["resource": .object(["id": .string(resource.id.uuidString), "versionToken": .string(resource.versionToken)])]
         case "actions.create", "actions.update", "actions.duplicate", "actions.move", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate":
             let receipt = try updateAction(request, connectionID: grant.connectionID)
             guard let resource = receipt.resources.first else { throw AgentErrorCode.storageError }
@@ -687,7 +760,7 @@ import AgentContracts
             return ["operations": .array(names.map { name in
                 let schema = AgentOperationSchemas.schema(for: name, preferences: preferences)
                 return .object(["name": .string(name), "inputSchema": schema?.parameters.jsonSchema ?? .null,
-                    "resultSchema": schema?.result.jsonSchema ?? .null, "available": .bool(availableOperations.contains(name) && (name != AgentMutationSchemas.name || !grant.capabilities.isDisjoint(with: [.draftsWrite, .actionsManage])))])
+                    "resultSchema": schema?.result.jsonSchema ?? .null, "available": .bool(availableOperations.contains(name) && (name != AgentMutationSchemas.name || !grant.capabilities.isDisjoint(with: [.draftsWrite, .actionsManage, .workspacesManage])))])
             })]
         default: return try drafts.read(request, parameters: parameters, grant: grant, sessionID: sessionID)
         }

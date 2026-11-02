@@ -90,6 +90,54 @@ struct AgentCommandServiceTests {
         }
     }
 
+    @Test func workspaceUpdateRespectsScopeConflictsAndRecovers() throws {
+        let f = try Fixture(), original = Workspace(name: "Original")
+        try f.library.saveWorkspace(original)
+        let target = AgentResourceReference(kind: .workspace, id: original.id)
+        let (record, session) = try f.connect(scope: .resources([target]), capabilities: [.workspacesRead, .workspacesManage])
+        let (_, denied) = try f.connect(scope: .resources([]), capabilities: [.workspacesManage])
+        guard case .string(let version) = try f.values("workspaces.get", session: session, targets: [target])["versionToken"] else {
+            Issue.record("Missing version"); return
+        }
+        var changed = original; changed.name = "Updated"
+        let definition = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(changed))
+        let intent = AgentRequest(requestID: UUID(), libraryID: nil, operation: "workspaces.update", targets: [target],
+                                  expectedVersion: version, parameters: ["workspace": definition])
+        let frame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(intent))
+        #expect(try f.response("mutations.prepare", session: denied, parameters: ["request": frame]).outcome == .error(.notFound))
+        var reordered = changed; reordered.order = 99
+        let reorderedDefinition = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(reordered))
+        let reorderedIntent = AgentRequest(requestID: UUID(), libraryID: nil, operation: "workspaces.update", targets: [target],
+                                           expectedVersion: version, parameters: ["workspace": reorderedDefinition])
+        let reorderedFrame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(reorderedIntent))
+        #expect(try f.response("mutations.prepare", session: session, parameters: ["request": reorderedFrame]).outcome == .error(.invalidInput))
+        let prepared = try f.values("mutations.prepare", session: session, parameters: ["request": frame])
+        guard case .string(let key) = prepared["retryKey"] else { Issue.record("Missing key"); return }
+        func signed(_ key: String) -> AgentRequest {
+            AgentRequest(requestID: intent.requestID, libraryID: f.libraryID, operation: intent.operation,
+                         targets: intent.targets, expectedVersion: version, retryKey: key, parameters: intent.parameters)
+        }
+        func send(_ key: String, _ session: AgentCommandService.Session) throws -> AgentResponse {
+            try JSONDecoder().decode(AgentResponse.self, from: f.service.respond(to: JSONEncoder().encode(signed(key)), session: session))
+        }
+        var concurrent = original; concurrent.query = "Concurrent"
+        try f.library.saveWorkspace(concurrent)
+        #expect(try send(key, session).outcome == .error(.versionConflict))
+        #expect(f.library.workspaces == [concurrent])
+        try f.library.saveWorkspace(original)
+        let reply = try send(key, session)
+        guard case .result = reply.outcome else { Issue.record("Update failed: \(reply.outcome)"); return }
+        #expect(f.library.workspaces == [changed])
+        #expect(try send(key, session) == reply)
+        f.service = try f.makeService()
+        let reopened = try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        let recovered = try f.values("mutations.prepare", session: reopened, parameters: ["request": frame])
+        guard case .string(let recoveredKey) = recovered["retryKey"] else { Issue.record("Missing recovery key"); return }
+        #expect(try send(recoveredKey, reopened) == reply)
+        _ = try f.connections.revokeFromUserInterface(record.id)
+        #expect(try send(recoveredKey, reopened).outcome == .error(.permissionDenied))
+    }
+
     @Test func workspaceQueryOnlyReturnsAuthorizedDrafts() throws {
         let f = try Fixture()
         let visible = try f.library.createNote(content: "Neutral visible")
@@ -1056,7 +1104,7 @@ struct AgentCommandServiceTests {
             guard case .object(let fields) = item, fields["available"] == .bool(true), case .string(let name) = fields["name"] else { return nil }
             return name
         })
-        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", AgentMutationSchemas.name, "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query"]) && available.count == 37)
+        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", AgentMutationSchemas.name, "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.update"]) && available.count == 38)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.unavailable))
         #expect(f.library.notes.isEmpty)
         #expect(try f.values("server.capabilities", session: session)["capabilities"] == .array([.string("drafts.read"), .string("drafts.write")]))
