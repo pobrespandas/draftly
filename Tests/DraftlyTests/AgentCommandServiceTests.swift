@@ -440,6 +440,7 @@ struct AgentCommandServiceTests {
         let (_, denied) = try f.connect(capabilities: [.draftsRead])
         #expect(try f.response("actions.groups", session: denied).outcome == .error(.permissionDenied))
         let page = try f.values("actions.groups", session: session)
+        #expect(page["orderVersion"] == nil)
         guard case .array(let items) = page["items"], case .object(let item) = items.first else { Issue.record("Missing group"); return }
         #expect(items.count == 1 && item["id"] == .string(id.uuidString) && item["name"] == .string("Allowed"))
         let detail = try f.values("actionGroups.get", session: session, targets: [.init(kind: .actionGroup, id: id)])
@@ -448,6 +449,24 @@ struct AgentCommandServiceTests {
         #expect(try f.response("actionGroups.get", session: session, targets: [.init(kind: .actionGroup, id: hidden)]).outcome == .error(.notFound))
         try f.library.deleteAction(first.id)
         #expect(try f.values("actions.groups", session: session)["items"] == .array([]))
+    }
+
+    @Test func groupOrderVersionBindsAllPagesAndDetectsChanges() throws {
+        let f = try Fixture()
+        var first = DraftAction(name: "One", steps: []); first.group = "Alpha"
+        var second = DraftAction(name: "Two", steps: []); second.group = "Beta"
+        try f.library.saveActions([first, second])
+        let (_, session) = try f.connect(capabilities: [.actionsRead])
+        let firstPage = try f.values("actions.groups", session: session, parameters: ["limit": .integer(1)])
+        guard case .string(let cursor) = firstPage["nextCursor"], case .string(let version) = firstPage["orderVersion"] else {
+            Issue.record("Missing cursor or order version"); return
+        }
+        let params: [String: AgentJSONValue] = ["limit": .integer(1), "cursor": .string(cursor)]
+        #expect(try f.values("actions.groups", session: session, parameters: params)["orderVersion"] == .string(version))
+        var group = f.library.actionGroupRecord(named: "Beta"); group.symbol = "star"
+        try f.library.saveActionGroup(group)
+        #expect(try f.response("actions.groups", session: session, parameters: params).outcome == .error(.versionConflict))
+        #expect(try f.values("actions.groups", session: session)["orderVersion"] != .string(version))
     }
 
     @Test func groupPagesDoNotCrossSessionsAndRecheckDeletedGroups() throws {

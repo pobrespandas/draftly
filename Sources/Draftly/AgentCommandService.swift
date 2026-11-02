@@ -432,6 +432,11 @@ import AgentContracts
         return Data(HMAC<SHA256>.authenticationCode(for: try encoder.encode(group), using: actionVersionKey)).base64EncodedString()
     }
 
+    private func groupOrderVersion() throws -> String {
+        let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
+        return Data(HMAC<SHA256>.authenticationCode(for: try encoder.encode(groups(in: .library)), using: actionVersionKey)).base64EncodedString()
+    }
+
     private func groups(in scope: AgentResourceScope) -> [ActionGroupRecord] {
         let identifiers = actionLibrary.actionGroupIdentifiers
         return actionLibrary.groupNames.enumerated().compactMap { order, name in
@@ -490,7 +495,7 @@ import AgentContracts
                     let token = try self.groupVersion(group)
                     return .object(["id": .string(id.uuidString), "name": .string(group.name),
                         "symbol": .string(group.symbol), "order": .integer(Int64(group.order)), "versionToken": .string(token)])
-                })
+                }, revision: grant.scope == .library ? { try self.groupOrderVersion() } : nil)
         case "actions.get":
             guard let id = request.targets.first?.id,
                   grant.scope.permits(.init(kind: .action, id: id)),

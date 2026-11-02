@@ -106,7 +106,7 @@ package enum AgentActionSchemas {
             "actions.groups": .init(parameters: page, result: .init(fields: [
                 "items": r(.array(.object(.init(fields: ["id": r(.uuid), "name": r(text),
                     "symbol": r(text), "order": r(.integer()), "versionToken": r(token)])), maximum: 200)),
-                "nextCursor": r(.nullable(token))
+                "nextCursor": r(.nullable(token)), "orderVersion": o(token)
             ])),
             "actions.create": .init(parameters: .init(fields: ["action": r(.object(newAction))]), result: updated),
             "actions.update": .init(parameters: .init(fields: ["action": r(.object(action))]), result: updated),
