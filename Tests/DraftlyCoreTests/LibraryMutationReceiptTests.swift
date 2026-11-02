@@ -14,6 +14,26 @@ struct LibraryMutationReceiptTests {
         notes.map { .init(id: $0.id, versionToken: "opaque-neutral-version") }
     }
 
+    @Test func groupRenameRollsBackActionsAndImplicitGroupsOnFailure() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        var first = DraftAction(name: "One", steps: []); first.group = "Original"
+        var second = DraftAction(name: "Two", steps: []); second.group = "Other"
+        try library.saveActions([first, second])
+        let identifiers = library.actionGroupIdentifiers
+        var renamed = library.actionGroupRecord(named: "Original"); renamed.name = "Renamed"
+        let mutation = identity()
+        #expect(throws: (any Error).self) {
+            try library.commitActionGroup(renamed, mutation: mutation, at: now, previousName: "Original",
+                validateCommit: { throw DraftlyError.message("Authority changed") }) {
+                    .init(id: $0.id, versionToken: "opaque-version")
+                }
+        }
+        #expect(Set(library.actions.map(\.id)) == Set([first.id, second.id]))
+        #expect(library.actions.contains(first) && library.actions.contains(second))
+        #expect(library.actionGroupIdentifiers == identifiers && library.actionGroups.isEmpty)
+        #expect(try library.mutationReceipt(for: mutation, at: now) == nil)
+    }
+
     @Test func groupAndReceiptRollBackTogetherWhenCommitValidationFails() throws {
         let library = try LibraryStore(inMemory: true, seed: false), group = ActionGroupRecord(name: "Neutral"), mutation = identity()
         #expect(throws: (any Error).self) {

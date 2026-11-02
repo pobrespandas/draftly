@@ -293,6 +293,7 @@ public final class LibraryStore: ObservableObject {
     }
 
     package func commitActionGroup(_ group: ActionGroupRecord, mutation: LibraryMutationIdentity, at now: Date,
+                                   previousName: String? = nil,
                                    validateCommit: () throws -> Void = {},
                                    makeResource: (ActionGroupRecord) throws -> LibraryMutationReceipt.Resource) throws -> LibraryMutationReceipt {
         if let previous = try mutationReceipt(for: mutation, at: now) {
@@ -302,6 +303,18 @@ public final class LibraryStore: ObservableObject {
             return previous
         }
         do {
+            if let previousName, previousName != group.name {
+                let reserved = actionGroupIdentifiers
+                for (order, name) in groupNames.enumerated() where name != previousName && name != group.name && !actionGroups.contains(where: { $0.name == name }) {
+                    guard let id = reserved[name] else { throw LibraryMutationReceiptError.invalidReceipt }
+                    var record = ActionGroupRecord(name: name); record.id = id; record.order = order
+                    try persist(record, id: id, kind: "actionGroup")
+                }
+                for var action in actions where action.group == previousName {
+                    action.group = group.name
+                    try persist(action, id: action.id, kind: "action")
+                }
+            }
             try persist(group, id: group.id, kind: "actionGroup")
             let receipt = LibraryMutationReceipt(id: UUID(), mutation: mutation, committedAt: now, resources: [try makeResource(group)])
             try receipt.validate()
