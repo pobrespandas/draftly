@@ -36,14 +36,14 @@ struct AgentConnectionsSettingsTests {
                     self.secrets.removeValue(forKey: id)
                 }), now: { [unowned self] in self.wall }, authorityChanged: { [unowned self] in self.authorityChanges.append($0) })
         }
-        func model() throws -> AgentConnectionsSettingsModel {
+        func model(available: Set<AgentCapability> = Set(AgentCapability.allCases)) throws -> AgentConnectionsSettingsModel {
             try AgentConnectionsSettingsModel(libraryID: libraryID, registry: registry, pairing: pairing,
                 now: { [unowned self] in self.wall }, choices: { [unowned self] in self.labels },
                 initialTargets: { [unowned self] in self.selected }, resolveTargets: { [unowned self] in $0.intersection(self.targets) },
                 setAccessEnabled: { [unowned self] value in
                     if self.failHostCommand { throw AgentErrorCode.unavailable }
                     if !self.ignoreHostCommand { try self.registry.setEnabledFromUserInterface(value) }
-                })
+                }, availableCapabilities: available)
         }
         func connect(libraryID: UUID? = nil) throws -> AgentConnectionRecord {
             try registry.connectFromUserInterface(name: "Neutral 🐼", libraryID: libraryID ?? self.libraryID)
@@ -66,6 +66,24 @@ struct AgentConnectionsSettingsTests {
         model.cancelEditing()
         #expect(f.bytes == before && model.draft == nil && model.context == nil)
         #expect(try f.registry.configurationForUserInterface().connections[0].grantID == record.grantID)
+    }
+
+    @Test func existingUnavailablePermissionsCanBeRemovedButNotAdded() throws {
+        let f = Fixture()
+        let record = try f.registry.connectFromUserInterface(name: "Existing", libraryID: f.libraryID,
+            capabilities: [.draftsRead, .actionsRun], scope: .resources([]))
+        let model = try f.model(available: [.draftsRead, .actionsRead])
+        try model.beginEditing(record.id)
+        model.draft?.capabilities.insert(.scriptsUnrestricted)
+        #expect(throws: AgentErrorCode.unavailable) { try model.saveExisting() }
+        #expect(Set(try f.registry.configurationForUserInterface().connections[0].capabilities) == [.draftsRead, .actionsRun])
+        model.draft?.capabilities.remove(.scriptsUnrestricted)
+        model.draft?.capabilities.remove(.actionsRun)
+        model.draft?.capabilities.insert(.actionsRead)
+        try model.saveExisting()
+        try model.beginEditing(record.id)
+        model.draft?.capabilities.insert(.actionsRun)
+        #expect(throws: AgentErrorCode.unavailable) { try model.saveExisting() }
     }
 
     @Test func saveReplacesOnlyTheChosenGrantAndRotatesItsIdentity() throws {
