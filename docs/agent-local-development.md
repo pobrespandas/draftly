@@ -736,3 +736,20 @@ ordinary native permission cannot authorize them. The current QA Settings do
 not offer unrestricted scripts, so these requests remain denied. Relative
 URLs are invalid. JavaScript, data and local file URLs are denied before review.
 Tests verify that application links cannot use the web-link permission path.
+
+### Connected typed preference reads
+
+`preferences.get` now reads the scalar device fields supported by
+`AgentDevicePreferenceAccess` and the list fields supported by
+`AgentListPreferenceAccess`. It requires `preferences.read`. The command reads
+the app's defaults through an injected store; tests use a separate suite.
+It returns the effective value, origin, override flag and opaque version tokens.
+Invalid scalar overrides remain stored and return a null invalid reading.
+
+A batch with an unsupported address returns unavailable without partial values.
+Native, syntax, encoded and command preferences still need their read adapters
+connected. Update and reset remain unavailable. Schema descriptors describe the
+contract, while operation availability describes the connected handlers.
+Focused service tests cover permission denial, stable and changed tokens,
+invalid overrides, list defaults, unsupported batches and locked admission.
+Installed CLI and MCP acceptance for this handler remains pending.

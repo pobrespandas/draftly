@@ -93,7 +93,7 @@ struct AgentCommandServiceTests {
         }
         func makeService() throws -> AgentCommandService {
             try AgentCommandService(library: library, libraryID: libraryID, connections: connections,
-                appVersion: "QA", validateHost: { [unowned self] in
+                appVersion: "QA", preferenceDefaults: try #require(UserDefaults(suiteName: editorDefaultsName)), validateHost: { [unowned self] in
                     if let error = self.hostError { throw error }
                 }, isLocked: { [unowned self] in self.locked }, now: { [unowned self] in self.wall },
                 uptime: { [unowned self] in self.uptime }, editors: editorRegistry, pendingEditorGeneration: { [unowned self] _ in
@@ -430,6 +430,54 @@ struct AgentCommandServiceTests {
         #expect(f.library.actions.first(where: { $0.id == action.id })?.group == "Destination")
         #expect(try send() == reply)
         #expect(f.library.actions.count == 2)
+    }
+
+    @Test func listPreferenceReadUsesDeviceDefaultsAndRejectsPartialBatches() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let defaults = try #require(UserDefaults(suiteName: f.editorDefaultsName))
+        defaults.set(false, forKey: "list.showPreview")
+        let (_, session) = try f.connect(capabilities: [.preferencesRead])
+        let address = AgentJSONValue.object(["id": .string("list.showPreview")])
+        let values = try f.values("preferences.get", session: session, parameters: ["items": .array([address])])
+        guard case .array(let items) = values["items"], case .object(let item) = items.first else {
+            Issue.record("Missing list reading"); return
+        }
+        #expect(item["effectiveValue"] == .bool(false) && item["hasOverride"] == .bool(true))
+        #expect(item["valueOrigin"] == .string("stored"))
+        let unsupported = AgentJSONValue.object(["id": .string("application.launchAtLogin")])
+        #expect(try f.response("preferences.get", session: session,
+            parameters: ["items": .array([address, unsupported])]).outcome == .error(.unavailable))
+        #expect(defaults.object(forKey: "application.launchAtLogin") == nil)
+    }
+
+    @Test func typedPreferenceReadsRequirePermissionAndTrackOverrides() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let defaults = try #require(UserDefaults(suiteName: f.editorDefaultsName))
+        let (_, denied) = try f.connect()
+        let (_, allowed) = try f.connect(scope: .resources([]), capabilities: [.preferencesRead])
+        let params: [String: AgentJSONValue] = ["items": .array([.object(["id": .string("editor.fontSize")])])]
+        #expect(try f.response("preferences.get", session: denied, parameters: params).outcome == .error(.permissionDenied))
+        let initial = try f.values("preferences.get", session: allowed, parameters: params)
+        #expect(try f.values("preferences.get", session: allowed, parameters: params) == initial)
+        defaults.set(23, forKey: "editor.fontSize")
+        let changed = try f.values("preferences.get", session: allowed, parameters: params)
+        #expect(initial["versionToken"] != changed["versionToken"])
+        guard case .array(let items) = changed["items"], case .object(let item) = items.first else {
+            Issue.record("Missing preference reading"); return
+        }
+        #expect(item["effectiveValue"] == .integer(23) && item["valueOrigin"] == .string("stored"))
+        #expect(item["hasOverride"] == .bool(true))
+        defaults.set("invalid", forKey: "editor.fontSize")
+        let invalid = try f.values("preferences.get", session: allowed, parameters: params)
+        guard case .array(let invalidItems) = invalid["items"], case .object(let invalidItem) = invalidItems.first else {
+            Issue.record("Missing invalid reading"); return
+        }
+        #expect(invalidItem["effectiveValue"] == .null && invalidItem["valueOrigin"] == .string("invalid"))
+        #expect(defaults.string(forKey: "editor.fontSize") == "invalid")
+        let unsupported: [String: AgentJSONValue] = ["items": .array([.object(["id": .string("application.launchAtLogin")])])]
+        #expect(try f.response("preferences.get", session: allowed, parameters: unsupported).outcome == .error(.unavailable))
+        f.locked = true
+        #expect(try f.response("preferences.get", session: allowed, parameters: params).outcome == .error(.permissionDenied))
     }
 
     @Test func createActionUsesDefaultsAndRecoversWithoutDuplicates() throws {
@@ -1160,7 +1208,7 @@ struct AgentCommandServiceTests {
             guard case .object(let fields) = item, fields["available"] == .bool(true), case .string(let name) = fields["name"] else { return nil }
             return name
         })
-        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", AgentMutationSchemas.name, "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.setSelection", "editor.replaceRange", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.update"]) && available.count == 40)
+        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", "preferences.get", AgentMutationSchemas.name, "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.setSelection", "editor.replaceRange", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.update"]) && available.count == 41)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.unavailable))
         #expect(f.library.notes.isEmpty)
         #expect(try f.values("server.capabilities", session: session)["capabilities"] == .array([.string("drafts.read"), .string("drafts.write")]))

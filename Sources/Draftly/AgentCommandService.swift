@@ -13,7 +13,7 @@ import AgentContracts
         let grantID: UUID
     }
     private static let readOperations: Set<String> = ["server.status", "server.capabilities", "server.schemas",
-        "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions", "preferences.schema"]
+        "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions", "preferences.schema", "preferences.get"]
     private static let editorReadOperations: Set<String> = ["editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks"]
     private static let actionReadOperations: Set<String> = ["actions.list", "actions.get", "actions.stepSchemas", "actions.groups", "actionGroups.get"]
     private static let workspaceReadOperations: Set<String> = ["workspaces.list", "workspaces.get", "workspaces.query"]
@@ -49,6 +49,8 @@ import AgentContracts
     private let isLocked: () -> Bool
     private let now: () -> Date
     private let appVersion: String
+    private let preferenceDefaults: UserDefaults
+    private let preferenceVersionKey = SymmetricKey(size: .bits256)
     private let preferences: AgentPreferenceRegistry
     private let pages: AgentReadPages
     private let recordActivity: (UUID, UUID, UUID, String, String) -> Void
@@ -59,6 +61,7 @@ import AgentContracts
     private var sessions: [UUID: Authorization] = [:]
 
     init(library: LibraryStore, libraryID: UUID, connections: AgentConnectionRegistry, appVersion: String,
+         preferenceDefaults: UserDefaults = .standard,
          validateHost: @escaping () throws -> Void, isLocked: @escaping () -> Bool, now: @escaping () -> Date = Date.init,
          uptime: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
          editors: AgentEditorRegistry? = nil,
@@ -68,6 +71,7 @@ import AgentContracts
          operations: AgentOperationRegistry? = nil,
          submitAction: ((AgentRequest, AgentGrant) throws -> UUID)? = nil) throws {
         guard editors?.isBound(to: library) ?? true else { throw AgentErrorCode.invalidInput }
+        self.preferenceDefaults = preferenceDefaults
         self.actionLibrary = library
         self.operationRegistry = operations
         self.submitAction = submitAction
@@ -827,6 +831,28 @@ import AgentContracts
         case "editor.setSelection", "editor.replaceRange":
             guard let editorWrites else { throw AgentErrorCode.unavailable }
             return try editorWrites.update(request, connectionID: grant.connectionID)
+        case "preferences.get":
+            guard case .array(let items) = parameters["items"] else { throw AgentErrorCode.invalidInput }
+            func version(_ value: AgentJSONValue) throws -> String {
+                let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
+                return Data(HMAC<SHA256>.authenticationCode(for: try encoder.encode(value), using: preferenceVersionKey)).base64EncodedString()
+            }
+            let values: [AgentJSONValue] = try items.map { item in
+                let address = try preferences.address(item)
+                let reading: AgentPreferenceReading
+                if AgentDevicePreferenceAccess.supportedIDs.contains(address.id) {
+                    reading = try AgentDevicePreferenceAccess.read(address: item, defaults: preferenceDefaults)
+                } else if AgentListPreferenceAccess.supportedIDs.contains(address.id) {
+                    reading = try AgentListPreferenceAccess.read(address: item, defaults: preferenceDefaults)
+                } else { throw AgentErrorCode.unavailable }
+                guard case .object(var fields) = item else { throw AgentErrorCode.invalidInput }
+                fields["effectiveValue"] = reading.effectiveValue
+                fields["valueOrigin"] = .string(reading.origin)
+                fields["hasOverride"] = .bool(reading.hasOverride)
+                fields["versionToken"] = .string(try version(.object(fields)))
+                return .object(fields)
+            }
+            return ["items": .array(values), "versionToken": .string(try version(.array(values)))]
         case "preferences.schema":
             let selected: Set<String>?
             if case .array(let ids) = parameters["ids"] {
