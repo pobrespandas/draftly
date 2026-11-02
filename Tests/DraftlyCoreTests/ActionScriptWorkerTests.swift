@@ -4,6 +4,20 @@ import Testing
 
 @Suite("Script worker host lifetime") @MainActor
 struct ActionScriptWorkerTests {
+    @Test func synchronousScriptChecksAuthorizationBeforeUpdatingDraft() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Original")
+        let editor = EditorSession(); editor.load(note)
+        let runner = ActionRunner(library: library, editor: editor)
+        var denied = 0
+        runner.authorizeScriptOperation = { operation, _ in
+            if operation == "updateDraft" { denied += 1; throw DraftlyError.message("Denied") }
+        }
+        let action = DraftAction(name: "Change", steps: [ActionStep("script", ["script": "draft.content='Changed'; draft.update();"])])
+        let report = runner.runReport(action)
+        #expect(denied == 1 && report.reason == .error)
+        #expect(library.notes.first { $0.id == note.id }?.content == "Original")
+    }
     @Test func concurrentWorkersCompleteMainActorHostRequests() async {
         let counter = WorkerRequestCounter()
         let results = await withTaskGroup(of: Bool.self, returning: [Bool].self) { group in

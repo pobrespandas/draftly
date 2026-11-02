@@ -102,4 +102,21 @@ struct AgentAuthorizedActionHostTests {
         #expect(native.operations.contains("clipboard"))
         #expect(guarded.hasUncertainOutcome)
     }
+
+    @Test(arguments: [false, true]) func scriptAuthorizationStopsLibraryWrites(visible: Bool) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Original")
+        let model = WindowModel(library: library); model.select(note.id)
+        var denied = 0
+        let action = DraftAction(name: "Change", steps: [ActionStep("script", ["script": "draft.content='Changed'; draft.update();"])])
+        let result = try await AutomationActionExecution.run(action, noteID: note.id, library: library,
+            models: visible ? [model] : [], host: model.host, editorScope: .targetDraft,
+            scriptAuthorization: { operation, _ in
+                if operation == "updateDraft" { denied += 1; throw AgentErrorCode.permissionDenied }
+            }, resolveModel: { models, _ in models.first })
+        #expect(denied == 1)
+        #expect(result.report.reason == .error)
+        #expect(library.notes.first { $0.id == note.id }?.content == "Original")
+        #expect(model.runner.authorizeScriptOperation == nil)
+    }
 }

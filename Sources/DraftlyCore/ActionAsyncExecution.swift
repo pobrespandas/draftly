@@ -107,6 +107,7 @@ import Foundation
             guard Date() < request.deadline else { throw ActionExecutionInterruption.timeout }
             guard authority.consume(request) else { throw DraftlyError.message("The host request is unknown or already consumed.") }
             try checkCancellation()
+            try authorizeScriptOperation?(request.operation, request.payload)
             if request.operation == "ui", let uiOperationAsync,
                let values = try JSONSerialization.jsonObject(with: Data(request.payload.utf8)) as? [String: Any],
                ["openInNewTab", "openInNewWindow"].contains(values["operation"] as? String ?? "") {
@@ -168,7 +169,7 @@ import Foundation
             let values = (try? JSONSerialization.jsonObject(with: Data(request.payload.utf8))) as? [String: Any] ?? [:]
             let result: Any?
             if request.operation == "requireScript" { result = try platform("requireScript", values) }
-            else { result = try dispatch(request.operation, values: values) }
+            else { result = try dispatchAuthorized(request.operation, values: values) }
             try checkCancellation()
             return try json(request.operation == "appleScript" ? AppleScriptValueTransport.encode(result ?? NSNull()) : ["value": result ?? NSNull()])
         } catch {

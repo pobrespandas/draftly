@@ -26,6 +26,9 @@ public final class ActionRunner: ObservableObject {
     public var currentWorkspace: (() -> Workspace)?
     public var uiOperation: (([String: Any]) throws -> Any?)?
     public var uiOperationAsync: (([String: Any], TimeInterval) async throws -> Any?)?
+    // Optional request check for callers that supply their own authority.
+    // This does not cover native Action steps or initial and final effects.
+    public var authorizeScriptOperation: ((String, String) throws -> Void)?
     public var readTheme: (EditorThemeDefinition) throws -> EditorThemeDefinition = { try ThemeFileAccess.read($0) }
     public var selectedDrafts: (() -> [Note])?
     public var applyWorkspace: ((Workspace) throws -> Void)?
@@ -373,6 +376,11 @@ public final class ActionRunner: ObservableObject {
     }
 
     func dispatch(_ operation: String, values: [String: Any]) throws -> Any? {
+        if let authorizeScriptOperation { try authorizeScriptOperation(operation, json(values)) }
+        return try dispatchAuthorized(operation, values: values)
+    }
+
+    func dispatchAuthorized(_ operation: String, values: [String: Any]) throws -> Any? {
         let wasApplying = isApplyingScriptCommand
         isApplyingScriptCommand = true
         defer { isApplyingScriptCommand = wasApplying }

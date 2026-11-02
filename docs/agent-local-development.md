@@ -35,6 +35,12 @@ other pending editors alone and still detects conflicts on the target. The
 default continues to cover the library for existing automation routes. This
 scope does not restrict scripts or other library accesses. Runtime checks at
 every bridge and an approval path are still required.
+The Action runner also accepts an optional per-request script check before
+dispatch, including asynchronous requests. Tests deny a draft update in both
+visible and headless automation and in the synchronous script path. The check
+is not an authorization policy. It does not yet cover initial context, native
+Action steps, nested execution, final disposition, or the full runtime contract.
+Do not enable agent Action execution until those paths have enforced authority.
 Creating an action requires access to the full library. Action changes use
 an expected version, a signed retry key, and an atomic action and receipt
 transaction. Recovery checks the current grant. A client with resource scope

@@ -466,12 +466,15 @@ final class WindowModel: ObservableObject {
     func runAsync(_ action: DraftAction) async -> ActionExecutionReport? {
         await runActionOutcome(action)?.report
     }
-    func runActionOutcome(_ action: DraftAction, hostOverride: (any ActionHost)? = nil) async -> ActionOutcome? {
+    func runActionOutcome(_ action: DraftAction, hostOverride: (any ActionHost)? = nil,
+                          scriptAuthorization: ((String, String) throws -> Void)? = nil) async -> ActionOutcome? {
         guard !actionPending, !runner.isRunning else { return nil }
         actionPending = true
         let previousHost = runner.host
+        let previousAuthorization = runner.authorizeScriptOperation
         if let hostOverride { runner.host = hostOverride }
-        defer { runner.host = previousHost; actionPending = false }
+        if let scriptAuthorization { runner.authorizeScriptOperation = scriptAuthorization }
+        defer { runner.host = previousHost; runner.authorizeScriptOperation = previousAuthorization; actionPending = false }
         return await executeAction(action)
     }
     private func executeAction(_ action: DraftAction) async -> ActionOutcome? {
