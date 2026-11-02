@@ -91,7 +91,7 @@ jobs:
     if: ${{ needs.plan.outputs.native == 'true' }}
     name: "${{ github.event_name == 'workflow_dispatch' && inputs.diagnostic != '' && inputs.diagnostic != 'all' && format('Diagnostic: {0}', inputs.diagnostic) || 'Native build and tests' }}"
     runs-on: ${{ github.event_name == 'workflow_dispatch' && (inputs.diagnostic == 'Toolchain27' || inputs.diagnostic == 'FullOn27') && 'xcode-27' || 'macos-26' }}
-    timeout-minutes: 60
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

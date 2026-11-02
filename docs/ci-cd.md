@@ -30,6 +30,10 @@ This follows GitHub's documented [job dependency rules](https://docs.github.com/
 
 ## Validation
 
+Native CI and the release rehearsal allow 120 minutes per job. This budget
+includes dependency resolution, compilation and tests. Incomplete test reports
+still fail verification even when the process exits before this limit.
+
 Run the script suite, website tests, matrix structural check, and `actionlint`
 when changing workflow selection. The actionlint configuration declares the
 existing `xcode-27` runner label. Run native tests and a local build when the
