@@ -22,7 +22,7 @@ struct AgentOperationRegistryTests {
             try registry.startRequest(request, grant: grant) { _ in fatalError("Must not replay") }
         }
     }
-    @Test func repeatedRequestReturnsTheSameOperationWithoutStartingWorkAgain() throws {
+    @Test func repeatedRequestReturnsTheSameOperationWithoutStartingWorkAgain() async throws {
         let connection = UUID(), library = UUID(), action = UUID(), draft = UUID()
         let grant = AgentGrant(connectionID: connection, libraryID: library, expiresAt: Date().addingTimeInterval(600),
             capabilities: [.actionsRun, .draftsRead], scope: .library)
@@ -38,6 +38,11 @@ struct AgentOperationRegistryTests {
         #expect(throws: AgentErrorCode.versionConflict) {
             try registry.startRequest(changed, grant: grant) { _ in fatalError("Must not start") }
         }
+        #expect(try registry.cancel(id, connectionID: connection))
+        for _ in 0..<1000 where try !registry.snapshot(id, connectionID: connection).state.isTerminal { await Task.yield() }
+        let snapshot = try registry.snapshot(id, connectionID: connection)
+        #expect(snapshot.state == .cancelled)
+        _ = try snapshot.wireValue()
     }
     @Test func cancellationWaitsForWorkAndKeepsOwnership() async throws {
         let connection = UUID(), library = UUID(), action = UUID()

@@ -1,5 +1,6 @@
 import Foundation
 import AgentContracts
+import DraftlyCore
 
 // In-memory operation ownership. It does not provide restart recovery.
 @MainActor final class AgentOperationRegistry {
@@ -202,6 +203,12 @@ import AgentContracts
 
     private func finish(_ id: UUID, error: AgentErrorCode) {
         guard let entry = entries[id], !entry.state.isTerminal else { return }
+        if entry.state == .queued, let action = entry.targets.first(where: { $0.kind == .action }) {
+            let reason: ActionTerminationReason = error == .cancelled ? .cancelled : error == .timeout ? .timeout
+                : error == .busy ? .busy : .error
+            entries[id]?.output = .init(report: .notStarted(actionID: action.id, reason: reason, message: error.rawValue),
+                noteID: entry.targets.first(where: { $0.kind == .draft })?.id, message: error.rawValue)
+        }
         entries[id]?.state = error == .cancelled ? .cancelled : error == .timeout ? .timedOut
             : error == .outcomeUnknown ? .outcomeUnknown : .failed
         entries[id]?.error = error; entries[id]?.task = nil
