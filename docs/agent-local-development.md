@@ -79,21 +79,22 @@ also requires its separate capability. An internal Action executor can route a
 share step through this review flow. It checks the approved Action definitions,
 target scope and current version snapshots again before the effect. The agent
 service does not expose Action execution yet.
-The operation registry tracks ownership, waiting, cancellation and completion
-in memory. A cancellation request does not claim completion before the work
-returns. Unexpected interruption after work starts has an unknown outcome.
-Transport access to operation status and cancellation is connected. Restart
-recovery remains unimplemented.
+The operation registry tracks ownership, waiting, cancellation and completion.
+A cancellation request does not claim completion before the work returns.
+Unexpected interruption after work starts has an unknown outcome. Transport
+access to operation status and cancellation is connected. The reviewed QA host
+also connects a private durable journal. Installed restart acceptance is pending.
 Within one host lifetime, repeated Action request IDs return the same operation.
 Changed request fields fail with a version conflict. Removing a completed
 operation does not permit its request ID to start work again. Request history
-has a fixed limit and rejects new work when full. This history is not durable
-across a restart, so it does not provide recovery or replay protection then.
+has a fixed limit and rejects new work when full. The journal reserves request
+identity before execution. On reopen it returns saved results or marks pending
+work as unknown. It never restarts a reserved request automatically.
 For the guarded draft operations, the runner checks authority again before it
 returns a result to the script. If authority changes after an update, it stops
 the Action and records an unknown outcome even when the script catches the
 error. The automation result and operation registry retain that state. This does
-not provide durable recovery. Normal app activation remains disabled.
+not establish installed restart acceptance. Normal app activation remains disabled.
 Creating an action requires access to the full library. Action changes use
 an expected version, a signed retry key, and an atomic action and receipt
 transaction. Recovery checks the current grant. A client with resource scope

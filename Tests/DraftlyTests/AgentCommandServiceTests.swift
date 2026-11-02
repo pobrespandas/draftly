@@ -6,7 +6,7 @@ import AgentContracts
 
 @Suite("Authenticated agent reads") @MainActor
 struct AgentCommandServiceTests {
-    @Test func actionSubmissionIsAvailableOnlyWithConnectedExecutorAndRegistry() throws {
+    @Test func actionSubmissionIsAvailableOnlyWithConnectedExecutorAndRegistry() async throws {
         let f = try Fixture()
         let (record, _) = try f.connect(capabilities: [.actionsRun, .actionsRead, .draftsRead])
         let action = DraftAction(name: "Neutral", steps: [])
@@ -50,6 +50,15 @@ struct AgentCommandServiceTests {
         let after = try service.actionExecutionSnapshot(request, connectionID: record.id)
         #expect(before["actionVersion"] == after["actionVersion"])
         #expect(before["draftVersion"] != after["draftVersion"])
+        guard case .string(let rawID) = result["operationID"], let id = UUID(uuidString: rawID) else {
+            Issue.record("Missing operation ID"); return
+        }
+        for _ in 0..<1000 where try !registry.snapshot(id, connectionID: record.id).state.isTerminal { await Task.yield() }
+        let repeated = try JSONDecoder().decode(AgentResponse.self,
+            from: service.respond(to: JSONEncoder().encode(request), session: session))
+        guard case .result(.object(let recovered)) = repeated.outcome else { Issue.record("Missing recovered operation"); return }
+        #expect(recovered["operationID"] == result["operationID"] && recovered["state"] == .string("cancelled"))
+        #expect(submissions == 1)
     }
     @MainActor private final class Fixture {
         let library: LibraryStore

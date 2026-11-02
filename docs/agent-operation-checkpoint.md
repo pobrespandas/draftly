@@ -57,11 +57,13 @@ normal startup, notarization, restart recovery or production acceptance.
 
 ## Remaining integration
 
-The private operation journal can reserve a request identity and save a validated
-snapshot through atomic file replacement. Its tests cover reopening, retained
-effects, grant changes and corrupt files. Request parameters are represented by
-a fingerprint. The journal is not connected to the operation registry yet, so
-the running host still has no restart recovery or durable replay protection.
+The reviewed QA host connects the private operation journal. It reserves request
+identity before execution and saves native handoffs and terminal results through
+atomic file replacement. A reopened registry returns saved terminal results.
+Interrupted work becomes `outcome_unknown`; confirmed effects remain recorded.
+The same request returns its operation ID without execution. Recovery requires
+the original grant and current access. Terminal records cannot be overwritten by
+a late executor. Installed restart acceptance remains pending.
 
 1. Complete result coverage and records for non-native effects. Native effect
    records are connected. Snapshot encoding checks the execution result schema.
@@ -70,10 +72,11 @@ the running host still has no restart recovery or durable replay protection.
 3. Verify the optional host execution path with native effects and installed
    clients before enabling it at application startup. Advertise only handlers
    that are connected and verified.
-4. Persist request history and uncertain outcomes before enabling replay recovery.
+4. Verify storage failures, capacity handling and signed installed restart
+   recovery before enabling normal access.
 5. Verify the installed signed app and helper through CLI and MCP, including
    pairing, scope isolation, cancellation, revocation and restart.
 
-The current registry is bounded and in memory. It does not provide recovery
-or replay protection across a restart. A failed response does not prove that
-an effect did not occur. Do not replay an uncertain effect automatically.
+The registry and journal are bounded. They reject new work when full; they do
+not discard request identities to make room. A failed response does not prove
+that an effect did not occur. Do not replay an uncertain effect automatically.

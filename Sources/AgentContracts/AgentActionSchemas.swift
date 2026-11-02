@@ -121,7 +121,7 @@ package enum AgentActionSchemas {
                 "interactive": o(.boolean, default: .bool(false)), "windowID": o(.uuid),
                 "timeoutSeconds": o(.integer(minimum: 1, maximum: 3600))
             ]), result: .init(fields: ["operationID": r(.uuid),
-                "state": r(.string(choices: ["queued", "running", "waiting_for_user"]))])),
+                "state": r(.string(choices: AgentOperationState.allCases.map(\.rawValue)))])),
             "actionGroups.get": .init(parameters: none, result: .init(fields: [
                 "group": r(.object(group)), "versionToken": r(token)
             ])),

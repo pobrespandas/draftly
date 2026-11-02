@@ -60,11 +60,13 @@ import AgentLocalSecurity
         let file: AgentConnectionFile
         let locator: AgentHostLocator
         let activity: AgentActivityStore
+        let journal: AgentOperationJournal?
         do {
             let parent = lease.location.url.deletingLastPathComponent()
             file = try AgentConnectionFile(parentDirectory: parent)
             locator = try AgentHostLocator(parentDirectory: parent)
             activity = try AgentActivityStore(parentDirectory: parent)
+            journal = enableReviewedActions ? try AgentOperationJournal(parentDirectory: parent) : nil
             _ = try locator.endpoints()
         }
         catch { lease.close(); throw error }
@@ -90,7 +92,7 @@ import AgentLocalSecurity
         }, isLocked: isLocked)
         operations = AgentOperationRegistry(currentGrant: { id in
             try registry.grantForAuthenticatedConnection(id)
-        }, validateHost: validateOwner, isLocked: isLocked)
+        }, validateHost: validateOwner, isLocked: isLocked, journal: journal)
         do {
             service = try AgentCommandService(library: library, libraryID: lease.libraryID, connections: registry,
                 appVersion: appVersion, validateHost: validateOwner, isLocked: isLocked,

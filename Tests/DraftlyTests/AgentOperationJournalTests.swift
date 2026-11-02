@@ -69,4 +69,50 @@ struct AgentOperationJournalTests {
         #expect(throws: AgentErrorCode.storageError) { try AgentOperationJournal(parentDirectory: f.root) }
         #expect(try Data(contentsOf: path) == corrupt)
     }
+
+    @Test func registryReopenReturnsCompletedResultWithoutExecutingAgain() async throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let journal = try AgentOperationJournal(parentDirectory: f.root)
+        let registry = AgentOperationRegistry(currentGrant: { _ in f.grant }, validateHost: {}, isLocked: { false }, journal: journal)
+        var starts = 0
+        let id = try registry.startRequest(f.request, grant: f.grant) { id in
+            starts += 1
+            let effect = UUID()
+            try registry.recordEffect(id, effectID: effect, kind: "share", outcome: "submitted")
+            try registry.recordEffect(id, effectID: effect, kind: "share", outcome: "completed")
+            return .init(report: .notStarted(actionID: f.request.targets[0].id, reason: .cancelled, message: "Later cancellation"),
+                noteID: nil, message: "Later cancellation")
+        }
+        for _ in 0..<1000 where try !registry.snapshot(id, connectionID: f.grant.connectionID).state.isTerminal { await Task.yield() }
+        let original = try registry.snapshot(id, connectionID: f.grant.connectionID).wireValue()
+        let reopened = AgentOperationRegistry(currentGrant: { _ in f.grant }, validateHost: {}, isLocked: { false },
+            journal: try AgentOperationJournal(parentDirectory: f.root))
+        let recovered = try reopened.snapshot(id, connectionID: f.grant.connectionID)
+        #expect(recovered.state == .cancelled && recovered.effects.map(\.outcome) == ["completed"])
+        #expect(try recovered.wireValue() == original)
+        #expect(try reopened.existingRequest(f.request, grant: f.grant) == id)
+        #expect(try reopened.startRequest(f.request, grant: f.grant) { _ in fatalError("Must not replay") } == id)
+        #expect(starts == 1)
+        #expect(throws: AgentErrorCode.permissionDenied) { try reopened.snapshot(id, connectionID: UUID()) }
+    }
+
+    @Test func interruptedHandoffRecoversAsUnknownAndKeepsEarlierEffects() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let journal = try AgentOperationJournal(parentDirectory: f.root), id = UUID()
+        _ = try journal.reserve(f.request, grant: f.grant, operationID: id)
+        let effects: [AgentOperationRegistry.Effect] = ["completed", "submitted"].map {
+            .init(id: UUID(), kind: "share", outcome: $0, resources: Set(f.request.targets))
+        }
+        try journal.save(AgentOperationRegistry.Snapshot(id: id, state: .running, updatedAt: Date(), output: nil,
+            error: nil, effects: effects).wireValue(), operationID: id, grant: f.grant)
+        let registry = AgentOperationRegistry(currentGrant: { _ in f.grant }, validateHost: {}, isLocked: { false }, journal: journal)
+        let result = try registry.snapshot(id, connectionID: f.grant.connectionID)
+        #expect(result.state == .outcomeUnknown && result.effects.map(\.outcome) == ["completed", "unknown"])
+        #expect(try registry.startRequest(f.request, grant: f.grant) { _ in fatalError("Must not replay") } == id)
+        #expect(try journal.record(id, grant: f.grant)?.snapshot == result.wireValue())
+        #expect(throws: AgentErrorCode.versionConflict) {
+            try journal.save(AgentOperationRegistry.Snapshot(id: id, state: .running, updatedAt: Date(), output: nil,
+                error: nil, effects: effects).wireValue(), operationID: id, grant: f.grant)
+        }
+    }
 }

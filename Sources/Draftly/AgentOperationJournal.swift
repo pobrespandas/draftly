@@ -65,6 +65,20 @@ import AgentLocalSecurity
         return record
     }
 
+    func existingRequest(_ request: AgentRequest, grant: AgentGrant) throws -> Record? {
+        guard request.operation == "actions.run", request.libraryID == grant.libraryID else { throw AgentErrorCode.invalidInput }
+        let prepared = try AgentRequestBinding.prepare(request, preferences: AgentPreferenceCatalog.make())
+        guard let record = try read().records.first(where: {
+            $0.connectionID == grant.connectionID && $0.requestID == request.requestID
+        }) else { return nil }
+        guard record.libraryID == grant.libraryID,
+              record.grantFingerprint == (try fingerprint(AgentRequestBinding.grantValue(grant))) else {
+            throw AgentErrorCode.permissionDenied
+        }
+        guard record.requestFingerprint == (try fingerprint(prepared.value)) else { throw AgentErrorCode.versionConflict }
+        return record
+    }
+
     func save(_ snapshot: AgentJSONValue, operationID: UUID, grant: AgentGrant) throws {
         try validateSnapshot(snapshot, operationID: operationID)
         let grantFingerprint = try fingerprint(AgentRequestBinding.grantValue(grant))
@@ -74,6 +88,11 @@ import AgentLocalSecurity
             }
             guard records[index].libraryID == grant.libraryID, records[index].grantFingerprint == grantFingerprint else {
                 throw AgentErrorCode.permissionDenied
+            }
+            if let previous = records[index].snapshot, previous != snapshot,
+               case .object(let fields) = previous, case .string(let raw) = fields["state"],
+               let state = AgentOperationState(rawValue: raw), state.isTerminal {
+                throw AgentErrorCode.versionConflict
             }
             records[index].snapshot = snapshot
         }
