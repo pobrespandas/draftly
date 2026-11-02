@@ -91,7 +91,9 @@ connection was revoked and the test host was stopped.
 An isolated signed CLI session read all five groups, reversed their order, and
 recovered the same five resource receipts on retry. The connection was revoked
 and the host stopped. Separate CLI invocations do not share a cursor session.
-The paged version check has automated coverage, but this run used one page.
+A later isolated MCP session read five groups across three pages and received
+the same order version on every page. The test connection was then revoked.
+Changes between pages have automated coverage.
 
 ## Current components
 
