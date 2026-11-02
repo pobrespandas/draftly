@@ -461,6 +461,10 @@ struct AgentCommandServiceTests {
         let (_, full) = try f.connect(capabilities: [.actionsRead, .actionsManage])
         let (_, limited) = try f.connect(scope: .resources(Set(targets)), capabilities: [.actionsManage])
         guard case .string(let version) = try f.values("actions.groups", session: full)["orderVersion"] else { Issue.record("Missing version"); return }
+        let incomplete = AgentRequest(requestID: UUID(), libraryID: nil, operation: "actionGroups.reorder", targets: [targets[0]],
+                                      expectedVersion: version, parameters: ["order": .array([.string(alpha.uuidString)])])
+        let incompleteFrame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(incomplete))
+        #expect(try f.response("mutations.prepare", session: full, parameters: ["request": incompleteFrame]).outcome == .error(.versionConflict))
         let intent = AgentRequest(requestID: UUID(), libraryID: nil, operation: "actionGroups.reorder", targets: targets,
                                   expectedVersion: version, parameters: ["order": .array([.string(beta.uuidString), .string(alpha.uuidString)])])
         let frame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(intent))
