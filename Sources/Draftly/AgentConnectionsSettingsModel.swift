@@ -34,16 +34,18 @@ import AgentContracts
     private let resolveTargets: (Set<AgentResourceReference>) throws -> Set<AgentResourceReference>
     // The host owns broker startup, shutdown, provisioning and lock observation.
     private let setAccessEnabled: (Bool) throws -> Void
+    private let isAccessActive: () -> Bool
 
     init(libraryID: UUID, registry: AgentConnectionRegistry, pairing: AgentPairingCoordinator,
          now: @escaping () -> Date = Date.init, choices: @escaping () -> [ResourceChoice],
          initialTargets: @escaping () -> Set<AgentResourceReference> = { [] },
          resolveTargets: @escaping (Set<AgentResourceReference>) throws -> Set<AgentResourceReference>,
-         setAccessEnabled: @escaping (Bool) throws -> Void) throws {
+         setAccessEnabled: @escaping (Bool) throws -> Void,
+         isAccessActive: @escaping () -> Bool = { true }) throws {
         guard pairing.isBound(to: registry, libraryID: libraryID) else { throw AgentErrorCode.invalidInput }
         self.libraryID = libraryID; self.registry = registry; self.pairing = pairing; self.now = now
         self.choices = choices; self.initialTargets = initialTargets; self.resolveTargets = resolveTargets
-        self.setAccessEnabled = setAccessEnabled
+        self.setAccessEnabled = setAccessEnabled; self.isAccessActive = isAccessActive
         refresh()
     }
 
@@ -67,7 +69,7 @@ import AgentContracts
     func refresh() {
         do {
             configuration = try registry.configurationForUserInterface()
-            accessEnabled = try registry.permitsTransportStart()
+            accessEnabled = try registry.permitsTransportStart() && isAccessActive()
             readable = true
         } catch { readable = false; accessEnabled = false; lastError = code(error) }
         pending = pairing.pendingFromUserInterface()
@@ -80,7 +82,8 @@ import AgentContracts
         do {
             try setAccessEnabled(enabled)
             guard try registry.configurationForUserInterface().enabled == enabled,
-                  try registry.permitsTransportStart() == enabled else { throw AgentErrorCode.outcomeUnknown }
+                  try registry.permitsTransportStart() == enabled,
+                  !enabled || isAccessActive() else { throw AgentErrorCode.outcomeUnknown }
             lastError = nil; refresh()
         } catch { refresh(); lastError = code(error); throw error }
     }

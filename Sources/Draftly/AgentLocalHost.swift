@@ -151,7 +151,7 @@ import AgentLocalSecurity
             setAccessEnabled: { [weak self] enabled in
                 guard let self else { throw AgentErrorCode.cancelled }
                 try self.setEnabledFromUserInterface(enabled)
-            })
+            }, isAccessActive: { [weak self] in self?.endpoint != nil })
     }
 
     func makeDraftSettingsModel() throws -> AgentConnectionsSettingsModel {

@@ -315,6 +315,23 @@ struct AgentLocalHostTests {
         #expect(model.resourceChoices().isEmpty)
     }
 
+    @Test func settingsShowsSuspendedAccessAsOffAndCanResumeIt() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let first = try f.host()
+        try first.setEnabledFromUserInterface(true)
+        first.close()
+        let host = try f.host(); defer { host.close() }
+        let model = try host.makeLibrarySettingsModel()
+        #expect(try host.connections.configurationForUserInterface().enabled)
+        #expect(host.endpoint == nil && !model.accessEnabled)
+        try model.setEnabled(true)
+        #expect(host.endpoint != nil && model.accessEnabled)
+        host.suspend(); model.refresh()
+        #expect(!model.accessEnabled && host.endpoint == nil)
+        try model.setEnabled(true)
+        #expect(model.accessEnabled && host.endpoint != nil)
+    }
+
     @Test func realPairingSettingsAndSocketReadsShareOneAuthorityAndLibrary() async throws {
         let f = try Fixture(); defer { f.cleanup() }
         let note = try f.library.createNote(content: "Allowed 🐼")
