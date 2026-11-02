@@ -32,8 +32,8 @@ struct AgentAuthorizedActionHostTests {
         func finishAction() { finished += 1 }
     }
 
-    @Test(arguments: ["completed", "failed", "unknown", "malformed", "wrongType"])
-    func nativeEffectsRecordHandoffAndItsOutcome(outcome: String) async throws {
+    @Test(arguments: ["completed", "failed", "unknown", "malformed", "wrongType"], ["share", "shareFile", "print"])
+    func nativeEffectsRecordHandoffAndItsOutcome(outcome: String, operation: String) async throws {
         let host = Host()
         if outcome == "failed" { host.asyncResult = "{\"value\":false}" }
         if outcome == "unknown" { host.failure = .timeout }
@@ -44,11 +44,11 @@ struct AgentAuthorizedActionHostTests {
         let guarded = AgentAuthorizedActionHost(host: host,
             recordEffect: { events.append(($0, $1, $2)) }, authorize: { _, _ in })
         if outcome == "unknown" {
-            await #expect(throws: AgentErrorCode.timeout) { try await guarded.performAsync("share", payload: "{}") }
-        } else { _ = try await guarded.performAsync("share", payload: "{}") }
+            await #expect(throws: AgentErrorCode.timeout) { try await guarded.performAsync(operation, payload: "{}") }
+        } else { _ = try await guarded.performAsync(operation, payload: "{}") }
         let expected = ["malformed", "wrongType"].contains(outcome) ? "unknown" : outcome
         #expect(events.map { $0.2 } == ["submitted", expected])
-        #expect(events.first?.0 == events.last?.0 && events.allSatisfy { $0.1 == "share" })
+        #expect(events.first?.0 == events.last?.0 && events.allSatisfy { $0.1 == operation })
         #expect(guarded.hasUncertainOutcome == (expected == "unknown"))
     }
 

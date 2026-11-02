@@ -75,10 +75,11 @@ route supported operations through this flow.
 Native effect reviews bind the concrete operation and its parameters to a
 single-use decision. Unclassified effects are denied. File writes and
 unrestricted automation require library scope, and unrestricted automation
-also requires its separate capability. An internal Action executor can route a
-share step through this review flow. It checks the approved Action definitions,
-target scope and current version snapshots again before the effect. The agent
-service does not expose Action execution yet.
+also requires its separate capability. The reviewed QA Action executor routes share, Open In and print steps through
+this review flow. It checks the approved Action definitions,
+target scope and current version snapshots again before the effect. The QA service exposes Action execution only when reviewed execution is enabled.
+Installed acceptance covers share. Open In and print have headless coverage;
+their installed review and cancellation checks remain pending.
 The operation registry tracks ownership, waiting, cancellation and completion.
 A cancellation request does not claim completion before the work returns.
 Unexpected interruption after work starts has an unknown outcome. Transport

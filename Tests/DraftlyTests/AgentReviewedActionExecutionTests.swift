@@ -43,22 +43,23 @@ struct AgentReviewedActionExecutionTests {
     }
     private final class Host: ActionHost {
         var shares = 0
-        func supportsAsync(_ operation: String) -> Bool { operation == "share" }
+        func supportsAsync(_ operation: String) -> Bool { ["share", "shareFile", "print"].contains(operation) }
         func perform(_ operation: String, values: [String: Any]) throws -> Any? {
             if operation == "device" { return ["systemName": "macOS", "model": "Mac", "systemVersion": "test"] }
             throw AgentErrorCode.unavailable
         }
         func performAsync(_ operation: String, payload: String) async throws -> String {
-            guard operation == "share" else { throw AgentErrorCode.unavailable }
+            guard ["share", "shareFile", "print"].contains(operation) else { throw AgentErrorCode.unavailable }
             shares += 1
             return "{\"value\":true}"
         }
     }
 
-    @Test func actionWaitsForReviewedShareBeforeNativeEffect() async throws {
+    @Test(arguments: ["share", "openIn", "print"])
+    func actionWaitsForReviewedNativeEffect(stepType: String) async throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let note = try library.createNote(content: "Neutral")
-        let action = DraftAction(name: "Share", steps: [ActionStep("share", ["template": "[[draft]]"])])
+        let action = DraftAction(name: "Share", steps: [ActionStep(stepType, ["template": "[[draft]]"])])
         try library.saveAction(action)
         let model = WindowModel(library: library); model.select(note.id)
         let connection = UUID(), libraryID = UUID()
@@ -84,7 +85,7 @@ struct AgentReviewedActionExecutionTests {
         }
         for _ in 0..<1000 where approvals.pendingFromUserInterface().isEmpty { await Task.yield() }
         let review = try #require(approvals.pendingFromUserInterface().first)
-        #expect(host.shares == 0 && review.effects.snapshot["nativeOperation"] == .string("share"))
+        #expect(host.shares == 0 && review.effects.snapshot["nativeOperation"] == .string(stepType == "openIn" ? "shareFile" : stepType))
         #expect(waiting == [true])
         #expect(try operations.snapshot(operationID, connectionID: connection).state == .waitingForUser)
         #expect(try operations.snapshot(operationID, connectionID: connection).effects.isEmpty)

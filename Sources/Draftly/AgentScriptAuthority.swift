@@ -98,7 +98,7 @@ import DraftlyCore
         guard approved.steps.contains(step) else { throw AgentErrorCode.versionConflict }
         switch step.type {
         case "script", "includeAction", "configurationKey": break
-        case "share":
+        case "share", "openIn", "print":
             guard reviewedNativeEffects else { throw AgentErrorCode.unavailable }
             guard grant.capabilities.contains(.nativeUse) else { throw AgentErrorCode.permissionDenied }
         case "insertText":
@@ -123,7 +123,7 @@ import DraftlyCore
         let approved = try checkedAction(rootActionID)
         try requireApprovedActionsUnchanged()
         if operation != "device" {
-            guard operation == "share", reviewedNativeEffects,
+            guard ["share", "shareFile", "print"].contains(operation), reviewedNativeEffects,
                   grant.capabilities.contains(.nativeUse) else { throw AgentErrorCode.permissionDenied }
         }
         try requireUnchanged(grant)

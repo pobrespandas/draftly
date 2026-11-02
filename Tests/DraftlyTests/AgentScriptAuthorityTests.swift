@@ -119,4 +119,35 @@ struct AgentScriptAuthorityTests {
         #expect(throws: AgentErrorCode.versionConflict) { try authority.acceptConfiguredAction(before: before, after: after) }
         #expect(try authority.visibleActions([after]).isEmpty)
     }
+
+    @Test(arguments: ["share", "openIn", "print"])
+    func reviewedNativeStepsRequireNativePermissionAndCurrentDefinition(stepType: String) throws {
+        let draft = UUID(), step = ActionStep(stepType)
+        let action = DraftAction(name: "Reviewed", steps: [step])
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let grant = AgentGrant(connectionID: UUID(), libraryID: UUID(), expiresAt: now.addingTimeInterval(60),
+            capabilities: [.actionsRun, .draftsRead, .nativeUse],
+            scope: .resources([.init(kind: .draft, id: draft), .init(kind: .action, id: action.id)]))
+        var current = grant, definition = action
+        let operation = stepType == "openIn" ? "shareFile" : stepType
+        func authority(reviewed: Bool) -> AgentScriptAuthority {
+            AgentScriptAuthority(grant: grant, currentGrant: { current }, validateHost: {}, isLocked: { false },
+                now: { now }, draftExists: { $0 == draft }, targetDraftID: draft,
+                approvedActions: [action.id: action], currentAction: { $0 == action.id ? definition : nil },
+                reviewedNativeEffects: reviewed)
+        }
+        let enabled = authority(reviewed: true)
+        try enabled.authorizeStep(owner: action.id, step: step)
+        try enabled.authorizeNative(operation, rootActionID: action.id)
+        #expect(throws: AgentErrorCode.unavailable) {
+            try authority(reviewed: false).authorizeStep(owner: action.id, step: step)
+        }
+        current = AgentGrant(connectionID: grant.connectionID, libraryID: grant.libraryID, expiresAt: grant.expiresAt,
+            capabilities: [.actionsRun, .draftsRead], scope: grant.scope, grantID: grant.grantID)
+        #expect(throws: AgentErrorCode.permissionDenied) { try enabled.authorizeStep(owner: action.id, step: step) }
+        #expect(throws: AgentErrorCode.permissionDenied) { try enabled.authorizeNative(operation, rootActionID: action.id) }
+        current = grant; definition.name = "Changed"
+        #expect(throws: AgentErrorCode.versionConflict) { try enabled.authorizeNative(operation, rootActionID: action.id) }
+    }
+
 }
