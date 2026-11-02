@@ -107,7 +107,7 @@ jobs:
         shell: bash
         run: |
           trace_library="$RUNNER_TEMP/draftly-test-exit-trace.dylib"
-          xcrun clang -dynamiclib -g scripts/trace-test-exit.c -o "$trace_library"
+          xcrun clang -dynamiclib -g -arch arm64 -arch arm64e scripts/trace-test-exit.c -o "$trace_library"
           echo "DRAFTLY_TEST_EXIT_TRACE_LIBRARY=$trace_library" >> "$GITHUB_ENV"
           echo "DRAFTLY_TEST_SWIFT_EXECUTABLE=$(xcrun --find swift)" >> "$GITHUB_ENV"
       - name: Run Swift tests and verify inventory

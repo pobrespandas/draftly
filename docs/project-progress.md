@@ -31,6 +31,20 @@ test selection, deadlines, or retries. The dylib is a CI diagnostic and is not
 bundled in the app. Local smoke checks preserved exit statuses 73 and 74 and
 captured their stacks. All 22 runner unit tests passed.
 
+Run `41382985447` stopped before the first target test. The trace dylib had only
+an arm64 slice. The hosted SDK lookup process required arm64e and rejected it.
+The tracer now includes both slices. Local SDK lookup and exit-status smoke
+checks passed with that universal dylib. This diagnostic failure is separate
+from the earlier incomplete test reports.
+
+Isolated native QA accepted Maintenance replacement and cancellation. The dialog
+explained replacement, restoration, and preservation of other actions. Replace
+reported 110 installed actions in the five canonical groups. Basic showed the
+reviewed blue, green, gray, orange, and red symbols; the editor bar also showed
+its colors. The Agents tab was absent. The QA app used a separate identity and
+library with CloudKit disabled, then quit. The usual app remained unchanged.
+This is local visual acceptance, not live CloudKit or final package acceptance.
+
 ## Default catalog replacement — 1 November
 
 Settings > Maintenance now replaces the canonical default actions by ID.
