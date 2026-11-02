@@ -32,8 +32,10 @@ struct AgentLocalHostTests {
             }
             try? FileManager.default.removeItem(at: root)
         }
-        func host(editors: AgentEditorRegistry? = nil, socketParent: URL = FileManager.default.temporaryDirectory) throws -> AgentLocalHost {
-            try AgentLocalHost(library: library, appVersion: "Neutral QA", editors: editors, isLocked: { [self] in self.locked },
+        func host(editors: AgentEditorRegistry? = nil, enableReviewedActions: Bool = false,
+                  socketParent: URL = FileManager.default.temporaryDirectory) throws -> AgentLocalHost {
+            try AgentLocalHost(library: library, appVersion: "Neutral QA", editors: editors,
+                enableReviewedActions: enableReviewedActions, isLocked: { [self] in self.locked },
                 pendingEditorGeneration: { _ in "" }, resolveTargets: { [self] targets in
                     AgentLibraryResourceChoices(library: self.library, editors: editors).resolve(targets)
                 }, socketParentDirectory: socketParent,
@@ -75,6 +77,39 @@ struct AgentLocalHostTests {
             let request = AgentRequest(requestID: UUID(), libraryID: nil, operation: operation)
             return try JSONDecoder().decode(AgentResponse.self, from: service.respond(to: JSONEncoder().encode(request), session: session))
         }
+    }
+
+    @Test func reviewedActionAdmissionRequiresAnExplicitAuthorizedEditorWindow() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let note = try f.library.createNote(content: "Unchanged")
+        let action = DraftAction(name: "Neutral", steps: [])
+        try f.library.saveAction(action)
+        let model = WindowModel(library: f.library); model.select(note.id)
+        let editors = AgentEditorRegistry(library: f.library, models: { [model] })
+        let host = try f.host(editors: editors, enableReviewedActions: true)
+        defer { host.close() }
+        try host.setEnabledFromUserInterface(true)
+        let record = try host.connections.connectFromUserInterface(name: "Admission", libraryID: host.libraryID,
+            capabilities: [.actionsRead, .actionsRun, .draftsRead, .draftsWrite, .editorRead, .editorWrite], scope: .library)
+        let session = try host.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        func response(_ request: AgentRequest) throws -> AgentResponse {
+            try JSONDecoder().decode(AgentResponse.self,
+                from: host.service.respond(to: JSONEncoder().encode(request), session: session))
+        }
+        let read = try response(.init(requestID: UUID(), libraryID: host.libraryID, operation: "actions.get",
+            targets: [.init(kind: .action, id: action.id)]))
+        guard case .result(.object(let values)) = read.outcome,
+              case .string(let version) = values["versionToken"] else { Issue.record("Missing action version"); return }
+        let before = try f.backupSnapshot()
+        for parameters: [String: AgentJSONValue] in [[:], ["windowID": .string(UUID().uuidString)]] {
+            let result = try response(.init(requestID: UUID(), libraryID: host.libraryID, operation: "actions.run",
+                targets: [.init(kind: .action, id: action.id), .init(kind: .draft, id: note.id)],
+                expectedVersion: version, parameters: parameters))
+            let expected: AgentErrorCode = parameters.isEmpty ? .interactionRequired : .notFound
+            #expect(result.outcome == .error(expected))
+        }
+        #expect(try f.backupSnapshot() == before)
+        #expect(host.approvals.pendingFromUserInterface().isEmpty)
     }
 
     @Test func hostRejectsAnotherLibraryEditorRegistryBeforeCreatingPrivateState() throws {
