@@ -1,6 +1,7 @@
 # Local agent operation checkpoint
 
-The agent service does not expose Action execution or operation control yet.
+The agent service exposes operation queries and cancellation when its registry
+is connected. It does not expose Action execution yet.
 Normal application startup still needs a verified lock adapter. Published
 builds keep agent access disabled.
 
@@ -17,9 +18,10 @@ builds keep agent access disabled.
 
 ## Remaining integration
 
-1. Encode operation snapshots with the existing execution result schema.
-2. Route operation control through authenticated session ownership. Resource
-   grants must retain their original draft and Action scope.
+1. Complete operation result coverage and recorded effects. Snapshot encoding
+   already checks the existing execution result schema.
+2. Verify operation queries and cancellation through installed CLI and MCP.
+   The service checks connection ownership and original resource scope.
 3. Connect Action submission to the registry and reviewed executor. Advertise
    only handlers that are connected and verified.
 4. Persist request history and uncertain outcomes before enabling replay recovery.
