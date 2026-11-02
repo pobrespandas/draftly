@@ -3,6 +3,32 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Public 0.1.5 — 1 November
+
+[0.1.5/build 6](https://github.com/pobrespandas/draftly/releases/tag/v0.1.5)
+is public from `b03c86b`. PR #81 integrated the parity corrections and the
+120-minute native CI and release rehearsal limits. PR #83 prepared the final
+version after a documentation merge advanced main. Tag v0.1.4 remains fixed;
+its attempt stopped before candidate signing and publication.
+
+Protected CI `41372526306` passed. The app correction code also passed 2,224
+local Swift cases, a local build, and isolated native QA. Candidate run
+`41373367140` passed signing, notarization and staging. Recovery run
+`41374988451` restored that original candidate, verified the public assets,
+promoted the site and released the writer lock. Both live download buttons
+point to the 0.1.5 DMG.
+
+The exact ZIP passed isolated installation and automatic relaunch. The habitual
+app then updated from 0.1.3 through the public signed feed and relaunched as
+0.1.5/build 6. Its executable matches the original candidate. Strict signature
+and Gatekeeper checks passed. The three existing drafts remained visible with
+their original text and dates. Settings uses the native toolbar and has no
+Agents tab. Normal agent startup remains disabled; no helper is bundled.
+
+These checks do not establish complete visual parity, VM or offline acceptance,
+or a new CloudKit synchronization matrix. Existing cloud action catalogs remain
+unchanged. Explicit default installation remains available in Settings.
+
 ## Patch branch combined validation — 1 November
 
 Merge9bc3472 preserves local-route headd2ac2c6 and native diagnostics. The only
