@@ -14,6 +14,24 @@ struct LibraryMutationReceiptTests {
         notes.map { .init(id: $0.id, versionToken: "opaque-neutral-version") }
     }
 
+    @Test func groupAndReceiptRollBackTogetherWhenCommitValidationFails() throws {
+        let library = try LibraryStore(inMemory: true, seed: false), group = ActionGroupRecord(name: "Neutral"), mutation = identity()
+        #expect(throws: (any Error).self) {
+            try library.commitActionGroup(group, mutation: mutation, at: now,
+                validateCommit: { throw DraftlyError.message("Authority changed") }) {
+                    .init(id: $0.id, versionToken: "opaque-version")
+                }
+        }
+        #expect(library.actionGroups.isEmpty)
+        #expect(try library.mutationReceipt(for: mutation, at: now) == nil)
+        #expect(!library.container.viewContext.hasChanges)
+        let receipt = try library.commitActionGroup(group, mutation: mutation, at: now) {
+            .init(id: $0.id, versionToken: "opaque-version")
+        }
+        #expect(try library.mutationReceipt(for: mutation, at: now) == receipt)
+        #expect(library.actionGroups == [group])
+    }
+
     @Test func actionAndReceiptCommitTogetherAndReplayAfterReopen() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }

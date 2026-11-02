@@ -291,6 +291,26 @@ public final class LibraryStore: ObservableObject {
             container.viewContext.rollback(); try? reload(); throw error
         }
     }
+
+    package func commitActionGroup(_ group: ActionGroupRecord, mutation: LibraryMutationIdentity, at now: Date,
+                                   validateCommit: () throws -> Void = {},
+                                   makeResource: (ActionGroupRecord) throws -> LibraryMutationReceipt.Resource) throws -> LibraryMutationReceipt {
+        if let previous = try mutationReceipt(for: mutation, at: now) {
+            guard previous.resources.count == 1, previous.resources[0].id == group.id else {
+                throw LibraryMutationReceiptError.requestConflict
+            }
+            return previous
+        }
+        do {
+            try persist(group, id: group.id, kind: "actionGroup")
+            let receipt = LibraryMutationReceipt(id: UUID(), mutation: mutation, committedAt: now, resources: [try makeResource(group)])
+            try receipt.validate()
+            guard receipt.resources[0].id == group.id else { throw LibraryMutationReceiptError.invalidReceipt }
+            try persist(receipt, id: receipt.id, kind: "agentMutationReceipt")
+            try beforeBatchCommit?(); try validateCommit(); try commit()
+            return receipt
+        } catch { container.viewContext.rollback(); try? reload(); throw error }
+    }
     @discardableResult
     public func reinstallDefaultActions() throws -> DefaultActionCatalogInstallation {
         let bundle = DefaultActionCatalog.restoredBundle(existingGroupNames: groupNames)

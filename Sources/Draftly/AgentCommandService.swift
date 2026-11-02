@@ -16,7 +16,7 @@ import AgentContracts
         "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions", "preferences.schema"]
     private static let editorReadOperations: Set<String> = ["editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks"]
     private static let actionReadOperations: Set<String> = ["actions.list", "actions.get", "actions.stepSchemas", "actions.groups", "actionGroups.get"]
-    static let implementedOperations = readOperations.union(actionReadOperations).union([AgentMutationSchemas.name, "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.validateShortcut"]).union(AgentDraftWriting.operationNames).union(editorReadOperations)
+    static let implementedOperations = readOperations.union(actionReadOperations).union([AgentMutationSchemas.name, "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.validateShortcut", "actionGroups.create"]).union(AgentDraftWriting.operationNames).union(editorReadOperations)
     private var availableOperations: Set<String> {
         var operations = editorRegistry == nil ? Self.readOperations.union(Self.actionReadOperations) : (writes == nil ? Self.readOperations.union(Self.editorReadOperations).union(Self.actionReadOperations) : Self.implementedOperations)
         if readActivity != nil { operations.insert("activity.list") }
@@ -259,12 +259,35 @@ import AgentContracts
         return copy
     }
 
+    private func newActionGroup(_ request: AgentRequest) throws -> ActionGroupRecord {
+        let parameters: [String: AgentJSONValue]
+        do { parameters = try AgentActionSchemas.validatedParameters(for: request) }
+        catch { throw AgentErrorCode.invalidInput }
+        guard case .object(let input) = parameters["group"], case .string(let name) = input["name"],
+              !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw AgentErrorCode.invalidInput }
+        var base = ActionGroupRecord(name: name.trimmingCharacters(in: .whitespacesAndNewlines)); base.id = UUID()
+        guard case .object(var definition) = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(base)) else {
+            throw AgentErrorCode.storageError
+        }
+        definition.merge(input) { _, new in new }
+        definition["name"] = .string(base.name)
+        do { return try JSONDecoder().decode(ActionGroupRecord.self, from: JSONEncoder().encode(AgentJSONValue.object(definition))) }
+        catch { throw AgentErrorCode.invalidInput }
+    }
+
+    private func validateNewGroup(_ group: ActionGroupRecord) throws {
+        guard !actionLibrary.groupNames.contains(group.name),
+              !actionLibrary.actionGroupIdentifiers.values.contains(group.id) else { throw AgentErrorCode.versionConflict }
+    }
+
     private func actionMutationReceipt(_ request: AgentRequest, ticket: AgentRetryKeys.Ticket) throws -> LibraryMutationReceipt? {
         let identity = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
         do {
             let receipt = try actionLibrary.mutationReceipt(for: identity, at: now())
             let expected: UUID?
-            if request.operation == "actions.create", case .object(let action) = request.parameters["action"],
+            if request.operation == "actionGroups.create", case .object(let group) = request.parameters["group"],
+               case .string(let raw) = group["id"] { expected = UUID(uuidString: raw) }
+            else if request.operation == "actions.create", case .object(let action) = request.parameters["action"],
                case .string(let raw) = action["id"] { expected = UUID(uuidString: raw) }
             else if request.operation == "actions.duplicate" { expected = nil }
             else { expected = request.targets.first(where: { $0.kind == .action })?.id }
@@ -287,7 +310,8 @@ import AgentContracts
         try validateAdmission()
         let ticket = try retryKeys.issue(request, connectionID: connectionID)
         if try actionMutationReceipt(request, ticket: ticket) == nil {
-            if request.operation == "actions.create" { try validateNewAction(newAction(request)) }
+            if request.operation == "actionGroups.create" { try validateNewGroup(newActionGroup(request)) }
+            else if request.operation == "actions.create" { try validateNewAction(newAction(request)) }
             else if request.operation == "actions.duplicate" { try validateNewAction(checkedActionDuplicate(request)) }
             else if request.operation == "actions.move" { _ = try checkedActionMove(request) }
             else { _ = try checkedActionUpdate(request, connectionID: connectionID) }
@@ -303,6 +327,17 @@ import AgentContracts
         if let previous = try actionMutationReceipt(request, ticket: ticket) {
             try validateAdmission(); _ = try retryKeys.verify(key, request: request, connectionID: connectionID)
             return previous
+        }
+        if request.operation == "actionGroups.create" {
+            let group = try newActionGroup(request); try validateNewGroup(group)
+            let identity = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
+            do {
+                return try actionLibrary.commitActionGroup(group, mutation: identity, at: now(), validateCommit: {
+                    try self.validateAdmission(); _ = try self.retryKeys.verify(key, request: request, connectionID: connectionID)
+                    try self.validateNewGroup(group)
+                }, makeResource: { .init(id: $0.id, versionToken: try self.groupVersion($0)) })
+            } catch let error as AgentErrorCode { throw error }
+            catch { throw AgentErrorCode.storageError }
         }
         let action: DraftAction
         if request.operation == "actions.create" { action = try newAction(request); try validateNewAction(action) }
@@ -446,10 +481,10 @@ import AgentContracts
             let input = try AgentMutationSchemas.mutation(from: parameters)
             let bound = AgentRequest(requestID: input.requestID, libraryID: input.libraryID ?? libraryID,
                 operation: input.operation, targets: input.targets, expectedVersion: input.expectedVersion, parameters: input.parameters)
-            let ticket = try ["actions.create", "actions.update", "actions.duplicate", "actions.move"].contains(bound.operation) ? prepareActionUpdate(bound, connectionID: grant.connectionID) : writes.prepare(bound, connectionID: grant.connectionID)
+            let ticket = try ["actions.create", "actions.update", "actions.duplicate", "actions.move", "actionGroups.create"].contains(bound.operation) ? prepareActionUpdate(bound, connectionID: grant.connectionID) : writes.prepare(bound, connectionID: grant.connectionID)
             return ["requestID": .string(bound.requestID.uuidString), "retryKey": .string(ticket.value),
                 "expiresAt": .string(APIValues.date(min(ticket.expiresAt, grant.expiresAt)))]
-        case "actions.create", "actions.update", "actions.duplicate", "actions.move":
+        case "actions.create", "actions.update", "actions.duplicate", "actions.move", "actionGroups.create":
             let receipt = try updateAction(request, connectionID: grant.connectionID)
             guard let resource = receipt.resources.first else { throw AgentErrorCode.storageError }
             return ["resource": .object(["id": .string(resource.id.uuidString), "versionToken": .string(resource.versionToken)])]
