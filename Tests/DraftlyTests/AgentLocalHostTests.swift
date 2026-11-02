@@ -431,6 +431,28 @@ struct AgentLocalHostTests {
         #expect(throws: AgentErrorCode.permissionDenied) { try model.decideOperation(review, approved: true) }
     }
 
+    @Test func stopWorkCancelsRunningAgentOperations() async throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let host = try f.host(); defer { host.close() }
+        let model = try host.makeLibrarySettingsModel(); try model.setEnabled(true)
+        let record = try host.connections.connectFromUserInterface(name: "Operation test", libraryID: host.libraryID,
+            capabilities: [.actionsRun, .draftsRead], scope: .library)
+        let currentGrant = try host.connections.grantForAuthenticatedConnection(record.id)
+        let grant = try #require(currentGrant)
+        var started = false, cancelled = false
+        _ = try host.operations.start(grant: grant, targets: []) {
+            started = true
+            do { try await Task.sleep(for: .seconds(30)) } catch { cancelled = true }
+            let report = ActionExecutionReport.notStarted(actionID: UUID(), reason: .cancelled, message: "Cancelled")
+            return .init(report: report, noteID: nil, message: "Cancelled")
+        }
+        for _ in 0..<100 where !started { await Task.yield() }
+        #expect(started)
+        try model.stopWork()
+        for _ in 0..<1000 where !cancelled { await Task.yield() }
+        #expect(cancelled)
+    }
+
     @Test func authenticatedRequestsRecordMetadataWithoutChangingTheirResultOnStorageFailure() async throws {
         let f = try Fixture(); defer { f.cleanup() }
         let host = try f.host(); defer { host.close() }

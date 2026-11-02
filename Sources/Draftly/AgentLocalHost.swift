@@ -10,6 +10,7 @@ import AgentLocalSecurity
     let connections: AgentConnectionRegistry
     let pairing: AgentPairingCoordinator
     let approvals: AgentApprovalStore
+    let operations: AgentOperationRegistry
     let service: AgentCommandService
     private let library: LibraryStore
     private let editors: AgentEditorRegistry?
@@ -86,6 +87,9 @@ import AgentLocalSecurity
         approvals = AgentApprovalStore(currentGrant: { id in
             try? registry.grantForAuthenticatedConnection(id)
         }, isLocked: isLocked)
+        operations = AgentOperationRegistry(currentGrant: { id in
+            try registry.grantForAuthenticatedConnection(id)
+        }, validateHost: validateOwner, isLocked: isLocked)
         do {
             service = try AgentCommandService(library: library, libraryID: lease.libraryID, connections: registry,
                 appVersion: appVersion, validateHost: validateOwner, isLocked: isLocked,
@@ -148,6 +152,7 @@ import AgentLocalSecurity
         broker?.stop(); broker = nil
         service.invalidateAll(); pairing.invalidatePending()
         approvals.invalidateForScreenLock()
+        operations.cancelAll()
         publications.withdraw()
     }
 
@@ -285,5 +290,6 @@ import AgentLocalSecurity
         service.invalidate(connectionID: id)
         pairing.invalidatePending()
         approvals.invalidateConnection(id)
+        operations.cancelConnection(id)
     }
 }

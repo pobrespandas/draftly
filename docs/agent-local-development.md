@@ -79,6 +79,10 @@ also requires its separate capability. An internal Action executor can route a
 share step through this review flow. It checks the approved Action definitions,
 target scope and current version snapshots again before the effect. The agent
 service does not expose Action execution yet.
+The operation registry tracks ownership, waiting, cancellation and completion
+in memory. A cancellation request does not claim completion before the work
+returns. Unexpected interruption after work starts has an unknown outcome.
+Restart recovery and transport access to operation status remain unimplemented.
 For the guarded draft operations, the runner checks authority again before it
 returns a result to the script. If authority changes after an update, it stops
 the Action and records an unknown outcome even when the script catches the
