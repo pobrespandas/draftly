@@ -125,6 +125,11 @@ struct AgentCommandServiceTests {
                                        targets: intent.targets, expectedVersion: version, retryKey: key)
             return try JSONDecoder().decode(AgentResponse.self, from: f.service.respond(to: JSONEncoder().encode(request), session: session))
         }
+        var concurrent = source; concurrent.name = "Concurrent edit"
+        try f.library.saveAction(concurrent)
+        #expect(try send(key, full).outcome == .error(.versionConflict))
+        #expect(f.library.actions == [concurrent])
+        try f.library.saveAction(source)
         let response = try send(key, full)
         guard case .result = response.outcome else { Issue.record("Duplicate failed: \(response.outcome)"); return }
         let copy = try #require(f.library.actions.first(where: { $0.id != source.id }))
@@ -136,6 +141,8 @@ struct AgentCommandServiceTests {
         guard case .string(let retryKey) = retry["retryKey"] else { Issue.record("Missing recovery key"); return }
         #expect(try send(retryKey, reopened) == response)
         #expect(f.library.actions.count == 2)
+        _ = try f.connections.revokeFromUserInterface(record.id)
+        #expect(try send(retryKey, reopened).outcome == .error(.permissionDenied))
     }
 
     @Test func moveActionRequiresBothResourcesAndRecoversTheResult() throws {
