@@ -138,7 +138,8 @@ struct AgentApplicationHostTests {
         try app.adoptAgentHost(host)
         let settings = try #require(app.agentSettings)
         #expect(Set(settings.resourceChoices().map(\.reference)) == [
-            .init(kind: .draft, id: note.id), .init(kind: .action, id: action.id)
+            .init(kind: .draft, id: note.id), .init(kind: .action, id: action.id),
+            .init(kind: .actionGroup, id: try #require(f.library.actionGroupIdentifiers[action.group]))
         ])
         #expect(!settings.accessEnabled && host.endpoint == nil && f.secrets.values.isEmpty)
         try f.library.deleteAction(action.id)

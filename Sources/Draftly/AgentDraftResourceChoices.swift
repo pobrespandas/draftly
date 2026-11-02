@@ -28,6 +28,9 @@ struct AgentLibraryResourceChoices {
     func choices() -> [AgentConnectionsSettingsModel.ResourceChoice] {
         AgentDraftResourceChoices(library: library).choices() + library.actions.filter { !$0.isSeparator }.map { action in
             .init(reference: .init(kind: .action, id: action.id), title: action.name)
+        } + library.groupNames.compactMap { name in
+            guard let id = library.actionGroupIdentifiers[name] else { return nil }
+            return .init(reference: .init(kind: .actionGroup, id: id), title: name)
         }
     }
 

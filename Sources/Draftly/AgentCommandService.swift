@@ -15,8 +15,9 @@ import AgentContracts
     private static let readOperations: Set<String> = ["server.status", "server.capabilities", "server.schemas",
         "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions", "preferences.schema"]
     private static let editorReadOperations: Set<String> = ["editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks"]
-    static let implementedOperations = readOperations.union(["actions.list", "actions.get"]).union([AgentMutationSchemas.name]).union(AgentDraftWriting.operationNames).union(editorReadOperations)
-    private var availableOperations: Set<String> { editorRegistry == nil ? Self.readOperations.union(["actions.list", "actions.get"]) : (writes == nil ? Self.readOperations.union(Self.editorReadOperations).union(["actions.list", "actions.get"]) : Self.implementedOperations) }
+    private static let actionReadOperations: Set<String> = ["actions.list", "actions.get", "actions.groups"]
+    static let implementedOperations = readOperations.union(actionReadOperations).union([AgentMutationSchemas.name]).union(AgentDraftWriting.operationNames).union(editorReadOperations)
+    private var availableOperations: Set<String> { editorRegistry == nil ? Self.readOperations.union(Self.actionReadOperations) : (writes == nil ? Self.readOperations.union(Self.editorReadOperations).union(Self.actionReadOperations) : Self.implementedOperations) }
     private let actionLibrary: LibraryStore
     private let actionVersionKey = SymmetricKey(size: .bits256)
     private let editorRegistry: AgentEditorRegistry?
@@ -157,6 +158,24 @@ import AgentContracts
     private func dispatch(_ request: AgentRequest, parameters: [String: AgentJSONValue], grant: AgentGrant,
                           sessionID: UUID) throws -> [String: AgentJSONValue] {
         switch request.operation {
+        case "actions.groups":
+            func groups() -> [ActionGroupRecord] {
+                self.actionLibrary.groupNames.enumerated().compactMap { order, name in
+                    guard let id = self.actionLibrary.actionGroupIdentifiers[name],
+                          grant.scope.permits(.init(kind: .actionGroup, id: id)) else { return nil }
+                    if let record = self.actionLibrary.actionGroups.first(where: { $0.name == name && $0.id == id }) { return record }
+                    var record = ActionGroupRecord(name: name); record.id = id; record.order = order
+                    return record
+                }
+            }
+            return try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
+                parameters: parameters, expiresAt: grant.expiresAt, ids: { groups().map(\.id) }, value: { id in
+                    guard let group = groups().first(where: { $0.id == id }) else { return nil }
+                    let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
+                    let token = Data(HMAC<SHA256>.authenticationCode(for: try encoder.encode(group), using: self.actionVersionKey)).base64EncodedString()
+                    return .object(["id": .string(id.uuidString), "name": .string(group.name),
+                        "symbol": .string(group.symbol), "order": .integer(Int64(group.order)), "versionToken": .string(token)])
+                })
         case "actions.get":
             guard let id = request.targets.first?.id,
                   grant.scope.permits(.init(kind: .action, id: id)),
