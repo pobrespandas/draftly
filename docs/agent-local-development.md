@@ -62,6 +62,10 @@ save can update the approved snapshot only for the allowed configuration fields.
 If authority changes after the save, the outcome is uncertain and execution
 stops. Runtime effect approval and durable operation recovery still need
 integration.
+The guarded native host can wait for a human decision before an asynchronous
+effect. It checks current authority again after the decision. Synchronous calls
+cannot wait and are denied when this decision is required. This hook is not yet
+connected to the approval interface or agent service.
 For the guarded draft operations, the runner checks authority again before it
 returns a result to the script. If authority changes after an update, it stops
 the Action and records an unknown outcome even when the script catches the

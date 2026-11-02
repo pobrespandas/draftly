@@ -40,6 +40,44 @@ struct AgentAuthorizedActionHostTests {
         #expect(host.finished == 1)
     }
 
+    @Test func humanDecisionIsRequiredBeforeNativeHandoff() async throws {
+        let host = Host()
+        var decisions = 0, checks = 0
+        let guarded = AgentAuthorizedActionHost(host: host, approve: { operation, values in
+            decisions += 1
+            #expect(operation == "share" && values["text"] as? String == "neutral")
+            throw AgentErrorCode.permissionDenied
+        }, authorize: { _, _ in checks += 1 })
+        await #expect(throws: AgentErrorCode.permissionDenied) {
+            try await guarded.performAsync("share", payload: "{\"text\":\"neutral\"}")
+        }
+        #expect(decisions == 1 && checks == 1 && host.calls == 0 && !guarded.hasUncertainOutcome)
+        #expect(throws: AgentErrorCode.interactionRequired) { try guarded.perform("share", values: [:]) }
+        #expect(host.calls == 0)
+    }
+
+    @Test func authorityIsCheckedAgainAfterHumanDecision() async throws {
+        let host = Host()
+        var allowed = true
+        let guarded = AgentAuthorizedActionHost(host: host, approve: { _, _ in allowed = false }, authorize: { _, _ in
+            if !allowed { throw AgentErrorCode.permissionDenied }
+        })
+        await #expect(throws: AgentErrorCode.permissionDenied) {
+            try await guarded.performAsync("share", payload: "{}")
+        }
+        #expect(host.calls == 0 && !guarded.hasUncertainOutcome)
+    }
+
+    @Test func approvedNativeCallChecksAuthorityBeforeAndAfterHandoff() async throws {
+        let host = Host()
+        var decisions = 0, checks = 0
+        let guarded = AgentAuthorizedActionHost(host: host, approve: { _, _ in decisions += 1 },
+            authorize: { _, _ in checks += 1 })
+        let result = try await guarded.performAsync("share", payload: "{}")
+        #expect(result == "done" && decisions == 1 && checks == 3 && host.calls == 1)
+        #expect(!guarded.hasUncertainOutcome)
+    }
+
     @Test func authorityLostAfterNativeHandoffReportsUnknownOutcome() async throws {
         let host = Host()
         var allowed = true
