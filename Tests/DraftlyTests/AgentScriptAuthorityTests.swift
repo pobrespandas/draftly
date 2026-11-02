@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 import AgentContracts
+import DraftlyCore
 @testable import Draftly
 
 @Suite("Agent script draft authority") @MainActor
@@ -46,5 +47,17 @@ struct AgentScriptAuthorityTests {
         #expect(throws: AgentErrorCode.permissionDenied) {
             try authority.authorize("findDraft", payload: "{\"uuid\":\"\(target.uuidString)\"}")
         }
+    }
+
+    @Test func queryCannotReturnAfterItsGrantIsRevoked() throws {
+        let visible = Note(content: "Visible"), hidden = Note(content: "Hidden")
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let grant = AgentGrant(connectionID: UUID(), libraryID: UUID(), expiresAt: now.addingTimeInterval(60),
+            capabilities: [.actionsRun, .draftsRead], scope: .resources([.init(kind: .draft, id: visible.id)]))
+        var checks = 0
+        let authority = AgentScriptAuthority(grant: grant, currentGrant: {
+            checks += 1; return checks < 4 ? grant : nil
+        }, validateHost: {}, isLocked: { false }, now: { now }, draftExists: { _ in true })
+        #expect(throws: AgentErrorCode.permissionDenied) { try authority.visibleDrafts([visible, hidden]) }
     }
 }
