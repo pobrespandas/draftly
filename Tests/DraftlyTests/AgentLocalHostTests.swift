@@ -35,7 +35,7 @@ struct AgentLocalHostTests {
         func host(editors: AgentEditorRegistry? = nil, socketParent: URL = FileManager.default.temporaryDirectory) throws -> AgentLocalHost {
             try AgentLocalHost(library: library, appVersion: "Neutral QA", editors: editors, isLocked: { [self] in self.locked },
                 pendingEditorGeneration: { _ in "" }, resolveTargets: { [self] targets in
-                    AgentLibraryResourceChoices(library: self.library).resolve(targets)
+                    AgentLibraryResourceChoices(library: self.library, editors: editors).resolve(targets)
                 }, socketParentDirectory: socketParent,
                 credentials: .init(read: { [self] id in self.credentialReads += 1; return self.secrets[id] },
                     create: { [self] id, value in
@@ -380,6 +380,32 @@ struct AgentLocalHostTests {
         try model.setEnabled(true)
         #expect(throws: AgentErrorCode.permissionDenied) { try host.service.authorizedLibraryID(for: session) }
         _ = try host.service.authenticate(connectionID: record.id, credential: credential)
+    }
+
+    @Test func closingAnEditorBeforePairingApprovalInvalidatesTheReview() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let preferences = try TestPreferences(prefix: "Draftly-Agent-Window-Grant-")
+        defer { preferences.close() }
+        let note = try f.library.createNote(content: "Editor draft")
+        var dependencies = WindowDependencies(); dependencies.preferences = WindowPreferences(defaults: preferences.defaults)
+        let window = WindowModel(library: f.library, dependencies: dependencies)
+        window.editor.load(note, focusEditor: false)
+        var windows = [window]
+        let editors = AgentEditorRegistry(library: f.library, models: { windows })
+        defer { editors.invalidate() }
+        let host = try f.host(editors: editors); defer { host.close() }
+        let model = try host.makeLibrarySettingsModel()
+        try model.setEnabled(true)
+        let challenge = try host.pairing.request(clientName: "Editor client")
+        try model.beginPairing(challenge.id)
+        let target = try #require(model.resourceChoices().first(where: { $0.reference.kind == .window })?.reference)
+        model.draft?.targets = [target, .init(kind: .draft, id: note.id)]
+        model.draft?.capabilities.insert(.editorRead)
+        try model.preparePairingReview()
+        windows.removeAll()
+        #expect(throws: AgentErrorCode.notFound) { try model.approvePairing(codesMatch: true) }
+        #expect(try host.pairing.state(challenge.id) == .invalidated)
+        #expect(f.secrets.isEmpty && model.connections.isEmpty)
     }
 
     @Test func realPairingSettingsAndSocketReadsShareOneAuthorityAndLibrary() async throws {
