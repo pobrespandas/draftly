@@ -80,6 +80,7 @@ final class AppController: ObservableObject {
     private var cachedAgentEditors: AgentEditorRegistry?
     private var agentHost: AgentLocalHost?
     private var agentLifecycleObservers: [NSObjectProtocol] = []
+    private var agentProtectedDataObserver: NSObjectProtocol?
     @Published var startupError: String?
     @Published var agentSettings: AgentConnectionsSettingsModel?
     @Published var globalShortcutErrors: [String: String] = [:]
@@ -139,6 +140,11 @@ final class AppController: ObservableObject {
                 Task { @MainActor [weak self] in self?.suspendAgentSession() }
             })
         }
+        agentProtectedDataObserver = NotificationCenter.default.addObserver(
+            forName: .NSApplicationProtectedDataWillBecomeUnavailable, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.suspendAgentSession() }
+        }
     }
 
     func suspendAgentSession() {
@@ -156,7 +162,8 @@ final class AppController: ObservableObject {
         let resources = AgentLibraryResourceChoices(library: library, editors: editors)
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
         let host = try AgentLocalHost(library: library, appVersion: version, editors: editors,
-            isLocked: isLocked, pendingEditorGeneration: { _ in "" }, resolveTargets: { resources.resolve($0) },
+            isLocked: { isLocked() || !NSApplication.shared.isProtectedDataAvailable },
+            pendingEditorGeneration: { _ in "" }, resolveTargets: { resources.resolve($0) },
             credentials: credentials, validateApplication: validateApplication, validateHelper: validateHelper)
         do { try adoptAgentHost(host) } catch { host.close(); throw error }
     }
@@ -165,6 +172,8 @@ final class AppController: ObservableObject {
         let center = NSWorkspace.shared.notificationCenter
         agentLifecycleObservers.forEach { center.removeObserver($0) }
         agentLifecycleObservers.removeAll()
+        if let observer = agentProtectedDataObserver { NotificationCenter.default.removeObserver(observer) }
+        agentProtectedDataObserver = nil
         if let host = agentHost {
             agentHost = nil; host.close(); agentSettings = nil
         }

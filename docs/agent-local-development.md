@@ -27,6 +27,9 @@ state and signed native checks. Protected-data notifications describe keybag
 availability. They do not establish every graphical screen-lock transition.
 Do not use them alone as proof that the screen is unlocked. See the
 [Apple Developer Forums discussion](https://developer.apple.com/forums/thread/850327).
+As an additional restriction, the app suspends agent sessions when protected
+data becomes unavailable. It also rejects admission while protected data is
+unavailable. Availability does not automatically resume a suspended session.
 
 For isolated signed integration testing only, compile the app with
 `DRAFTLY_AGENT_QA` and start it with both `--ui-testing` and
