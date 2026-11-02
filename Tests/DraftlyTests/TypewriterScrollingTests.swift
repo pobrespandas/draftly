@@ -52,8 +52,15 @@ import DraftlyCore
     }
 
 
-    @Test(arguments: [0, 2, 100], [false, true])
-    func nativeEditorCentersTheEndCaretWithoutArtificialDocumentHeight(lineCount: Int, trailingNewline: Bool) async throws {
+    @Test func nativeEditorCentersTheEndCaretWithoutArtificialDocumentHeight() async throws {
+        for lineCount in [0, 2, 100] {
+            for trailingNewline in [false, true] {
+                try await checkNativeEditorEndCaret(lineCount: lineCount, trailingNewline: trailingNewline)
+            }
+        }
+    }
+
+    private func checkNativeEditorEndCaret(lineCount: Int, trailingNewline: Bool) async throws {
         _ = NSApplication.shared
         let content = (0..<lineCount).map { "Neutral line \($0) café 🐼" }.joined(separator: "\n")
             + (trailingNewline ? "\n" : "")
