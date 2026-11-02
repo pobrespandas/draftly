@@ -24,6 +24,28 @@ builds keep agent access disabled.
 - Every execution authorization checks that the selected editor is still in the
   live window registry. Approval cannot restore access to a removed editor.
 
+## Installed isolated check — 2 November 2026
+
+A Developer ID QA build at commit `1f86a1e` ran from Applications with the
+signed embedded helper. The app used a new temporary library with iCloud off.
+Access started off. Native Settings approved pairing after code comparison.
+The helper authenticated through Keychain and read the open editor through CLI.
+
+CLI submitted the default Share Action for the neutral text `QA local café 🐼`.
+The operation waited for human review. The review showed the exact text, Action
+version, draft version and target window. Allow once opened the native macOS
+share selector. Cancelling the selector returned a terminal cancelled report
+with `Share cancelled`. No share destination was selected.
+
+A separate MCP stdio probe initialized the installed helper, listed tools, read
+the draft and retrieved the cancelled operation. This did not submit an Action
+through MCP or prove support for a named external client. Revocation made a new
+CLI request fail with `permission_denied`. Stop Work left access off. QA then
+quit, and its app bundle was retained outside Applications.
+
+This build used the QA lock adapter. It does not prove screen-lock handling,
+normal startup, notarization, restart recovery or production acceptance.
+
 ## Remaining integration
 
 1. Complete operation result coverage and recorded effects. Snapshot encoding
