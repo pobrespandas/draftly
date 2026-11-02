@@ -3,6 +3,27 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Public 0.1.6 — 2 November
+
+[0.1.6/build7](https://github.com/pobrespandas/draftly/releases/tag/v0.1.6)
+is public from70a5d4f. PR86 and PR88 passed protected CI before integration.
+Release run41385382234 completed rehearsal, signing, notarization, staging,
+publication and public verification. Seven assets downloaded without credentials
+matched their expected sizes and SHA256 hashes. The public feed matched the
+signed asset and selected0.1.6/build7. Both site buttons point to its DMG.
+Firebase promotion8c01f5bc03ff34f8 completed and the writer lock was released.
+
+The original candidate passed local signature, ticket and Gatekeeper checks.
+The ZIP contains neither an agent helper nor the test tracing library. Normal
+agent startup remains disabled. The habitual installation and library were not
+changed. Existing catalogs require Settings > Maintenance > Replace Default
+Actions to receive the new defaults. Native isolated QA checked Cancel, Replace,
+the110-action result and visible icon colors; the closed QA store had110 actions
+and five groups. This does not establish live CloudKit catalog acceptance.
+
+Earlier native test interruptions remain unexplained. The subsequent complete
+reports establish those runs, not a root-cause correction.
+
 ## Stage zero reconciliation — 2 November
 
 Baseline inventory:98f9529. Version0.1.6/build7 was published from70a5d4f.
