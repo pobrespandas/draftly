@@ -20,6 +20,8 @@ struct AgentMCPTests {
         var allowedAction: DraftAction?
         var hiddenAction: DraftAction?
         var allowedGroup: UUID?
+        var activityRoot: URL?
+        var activityRequestID: UUID?
         var editorModels: [WindowModel] = []
         var editorPreferences: TestPreferences?
         lazy var registry = AgentConnectionRegistry(metadata: .init(read: { [unowned self] in self.metadata }, replace: { [unowned self] data, _ in self.metadata = data }),
@@ -31,7 +33,7 @@ struct AgentMCPTests {
         var server: MCP.Server!
         let client = MCP.Client(name: "Neutral QA", version: "1", configuration: .strict)
 
-        init(count: Int, writeAccess: Bool = false, revisionAccess: Bool = false, editorAccess: Bool = false, actionAccess: Bool = false) throws {
+        init(count: Int, writeAccess: Bool = false, revisionAccess: Bool = false, editorAccess: Bool = false, actionAccess: Bool = false, activityAccess: Bool = false) throws {
             library = try LibraryStore(inMemory: true, seed: false)
             notes = (0..<count).map { Note(content: "Neutral \($0)\ne\u{301} 🐼") }
             hidden = Note(content: "Hidden private title")
@@ -72,8 +74,24 @@ struct AgentMCPTests {
             if actionAccess { capabilities.insert(.actionsRead) }
             record = try registry.connectFromUserInterface(name: "SDK QA", libraryID: libraryID,
                 capabilities: capabilities, scope: .resources(Set(resources)))
+            let activityReader: ((UUID, UUID) throws -> [AgentActivityStore.Entry])?
+            if activityAccess {
+                let root = FileManager.default.temporaryDirectory.appendingPathComponent("Draftly-MCP-Activity-" + UUID().uuidString)
+                try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
+                activityRoot = root
+                let store = try AgentActivityStore(parentDirectory: root), own = UUID()
+                activityRequestID = own
+                try store.append(libraryID: libraryID, connectionID: record.id, grantID: record.grantID,
+                                 requestID: own, operation: "server.status", result: "success")
+                try store.append(libraryID: libraryID, connectionID: record.id, grantID: UUID(),
+                                 requestID: UUID(), operation: "drafts.get", result: "success")
+                try store.append(libraryID: libraryID, connectionID: UUID(), grantID: record.grantID,
+                                 requestID: UUID(), operation: "drafts.get", result: "success")
+                let id = libraryID
+                activityReader = { _, _ in try store.entries(libraryID: id) }
+            } else { activityReader = nil }
             let service = try AgentCommandService(library: library, libraryID: libraryID, connections: registry, appVersion: "QA",
-                validateHost: {}, isLocked: { false }, editors: editors, pendingEditorGeneration: { _ in "" })
+                validateHost: {}, isLocked: { false }, editors: editors, pendingEditorGeneration: { _ in "" }, readActivity: activityReader)
             broker = try AgentSocketBroker(service: service, parentDirectory: FileManager.default.temporaryDirectory, validateHelper: { _ in })
             helper = AgentHelperConnection(connect: { [unowned self] in try await self.localClient() })
         }
@@ -99,10 +117,11 @@ struct AgentMCPTests {
             await client.disconnect(); await server?.stop(); await helper?.close(); broker?.stop()
             editorModels.forEach { $0.hasUnsavedChanges = false }
             editorModels.removeAll(); editorPreferences?.close()
+            if let activityRoot { try? FileManager.default.removeItem(at: activityRoot) }
         }
     }
-    private func run(count: Int = 1, writeAccess: Bool = false, revisionAccess: Bool = false, editorAccess: Bool = false, actionAccess: Bool = false, _ body: @MainActor (Runtime) async throws -> Void) async throws {
-        let runtime = try Runtime(count: count, writeAccess: writeAccess, revisionAccess: revisionAccess, editorAccess: editorAccess, actionAccess: actionAccess)
+    private func run(count: Int = 1, writeAccess: Bool = false, revisionAccess: Bool = false, editorAccess: Bool = false, actionAccess: Bool = false, activityAccess: Bool = false, _ body: @MainActor (Runtime) async throws -> Void) async throws {
+        let runtime = try Runtime(count: count, writeAccess: writeAccess, revisionAccess: revisionAccess, editorAccess: editorAccess, actionAccess: actionAccess, activityAccess: activityAccess)
         do { try await runtime.start(); try await body(runtime); await runtime.close() }
         catch { await runtime.close(); throw error }
     }
@@ -140,6 +159,21 @@ struct AgentMCPTests {
             #expect(try response(denied.content).outcome == .error(.notFound))
             let groupResult = try await r.client.callTool(name: "draftly_actionGroups_get", arguments: target("actionGroup", group))
             #expect(groupResult.isError == false)
+        }
+    }
+
+    @Test func activityThroughMCPExcludesOtherConnectionsAndEarlierGrants() async throws {
+        try await run(activityAccess: true) { r in
+            let tools = try await r.client.listTools().tools
+            let tool = try #require(tools.first { $0.name == "draftly_activity_list" })
+            #expect(tool.annotations.readOnlyHint == true)
+            let response = try await r.client.callTool(name: "draftly_activity_list")
+            guard case .result(.object(let page)) = try self.response(response.content).outcome,
+                  case .array(let items) = page["items"], case .object(let entry) = items.first else {
+                Issue.record("Expected an activity page"); return
+            }
+            let expectedID = try #require(r.activityRequestID)
+            #expect(items.count == 1 && entry["requestID"] == .string(expectedID.uuidString))
         }
     }
 
