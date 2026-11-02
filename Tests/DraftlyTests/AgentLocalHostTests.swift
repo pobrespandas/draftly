@@ -290,6 +290,19 @@ struct AgentLocalHostTests {
         #expect(next.libraryID == host.libraryID && next.endpoint == nil)
     }
 
+    @Test func draftSettingsChoicesTrackHostLibraryWithoutStartingAccess() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let host = try f.host(); defer { host.close() }
+        let model = try host.makeDraftSettingsModel()
+        #expect(!model.accessEnabled && host.endpoint == nil)
+        #expect(model.resourceChoices().isEmpty)
+        let note = try f.library.createNote(content: "Visible choice 🐼")
+        let target = AgentResourceReference(kind: .draft, id: note.id)
+        #expect(model.resourceChoices().map(\.reference) == [target])
+        #expect(model.resourceChoices().first?.title == note.title)
+        #expect(!model.accessEnabled && host.endpoint == nil && f.secrets.isEmpty)
+    }
+
     @Test func realPairingSettingsAndSocketReadsShareOneAuthorityAndLibrary() async throws {
         let f = try Fixture(); defer { f.cleanup() }
         let note = try f.library.createNote(content: "Allowed 🐼")
