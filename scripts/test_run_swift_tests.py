@@ -76,23 +76,38 @@ class SwiftResultVerificationTests(unittest.TestCase):
                 runner.run_target("DraftlyTests", self.expected, Path(self.folder.name))
         self.assertFalse(self.report.exists())
 
-    def test_app_mode_is_explicit_and_failures_are_not_retried(self):
-        for concurrent in [False, True]:
-            with patch.object(runner.subprocess, "run", return_value=CompletedProcess([], 7)) as command:
-                with self.assertRaisesRegex(ValueError, "Swift tests failed"):
-                    runner.run_target("DraftlyTests", self.expected, Path(self.folder.name),
-                                      concurrent_app=concurrent)
-                self.assertEqual(command.call_count, 1)
-                self.assertEqual("--no-parallel" in command.call_args.args[0], not concurrent)
+    def test_target_execution_reuses_build_and_preserves_serial_policy_without_retries(self):
+        for module in ["DraftlyTests", "DraftlyCoreTests"]:
+            for concurrent in [False, True]:
+                with self.subTest(module=module, concurrent=concurrent), \
+                        patch.object(runner.subprocess, "run", return_value=CompletedProcess([], 7)) as command:
+                    with self.assertRaisesRegex(ValueError, "Swift tests failed"):
+                        runner.run_target(module, self.expected, Path(self.folder.name), concurrent_app=concurrent)
+                    self.assertEqual(command.call_count, 1)
+                    args = command.call_args.args[0]
+                    self.assertIn("--skip-build", args)
+                    self.assertEqual("--no-parallel" in args, module != "DraftlyTests" or not concurrent)
 
-    def test_core_tests_run_serially_even_when_app_diagnostics_are_concurrent(self):
-        for concurrent in [False, True]:
-            with patch.object(runner.subprocess, "run", return_value=CompletedProcess([], 7)) as command:
-                with self.assertRaisesRegex(ValueError, "Swift tests failed"):
-                    runner.run_target("DraftlyCoreTests", self.expected, Path(self.folder.name),
-                                      concurrent_app=concurrent)
-                self.assertEqual(command.call_count, 1)
-                self.assertIn("--no-parallel", command.call_args.args[0])
+    def test_discovery_must_succeed_before_any_built_target_runs(self):
+        with patch.object(runner.subprocess, "run", return_value=CompletedProcess([], 7, "", "build failed")), \
+                patch.object(runner, "run_target") as target:
+            with self.assertRaisesRegex(ValueError, "discovery failed"):
+                runner.run(Path(self.folder.name))
+        target.assert_not_called()
+
+    def test_discovered_inventory_controls_each_target_run(self):
+        inventory = "DraftlyTests.Suite/first()\nDraftlyCoreTests.Suite/second(worker:)\n"
+        calls = []
+        def execute(module, selected, output, **options):
+            self.assertEqual((Path(self.folder.name) / "inventory.log").read_text(), inventory)
+            calls.append((module, selected))
+            return {module: len(selected)}
+        with patch.object(runner.subprocess, "run", return_value=CompletedProcess([], 0, inventory, "")) as discovery, \
+                patch.object(runner, "run_target", side_effect=execute), patch("builtins.print"):
+            runner.run(Path(self.folder.name))
+        self.assertEqual(discovery.call_args.args[0], ["swift", "test", "list"])
+        self.assertEqual(calls, [("DraftlyCoreTests", {"DraftlyCoreTests.Suite/second(worker:)"}),
+                                 ("DraftlyTests", {"DraftlyTests.Suite/first()"})])
 
     def test_diagnostic_suite_is_forwarded_without_retries(self):
         with patch.object(runner.subprocess, "run", return_value=CompletedProcess([], 7)) as command:
