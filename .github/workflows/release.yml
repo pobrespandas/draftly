@@ -112,6 +112,14 @@ jobs:
           echo "DRAFTLY_TEST_SWIFT_EXECUTABLE=$(xcrun --find swift)" >> "$GITHUB_ENV"
       - name: Run Swift tests and verify inventory
         run: python scripts/run-swift-tests.py --output-dir "$RUNNER_TEMP/draftly-release-rehearsal"
+      - name: Preserve native test diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-swift-test-results
+          path: ${{ runner.temp }}/draftly-release-rehearsal
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Build local app
         run: scripts/build-app.sh --local
       - name: Verify local app identity
