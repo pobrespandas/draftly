@@ -42,6 +42,27 @@ import AgentContracts
         return candidates
     }
 
+    func setSelection(_ expected: WindowSnapshot, range: NSRange, authorize: () throws -> Void) throws {
+        guard valid else { throw AgentErrorCode.cancelled }
+        func checkedModel() throws -> WindowModel {
+            guard let model = trackedModels().first(where: { entries[ObjectIdentifier($0)]?.windowID == expected.id }),
+                  let entry = entries[ObjectIdentifier(model)] else { throw AgentErrorCode.notFound }
+            guard entry.generation == expected.generation, model.editor.noteID == expected.draftID else {
+                throw AgentErrorCode.versionConflict
+            }
+            return model
+        }
+        _ = try checkedModel()
+        try authorize()
+        let model = try checkedModel()
+        model.editor.selection = range
+        try authorize()
+        guard trackedModels().contains(where: { $0 === model }), model.editor.noteID == expected.draftID,
+              DraftOperations.sameText(model.editor.content, expected.content), model.editor.selection == range else {
+            throw AgentErrorCode.outcomeUnknown
+        }
+    }
+
     func syntaxDefinition(windowID: UUID) throws -> SyntaxDefinition {
         guard valid else { throw AgentErrorCode.cancelled }
         guard let model = trackedModels().first(where: { entries[ObjectIdentifier($0)]?.windowID == windowID }) else {

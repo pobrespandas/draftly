@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 import Testing
 import AgentContracts
 @testable import DraftlyCore
@@ -1158,7 +1159,7 @@ struct AgentCommandServiceTests {
             guard case .object(let fields) = item, fields["available"] == .bool(true), case .string(let name) = fields["name"] else { return nil }
             return name
         })
-        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", AgentMutationSchemas.name, "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.update"]) && available.count == 38)
+        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", AgentMutationSchemas.name, "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.setSelection", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.update"]) && available.count == 39)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.unavailable))
         #expect(f.library.notes.isEmpty)
         #expect(try f.values("server.capabilities", session: session)["capabilities"] == .array([.string("drafts.read"), .string("drafts.write")]))
@@ -1445,6 +1446,104 @@ struct AgentCommandServiceTests {
         #expect(f.library.notes.first?.content == note.content && f.library.revisions.isEmpty)
     }
 
+    @Test func preparedSelectionPreservesPendingTextAndRecoversWithoutMovingTheCursorAgain() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let note = try f.note("Stored"), model = try f.window(note, content: "A🐼e\u{301}", dirty: true)
+        f.editors = [model]
+        let window = try #require(f.editorRegistry.windowSnapshots().first).id
+        let target = AgentResourceReference(kind: .window, id: window)
+        let scope: AgentResourceScope = .resources([target, .init(kind: .draft, id: note.id)])
+        let (_, session) = try f.connect(scope: scope, capabilities: [.draftsRead, .draftsWrite, .editorRead, .editorWrite])
+        let before = try f.library.backupData(), focus = model.editor.focusToken
+        guard case .string(let version) = try f.values("editor.get", session: session, targets: [target])["versionToken"] else {
+            Issue.record("Missing editor version"); return
+        }
+        let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "editor.setSelection", targets: [target],
+            expectedVersion: version, parameters: ["range": .object(["offset": .integer(1), "length": .integer(2)])])
+        let frame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(intent))
+        let prepared = try f.values("mutations.prepare", session: session, parameters: ["request": frame])
+        #expect(model.editor.selection == NSRange(location: 0, length: 0))
+        guard case .string(let key) = prepared["retryKey"] else { Issue.record("Missing retry key"); return }
+        let request = AgentRequest(requestID: intent.requestID, libraryID: f.libraryID, operation: intent.operation,
+            targets: intent.targets, expectedVersion: version, retryKey: key, parameters: intent.parameters)
+        func send() throws -> AgentResponse {
+            try JSONDecoder().decode(AgentResponse.self, from: f.service.respond(to: JSONEncoder().encode(request), session: session))
+        }
+        let result = try send()
+        guard case .result(.object(let fields)) = result.outcome else { Issue.record("Selection failed: \(result.outcome)"); return }
+        #expect(model.editor.selectedText == "🐼" && fields["versionToken"] != .string(version))
+        model.editor.selection = NSRange(location: 0, length: 1)
+        #expect(try send().outcome == result.outcome)
+        #expect(model.editor.selection == NSRange(location: 0, length: 1))
+        #expect(model.editor.content == "A🐼e\u{301}" && model.hasUnsavedChanges && model.editor.focusToken == focus)
+        #expect(try f.library.backupData() == before)
+    }
+
+    @Test func selectionPreparationRejectsMissingScopeStaleVersionsAndSplitScalars() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let note = try f.note("A🐼B"), model = try f.window(note)
+        f.editors = [model]
+        let target = AgentResourceReference(kind: .window, id: try #require(f.editorRegistry.windowSnapshots().first).id)
+        let capabilities: Set<AgentCapability> = [.draftsRead, .draftsWrite, .editorRead, .editorWrite]
+        let (_, session) = try f.connect(capabilities: capabilities)
+        let (_, windowOnly) = try f.connect(scope: .resources([target]), capabilities: capabilities)
+        let (_, readOnly) = try f.connect(capabilities: [.draftsRead, .editorRead])
+        guard case .string(let version) = try f.values("editor.get", session: session, targets: [target])["versionToken"] else {
+            Issue.record("Missing editor version"); return
+        }
+        func prepare(_ chosen: AgentCommandService.Session, offset: Int64 = 1, token: String? = nil) throws -> AgentResponse {
+            let request = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "editor.setSelection", targets: [target],
+                expectedVersion: token ?? version, parameters: ["range": .object(["offset": .integer(offset), "length": .integer(0)])])
+            let frame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(request))
+            return try f.response("mutations.prepare", session: chosen, parameters: ["request": frame])
+        }
+        #expect(try prepare(windowOnly).outcome == .error(.notFound))
+        #expect(try prepare(readOnly).outcome == .error(.permissionDenied))
+        #expect(try prepare(session, offset: 2).outcome == .error(.invalidInput))
+        #expect(try prepare(session, offset: 100).outcome == .error(.invalidInput))
+        model.editor.selection = NSRange(location: 1, length: 0)
+        #expect(try prepare(session).outcome == .error(.versionConflict))
+        #expect(model.editor.content == note.content && f.library.notes.first?.content == note.content)
+    }
+
+    @Test(arguments: [false, true])
+    func selectionCannotRedirectToAnotherDraftOrReplayAfterCallbackConflict(closeBeforeUpdate: Bool) throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let first = try f.note("First"), second = try f.note("Second")
+        let model = try f.window(first), other = try f.window(second)
+        f.editors = [model, other]
+        let target = AgentResourceReference(kind: .window, id: try #require(f.editorRegistry.windowSnapshots().first { $0.draftID == first.id }).id)
+        let (_, session) = try f.connect(capabilities: [.draftsRead, .draftsWrite, .editorRead, .editorWrite])
+        guard case .string(let version) = try f.values("editor.get", session: session, targets: [target])["versionToken"] else {
+            Issue.record("Missing editor version"); return
+        }
+        let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "editor.setSelection", targets: [target],
+            expectedVersion: version, parameters: ["range": .object(["offset": .integer(1), "length": .integer(2)])])
+        let frame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(intent))
+        guard case .string(let key) = try f.values("mutations.prepare", session: session, parameters: ["request": frame])["retryKey"] else {
+            Issue.record("Missing retry key"); return
+        }
+        var callbacks = 0
+        let subscription = model.editor.$selection.dropFirst().sink { _ in
+            callbacks += 1
+            if callbacks == 1 { model.editor.load(second, focusEditor: false) }
+        }
+        defer { subscription.cancel() }
+        if closeBeforeUpdate { f.editors = [other] }
+        let request = AgentRequest(requestID: intent.requestID, libraryID: f.libraryID, operation: intent.operation,
+            targets: intent.targets, expectedVersion: version, retryKey: key, parameters: intent.parameters)
+        func send() throws -> AgentResponse {
+            try JSONDecoder().decode(AgentResponse.self, from: f.service.respond(to: JSONEncoder().encode(request), session: session))
+        }
+        let expected: AgentErrorCode = closeBeforeUpdate ? .notFound : .outcomeUnknown
+        #expect(try send().outcome == .error(expected))
+        let after = callbacks
+        #expect(try send().outcome == .error(expected))
+        #expect(callbacks == after && other.editor.selection == NSRange(location: 0, length: 0))
+        #expect(f.library.notes.first { $0.id == first.id }?.content == first.content)
+        #expect(f.library.notes.first { $0.id == second.id }?.content == second.content)
+    }
+
     @Test func missingEditorTrackingKeepsMutationRoutesUnavailable() throws {
         let f = try Fixture()
         f.service = try AgentCommandService(library: f.library, libraryID: f.libraryID, connections: f.connections,
@@ -1453,7 +1552,7 @@ struct AgentCommandServiceTests {
         let (_, session) = try f.connect(capabilities: [.draftsRead, .draftsWrite])
         let schemas = try f.values("server.schemas", session: session)
         guard case .array(let entries) = schemas["operations"] else { Issue.record("Missing schema entries"); return }
-        for name in ["mutations.prepare", "drafts.update", "drafts.patch", "drafts.restoreVersion"] {
+        for name in ["mutations.prepare", "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.setSelection"] {
             let entry = entries.first { value in
                 guard case .object(let fields) = value else { return false }
                 return fields["name"] == .string(name)

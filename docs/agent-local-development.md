@@ -559,6 +559,20 @@ handler must check current authority and signed retry keys, then check the live
 version immediately before mutation. Editor synchronization, Undo, receipts and
 recovery remain required before enabling that handler.
 
+## Prepared editor selection
+
+The connected `editor.setSelection` handler requires an explicit window, access
+to its current draft, editor and draft write capabilities, and a current editor
+version. Prepare its retry key through `mutations.prepare`. Preparation does not
+move the cursor. Ranges use UTF-16 offsets and cannot split a surrogate pair.
+
+Execution checks authority and window generation before changing selection. It
+does not save text, change focus or invoke Undo. If the editor changes during a
+callback, the receipt stays unknown. A repeated confirmed request returns its
+prior result without moving the cursor again. Receipts are bounded and belong
+to the current host lifetime. A new host has new keys and window identities.
+Installed selection acceptance and the remaining editor mutations are pending.
+
 ## Coordinate a stored draft mutation
 
 Use `AgentEditorRegistry.synchronizeMutation` after current authorization and
