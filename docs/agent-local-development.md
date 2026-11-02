@@ -747,7 +747,7 @@ It returns the effective value, origin, override flag and opaque version tokens.
 Invalid scalar overrides remain stored and return a null invalid reading.
 
 A batch with an unsupported address returns unavailable without partial values.
-Native and syntax preferences still need their read adapters connected. Update and reset remain unavailable. Schema descriptors describe the
+Native preferences still need their read adapters connected. Update and reset remain unavailable. Schema descriptors describe the
 contract, while operation availability describes the connected handlers.
 Focused service tests cover permission denial, stable and changed tokens,
 invalid overrides, list defaults, unsupported batches and locked admission.
@@ -761,3 +761,16 @@ The default Workspace uses its resource-aware adapter. A stored reference needs
 both `workspaces.read` and scope for that Workspace; otherwise it returns
 `not_found` without disclosing the identifier. Focused service tests cover these
 paths. Native installed acceptance and preference writes remain pending.
+
+
+Syntax preference reads now require both `preferences.read` and
+`appearance.read`. Built-in references resolve from the built-in definitions.
+Installed references also require their syntax resource in the connection scope.
+The resource picker includes installed syntaxes. The encoded adapter reads font,
+layout, input, display, indentation and feature settings from their existing
+stores. Inherited values use the registered global preference; invalid global
+values reject the read. System-derived options retain a system origin and null
+value until an override exists. No syntax or preference is changed by a read.
+Focused service and settings tests cover permission denial, inheritance,
+overrides, system values and installed-resource isolation. Installed CLI/MCP
+acceptance for these syntax reads remains pending.

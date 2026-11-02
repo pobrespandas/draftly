@@ -161,6 +161,21 @@ import DraftlyCore
         }
     }
 
+    static func syntaxStorageKey(_ name: String) throws -> String {
+        if name == "feature" { return SyntaxFeaturePreferences.key }
+        if name == "indentation" { return EditorIndentationPreferences.key }
+        if ["fontName", "fontSize", "monospaceFontName"].contains(name) {
+            return EditorSyntaxFontPreferences.key
+        } else if EditorSyntaxLayoutPreferences.Field(rawValue: name) != nil {
+            return EditorSyntaxLayoutPreferences.key
+        } else if EditorTextInputPreferences.Option(rawValue: name) != nil
+                    || EditorTextInputPreferences.SystemOption(rawValue: name) != nil {
+            return EditorTextInputPreferences.key
+        } else if EditorSyntaxDisplayPreferences.Option(rawValue: name) != nil {
+            return EditorSyntaxDisplayPreferences.key
+        } else { throw AgentErrorCode.unavailable }
+    }
+
     private static func syntaxEdit(_ name: String, value: AgentJSONValue?, syntax: String,
                                    configuration: String) throws -> (String, String) {
         if name == "indentation" {
@@ -173,17 +188,7 @@ import DraftlyCore
             }
             return (EditorIndentationPreferences.key, try removing(syntax, from: configuration))
         }
-        let key: String
-        if ["fontName", "fontSize", "monospaceFontName"].contains(name) {
-            key = EditorSyntaxFontPreferences.key
-        } else if EditorSyntaxLayoutPreferences.Field(rawValue: name) != nil {
-            key = EditorSyntaxLayoutPreferences.key
-        } else if EditorTextInputPreferences.Option(rawValue: name) != nil
-                    || EditorTextInputPreferences.SystemOption(rawValue: name) != nil {
-            key = EditorTextInputPreferences.key
-        } else if EditorSyntaxDisplayPreferences.Option(rawValue: name) != nil {
-            key = EditorSyntaxDisplayPreferences.key
-        } else { throw AgentErrorCode.unavailable }
+        let key = try syntaxStorageKey(name)
         guard let value else { return (key, try removing(name, from: configuration, syntax: syntax)) }
         let updated: String
         switch name {

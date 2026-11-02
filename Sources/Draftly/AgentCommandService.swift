@@ -29,6 +29,7 @@ import AgentContracts
         var capabilities = availableOperations.reduce(into: Set<AgentCapability>()) { result, name in
             if let operation = AgentOperationCatalog.operation(named: name) { result.formUnion(operation.capabilities) }
         }
+        if availableOperations.contains("preferences.get") { capabilities.insert(.appearanceRead) }
         if availableOperations.contains("actions.run") {
             capabilities.formUnion([.draftsWrite, .editorWrite, .nativeUse])
         }
@@ -844,6 +845,31 @@ import AgentContracts
                     reading = try AgentDevicePreferenceAccess.read(address: item, defaults: preferenceDefaults)
                 } else if AgentListPreferenceAccess.supportedIDs.contains(address.id) {
                     reading = try AgentListPreferenceAccess.read(address: item, defaults: preferenceDefaults)
+                } else if address.id.hasPrefix("syntax.") {
+                    guard grant.capabilities.contains(.appearanceRead) else { throw AgentErrorCode.permissionDenied }
+                    let syntax: SyntaxDefinition
+                    switch address.syntax {
+                    case .builtIn(let name): syntax = try ScriptSyntax.definition(name)
+                    case .installed(let id):
+                        guard grant.scope.permits(.init(kind: .syntax, id: id)),
+                              let installed = actionLibrary.syntaxes.first(where: { $0.id == id && $0.type != "builtIn" }) else {
+                            throw AgentErrorCode.notFound
+                        }
+                        syntax = installed
+                    case nil: throw AgentErrorCode.invalidInput
+                    }
+                    let name = String(address.id.dropFirst("syntax.".count))
+                    let key = try AgentEncodedPreferenceAccess.syntaxStorageKey(name)
+                    let configuration = preferenceDefaults.object(forKey: key).map { $0 as? String ?? "null" } ?? "{}"
+                    let inherited: AgentJSONValue?
+                    if try preferences.field(address.id).defaultSource == .inherited {
+                        let global = try AgentDevicePreferenceAccess.read(
+                            address: .object(["id": .string("editor." + name)]), defaults: preferenceDefaults)
+                        guard global.origin != "invalid" else { throw AgentErrorCode.invalidInput }
+                        inherited = global.effectiveValue
+                    } else { inherited = nil }
+                    reading = try AgentEncodedPreferenceAccess.read(address: item, configuration: configuration,
+                        syntax: syntax, inherited: inherited)
                 } else if address.id == WorkspaceDefaults.key {
                     reading = try AgentWorkspacePreferenceAccess.read(defaults: preferenceDefaults,
                         capabilities: grant.capabilities, scope: grant.scope,

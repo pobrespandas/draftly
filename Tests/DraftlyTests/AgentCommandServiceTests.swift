@@ -432,6 +432,58 @@ struct AgentCommandServiceTests {
         #expect(f.library.actions.count == 2)
     }
 
+    @Test func syntaxPreferenceReadsRequireAppearanceAccessAndResolveInheritance() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let defaults = try #require(UserDefaults(suiteName: f.editorDefaultsName))
+        defaults.set(25, forKey: "editor.fontSize")
+        let address = AgentJSONValue.object(["id": .string("syntax.fontSize"),
+            "syntax": .object(["type": .string("builtIn"), "name": .string("Markdown")])])
+        let params: [String: AgentJSONValue] = ["items": .array([address])]
+        let (_, denied) = try f.connect(capabilities: [.preferencesRead])
+        #expect(try f.response("preferences.get", session: denied, parameters: params).outcome == .error(.permissionDenied))
+        let (_, allowed) = try f.connect(capabilities: [.preferencesRead, .appearanceRead])
+        func reading() throws -> [String: AgentJSONValue] {
+            let value = try f.values("preferences.get", session: allowed, parameters: params)
+            guard case .array(let items) = value["items"], case .object(let item) = items.first else {
+                throw AgentErrorCode.invalidInput
+            }
+            return item
+        }
+        #expect(try reading()["effectiveValue"] == .integer(25))
+        #expect(try reading()["valueOrigin"] == .string("inherited"))
+        defaults.set(#"{"Markdown":{"fontSize":19,"future":true}}"#, forKey: EditorSyntaxFontPreferences.key)
+        #expect(try reading()["effectiveValue"] == .integer(19))
+        #expect(try reading()["valueOrigin"] == .string("stored"))
+        let system = AgentJSONValue.object(["id": .string("syntax.autocorrection"),
+            "syntax": .object(["type": .string("builtIn"), "name": .string("Markdown")])])
+        let systemValue = try f.values("preferences.get", session: allowed, parameters: ["items": .array([system])])
+        guard case .array(let items) = systemValue["items"], case .object(let item) = items.first else {
+            Issue.record("Missing system preference"); return
+        }
+        #expect(item["effectiveValue"] == .null && item["valueOrigin"] == .string("system"))
+    }
+
+    @Test func installedSyntaxPreferencesRequireTheirResourceScope() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        var source = try ScriptSyntax.definition("Markdown").object
+        source["name"] = "Neutral syntax"
+        let syntax = try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: source))
+        try f.library.saveSyntax(syntax)
+        let address = AgentJSONValue.object(["id": .string("syntax.spelling"),
+            "syntax": .object(["type": .string("installed"), "id": .string(syntax.id.uuidString)])])
+        let params: [String: AgentJSONValue] = ["items": .array([address])]
+        let (_, denied) = try f.connect(scope: .resources([]), capabilities: [.preferencesRead, .appearanceRead])
+        #expect(try f.response("preferences.get", session: denied, parameters: params).outcome == .error(.notFound))
+        let target = AgentResourceReference(kind: .syntax, id: syntax.id)
+        let (_, allowed) = try f.connect(scope: .resources([target]), capabilities: [.preferencesRead, .appearanceRead])
+        let result = try f.values("preferences.get", session: allowed, parameters: params)
+        guard case .array(let items) = result["items"], case .object(let item) = items.first else {
+            Issue.record("Missing installed syntax preference"); return
+        }
+        #expect(item["valueOrigin"] == .string("default"))
+        #expect(AgentLibraryResourceChoices(library: f.library).resolve([target]) == [target])
+    }
+
     @Test func encodedPreferenceReadsPreserveUnknownDataAndInvalidStores() throws {
         let f = try Fixture(); defer { f.cleanEditorPreferences() }
         let defaults = try #require(UserDefaults(suiteName: f.editorDefaultsName))
