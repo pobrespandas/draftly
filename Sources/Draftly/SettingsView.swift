@@ -237,13 +237,12 @@ struct SettingsView: View {
 
     private var dataSettings: some View {
         Form {
-            Section("Data") {
+            Section("iCloud") {
                 if let library = controller.library { LibrarySyncStatusView(library: library) }
                 else { Text("Library unavailable").font(.caption) }
                 Button("Show Library Folder") {
-                    let folder = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Draftly")
-                    NSWorkspace.shared.open(folder)
-                }
+                    if let folder = controller.library?.libraryFolderURL { NSWorkspace.shared.open(folder) }
+                }.disabled(controller.library?.libraryFolderURL == nil)
                 Text("Use File → Export Full Backup to save drafts, revisions, workspaces, actions, themes, and execution history.").font(.caption).foregroundStyle(.secondary)
             }
         }.formStyle(.grouped)
@@ -254,6 +253,7 @@ struct LibrarySyncStatusView: View {
     @ObservedObject var library: LibraryStore
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
+            Text(library.cloudIdentifier == nil ? "iCloud is not configured for this library." : "iCloud is configured for this library.")
             Text(library.syncStatus).font(.caption).textSelection(.enabled)
             if library.cloudIdentifier != nil {
                 Button("Check iCloud Account") { Task { await library.refreshCloudAccount() } }

@@ -21,6 +21,10 @@ public final class LibraryStore: ObservableObject {
     private var syncCoordinator: LibrarySyncCoordinator?
     private var pendingCatalogInstallation: String?
     public let cloudIdentifier: String?
+    public var libraryFolderURL: URL? {
+        container.persistentStoreCoordinator.persistentStores.first(where: { $0.type != NSInMemoryStoreType })?
+            .url?.deletingLastPathComponent()
+    }
 
     enum ExecutionIdentity: Hashable {
         case persistent(URL)
