@@ -88,6 +88,11 @@ actions through the CLI. The copies had new action IDs. A repeated request
 returned the same receipt, and the library contained one copied group. The
 connection was revoked and the test host was stopped.
 
+An isolated signed CLI session read all five groups, reversed their order, and
+recovered the same five resource receipts on retry. The connection was revoked
+and the host stopped. Separate CLI invocations do not share a cursor session.
+The paged version check has automated coverage, but this run used one page.
+
 ## Current components
 
 - AgentContracts owns the request, response and authentication envelopes.
