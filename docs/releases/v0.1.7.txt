@@ -1,0 +1,11 @@
+Draftly 0.1.7
+
+The default action catalog updates automatically after installation or update.
+This temporary update replaces all existing actions and action groups, including
+custom and edited actions. It restores the five default groups with their current
+icons and colors. Drafts are not replaced. Changes made after this installation
+remain until the next installation or update.
+
+Libraries that use iCloud wait for a successful import before replacement.
+If iCloud is unavailable, the existing catalog remains until the import succeeds.
+Agent access remains disabled.
