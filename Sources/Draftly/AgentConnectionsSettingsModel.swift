@@ -26,6 +26,7 @@ import AgentContracts
     @Published var draft: AgentGrantEditingCopy? { didSet { review = nil } }
 
     let libraryID: UUID
+    let pairingCommand: String?
     private let registry: AgentConnectionRegistry
     private let pairing: AgentPairingCoordinator
     private let now: () -> Date
@@ -41,9 +42,10 @@ import AgentContracts
          initialTargets: @escaping () -> Set<AgentResourceReference> = { [] },
          resolveTargets: @escaping (Set<AgentResourceReference>) throws -> Set<AgentResourceReference>,
          setAccessEnabled: @escaping (Bool) throws -> Void,
-         isAccessActive: @escaping () -> Bool = { true }) throws {
+         isAccessActive: @escaping () -> Bool = { true }, pairingCommand: String? = nil) throws {
         guard pairing.isBound(to: registry, libraryID: libraryID) else { throw AgentErrorCode.invalidInput }
-        self.libraryID = libraryID; self.registry = registry; self.pairing = pairing; self.now = now
+        self.libraryID = libraryID; self.pairingCommand = pairingCommand
+        self.registry = registry; self.pairing = pairing; self.now = now
         self.choices = choices; self.initialTargets = initialTargets; self.resolveTargets = resolveTargets
         self.setAccessEnabled = setAccessEnabled; self.isAccessActive = isAccessActive
         refresh()

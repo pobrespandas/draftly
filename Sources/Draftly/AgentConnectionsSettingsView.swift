@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 import AgentContracts
 
 struct AgentConnectionsSettingsView: View {
@@ -12,6 +13,14 @@ struct AgentConnectionsSettingsView: View {
                 })).disabled(!model.readable)
                 Text("Each connection needs your approval. Permissions stay on this Mac and are not included in backups.")
                     .font(.caption).foregroundStyle(.secondary)
+                if let command = model.pairingCommand {
+                    Button("Copy connection command") {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(command, forType: .string)
+                    }.disabled(!model.accessEnabled)
+                    Text("Run the command in Terminal, then compare the code shown here before approving.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
             }
             if !model.pending.isEmpty {
                 Section("Connection requests") {

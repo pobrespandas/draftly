@@ -315,6 +315,26 @@ struct AgentLocalHostTests {
         #expect(model.resourceChoices().isEmpty)
     }
 
+    @Test func pairingCommandQuotesPathsAndUsesTheLoadedLibrary() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("Draftly QA ' " + UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let bundle = root.appendingPathComponent("Draftly.app")
+        let executable = bundle.appendingPathComponent("Contents/Helpers/DraftlyAgent.app/Contents/MacOS/draftly-agent")
+        try FileManager.default.createDirectory(at: executable.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data("#!/bin/sh\nprintf '%s\\n' \"$@\"\n".utf8).write(to: executable)
+        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: executable.path)
+        let id = UUID(), command = try #require(AgentLocalHost.pairingCommand(libraryID: id, stateDirectory: root, bundleURL: bundle))
+        let process = Process(), pipe = Pipe()
+        process.executableURL = URL(fileURLWithPath: "/bin/sh")
+        process.arguments = ["-c", command]; process.standardOutput = pipe
+        try process.run(); process.waitUntilExit()
+        let output = String(decoding: pipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+        #expect(process.terminationStatus == 0)
+        #expect(output == "connect\n--name\nLocal agent\n--library\n\(id.uuidString)\n--state-parent\n\(root.path)\n")
+        try FileManager.default.removeItem(at: executable)
+        #expect(AgentLocalHost.pairingCommand(libraryID: id, stateDirectory: root, bundleURL: bundle) == nil)
+    }
+
     @Test func settingsShowsSuspendedAccessAsOffAndCanResumeIt() throws {
         let f = try Fixture(); defer { f.cleanup() }
         let first = try f.host()

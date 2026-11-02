@@ -151,7 +151,17 @@ import AgentLocalSecurity
             setAccessEnabled: { [weak self] enabled in
                 guard let self else { throw AgentErrorCode.cancelled }
                 try self.setEnabledFromUserInterface(enabled)
-            }, isAccessActive: { [weak self] in self?.endpoint != nil })
+            }, isAccessActive: { [weak self] in self?.endpoint != nil },
+            pairingCommand: Self.pairingCommand(libraryID: libraryID,
+                stateDirectory: lease.location.url.deletingLastPathComponent(), bundleURL: Bundle.main.bundleURL))
+    }
+
+    static func pairingCommand(libraryID: UUID, stateDirectory: URL, bundleURL: URL) -> String? {
+        let helper = bundleURL.appendingPathComponent("Contents/Helpers/DraftlyAgent.app/Contents/MacOS/draftly-agent")
+        guard stateDirectory.isFileURL, helper.isFileURL, FileManager.default.isExecutableFile(atPath: helper.path) else { return nil }
+        func quoted(_ value: String) -> String { "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'" }
+        return quoted(helper.path) + " connect --name 'Local agent' --library " + libraryID.uuidString
+            + " --state-parent " + quoted(stateDirectory.path)
     }
 
     func makeDraftSettingsModel() throws -> AgentConnectionsSettingsModel {
