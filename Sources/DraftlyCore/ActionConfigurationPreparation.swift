@@ -27,7 +27,9 @@ import Foundation
     private func checkConfigurationAuthority(_ action: DraftAction) throws {
         guard filterActionCatalog != nil else { return }
         _ = try permittedActionCatalog(for: action)
-        guard let authorizeActionConfiguration else { throw DraftlyError.message("Action configuration is unavailable.") }
+        guard let authorizeActionConfiguration, actionConfigurationCommitted != nil else {
+            throw DraftlyError.message("Action configuration is unavailable.")
+        }
         try authorizeActionConfiguration(action)
     }
 
@@ -37,6 +39,10 @@ import Foundation
             throw DraftlyError.message("The action changed while configuration was open. No configuration was saved.")
         }
         try library.saveActions([configured])
+        if let actionConfigurationCommitted {
+            do { try actionConfigurationCommitted(stored, configured) }
+            catch { scriptOutcomeUnknown = true; cancel(); throw error }
+        }
         return configured
     }
 }

@@ -2,7 +2,7 @@ import Foundation
 import AgentContracts
 import DraftlyCore
 
-// This policy covers the listed draft calls only. It does not authorize an Action.
+// This policy guards supported steps. It does not grant permission to run an Action.
 @MainActor final class AgentScriptAuthority {
     private let connectionID: UUID
     private let grantID: UUID
@@ -15,7 +15,7 @@ import DraftlyCore
     private let targetDraftID: UUID?
     private let editorDraftID: (() -> UUID?)?
     private let windowID: UUID?
-    private let approvedActions: [UUID: DraftAction]
+    private var approvedActions: [UUID: DraftAction]
     private let currentAction: ((UUID) -> DraftAction?)?
 
     init(grant: AgentGrant, currentGrant: @escaping () throws -> AgentGrant?,
@@ -76,7 +76,7 @@ import DraftlyCore
 
     func visibleActions(_ actions: [DraftAction]) throws -> [DraftAction] {
         let grant = try currentBaseline()
-        let result = actions.filter { grant.scope.permits(.init(kind: .action, id: $0.id)) }
+        let result = actions.filter { grant.scope.permits(.init(kind: .action, id: $0.id)) && approvedActions[$0.id] == $0 }
         try requireUnchanged(grant)
         return result
     }
@@ -101,6 +101,7 @@ import DraftlyCore
         }
         try requireUnchanged(grant)
         guard try checkedAction(owner) == approved else { throw AgentErrorCode.versionConflict }
+        try requireUnchanged(grant)
     }
 
     func authorizeConfiguration(_ action: DraftAction) throws {
@@ -110,6 +111,26 @@ import DraftlyCore
         guard grant.capabilities.contains(.actionsManage) else { throw AgentErrorCode.permissionDenied }
         try requireUnchanged(grant)
         guard try checkedAction(action.id) == action else { throw AgentErrorCode.versionConflict }
+        try requireUnchanged(grant)
+    }
+
+    func acceptConfiguredAction(before: DraftAction, after: DraftAction) throws {
+        let grant = try currentBaseline()
+        try requireTarget(grant, actionID: before.id)
+        guard grant.capabilities.contains(.actionsManage) else { throw AgentErrorCode.permissionDenied }
+        guard approvedActions[before.id] == before, currentAction?(before.id) == after else { throw AgentErrorCode.versionConflict }
+        var candidate = after
+        candidate.configuredValues = before.configuredValues
+        var oldMetadata = before.scriptMetadata ?? [:], newMetadata = after.scriptMetadata ?? [:]
+        oldMetadata.removeValue(forKey: "_draftly.initialConfiguration")
+        newMetadata.removeValue(forKey: "_draftly.initialConfiguration")
+        guard oldMetadata == newMetadata else { throw AgentErrorCode.versionConflict }
+        candidate.scriptMetadata = before.scriptMetadata
+        guard candidate == before else { throw AgentErrorCode.versionConflict }
+        try requireUnchanged(grant)
+        guard currentAction?(before.id) == after else { throw AgentErrorCode.versionConflict }
+        try requireUnchanged(grant)
+        approvedActions[before.id] = after
     }
 
     func authorizeCompletion(_ action: DraftAction, draftID: UUID) throws {
@@ -125,6 +146,7 @@ import DraftlyCore
         }
         try requireUnchanged(grant)
         guard try checkedAction(action.id) == action else { throw AgentErrorCode.versionConflict }
+        try requireUnchanged(grant)
     }
 
     private func requireTarget(_ grant: AgentGrant, actionID: UUID) throws {

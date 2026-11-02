@@ -57,9 +57,11 @@ An initial Action authority checks the current connection, target draft,
 Action scope, approved definition, and permissions for script, include,
 configuration, and text insertion steps. Its completion check requires write
 permission. Other step types remain unavailable in this policy. Initial
-expansion and configuration still need a complete approved-snapshot binding,
-including safe rebinding after a configuration change. Runtime effect approval
-and durable operation recovery also need integration.
+expansion uses only approved, unchanged Action definitions. A configuration
+save can update the approved snapshot only for the allowed configuration fields.
+If authority changes after the save, the outcome is uncertain and execution
+stops. Runtime effect approval and durable operation recovery still need
+integration.
 For the guarded draft operations, the runner checks authority again before it
 returns a result to the script. If authority changes after an update, it stops
 the Action and records an unknown outcome even when the script catches the

@@ -89,6 +89,7 @@ import DraftlyCore
                     completionAuthorization: ((DraftAction, UUID) throws -> Void)? = nil,
                     actionCatalogFilter: (([DraftAction]) throws -> [DraftAction])? = nil,
                     configurationAuthorization: ((DraftAction) throws -> Void)? = nil,
+                    configurationCommitted: ((DraftAction, DraftAction) throws -> Void)? = nil,
                     resolveModel: ModelResolver = { AutomationActionExecution.visibleModel($0, noteID: $1) },
                     registerClose: CloseRegistration = { AutomationActionExecution.registerOwnerClose($0, close: $1) }) async throws -> Output {
         guard !Task.isCancelled else {
@@ -154,6 +155,7 @@ import DraftlyCore
             runner.authorizeActionCompletion = completionAuthorization
             runner.filterActionCatalog = actionCatalogFilter
             runner.authorizeActionConfiguration = configurationAuthorization
+            runner.actionConfigurationCommitted = configurationCommitted
         }
         var subscriptions: [AnyCancellable] = []
         var previous = Dictionary(uniqueKeysWithValues: library.notes.map { ($0.id, $0.content) })
@@ -186,7 +188,7 @@ import DraftlyCore
                 return await model.runActionOutcome(action, hostOverride: hostOverride, scriptAuthorization: scriptAuthorization,
                                                     scriptDraftFilter: scriptDraftFilter, stepAuthorization: stepAuthorization,
                                                     completionAuthorization: completionAuthorization, actionCatalogFilter: actionCatalogFilter,
-                                                    configurationAuthorization: configurationAuthorization)
+                                                    configurationAuthorization: configurationAuthorization, configurationCommitted: configurationCommitted)
             }
             lifetime.attach(operation)
             let completed = await withTaskCancellationHandler { await operation.value } onCancel: { operation.cancel() }

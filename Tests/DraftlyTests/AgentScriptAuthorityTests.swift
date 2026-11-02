@@ -94,4 +94,29 @@ struct AgentScriptAuthorityTests {
         current = nil
         #expect(throws: AgentErrorCode.permissionDenied) { try authority.authorizeCompletion(action, draftID: draft) }
     }
+
+    @Test func catalogExcludesChangedAndUnapprovedDefinitions() throws {
+        let action = DraftAction(name: "Approved", steps: []), other = DraftAction(name: "Other", steps: [])
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let grant = AgentGrant(connectionID: UUID(), libraryID: UUID(), expiresAt: now.addingTimeInterval(60),
+            capabilities: [.actionsRun, .draftsRead], scope: .library)
+        let authority = AgentScriptAuthority(grant: grant, currentGrant: { grant }, validateHost: {},
+            isLocked: { false }, now: { now }, draftExists: { _ in true }, approvedActions: [action.id: action])
+        var changed = action; changed.name = "Changed"
+        #expect(try authority.visibleActions([action, other]) == [action])
+        #expect(try authority.visibleActions([changed, other]).isEmpty)
+    }
+
+    @Test func configurationRebindRejectsOtherDefinitionChanges() throws {
+        let draft = UUID(), before = DraftAction(name: "Approved", steps: []), now = Date(timeIntervalSince1970: 1_700_000_000)
+        var after = before; after.name = "Unapproved"; after.configuredValues["value"] = "neutral"
+        let grant = AgentGrant(connectionID: UUID(), libraryID: UUID(), expiresAt: now.addingTimeInterval(60),
+            capabilities: [.actionsRun, .draftsRead, .actionsManage],
+            scope: .resources([.init(kind: .draft, id: draft), .init(kind: .action, id: before.id)]))
+        let authority = AgentScriptAuthority(grant: grant, currentGrant: { grant }, validateHost: {},
+            isLocked: { false }, now: { now }, draftExists: { $0 == draft }, targetDraftID: draft,
+            approvedActions: [before.id: before], currentAction: { $0 == before.id ? after : nil })
+        #expect(throws: AgentErrorCode.versionConflict) { try authority.acceptConfiguredAction(before: before, after: after) }
+        #expect(try authority.visibleActions([after]).isEmpty)
+    }
 }

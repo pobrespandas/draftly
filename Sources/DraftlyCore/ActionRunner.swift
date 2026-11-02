@@ -36,7 +36,8 @@ public final class ActionRunner: ObservableObject {
     public var authorizeActionCompletion: ((DraftAction, UUID) throws -> Void)?
     public var filterActionCatalog: (([DraftAction]) throws -> [DraftAction])?
     public var authorizeActionConfiguration: ((DraftAction) throws -> Void)?
-    public private(set) var scriptOutcomeUnknown = false
+    public var actionConfigurationCommitted: ((DraftAction, DraftAction) throws -> Void)?
+    public internal(set) var scriptOutcomeUnknown = false
     public var readTheme: (EditorThemeDefinition) throws -> EditorThemeDefinition = { try ThemeFileAccess.read($0) }
     public var selectedDrafts: (() -> [Note])?
     public var applyWorkspace: ((Workspace) throws -> Void)?
@@ -175,7 +176,7 @@ public final class ActionRunner: ObservableObject {
                 result = .success; reason = .success
                 message = logs.last ?? "\(action.name) completed"
             } catch {
-                if authorizeScriptOperation == nil && authorizeActionStep == nil && authorizeActionCompletion == nil && filterActionCatalog == nil && authorizeActionConfiguration == nil { try? flushEditor() }
+                if authorizeScriptOperation == nil && authorizeActionStep == nil && authorizeActionCompletion == nil && filterActionCatalog == nil && authorizeActionConfiguration == nil && actionConfigurationCommitted == nil { try? flushEditor() }
                 if error is CancellationError || (error as? ActionExecutionInterruption) == .cancelled || session.cancellationRequested {
                     result = .cancelled; reason = .cancelled
                     message = "\(action.name) cancelled"
@@ -255,7 +256,7 @@ public final class ActionRunner: ObservableObject {
             if completed && action.presentation.notifyOnSuccess { _ = try? platform("actionNotification", ["title": action.name, "message": message ?? "Complete"]) }
             return completed
         } catch {
-            if authorizeScriptOperation == nil && authorizeActionStep == nil && authorizeActionCompletion == nil && filterActionCatalog == nil && authorizeActionConfiguration == nil { try? flushEditor() }
+            if authorizeScriptOperation == nil && authorizeActionStep == nil && authorizeActionCompletion == nil && filterActionCatalog == nil && authorizeActionConfiguration == nil && actionConfigurationCommitted == nil { try? flushEditor() }
             message = error.localizedDescription
             let cancelled = (error as? ActionExecutionInterruption) == .cancelled
             if (error as? ActionExecutionInterruption) == .timeout { terminationReason = .timeout }

@@ -261,7 +261,8 @@ struct AgentAuthorizedActionHostTests {
         let grant = AgentGrant(connectionID: UUID(), libraryID: UUID(), expiresAt: now.addingTimeInterval(60),
             capabilities: [.actionsRun, .draftsRead, .draftsWrite], scope: .resources(targets))
         let authority = AgentScriptAuthority(grant: grant, currentGrant: { grant }, validateHost: {},
-            isLocked: { false }, now: { now }, draftExists: { id in library.notes.contains { $0.id == id } })
+            isLocked: { false }, now: { now }, draftExists: { id in library.notes.contains { $0.id == id } },
+            approvedActions: [root.id: root, helper.id: helper], currentAction: { id in library.actions.first { $0.id == id } })
         let result = try await AutomationActionExecution.run(root, noteID: note.id, library: library,
             models: [], host: host, editorScope: .targetDraft, stepAuthorization: { _, _ in },
             actionCatalogFilter: { try authority.visibleActions($0) })
@@ -313,13 +314,13 @@ struct AgentAuthorizedActionHostTests {
         var current: AgentGrant? = grant
         host.onCall = { if host.operations.last == "prompt" { current = nil } }
         let authority = AgentScriptAuthority(grant: grant, currentGrant: { current }, validateHost: {},
-            isLocked: { false }, now: { now }, draftExists: { $0 == note.id })
+            isLocked: { false }, now: { now }, draftExists: { $0 == note.id }, targetDraftID: note.id,
+            approvedActions: [action.id: action], currentAction: { id in library.actions.first { $0.id == id } })
         let result = try await AutomationActionExecution.run(action, noteID: note.id, library: library,
             models: [], host: host, editorScope: .targetDraft, stepAuthorization: { _, _ in },
             actionCatalogFilter: { try authority.visibleActions($0) },
-            configurationAuthorization: { _ in
-                guard current?.capabilities.contains(.actionsManage) == true else { throw AgentErrorCode.permissionDenied }
-            })
+            configurationAuthorization: { try authority.authorizeConfiguration($0) },
+            configurationCommitted: { try authority.acceptConfiguredAction(before: $0, after: $1) })
         #expect(result.report.reason == .error)
         #expect(host.operations.contains("prompt"))
         #expect(library.actions.first { $0.id == action.id } == action)
@@ -337,11 +338,30 @@ struct AgentAuthorizedActionHostTests {
             capabilities: [.actionsRun, .draftsRead, .actionsManage],
             scope: .resources([.init(kind: .draft, id: note.id), .init(kind: .action, id: action.id)]))
         let authority = AgentScriptAuthority(grant: grant, currentGrant: { grant }, validateHost: {},
-            isLocked: { false }, now: { now }, draftExists: { $0 == note.id })
+            isLocked: { false }, now: { now }, draftExists: { $0 == note.id }, targetDraftID: note.id,
+            approvedActions: [action.id: action], currentAction: { id in library.actions.first { $0.id == id } })
         let result = try await AutomationActionExecution.run(action, noteID: note.id, library: library,
             models: [], host: host, editorScope: .targetDraft, stepAuthorization: { _, _ in },
-            actionCatalogFilter: { try authority.visibleActions($0) }, configurationAuthorization: { _ in })
+            actionCatalogFilter: { try authority.visibleActions($0) },
+            configurationAuthorization: { try authority.authorizeConfiguration($0) },
+            configurationCommitted: { try authority.acceptConfiguredAction(before: $0, after: $1) })
         #expect(result.report.reason == .success, "\(result.message)")
+        #expect(library.actions.first { $0.id == action.id }?.configuredValues["value"] == "neutral")
+    }
+
+    @Test func failedConfigurationRebindReportsAnUncertainOutcome() async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Visible"), host = Host()
+        host.asyncOperations = ["device"]
+        let action = DraftAction(name: "Configure", steps: [ActionStep("configurationKey", [
+            "key": "value", "requiresInitialConfiguration": "true"
+        ])])
+        try library.saveAction(action)
+        let result = try await AutomationActionExecution.run(action, noteID: note.id, library: library,
+            models: [], host: host, editorScope: .targetDraft, stepAuthorization: { _, _ in },
+            actionCatalogFilter: { $0 }, configurationAuthorization: { _ in },
+            configurationCommitted: { _, _ in throw AgentErrorCode.permissionDenied })
+        #expect(result.outcomeUnknown)
         #expect(library.actions.first { $0.id == action.id }?.configuredValues["value"] == "neutral")
     }
 
