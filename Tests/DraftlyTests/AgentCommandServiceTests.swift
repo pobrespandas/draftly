@@ -6,6 +6,31 @@ import AgentContracts
 
 @Suite("Authenticated agent reads") @MainActor
 struct AgentCommandServiceTests {
+    @Test func actionSubmissionIsAvailableOnlyWithConnectedExecutorAndRegistry() throws {
+        let f = try Fixture()
+        let (record, _) = try f.connect(capabilities: [.actionsRun, .draftsRead])
+        let registry = AgentOperationRegistry(currentGrant: { try f.connections.grantForAuthenticatedConnection($0) },
+            validateHost: {}, isLocked: { false }, now: { f.wall })
+        defer { registry.cancelAll() }
+        var submissions = 0
+        let service = try AgentCommandService(library: f.library, libraryID: f.libraryID, connections: f.connections,
+            appVersion: "QA", validateHost: {}, isLocked: { false }, now: { f.wall },
+            pendingEditorGeneration: { _ in "" }, operations: registry, submitAction: { request, grant in
+                submissions += 1
+                return try registry.startRequest(request, grant: grant) { _ in
+                    .init(report: .notStarted(actionID: request.targets[0].id, reason: .cancelled, message: "Cancelled"),
+                        noteID: nil, message: "Cancelled")
+                }
+            })
+        let credential = try #require(f.secrets[record.id])
+        let session = try service.authenticate(connectionID: record.id, credential: credential)
+        let request = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "actions.run",
+            targets: [.init(kind: .action, id: UUID()), .init(kind: .draft, id: UUID())], expectedVersion: "v1")
+        let response = try JSONDecoder().decode(AgentResponse.self,
+            from: service.respond(to: JSONEncoder().encode(request), session: session))
+        guard case .result(.object(let result)) = response.outcome else { Issue.record("Expected queued operation"); return }
+        #expect(result["state"] == .string("queued") && submissions == 1)
+    }
     @MainActor private final class Fixture {
         let library: LibraryStore
         let libraryID = UUID()

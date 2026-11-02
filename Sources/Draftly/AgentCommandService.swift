@@ -22,6 +22,7 @@ import AgentContracts
         var operations = editorRegistry == nil ? Self.readOperations.union(Self.actionReadOperations).union(Self.workspaceReadOperations) : (writes == nil ? Self.readOperations.union(Self.editorReadOperations).union(Self.actionReadOperations).union(Self.workspaceReadOperations) : Self.implementedOperations)
         if readActivity != nil { operations.insert("activity.list") }
         if operationRegistry != nil { operations.formUnion(["operations.get", "operations.cancel"]) }
+        if submitAction != nil && operationRegistry != nil { operations.insert("actions.run") }
         return operations
     }
     var availableCapabilities: Set<AgentCapability> {
@@ -31,6 +32,7 @@ import AgentContracts
     }
     private let actionLibrary: LibraryStore
     private let operationRegistry: AgentOperationRegistry?
+    private let submitAction: ((AgentRequest, AgentGrant) throws -> UUID)?
     private let actionVersionKey = SymmetricKey(size: .bits256)
     private let editorRegistry: AgentEditorRegistry?
     private let windowReadKey = SymmetricKey(size: .bits256)
@@ -58,10 +60,12 @@ import AgentContracts
          pendingEditorGeneration: @escaping (UUID) -> String,
          recordActivity: @escaping (UUID, UUID, UUID, String, String) -> Void = { _, _, _, _, _ in },
          readActivity: ((UUID, UUID) throws -> [AgentActivityStore.Entry])? = nil,
-         operations: AgentOperationRegistry? = nil) throws {
+         operations: AgentOperationRegistry? = nil,
+         submitAction: ((AgentRequest, AgentGrant) throws -> UUID)? = nil) throws {
         guard editors?.isBound(to: library) ?? true else { throw AgentErrorCode.invalidInput }
         self.actionLibrary = library
         self.operationRegistry = operations
+        self.submitAction = submitAction
         self.libraryID = libraryID; self.connections = connections; self.appVersion = appVersion
         self.editorRegistry = editors
         self.validateHost = validateHost
@@ -144,7 +148,11 @@ import AgentContracts
             switch AgentPermissionPolicy.evaluate(request, connectionID: grant.connectionID, grant: policyGrant, now: now()) {
             case .permitted: break
             case .denied(let error): throw error
-            case .needsHumanApproval, .needsEffectAuthorization: throw AgentErrorCode.unavailable
+            case .needsHumanApproval: throw AgentErrorCode.unavailable
+            case .needsEffectAuthorization:
+                guard request.operation == "actions.run", submitAction != nil, operationRegistry != nil else {
+                    throw AgentErrorCode.unavailable
+                }
             }
             guard availableOperations.contains(request.operation) else { throw AgentErrorCode.unavailable }
             let parameters: [String: AgentJSONValue]
@@ -617,6 +625,12 @@ import AgentContracts
     private func dispatch(_ request: AgentRequest, parameters: [String: AgentJSONValue], grant: AgentGrant,
                           sessionID: UUID) throws -> [String: AgentJSONValue] {
         switch request.operation {
+        case "actions.run":
+            guard let submitAction, let operationRegistry else { throw AgentErrorCode.unavailable }
+            let id = try submitAction(request, grant)
+            let snapshot = try operationRegistry.snapshot(id, connectionID: grant.connectionID)
+            guard !snapshot.state.isTerminal else { throw AgentErrorCode.unavailable }
+            return ["operationID": .string(id.uuidString), "state": .string(snapshot.state.rawValue)]
         case "operations.get", "operations.cancel":
             guard let operationRegistry else { throw AgentErrorCode.unavailable }
             let result = try operationRegistry.control(request, connectionID: grant.connectionID)
