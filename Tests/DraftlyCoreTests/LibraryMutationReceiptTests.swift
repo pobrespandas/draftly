@@ -34,6 +34,24 @@ struct LibraryMutationReceiptTests {
         #expect(try library.mutationReceipt(for: mutation, at: now) == nil)
     }
 
+    @Test func groupReorderRollsBackAllRecordsOnFailure() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        var a = ActionGroupRecord(name: "Alpha"); a.order = 0
+        var b = ActionGroupRecord(name: "Beta"); b.order = 1
+        try library.saveActionGroups([a, b])
+        var changedA = a; changedA.order = 1
+        var changedB = b; changedB.order = 0
+        let mutation = identity()
+        #expect(throws: (any Error).self) {
+            try library.commitActionGroups([changedB, changedA], mutation: mutation, at: now,
+                validateCommit: { throw DraftlyError.message("Authority changed") }) { groups in
+                    groups.map { .init(id: $0.id, versionToken: "opaque-version") }
+                }
+        }
+        #expect(library.groupNames == ["Alpha", "Beta"])
+        #expect(try library.mutationReceipt(for: mutation, at: now) == nil)
+    }
+
     @Test func groupCopyCommitsAllItemsOnceAndRollsBackOnFailure() throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         var original = DraftAction(name: "Original", steps: []); original.group = "Source"

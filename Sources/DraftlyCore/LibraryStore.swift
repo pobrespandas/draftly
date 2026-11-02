@@ -324,6 +324,26 @@ public final class LibraryStore: ObservableObject {
             return receipt
         } catch { container.viewContext.rollback(); try? reload(); throw error }
     }
+    package func commitActionGroups(_ groups: [ActionGroupRecord], mutation: LibraryMutationIdentity, at now: Date,
+                                    validateCommit: () throws -> Void,
+                                    makeResources: ([ActionGroupRecord]) throws -> [LibraryMutationReceipt.Resource]) throws -> LibraryMutationReceipt {
+        let ids = Set(groups.map(\.id))
+        guard !groups.isEmpty, ids.count == groups.count else { throw LibraryMutationReceiptError.invalidReceipt }
+        if let previous = try mutationReceipt(for: mutation, at: now) {
+            guard Set(previous.resources.map(\.id)) == ids else { throw LibraryMutationReceiptError.requestConflict }
+            return previous
+        }
+        do {
+            for group in groups { try persist(group, id: group.id, kind: "actionGroup") }
+            let receipt = LibraryMutationReceipt(id: UUID(), mutation: mutation, committedAt: now, resources: try makeResources(groups))
+            try receipt.validate()
+            guard Set(receipt.resources.map(\.id)) == ids else { throw LibraryMutationReceiptError.invalidReceipt }
+            try persist(receipt, id: receipt.id, kind: "agentMutationReceipt")
+            try beforeBatchCommit?(); try validateCommit(); try commit()
+            return receipt
+        } catch { container.viewContext.rollback(); try? reload(); throw error }
+    }
+
     package func commitActionGroupCopy(_ group: ActionGroupRecord, actions copies: [DraftAction],
                                        mutation: LibraryMutationIdentity, at now: Date,
                                        validateCommit: () throws -> Void,

@@ -11,7 +11,7 @@ missing handlers describe the checkpoint at which each section was written.
 The current branch implements authenticated action and group reads, action
 step defaults, shortcut validation, `actions.create`, `actions.update`,
 `actions.duplicate`, `actions.move`, `actionGroups.create`, and
-`actionGroups.update`, and `actionGroups.duplicate`.
+`actionGroups.update`, `actionGroups.duplicate`, and `actionGroups.reorder`.
 Creating an action requires access to the full library. Action changes use
 an expected version, a signed retry key, and an atomic action and receipt
 transaction. Recovery checks the current grant. A client with resource scope
@@ -26,15 +26,13 @@ Editing a group also requires full-library access. A rename updates its actions
 in the same transaction and preserves the IDs of other groups.
 Duplicating a group requires full-library access. It copies the group's actions
 without their keyboard shortcuts and commits the copies and receipt together.
-Reordering is still unavailable. The native editor assigns a new order to each
-item in the affected list. An agent needs a version for that complete list,
-not just a version for one item, before it can detect concurrent changes.
+Group reordering requires full-library access and a version for the complete
+list. The native editor assigns a new order to each item in the affected list.
 With full-library access, `actions.groups` returns an `orderVersion` for the
 complete group list. Each cursor page checks that version and reports a conflict
 if the list changed. Scoped reads do not return a full-library version.
-The write must validate the full target set and commit all orders and the
-receipt together. A partial resource grant must not permit a reorder that can
-change the relative position of resources outside the grant.
+The write validates the full target set and commits all orders and the receipt
+together. Action reordering remains unavailable.
 
 The host does not start in the normal app. Agent access remains unavailable in
 released builds. The signed helper and host still need a real installed-app
