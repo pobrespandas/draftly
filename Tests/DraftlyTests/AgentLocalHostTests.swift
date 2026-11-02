@@ -443,12 +443,15 @@ struct AgentLocalHostTests {
         try host.setEnabledFromUserInterface(true)
         let record = try f.connect(host)
         let session = try host.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
-        let request = AgentRequest(requestID: UUID(), libraryID: host.libraryID, operation: "server.status")
-        let response = try JSONDecoder().decode(AgentResponse.self, from: host.service.respond(to: JSONEncoder().encode(request), session: session))
-        guard case .result = response.outcome else { Issue.record("Expected success"); return }
+        let requests = (0..<20).map { _ in AgentRequest(requestID: UUID(), libraryID: host.libraryID, operation: "server.status") }
+        for request in requests {
+            let response = try JSONDecoder().decode(AgentResponse.self, from: host.service.respond(to: JSONEncoder().encode(request), session: session))
+            guard case .result = response.outcome else { Issue.record("Expected success"); return }
+        }
         host.close()
         let reopened = try f.host(); defer { reopened.close() }
-        #expect(try reopened.recentActivity().contains { $0.requestID == request.requestID && $0.result == "success" })
+        let saved = try reopened.recentActivity().filter { $0.result == "success" }
+        #expect(Set(saved.map(\.requestID)) == Set(requests.map(\.requestID)))
     }
 
     @Test func activityListOnlyExposesTheCurrentConnectionAndGrant() async throws {
