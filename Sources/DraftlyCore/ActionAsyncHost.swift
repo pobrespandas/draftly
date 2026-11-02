@@ -54,6 +54,25 @@ import Foundation
     func performSuspendingStep(_ step: ActionStep, text: String, rendered: String, current: Note,
                                evaluate: (String) -> Void) async throws -> Bool? {
         switch step.type {
+        case "clipboard":
+            if ["html", "richText"].contains(step.values["output"] ?? "") {
+                let html = try MarkdownPreferences.render(rendered, defaults: markdownDefaults)
+                return try await nativeValue("htmlToClipboard", ["html": html]) as? Bool != false
+            }
+            let mode = step.values["writeType"] ?? "replace"
+            guard ["replace", "append", "prepend"].contains(mode) else {
+                throw DraftlyError.message("Unsupported clipboard write type: \(mode)")
+            }
+            let previous: String
+            if mode == "replace" { previous = "" }
+            else {
+                guard let value = try await nativeValue("getClipboard", [:]) as? String else {
+                    throw DraftlyError.message("The clipboard read returned an invalid response.")
+                }
+                previous = value
+            }
+            let result = mode == "append" ? previous + rendered : mode == "prepend" ? rendered + previous : rendered
+            return try await nativeValue("clipboard", ["text": result]) as? Bool != false
         case "createDraft":
             let creation = try await ActionTemplateBuilder.build(render: { try await self.renderTemplateAsync($0, note: current) }) { render in
                 try ActionCreateDraftStep(step, text: rendered, validateSyntax: { _ = try self.library.syntaxDefinition(named: $0) }, render: render)

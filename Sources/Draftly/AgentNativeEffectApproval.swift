@@ -10,7 +10,7 @@ import AgentContracts
         guard request.parameters["interactive"] == .bool(true) else { throw AgentErrorCode.interactionRequired }
         let unrestricted = ["appleScript", "shortcut", "shell"].contains(operation)
         let supported = ["share", "shareFile", "shareURL", "print", "mail", "message", "saveFile",
-                         "clipboard", "getClipboard", "openURL", "appleScript", "shortcut", "shell"]
+                         "clipboard", "getClipboard", "htmlToClipboard", "openURL", "appleScript", "shortcut", "shell"]
         guard supported.contains(operation) else { throw AgentErrorCode.unavailable }
         guard JSONSerialization.isValidJSONObject(values) else { throw AgentErrorCode.invalidInput }
         let data = try JSONSerialization.data(withJSONObject: values, options: [.sortedKeys])

@@ -684,3 +684,18 @@ The connection was revoked and Stop Work disabled access. QA quit, its exact
 LaunchServices registration was removed, and the usual app reopened with its
 10 drafts. These checks used the signed helper and a custom MCP probe. They do
 not establish support for a named external client or production screen lock.
+
+### Reviewed clipboard Action steps
+
+The QA executor supports clipboard steps through the asynchronous native review
+path. Replace reviews only the write. Append and prepend review the clipboard
+read first, then review the resolved text before writing. A malformed read
+stops the Action before any write. HTML and rich-text output review the rendered
+HTML before the native clipboard conversion. Script clipboard calls remain
+outside the permitted script API.
+
+Each write requires `native.use`, the current Action and draft scope, an
+interactive request and a single-use review. Failed writes stop following
+steps. The effect journal distinguishes confirmed writes, failed writes and
+unknown responses. Focused tests cover these paths. Installed clipboard review
+and actual pasteboard acceptance remain pending. Normal access remains off.

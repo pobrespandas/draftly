@@ -34,6 +34,44 @@ struct AsyncFilePreviewStepTests {
         } else { #expect(body == text) }
     }
 
+    @Test(arguments: ["replace", "append", "prepend"])
+    func clipboardReadsOnlyWhenNeededAndWritesTheResolvedText(mode: String) async throws {
+        let host = FilePreviewStepHost()
+        host.clipboard = "Before 🐼"
+        let f = try ScriptTestFixture(content: "New café", host: host)
+        let step = ActionStep("clipboard", ["template": "[[draft]]", "writeType": mode])
+        #expect(await f.runner.runAsync(DraftAction(name: "Copy", steps: [step])).reason == .success)
+        #expect(host.calls == (mode == "replace" ? ["clipboard"] : ["getClipboard", "clipboard"]))
+        let expected = mode == "append" ? "Before 🐼New café" : mode == "prepend" ? "New caféBefore 🐼" : "New café"
+        #expect(host.payloads.last?["text"] as? String == expected)
+    }
+
+    @Test(arguments: ["html", "richText"])
+    func richClipboardReviewsRenderedHTML(output: String) async throws {
+        let host = FilePreviewStepHost()
+        let f = try ScriptTestFixture(content: "**café 🐼**", host: host)
+        let step = ActionStep("clipboard", ["output": output, "template": "[[draft]]"])
+        #expect(await f.runner.runAsync(DraftAction(name: "Copy HTML", steps: [step])).reason == .success)
+        #expect(host.calls == ["htmlToClipboard"])
+        #expect((host.payloads.first?["html"] as? String)?.contains("<strong>café 🐼</strong>") == true)
+    }
+
+    @Test func malformedClipboardReadCannotOverwriteTheClipboard() async throws {
+        let host = FilePreviewStepHost()
+        let f = try ScriptTestFixture(content: "New", host: host)
+        let step = ActionStep("clipboard", ["writeType": "append"])
+        #expect(await f.runner.runAsync(DraftAction(name: "Append", steps: [step])).reason == .error)
+        #expect(host.calls == ["getClipboard"])
+    }
+
+    @Test func clipboardFailureStopsFollowingSteps() async throws {
+        let host = FilePreviewStepHost(); host.response = #"{"value":false}"#
+        let f = try ScriptTestFixture(content: "Keep", host: host)
+        let action = DraftAction(name: "Copy", steps: [ActionStep("clipboard"), ActionStep("insertText", ["template": "Late"])])
+        #expect(await f.runner.runAsync(action).reason == .cancelled)
+        #expect(f.editor.content == "Keep")
+    }
+
     @Test func exportUsesItsDefaultRenderedName() async throws {
         let f = try ScriptTestFixture(content: "Title\nBody", host: FilePreviewStepHost())
         let report = await f.runner.runAsync(DraftAction(name: "Export", steps: [ActionStep("export")]))
@@ -98,6 +136,7 @@ struct AsyncFilePreviewStepTests {
 @MainActor private final class FilePreviewStepHost: ActionHost {
     var calls: [String] = []
     var payloads: [[String: Any]] = []
+    var clipboard: String?
     var response = #"{"value":true}"#
     func supportsAsync(_ operation: String) -> Bool { ["saveFile", "htmlPreview", "composeMail", "composeMessage", "print", "share", "shareFile"].contains(operation) }
     func perform(_ operation: String, values: [String: Any]) throws -> Any? {
@@ -107,6 +146,9 @@ struct AsyncFilePreviewStepTests {
         calls.append(operation)
         payloads.append(try JSONSerialization.jsonObject(with: Data(payload.utf8)) as? [String: Any] ?? [:])
         await Task.yield()
+        if operation == "getClipboard", let clipboard {
+            return String(decoding: try JSONSerialization.data(withJSONObject: ["value": clipboard]), as: UTF8.self)
+        }
         return response
     }
 }

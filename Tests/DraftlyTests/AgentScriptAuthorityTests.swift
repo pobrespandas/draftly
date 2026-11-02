@@ -120,7 +120,7 @@ struct AgentScriptAuthorityTests {
         #expect(try authority.visibleActions([after]).isEmpty)
     }
 
-    @Test(arguments: ["share", "openIn", "print"])
+    @Test(arguments: ["share", "openIn", "print", "clipboard"])
     func reviewedNativeStepsRequireNativePermissionAndCurrentDefinition(stepType: String) throws {
         let draft = UUID(), step = ActionStep(stepType)
         let action = DraftAction(name: "Reviewed", steps: [step])
