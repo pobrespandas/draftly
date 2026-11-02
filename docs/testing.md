@@ -15,6 +15,9 @@ python3 scripts/run-swift-tests.py
 
 The runner checks that every discovered test has a result. It reports failures
 and incomplete runs instead of treating a successful process exit as enough.
+Discovery builds the test products. Each target then runs those same products
+with `--skip-build`, while producing fresh reports. A failed discovery stops
+execution even when a previous build remains on disk.
 Tests use temporary data and offscreen editors. They must not open or move
 visible windows, request permissions, play sounds, or use personal data.
 
@@ -199,3 +202,39 @@ edits during a wait. They do not open visible windows.
 HTTP uses an isolated URLProtocol fixture. Those tests do not establish socket or
 redirect acceptance. The auditor requires fourteen engine contracts and rejects
 missing, duplicate, or unnamed records during strict parity checks.
+
+## Test execution refactoring — 1 November 2026
+
+The host cleanup test uses a controlled clock for its execution deadline. It
+still checks cancellation and timeout as separate outcomes. Both cases must keep
+the library busy until host cleanup returns. Real timer tests remain in
+AsyncNativeHostTests, AsyncWindowOpeningTests, and XMLRPCAsyncTests.
+The default production clock and sleep behavior remain unchanged.
+
+The current host cleanup test is
+`scriptRequestKeepsLibraryBusyUntilInterruptedHostCleanupReturns(reason:)`.
+It replaces `scriptRequestKeepsLibraryBusyUntilCancelledHostCleanupReturns(timeout:)`.
+The API matrix uses the current name. Dated records retain the previous name.
+
+The action panel toolbar test now uses one attached controller fixture. It
+covers direct model changes, native button actions, both visibility states,
+no selected draft, and unrelated editor changes. It replaces the two previous
+image and enabled-appearance tests with
+`actionsToggleKeepsItsEnabledAppearanceAcrossVisibilityAndEditorChangesWithoutADraft()`.
+All other discovered test identities remain unchanged.
+
+Measured from baseline `98f9529`, target execution after discovery changed from
+96.152 seconds to 84.775 seconds in a complete local run (about 12 percent).
+An earlier run took 83.258 seconds. These measurements exclude the initial build.
+They do not predict total cold CI time.
+
+Three alternating warm runs of the consumer target gave median invocation times
+of 2.917 seconds with build planning and 1.458 seconds with `--skip-build`.
+The host cleanup test changed from 5.034 seconds to 0.025 seconds.
+The runner still requires fresh reports and an exact inventory match. It does
+not add retries or parallel execution.
+
+Validation passed: 2,223 Swift method identities, 304 Python tests, the action
+API matrix check, and a local signed app build. The previous inventory had
+2,224 identities. The only net removal is the consolidated toolbar case.
+These checks do not establish visible UI or cloud acceptance.

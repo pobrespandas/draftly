@@ -22243,7 +22243,7 @@
         "errors": {
           "test": {
             "suite": "AsyncHostDrainTests",
-            "test": "scriptRequestKeepsLibraryBusyUntilCancelledHostCleanupReturns"
+            "test": "scriptRequestKeepsLibraryBusyUntilInterruptedHostCleanupReturns"
           },
           "assertion": "Cancellation and timeout keep the session active and reject another runner until the controlled host cleanup is released."
         }
@@ -23361,7 +23361,7 @@
         },
         {
           "suite": "AsyncHostDrainTests",
-          "test": "scriptRequestKeepsLibraryBusyUntilCancelledHostCleanupReturns"
+          "test": "scriptRequestKeepsLibraryBusyUntilInterruptedHostCleanupReturns"
         },
         {
           "suite": "ActionCallbackRouterTests",
@@ -23810,7 +23810,7 @@
         "errors": {
           "test": {
             "suite": "AsyncHostDrainTests",
-            "test": "scriptRequestKeepsLibraryBusyUntilCancelledHostCleanupReturns"
+            "test": "scriptRequestKeepsLibraryBusyUntilInterruptedHostCleanupReturns"
           },
           "assertion": "Host cleanup holds the active session and prevents a second run until cancellation has drained."
         },

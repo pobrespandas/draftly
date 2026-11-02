@@ -75,32 +75,6 @@ struct ReferenceToolbarLayoutTests {
         #expect(items[searchBoundary].action == nil)
     }
 
-    @Test func actionsToggleKeepsTheSameImageAcrossVisibilityAndEditorUpdates() async throws {
-        _ = NSApplication.shared
-        let model = WindowModel(library: try LibraryStore(inMemory: true, seed: false))
-        model.showActions = false
-        let controller = LibrarySplitController(model: model, panels: (0..<4).map { _ in AnyView(Color.clear) })
-        let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 1200, height: 800),
-                              styleMask: [.titled, .resizable], backing: .buffered, defer: false)
-        window.contentViewController = controller
-        defer { window.contentViewController = nil }
-        let toolbar = ReferenceToolbar(model: model, window: window, splitView: controller.splitView)
-        defer { withExtendedLifetime(toolbar) {} }
-        let item = try #require(window.toolbar?.items.first { $0.itemIdentifier.rawValue == "actions" })
-        let closed = try #require(item.image)
-        model.showActions = true
-        await TestMainQueue.drain()
-        let opened = try #require(item.image)
-        #expect(opened === closed)
-        model.editor.selection = NSRange(location: 0, length: 0)
-        await TestMainQueue.drain()
-        #expect(item.image === opened)
-        model.showActions = false
-        await TestMainQueue.drain()
-        #expect(item.image === opened)
-        #expect(item.isEnabled)
-    }
-
     @Test func floatingToggleReflectsWindowStateAndKeepsItsImageDuringOtherEdits() async throws {
         _ = NSApplication.shared
         let model = WindowModel(library: try LibraryStore(inMemory: true, seed: false))
@@ -131,28 +105,39 @@ struct ReferenceToolbarLayoutTests {
         #expect(button.image?.tiffRepresentation == off.tiffRepresentation)
     }
 
-    @Test func actionsToggleKeepsItsEnabledAppearanceWithoutADraft() async throws {
+    @Test func actionsToggleKeepsItsEnabledAppearanceAcrossVisibilityAndEditorChangesWithoutADraft() async throws {
         _ = NSApplication.shared
         let library = try LibraryStore(inMemory: true, seed: false)
         let model = WindowModel(library: library)
-        let split = NSSplitView()
-        for _ in 0..<4 { split.addArrangedSubview(NSView()) }
+        model.showActions = false
+        let controller = LibrarySplitController(model: model, panels: (0..<4).map { _ in AnyView(Color.clear) })
         let window = OffscreenTestWindow(contentRect: NSRect(x: 0, y: 0, width: 1200, height: 800),
             styleMask: [.titled, .resizable], backing: .buffered, defer: false)
-        let toolbar = ReferenceToolbar(model: model, window: window, splitView: split)
+        window.contentViewController = controller
+        defer { window.contentViewController = nil }
+        let toolbar = ReferenceToolbar(model: model, window: window, splitView: controller.splitView)
         defer { withExtendedLifetime(toolbar) {} }
         let item = try #require(window.toolbar?.items.first { $0.itemIdentifier.rawValue == "actions" })
         let image = try #require(item.image)
         #expect(image.isTemplate)
-        for _ in 0..<2 {
-            let wasVisible = model.showActions
-            #expect(item.isEnabled)
-            #expect(NSApp.sendAction(try #require(item.action), to: item.target, from: item))
-            await TestMainQueue.drain()
-            #expect(model.showActions != wasVisible)
-            #expect(item.isEnabled)
-            #expect(item.image === image)
+        for throughButton in [false, true] {
+            for _ in 0..<2 {
+                let wasVisible = model.showActions
+                #expect(item.isEnabled)
+                if throughButton {
+                    #expect(NSApp.sendAction(try #require(item.action), to: item.target, from: item))
+                } else {
+                    model.showActions.toggle()
+                }
+                await TestMainQueue.drain()
+                #expect(model.showActions != wasVisible)
+                #expect(item.isEnabled)
+                #expect(item.image === image)
+            }
         }
+        model.editor.selection = NSRange(location: 0, length: 0)
+        await TestMainQueue.drain()
+        #expect(item.image === image)
     }
 
 }

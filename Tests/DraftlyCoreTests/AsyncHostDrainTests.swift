@@ -4,11 +4,14 @@ import Testing
 
 @Suite("Asynchronous host cleanup") @MainActor
 struct AsyncHostDrainTests {
-    @Test(arguments: [false, true])
-    func scriptRequestKeepsLibraryBusyUntilCancelledHostCleanupReturns(timeout: Bool) async throws {
+    @Test(arguments: [ActionTerminationReason.cancelled, .timeout])
+    func scriptRequestKeepsLibraryBusyUntilInterruptedHostCleanupReturns(reason: ActionTerminationReason) async throws {
         let host = CleanupGateHost()
         let f = try ScriptTestFixture(content: "Keep", host: host)
-        f.runner.hostOperationTimeout = timeout ? 5 : 30
+        f.runner.hostOperationTimeout = reason == .timeout ? 5 : 30
+        let clock = HostCleanupClock()
+        f.runner.hostOperationNow = { clock.now }
+        f.runner.hostOperationSleep = { try await clock.sleep($0) }
         let other = ActionRunner(library: f.library, editor: f.editor, host: host)
         var action = ScriptTestAction.make("ShellScript.create('neutral').execute();editor.setText('Late');", name: "Host cleanup")
         action.afterSuccess = "archive"
@@ -19,7 +22,8 @@ struct AsyncHostDrainTests {
         }
         defer { task.cancel(); host.releaseCleanup() }
         try #require(await host.waitForStart(), Comment(rawValue: f.runner.message ?? "The action ended before the host started."))
-        if !timeout { f.runner.cancel() }
+        if reason == .timeout { clock.expire(after: 5) }
+        else { f.runner.cancel() }
         try #require(await host.waitForCleanup(), Comment(rawValue: f.runner.message ?? "The action ended before host cleanup started."))
         // This host pauses cleanup. MainActor must remain available during the drain.
         #expect(f.runner.isRunning)
@@ -30,7 +34,7 @@ struct AsyncHostDrainTests {
         #expect(f.editor.content == "Keep")
         host.releaseCleanup()
         let report = await task.value
-        #expect(report.reason == (timeout ? .timeout : .cancelled))
+        #expect(report.reason == reason)
         #expect(host.cleaned && host.finishes == 1)
         #expect(f.editor.content == "Keep" && f.library.notes.first?.isArchived == false)
         #expect(await other.runAsync(next).reason == .success)
@@ -56,6 +60,24 @@ struct AsyncHostDrainTests {
         #expect(f.editor.content == "Keep" && host.finishes == 1)
         let next = ActionRunner(library: f.library, editor: f.editor, host: host)
         #expect(await next.runAsync(ScriptTestAction.make("", name: "Next")).reason == .success)
+    }
+}
+
+@MainActor private final class HostCleanupClock {
+    private let expiration = AsyncStream.makeStream(of: Void.self)
+    private(set) var now = Date(timeIntervalSince1970: 10_000)
+
+    func sleep(_ interval: TimeInterval) async throws {
+        if interval > 0 {
+            var events = expiration.stream.makeAsyncIterator()
+            _ = await events.next()
+        }
+        try Task.checkCancellation()
+    }
+    func expire(after interval: TimeInterval) {
+        now = now.addingTimeInterval(interval)
+        expiration.continuation.yield(())
+        expiration.continuation.finish()
     }
 }
 

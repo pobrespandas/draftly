@@ -7,6 +7,7 @@ import Foundation
         let timeout = hostOperationTimeout
         guard timeout.isFinite, timeout > 0 else { throw DraftlyError.message("The host operation timeout must be positive and finite.") }
         let wait = NativeOperationWait(timeout: timeout, now: hostOperationNow)
+        let sleep = hostOperationSleep
         cancelNativeOperation = { wait.finish(.failure(ActionExecutionInterruption.cancelled)) }
         defer { cancelNativeOperation = nil }
         do {
@@ -23,7 +24,7 @@ import Foundation
                         } catch { wait.finish(.failure(error)) }
                     }
                     wait.timeout = Task { @MainActor in
-                        do { try await Task.sleep(for: .seconds(max(0, wait.deadline.timeIntervalSince(wait.now())))) } catch { return }
+                        do { try await sleep(max(0, wait.deadline.timeIntervalSince(wait.now()))) } catch { return }
                         wait.finish(.failure(ActionExecutionInterruption.timeout))
                     }
                 }

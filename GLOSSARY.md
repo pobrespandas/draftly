@@ -214,6 +214,10 @@ _Avoid_: Action history
 **Action cancellation**:
 An outcome that stops the remaining steps and queued actions without applying the cancelled action's after-success behavior. Changes already made can remain.
 
+**Action timeout**:
+An action execution outcome caused by an expired execution or operation deadline. It stops the remaining work and can leave completed changes in place.
+_Avoid_: Action cancellation (when a deadline expired)
+
 **Sharing handoff**:
 The transfer of a draft item to a system sharing service. The service can still need the item after the action has ended.
 

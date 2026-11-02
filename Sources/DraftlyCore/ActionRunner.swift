@@ -20,6 +20,7 @@ public final class ActionRunner: ObservableObject {
     public var scriptTimeout: TimeInterval = 120
     public var hostOperationTimeout: TimeInterval = 120
     var hostOperationNow: () -> Date = Date.init
+    var hostOperationSleep: @MainActor (TimeInterval) async throws -> Void = { try await Task.sleep(for: .seconds($0)) }
     public var synchronousScriptTimeout: TimeInterval = 10
     public var defaultWorkspace: (() -> Workspace)?
     public var currentWorkspace: (() -> Workspace)?
