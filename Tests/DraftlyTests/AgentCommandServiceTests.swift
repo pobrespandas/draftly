@@ -39,6 +39,11 @@ struct AgentCommandServiceTests {
             from: service.respond(to: JSONEncoder().encode(request), session: session))
         guard case .result(.object(let result)) = response.outcome else { Issue.record("Expected queued operation"); return }
         #expect(result["state"] == .string("queued") && submissions == 1)
+        let stale = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "actions.run",
+            targets: request.targets, expectedVersion: "stale-version")
+        let denied = try JSONDecoder().decode(AgentResponse.self,
+            from: service.respond(to: JSONEncoder().encode(stale), session: session))
+        #expect(denied.outcome == .error(.versionConflict) && submissions == 1)
     }
     @MainActor private final class Fixture {
         let library: LibraryStore
