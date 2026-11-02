@@ -105,6 +105,11 @@ A signed isolated CLI run read a complete group, reversed its 18 actions, and
 received the same 18 resource receipts on retry. The connection was revoked
 and the test host stopped. This did not test a release installation.
 
+A signed isolated run granted access to one of two neutral workspaces. CLI
+listing and detail returned the granted workspace; the other returned not found.
+That helper required explicit request IDs. The read-only contract was corrected
+after the run and has automated coverage; it needs a new signed helper check.
+
 ## Current components
 
 - AgentContracts owns the request, response and authentication envelopes.
