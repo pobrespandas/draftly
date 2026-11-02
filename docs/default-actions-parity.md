@@ -218,10 +218,18 @@ imported actions or an explicit installation. Automatic initialization after a
 confirmed empty CloudKit import remains pending; no synchronization acceptance is
 claimed by the in-memory configuration test.
 
-Settings > Maintenance
-can install explicit copies. Restored groups use names such as `Basic (Default)`
-and `Basic (Default 2)`. Each restored group, action, and step gets a new ID. The
-write is atomic. A failed write keeps the prior catalog unchanged.
+Settings > Maintenance > Replace Default Actions replaces the canonical default
+records by ID. It restores deleted defaults and overwrites edited defaults,
+including their steps, symbols, and colors. Other action IDs remain unchanged,
+even when they have the same name or belong to a default group. Repeating the
+operation does not create duplicate groups or actions. The write is atomic.
+A failed write keeps the prior catalog unchanged. Existing independent copies
+in groups such as Basic (Default) remain independent.
+
+The copy-installation API remains available to existing callers. It creates
+independent suffixed groups. The Settings operation uses replacement instead.
+Automatic catalog updates that preserve edits and deletions are planned for
+2.0.0. This change does not add automatic installation to existing libraries.
 
 iCloud Drive, Google Drive, and OneDrive actions require folder bookmarks with
 those exact names. The user selects each synchronized folder once in Bookmark

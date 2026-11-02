@@ -269,6 +269,14 @@ public final class LibraryStore: ObservableObject {
         try installActionCatalog(groups: bundle.groups, actions: bundle.actions)
         return DefaultActionCatalogInstallation(groupNames: bundle.groups.map(\.name), actionCount: bundle.actions.count)
     }
+    /// Replace canonical defaults, including edited or deleted defaults. Keep other actions.
+    @discardableResult
+    public func replaceDefaultActions() throws -> DefaultActionCatalogInstallation {
+        let groups = DefaultActionCatalog.groups
+        let actions = DefaultActionCatalog.actions
+        try installActionCatalog(groups: groups, actions: actions)
+        return DefaultActionCatalogInstallation(groupNames: groups.map(\.name), actionCount: actions.count)
+    }
     public func installActionCatalog(groups: [ActionGroupRecord], actions: [DraftAction]) throws {
         guard Set(groups.map(\.id)).count == groups.count,
               Set(groups.map(\.name)).count == groups.count,
