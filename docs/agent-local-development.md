@@ -26,6 +26,12 @@ Editing a group also requires full-library access. A rename updates its actions
 in the same transaction and preserves the IDs of other groups.
 Duplicating a group requires full-library access. It copies the group's actions
 without their keyboard shortcuts and commits the copies and receipt together.
+Reordering is still unavailable. The native editor assigns a new order to each
+item in the affected list. An agent needs a version for that complete list,
+not just a version for one item, before it can detect concurrent changes.
+The write must validate the full target set and commit all orders and the
+receipt together. A partial resource grant must not permit a reorder that can
+change the relative position of resources outside the grant.
 
 The host does not start in the normal app. Agent access remains unavailable in
 released builds. The signed helper and host still need a real installed-app
