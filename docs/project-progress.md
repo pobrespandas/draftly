@@ -3,6 +3,25 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Stage zero reconciliation — 2 November
+
+Baseline: origin/main at 98f9529. Publication is owned by the catalog release
+worker. Keep main stable during candidate preparation and publication.
+
+| Work | Current evidence | Next action |
+| --- | --- | --- |
+| Catalog replacement, PR86 | Local full checks passed; hosted native reports interrupted twice. | Diagnose process termination, complete protected CI, then merge and publish 0.1.6. |
+| Test performance, PR85 | Protected CI41379668319 passed all required checks. Local timing and coverage are recorded in testing.md on its branch. | Integrate separately after coordinating the release source commit. |
+| Settings background, PR78 | Patch targets the earlier SwiftUI TabView. Main now uses a native controller. | Treat as superseded implementation; retain its visual acceptance requirement for the current controller. Do not apply the old patch blindly. |
+| Revision restoration, PR80 | Focused evidence exists; hosted native report is incomplete. | Preserve branch. Revalidate against the current base before integration in the agents stage. |
+| Editor reads, at/editor-syntax-reads-20261101 | a591d2d, 97741bd, b4b98ab and 40228d8 are outside main. | Preserve commits; integrate snapshots/search/syntax reads with their dependencies in the agents stage. |
+| Earlier editor projection | 5ff376b is an ancestor of main. | Already integrated; do not duplicate it. |
+| Product documents | e0cf84d was carried into PR82 and merged as6340434. | Already integrated; do not cherry-pick again. |
+
+This inventory does not claim native parity or agent activation. The active
+release keeps agents disabled. Full stage-zero completion still requires public
+artifact/feed verification and resolution of each integration disposition.
+
 ## Public 0.1.5 — 1 November
 
 [0.1.5/build 6](https://github.com/pobrespandas/draftly/releases/tag/v0.1.5)
