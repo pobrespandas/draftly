@@ -35,6 +35,11 @@ import AgentContracts
 
     func start(grant: AgentGrant, targets: Set<AgentResourceReference>,
                work: @escaping @MainActor () async throws -> AutomationActionExecution.Output) throws -> UUID {
+        try startIdentified(grant: grant, targets: targets) { _ in try await work() }
+    }
+
+    func startIdentified(grant: AgentGrant, targets: Set<AgentResourceReference>,
+                         work: @escaping @MainActor (UUID) async throws -> AutomationActionExecution.Output) throws -> UUID {
         try validate(grant, targets: targets)
         guard entries.count < capacity else { throw AgentErrorCode.busy }
         let id = UUID()
@@ -45,7 +50,7 @@ import AgentContracts
                 try Task.checkCancellation()
                 try self.validate(grant, targets: targets)
                 self.entries[id]?.state = .running
-                let output = try await work()
+                let output = try await work(id)
                 self.finish(id, output: output)
             } catch is CancellationError {
                 self.finish(id, error: self.entries[id]?.state == .queued ? .cancelled : .outcomeUnknown)

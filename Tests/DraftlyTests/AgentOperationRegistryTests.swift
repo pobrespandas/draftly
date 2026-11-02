@@ -11,12 +11,15 @@ struct AgentOperationRegistryTests {
         let grant = AgentGrant(connectionID: connection, libraryID: library, expiresAt: Date().addingTimeInterval(600),
             capabilities: [.actionsRun, .draftsRead], scope: .library)
         let registry = AgentOperationRegistry(capacity: 1, currentGrant: { _ in grant }, validateHost: {}, isLocked: { false })
-        let id = try registry.start(grant: grant, targets: []) {
+        var observedID: UUID?
+        let id = try registry.startIdentified(grant: grant, targets: []) { operationID in
+            observedID = operationID
             do { try await Task.sleep(for: .seconds(30)) } catch {}
             let report = ActionExecutionReport.notStarted(actionID: action, reason: .cancelled, message: "Cancelled")
             return .init(report: report, noteID: nil, message: "Cancelled")
         }
         for _ in 0..<100 where try registry.snapshot(id, connectionID: connection).state == .queued { await Task.yield() }
+        #expect(observedID == id)
         #expect(throws: AgentErrorCode.notFound) { try registry.snapshot(id, connectionID: UUID()) }
         #expect(throws: AgentErrorCode.busy) { try registry.start(grant: grant, targets: []) { fatalError() } }
         try registry.setWaitingForUser(id, waiting: true)
