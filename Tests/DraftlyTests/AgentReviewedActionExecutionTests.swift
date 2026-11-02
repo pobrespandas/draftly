@@ -54,7 +54,7 @@ struct AgentReviewedActionExecutionTests {
             reviewedNativeEffects: true)
         let approvals = AgentApprovalStore(currentGrant: { $0 == connection ? grant : nil }, isLocked: { false })
         let request = AgentRequest(requestID: UUID(), libraryID: libraryID, operation: "actions.run",
-            targets: [.init(kind: .action, id: action.id), .init(kind: .draft, id: note.id)], expectedVersion: "v1")
+            targets: [.init(kind: .action, id: action.id), .init(kind: .draft, id: note.id)], expectedVersion: "v1", parameters: ["interactive": .bool(true)])
         let host = Host()
         var waiting: [Bool] = []
         let operations = AgentOperationRegistry(currentGrant: { _ in grant }, validateHost: {}, isLocked: { false })
@@ -98,7 +98,7 @@ struct AgentReviewedActionExecutionTests {
             reviewedNativeEffects: true)
         let approvals = AgentApprovalStore(currentGrant: { _ in grant }, isLocked: { false })
         let request = AgentRequest(requestID: UUID(), libraryID: libraryID, operation: "actions.run",
-            targets: [.init(kind: .action, id: action.id), .init(kind: .draft, id: note.id)], expectedVersion: "v1")
+            targets: [.init(kind: .action, id: action.id), .init(kind: .draft, id: note.id)], expectedVersion: "v1", parameters: ["interactive": .bool(true)])
         let host = Host()
         var draftVersion = "d1"
         let task = Task { @MainActor in

@@ -19,7 +19,7 @@ struct AgentNativeEffectApprovalTests {
             capabilities: [.actionsRun, .draftsRead, .nativeUse], scope: .library)
         let store = AgentApprovalStore(currentGrant: { $0 == connection ? grant : nil }, isLocked: { false })
         let request = AgentRequest(requestID: UUID(), libraryID: library, operation: "actions.run",
-            targets: [.init(kind: .action, id: action), .init(kind: .draft, id: draft)], expectedVersion: "v1")
+            targets: [.init(kind: .action, id: action), .init(kind: .draft, id: draft)], expectedVersion: "v1", parameters: ["interactive": .bool(true)])
         let host = Host()
         let guarded = AgentAuthorizedActionHost(host: host, approve: { operation, values in
             try await AgentNativeEffectApproval.wait(store: store, request: request, connectionID: connection,
@@ -42,10 +42,16 @@ struct AgentNativeEffectApprovalTests {
         let grant = AgentGrant(connectionID: connection, libraryID: library, expiresAt: Date().addingTimeInterval(600),
             capabilities: [.actionsRun, .draftsRead, .nativeUse], scope: .library)
         let store = AgentApprovalStore(currentGrant: { _ in grant }, isLocked: { false })
-        let request = AgentRequest(requestID: UUID(), libraryID: library, operation: "actions.run")
+        let request = AgentRequest(requestID: UUID(), libraryID: library, operation: "actions.run", parameters: ["interactive": .bool(true)])
         await #expect(throws: AgentErrorCode.unavailable) {
             try await AgentNativeEffectApproval.wait(store: store, request: request, connectionID: connection,
                 operation: "unknown", values: [:], currentSnapshot: { [:] })
+        }
+        #expect(store.pendingFromUserInterface().isEmpty)
+        let noninteractive = AgentRequest(requestID: UUID(), libraryID: library, operation: "actions.run")
+        await #expect(throws: AgentErrorCode.interactionRequired) {
+            try await AgentNativeEffectApproval.wait(store: store, request: noninteractive, connectionID: connection,
+                operation: "share", values: [:], currentSnapshot: { [:] })
         }
         #expect(store.pendingFromUserInterface().isEmpty)
     }
@@ -56,7 +62,7 @@ struct AgentNativeEffectApprovalTests {
             capabilities: [.actionsRun, .draftsRead, .nativeUse], scope: .library)
         let store = AgentApprovalStore(currentGrant: { _ in grant }, isLocked: { false })
         let request = AgentRequest(requestID: UUID(), libraryID: library, operation: "actions.run",
-            targets: [.init(kind: .action, id: action), .init(kind: .draft, id: draft)], expectedVersion: "v1")
+            targets: [.init(kind: .action, id: action), .init(kind: .draft, id: draft)], expectedVersion: "v1", parameters: ["interactive": .bool(true)])
         await #expect(throws: AgentErrorCode.permissionDenied) {
             try await AgentNativeEffectApproval.wait(store: store, request: request, connectionID: connection,
                 operation: "appleScript", values: ["source": "return 1"], currentSnapshot: { [:] })

@@ -7,6 +7,7 @@ import AgentContracts
                      operation: String, values: [String: Any],
                      currentSnapshot: () throws -> [String: AgentJSONValue]) async throws {
         guard request.operation == "actions.run" else { throw AgentErrorCode.invalidInput }
+        guard request.parameters["interactive"] == .bool(true) else { throw AgentErrorCode.interactionRequired }
         let unrestricted = ["appleScript", "shortcut", "shell"].contains(operation)
         let supported = ["share", "shareFile", "shareURL", "print", "mail", "message", "saveFile",
                          "clipboard", "getClipboard", "openURL", "appleScript", "shortcut", "shell"]
