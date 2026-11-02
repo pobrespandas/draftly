@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 import DraftlyCore
 import AgentContracts
+import AgentLocalSecurity
 
 extension Notification.Name {
     static let draftlyOpenNote = Notification.Name("DraftlyOpenNote")
@@ -125,6 +126,21 @@ final class AppController: ObservableObject {
         if let previous = agentHost { previous.close(); agentSettings = nil }
         agentHost = host
         agentSettings = settings
+    }
+
+    func configureAgentHost(isLocked: @escaping () -> Bool,
+                            credentials: AgentConnectionRegistry.CredentialAccess? = nil,
+                            validateApplication: @escaping () throws -> Void = { try AgentCredentialIdentity.validateCurrentProcess(.application) },
+                            validateHelper: @escaping @Sendable (Data) throws -> Void = { try AgentPeerIdentity.validate($0, role: .helper) }) throws {
+        guard let library else { throw AgentErrorCode.unavailable }
+        guard agentHost == nil else { return }
+        let editors = try agentEditorRegistry(for: library)
+        let resources = AgentLibraryResourceChoices(library: library)
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
+        let host = try AgentLocalHost(library: library, appVersion: version, editors: editors,
+            isLocked: isLocked, pendingEditorGeneration: { _ in "" }, resolveTargets: { resources.resolve($0) },
+            credentials: credentials, validateApplication: validateApplication, validateHelper: validateHelper)
+        do { try adoptAgentHost(host) } catch { host.close(); throw error }
     }
 
     func closeAgentContext() {

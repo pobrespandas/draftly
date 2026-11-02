@@ -15,6 +15,7 @@ struct AgentApplicationHostTests {
         let defaults: UserDefaults
         let domain = "Draftly-Agent-Application-" + UUID().uuidString
         let secrets = Secrets()
+        var locked = false
         var app: AppController?
 
         init() throws {
@@ -144,6 +145,26 @@ struct AgentApplicationHostTests {
         #expect(!settings.accessEnabled && host.endpoint == nil && f.secrets.values.isEmpty)
         try f.library.deleteAction(action.id)
         #expect(settings.resourceChoices().map(\.reference) == [.init(kind: .draft, id: note.id)])
+    }
+
+    @Test func applicationConstructsAnIdleHostBoundToItsLiveLibrary() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let app = try #require(f.app), secrets = f.secrets
+        let note = try f.library.createNote(content: "Scoped draft")
+        try app.configureAgentHost(isLocked: { f.locked }, credentials: .init(read: { secrets.values[$0] },
+            create: { secrets.values[$0] = $1 }, remove: { secrets.values.removeValue(forKey: $0) }),
+            validateApplication: {}, validateHelper: { _ in })
+        let settings = try #require(app.agentSettings)
+        #expect(!settings.accessEnabled && secrets.values.isEmpty)
+        #expect(settings.resourceChoices().contains { $0.reference == .init(kind: .draft, id: note.id) })
+        f.locked = true
+        #expect(throws: AgentErrorCode.permissionDenied) { try settings.setEnabled(true) }
+        #expect(!settings.accessEnabled)
+        f.locked = false
+        try settings.setEnabled(true)
+        #expect(settings.accessEnabled)
+        app.closeAgentContext()
+        #expect(app.agentSettings == nil)
     }
 
     @Test func foreignClosedAndUntrackedHostsCannotReplaceTheApplicationContext() throws {
