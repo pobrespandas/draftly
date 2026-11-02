@@ -93,7 +93,7 @@ package enum AgentActionSchemas {
         list["surface"] = o(.string(choices: ["list", "bar", "search", "all"]), default: .string("list"))
         return [
             "actions.list": .init(parameters: .init(fields: list), result: .init(fields: [
-                "items": r(.array(.object(summary), maximum: 200)), "nextCursor": r(.nullable(token))
+                "items": r(.array(.object(summary), maximum: 200)), "nextCursor": r(.nullable(token)), "orderVersion": o(token)
             ])),
             "actions.get": .init(parameters: none, result: .init(fields: [
                 "action": r(.object(action)), "versionToken": r(token)

@@ -525,6 +525,24 @@ struct AgentCommandServiceTests {
         #expect(next["items"] == .array([]) && next["nextCursor"] == .null)
     }
 
+    @Test func actionOrderVersionBindsCompleteGroupPages() throws {
+        let f = try Fixture()
+        var a = DraftAction(name: "A", steps: []); a.group = "Alpha"
+        var b = DraftAction(name: "B", steps: []); b.group = "Alpha"
+        try f.library.saveActions([a, b])
+        let id = try #require(f.library.actionGroupIdentifiers["Alpha"])
+        let (_, full) = try f.connect(capabilities: [.actionsRead])
+        let (_, limited) = try f.connect(scope: .resources([.init(kind: .action, id: a.id)]), capabilities: [.actionsRead])
+        let params: [String: AgentJSONValue] = ["groupID": .string(id.uuidString), "surface": .string("all"), "limit": .integer(1)]
+        let page = try f.values("actions.list", session: full, parameters: params)
+        guard case .string(let version) = page["orderVersion"], case .string(let cursor) = page["nextCursor"] else { Issue.record("Missing order version"); return }
+        var next = params; next["cursor"] = .string(cursor)
+        #expect(try f.values("actions.list", session: full, parameters: next)["orderVersion"] == .string(version))
+        #expect(try f.values("actions.list", session: limited, parameters: params)["orderVersion"] == nil)
+        b.name = "Changed"; try f.library.saveAction(b)
+        #expect(try f.response("actions.list", session: full, parameters: next).outcome == .error(.versionConflict))
+    }
+
     @Test func actionListFiltersScopeAndRechecksPages() throws {
         let f = try Fixture()
         let first = DraftAction(name: "Allowed A", steps: [])

@@ -473,6 +473,14 @@ import AgentContracts
         return Data(HMAC<SHA256>.authenticationCode(for: try encoder.encode(groups(in: .library)), using: actionVersionKey)).base64EncodedString()
     }
 
+    private func actionOrderVersion(groupID: UUID) throws -> String {
+        guard let group = groups(in: .library).first(where: { $0.id == groupID }) else { throw AgentErrorCode.versionConflict }
+        let actions = actionLibrary.orderedActions().filter { $0.group == group.name }
+        let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
+        let data = try encoder.encode(group) + encoder.encode(actions)
+        return Data(HMAC<SHA256>.authenticationCode(for: data, using: actionVersionKey)).base64EncodedString()
+    }
+
     private func groups(in scope: AgentResourceScope) -> [ActionGroupRecord] {
         let identifiers = actionLibrary.actionGroupIdentifiers
         return actionLibrary.groupNames.enumerated().compactMap { order, name in
@@ -550,6 +558,7 @@ import AgentContracts
             let requestedGroup: UUID?
             if case .string(let value) = parameters["groupID"] { requestedGroup = UUID(uuidString: value) }
             else { requestedGroup = nil }
+            let orderGroup = grant.scope == .library && surface == nil ? requestedGroup : nil
             func permitted(_ action: DraftAction) -> Bool {
                 guard grant.scope.permits(.init(kind: .action, id: action.id)),
                       let group = actionLibrary.actionGroupIdentifiers[action.group] else { return false }
@@ -566,7 +575,7 @@ import AgentContracts
                     return .object(["id": .string(action.id.uuidString), "name": .string(action.name),
                         "symbol": .string(action.symbol), "groupID": .string(group.uuidString),
                         "group": .string(action.group), "versionToken": .string(token)])
-                })
+                }, revision: orderGroup.map { id in { try self.actionOrderVersion(groupID: id) } })
         case "server.status":
             return ["apiVersion": .integer(Int64(AgentRequest.version)), "appVersion": .string(appVersion), "accessEnabled": .bool(true)]
         case "server.capabilities":

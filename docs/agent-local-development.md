@@ -32,7 +32,9 @@ With full-library access, `actions.groups` returns an `orderVersion` for the
 complete group list. Each cursor page checks that version and reports a conflict
 if the list changed. Scoped reads do not return a full-library version.
 The write validates the full target set and commits all orders and the receipt
-together. Action reordering remains unavailable.
+together. Action reordering remains unavailable. A full-library `actions.list`
+request with a group ID and the `all` surface returns an order version for the
+complete group. Its cursor pages reject concurrent changes.
 
 The host does not start in the normal app. Agent access remains unavailable in
 released builds. The signed helper and host still need a real installed-app
