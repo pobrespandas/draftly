@@ -12,13 +12,18 @@ import DraftlyCore
     private let isLocked: () -> Bool
     private let now: () -> Date
     private let draftExists: (UUID) -> Bool
+    private let targetDraftID: UUID?
+    private let editorDraftID: (() -> UUID?)?
+    private let windowID: UUID?
 
     init(grant: AgentGrant, currentGrant: @escaping () throws -> AgentGrant?,
          validateHost: @escaping () throws -> Void, isLocked: @escaping () -> Bool,
-         now: @escaping () -> Date = Date.init, draftExists: @escaping (UUID) -> Bool) {
+         now: @escaping () -> Date = Date.init, draftExists: @escaping (UUID) -> Bool,
+         targetDraftID: UUID? = nil, editorDraftID: (() -> UUID?)? = nil, windowID: UUID? = nil) {
         connectionID = grant.connectionID; grantID = grant.grantID; libraryID = grant.libraryID
         self.currentGrant = currentGrant; self.validateHost = validateHost
         self.isLocked = isLocked; self.now = now; self.draftExists = draftExists
+        self.targetDraftID = targetDraftID; self.editorDraftID = editorDraftID; self.windowID = windowID
     }
 
     func authorize(_ operation: String, payload: String) throws {
@@ -70,6 +75,52 @@ import DraftlyCore
         let result = actions.filter { grant.scope.permits(.init(kind: .action, id: $0.id)) }
         try requireUnchanged(grant)
         return result
+    }
+
+    func authorizeStep(owner: UUID, step: ActionStep) throws {
+        let grant = try currentBaseline()
+        try requireTarget(grant, actionID: owner)
+        switch step.type {
+        case "script", "includeAction", "configurationKey": break
+        case "insertText":
+            guard grant.capabilities.contains(.draftsWrite), editorDraftID?() == targetDraftID else {
+                throw AgentErrorCode.permissionDenied
+            }
+            if let windowID {
+                guard grant.capabilities.contains(.editorWrite), grant.scope.permits(.init(kind: .window, id: windowID)) else {
+                    throw AgentErrorCode.permissionDenied
+                }
+            }
+        default: throw AgentErrorCode.unavailable
+        }
+        try requireUnchanged(grant)
+    }
+
+    func authorizeConfiguration(_ action: DraftAction) throws {
+        let grant = try currentBaseline()
+        try requireTarget(grant, actionID: action.id)
+        guard grant.capabilities.contains(.actionsManage) else { throw AgentErrorCode.permissionDenied }
+        try requireUnchanged(grant)
+    }
+
+    func authorizeCompletion(_ action: DraftAction, draftID: UUID) throws {
+        let grant = try currentBaseline()
+        try requireTarget(grant, actionID: action.id)
+        guard targetDraftID == draftID, editorDraftID?() == draftID,
+              grant.capabilities.contains(.draftsWrite) else { throw AgentErrorCode.permissionDenied }
+        if let windowID {
+            guard grant.capabilities.contains(.editorWrite), grant.scope.permits(.init(kind: .window, id: windowID)) else {
+                throw AgentErrorCode.permissionDenied
+            }
+        }
+        try requireUnchanged(grant)
+    }
+
+    private func requireTarget(_ grant: AgentGrant, actionID: UUID) throws {
+        guard let targetDraftID, grant.scope.permits(.init(kind: .draft, id: targetDraftID)),
+              grant.scope.permits(.init(kind: .action, id: actionID)), draftExists(targetDraftID) else {
+            throw AgentErrorCode.notFound
+        }
     }
 
     func visibleDrafts(_ drafts: [Note]) throws -> [Note] {

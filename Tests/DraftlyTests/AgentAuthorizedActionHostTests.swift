@@ -344,4 +344,31 @@ struct AgentAuthorizedActionHostTests {
         #expect(result.report.reason == .success, "\(result.message)")
         #expect(library.actions.first { $0.id == action.id }?.configuredValues["value"] == "neutral")
     }
+
+    @Test(arguments: [false, true]) func actionUsesCurrentStepAndCompletionAuthority(canWrite: Bool) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Original")
+        let model = WindowModel(library: library); model.select(note.id)
+        let action = DraftAction(name: "Insert", steps: [ActionStep("insertText", ["template": "Added"])])
+        try library.saveAction(action)
+        var capabilities: Set<AgentCapability> = [.actionsRun, .draftsRead]
+        if canWrite { capabilities.insert(.draftsWrite) }
+        let now = Date()
+        let grant = AgentGrant(connectionID: UUID(), libraryID: UUID(), expiresAt: now.addingTimeInterval(60),
+            capabilities: capabilities, scope: .resources([.init(kind: .draft, id: note.id), .init(kind: .action, id: action.id)]))
+        let authority = AgentScriptAuthority(grant: grant, currentGrant: { grant }, validateHost: {},
+            isLocked: { false }, now: { now }, draftExists: { $0 == note.id },
+            targetDraftID: note.id, editorDraftID: { model.editor.noteID })
+        let result = try await AutomationActionExecution.run(action, noteID: note.id, library: library,
+            models: [model], host: model.host, editorScope: .targetDraft,
+            scriptAuthorization: { try authority.authorize($0, payload: $1) },
+            scriptDraftFilter: { try authority.visibleDrafts($0) },
+            stepAuthorization: { try authority.authorizeStep(owner: $0, step: $1) },
+            completionAuthorization: { try authority.authorizeCompletion($0, draftID: $1) },
+            actionCatalogFilter: { try authority.visibleActions($0) },
+            configurationAuthorization: { try authority.authorizeConfiguration($0) },
+            resolveModel: { models, _ in models.first })
+        #expect(result.report.reason == (canWrite ? .success : .error), "\(result.message)")
+        #expect(library.notes.first?.content == (canWrite ? "AddedOriginal" : "Original"))
+    }
 }
