@@ -16,14 +16,7 @@ import AgentLocalSecurity
     private let publications: AgentHostPublications
     private let activity: AgentActivityStore
     private(set) var activityRecordingError: AgentErrorCode?
-    private struct PendingActivity {
-        let connectionID: UUID
-        let grantID: UUID
-        let requestID: UUID
-        let operation: String
-        let result: String
-    }
-    private var pendingActivity: [PendingActivity] = []
+    private var pendingActivity: [AgentActivityStore.Entry] = []
     private var activityFlushScheduled = false
     var locatorCleanupError: AgentErrorCode? { publications.cleanupError }
     private let socketParentDirectory: URL
@@ -95,8 +88,10 @@ import AgentLocalSecurity
                 editors: editors,
                 pendingEditorGeneration: pendingEditorGeneration,
                 recordActivity: { connectionID, grantID, requestID, operation, result in
-                    owner?.enqueueActivity(.init(connectionID: connectionID, grantID: grantID, requestID: requestID,
-                                                 operation: operation, result: result))
+                    guard let owner else { return }
+                    owner.enqueueActivity(.init(id: UUID(), libraryID: owner.libraryID, connectionID: connectionID,
+                                                grantID: grantID, requestID: requestID, operation: operation,
+                                                date: Date(), result: result))
                 }, readActivity: { connectionID, grantID in
                     guard let owner else { throw AgentErrorCode.cancelled }
                     try owner.validateOwnership()
@@ -126,7 +121,7 @@ import AgentLocalSecurity
         lease.close()
     }
 
-    private func enqueueActivity(_ entry: PendingActivity) {
+    private func enqueueActivity(_ entry: AgentActivityStore.Entry) {
         guard pendingActivity.count < 1024 else { activityRecordingError = .busy; return }
         pendingActivity.append(entry)
         guard !activityFlushScheduled else { return }
@@ -141,10 +136,7 @@ import AgentLocalSecurity
         guard !entries.isEmpty else { return }
         do {
             try validateOwnership()
-            for entry in entries {
-                try activity.append(libraryID: libraryID, connectionID: entry.connectionID, grantID: entry.grantID,
-                                    requestID: entry.requestID, operation: entry.operation, result: entry.result)
-            }
+            try activity.append(entries)
         } catch { activityRecordingError = (error as? AgentErrorCode) ?? .storageError }
     }
 

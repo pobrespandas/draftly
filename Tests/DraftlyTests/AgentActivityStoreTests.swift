@@ -5,6 +5,29 @@ import AgentContracts
 
 @Suite("Local agent activity storage") @MainActor
 struct AgentActivityStoreTests {
+    @Test func batchesPreserveEventsAndRejectInvalidBatchesAtomically() throws {
+        let parent = FileManager.default.temporaryDirectory.appendingPathComponent("Draftly-Activity-" + UUID().uuidString)
+        try FileManager.default.createDirectory(at: parent, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
+        defer { try? FileManager.default.removeItem(at: parent) }
+        let now = Date(timeIntervalSince1970: 2_000_000_000), library = UUID(), connection = UUID()
+        let store = try AgentActivityStore(parentDirectory: parent, now: { now })
+        func entry(_ operation: String, _ date: Date) -> AgentActivityStore.Entry {
+            .init(id: UUID(), libraryID: library, connectionID: connection, requestID: UUID(),
+                  operation: operation, date: date, result: "success")
+        }
+        let first = entry("server.status", now.addingTimeInterval(-1))
+        let second = entry("drafts.get", now)
+        let expired = entry("server.status", now.addingTimeInterval(-31 * 24 * 60 * 60))
+        try store.append([first, second, expired])
+        let saved = try store.entries(libraryID: library)
+        #expect(saved == [second, first])
+        let valid = entry("server.status", now)
+        let invalid = entry("private text", now)
+        #expect(throws: AgentErrorCode.invalidInput) { try store.append([valid, invalid]) }
+        #expect(throws: AgentErrorCode.invalidInput) { try store.append([valid, first]) }
+        #expect(try store.entries(libraryID: library) == saved)
+    }
+
     @Test func activityIsPrivatePersistentScopedAndClearable() throws {
         let parent = FileManager.default.temporaryDirectory.appendingPathComponent("Draftly-Activity-" + UUID().uuidString)
         try FileManager.default.createDirectory(at: parent, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])

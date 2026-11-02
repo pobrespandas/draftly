@@ -38,15 +38,27 @@ import AgentLocalSecurity
 
     func append(libraryID: UUID, connectionID: UUID, grantID: UUID? = nil, requestID: UUID, operation: String, result: String) throws {
         let timestamp = now()
-        guard timestamp.timeIntervalSince1970.isFinite,
-              AgentOperationCatalog.operation(named: operation) != nil,
-              result == "success" || AgentErrorCode(rawValue: result) != nil else { throw AgentErrorCode.invalidInput }
         let entry = Entry(id: UUID(), libraryID: libraryID, connectionID: connectionID, grantID: grantID, requestID: requestID,
                           operation: operation, date: timestamp, result: result)
+        try append([entry])
+    }
+
+    func append(_ incoming: [Entry]) throws {
+        let timestamp = now()
+        guard timestamp.timeIntervalSince1970.isFinite, incoming.count <= 1024,
+              Set(incoming.map(\.id)).count == incoming.count,
+              incoming.allSatisfy({ $0.date.timeIntervalSince1970.isFinite &&
+                  AgentOperationCatalog.operation(named: $0.operation) != nil &&
+                  ($0.result == "success" || AgentErrorCode(rawValue: $0.result) != nil) }) else {
+            throw AgentErrorCode.invalidInput
+        }
+        guard !incoming.isEmpty else { return }
         _ = try update { entries in
             let cutoff = timestamp.addingTimeInterval(-retention)
+            let ids = Set(entries.map(\.id))
+            guard incoming.allSatisfy({ !ids.contains($0.id) }) else { throw AgentErrorCode.invalidInput }
             entries.removeAll { $0.date < cutoff }
-            entries.append(entry)
+            entries.append(contentsOf: incoming.filter { $0.date >= cutoff })
             if entries.count > limit { entries.removeFirst(entries.count - limit) }
         }
     }
@@ -84,10 +96,10 @@ import AgentLocalSecurity
         return value.utf8.allSatisfy { (97...122).contains($0) || (48...57).contains($0) || $0 == 95 }
     }
 
-    private func update(_ change: (inout [Entry]) -> Void) throws -> [Entry] {
+    private func update(_ change: (inout [Entry]) throws -> Void) throws -> [Entry] {
         for _ in 0..<3 {
             let (old, current) = try snapshot()
-            var next = current; change(&next)
+            var next = current; try change(&next)
             if next == current { return current }
             let data = try JSONEncoder().encode(next)
             do {
