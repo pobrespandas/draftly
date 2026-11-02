@@ -9,6 +9,7 @@ import DraftlyCore
                     authority: AgentScriptAuthority, approvals: AgentApprovalStore,
                     currentSnapshot: @escaping () throws -> [String: AgentJSONValue],
                     waitingForUser: @escaping (Bool) throws -> Void = { _ in },
+                    recordEffect: AgentAuthorizedActionHost.RecordEffect? = nil,
                     resolveModel: AutomationActionExecution.ModelResolver = { AutomationActionExecution.visibleModel($0, noteID: $1) }) async throws -> AutomationActionExecution.Output {
         guard request.operation == "actions.run", let expected = request.expectedVersion,
               request.targets.count == 2,
@@ -38,7 +39,7 @@ import DraftlyCore
                 throw error
             }
             try waitingForUser(false)
-        }, requiresApproval: { $0 != "device" }, authorize: { operation, _ in
+        }, requiresApproval: { $0 != "device" }, recordEffect: recordEffect, authorize: { operation, _ in
             try authority.authorizeNative(operation, rootActionID: action.id)
         })
         return try await AutomationActionExecution.run(action, noteID: draftID, library: library,

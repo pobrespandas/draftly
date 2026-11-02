@@ -13,6 +13,7 @@ struct AgentAuthorizedActionHostTests {
         var asyncOperations: Set<String>?
         var finished = 0
         var onCall: (() -> Void)?
+        var asyncResult = "{\"value\":true}"
         func supportsAsync(_ operation: String) -> Bool { asyncOperations?.contains(operation) ?? true }
         func perform(_ operation: String, values: [String: Any]) throws -> Any? {
             calls += 1; operations.append(operation); onCall?()
@@ -26,9 +27,29 @@ struct AgentAuthorizedActionHostTests {
             if let failure { throw failure }
             if operation == "device" { return "{\"value\":{\"systemName\":\"macOS\",\"model\":\"Mac\",\"systemVersion\":\"test\"}}" }
             if operation == "prompt" { return "{\"value\":{\"index\":0,\"fields\":{\"value\":\"neutral\"}}}" }
-            return "done"
+            return asyncResult
         }
         func finishAction() { finished += 1 }
+    }
+
+    @Test(arguments: ["completed", "failed", "unknown", "malformed", "wrongType"])
+    func nativeEffectsRecordHandoffAndItsOutcome(outcome: String) async throws {
+        let host = Host()
+        if outcome == "failed" { host.asyncResult = "{\"value\":false}" }
+        if outcome == "unknown" { host.failure = .timeout }
+        if outcome == "malformed" { host.asyncResult = "invalid envelope" }
+        if outcome == "wrongType" { host.asyncResult = "{\"value\":1}" }
+        var events: [(UUID, String, String)] = []
+        host.onCall = { #expect(events.count == 1 && events.first?.2 == "submitted") }
+        let guarded = AgentAuthorizedActionHost(host: host,
+            recordEffect: { events.append(($0, $1, $2)) }, authorize: { _, _ in })
+        if outcome == "unknown" {
+            await #expect(throws: AgentErrorCode.timeout) { try await guarded.performAsync("share", payload: "{}") }
+        } else { _ = try await guarded.performAsync("share", payload: "{}") }
+        let expected = ["malformed", "wrongType"].contains(outcome) ? "unknown" : outcome
+        #expect(events.map { $0.2 } == ["submitted", expected])
+        #expect(events.first?.0 == events.last?.0 && events.allSatisfy { $0.1 == "share" })
+        #expect(guarded.hasUncertainOutcome == (expected == "unknown"))
     }
 
     @Test func deniedNativeCallDoesNotReachHostAndCleanupStillRuns() throws {
@@ -38,6 +59,16 @@ struct AgentAuthorizedActionHostTests {
         #expect(host.calls == 0 && !guarded.hasUncertainOutcome)
         guarded.finishAction()
         #expect(host.finished == 1)
+    }
+
+    @Test func failedEffectRecordingPreventsNativeHandoff() async throws {
+        let host = Host()
+        let guarded = AgentAuthorizedActionHost(host: host,
+            recordEffect: { _, _, _ in throw AgentErrorCode.storageError }, authorize: { _, _ in })
+        await #expect(throws: AgentErrorCode.storageError) {
+            try await guarded.performAsync("share", payload: "{}")
+        }
+        #expect(host.calls == 0 && !guarded.hasUncertainOutcome)
     }
 
     @Test func humanDecisionIsRequiredBeforeNativeHandoff() async throws {
@@ -74,7 +105,7 @@ struct AgentAuthorizedActionHostTests {
         let guarded = AgentAuthorizedActionHost(host: host, approve: { _, _ in decisions += 1 },
             authorize: { _, _ in checks += 1 })
         let result = try await guarded.performAsync("share", payload: "{}")
-        #expect(result == "done" && decisions == 1 && checks == 3 && host.calls == 1)
+        #expect(result == host.asyncResult && decisions == 1 && checks == 3 && host.calls == 1)
         #expect(!guarded.hasUncertainOutcome)
     }
 

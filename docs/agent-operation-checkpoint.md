@@ -27,6 +27,11 @@ builds keep agent access disabled.
   waiting for review. The default is 120 seconds. Expiry requests cancellation;
   the operation stays active until execution returns. Confirmed cancellation
   produces a timeout report. An uncertain effect remains `outcome_unknown`.
+- Native effect records contain the operation kind, outcome and scoped resource
+  IDs. They do not contain the native payload. Recording starts after approval
+  and before handoff. A successful share records completion; a cancelled share
+  records failure. Invalid responses or interrupted handoffs remain unknown.
+  Earlier records remain visible when a later effect has an uncertain outcome.
 
 ## Installed isolated check — 2 November 2026
 
@@ -52,8 +57,8 @@ normal startup, notarization, restart recovery or production acceptance.
 
 ## Remaining integration
 
-1. Complete operation result coverage and recorded effects. Snapshot encoding
-   already checks the existing execution result schema.
+1. Complete result coverage and records for non-native effects. Native effect
+   records are connected. Snapshot encoding checks the execution result schema.
 2. Verify operation queries and cancellation through installed CLI and MCP.
    The service checks connection ownership and original resource scope.
 3. Verify the optional host execution path with native effects and installed

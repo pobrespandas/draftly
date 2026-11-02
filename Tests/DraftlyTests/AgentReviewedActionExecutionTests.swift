@@ -79,6 +79,7 @@ struct AgentReviewedActionExecutionTests {
                 connectionID: connection, library: library, models: [model], host: host, authority: authority,
                 approvals: approvals, currentSnapshot: { ["actionVersion": .string("v1"), "draftVersion": .string("d1")] },
                 waitingForUser: { waiting.append($0); try operations.setWaitingForUser(id, waiting: $0) },
+                recordEffect: { try operations.recordEffect(id, effectID: $0, kind: $1, outcome: $2) },
                 resolveModel: { models, _ in models.first })
         }
         for _ in 0..<1000 where approvals.pendingFromUserInterface().isEmpty { await Task.yield() }
@@ -86,6 +87,7 @@ struct AgentReviewedActionExecutionTests {
         #expect(host.shares == 0 && review.effects.snapshot["nativeOperation"] == .string("share"))
         #expect(waiting == [true])
         #expect(try operations.snapshot(operationID, connectionID: connection).state == .waitingForUser)
+        #expect(try operations.snapshot(operationID, connectionID: connection).effects.isEmpty)
         try approvals.approveFromUserInterface(review.id, reviewedFingerprint: review.fingerprint)
         for _ in 0..<1000 {
             if try operations.snapshot(operationID, connectionID: connection).state.isTerminal { break }
@@ -94,6 +96,8 @@ struct AgentReviewedActionExecutionTests {
         let snapshot = try operations.snapshot(operationID, connectionID: connection)
         let result = try #require(snapshot.output)
         #expect(snapshot.state == .succeeded)
+        #expect(snapshot.effects.map(\.outcome) == ["completed"])
+        #expect(snapshot.effects.first?.resources == Set(request.targets))
         #expect(result.report.reason == .success && host.shares == 1 && !result.outcomeUnknown)
         #expect(waiting == [true, false])
         #expect(try approvals.statusForConnection(review.id, connectionID: connection) == .consumed)

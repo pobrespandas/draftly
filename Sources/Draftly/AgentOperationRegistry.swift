@@ -4,12 +4,25 @@ import DraftlyCore
 
 // In-memory operation ownership. It does not provide restart recovery.
 @MainActor final class AgentOperationRegistry {
+    struct Effect {
+        let id: UUID
+        let kind: String
+        var outcome: String
+        let resources: Set<AgentResourceReference>
+
+        var wireValue: AgentJSONValue {
+            .object(["kind": .string(kind), "outcome": .string(outcome),
+                "resources": .array(resources.sorted { ($0.kind.rawValue, $0.id.uuidString) < ($1.kind.rawValue, $1.id.uuidString) }
+                    .map { .object(["kind": .string($0.kind.rawValue), "id": .string($0.id.uuidString)]) })])
+        }
+    }
     struct Snapshot {
         let id: UUID
         let state: AgentOperationState
         let updatedAt: Date
         let output: AutomationActionExecution.Output?
         let error: AgentErrorCode?
+        let effects: [Effect]
 
         func wireValue() throws -> AgentJSONValue {
             let formatter = ISO8601DateFormatter()
@@ -32,7 +45,7 @@ import DraftlyCore
                 "state": .string(state.rawValue), "updatedAt": date(updatedAt),
                 "result": state == .succeeded ? .object([:]) : .null,
                 "error": error.map { .object(["code": .string($0.rawValue), "message": .string($0.rawValue)]) } ?? .null,
-                "actionReport": report, "completedEffects": .array([])
+                "actionReport": report, "completedEffects": .array(effects.map(\.wireValue))
             ])
             try AgentExecutionSchemas.validateResult(["operation": value], for: "operations.get")
             return value
@@ -50,6 +63,7 @@ import DraftlyCore
         var cancellationRequested = false
         var deadlineExpired = false
         var deadlineTask: Task<Void, Never>?
+        var effects: [Effect] = []
     }
     private var entries: [UUID: Entry] = [:]
     private struct RequestKey: Hashable { let connectionID: UUID; let requestID: UUID }
@@ -131,7 +145,25 @@ import DraftlyCore
     func snapshot(_ id: UUID, connectionID: UUID) throws -> Snapshot {
         guard let entry = entries[id], entry.connectionID == connectionID else { throw AgentErrorCode.notFound }
         try validate(entry.grant, targets: entry.targets)
-        return Snapshot(id: id, state: entry.state, updatedAt: entry.updatedAt, output: entry.output, error: entry.error)
+        return Snapshot(id: id, state: entry.state, updatedAt: entry.updatedAt, output: entry.output,
+            error: entry.error, effects: entry.effects)
+    }
+
+    func recordEffect(_ operationID: UUID, effectID: UUID, kind: String, outcome: String) throws {
+        guard let entry = entries[operationID], !entry.state.isTerminal else { throw AgentErrorCode.cancelled }
+        guard !kind.isEmpty, ["submitted", "completed", "failed", "unknown"].contains(outcome) else {
+            throw AgentErrorCode.invalidInput
+        }
+        if let index = entry.effects.firstIndex(where: { $0.id == effectID }) {
+            guard entry.effects[index].kind == kind, entry.effects[index].outcome == "submitted" else {
+                throw AgentErrorCode.versionConflict
+            }
+            entries[operationID]?.effects[index].outcome = outcome
+        } else {
+            guard outcome == "submitted", entry.effects.count < 10_000 else { throw AgentErrorCode.busy }
+            entries[operationID]?.effects.append(.init(id: effectID, kind: kind, outcome: outcome, resources: entry.targets))
+        }
+        entries[operationID]?.updatedAt = now()
     }
 
     func control(_ request: AgentRequest, connectionID: UUID) throws -> (snapshot: Snapshot, cancellationAccepted: Bool) {

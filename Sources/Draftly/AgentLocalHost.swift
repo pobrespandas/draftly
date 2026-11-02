@@ -152,6 +152,9 @@ import AgentLocalSecurity
                 authority: authority, approvals: approvals,
                 currentSnapshot: { try self.service.actionExecutionSnapshot(request, connectionID: grant.connectionID) },
                 waitingForUser: { try self.operations.setWaitingForUser(id, waiting: $0) },
+                recordEffect: { effectID, kind, outcome in
+                    try self.operations.recordEffect(id, effectID: effectID, kind: kind, outcome: outcome)
+                },
                 resolveModel: { models, _ in models.first })
         }
     }

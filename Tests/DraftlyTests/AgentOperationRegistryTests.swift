@@ -6,6 +6,31 @@ import DraftlyCore
 
 @Suite("Agent operation lifetime") @MainActor
 struct AgentOperationRegistryTests {
+    @Test func completedEffectsRemainVisibleAfterALaterUncertainEffect() async throws {
+        let connection = UUID(), library = UUID(), draft = UUID()
+        let grant = AgentGrant(connectionID: connection, libraryID: library, expiresAt: Date().addingTimeInterval(600),
+            capabilities: [.actionsRun, .draftsRead], scope: .library)
+        let registry = AgentOperationRegistry(currentGrant: { _ in grant }, validateHost: {}, isLocked: { false })
+        let first = UUID(), second = UUID()
+        let targets: Set<AgentResourceReference> = [.init(kind: .draft, id: draft)]
+        let id = try registry.startIdentified(grant: grant, targets: targets) { id in
+            try registry.recordEffect(id, effectID: first, kind: "share", outcome: "submitted")
+            try registry.recordEffect(id, effectID: first, kind: "share", outcome: "completed")
+            try registry.recordEffect(id, effectID: second, kind: "share", outcome: "submitted")
+            try registry.recordEffect(id, effectID: second, kind: "share", outcome: "unknown")
+            throw AgentErrorCode.outcomeUnknown
+        }
+        for _ in 0..<1000 where try !registry.snapshot(id, connectionID: connection).state.isTerminal { await Task.yield() }
+        let result = try registry.snapshot(id, connectionID: connection)
+        #expect(result.state == .outcomeUnknown && result.output == nil)
+        #expect(result.effects.map(\.outcome) == ["completed", "unknown"])
+        #expect(result.effects.allSatisfy { $0.kind == "share" && $0.resources == targets })
+        _ = try result.wireValue()
+        #expect(throws: AgentErrorCode.cancelled) {
+            try registry.recordEffect(id, effectID: first, kind: "share", outcome: "submitted")
+        }
+    }
+
     @Test(arguments: [true, false])
     func requestDeadlineCancelsWorkWithoutInventingACertainOutcome(confirmedCancellation: Bool) async throws {
         let connection = UUID(), library = UUID(), action = UUID(), draft = UUID()
