@@ -109,6 +109,19 @@ class SwiftResultVerificationTests(unittest.TestCase):
         self.assertEqual(calls, [("DraftlyCoreTests", {"DraftlyCoreTests.Suite/second(worker:)"}),
                                  ("DraftlyTests", {"DraftlyTests.Suite/first()"})])
 
+    def test_layout_isolation_preserves_every_discovered_test_once(self):
+        layout = "DraftlyTests.TypewriterScrollingTests/layout()"
+        other = "DraftlyTests.Other/check()"
+        calls = []
+        def execute(module, selected, output, **options):
+            calls.append((set(selected), options))
+            return {module: len(selected)}
+        with patch.object(runner.subprocess, "run", return_value=CompletedProcess([], 0, layout + "\n" + other + "\n", "")), \
+                patch.object(runner, "run_target", side_effect=execute), patch("builtins.print"):
+            runner.run(Path(self.folder.name))
+        self.assertEqual([c[0] for c in calls], [{layout}, {other}])
+        self.assertEqual(calls[1][1]["test_skip"], "DraftlyTests.TypewriterScrollingTests/")
+
     def test_diagnostic_suite_is_forwarded_without_retries(self):
         with patch.object(runner.subprocess, "run", return_value=CompletedProcess([], 7)) as command:
             with self.assertRaisesRegex(ValueError, "Swift tests failed"):

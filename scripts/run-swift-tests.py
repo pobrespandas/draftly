@@ -122,13 +122,15 @@ def collect_ci_crashes(output):
         path.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n")
 
 
-def run_target(module, expected, output, *, concurrent_app=False, test_filter=None):
+def run_target(module, expected, output, *, concurrent_app=False, test_filter=None, test_skip=None):
     output.mkdir(parents=True, exist_ok=True)
     reports = [output / "results.xml", output / "results-swift-testing.xml"]
     for report in reports:
         report.unlink(missing_ok=True)
     # Discovery already built the products. Run that same inventory without rebuilding.
     command = ["swift", "test", "--skip-build", "--filter", test_filter or module, "--xunit-output", str(reports[0])]
+    if test_skip:
+        command.extend(["--skip", test_skip])
     if module != "DraftlyTests" or not concurrent_app:
         command.append("--no-parallel")
     started = time.monotonic()
@@ -199,8 +201,17 @@ def run(output, *, concurrent_app=False, diagnostic_suite=None):
         if not selected:
             raise ValueError("The test inventory has no cases for " + module)
         test_filter = "DraftlyTests." + diagnostic_suite if diagnostic_suite else None
+        isolated_filter = "DraftlyTests.TypewriterScrollingTests/"
+        isolated = {name for name in selected if name.startswith(isolated_filter)} if not diagnostic_suite else set()
+        if isolated:
+            # Native layout tests need their own AppKit process state.
+            counts.update(run_target(module, isolated, output / (module + "-TypewriterScrollingTests"),
+                                     concurrent_app=concurrent_app, test_filter=isolated_filter))
+            selected -= isolated
+        if not selected:
+            continue
         counts.update(run_target(module, selected, output / module, concurrent_app=concurrent_app,
-                                 test_filter=test_filter))
+                                 test_filter=test_filter, **({"test_skip": isolated_filter} if isolated else {})))
     print("Verified complete Swift results: " + ", ".join(
         name + " " + str(count) for name, count in sorted(counts.items())))
 
