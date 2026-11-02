@@ -78,6 +78,8 @@ struct NativeEditor: NSViewRepresentable {
         scroll.verticalRulerView?.needsDisplay = true
         let coordinator = context.coordinator; coordinator.parent = self; coordinator.updating = true
         defer { coordinator.updating = false }
+        // The input method owns the text and selection during composition.
+        if text.hasMarkedText(), coordinator.noteID == session.noteID { return }
         if let text = text as? DraftTextView {
             text.highlightInsertionPoint = highlightInsertionPoint
             text.currentLineColor = theme?.interfaceColor(named: "textCaret").flatMap(EditorTheme.color)?.withAlphaComponent(0.08)
@@ -146,7 +148,9 @@ struct NativeEditor: NSViewRepresentable {
             guard !updating, let textView else { return }
             parent.session.content = textView.string
             parent.session.selection = textView.selectedRange()
-            highlight(); textView.enclosingScrollView?.verticalRulerView?.needsDisplay = true; parent.onChange()
+            if !textView.hasMarkedText() { highlight() }
+            textView.enclosingScrollView?.verticalRulerView?.needsDisplay = true
+            parent.onChange()
         }
         func textViewDidChangeSelection(_ notification: Notification) {
             guard !updating, let textView else { return }; parent.session.selection = textView.selectedRange()
@@ -192,7 +196,7 @@ struct NativeEditor: NSViewRepresentable {
             highlight(); invalidateDisplay(); parent.onChange()
         }
         func highlight() {
-            guard let view = textView, view.textStorage != nil else { return }
+            guard let view = textView, view.textStorage != nil, !view.hasMarkedText() else { return }
             if !capturedLinkAttributes { defaultLinkAttributes = view.linkTextAttributes; capturedLinkAttributes = true }
             EditorSyntaxStyler(fontName: parent.fontName, fontSize: parent.fontSize, monospaceFontName: parent.monospaceFontName,
                 lineSpacing: parent.lineSpacing, markdown: parent.markdown,
