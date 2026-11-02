@@ -4,6 +4,7 @@ import Foundation
 import DraftlyCore
 
 @MainActor enum AutomationActionExecution {
+    enum EditorScope: Equatable { case library, targetDraft }
     struct Output {
         let report: ActionExecutionReport
         let noteID: UUID?
@@ -80,15 +81,17 @@ import DraftlyCore
     static func run(_ action: DraftAction, noteID: UUID, library: LibraryStore,
                     models: [WindowModel], host: any ActionHost,
                     hostOverride: (any ActionHost)? = nil,
+                    editorScope: EditorScope = .library,
                     resolveModel: ModelResolver = { AutomationActionExecution.visibleModel($0, noteID: $1) },
                     registerClose: CloseRegistration = { AutomationActionExecution.registerOwnerClose($0, close: $1) }) async throws -> Output {
         guard !Task.isCancelled else {
             return notStarted(action, noteID: noteID, reason: .cancelled, message: "The action was cancelled before it started.")
         }
-        let models = models.filter { $0.library === library }
-        if ActionRunner.isExecuting(in: library) || models.contains(where: { $0.actionPending || $0.runner.isRunning }) {
+        let libraryModels = models.filter { $0.library === library }
+        if ActionRunner.isExecuting(in: library) || libraryModels.contains(where: { $0.actionPending || $0.runner.isRunning }) {
             return notStarted(action, noteID: noteID, reason: .busy, message: "An action is already running in this library.")
         }
+        let models = editorScope == .targetDraft ? libraryModels.filter { $0.editor.noteID == noteID } : libraryModels
         let candidate = resolveModel(models, noteID)
         let model = candidate.flatMap { $0.library === library && $0.editor.noteID == noteID ? $0 : nil }
         let ownerWindow = model?.window

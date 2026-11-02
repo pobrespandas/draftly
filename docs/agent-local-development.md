@@ -28,9 +28,11 @@ handoff and again after a result. If authority is lost after handoff, it reports
 an unknown outcome. It does not authorize scripts, library access, templates,
 or execution. The existing automation executor can now use the wrapper with
 either a visible editor or a headless editor. Agent Action execution remains
-unavailable. The executor currently flushes all editor models, so it must not
-be used for scoped agent access until that behavior is guarded. Runtime checks
-at every bridge and an approval path are still required.
+unavailable. The executor has an opt-in target-draft editor scope that leaves
+other pending editors alone and still detects conflicts on the target. The
+default continues to cover the library for existing automation routes. This
+scope does not restrict scripts or other library accesses. Runtime checks at
+every bridge and an approval path are still required.
 Creating an action requires access to the full library. Action changes use
 an expected version, a signed retry key, and an atomic action and receipt
 transaction. Recovery checks the current grant. A client with resource scope
