@@ -28,6 +28,8 @@ struct AgentScriptAuthorityTests {
         try authority.authorize("queryDrafts", payload: "{}")
         current = grant([.actionsRun, .draftsRead], allowed.scope)
         #expect(throws: AgentErrorCode.permissionDenied) { try authority.authorize("updateDraft", payload: payload) }
+        current = grant([.actionsRun, .draftsWrite], allowed.scope)
+        #expect(throws: AgentErrorCode.permissionDenied) { try authority.authorize("updateDraft", payload: payload) }
         current = grant([.actionsRun, .draftsRead, .draftsWrite], allowed.scope, revoked: true)
         #expect(throws: AgentErrorCode.permissionDenied) { try authority.authorize("findDraft", payload: payload) }
         current = allowed; locked = true

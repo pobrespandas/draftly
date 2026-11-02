@@ -26,7 +26,7 @@ import AgentContracts
         guard let grant = try currentGrant(), grant.connectionID == connectionID,
               grant.grantID == grantID, grant.libraryID == libraryID, !grant.revoked,
               grant.expiresAt.timeIntervalSince1970.isFinite, grant.expiresAt > now(),
-              grant.capabilities.contains(.actionsRun) else { throw AgentErrorCode.permissionDenied }
+              grant.capabilities.isSuperset(of: [.actionsRun, .draftsRead]) else { throw AgentErrorCode.permissionDenied }
         guard let data = payload.data(using: .utf8), data.count <= AgentRequest.maximumBytes,
               let fields = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw AgentErrorCode.invalidInput
