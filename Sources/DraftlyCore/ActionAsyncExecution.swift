@@ -159,7 +159,8 @@ import Foundation
                 }
                 return response
             }
-            if !(request.operation == "queryDrafts" && authorizeScriptOperation != nil),
+            let guardedDraftCall = authorizeScriptOperation != nil && ["findDraft", "updateDraft", "queryDrafts"].contains(request.operation)
+            if !guardedDraftCall,
                host?.supportsAsync(request.operation) == true {
                 let response = try await platformAsync(request.operation, payload: request.payload)
                 guard activeSession?.id == request.executionID, bridgeStepID == request.stepID else {

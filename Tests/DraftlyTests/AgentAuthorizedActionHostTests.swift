@@ -125,7 +125,7 @@ struct AgentAuthorizedActionHostTests {
         let library = try LibraryStore(inMemory: true, seed: false)
         let note = try library.createNote(content: "Original")
         let host = Host(), now = Date()
-        host.asyncOperations = ["device", "queryDrafts"]
+        host.asyncOperations = ["device", "queryDrafts", "updateDraft", "findDraft"]
         var capabilities: Set<AgentCapability> = [.actionsRun, .draftsRead]
         if canWrite { capabilities.insert(.draftsWrite) }
         let grant = AgentGrant(connectionID: UUID(), libraryID: UUID(), expiresAt: now.addingTimeInterval(60),
@@ -137,6 +137,7 @@ struct AgentAuthorizedActionHostTests {
             models: [], host: host, editorScope: .targetDraft,
             scriptAuthorization: { operation, payload in try authority.authorize(operation, payload: payload) })
         #expect(result.report.reason == (canWrite ? .success : .error), "\(result.message)")
+        #expect(!host.operations.contains("updateDraft"))
         #expect(library.notes.first { $0.id == note.id }?.content == (canWrite ? "Changed" : "Original"))
     }
 
@@ -145,7 +146,7 @@ struct AgentAuthorizedActionHostTests {
         let visible = try library.createNote(content: "Visible")
         let hidden = try library.createNote(content: "Hidden")
         let host = Host(), now = Date()
-        host.asyncOperations = ["device", "queryDrafts"]
+        host.asyncOperations = ["device", "queryDrafts", "updateDraft", "findDraft"]
         let grant = AgentGrant(connectionID: UUID(), libraryID: UUID(), expiresAt: now.addingTimeInterval(60),
             capabilities: [.actionsRun, .draftsRead, .draftsWrite],
             scope: .resources([.init(kind: .draft, id: visible.id)]))
@@ -166,5 +167,28 @@ struct AgentAuthorizedActionHostTests {
         #expect(!host.operations.contains("queryDrafts"))
         #expect(library.notes.first { $0.id == visible.id }?.content == "Visible")
         #expect(library.notes.first { $0.id == hidden.id }?.content == "Hidden")
+    }
+
+    @Test(arguments: [false, true]) func scriptFindUsesScopedLibraryInsteadOfHost(allowOther: Bool) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let visible = try library.createNote(content: "Visible")
+        let hidden = try library.createNote(content: "Hidden")
+        let host = Host(), now = Date()
+        host.asyncOperations = ["device", "findDraft"]
+        var targets: Set<AgentResourceReference> = [.init(kind: .draft, id: visible.id)]
+        if allowOther { targets.insert(.init(kind: .draft, id: hidden.id)) }
+        let grant = AgentGrant(connectionID: UUID(), libraryID: UUID(), expiresAt: now.addingTimeInterval(60),
+            capabilities: [.actionsRun, .draftsRead, .draftsWrite],
+            scope: .resources(targets))
+        let authority = AgentScriptAuthority(grant: grant, currentGrant: { grant }, validateHost: {},
+            isLocked: { false }, now: { now }, draftExists: { id in library.notes.contains { $0.id == id } })
+        let action = DraftAction(name: "Lookup", steps: [ActionStep("script", ["script":
+            "draft.content=Draft.find('\(hidden.id.uuidString)').content; draft.update();"])])
+        let result = try await AutomationActionExecution.run(action, noteID: visible.id, library: library,
+            models: [], host: host, editorScope: .targetDraft,
+            scriptAuthorization: { operation, payload in try authority.authorize(operation, payload: payload) })
+        #expect(result.report.reason == (allowOther ? .success : .error), "\(result.message)")
+        #expect(!host.operations.contains("findDraft"))
+        #expect(library.notes.first { $0.id == visible.id }?.content == (allowOther ? "Hidden" : "Visible"))
     }
 }
