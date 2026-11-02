@@ -103,6 +103,13 @@ jobs:
         run: node --test website/release.test.mjs
       - name: Check Actions matrix structure
         run: python scripts/audit-action-api.py --check
+      - name: Prepare native test termination trace
+        shell: bash
+        run: |
+          trace_library="$RUNNER_TEMP/draftly-test-exit-trace.dylib"
+          xcrun clang -dynamiclib -g -arch arm64 -arch arm64e scripts/trace-test-exit.c -o "$trace_library"
+          echo "DRAFTLY_TEST_EXIT_TRACE_LIBRARY=$trace_library" >> "$GITHUB_ENV"
+          echo "DRAFTLY_TEST_SWIFT_EXECUTABLE=$(xcrun --find swift)" >> "$GITHUB_ENV"
       - name: Run Swift tests and verify inventory
         run: python scripts/run-swift-tests.py --output-dir "$RUNNER_TEMP/draftly-release-rehearsal"
       - name: Build local app
