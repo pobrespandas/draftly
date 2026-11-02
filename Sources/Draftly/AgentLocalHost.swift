@@ -14,6 +14,8 @@ import AgentLocalSecurity
     private let editors: AgentEditorRegistry?
     private let lease: AgentHostLease
     private let publications: AgentHostPublications
+    private let activity: AgentActivityStore
+    private(set) var activityRecordingError: AgentErrorCode?
     var locatorCleanupError: AgentErrorCode? { publications.cleanupError }
     private let socketParentDirectory: URL
     private let validateApplication: () throws -> Void
@@ -24,6 +26,17 @@ import AgentLocalSecurity
     private var closed = false
 
     var endpoint: String? { broker?.path }
+
+    func recentActivity() throws -> [AgentActivityStore.Entry] {
+        try validateOwnership()
+        return try activity.entries(libraryID: libraryID)
+    }
+
+    func clearActivity() throws {
+        try validateOwnership()
+        try activity.clear(libraryID: libraryID)
+        activityRecordingError = nil
+    }
 
     init(library: LibraryStore, appVersion: String,
          editors: AgentEditorRegistry? = nil,
@@ -40,10 +53,12 @@ import AgentLocalSecurity
         let lease = try AgentHostLease(location: AgentLibraryLocation(library: library))
         let file: AgentConnectionFile
         let locator: AgentHostLocator
+        let activity: AgentActivityStore
         do {
             let parent = lease.location.url.deletingLastPathComponent()
             file = try AgentConnectionFile(parentDirectory: parent)
             locator = try AgentHostLocator(parentDirectory: parent)
+            activity = try AgentActivityStore(parentDirectory: parent)
             _ = try locator.endpoints()
         }
         catch { lease.close(); throw error }
@@ -60,6 +75,7 @@ import AgentLocalSecurity
             authorityChanged: { id in owner?.authorityChanged(id) })
         self.lease = lease; self.publications = AgentHostPublications(locator: locator); libraryID = lease.libraryID; connections = registry
         self.library = library; self.editors = editors
+        self.activity = activity
         self.socketParentDirectory = socketParentDirectory
         self.validateApplication = validateApplication; self.validateHelper = validateHelper
         self.isLocked = isLocked; self.resolveTargets = resolveTargets
@@ -67,7 +83,18 @@ import AgentLocalSecurity
             service = try AgentCommandService(library: library, libraryID: lease.libraryID, connections: registry,
                 appVersion: appVersion, validateHost: validateOwner, isLocked: isLocked,
                 editors: editors,
-                pendingEditorGeneration: pendingEditorGeneration)
+                pendingEditorGeneration: pendingEditorGeneration,
+                recordActivity: { connectionID, requestID, operation, result in
+                    let currentOwner = owner
+                    Task { @MainActor [weak currentOwner] in
+                        guard let currentOwner else { return }
+                        do {
+                            try currentOwner.validateOwnership()
+                            try activity.append(libraryID: currentOwner.libraryID, connectionID: connectionID,
+                                                requestID: requestID, operation: operation, result: result)
+                        } catch { currentOwner.activityRecordingError = (error as? AgentErrorCode) ?? .storageError }
+                    }
+                })
         } catch { lease.close(); throw error }
         pairing = AgentPairingCoordinator(registry: registry, libraryID: lease.libraryID,
             validateHost: validateOwner, isLocked: isLocked, resolveTargets: resolveTargets)

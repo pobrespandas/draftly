@@ -37,6 +37,7 @@ import AgentContracts
     private let appVersion: String
     private let preferences: AgentPreferenceRegistry
     private let pages: AgentReadPages
+    private let recordActivity: (UUID, UUID, String, String) -> Void
     private let preferenceDescriptorIDs: [UUID]
     private let preferenceDescriptors: [UUID: AgentPreferenceField]
     private let drafts: AgentDraftReading
@@ -46,13 +47,15 @@ import AgentContracts
          validateHost: @escaping () throws -> Void, isLocked: @escaping () -> Bool, now: @escaping () -> Date = Date.init,
          uptime: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
          editors: AgentEditorRegistry? = nil,
-         pendingEditorGeneration: @escaping (UUID) -> String) throws {
+         pendingEditorGeneration: @escaping (UUID) -> String,
+         recordActivity: @escaping (UUID, UUID, String, String) -> Void = { _, _, _, _ in }) throws {
         guard editors?.isBound(to: library) ?? true else { throw AgentErrorCode.invalidInput }
         self.actionLibrary = library
         self.libraryID = libraryID; self.connections = connections; self.appVersion = appVersion
         self.editorRegistry = editors
         self.validateHost = validateHost
         self.isLocked = isLocked; self.now = now
+        self.recordActivity = recordActivity
         let preferences = try AgentPreferenceCatalog.make()
         self.preferences = preferences
         let descriptors = preferences.fields.map { (UUID(), $0) }
@@ -105,8 +108,16 @@ import AgentContracts
     // An invalid envelope has no trusted request identity and fails before dispatch.
     func respond(to data: Data, session: Session) throws -> Data {
         let request = try AgentRequest.decode(data)
+        var connectionID: UUID?
+        var result = AgentErrorCode.storageError.rawValue
+        defer {
+            if let connectionID, AgentOperationCatalog.operation(named: request.operation) != nil {
+                recordActivity(connectionID, request.requestID, request.operation, result)
+            }
+        }
         do {
             let grant = try authorize(session)
+            connectionID = grant.connectionID
             switch AgentPermissionPolicy.evaluate(request, connectionID: grant.connectionID, grant: grant, now: now()) {
             case .permitted: break
             case .denied(let error): throw error
@@ -126,8 +137,10 @@ import AgentContracts
             let current = try authorize(session)
             guard current.grantID == grant.grantID, current.capabilities == grant.capabilities,
                   current.scope == grant.scope, current.expiresAt == grant.expiresAt else { throw AgentErrorCode.permissionDenied }
+            result = "success"
             return encoded
         } catch let error as AgentErrorCode {
+            result = error.rawValue
             return try JSONEncoder().encode(AgentResponse(requestID: request.requestID, outcome: .error(error)))
         } catch {
             return try JSONEncoder().encode(AgentResponse(requestID: request.requestID, outcome: .error(.storageError)))

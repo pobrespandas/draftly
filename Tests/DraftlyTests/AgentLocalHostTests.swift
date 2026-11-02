@@ -382,6 +382,36 @@ struct AgentLocalHostTests {
         _ = try host.service.authenticate(connectionID: record.id, credential: credential)
     }
 
+    @Test func authenticatedRequestsRecordMetadataWithoutChangingTheirResultOnStorageFailure() async throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let host = try f.host(); defer { host.close() }
+        try host.setEnabledFromUserInterface(true)
+        let record = try f.connect(host)
+        let session = try host.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        func status() throws -> AgentResponse {
+            let request = AgentRequest(requestID: UUID(), libraryID: host.libraryID, operation: "server.status")
+            return try JSONDecoder().decode(AgentResponse.self, from: host.service.respond(to: JSONEncoder().encode(request), session: session))
+        }
+        let reply = try status()
+        guard case .result = reply.outcome else { Issue.record("Expected a successful response: \(reply.outcome)"); return }
+        for _ in 0..<100 where try host.recentActivity().isEmpty { await Task.yield() }
+        let entries = try host.recentActivity()
+        #expect(entries.count == 1 && entries[0].connectionID == record.id)
+        #expect(entries[0].operation == "server.status" && entries[0].result == "success")
+        let deniedRequest = AgentRequest(requestID: UUID(), libraryID: host.libraryID, operation: "actions.list")
+        let denied = try JSONDecoder().decode(AgentResponse.self, from: host.service.respond(to: JSONEncoder().encode(deniedRequest), session: session))
+        #expect(denied.outcome == .error(.permissionDenied))
+        for _ in 0..<100 where try host.recentActivity().count < 2 { await Task.yield() }
+        #expect(try host.recentActivity().contains { $0.requestID == deniedRequest.requestID && $0.result == "permission_denied" })
+        let file = f.root.appendingPathComponent("Agents/activity.json"), invalid = Data("invalid".utf8)
+        try invalid.write(to: file)
+        let next = try status()
+        guard case .result = next.outcome else { Issue.record("Activity failure changed the response"); return }
+        for _ in 0..<100 where host.activityRecordingError == nil { await Task.yield() }
+        #expect(host.activityRecordingError == .storageError)
+        #expect(try Data(contentsOf: file) == invalid)
+    }
+
     @Test func closingAnEditorBeforePairingApprovalInvalidatesTheReview() throws {
         let f = try Fixture(); defer { f.cleanup() }
         let preferences = try TestPreferences(prefix: "Draftly-Agent-Window-Grant-")
