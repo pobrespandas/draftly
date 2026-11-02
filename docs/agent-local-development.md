@@ -82,7 +82,8 @@ service does not expose Action execution yet.
 The operation registry tracks ownership, waiting, cancellation and completion
 in memory. A cancellation request does not claim completion before the work
 returns. Unexpected interruption after work starts has an unknown outcome.
-Restart recovery and transport access to operation status remain unimplemented.
+Transport access to operation status and cancellation is connected. Restart
+recovery remains unimplemented.
 Within one host lifetime, repeated Action request IDs return the same operation.
 Changed request fields fail with a version conflict. Removing a completed
 operation does not permit its request ID to start work again. Request history
@@ -91,9 +92,8 @@ across a restart, so it does not provide recovery or replay protection then.
 For the guarded draft operations, the runner checks authority again before it
 returns a result to the script. If authority changes after an update, it stops
 the Action and records an unknown outcome even when the script catches the
-error. The automation result carries that state. A future agent operation
-registry must retain and expose it; this does not yet provide durable recovery.
-Do not enable agent Action execution until those paths have enforced authority.
+error. The automation result and operation registry retain that state. This does
+not provide durable recovery. Normal app activation remains disabled.
 Creating an action requires access to the full library. Action changes use
 an expected version, a signed retry key, and an atomic action and receipt
 transaction. Recovery checks the current grant. A client with resource scope
@@ -278,7 +278,8 @@ JSON-RPC over stdio and the official Swift SDK 0.12.1. Its selected protocol
 baseline is 2025-11-25. Batches are rejected in this profile.
 
 MCP advertises only available operations with granted capabilities and schemas.
-The current host implements eight read operations. Resources use scoped draft
+The host advertises only its connected handlers. Isolated QA also connects
+reviewed Action execution. Resources use scoped draft
 pages and opaque cursors. The draftly_review_draft prompt reads an authorized
 draft; it does not mutate it. Draft content remains untrusted data.
 
@@ -355,9 +356,11 @@ permissions or read personal data.
 Complete signed app/helper provisioning and packaging, real Keychain sharing,
 human pairing and management, live editor and lock notifications before enabling
 normal app access. Host identity and publication are implemented in the isolated
-assembly; this is not signed installation acceptance.
-Mutations, receipts, native-effect enforcement and the remaining operation families
-are separate unfinished work. Remote access remains a future stage.
+assembly. The installed isolated checks in
+[the operation checkpoint](agent-operation-checkpoint.md) verify one signed
+app/helper path. They do not establish normal startup or screen-lock behavior.
+Remaining operations and durable execution recovery are unfinished. Remote
+access to Draftly is outside the current scope.
 
 For the credential/profile decision, read
 [ADR 0001](adr/0001-agent-device-keychain.md). Apple Security's public SecCode.h
