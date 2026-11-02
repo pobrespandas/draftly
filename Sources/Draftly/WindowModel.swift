@@ -470,7 +470,9 @@ final class WindowModel: ObservableObject {
                           scriptAuthorization: ((String, String) throws -> Void)? = nil,
                           scriptDraftFilter: (([Note]) throws -> [Note])? = nil,
                           stepAuthorization: ((UUID, ActionStep) throws -> Void)? = nil,
-                          completionAuthorization: ((DraftAction, UUID) throws -> Void)? = nil) async -> ActionOutcome? {
+                          completionAuthorization: ((DraftAction, UUID) throws -> Void)? = nil,
+                          actionCatalogFilter: (([DraftAction]) throws -> [DraftAction])? = nil,
+                          configurationAuthorization: ((DraftAction) throws -> Void)? = nil) async -> ActionOutcome? {
         guard !actionPending, !runner.isRunning else { return nil }
         actionPending = true
         let previousHost = runner.host
@@ -478,12 +480,16 @@ final class WindowModel: ObservableObject {
         let previousFilter = runner.filterScriptDrafts
         let previousStepAuthorization = runner.authorizeActionStep
         let previousCompletionAuthorization = runner.authorizeActionCompletion
+        let previousCatalogFilter = runner.filterActionCatalog
+        let previousConfigurationAuthorization = runner.authorizeActionConfiguration
         if let hostOverride { runner.host = hostOverride }
         if let scriptAuthorization { runner.authorizeScriptOperation = scriptAuthorization }
         if scriptAuthorization != nil || scriptDraftFilter != nil { runner.filterScriptDrafts = scriptDraftFilter }
         if let stepAuthorization { runner.authorizeActionStep = stepAuthorization }
         if let completionAuthorization { runner.authorizeActionCompletion = completionAuthorization }
-        defer { runner.host = previousHost; runner.authorizeScriptOperation = previousAuthorization; runner.filterScriptDrafts = previousFilter; runner.authorizeActionStep = previousStepAuthorization; runner.authorizeActionCompletion = previousCompletionAuthorization; actionPending = false }
+        if stepAuthorization != nil || actionCatalogFilter != nil { runner.filterActionCatalog = actionCatalogFilter }
+        if actionCatalogFilter != nil || configurationAuthorization != nil { runner.authorizeActionConfiguration = configurationAuthorization }
+        defer { runner.host = previousHost; runner.authorizeScriptOperation = previousAuthorization; runner.filterScriptDrafts = previousFilter; runner.authorizeActionStep = previousStepAuthorization; runner.authorizeActionCompletion = previousCompletionAuthorization; runner.filterActionCatalog = previousCatalogFilter; runner.authorizeActionConfiguration = previousConfigurationAuthorization; actionPending = false }
         return await executeAction(action)
     }
     private func executeAction(_ action: DraftAction) async -> ActionOutcome? {

@@ -5,9 +5,14 @@ import Foundation
         guard hostOperationTimeout.isFinite, hostOperationTimeout > 0 else {
             throw DraftlyError.message("The host operation timeout must be positive and finite.")
         }
-        let steps = try ActionStepExpansion.expand(initialAction, actions: library.actions)
+        let steps = try ActionStepExpansion.expand(initialAction, actions: permittedActionCatalog(for: initialAction))
         var configurationSteps = steps
         var action = try await prepareInitialConfigurationAsync(initialAction, steps: steps)
+        if filterActionCatalog != nil {
+            guard try ActionStepExpansion.expand(action, actions: permittedActionCatalog(for: action)) == steps else {
+                throw DraftlyError.message("The Action changed during preparation.")
+            }
+        }
         let initialStepID = UUID()
         bridgeStepID = initialStepID
         let authority = ActionBridgeRequestAuthority()
@@ -28,11 +33,20 @@ import Foundation
                     if step.type == "includeAction" {
                         let current = library.notes.first(where: { $0.id == note.id }) ?? note
                         let included = try await ActionTemplateBuilder.build(render: { try await self.renderTemplateAsync($0, note: current) }) { render in
-                            try ActionStepExpansion.resolve(step, actions: self.library.actions, render: render)
+                            try ActionStepExpansion.resolve(step, actions: self.permittedActionCatalog(for: action), render: render)
                         }
-                        let includedSteps = try ActionStepExpansion.expand(included, actions: library.actions, path: path)
+                        let catalog = try permittedActionCatalog(for: action)
+                        if filterActionCatalog != nil && !catalog.contains(included) { throw DraftlyError.message("The Action is unavailable.") }
+                        let includedSteps = try ActionStepExpansion.expand(included, actions: catalog, path: path)
                         configurationSteps += includedSteps
                         action = try await prepareInitialConfigurationAsync(action, steps: configurationSteps)
+                        if filterActionCatalog != nil {
+                            let refreshed = try permittedActionCatalog(for: action)
+                            guard refreshed.contains(included),
+                                  try ActionStepExpansion.expand(included, actions: refreshed, path: path) == includedSteps else {
+                                throw DraftlyError.message("The Action changed during preparation.")
+                            }
+                        }
                         try await worker.evaluateSource(additionalConfigurationSource(action, steps: includedSteps))
                         try await performSteps(included.steps, owner: included.id, path: path.union([included.id]))
                         continue

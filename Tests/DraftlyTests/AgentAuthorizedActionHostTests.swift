@@ -18,12 +18,14 @@ struct AgentAuthorizedActionHostTests {
             calls += 1; operations.append(operation); onCall?()
             if let failure { throw failure }
             if operation == "device" { return ["systemName": "macOS", "model": "Mac", "systemVersion": "test"] }
+            if operation == "prompt" { return ["index": 0, "fields": ["value": "neutral"]] }
             return "done"
         }
         func performAsync(_ operation: String, payload: String) async throws -> String {
             calls += 1; operations.append(operation); onCall?()
             if let failure { throw failure }
             if operation == "device" { return "{\"value\":{\"systemName\":\"macOS\",\"model\":\"Mac\",\"systemVersion\":\"test\"}}" }
+            if operation == "prompt" { return "{\"value\":{\"index\":0,\"fields\":{\"value\":\"neutral\"}}}" }
             return "done"
         }
         func finishAction() { finished += 1 }
@@ -244,5 +246,102 @@ struct AgentAuthorizedActionHostTests {
         #expect(result.report.reason == (allowOther ? .success : .error), "\(result.message)")
         #expect(!host.operations.contains("findDraft"))
         #expect(library.notes.first { $0.id == visible.id }?.content == (allowOther ? "Hidden" : "Visible"))
+    }
+
+    @Test(arguments: [false, true]) func includedActionRequiresCatalogScope(allowHelper: Bool) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Visible")
+        let helper = DraftAction(name: "Helper", steps: [ActionStep("insertText", ["template": "Added"])])
+        let root = DraftAction(name: "Root", steps: [ActionStep("includeAction", ["uuid": helper.id.uuidString])])
+        try library.saveActions([root, helper])
+        var targets: Set<AgentResourceReference> = [.init(kind: .draft, id: note.id), .init(kind: .action, id: root.id)]
+        if allowHelper { targets.insert(.init(kind: .action, id: helper.id)) }
+        let now = Date(), host = Host()
+        host.asyncOperations = ["device"]
+        let grant = AgentGrant(connectionID: UUID(), libraryID: UUID(), expiresAt: now.addingTimeInterval(60),
+            capabilities: [.actionsRun, .draftsRead, .draftsWrite], scope: .resources(targets))
+        let authority = AgentScriptAuthority(grant: grant, currentGrant: { grant }, validateHost: {},
+            isLocked: { false }, now: { now }, draftExists: { id in library.notes.contains { $0.id == id } })
+        let result = try await AutomationActionExecution.run(root, noteID: note.id, library: library,
+            models: [], host: host, editorScope: .targetDraft, stepAuthorization: { _, _ in },
+            actionCatalogFilter: { try authority.visibleActions($0) })
+        #expect(result.report.reason == (allowHelper ? .success : .error), "\(result.message)")
+        #expect(library.notes.first { $0.id == note.id }?.content == (allowHelper ? "AddedVisible" : "Visible"))
+    }
+
+    @Test func scopedInitialConfigurationRequiresSeparateAuthority() async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Visible"), host = Host()
+        let action = DraftAction(name: "Configure", steps: [ActionStep("configurationKey", [
+            "key": "secret", "requiresInitialConfiguration": "true"
+        ])])
+        try library.saveAction(action)
+        let result = try await AutomationActionExecution.run(action, noteID: note.id, library: library,
+            models: [], host: host, editorScope: .targetDraft, stepAuthorization: { _, _ in },
+            actionCatalogFilter: { $0 })
+        #expect(result.report.reason == .error)
+        #expect(host.calls == 0)
+        #expect(library.actions.first { $0.id == action.id } == action)
+    }
+
+    @Test func unapprovedRootIsRejectedBeforeConfirmation() async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Visible"), host = Host()
+        var action = DraftAction(name: "Private", steps: [])
+        action.presentation.confirmBeforeRun = true
+        try library.saveAction(action)
+        do {
+            _ = try await AutomationActionExecution.run(action, noteID: note.id, library: library,
+                models: [], host: host, editorScope: .targetDraft, stepAuthorization: { _, _ in },
+                actionCatalogFilter: { _ in [] })
+            Issue.record("An unapproved Action must not run")
+        } catch { #expect(host.calls == 0) }
+        #expect(library.notes.first?.content == "Visible")
+    }
+
+    @Test func revocationDuringConfigurationDoesNotSaveTheResponse() async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Visible"), host = Host(), now = Date()
+        host.asyncOperations = ["device"]
+        let action = DraftAction(name: "Configure", steps: [ActionStep("configurationKey", [
+            "key": "value", "requiresInitialConfiguration": "true"
+        ])])
+        try library.saveAction(action)
+        let grant = AgentGrant(connectionID: UUID(), libraryID: UUID(), expiresAt: now.addingTimeInterval(60),
+            capabilities: [.actionsRun, .draftsRead, .actionsManage],
+            scope: .resources([.init(kind: .draft, id: note.id), .init(kind: .action, id: action.id)]))
+        var current: AgentGrant? = grant
+        host.onCall = { if host.operations.last == "prompt" { current = nil } }
+        let authority = AgentScriptAuthority(grant: grant, currentGrant: { current }, validateHost: {},
+            isLocked: { false }, now: { now }, draftExists: { $0 == note.id })
+        let result = try await AutomationActionExecution.run(action, noteID: note.id, library: library,
+            models: [], host: host, editorScope: .targetDraft, stepAuthorization: { _, _ in },
+            actionCatalogFilter: { try authority.visibleActions($0) },
+            configurationAuthorization: { _ in
+                guard current?.capabilities.contains(.actionsManage) == true else { throw AgentErrorCode.permissionDenied }
+            })
+        #expect(result.report.reason == .error)
+        #expect(host.operations.contains("prompt"))
+        #expect(library.actions.first { $0.id == action.id } == action)
+    }
+
+    @Test func authorizedConfigurationContinuesWithUpdatedDefinition() async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Visible"), host = Host(), now = Date()
+        host.asyncOperations = ["device"]
+        let action = DraftAction(name: "Configure", steps: [ActionStep("configurationKey", [
+            "key": "value", "requiresInitialConfiguration": "true"
+        ])])
+        try library.saveAction(action)
+        let grant = AgentGrant(connectionID: UUID(), libraryID: UUID(), expiresAt: now.addingTimeInterval(60),
+            capabilities: [.actionsRun, .draftsRead, .actionsManage],
+            scope: .resources([.init(kind: .draft, id: note.id), .init(kind: .action, id: action.id)]))
+        let authority = AgentScriptAuthority(grant: grant, currentGrant: { grant }, validateHost: {},
+            isLocked: { false }, now: { now }, draftExists: { $0 == note.id })
+        let result = try await AutomationActionExecution.run(action, noteID: note.id, library: library,
+            models: [], host: host, editorScope: .targetDraft, stepAuthorization: { _, _ in },
+            actionCatalogFilter: { try authority.visibleActions($0) }, configurationAuthorization: { _ in })
+        #expect(result.report.reason == .success, "\(result.message)")
+        #expect(library.actions.first { $0.id == action.id }?.configuredValues["value"] == "neutral")
     }
 }

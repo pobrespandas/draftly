@@ -22,12 +22,7 @@ import DraftlyCore
     }
 
     func authorize(_ operation: String, payload: String) throws {
-        guard !isLocked() else { throw AgentErrorCode.permissionDenied }
-        try validateHost()
-        guard let grant = try currentGrant(), grant.connectionID == connectionID,
-              grant.grantID == grantID, grant.libraryID == libraryID, !grant.revoked,
-              grant.expiresAt.timeIntervalSince1970.isFinite, grant.expiresAt > now(),
-              grant.capabilities.isSuperset(of: [.actionsRun, .draftsRead]) else { throw AgentErrorCode.permissionDenied }
+        let grant = try currentBaseline()
         guard let data = payload.data(using: .utf8), data.count <= AgentRequest.maximumBytes,
               let fields = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw AgentErrorCode.invalidInput
@@ -45,6 +40,20 @@ import DraftlyCore
         default:
             throw AgentErrorCode.unavailable
         }
+        try requireUnchanged(grant)
+    }
+
+    private func currentBaseline() throws -> AgentGrant {
+        guard !isLocked() else { throw AgentErrorCode.permissionDenied }
+        try validateHost()
+        guard let grant = try currentGrant(), grant.connectionID == connectionID,
+              grant.grantID == grantID, grant.libraryID == libraryID, !grant.revoked,
+              grant.expiresAt.timeIntervalSince1970.isFinite, grant.expiresAt > now(),
+              grant.capabilities.isSuperset(of: [.actionsRun, .draftsRead]) else { throw AgentErrorCode.permissionDenied }
+        return grant
+    }
+
+    private func requireUnchanged(_ grant: AgentGrant) throws {
         guard !isLocked() else { throw AgentErrorCode.permissionDenied }
         try validateHost()
         guard let current = try currentGrant(), current.connectionID == grant.connectionID,
@@ -54,6 +63,13 @@ import DraftlyCore
             throw AgentErrorCode.permissionDenied
         }
         guard !isLocked() else { throw AgentErrorCode.permissionDenied }
+    }
+
+    func visibleActions(_ actions: [DraftAction]) throws -> [DraftAction] {
+        let grant = try currentBaseline()
+        let result = actions.filter { grant.scope.permits(.init(kind: .action, id: $0.id)) }
+        try requireUnchanged(grant)
+        return result
     }
 
     func visibleDrafts(_ drafts: [Note]) throws -> [Note] {

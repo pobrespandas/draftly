@@ -87,10 +87,17 @@ import DraftlyCore
                     scriptDraftFilter: (([Note]) throws -> [Note])? = nil,
                     stepAuthorization: ((UUID, ActionStep) throws -> Void)? = nil,
                     completionAuthorization: ((DraftAction, UUID) throws -> Void)? = nil,
+                    actionCatalogFilter: (([DraftAction]) throws -> [DraftAction])? = nil,
+                    configurationAuthorization: ((DraftAction) throws -> Void)? = nil,
                     resolveModel: ModelResolver = { AutomationActionExecution.visibleModel($0, noteID: $1) },
                     registerClose: CloseRegistration = { AutomationActionExecution.registerOwnerClose($0, close: $1) }) async throws -> Output {
         guard !Task.isCancelled else {
             return notStarted(action, noteID: noteID, reason: .cancelled, message: "The action was cancelled before it started.")
+        }
+        if let actionCatalogFilter {
+            guard try actionCatalogFilter(library.actions).contains(action) else {
+                throw DraftlyError.message("The Action is unavailable.")
+            }
         }
         let libraryModels = models.filter { $0.library === library }
         if ActionRunner.isExecuting(in: library) || libraryModels.contains(where: { $0.actionPending || $0.runner.isRunning }) {
@@ -145,6 +152,8 @@ import DraftlyCore
             runner.filterScriptDrafts = scriptDraftFilter
             runner.authorizeActionStep = stepAuthorization
             runner.authorizeActionCompletion = completionAuthorization
+            runner.filterActionCatalog = actionCatalogFilter
+            runner.authorizeActionConfiguration = configurationAuthorization
         }
         var subscriptions: [AnyCancellable] = []
         var previous = Dictionary(uniqueKeysWithValues: library.notes.map { ($0.id, $0.content) })
@@ -176,7 +185,8 @@ import DraftlyCore
                 guard !lifetime.closed, !Task.isCancelled else { return Optional<WindowModel.ActionOutcome>.none }
                 return await model.runActionOutcome(action, hostOverride: hostOverride, scriptAuthorization: scriptAuthorization,
                                                     scriptDraftFilter: scriptDraftFilter, stepAuthorization: stepAuthorization,
-                                                    completionAuthorization: completionAuthorization)
+                                                    completionAuthorization: completionAuthorization, actionCatalogFilter: actionCatalogFilter,
+                                                    configurationAuthorization: configurationAuthorization)
             }
             lifetime.attach(operation)
             let completed = await withTaskCancellationHandler { await operation.value } onCancel: { operation.cancel() }

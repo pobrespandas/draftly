@@ -4,20 +4,31 @@ import Foundation
     func prepareInitialConfiguration(_ action: DraftAction, steps: [ActionStep]) throws -> DraftAction {
         let definition = try ActionInitialConfiguration(action: action, steps: steps)
         guard definition.needsPrompt else { return action }
+        try checkConfigurationAuthority(action)
         let stored = library.actions.first { $0.id == action.id }
         let response = try platform("prompt", definition.prompt)
         try checkCancellation()
+        try checkConfigurationAuthority(action)
         return try saveInitialConfiguration(definition.configured(response), replacing: stored)
     }
 
     func prepareInitialConfigurationAsync(_ action: DraftAction, steps: [ActionStep]) async throws -> DraftAction {
         let definition = try ActionInitialConfiguration(action: action, steps: steps)
         guard definition.needsPrompt else { return action }
+        try checkConfigurationAuthority(action)
         let stored = library.actions.first { $0.id == action.id }
         let response = try await nativeValue("prompt", definition.prompt)
         try Task.checkCancellation()
         try checkCancellation()
+        try checkConfigurationAuthority(action)
         return try saveInitialConfiguration(definition.configured(response), replacing: stored)
+    }
+
+    private func checkConfigurationAuthority(_ action: DraftAction) throws {
+        guard filterActionCatalog != nil else { return }
+        _ = try permittedActionCatalog(for: action)
+        guard let authorizeActionConfiguration else { throw DraftlyError.message("Action configuration is unavailable.") }
+        try authorizeActionConfiguration(action)
     }
 
     private func saveInitialConfiguration(_ configured: DraftAction, replacing stored: DraftAction?) throws -> DraftAction {

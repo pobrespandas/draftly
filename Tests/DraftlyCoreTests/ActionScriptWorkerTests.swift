@@ -4,6 +4,22 @@ import Testing
 
 @Suite("Script worker host lifetime") @MainActor
 struct ActionScriptWorkerTests {
+    @Test func synchronousIncludedActionIsResolvedOnlyFromFilteredCatalog() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Original")
+        let editor = EditorSession(); editor.load(note)
+        let helper = DraftAction(name: "Helper", steps: [ActionStep("insertText", ["template": "Added"])])
+        let root = DraftAction(name: "Root", steps: [ActionStep("includeAction", ["uuid": helper.id.uuidString])])
+        try library.saveActions([root, helper])
+        let runner = ActionRunner(library: library, editor: editor)
+        runner.authorizeActionStep = { _, _ in }
+        runner.filterActionCatalog = { $0.filter { $0.id == root.id } }
+        let report = runner.runReport(root)
+        #expect(report.reason == .error && library.notes.first?.content == "Original")
+        runner.filterActionCatalog = nil
+        let withoutFilter = runner.runReport(root)
+        #expect(withoutFilter.reason == .error && library.notes.first?.content == "Original")
+    }
     @Test(arguments: [false, true]) func deniedCompletionDoesNotApplyDispositionOrFlush(worker: Bool) async throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let note = try library.createNote(content: "Original")

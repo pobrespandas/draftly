@@ -34,6 +34,8 @@ public final class ActionRunner: ObservableObject {
     // Recheckable authorization for a concrete enabled step before execution.
     public var authorizeActionStep: ((UUID, ActionStep) throws -> Void)?
     public var authorizeActionCompletion: ((DraftAction, UUID) throws -> Void)?
+    public var filterActionCatalog: (([DraftAction]) throws -> [DraftAction])?
+    public var authorizeActionConfiguration: ((DraftAction) throws -> Void)?
     public private(set) var scriptOutcomeUnknown = false
     public var readTheme: (EditorThemeDefinition) throws -> EditorThemeDefinition = { try ThemeFileAccess.read($0) }
     public var selectedDrafts: (() -> [Note])?
@@ -145,6 +147,7 @@ public final class ActionRunner: ObservableObject {
             do {
                 try Task.checkCancellation()
                 try checkCancellation()
+                if authorizeActionStep != nil || filterActionCatalog != nil { _ = try permittedActionCatalog(for: action) }
                 if action.presentation.confirmBeforeRun,
                    try await nativeValue("confirmAction", ["name": action.name]) as? Bool != true {
                     throw ActionExecutionInterruption.cancelled
@@ -172,7 +175,7 @@ public final class ActionRunner: ObservableObject {
                 result = .success; reason = .success
                 message = logs.last ?? "\(action.name) completed"
             } catch {
-                if authorizeScriptOperation == nil && authorizeActionStep == nil && authorizeActionCompletion == nil { try? flushEditor() }
+                if authorizeScriptOperation == nil && authorizeActionStep == nil && authorizeActionCompletion == nil && filterActionCatalog == nil && authorizeActionConfiguration == nil { try? flushEditor() }
                 if error is CancellationError || (error as? ActionExecutionInterruption) == .cancelled || session.cancellationRequested {
                     result = .cancelled; reason = .cancelled
                     message = "\(action.name) cancelled"
@@ -217,6 +220,7 @@ public final class ActionRunner: ObservableObject {
         defer { isRunning = false; executing = []; host?.finishAction() }
         do {
             try checkCancellation()
+            if authorizeActionStep != nil || filterActionCatalog != nil { _ = try permittedActionCatalog(for: action) }
             if action.presentation.confirmBeforeRun {
                 let response = try platform("confirmAction", ["name": action.name]) as? Bool ?? false
                 guard response else {
@@ -251,7 +255,7 @@ public final class ActionRunner: ObservableObject {
             if completed && action.presentation.notifyOnSuccess { _ = try? platform("actionNotification", ["title": action.name, "message": message ?? "Complete"]) }
             return completed
         } catch {
-            if authorizeScriptOperation == nil && authorizeActionStep == nil && authorizeActionCompletion == nil { try? flushEditor() }
+            if authorizeScriptOperation == nil && authorizeActionStep == nil && authorizeActionCompletion == nil && filterActionCatalog == nil && authorizeActionConfiguration == nil { try? flushEditor() }
             message = error.localizedDescription
             let cancelled = (error as? ActionExecutionInterruption) == .cancelled
             if (error as? ActionExecutionInterruption) == .timeout { terminationReason = .timeout }
@@ -264,7 +268,7 @@ public final class ActionRunner: ObservableObject {
     }
 
     private func execute(_ initialAction: DraftAction, note: Note) throws -> Bool {
-        let steps = try ActionStepExpansion.expand(initialAction, actions: library.actions)
+        let steps = try ActionStepExpansion.expand(initialAction, actions: permittedActionCatalog(for: initialAction))
         var configurationSteps = steps
         var action = try prepareInitialConfiguration(initialAction, steps: steps)
         guard !executing.contains(action.id) else { throw DraftlyError.message("An included action refers to itself.") }
@@ -290,8 +294,10 @@ public final class ActionRunner: ObservableObject {
                 let text = step.values["template"] ?? step.values["text"] ?? "[[draft]]"
                 let current = library.notes.first(where: { $0.id == note.id }) ?? note
                 if step.type == "includeAction" {
-                    let included = try ActionStepExpansion.resolve(step, actions: library.actions) { try renderTemplate($0, note: current) }
-                    let includedSteps = try ActionStepExpansion.expand(included, actions: library.actions, path: path)
+                    let included = try ActionStepExpansion.resolve(step, actions: permittedActionCatalog(for: action)) { try renderTemplate($0, note: current) }
+                    let catalog = try permittedActionCatalog(for: action)
+                    if filterActionCatalog != nil && !catalog.contains(included) { throw DraftlyError.message("The Action is unavailable.") }
+                    let includedSteps = try ActionStepExpansion.expand(included, actions: catalog, path: path)
                     configurationSteps += includedSteps
                     action = try prepareInitialConfiguration(action, steps: configurationSteps)
                     context.evaluateScript(try additionalConfigurationSource(action, steps: includedSteps))
@@ -388,6 +394,18 @@ public final class ActionRunner: ObservableObject {
     func dispatch(_ operation: String, values: [String: Any]) throws -> Any? {
         if let authorizeScriptOperation { try authorizeScriptOperation(operation, json(values)) }
         return try dispatchAuthorized(operation, values: values)
+    }
+
+    func permittedActionCatalog(for root: DraftAction) throws -> [DraftAction] {
+        guard let filterActionCatalog else {
+            if authorizeActionStep != nil && root.steps.contains(where: { $0.isEnabled != false && $0.type == "includeAction" }) {
+                throw DraftlyError.message("The Action catalog scope is unavailable.")
+            }
+            return library.actions
+        }
+        let actions = try filterActionCatalog(library.actions)
+        guard actions.contains(where: { $0 == root }) else { throw DraftlyError.message("The Action is unavailable.") }
+        return actions
     }
 
     func dispatchAuthorized(_ operation: String, values: [String: Any]) throws -> Any? {

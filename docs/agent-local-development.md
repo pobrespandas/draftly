@@ -47,9 +47,12 @@ cover initial context, native Action steps, nested execution, final disposition,
 or the full runtime contract.
 The runner can also check each enabled Action step before it runs and check
 completion before the final editor flush and disposition. Guarded failures do
-not flush pending editor text as error cleanup. These checks do not cover step
-expansion or initial configuration, which occur earlier. They are not enough
-to authorize Action execution.
+not flush pending editor text as error cleanup. A filtered catalog limits
+included Action resolution and is rechecked after asynchronous preparation.
+Initial configuration under that filter requires a separate check before the
+prompt and again before saving. Action execution remains unavailable until
+these checks and the approval flow cover every path and are connected to the
+agent service.
 For the guarded draft operations, the runner checks authority again before it
 returns a result to the script. If authority changes after an update, it stops
 the Action and records an unknown outcome even when the script catches the
