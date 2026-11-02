@@ -230,6 +230,20 @@ struct AgentConnectionsSettingsTests {
         #expect(!model.cleanupPending && f.secrets.isEmpty)
     }
 
+    @Test func reopeningSettingsRetriesFailedCredentialCleanup() throws {
+        let f = Fixture(), record = try f.connect(), model = try f.model()
+        #expect(throws: AgentErrorCode.permissionDenied) { try f.registry.cleanUpRevokedCredentialFromUserInterface(record.id) }
+        #expect(f.secrets[record.id] != nil)
+        f.failDelete = true
+        try model.revoke(record.id)
+        let reopened = try f.model()
+        #expect(reopened.cleanupPendingIDs == [record.id])
+        #expect(try f.registry.grantForAuthenticatedConnection(record.id) == nil)
+        f.failDelete = false
+        let recovered = try f.model()
+        #expect(!recovered.cleanupPending && f.secrets.isEmpty)
+    }
+
     @Test func failedRevocationAndDisableDoNotDisplayActiveAuthority() throws {
         let f = Fixture(), record = try f.connect(), q = try f.request(), model = try f.model()
         f.failWrite = true; f.failDelete = true

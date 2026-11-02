@@ -64,6 +64,12 @@ import AgentContracts
         self.readActivity = readActivity; self.eraseActivity = eraseActivity
         self.activityRecordingError = activityRecordingError
         refresh()
+        if readable {
+            for record in connections where record.revoked {
+                do { try registry.cleanUpRevokedCredentialFromUserInterface(record.id) }
+                catch { cleanupPendingIDs.insert(record.id) }
+            }
+        }
     }
 
     var connections: [AgentConnectionRecord] { configuration.connections.filter { $0.libraryID == libraryID } }

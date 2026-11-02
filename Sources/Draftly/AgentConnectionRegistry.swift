@@ -46,6 +46,14 @@ import AgentContracts
 
     func configurationForUserInterface() throws -> AgentConnectionMetadata { try snapshot().configuration }
 
+    func cleanUpRevokedCredentialFromUserInterface(_ id: UUID) throws {
+        let configuration = try snapshot().configuration
+        guard configuration.connections.contains(where: { $0.id == id && $0.revoked }) else {
+            throw AgentErrorCode.permissionDenied
+        }
+        try credentials.remove(id)
+    }
+
     func permitsTransportStart() throws -> Bool { try !disabledUntilCommit && snapshot().configuration.enabled }
 
     func setEnabledFromUserInterface(_ enabled: Bool) throws {
