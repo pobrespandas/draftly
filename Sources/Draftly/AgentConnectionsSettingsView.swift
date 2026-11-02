@@ -56,6 +56,12 @@ struct AgentConnectionsSettingsView: View {
                         Text(record.scopeKind == .library ? "Entire library" : "Selected resources: \(record.resources.count)")
                         Text("Expires " + record.expiresAt.formatted(date: .abbreviated, time: .shortened)).font(.caption)
                         HStack {
+                            if let configuration = model.mcpConfiguration(for: record.id) {
+                                Button("Copy MCP configuration") {
+                                    NSPasteboard.general.clearContents()
+                                    NSPasteboard.general.setString(configuration, forType: .string)
+                                }
+                            }
                             Button("Edit permissions…") { try? model.beginEditing(record.id) }.disabled(record.revoked || !model.readable)
                             Button(record.revoked ? "Retry credential cleanup" : "Revoke access", role: .destructive) { try? model.revoke(record.id) }
                                 .disabled(!model.readable)

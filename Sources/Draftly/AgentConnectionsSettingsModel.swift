@@ -37,6 +37,7 @@ import AgentContracts
     // The host owns broker startup, shutdown, provisioning and lock observation.
     private let setAccessEnabled: (Bool) throws -> Void
     private let isAccessActive: () -> Bool
+    private let makeMCPConfiguration: (UUID) -> String?
 
     init(libraryID: UUID, registry: AgentConnectionRegistry, pairing: AgentPairingCoordinator,
          now: @escaping () -> Date = Date.init, choices: @escaping () -> [ResourceChoice],
@@ -44,12 +45,14 @@ import AgentContracts
          resolveTargets: @escaping (Set<AgentResourceReference>) throws -> Set<AgentResourceReference>,
          setAccessEnabled: @escaping (Bool) throws -> Void,
          isAccessActive: @escaping () -> Bool = { true }, pairingCommand: String? = nil,
-         availableCapabilities: Set<AgentCapability> = Set(AgentCapability.allCases)) throws {
+         availableCapabilities: Set<AgentCapability> = Set(AgentCapability.allCases),
+         makeMCPConfiguration: @escaping (UUID) -> String? = { _ in nil }) throws {
         guard pairing.isBound(to: registry, libraryID: libraryID) else { throw AgentErrorCode.invalidInput }
         self.libraryID = libraryID; self.pairingCommand = pairingCommand; self.availableCapabilities = availableCapabilities
         self.registry = registry; self.pairing = pairing; self.now = now
         self.choices = choices; self.initialTargets = initialTargets; self.resolveTargets = resolveTargets
         self.setAccessEnabled = setAccessEnabled; self.isAccessActive = isAccessActive
+        self.makeMCPConfiguration = makeMCPConfiguration
         refresh()
     }
 
@@ -93,6 +96,11 @@ import AgentContracts
     }
 
     func stopWork() throws { try setEnabled(false) }
+
+    func mcpConfiguration(for id: UUID) -> String? {
+        guard let record = try? currentRecord(id), !record.revoked else { return nil }
+        return makeMCPConfiguration(id)
+    }
 
     func beginEditing(_ id: UUID) throws {
         do {

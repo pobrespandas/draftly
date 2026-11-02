@@ -331,8 +331,17 @@ struct AgentLocalHostTests {
         let output = String(decoding: pipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
         #expect(process.terminationStatus == 0)
         #expect(output == "connect\n--name\nLocal agent\n--library\n\(id.uuidString)\n--state-parent\n\(root.path)\n")
+        let connectionID = UUID()
+        let json = try #require(AgentLocalHost.mcpConfiguration(connectionID: connectionID, libraryID: id, stateDirectory: root, bundleURL: bundle))
+        let parsed = try #require(JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any])
+        let servers = try #require(parsed["mcpServers"] as? [String: [String: Any]])
+        let server = try #require(servers["draftly-" + connectionID.uuidString.lowercased()])
+        #expect(server["command"] as? String == executable.path)
+        #expect(server["args"] as? [String] == ["mcp", "--connection", connectionID.uuidString, "--library", id.uuidString, "--state-parent", root.path])
+        #expect(!json.contains("credential"))
         try FileManager.default.removeItem(at: executable)
         #expect(AgentLocalHost.pairingCommand(libraryID: id, stateDirectory: root, bundleURL: bundle) == nil)
+        #expect(AgentLocalHost.mcpConfiguration(connectionID: connectionID, libraryID: id, stateDirectory: root, bundleURL: bundle) == nil)
     }
 
     @Test func settingsShowsSuspendedAccessAsOffAndCanResumeIt() throws {

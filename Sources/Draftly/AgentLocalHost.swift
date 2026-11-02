@@ -154,7 +154,12 @@ import AgentLocalSecurity
             }, isAccessActive: { [weak self] in self?.endpoint != nil },
             pairingCommand: Self.pairingCommand(libraryID: libraryID,
                 stateDirectory: lease.location.url.deletingLastPathComponent(), bundleURL: Bundle.main.bundleURL),
-            availableCapabilities: service.availableCapabilities)
+            availableCapabilities: service.availableCapabilities,
+            makeMCPConfiguration: { [weak self] connectionID in
+                guard let self else { return nil }
+                return Self.mcpConfiguration(connectionID: connectionID, libraryID: self.libraryID,
+                    stateDirectory: self.lease.location.url.deletingLastPathComponent(), bundleURL: Bundle.main.bundleURL)
+            })
     }
 
     static func pairingCommand(libraryID: UUID, stateDirectory: URL, bundleURL: URL) -> String? {
@@ -163,6 +168,15 @@ import AgentLocalSecurity
         func quoted(_ value: String) -> String { "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'" }
         return quoted(helper.path) + " connect --name 'Local agent' --library " + libraryID.uuidString
             + " --state-parent " + quoted(stateDirectory.path)
+    }
+
+    static func mcpConfiguration(connectionID: UUID, libraryID: UUID, stateDirectory: URL, bundleURL: URL) -> String? {
+        let helper = bundleURL.appendingPathComponent("Contents/Helpers/DraftlyAgent.app/Contents/MacOS/draftly-agent")
+        guard stateDirectory.isFileURL, helper.isFileURL, FileManager.default.isExecutableFile(atPath: helper.path),
+              let configuration = try? AgentClientConfiguration(helperPath: helper.path, connectionID: connectionID,
+                  libraryID: libraryID, stateParent: stateDirectory.path),
+              let data = try? configuration.encoded() else { return nil }
+        return String(data: data, encoding: .utf8)
     }
 
     func makeDraftSettingsModel() throws -> AgentConnectionsSettingsModel {
