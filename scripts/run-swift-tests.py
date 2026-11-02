@@ -146,6 +146,7 @@ def run_target(module, expected, output, *, concurrent_app=False, test_filter=No
             if os.environ.get("GITHUB_ACTIONS") == "true" and trace_library:
                 environment = dict(os.environ)
                 environment["DYLD_INSERT_LIBRARIES"] = trace_library
+                command[0] = os.environ.get("DRAFTLY_TEST_SWIFT_EXECUTABLE", command[0])
                 record["terminationTraceRequested"] = True
                 save_record()
                 process = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, env=environment)

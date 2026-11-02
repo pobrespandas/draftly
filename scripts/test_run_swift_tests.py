@@ -144,13 +144,15 @@ class SwiftResultVerificationTests(unittest.TestCase):
         for ci in ["false", "true"]:
             with self.subTest(ci=ci), \
                     patch.dict(runner.os.environ, {"GITHUB_ACTIONS": ci,
-                        "DRAFTLY_TEST_EXIT_TRACE_LIBRARY": "/neutral/trace.dylib"}), \
+                        "DRAFTLY_TEST_EXIT_TRACE_LIBRARY": "/neutral/trace.dylib",
+                        "DRAFTLY_TEST_SWIFT_EXECUTABLE": "/neutral/toolchain/swift"}), \
                     patch.object(runner.subprocess, "run", return_value=CompletedProcess([], 0)) as command, \
                     patch.object(runner, "capture_native_crashes", return_value={"state": "scanned", "files": []}):
                 with self.assertRaisesRegex(ValueError, "no test report"):
                     runner.run_target("DraftlyTests", self.expected, Path(self.folder.name))
                 if ci == "true":
                     self.assertEqual(command.call_args.kwargs["env"]["DYLD_INSERT_LIBRARIES"], "/neutral/trace.dylib")
+                    self.assertEqual(command.call_args.args[0][0], "/neutral/toolchain/swift")
                 else:
                     self.assertNotIn("env", command.call_args.kwargs)
 
