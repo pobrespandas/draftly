@@ -99,7 +99,9 @@ package enum AgentActionSchemas {
                 "action": r(.object(action)), "versionToken": r(token)
             ])),
             "actions.stepSchemas": .init(parameters: none, result: .init(fields: [
-                "steps": r(.array(rawObject, maximum: 10_000))
+                "steps": r(.array(.object(.init(fields: [
+                    "type": r(text), "creationDefaults": r(stringMap)
+                ])), maximum: 10_000))
             ])),
             "actions.groups": .init(parameters: page, result: .init(fields: [
                 "items": r(.array(.object(.init(fields: ["id": r(.uuid), "name": r(text),

@@ -15,7 +15,7 @@ import AgentContracts
     private static let readOperations: Set<String> = ["server.status", "server.capabilities", "server.schemas",
         "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions", "preferences.schema"]
     private static let editorReadOperations: Set<String> = ["editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks"]
-    private static let actionReadOperations: Set<String> = ["actions.list", "actions.get", "actions.groups", "actionGroups.get"]
+    private static let actionReadOperations: Set<String> = ["actions.list", "actions.get", "actions.stepSchemas", "actions.groups", "actionGroups.get"]
     static let implementedOperations = readOperations.union(actionReadOperations).union([AgentMutationSchemas.name]).union(AgentDraftWriting.operationNames).union(editorReadOperations)
     private var availableOperations: Set<String> {
         var operations = editorRegistry == nil ? Self.readOperations.union(Self.actionReadOperations) : (writes == nil ? Self.readOperations.union(Self.editorReadOperations).union(Self.actionReadOperations) : Self.implementedOperations)
@@ -198,6 +198,11 @@ import AgentContracts
     private func dispatch(_ request: AgentRequest, parameters: [String: AgentJSONValue], grant: AgentGrant,
                           sessionID: UUID) throws -> [String: AgentJSONValue] {
         switch request.operation {
+        case "actions.stepSchemas":
+            return ["steps": .array(DraftAction.supportedSteps.sorted().map { type in
+                .object(["type": .string(type), "creationDefaults": .object(
+                    ActionStepCreationDefaults.values(for: type).mapValues { .string($0) })])
+            })]
         case "activity.list":
             guard let readActivity else { throw AgentErrorCode.unavailable }
             let entries = try readActivity(grant.connectionID, grant.grantID).filter {

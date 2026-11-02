@@ -90,6 +90,20 @@ struct AgentCommandServiceTests {
         }
     }
 
+    @Test func stepSchemasRequireActionReadAndMatchEditorCreationDefaults() throws {
+        let f = try Fixture()
+        let (_, session) = try f.connect(capabilities: [.actionsRead])
+        let (_, denied) = try f.connect(capabilities: [.draftsRead])
+        #expect(try f.response("actions.stepSchemas", session: denied).outcome == .error(.permissionDenied))
+        let result = try f.values("actions.stepSchemas", session: session)
+        guard case .array(let steps) = result["steps"] else { Issue.record("Missing step schemas"); return }
+        let expected: [AgentJSONValue] = DraftAction.supportedSteps.sorted().map { type in
+            .object(["type": .string(type), "creationDefaults": .object(
+                ActionStepCreationDefaults.values(for: type).mapValues { .string($0) })])
+        }
+        #expect(steps == expected)
+    }
+
     @Test func actionGetRequiresScopeAndReturnsTheListedVersion() throws {
         let f = try Fixture()
         var allowed = DraftAction(name: "Allowed", steps: [])
@@ -586,7 +600,7 @@ struct AgentCommandServiceTests {
             guard case .object(let fields) = item, fields["available"] == .bool(true), case .string(let name) = fields["name"] else { return nil }
             return name
         })
-        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", AgentMutationSchemas.name, "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.groups", "actionGroups.get"]) && available.count == 23)
+        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", AgentMutationSchemas.name, "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.groups", "actionGroups.get"]) && available.count == 24)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.unavailable))
         #expect(f.library.notes.isEmpty)
         #expect(try f.values("server.capabilities", session: session)["capabilities"] == .array([.string("drafts.read"), .string("drafts.write")]))
