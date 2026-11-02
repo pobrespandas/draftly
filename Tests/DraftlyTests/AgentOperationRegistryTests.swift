@@ -10,7 +10,8 @@ struct AgentOperationRegistryTests {
         let connection = UUID(), library = UUID(), action = UUID()
         let grant = AgentGrant(connectionID: connection, libraryID: library, expiresAt: Date().addingTimeInterval(600),
             capabilities: [.actionsRun, .draftsRead], scope: .library)
-        let registry = AgentOperationRegistry(capacity: 1, currentGrant: { _ in grant }, validateHost: {}, isLocked: { false })
+        var clock = Date()
+        let registry = AgentOperationRegistry(capacity: 1, currentGrant: { _ in grant }, validateHost: {}, isLocked: { false }, now: { clock })
         var observedID: UUID?
         let id = try registry.startIdentified(grant: grant, targets: []) { operationID in
             observedID = operationID
@@ -28,7 +29,9 @@ struct AgentOperationRegistryTests {
         #expect(throws: AgentErrorCode.permissionDenied) { try registry.control(foreign, connectionID: connection) }
         #expect(throws: AgentErrorCode.notFound) { try registry.snapshot(id, connectionID: UUID()) }
         #expect(throws: AgentErrorCode.busy) { try registry.start(grant: grant, targets: []) { fatalError() } }
+        clock = clock.addingTimeInterval(1)
         try registry.setWaitingForUser(id, waiting: true)
+        #expect(try registry.snapshot(id, connectionID: connection).updatedAt == clock)
         #expect(try registry.snapshot(id, connectionID: connection).state == .waitingForUser)
         try registry.setWaitingForUser(id, waiting: false)
         #expect(try registry.cancel(id, connectionID: connection))

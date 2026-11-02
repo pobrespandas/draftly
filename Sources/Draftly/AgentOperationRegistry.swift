@@ -6,6 +6,7 @@ import AgentContracts
     struct Snapshot {
         let id: UUID
         let state: AgentOperationState
+        let updatedAt: Date
         let output: AutomationActionExecution.Output?
         let error: AgentErrorCode?
     }
@@ -13,6 +14,7 @@ import AgentContracts
         let connectionID: UUID
         let grant: AgentGrant
         let targets: Set<AgentResourceReference>
+        var updatedAt: Date
         var state: AgentOperationState = .queued
         var output: AutomationActionExecution.Output?
         var error: AgentErrorCode?
@@ -43,13 +45,14 @@ import AgentContracts
         try validate(grant, targets: targets)
         guard entries.count < capacity else { throw AgentErrorCode.busy }
         let id = UUID()
-        entries[id] = Entry(connectionID: grant.connectionID, grant: grant, targets: targets)
+        entries[id] = Entry(connectionID: grant.connectionID, grant: grant, targets: targets, updatedAt: now())
         entries[id]?.task = Task { @MainActor [weak self] in
             guard let self, self.entries[id] != nil else { return }
             do {
                 try Task.checkCancellation()
                 try self.validate(grant, targets: targets)
                 self.entries[id]?.state = .running
+                self.entries[id]?.updatedAt = self.now()
                 let output = try await work(id)
                 self.finish(id, output: output)
             } catch is CancellationError {
@@ -66,7 +69,7 @@ import AgentContracts
     func snapshot(_ id: UUID, connectionID: UUID) throws -> Snapshot {
         guard let entry = entries[id], entry.connectionID == connectionID else { throw AgentErrorCode.notFound }
         try validate(entry.grant, targets: entry.targets)
-        return Snapshot(id: id, state: entry.state, output: entry.output, error: entry.error)
+        return Snapshot(id: id, state: entry.state, updatedAt: entry.updatedAt, output: entry.output, error: entry.error)
     }
 
     func control(_ request: AgentRequest, connectionID: UUID) throws -> (snapshot: Snapshot, cancellationAccepted: Bool) {
@@ -109,6 +112,7 @@ import AgentContracts
         if waiting && entry.state == .running { entries[id]?.state = .waitingForUser }
         else if !waiting && entry.state == .waitingForUser { entries[id]?.state = .running }
         else { throw AgentErrorCode.versionConflict }
+        entries[id]?.updatedAt = now()
     }
 
     func removeCompleted(_ id: UUID, connectionID: UUID) throws {
@@ -143,6 +147,7 @@ import AgentContracts
             }
         }
         entries[id]?.state = state; entries[id]?.error = error
+        entries[id]?.updatedAt = now()
         entries[id]?.output = state == .outcomeUnknown ? nil : output
         entries[id]?.task = nil
     }
@@ -152,5 +157,6 @@ import AgentContracts
         entries[id]?.state = error == .cancelled ? .cancelled : error == .timeout ? .timedOut
             : error == .outcomeUnknown ? .outcomeUnknown : .failed
         entries[id]?.error = error; entries[id]?.task = nil
+        entries[id]?.updatedAt = now()
     }
 }
