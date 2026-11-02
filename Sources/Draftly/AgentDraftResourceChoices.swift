@@ -27,13 +27,18 @@ struct AgentLibraryResourceChoices {
     var editors: AgentEditorRegistry? = nil
 
     func choices() -> [AgentConnectionsSettingsModel.ResourceChoice] {
-        AgentDraftResourceChoices(library: library).choices() + library.actions.filter { !$0.isSeparator }.map { action in
+        let titles = Dictionary(library.notes.map { ($0.id, $0.title) }, uniquingKeysWith: { first, _ in first })
+        return AgentDraftResourceChoices(library: library).choices() + library.revisions.compactMap { revision in
+            guard let title = titles[revision.noteID] else { return nil }
+            let date = revision.date.formatted(date: .abbreviated, time: .shortened)
+            return .init(reference: .init(kind: .revision, id: revision.id), title: title + " · " + date)
+        } + library.actions.filter { !$0.isSeparator }.map { action in
             .init(reference: .init(kind: .action, id: action.id), title: action.name)
         } + library.groupNames.compactMap { name in
             guard let id = library.actionGroupIdentifiers[name] else { return nil }
             return .init(reference: .init(kind: .actionGroup, id: id), title: name)
         } + ((try? editors?.windowSnapshots()) ?? []).map { window in
-            let title = library.notes.first(where: { $0.id == window.draftID })?.title ?? "Editor window"
+            let title = window.draftID.flatMap { titles[$0] } ?? "Editor window"
             return .init(reference: .init(kind: .window, id: window.id), title: title)
         }
     }

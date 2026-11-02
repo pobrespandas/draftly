@@ -139,13 +139,13 @@ struct AgentApplicationHostTests {
         try f.library.saveAction(action)
         try app.adoptAgentHost(host)
         let settings = try #require(app.agentSettings)
-        #expect(Set(settings.resourceChoices().map(\.reference)) == [
+        #expect(Set(settings.resourceChoices().map(\.reference).filter { $0.kind != .revision }) == [
             .init(kind: .draft, id: note.id), .init(kind: .action, id: action.id),
             .init(kind: .actionGroup, id: try #require(f.library.actionGroupIdentifiers[action.group]))
         ])
         #expect(!settings.accessEnabled && host.endpoint == nil && f.secrets.values.isEmpty)
         try f.library.deleteAction(action.id)
-        #expect(settings.resourceChoices().map(\.reference) == [.init(kind: .draft, id: note.id)])
+        #expect(settings.resourceChoices().map(\.reference).filter { $0.kind != .revision } == [.init(kind: .draft, id: note.id)])
     }
 
     @Test func applicationConstructsAnIdleHostBoundToItsLiveLibrary() throws {
