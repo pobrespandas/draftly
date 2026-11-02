@@ -109,7 +109,7 @@ struct AgentCommandServiceTests {
         var action = DraftAction(name: "Original", steps: []); action.group = "Source"; action.shortcut = "k"
         try f.library.saveAction(action)
         let target = AgentResourceReference(kind: .actionGroup, id: try #require(f.library.actionGroupIdentifiers["Source"]))
-        let (_, session) = try f.connect(capabilities: [.actionsRead, .actionsManage])
+        let (connection, session) = try f.connect(capabilities: [.actionsRead, .actionsManage])
         let (_, limited) = try f.connect(scope: .resources([target]), capabilities: [.actionsManage])
         let detail = try f.values("actionGroups.get", session: session, targets: [target])
         guard case .string(let version) = detail["versionToken"] else { Issue.record("Missing version"); return }
@@ -129,6 +129,9 @@ struct AgentCommandServiceTests {
         let copies = f.library.actions.filter { $0.group == "Source Copy" }
         #expect(copies.count == 1 && copies[0].id != action.id && copies[0].shortcut.isEmpty)
         #expect(f.library.actions.contains(action))
+        _ = try f.connections.revokeFromUserInterface(connection.id)
+        #expect(try send().outcome == .error(.permissionDenied))
+        #expect(f.library.actions.filter { $0.group == "Source Copy" }.count == 1)
     }
 
     @Test func renameGroupMovesActionsAtomicallyAndRecovers() throws {
