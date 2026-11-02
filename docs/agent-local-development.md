@@ -72,6 +72,11 @@ validity first. Stop Work and permission changes invalidate reviews. Operation
 routing can wait for a decision and recheck resolved effects before consuming
 it. Cancellation withdraws a pending review. The agent service still needs to
 route supported operations through this flow.
+Native effect reviews bind the concrete operation and its parameters to a
+single-use decision. Unclassified effects are denied. File writes and
+unrestricted automation require library scope, and unrestricted automation
+also requires its separate capability. The Action executor is not connected
+to this review flow yet.
 For the guarded draft operations, the runner checks authority again before it
 returns a result to the script. If authority changes after an update, it stops
 the Action and records an unknown outcome even when the script catches the
