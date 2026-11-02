@@ -8,6 +8,7 @@ import DraftlyCore
                     library: LibraryStore, models: [WindowModel], host: any ActionHost,
                     authority: AgentScriptAuthority, approvals: AgentApprovalStore,
                     currentSnapshot: @escaping () throws -> [String: AgentJSONValue],
+                    waitingForUser: @escaping (Bool) throws -> Void = { _ in },
                     resolveModel: AutomationActionExecution.ModelResolver = { AutomationActionExecution.visibleModel($0, noteID: $1) }) async throws -> AutomationActionExecution.Output {
         guard request.operation == "actions.run", let expected = request.expectedVersion,
               request.targets.count == 2,
@@ -26,8 +27,15 @@ import DraftlyCore
         }
         _ = try checkedSnapshot()
         let guarded = AgentAuthorizedActionHost(host: host, approve: { operation, values in
-            try await AgentNativeEffectApproval.wait(store: approvals, request: request, connectionID: connectionID,
-                operation: operation, values: values, currentSnapshot: checkedSnapshot)
+            try waitingForUser(true)
+            do {
+                try await AgentNativeEffectApproval.wait(store: approvals, request: request, connectionID: connectionID,
+                    operation: operation, values: values, currentSnapshot: checkedSnapshot)
+            } catch {
+                try? waitingForUser(false)
+                throw error
+            }
+            try waitingForUser(false)
         }, requiresApproval: { $0 != "device" }, authorize: { operation, _ in
             try authority.authorizeNative(operation, rootActionID: action.id)
         })

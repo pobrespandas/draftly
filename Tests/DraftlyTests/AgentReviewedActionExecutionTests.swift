@@ -37,18 +37,22 @@ struct AgentReviewedActionExecutionTests {
         let request = AgentRequest(requestID: UUID(), libraryID: libraryID, operation: "actions.run",
             targets: [.init(kind: .action, id: action.id), .init(kind: .draft, id: note.id)], expectedVersion: "v1")
         let host = Host()
+        var waiting: [Bool] = []
         let task = Task { @MainActor in
             try await AgentReviewedActionExecution.run(action: action, draftID: note.id, request: request,
                 connectionID: connection, library: library, models: [model], host: host, authority: authority,
                 approvals: approvals, currentSnapshot: { ["actionVersion": .string("v1"), "draftVersion": .string("d1")] },
+                waitingForUser: { waiting.append($0) },
                 resolveModel: { models, _ in models.first })
         }
         for _ in 0..<1000 where approvals.pendingFromUserInterface().isEmpty { await Task.yield() }
         let review = try #require(approvals.pendingFromUserInterface().first)
         #expect(host.shares == 0 && review.effects.snapshot["nativeOperation"] == .string("share"))
+        #expect(waiting == [true])
         try approvals.approveFromUserInterface(review.id, reviewedFingerprint: review.fingerprint)
         let result = try await task.value
         #expect(result.report.reason == .success && host.shares == 1 && !result.outcomeUnknown)
+        #expect(waiting == [true, false])
         #expect(try approvals.statusForConnection(review.id, connectionID: connection) == .consumed)
     }
 
