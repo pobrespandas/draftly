@@ -47,4 +47,23 @@ struct AgentActivityStoreTests {
         #expect(throws: AgentErrorCode.storageError) { try store.clear(libraryID: library) }
         #expect(try Data(contentsOf: file) == invalid)
     }
+
+    @Test func newerBoundedIdentifiersRemainReadableWithoutAllowingArbitraryNewWrites() throws {
+        let parent = FileManager.default.temporaryDirectory.appendingPathComponent("Draftly-Activity-" + UUID().uuidString)
+        try FileManager.default.createDirectory(at: parent, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
+        defer { try? FileManager.default.removeItem(at: parent) }
+        let library = UUID(), connection = UUID(), now = Date()
+        let store = try AgentActivityStore(parentDirectory: parent, now: { now })
+        let newer = AgentActivityStore.Entry(id: UUID(), libraryID: library, connectionID: connection,
+            requestID: UUID(), operation: "future.operation", date: now, result: "future_result")
+        let file = parent.appendingPathComponent("Agents/activity.json")
+        try JSONEncoder().encode([newer]).write(to: file)
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
+        #expect(try store.entries(libraryID: library) == [newer])
+        #expect(throws: AgentErrorCode.invalidInput) {
+            try store.append(libraryID: library, connectionID: connection, requestID: UUID(), operation: "future.operation", result: "success")
+        }
+        try store.append(libraryID: library, connectionID: connection, requestID: UUID(), operation: "server.status", result: "success")
+        #expect(try store.entries(libraryID: library).contains(newer))
+    }
 }

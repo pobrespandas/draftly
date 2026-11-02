@@ -61,12 +61,26 @@ import AgentLocalSecurity
             let entries = try JSONDecoder().decode([Entry].self, from: data)
             guard entries.count <= limit, Set(entries.map(\.id)).count == entries.count,
                   entries.allSatisfy({ $0.date.timeIntervalSince1970.isFinite &&
-                      AgentOperationCatalog.operation(named: $0.operation) != nil &&
-                      ($0.result == "success" || AgentErrorCode(rawValue: $0.result) != nil) }) else {
+                      Self.validStoredOperation($0.operation) && Self.validStoredResult($0.result) }) else {
                 throw AgentErrorCode.storageError
             }
             return (data, entries)
         } catch { throw AgentErrorCode.storageError }
+    }
+
+    // Older builds can read bounded identifiers written by newer builds.
+    private static func validStoredOperation(_ value: String) -> Bool {
+        let parts = value.split(separator: ".", omittingEmptySubsequences: false)
+        guard value.utf8.count <= 128, parts.count >= 2 else { return false }
+        return parts.allSatisfy { part in
+            guard let first = part.utf8.first, (65...90).contains(first) || (97...122).contains(first) else { return false }
+            return part.utf8.allSatisfy { (65...90).contains($0) || (97...122).contains($0) || (48...57).contains($0) || $0 == 95 }
+        }
+    }
+
+    private static func validStoredResult(_ value: String) -> Bool {
+        guard (1...64).contains(value.utf8.count), let first = value.utf8.first, (97...122).contains(first) else { return false }
+        return value.utf8.allSatisfy { (97...122).contains($0) || (48...57).contains($0) || $0 == 95 }
     }
 
     private func update(_ change: (inout [Entry]) -> Void) throws -> [Entry] {
