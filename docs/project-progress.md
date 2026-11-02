@@ -3,6 +3,22 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Public 0.1.7 — 2 November
+
+[0.1.7/build8](https://github.com/pobrespandas/draftly/releases/tag/v0.1.7)
+is public from e86a125. Release workflow41468484366 passed. Its seven public
+assets matched the candidate; the public appcast matched the signed feed. Both
+site download buttons point to the0.1.7 DMG. Site promotion completed and the
+writer lock was released. The candidate passed signature, notarization and
+Gatekeeper checks; it contains no agent helper or test tracing library.
+
+Isolated local package replacement produced110 actions and five groups while
+preserving drafts. Two separate libraries on one Mac synchronized through the
+CloudKit Development container. This does not establish a Sparkle update or
+CloudKit Production acceptance. The habitual installation was not changed.
+During catalog stabilization, installation and updates replace all actions and
+groups, including custom entries, once per installation. Agents remain disabled.
+
 ## Public 0.1.6 — 2 November
 
 [0.1.6/build7](https://github.com/pobrespandas/draftly/releases/tag/v0.1.6)
