@@ -161,6 +161,17 @@ final class AppController: ObservableObject {
             if cloudTesting && cloud == nil { throw DraftlyError.message("The iCloud test build has no CloudKit container.") }
             let directory = testing || cloudTesting ? FileManager.default.temporaryDirectory.appendingPathComponent("Draftly-UITesting").appendingPathComponent(testLibraryID.uuidString) : nil
             let store = try LibraryStore(cloudIdentifier: cloud, directory: directory, seed: !cloudTesting)
+            let catalogQATesting = testing && ProcessInfo.processInfo.arguments.contains("--catalog-installation-testing")
+            let catalogCloudQATesting = cloudTesting && ProcessInfo.processInfo.arguments.contains("--catalog-cloud-installation-testing")
+            if (!testing && !cloudTesting) || catalogQATesting || catalogCloudQATesting {
+                let bundle = Bundle.main
+                let version = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
+                let build = bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
+                let attributes = try FileManager.default.attributesOfItem(atPath: bundle.bundleURL.path)
+                let created = (attributes[.creationDate] as? Date)?.timeIntervalSince1970 ?? 0
+                let fileID = (attributes[.systemFileNumber] as? NSNumber)?.stringValue ?? "unknown"
+                try store.requestActionCatalogReplacement(installation: "temporary-defaults/\(version)/\(build)/\(created)/\(fileID)")
+            }
             do { try LocalThemeMigration.run(in: store) }
             catch { store.error = "Theme migration failed: " + error.localizedDescription }
             library = store
