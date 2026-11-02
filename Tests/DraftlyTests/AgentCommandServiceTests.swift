@@ -18,7 +18,7 @@ struct AgentCommandServiceTests {
         var submissions = 0
         let service = try AgentCommandService(library: f.library, libraryID: f.libraryID, connections: f.connections,
             appVersion: "QA", validateHost: {}, isLocked: { false }, now: { f.wall },
-            pendingEditorGeneration: { _ in "" }, operations: registry, submitAction: { request, grant in
+            editors: f.editorRegistry, pendingEditorGeneration: { _ in "" }, operations: registry, submitAction: { request, grant in
                 submissions += 1
                 return try registry.startRequest(request, grant: grant) { _ in
                     .init(report: .notStarted(actionID: request.targets[0].id, reason: .cancelled, message: "Cancelled"),
@@ -44,6 +44,12 @@ struct AgentCommandServiceTests {
         let denied = try JSONDecoder().decode(AgentResponse.self,
             from: service.respond(to: JSONEncoder().encode(stale), session: session))
         #expect(denied.outcome == .error(.versionConflict) && submissions == 1)
+        let before = try service.actionExecutionSnapshot(request, connectionID: record.id)
+        var changed = note; changed.content = "Changed"
+        try f.library.saveNote(changed)
+        let after = try service.actionExecutionSnapshot(request, connectionID: record.id)
+        #expect(before["actionVersion"] == after["actionVersion"])
+        #expect(before["draftVersion"] != after["draftVersion"])
     }
     @MainActor private final class Fixture {
         let library: LibraryStore

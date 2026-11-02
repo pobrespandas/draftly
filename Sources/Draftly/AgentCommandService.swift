@@ -204,6 +204,32 @@ import AgentContracts
         return Data(HMAC<SHA256>.authenticationCode(for: try encoder.encode(action), using: actionVersionKey)).base64EncodedString()
     }
 
+    func actionExecutionSnapshot(_ request: AgentRequest, connectionID: UUID) throws -> [String: AgentJSONValue] {
+        try validateAdmission()
+        guard request.operation == "actions.run", let grant = try connections.grantForAuthenticatedConnection(connectionID) else {
+            throw AgentErrorCode.permissionDenied
+        }
+        if case .denied(let error) = AgentPermissionPolicy.evaluate(request, connectionID: connectionID, grant: grant, now: now()) {
+            throw error
+        }
+        guard let actionID = request.targets.first(where: { $0.kind == .action })?.id,
+              let draftID = request.targets.first(where: { $0.kind == .draft })?.id,
+              let action = actionLibrary.actions.first(where: { $0.id == actionID }),
+              let stored = actionLibrary.notes.first(where: { $0.id == draftID }), let editorRegistry else {
+            throw AgentErrorCode.notFound
+        }
+        let snapshot = try editorRegistry.snapshot(stored)
+        let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
+        let data = try encoder.encode(snapshot.note) + encoder.encode(snapshot.storedNote) + Data(snapshot.generation.utf8)
+        let draftVersion = Data(HMAC<SHA256>.authenticationCode(for: data, using: windowReadKey)).base64EncodedString()
+        try validateAdmission()
+        guard let current = try connections.grantForAuthenticatedConnection(connectionID),
+              AgentRequestBinding.grantValue(current) == AgentRequestBinding.grantValue(grant) else {
+            throw AgentErrorCode.permissionDenied
+        }
+        return ["actionVersion": .string(try actionVersion(action)), "draftVersion": .string(draftVersion)]
+    }
+
     private func checkedActionUpdate(_ request: AgentRequest, connectionID: UUID) throws -> DraftAction {
         guard let target = request.targets.first?.id, let expected = request.expectedVersion,
               let original = actionLibrary.actions.first(where: { $0.id == target }) else { throw AgentErrorCode.notFound }
