@@ -112,6 +112,13 @@ The first helper required explicit request IDs. A later signed run verified
 the corrected read-only contract without explicit IDs and confirmed the same
 resource boundary. Both test connections were revoked and their hosts stopped.
 
+A signed isolated run also tested a workspace query with access to the workspace
+and two of three drafts. The result contained the permitted matching draft. It
+excluded a permitted nonmatching draft and a matching draft outside the grant.
+A direct read of the excluded draft returned not found. The test connection was
+revoked and the host stopped. This run used a test-only unlocked session and
+does not validate screen lock handling or an installed release.
+
 ## Current components
 
 - AgentContracts owns the request, response and authentication envelopes.
