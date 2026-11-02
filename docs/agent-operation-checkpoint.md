@@ -1,7 +1,8 @@
 # Local agent operation checkpoint
 
 The agent service exposes operation queries and cancellation when its registry
-is connected. It does not expose Action execution yet.
+is connected. An internal host option connects Action submission to the reviewed
+executor. The option is off by default.
 Normal application startup still needs a verified lock adapter. Published
 builds keep agent access disabled.
 
@@ -15,6 +16,8 @@ builds keep agent access disabled.
 - The operation registry tracks ownership, cancellation, timestamps and results.
 - Repeated request IDs return their operation. Changed requests fail. Removing
   a result does not permit a replay within that host lifetime.
+- Host admission requires an explicit editor window and draft write permissions.
+  Missing or unknown windows fail before execution.
 
 ## Remaining integration
 
@@ -22,8 +25,9 @@ builds keep agent access disabled.
    already checks the existing execution result schema.
 2. Verify operation queries and cancellation through installed CLI and MCP.
    The service checks connection ownership and original resource scope.
-3. Connect Action submission to the registry and reviewed executor. Advertise
-   only handlers that are connected and verified.
+3. Verify the optional host execution path with native effects and installed
+   clients before enabling it at application startup. Advertise only handlers
+   that are connected and verified.
 4. Persist request history and uncertain outcomes before enabling replay recovery.
 5. Verify the installed signed app and helper through CLI and MCP, including
    pairing, scope isolation, cancellation, revocation and restart.

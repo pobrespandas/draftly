@@ -79,10 +79,10 @@ struct AgentLocalHostTests {
         }
     }
 
-    @Test func reviewedActionAdmissionRequiresAnExplicitAuthorizedEditorWindow() throws {
+    @Test func reviewedActionAdmissionRequiresAnExplicitAuthorizedEditorWindow() async throws {
         let f = try Fixture(); defer { f.cleanup() }
         let note = try f.library.createNote(content: "Unchanged")
-        let action = DraftAction(name: "Neutral", steps: [])
+        let action = DraftAction(name: "Neutral", steps: [ActionStep("insertText", ["template": " café 🐼"])])
         try f.library.saveAction(action)
         let model = WindowModel(library: f.library); model.select(note.id)
         let editors = AgentEditorRegistry(library: f.library, models: { [model] })
@@ -110,6 +110,26 @@ struct AgentLocalHostTests {
         }
         #expect(try f.backupSnapshot() == before)
         #expect(host.approvals.pendingFromUserInterface().isEmpty)
+        let window = try #require(editors.windowSnapshots().first)
+        let admitted = try response(.init(requestID: UUID(), libraryID: host.libraryID, operation: "actions.run",
+            targets: [.init(kind: .action, id: action.id), .init(kind: .draft, id: note.id)],
+            expectedVersion: version, parameters: ["windowID": .string(window.id.uuidString)]))
+        guard case .result(.object(let submission)) = admitted.outcome,
+              case .string(let rawID) = submission["operationID"], let id = UUID(uuidString: rawID) else {
+            Issue.record("Expected an accepted operation: \(admitted.outcome)"); return
+        }
+        for _ in 0..<1000 {
+            if try host.operations.snapshot(id, connectionID: record.id).state.isTerminal { break }
+            try await Task.sleep(for: .milliseconds(1))
+        }
+        let finished = try host.operations.snapshot(id, connectionID: record.id)
+        #expect(finished.state == .succeeded)
+        #expect(finished.output?.report.reason == .success)
+        let polled = try response(.init(requestID: UUID(), libraryID: host.libraryID, operation: "operations.get",
+            targets: [.init(kind: .operation, id: id)]))
+        guard case .result = polled.outcome else { Issue.record("Missing completed operation"); return }
+        #expect(model.editor.content.contains(" café 🐼"))
+        #expect(f.library.notes.first?.content == model.editor.content)
     }
 
     @Test func hostRejectsAnotherLibraryEditorRegistryBeforeCreatingPrivateState() throws {
