@@ -121,8 +121,10 @@ final class AppController: ObservableObject {
         guard let library, let editors = cachedAgentEditors,
               host.isBound(to: library, editors: editors) else { throw AgentErrorCode.invalidInput }
         guard agentHost !== host else { return }
+        let settings = try host.makeLibrarySettingsModel()
         if let previous = agentHost { previous.close(); agentSettings = nil }
         agentHost = host
+        agentSettings = settings
     }
 
     func closeAgentContext() {

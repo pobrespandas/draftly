@@ -37,16 +37,14 @@ struct AgentApplicationHostTests {
             return try AgentLocalHost(library: library, appVersion: "Neutral QA",
                 editors: supplied ?? app.agentEditorRegistry(for: library), isLocked: { false },
                 pendingEditorGeneration: { _ in "" }, resolveTargets: { targets in
-                    Set(targets.filter { target in target.kind == .draft && library.notes.contains(where: { $0.id == target.id }) })
+                    AgentLibraryResourceChoices(library: library).resolve(targets)
                 }, credentials: .init(read: { secrets.values[$0] }, create: { id, value in
                     guard secrets.values[id] == nil else { throw AgentErrorCode.versionConflict }
                     secrets.values[id] = value
                 }, remove: { secrets.values.removeValue(forKey: $0) }), validateApplication: {}, validateHelper: { _ in })
         }
         func handToApplication(_ host: AgentLocalHost) throws {
-            let app = try #require(app), settings = try host.makeSettingsModel(choices: { [] })
-            try app.adoptAgentHost(host)
-            app.agentSettings = settings
+            try #require(app).adoptAgentHost(host)
         }
         func session(_ host: AgentLocalHost) throws -> AgentCommandService.Session {
             try host.setEnabledFromUserInterface(true)
@@ -120,7 +118,7 @@ struct AgentApplicationHostTests {
         let f = try Fixture(); defer { f.cleanup() }
         let app = try #require(f.app), host = try f.host(); defer { host.close() }
         try app.adoptAgentHost(host)
-        #expect(host.endpoint == nil && app.agentSettings == nil)
+        #expect(host.endpoint == nil && app.agentSettings != nil && app.agentSettings?.accessEnabled == false)
         try f.handToApplication(host)
         let session = try f.session(host), settings = app.agentSettings
         try app.adoptAgentHost(host)
@@ -129,6 +127,22 @@ struct AgentApplicationHostTests {
         app.closeAgentContext(); app.closeAgentContext()
         #expect(host.endpoint == nil && app.agentSettings == nil)
         #expect(throws: AgentErrorCode.cancelled) { try host.service.authorizedLibraryID(for: session) }
+    }
+
+    @Test func adoptedHostExposesLiveResourcesToSettingsWhileDisabled() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let app = try #require(f.app), host = try f.host(); defer { host.close() }
+        let note = try f.library.createNote(content: "Scoped draft")
+        let action = DraftAction(name: "Scoped action", steps: [])
+        try f.library.saveAction(action)
+        try app.adoptAgentHost(host)
+        let settings = try #require(app.agentSettings)
+        #expect(Set(settings.resourceChoices().map(\.reference)) == [
+            .init(kind: .draft, id: note.id), .init(kind: .action, id: action.id)
+        ])
+        #expect(!settings.accessEnabled && host.endpoint == nil && f.secrets.values.isEmpty)
+        try f.library.deleteAction(action.id)
+        #expect(settings.resourceChoices().map(\.reference) == [.init(kind: .draft, id: note.id)])
     }
 
     @Test func foreignClosedAndUntrackedHostsCannotReplaceTheApplicationContext() throws {
