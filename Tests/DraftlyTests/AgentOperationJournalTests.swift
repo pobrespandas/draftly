@@ -1,11 +1,20 @@
 import Foundation
 import Testing
 import AgentContracts
+import AgentLocalSecurity
 import DraftlyCore
 @testable import Draftly
 
 @Suite("Device-local agent operation journal") @MainActor
 struct AgentOperationJournalTests {
+    private final class Host: ActionHost {
+        var calls = 0
+        func perform(_ operation: String, values: [String: Any]) throws -> Any? { throw AgentErrorCode.unavailable }
+        func supportsAsync(_ operation: String) -> Bool { true }
+        func performAsync(_ operation: String, payload: String) async throws -> String {
+            calls += 1; return "{\"value\":true}"
+        }
+    }
     private struct Fixture {
         let root: URL
         let grant: AgentGrant
@@ -114,5 +123,73 @@ struct AgentOperationJournalTests {
             try journal.save(AgentOperationRegistry.Snapshot(id: id, state: .running, updatedAt: Date(), output: nil,
                 error: nil, effects: effects).wireValue(), operationID: id, grant: f.grant)
         }
+    }
+
+    @Test func unavailableReservationStoragePreventsExecution() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let journal = try AgentOperationJournal(parentDirectory: f.root)
+        let directory = try AgentStateDirectory(parentDirectory: f.root)
+        let obstruction = try directory.acquireLock("operations.lock")
+        let registry = AgentOperationRegistry(currentGrant: { _ in f.grant }, validateHost: {}, isLocked: { false }, journal: journal)
+        #expect(throws: AgentErrorCode.busy) {
+            try registry.startRequest(f.request, grant: f.grant) { _ in fatalError("Must not execute") }
+        }
+        #expect(!FileManager.default.fileExists(atPath: f.root.appendingPathComponent("Agents/operations.json").path))
+        withExtendedLifetime(obstruction) {}
+    }
+
+    @Test func fullJournalRejectsNewWorkWithoutDroppingOldRequestIdentities() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let journal = try AgentOperationJournal(parentDirectory: f.root)
+        var first: (request: AgentRequest, operation: UUID)?
+        for _ in 0..<128 {
+            let request = AgentRequest(requestID: UUID(), libraryID: f.grant.libraryID, operation: "actions.run",
+                targets: f.request.targets, expectedVersion: f.request.expectedVersion)
+            let operation = UUID()
+            _ = try journal.reserve(request, grant: f.grant, operationID: operation)
+            if first == nil { first = (request, operation) }
+        }
+        let path = f.root.appendingPathComponent("Agents/operations.json"), before = try Data(contentsOf: path)
+        #expect(throws: AgentErrorCode.busy) { try journal.reserve(f.request, grant: f.grant, operationID: UUID()) }
+        #expect(try Data(contentsOf: path) == before)
+        let original = try #require(first), reopened = try AgentOperationJournal(parentDirectory: f.root)
+        let recovered = try reopened.reserve(original.request, grant: f.grant, operationID: UUID())
+        #expect(!recovered.isNew && recovered.record.operationID == original.operation)
+        #expect(try Data(contentsOf: path) == before)
+    }
+
+    @Test(arguments: [false, true])
+    func storageFailureAroundNativeHandoffCannotReplayAfterReopen(afterHandoff: Bool) async throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let journal = try AgentOperationJournal(parentDirectory: f.root)
+        let directory = try AgentStateDirectory(parentDirectory: f.root)
+        var obstruction: AgentStateFileLock?
+        let registry = AgentOperationRegistry(currentGrant: { _ in f.grant }, validateHost: {}, isLocked: { false }, journal: journal)
+        let host = Host()
+        let id = try registry.startRequest(f.request, grant: f.grant) { id in
+            if !afterHandoff { obstruction = try directory.acquireLock("operations.lock") }
+            let guarded = AgentAuthorizedActionHost(host: host,
+                recordEffect: { try registry.recordEffect(id, effectID: $0, kind: $1, outcome: $2) }, authorize: { _, _ in })
+            if afterHandoff {
+                _ = try await guarded.performAsync("share", payload: "{}")
+                obstruction = try directory.acquireLock("operations.lock")
+            } else {
+                await #expect(throws: AgentErrorCode.busy) { try await guarded.performAsync("share", payload: "{}") }
+            }
+            return .init(report: .notStarted(actionID: f.request.targets[0].id, reason: .cancelled, message: "Cancelled"),
+                noteID: nil, message: "Cancelled")
+        }
+        for _ in 0..<1000 where try !registry.snapshot(id, connectionID: f.grant.connectionID).state.isTerminal { await Task.yield() }
+        #expect(try registry.snapshot(id, connectionID: f.grant.connectionID).state == .outcomeUnknown)
+        #expect(host.calls == (afterHandoff ? 1 : 0))
+        #expect(obstruction != nil)
+        obstruction = nil
+        let reopened = AgentOperationRegistry(currentGrant: { _ in f.grant }, validateHost: {}, isLocked: { false },
+            journal: try AgentOperationJournal(parentDirectory: f.root))
+        let recovered = try reopened.snapshot(id, connectionID: f.grant.connectionID)
+        #expect(recovered.state == .outcomeUnknown)
+        #expect(recovered.effects.map(\.outcome) == (afterHandoff ? ["completed"] : []))
+        #expect(try reopened.startRequest(f.request, grant: f.grant) { _ in fatalError("Must not replay") } == id)
+        #expect(host.calls == (afterHandoff ? 1 : 0))
     }
 }

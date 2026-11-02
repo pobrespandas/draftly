@@ -83,6 +83,14 @@ behavior, power-loss durability, notarization or named external clients.
 
 ## Remaining integration
 
+Headless file-lock tests verify storage contention before reservation, before
+native handoff and after a completed handoff. Failed reservation never starts
+work. Failed effect recording blocks the native call. A failed terminal write
+leaves the operation unknown; reopening retains earlier effects and rejects
+replay. A full 128-record journal rejects new reservations without changing
+existing data. Original request identities remain recoverable at capacity.
+These checks do not simulate disk-full errors, power loss or failing fsync.
+
 The reviewed QA host connects the private operation journal. It reserves request
 identity before execution and saves native handoffs and terminal results through
 atomic file replacement. A reopened registry returns saved terminal results.
@@ -99,8 +107,8 @@ acceptance remains pending.
 3. Verify the optional host execution path with native effects and installed
    clients before enabling it at application startup. Advertise only handlers
    that are connected and verified.
-4. Verify storage failures, capacity handling and production acceptance before
-   enabling normal access.
+4. Verify disk-full and durability failures and production acceptance before
+   enabling normal access. File-lock contention and capacity checks have passed.
 5. Verify the installed signed app and helper through CLI and MCP, including
    pairing, scope isolation, cancellation, revocation and restart.
 
