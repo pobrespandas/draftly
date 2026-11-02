@@ -122,6 +122,11 @@ struct AgentCommandServiceTests {
                                        retryKey: key, parameters: intent.parameters)
             return try JSONDecoder().decode(AgentResponse.self, from: f.service.respond(to: JSONEncoder().encode(request), session: session))
         }
+        var concurrent = ActionGroupRecord(name: "QA Group 🐼"); concurrent.id = UUID()
+        try f.library.saveActionGroup(concurrent)
+        #expect(try send(key, session).outcome == .error(.versionConflict))
+        #expect(f.library.actionGroups.filter { $0.name == concurrent.name }.count == 1)
+        try f.library.removeActionGroup(concurrent.name, movingActionsTo: "Implicit")
         let response = try send(key, session)
         guard case .result = response.outcome else { Issue.record("Create group failed: \(response.outcome)"); return }
         #expect(f.library.groupNames.filter { $0 == "QA Group 🐼" }.count == 1)
