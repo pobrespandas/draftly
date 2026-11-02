@@ -90,6 +90,23 @@ struct AgentCommandServiceTests {
         }
     }
 
+    @Test func workspaceQueryOnlyReturnsAuthorizedDrafts() throws {
+        let f = try Fixture()
+        let visible = try f.library.createNote(content: "Neutral visible")
+        _ = try f.library.createNote(content: "Neutral hidden")
+        let outsideQuery = try f.library.createNote(content: "Unrelated")
+        var workspace = Workspace(name: "Neutral workspace"); workspace.query = "Neutral"
+        try f.library.saveWorkspace(workspace)
+        let target = AgentResourceReference(kind: .workspace, id: workspace.id)
+        let scope: Set<AgentResourceReference> = [target, .init(kind: .draft, id: visible.id), .init(kind: .draft, id: outsideQuery.id)]
+        let (_, session) = try f.connect(scope: .resources(scope), capabilities: [.workspacesRead, .draftsRead])
+        let (_, noDraftRead) = try f.connect(scope: .resources(scope), capabilities: [.workspacesRead])
+        let page = try f.values("workspaces.query", session: session, targets: [target])
+        guard case .array(let items) = page["items"], case .object(let item) = items.first else { Issue.record("Missing draft"); return }
+        #expect(items.count == 1 && item["id"] == .string(visible.id.uuidString))
+        #expect(try f.response("workspaces.query", session: noDraftRead, targets: [target]).outcome == .error(.permissionDenied))
+    }
+
     @Test func workspaceReadsRespectScopeAndReportChanges() throws {
         let f = try Fixture()
         var visible = Workspace(name: "Visible"); visible.query = "neutral"
@@ -1039,7 +1056,7 @@ struct AgentCommandServiceTests {
             guard case .object(let fields) = item, fields["available"] == .bool(true), case .string(let name) = fields["name"] else { return nil }
             return name
         })
-        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", AgentMutationSchemas.name, "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get"]) && available.count == 36)
+        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", AgentMutationSchemas.name, "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query"]) && available.count == 37)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.unavailable))
         #expect(f.library.notes.isEmpty)
         #expect(try f.values("server.capabilities", session: session)["capabilities"] == .array([.string("drafts.read"), .string("drafts.write")]))

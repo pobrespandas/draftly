@@ -28,8 +28,16 @@ import AgentContracts
             }
             let state = try snapshot(note)
             return ["draft": .object(try summary(state)), "content": .object(try Self.chunk(state.note.content, parameters: parameters))]
-        case "drafts.list", "drafts.search":
-            let workspace = try query(parameters)
+        case "drafts.list", "drafts.search", "workspaces.query":
+            let workspace: Workspace
+            if request.operation == "workspaces.query" {
+                guard let id = request.targets.first?.id, grant.scope.permits(.init(kind: .workspace, id: id)),
+                      let saved = library.workspaces.first(where: { $0.id == id }) else { throw AgentErrorCode.notFound }
+                guard DraftQuery(saved.query, caseSensitive: (saved.listOptions ?? DraftListOptions()).caseSensitiveSearch).error == nil else {
+                    throw AgentErrorCode.invalidInput
+                }
+                workspace = saved
+            } else { workspace = try query(parameters) }
             return try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
                 parameters: parameters, expiresAt: grant.expiresAt, ids: {
                     try workspace.filter(library.notes.filter { permitted($0.id) }.map { try snapshot($0).note }).map(\.id)

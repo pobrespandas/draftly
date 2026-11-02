@@ -16,7 +16,7 @@ import AgentContracts
         "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions", "preferences.schema"]
     private static let editorReadOperations: Set<String> = ["editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks"]
     private static let actionReadOperations: Set<String> = ["actions.list", "actions.get", "actions.stepSchemas", "actions.groups", "actionGroups.get"]
-    private static let workspaceReadOperations: Set<String> = ["workspaces.list", "workspaces.get"]
+    private static let workspaceReadOperations: Set<String> = ["workspaces.list", "workspaces.get", "workspaces.query"]
     static let implementedOperations = readOperations.union(actionReadOperations).union(workspaceReadOperations).union([AgentMutationSchemas.name, "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder"]).union(AgentDraftWriting.operationNames).union(editorReadOperations)
     private var availableOperations: Set<String> {
         var operations = editorRegistry == nil ? Self.readOperations.union(Self.actionReadOperations).union(Self.workspaceReadOperations) : (writes == nil ? Self.readOperations.union(Self.editorReadOperations).union(Self.actionReadOperations).union(Self.workspaceReadOperations) : Self.implementedOperations)

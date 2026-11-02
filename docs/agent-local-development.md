@@ -12,9 +12,10 @@ The current branch implements authenticated action and group reads, action
 step defaults, shortcut validation, `actions.create`, `actions.update`,
 `actions.duplicate`, `actions.move`, `actions.reorder`, `actionGroups.create`, and
 `actionGroups.update`, `actionGroups.duplicate`, and `actionGroups.reorder`.
-The branch also implements `workspaces.list` and `workspaces.get`. Both reads
-enforce the connection's workspace scope. A workspace is a saved query and does
-not grant access to the drafts that match it.
+The branch also implements `workspaces.list`, `workspaces.get`, and
+`workspaces.query`. They enforce the connection's workspace scope. A workspace
+is a saved query and does not grant access to the drafts that match it. The
+query returns only drafts permitted by the same connection.
 Creating an action requires access to the full library. Action changes use
 an expected version, a signed retry key, and an atomic action and receipt
 transaction. Recovery checks the current grant. A client with resource scope
