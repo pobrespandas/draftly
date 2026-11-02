@@ -132,7 +132,8 @@ struct AgentLocalHostTests {
         #expect(f.library.notes.first?.content == model.editor.content)
     }
 
-    @Test func stopWorkCancelsAHostActionWaitingForNativeEffectReview() async throws {
+    @Test(arguments: [true, false])
+    func hostActionCannotContinueAfterStopWorkOrEditorRemoval(stopWork: Bool) async throws {
         let f = try Fixture(); defer { f.cleanup() }
         let note = try f.library.createNote(content: "Private neutral text")
         let action = DraftAction(name: "Reviewed share", steps: [
@@ -141,7 +142,8 @@ struct AgentLocalHostTests {
         ])
         try f.library.saveAction(action)
         let model = WindowModel(library: f.library); model.select(note.id)
-        let editors = AgentEditorRegistry(library: f.library, models: { [model] })
+        var registeredModels = [model]
+        let editors = AgentEditorRegistry(library: f.library, models: { registeredModels })
         let host = try f.host(editors: editors, enableReviewedActions: true)
         defer { host.close() }
         try host.setEnabledFromUserInterface(true)
@@ -170,13 +172,29 @@ struct AgentLocalHostTests {
         let review = try #require(host.approvals.pendingFromUserInterface().first)
         #expect(review.effects.snapshot["nativeOperation"] == .string("share"))
         #expect(try host.operations.snapshot(id, connectionID: record.id).state == .waitingForUser)
-        try host.makeLibrarySettingsModel().stopWork()
+        if stopWork {
+            try host.makeLibrarySettingsModel().stopWork()
+        } else {
+            registeredModels = []
+            editors.refreshMembership()
+            try host.approvals.approveFromUserInterface(review.id, reviewedFingerprint: review.fingerprint)
+        }
         for _ in 0..<1000 {
             if !model.runner.isRunning && !model.actionPending { break }
             try await Task.sleep(for: .milliseconds(1))
         }
         #expect(!model.runner.isRunning && !model.actionPending)
-        #expect(throws: AgentErrorCode.permissionDenied) { try host.operations.snapshot(id, connectionID: record.id) }
+        if stopWork {
+            #expect(throws: AgentErrorCode.permissionDenied) { try host.operations.snapshot(id, connectionID: record.id) }
+        } else {
+            for _ in 0..<1000 {
+                if try host.operations.snapshot(id, connectionID: record.id).state.isTerminal { break }
+                try await Task.sleep(for: .milliseconds(1))
+            }
+            let finished = try host.operations.snapshot(id, connectionID: record.id)
+            #expect(finished.state == .failed)
+            #expect(finished.output?.outcomeUnknown == false)
+        }
         #expect(host.approvals.pendingFromUserInterface().isEmpty)
         #expect(model.editor.content == note.content)
         #expect(f.library.notes.first?.content == note.content)

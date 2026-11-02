@@ -136,8 +136,12 @@ import AgentLocalSecurity
         let authority = AgentScriptAuthority(grant: grant, currentGrant: { [weak self] in
             guard let self else { throw AgentErrorCode.cancelled }
             return try self.connections.grantForAuthenticatedConnection(grant.connectionID)
-        }, validateHost: { [weak self] in
-            guard let self else { throw AgentErrorCode.cancelled }; try self.validateOwnership()
+        }, validateHost: { [weak self, weak model] in
+            guard let self, let model else { throw AgentErrorCode.cancelled }
+            try self.validateOwnership()
+            guard try editors.executionModels(draftID: draftID, windowID: windowID).first === model else {
+                throw AgentErrorCode.notFound
+            }
         }, isLocked: isLocked, draftExists: { [weak self] id in self?.library.notes.contains { $0.id == id } == true },
             targetDraftID: draftID, editorDraftID: { [weak model] in model?.editor.noteID }, windowID: windowID,
             approvedActions: Dictionary(uniqueKeysWithValues: approved.map { ($0.id, $0) }),

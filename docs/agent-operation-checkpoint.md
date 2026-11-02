@@ -21,6 +21,8 @@ builds keep agent access disabled.
 - Host tests execute a Unicode edit and query its terminal result. A share test
   reaches human review, then Stop Work cancels execution before approval. The
   next edit does not run, and the stopped connection cannot query results.
+- Every execution authorization checks that the selected editor is still in the
+  live window registry. Approval cannot restore access to a removed editor.
 
 ## Remaining integration
 
