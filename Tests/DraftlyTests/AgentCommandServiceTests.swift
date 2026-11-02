@@ -104,6 +104,50 @@ struct AgentCommandServiceTests {
         #expect(steps == expected)
     }
 
+    @Test func actionUpdateRequiresScopeAndRecoversACommittedResult() throws {
+        let f = try Fixture(), original = DraftAction(name: "Original", steps: [])
+        try f.library.saveAction(original)
+        let target = AgentResourceReference(kind: .action, id: original.id)
+        let (record, session) = try f.connect(scope: .resources([target]), capabilities: [.actionsRead, .actionsManage])
+        let (_, denied) = try f.connect(scope: .resources([]), capabilities: [.actionsManage])
+        guard case .string(let version) = try f.values("actions.get", session: session, targets: [target])["versionToken"] else {
+            Issue.record("Missing version"); return
+        }
+        var changed = original; changed.name = "Updated 🐼"
+        let definition = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(changed))
+        let intent = AgentRequest(requestID: UUID(), libraryID: nil, operation: "actions.update", targets: [target],
+                                  expectedVersion: version, parameters: ["action": definition])
+        let frame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(intent))
+        #expect(try f.response("mutations.prepare", session: denied, parameters: ["request": frame]).outcome == .error(.notFound))
+        let prepared = try f.values("mutations.prepare", session: session, parameters: ["request": frame])
+        #expect(f.library.actions == [original])
+        guard case .string(let key) = prepared["retryKey"] else { Issue.record("Missing key"); return }
+        func signed(_ key: String) -> AgentRequest {
+            AgentRequest(requestID: intent.requestID, libraryID: f.libraryID, operation: intent.operation,
+                         targets: intent.targets, expectedVersion: version, retryKey: key, parameters: intent.parameters)
+        }
+        func send(_ request: AgentRequest, _ session: AgentCommandService.Session) throws -> AgentResponse {
+            try JSONDecoder().decode(AgentResponse.self, from: f.service.respond(to: JSONEncoder().encode(request), session: session))
+        }
+        var concurrent = original; concurrent.name = "Concurrent edit"
+        try f.library.saveAction(concurrent)
+        #expect(try send(signed(key), session).outcome == .error(.versionConflict))
+        #expect(f.library.actions == [concurrent])
+        try f.library.saveAction(original)
+        let reply = try send(signed(key), session)
+        guard case .result = reply.outcome else { Issue.record("Update failed: \(reply.outcome)"); return }
+        #expect(f.library.actions == [changed])
+        #expect(try send(signed(key), session) == reply)
+        f.service = try f.makeService()
+        let reopened = try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        let retry = try f.values("mutations.prepare", session: reopened, parameters: ["request": frame])
+        guard case .string(let retryKey) = retry["retryKey"] else { Issue.record("Missing recovery key"); return }
+        #expect(try send(signed(retryKey), reopened) == reply)
+        #expect(f.library.actions == [changed])
+        _ = try f.connections.revokeFromUserInterface(record.id)
+        #expect(try send(signed(retryKey), reopened).outcome == .error(.permissionDenied))
+    }
+
     @Test func actionGetRequiresScopeAndReturnsTheListedVersion() throws {
         let f = try Fixture()
         var allowed = DraftAction(name: "Allowed", steps: [])
@@ -600,7 +644,7 @@ struct AgentCommandServiceTests {
             guard case .object(let fields) = item, fields["available"] == .bool(true), case .string(let name) = fields["name"] else { return nil }
             return name
         })
-        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", AgentMutationSchemas.name, "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.groups", "actionGroups.get"]) && available.count == 24)
+        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", AgentMutationSchemas.name, "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.update", "actions.groups", "actionGroups.get"]) && available.count == 25)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.unavailable))
         #expect(f.library.notes.isEmpty)
         #expect(try f.values("server.capabilities", session: session)["capabilities"] == .array([.string("drafts.read"), .string("drafts.write")]))

@@ -16,7 +16,7 @@ import AgentContracts
         "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions", "preferences.schema"]
     private static let editorReadOperations: Set<String> = ["editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks"]
     private static let actionReadOperations: Set<String> = ["actions.list", "actions.get", "actions.stepSchemas", "actions.groups", "actionGroups.get"]
-    static let implementedOperations = readOperations.union(actionReadOperations).union([AgentMutationSchemas.name]).union(AgentDraftWriting.operationNames).union(editorReadOperations)
+    static let implementedOperations = readOperations.union(actionReadOperations).union([AgentMutationSchemas.name, "actions.update"]).union(AgentDraftWriting.operationNames).union(editorReadOperations)
     private var availableOperations: Set<String> {
         var operations = editorRegistry == nil ? Self.readOperations.union(Self.actionReadOperations) : (writes == nil ? Self.readOperations.union(Self.editorReadOperations).union(Self.actionReadOperations) : Self.implementedOperations)
         if readActivity != nil { operations.insert("activity.list") }
@@ -180,6 +180,70 @@ import AgentContracts
         return Data(HMAC<SHA256>.authenticationCode(for: try encoder.encode(action), using: actionVersionKey)).base64EncodedString()
     }
 
+    private func checkedActionUpdate(_ request: AgentRequest) throws -> DraftAction {
+        guard let target = request.targets.first?.id, let expected = request.expectedVersion,
+              let original = actionLibrary.actions.first(where: { $0.id == target }) else { throw AgentErrorCode.notFound }
+        guard try actionVersion(original) == expected else { throw AgentErrorCode.versionConflict }
+        let parameters: [String: AgentJSONValue]
+        do { parameters = try AgentActionSchemas.validatedParameters(for: request) }
+        catch { throw AgentErrorCode.invalidInput }
+        guard let value = parameters["action"] else { throw AgentErrorCode.invalidInput }
+        let edited: DraftAction
+        do { edited = try JSONDecoder().decode(DraftAction.self, from: JSONEncoder().encode(value)) }
+        catch { throw AgentErrorCode.invalidInput }
+        guard edited.id == target, edited.group == original.group,
+              !edited.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw AgentErrorCode.invalidInput }
+        if edited.shortcut != original.shortcut || edited.shortcutModifiers != original.shortcutModifiers {
+            guard ActionShortcut.conflict(for: edited, in: actionLibrary.actions) == nil else { throw AgentErrorCode.invalidInput }
+        }
+        return edited
+    }
+
+    private func actionMutationReceipt(_ request: AgentRequest, ticket: AgentRetryKeys.Ticket) throws -> LibraryMutationReceipt? {
+        let identity = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
+        do {
+            let receipt = try actionLibrary.mutationReceipt(for: identity, at: now())
+            guard receipt == nil || (receipt?.resources.count == 1 && receipt?.resources.first?.id == request.targets.first?.id) else {
+                throw AgentErrorCode.storageError
+            }
+            return receipt
+        } catch let error as LibraryMutationReceiptError {
+            switch error {
+            case .requestConflict: throw AgentErrorCode.invalidInput
+            case .retryWindowExpired: throw AgentErrorCode.retryWindowExpired
+            case .pendingChanges: throw AgentErrorCode.busy
+            case .invalidReceipt: throw AgentErrorCode.storageError
+            }
+        }
+    }
+
+    private func prepareActionUpdate(_ request: AgentRequest, connectionID: UUID) throws -> AgentRetryKeys.Ticket {
+        guard request.retryKey == nil, request.libraryID == libraryID else { throw AgentErrorCode.invalidInput }
+        try validateAdmission()
+        let ticket = try retryKeys.issue(request, connectionID: connectionID)
+        if try actionMutationReceipt(request, ticket: ticket) == nil { _ = try checkedActionUpdate(request) }
+        try validateAdmission(); _ = try retryKeys.verify(ticket.value, request: request, connectionID: connectionID)
+        return ticket
+    }
+
+    private func updateAction(_ request: AgentRequest, connectionID: UUID) throws -> LibraryMutationReceipt {
+        guard let key = request.retryKey else { throw AgentErrorCode.invalidInput }
+        try validateAdmission()
+        let ticket = try retryKeys.verify(key, request: request, connectionID: connectionID)
+        if let previous = try actionMutationReceipt(request, ticket: ticket) { return previous }
+        let action = try checkedActionUpdate(request)
+        let identity = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
+        do {
+            return try actionLibrary.commitActions([action], mutation: identity, at: now(), validateCommit: {
+                try self.validateAdmission(); _ = try self.retryKeys.verify(key, request: request, connectionID: connectionID)
+                _ = try self.checkedActionUpdate(request)
+            }, makeResources: { actions in
+                try actions.map { .init(id: $0.id, versionToken: try self.actionVersion($0)) }
+            })
+        } catch let error as AgentErrorCode { throw error }
+        catch { throw AgentErrorCode.storageError }
+    }
+
     private func groupVersion(_ group: ActionGroupRecord) throws -> String {
         let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
         return Data(HMAC<SHA256>.authenticationCode(for: try encoder.encode(group), using: actionVersionKey)).base64EncodedString()
@@ -282,9 +346,13 @@ import AgentContracts
             let input = try AgentMutationSchemas.mutation(from: parameters)
             let bound = AgentRequest(requestID: input.requestID, libraryID: input.libraryID ?? libraryID,
                 operation: input.operation, targets: input.targets, expectedVersion: input.expectedVersion, parameters: input.parameters)
-            let ticket = try writes.prepare(bound, connectionID: grant.connectionID)
+            let ticket = try bound.operation == "actions.update" ? prepareActionUpdate(bound, connectionID: grant.connectionID) : writes.prepare(bound, connectionID: grant.connectionID)
             return ["requestID": .string(bound.requestID.uuidString), "retryKey": .string(ticket.value),
                 "expiresAt": .string(APIValues.date(min(ticket.expiresAt, grant.expiresAt)))]
+        case "actions.update":
+            let receipt = try updateAction(request, connectionID: grant.connectionID)
+            guard let resource = receipt.resources.first else { throw AgentErrorCode.storageError }
+            return ["resource": .object(["id": .string(resource.id.uuidString), "versionToken": .string(resource.versionToken)])]
         case "drafts.update", "drafts.patch", "drafts.restoreVersion":
             guard let writes else { throw AgentErrorCode.unavailable }
             let receipt = try writes.update(request, connectionID: grant.connectionID)
@@ -310,7 +378,7 @@ import AgentContracts
             return ["operations": .array(names.map { name in
                 let schema = AgentOperationSchemas.schema(for: name, preferences: preferences)
                 return .object(["name": .string(name), "inputSchema": schema?.parameters.jsonSchema ?? .null,
-                    "resultSchema": schema?.result.jsonSchema ?? .null, "available": .bool(availableOperations.contains(name) && (name != AgentMutationSchemas.name || grant.capabilities.contains(.draftsWrite)))])
+                    "resultSchema": schema?.result.jsonSchema ?? .null, "available": .bool(availableOperations.contains(name) && (name != AgentMutationSchemas.name || !grant.capabilities.isDisjoint(with: [.draftsWrite, .actionsManage])))])
             })]
         default: return try drafts.read(request, parameters: parameters, grant: grant, sessionID: sessionID)
         }
