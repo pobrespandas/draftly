@@ -59,6 +59,30 @@ struct AgentApprovalStoreTests {
         #expect(!AgentOperationCatalog.operations.contains { $0.name.lowercased().contains("approve") })
     }
 
+    @Test func userInterfaceOnlySeesLivePendingReviewsAndTheirEffects() throws {
+        let fixture = Fixture()
+        let request = fixture.request(), review = try fixture.review(request)
+        let pending = try #require(fixture.store.pendingFromUserInterface().first)
+        #expect(pending.id == review.id && pending.parameters["items"] == request.parameters["items"])
+        #expect(pending.parameters["interactive"] == .bool(false))
+        #expect(pending.expectedVersion == request.expectedVersion)
+        #expect(pending.effects.snapshot == fixture.effects().snapshot)
+        try fixture.approve(review)
+        #expect(fixture.store.pendingFromUserInterface().isEmpty)
+        let expired = try fixture.review(fixture.request())
+        fixture.wall = fixture.wall.addingTimeInterval(300)
+        #expect(fixture.store.pendingFromUserInterface().isEmpty)
+        #expect(try fixture.store.statusForConnection(expired.id, connectionID: fixture.connection) == .expired)
+    }
+
+    @Test func lockingHidesAndInvalidatesPendingHumanReview() throws {
+        let fixture = Fixture(), review = try fixture.review(fixture.request())
+        fixture.locked = true
+        #expect(fixture.store.pendingFromUserInterface().isEmpty)
+        fixture.locked = false
+        #expect(throws: AgentErrorCode.versionConflict) { try fixture.approve(review) }
+    }
+
     @Test func defaultNormalizationDoesNotMintAnotherReviewOrExtendExpiry() throws {
         let fixture = Fixture(), id = UUID()
         let review = try fixture.review(fixture.request(id: id))

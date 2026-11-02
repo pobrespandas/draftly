@@ -14,11 +14,14 @@ import AgentContracts
         let snapshot: [String: AgentJSONValue]
     }
 
-    struct Review {
+    struct Review: Identifiable {
         let id: UUID
         let connectionID: UUID
         let operation: String
         let targets: [AgentResourceReference]
+        let expectedVersion: String?
+        let parameters: [String: AgentJSONValue]
+        let effects: Effects
         let fingerprint: String
         let expiresAt: Date
     }
@@ -69,13 +72,22 @@ import AgentContracts
         guard entries.count < capacity else { throw AgentErrorCode.busy }
         let wall = now(), elapsed = uptime()
         guard wall.timeIntervalSince1970.isFinite, elapsed.isFinite else { throw AgentErrorCode.unavailable }
-        let review = Review(id: UUID(), connectionID: connectionID, operation: request.operation,
-            targets: request.targets, fingerprint: binding.fingerprint,
+        let review = Review(id: UUID(), connectionID: connectionID, operation: binding.request.operation,
+            targets: binding.request.targets, expectedVersion: binding.request.expectedVersion, parameters: binding.request.parameters,
+            effects: effects, fingerprint: binding.fingerprint,
             expiresAt: min(wall.addingTimeInterval(Self.lifetime), binding.grant.expiresAt))
         entries[review.id] = Entry(review: review, requestID: request.requestID, libraryID: binding.grant.libraryID,
             grantID: binding.grant.grantID, grantFingerprint: binding.grantFingerprint,
             issuedAt: wall, issuedUptime: elapsed, state: .pending)
         return review
+    }
+
+    // Only the app presents these details. A connection can read only its state.
+    func pendingFromUserInterface() -> [Review] {
+        refreshEntries()
+        return entries.values.filter { $0.state == .pending }
+            .sorted { ($0.issuedUptime, $0.review.id.uuidString) < ($1.issuedUptime, $1.review.id.uuidString) }
+            .map(\.review)
     }
 
     func approveFromUserInterface(_ id: UUID, reviewedFingerprint: String) throws {
@@ -174,7 +186,7 @@ import AgentContracts
     }
 
     private func binding(_ request: AgentRequest, connectionID: UUID, effects: Effects) throws
-        -> (fingerprint: String, grantFingerprint: String, grant: AgentGrant) {
+        -> (fingerprint: String, grantFingerprint: String, grant: AgentGrant, request: AgentRequest) {
         guard !isLocked() else { invalidateForScreenLock(); throw AgentErrorCode.interactionRequired }
         // Reuse the wire and operation validators, including request-local defaults.
         let prepared = try AgentRequestBinding.prepare(request, preferences: AgentPreferenceCatalog.make())
@@ -196,7 +208,7 @@ import AgentContracts
         let grantFingerprint = try grantDigest(grant)
         let value = AgentJSONValue.object(["epoch": .string(epoch.uuidString), "grant": .string(grantFingerprint),
             "request": requestValue, "effects": effectValue])
-        return (try digest(value, maximum: Self.maximumBindingBytes), grantFingerprint, grant)
+        return (try digest(value, maximum: Self.maximumBindingBytes), grantFingerprint, grant, checked)
     }
 
     private func grantDigest(_ grant: AgentGrant) throws -> String {
