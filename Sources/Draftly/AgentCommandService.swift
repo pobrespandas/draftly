@@ -26,9 +26,13 @@ import AgentContracts
         return operations
     }
     var availableCapabilities: Set<AgentCapability> {
-        availableOperations.reduce(into: Set<AgentCapability>()) { result, name in
+        var capabilities = availableOperations.reduce(into: Set<AgentCapability>()) { result, name in
             if let operation = AgentOperationCatalog.operation(named: name) { result.formUnion(operation.capabilities) }
         }
+        if availableOperations.contains("actions.run") {
+            capabilities.formUnion([.draftsWrite, .editorWrite, .nativeUse])
+        }
+        return capabilities
     }
     private let actionLibrary: LibraryStore
     private let operationRegistry: AgentOperationRegistry?

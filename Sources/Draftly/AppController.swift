@@ -153,6 +153,7 @@ final class AppController: ObservableObject {
     }
 
     func configureAgentHost(isLocked: @escaping () -> Bool,
+                            enableReviewedActions: Bool = false,
                             protectedDataAvailable: @escaping () -> Bool = { NSApplication.shared.isProtectedDataAvailable },
                             credentials: AgentConnectionRegistry.CredentialAccess? = nil,
                             validateApplication: @escaping () throws -> Void = { try AgentCredentialIdentity.validateCurrentProcess(.application) },
@@ -163,6 +164,7 @@ final class AppController: ObservableObject {
         let resources = AgentLibraryResourceChoices(library: library, editors: editors)
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
         let host = try AgentLocalHost(library: library, appVersion: version, editors: editors,
+            enableReviewedActions: enableReviewedActions,
             isLocked: { isLocked() || !protectedDataAvailable() },
             pendingEditorGeneration: { _ in "" }, resolveTargets: { resources.resolve($0) },
             credentials: credentials, validateApplication: validateApplication, validateHelper: validateHelper)
@@ -248,7 +250,7 @@ final class AppController: ObservableObject {
                     catch { FileHandle.standardError.write(Data("Agent QA identity check failed\n".utf8)); throw error }
                     do { _ = try AgentLibraryLocation(library: store) }
                     catch { FileHandle.standardError.write(Data("Agent QA library check failed\n".utf8)); throw error }
-                    try configureAgentHost(isLocked: { false })
+                    try configureAgentHost(isLocked: { false }, enableReviewedActions: true)
                 }
                 catch {
                     FileHandle.standardError.write(Data("Agent QA host failed: \(error)\n".utf8))

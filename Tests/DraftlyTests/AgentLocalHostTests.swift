@@ -88,6 +88,7 @@ struct AgentLocalHostTests {
         let editors = AgentEditorRegistry(library: f.library, models: { [model] })
         let host = try f.host(editors: editors, enableReviewedActions: true)
         defer { host.close() }
+        #expect(host.service.availableCapabilities.isSuperset(of: [.actionsRun, .draftsWrite, .editorWrite, .nativeUse]))
         try host.setEnabledFromUserInterface(true)
         let record = try host.connections.connectFromUserInterface(name: "Admission", libraryID: host.libraryID,
             capabilities: [.actionsRead, .actionsRun, .draftsRead, .draftsWrite, .editorRead, .editorWrite], scope: .library)

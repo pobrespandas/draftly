@@ -137,6 +137,10 @@ host for pairing. The test adapter does not detect screen lock. Do not use it
 with personal data or ship a build that defines this flag. A successful test
 does not validate lock behavior or normal startup.
 
+The isolated host also connects reviewed Action execution. Its permission review
+offers draft writes, editor writes and native effects. Each native effect still
+requires an interactive request and a separate human review.
+
 On 2 November, a Developer ID build with this flag and a signed embedded helper
 opened an isolated library. Settings showed access disabled at startup. The
 helper discovered the host and both sides showed the same pairing code. A
