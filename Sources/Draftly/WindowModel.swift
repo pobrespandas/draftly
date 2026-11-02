@@ -498,6 +498,14 @@ final class WindowModel: ObservableObject {
     private func executeAction(_ action: DraftAction) async -> ActionOutcome? {
         guard !Task.isCancelled else { return nil }
         if let busy = libraryBusyReport(for: action) { return ActionOutcome(report: busy, draftID: editor.noteID) }
+        if let authorize = runner.authorizeActionCompletion {
+            guard let id = editor.noteID else { return nil }
+            do { try authorize(action, id) }
+            catch {
+                return ActionOutcome(report: .notStarted(actionID: action.id, reason: .error,
+                    message: "The action is not authorized to save the draft."), draftID: id)
+            }
+        }
         guard flush() else { return nil }
         if var note = scratchNote {
             note.content = editor.content

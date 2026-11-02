@@ -215,6 +215,39 @@ struct AgentAuthorizedActionHostTests {
         #expect(model.runner.authorizeActionCompletion == nil)
     }
 
+    @Test(arguments: [false, true]) func deniedPreflightDoesNotSavePendingEditorText(markedDirty: Bool) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Original")
+        let model = WindowModel(library: library); model.select(note.id)
+        model.editor.content = "Pending"
+        if markedDirty { model.contentChanged() }
+        let action = DraftAction(name: "Neutral", steps: [])
+        let result = try await AutomationActionExecution.run(action, noteID: note.id, library: library,
+            models: [model], host: model.host, editorScope: .targetDraft,
+            completionAuthorization: { _, _ in throw AgentErrorCode.permissionDenied },
+            resolveModel: { models, _ in models.first })
+        #expect(result.report.reason == .error)
+        #expect(library.notes.first { $0.id == note.id }?.content == "Original")
+        #expect(model.editor.content == "Pending")
+    }
+
+    @Test func permissionIsCheckedAgainWhenTheWindowStartsTheAction() async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Original")
+        let model = WindowModel(library: library); model.select(note.id)
+        let action = DraftAction(name: "Neutral", steps: [])
+        var checks = 0
+        let result = try await AutomationActionExecution.run(action, noteID: note.id, library: library,
+            models: [model], host: model.host, editorScope: .targetDraft,
+            completionAuthorization: { _, _ in
+                checks += 1
+                if checks > 1 { throw AgentErrorCode.permissionDenied }
+            }, resolveModel: { models, _ in models.first })
+        #expect(checks == 2 && result.report.reason == .error)
+        #expect(library.notes.first?.content == "Original")
+        #expect(library.runs.isEmpty)
+    }
+
     @Test(arguments: [false, true]) func draftPolicyControlsScriptUpdate(canWrite: Bool) async throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let note = try library.createNote(content: "Original")

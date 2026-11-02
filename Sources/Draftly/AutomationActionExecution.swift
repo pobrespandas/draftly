@@ -105,6 +105,9 @@ import DraftlyCore
             return notStarted(action, noteID: noteID, reason: .busy, message: "An action is already running in this library.")
         }
         let models = editorScope == .targetDraft ? libraryModels.filter { $0.editor.noteID == noteID } : libraryModels
+        if completionAuthorization != nil && models.contains(where: { $0.editor.noteID != noteID }) {
+            throw DraftlyError.message("The action cannot save editors outside its target draft.")
+        }
         let candidate = resolveModel(models, noteID)
         let model = candidate.flatMap { $0.library === library && $0.editor.noteID == noteID ? $0 : nil }
         let ownerWindow = model?.window
@@ -130,6 +133,11 @@ import DraftlyCore
             throw DraftlyError.message("Multiple windows have conflicting unsaved edits. Resolve them before running the action.")
         }
         for model in models {
+            do { try completionAuthorization?(action, noteID) }
+            catch {
+                return notStarted(action, noteID: noteID, reason: .error,
+                                  message: "The action is not authorized to save the draft.")
+            }
             model.synchronizeStoredEditor(library.notes)
             guard model.flush() else { throw DraftlyError.message("Pending edits could not be saved. The action was not started.") }
         }
