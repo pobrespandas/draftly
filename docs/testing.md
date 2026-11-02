@@ -15,6 +15,9 @@ python3 scripts/run-swift-tests.py
 
 The runner checks that every discovered test has a result. It reports failures
 and incomplete runs instead of treating a successful process exit as enough.
+Discovery builds the test products. Each target then runs those same products
+with `--skip-build`, while producing fresh reports. A failed discovery stops
+execution even when a previous build remains on disk.
 Tests use temporary data and offscreen editors. They must not open or move
 visible windows, request permissions, play sounds, or use personal data.
 

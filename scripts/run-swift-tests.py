@@ -127,7 +127,8 @@ def run_target(module, expected, output, *, concurrent_app=False, test_filter=No
     reports = [output / "results.xml", output / "results-swift-testing.xml"]
     for report in reports:
         report.unlink(missing_ok=True)
-    command = ["swift", "test", "--filter", test_filter or module, "--xunit-output", str(reports[0])]
+    # Discovery already built the products. Run that same inventory without rebuilding.
+    command = ["swift", "test", "--skip-build", "--filter", test_filter or module, "--xunit-output", str(reports[0])]
     if module != "DraftlyTests" or not concurrent_app:
         command.append("--no-parallel")
     started = time.monotonic()
