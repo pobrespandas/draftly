@@ -4,6 +4,26 @@ This is a developer guide for unfinished agent access. The released app has no
 Agents setup screen or published endpoint yet. Do not treat the tests below as
 permission to connect to a personal library.
 
+## Current implementation checkpoint
+
+The sections below record incremental development. Their statements about
+missing handlers describe the checkpoint at which each section was written.
+The current branch implements authenticated action and group reads, action
+step defaults, shortcut validation, and `actions.update`. Action updates use
+an expected version, a signed retry key, and an atomic action and receipt
+transaction. Recovery checks the current grant. A client with resource scope
+cannot change a shortcut, because conflict checks use the entire catalog.
+Moving an action to another group is a separate operation and is not available
+through `actions.update`.
+
+The host does not start in the normal app. Agent access remains unavailable in
+released builds. The signed helper and host still need a real installed-app
+pairing and MCP session. Screen-lock behavior also needs a reliable initial
+state and signed native checks. Protected-data notifications describe keybag
+availability. They do not establish every graphical screen-lock transition.
+Do not use them alone as proof that the screen is unlocked. See the
+[Apple Developer Forums discussion](https://developer.apple.com/forums/thread/850327).
+
 ## Current components
 
 - AgentContracts owns the request, response and authentication envelopes.
