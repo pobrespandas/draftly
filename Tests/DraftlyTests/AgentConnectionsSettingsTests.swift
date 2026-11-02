@@ -36,14 +36,15 @@ struct AgentConnectionsSettingsTests {
                     self.secrets.removeValue(forKey: id)
                 }), now: { [unowned self] in self.wall }, authorityChanged: { [unowned self] in self.authorityChanges.append($0) })
         }
-        func model(available: Set<AgentCapability> = Set(AgentCapability.allCases)) throws -> AgentConnectionsSettingsModel {
+        func model(available: Set<AgentCapability> = Set(AgentCapability.allCases),
+                   configuration: @escaping (UUID) -> String? = { _ in nil }) throws -> AgentConnectionsSettingsModel {
             try AgentConnectionsSettingsModel(libraryID: libraryID, registry: registry, pairing: pairing,
                 now: { [unowned self] in self.wall }, choices: { [unowned self] in self.labels },
                 initialTargets: { [unowned self] in self.selected }, resolveTargets: { [unowned self] in $0.intersection(self.targets) },
                 setAccessEnabled: { [unowned self] value in
                     if self.failHostCommand { throw AgentErrorCode.unavailable }
                     if !self.ignoreHostCommand { try self.registry.setEnabledFromUserInterface(value) }
-                }, availableCapabilities: available)
+                }, availableCapabilities: available, makeMCPConfiguration: configuration)
         }
         func connect(libraryID: UUID? = nil) throws -> AgentConnectionRecord {
             try registry.connectFromUserInterface(name: "Neutral 🐼", libraryID: libraryID ?? self.libraryID)
@@ -84,6 +85,19 @@ struct AgentConnectionsSettingsTests {
         try model.beginEditing(record.id)
         model.draft?.capabilities.insert(.actionsRun)
         #expect(throws: AgentErrorCode.unavailable) { try model.saveExisting() }
+    }
+
+    @Test func mcpConfigurationRequiresCurrentNonrevokedConnectionInThisLibrary() throws {
+        let f = Fixture()
+        let local = try f.connect(), foreign = try f.connect(libraryID: UUID())
+        var requests: [UUID] = []
+        let model = try f.model(configuration: { id in requests.append(id); return "configuration" })
+        #expect(model.mcpConfiguration(for: local.id) == "configuration")
+        #expect(model.mcpConfiguration(for: foreign.id) == nil)
+        #expect(model.mcpConfiguration(for: UUID()) == nil)
+        try model.revoke(local.id)
+        #expect(model.mcpConfiguration(for: local.id) == nil)
+        #expect(requests == [local.id])
     }
 
     @Test func saveReplacesOnlyTheChosenGrantAndRotatesItsIdentity() throws {
