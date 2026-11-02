@@ -7,16 +7,18 @@ final class LibrarySyncCoordinator {
     private let container: NSPersistentContainer
     private let cloudIdentifier: String?
     private let onRemoteChange: () -> Void
+    private let onImportCompleted: () -> Void
     private let onStatusChange: (String) -> Void
     private var observers: [NSObjectProtocol] = []
     private var cloudState = CloudSyncState()
     private var accountCheck = 0
 
     init(container: NSPersistentContainer, cloudIdentifier: String?,
-         onRemoteChange: @escaping () -> Void, onStatusChange: @escaping (String) -> Void) {
+         onRemoteChange: @escaping () -> Void, onImportCompleted: @escaping () -> Void = {}, onStatusChange: @escaping (String) -> Void) {
         self.container = container
         self.cloudIdentifier = cloudIdentifier
         self.onRemoteChange = onRemoteChange
+        self.onImportCompleted = onImportCompleted
         self.onStatusChange = onStatusChange
         observers.append(NotificationCenter.default.addObserver(forName: .NSPersistentStoreRemoteChange, object: container.persistentStoreCoordinator, queue: .main) { [weak self] _ in
             Task { @MainActor in
@@ -40,6 +42,7 @@ final class LibrarySyncCoordinator {
                     guard let self, self.container.persistentStoreCoordinator.persistentStores.contains(where: { $0.identifier == storeID }) else { return }
                     self.cloudState.receive(id: id, phase: phase, ended: ended, succeeded: succeeded, error: message)
                     self.onStatusChange(self.cloudState.message)
+                    if phase == .download && ended && succeeded { self.onImportCompleted() }
                 }
             })
             observers.append(NotificationCenter.default.addObserver(forName: .CKAccountChanged, object: nil, queue: .main) { [weak self] _ in

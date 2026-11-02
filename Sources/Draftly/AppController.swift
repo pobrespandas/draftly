@@ -168,7 +168,7 @@ final class AppController: ObservableObject {
                 let attributes = try FileManager.default.attributesOfItem(atPath: bundle.bundleURL.path)
                 let created = (attributes[.creationDate] as? Date)?.timeIntervalSince1970 ?? 0
                 let fileID = (attributes[.systemFileNumber] as? NSNumber)?.stringValue ?? "unknown"
-                try store.replaceActionCatalogIfNeeded(installation: "temporary-defaults/\(version)/\(build)/\(created)/\(fileID)")
+                try store.requestActionCatalogReplacement(installation: "temporary-defaults/\(version)/\(build)/\(created)/\(fileID)")
             }
             do { try LocalThemeMigration.run(in: store) }
             catch { store.error = "Theme migration failed: " + error.localizedDescription }

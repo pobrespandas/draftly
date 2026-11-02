@@ -19,6 +19,7 @@ public final class LibraryStore: ObservableObject {
     public let container: NSPersistentContainer
     private let persistence: LibraryRecordPersistence
     private var syncCoordinator: LibrarySyncCoordinator?
+    private var pendingCatalogInstallation: String?
     public let cloudIdentifier: String?
 
     enum ExecutionIdentity: Hashable {
@@ -55,6 +56,13 @@ public final class LibraryStore: ObservableObject {
         syncCoordinator = LibrarySyncCoordinator(container: container, cloudIdentifier: self.cloudIdentifier,
             onRemoteChange: { [weak self] in
                 do { try self?.reload() } catch { self?.error = error.localizedDescription }
+            }, onImportCompleted: { [weak self] in
+                guard let self, let installation = self.pendingCatalogInstallation else { return }
+                do {
+                    try self.reload()
+                    try self.replaceActionCatalogIfNeeded(installation: installation)
+                    self.pendingCatalogInstallation = nil
+                } catch { self.error = error.localizedDescription }
             }, onStatusChange: { [weak self] in self?.syncStatus = $0 })
     }
 
@@ -277,6 +285,14 @@ public final class LibraryStore: ObservableObject {
         try installActionCatalog(groups: groups, actions: actions)
         return DefaultActionCatalogInstallation(groupNames: groups.map(\.name), actionCount: actions.count)
     }
+    public func requestActionCatalogReplacement(installation: String) throws {
+        if cloudIdentifier != nil {
+            pendingCatalogInstallation = installation
+        } else {
+            try replaceActionCatalogIfNeeded(installation: installation)
+        }
+    }
+
     private struct InstalledActionCatalog: Codable { let installation: String }
 
     /// Replace the entire action catalog once for an application installation.

@@ -216,7 +216,9 @@ group catalog once per application installation. This includes custom and edited
 actions and restores deleted defaults. Drafts and other library records remain.
 The installation identity includes the app version, build, directory creation
 time and file identity. Reopening that installation keeps subsequent edits.
-A new installation or update runs replacement again. The catalog and its
+A new installation or update runs replacement again. Cloud-backed libraries
+wait for a successful import before replacement; offline startup leaves the
+catalog unchanged until that import completes. The catalog and its
 installation marker are committed together. Failed writes preserve the previous
 catalog and can be tried again. QA and cloud test builds skip this startup path.
 
