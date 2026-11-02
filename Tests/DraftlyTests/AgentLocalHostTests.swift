@@ -440,7 +440,7 @@ struct AgentLocalHostTests {
         let currentGrant = try host.connections.grantForAuthenticatedConnection(record.id)
         let grant = try #require(currentGrant)
         var started = false, cancelled = false
-        _ = try host.operations.start(grant: grant, targets: []) {
+        let operationID = try host.operations.start(grant: grant, targets: []) {
             started = true
             do { try await Task.sleep(for: .seconds(30)) } catch { cancelled = true }
             let report = ActionExecutionReport.notStarted(actionID: UUID(), reason: .cancelled, message: "Cancelled")
@@ -448,6 +448,12 @@ struct AgentLocalHostTests {
         }
         for _ in 0..<100 where !started { await Task.yield() }
         #expect(started)
+        let session = try host.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        let request = AgentRequest(requestID: UUID(), libraryID: host.libraryID, operation: "operations.get",
+            targets: [.init(kind: .operation, id: operationID)])
+        let response = try JSONDecoder().decode(AgentResponse.self,
+            from: host.service.respond(to: JSONEncoder().encode(request), session: session))
+        guard case .result = response.outcome else { Issue.record("Expected an operation snapshot"); return }
         try model.stopWork()
         for _ in 0..<1000 where !cancelled { await Task.yield() }
         #expect(cancelled)

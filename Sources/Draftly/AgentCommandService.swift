@@ -21,6 +21,7 @@ import AgentContracts
     private var availableOperations: Set<String> {
         var operations = editorRegistry == nil ? Self.readOperations.union(Self.actionReadOperations).union(Self.workspaceReadOperations) : (writes == nil ? Self.readOperations.union(Self.editorReadOperations).union(Self.actionReadOperations).union(Self.workspaceReadOperations) : Self.implementedOperations)
         if readActivity != nil { operations.insert("activity.list") }
+        if operationRegistry != nil { operations.formUnion(["operations.get", "operations.cancel"]) }
         return operations
     }
     var availableCapabilities: Set<AgentCapability> {
@@ -29,6 +30,7 @@ import AgentContracts
         }
     }
     private let actionLibrary: LibraryStore
+    private let operationRegistry: AgentOperationRegistry?
     private let actionVersionKey = SymmetricKey(size: .bits256)
     private let editorRegistry: AgentEditorRegistry?
     private let windowReadKey = SymmetricKey(size: .bits256)
@@ -55,9 +57,11 @@ import AgentContracts
          editors: AgentEditorRegistry? = nil,
          pendingEditorGeneration: @escaping (UUID) -> String,
          recordActivity: @escaping (UUID, UUID, UUID, String, String) -> Void = { _, _, _, _, _ in },
-         readActivity: ((UUID, UUID) throws -> [AgentActivityStore.Entry])? = nil) throws {
+         readActivity: ((UUID, UUID) throws -> [AgentActivityStore.Entry])? = nil,
+         operations: AgentOperationRegistry? = nil) throws {
         guard editors?.isBound(to: library) ?? true else { throw AgentErrorCode.invalidInput }
         self.actionLibrary = library
+        self.operationRegistry = operations
         self.libraryID = libraryID; self.connections = connections; self.appVersion = appVersion
         self.editorRegistry = editors
         self.validateHost = validateHost
@@ -126,7 +130,18 @@ import AgentContracts
         do {
             let grant = try authorize(session)
             authority = (grant.connectionID, grant.grantID)
-            switch AgentPermissionPolicy.evaluate(request, connectionID: grant.connectionID, grant: grant, now: now()) {
+            var policyGrant = grant
+            if ["operations.get", "operations.cancel"].contains(request.operation), let operationRegistry {
+                guard request.targets.count == 1, let target = request.targets.first, target.kind == .operation else {
+                    throw AgentErrorCode.invalidInput
+                }
+                _ = try operationRegistry.snapshot(target.id, connectionID: grant.connectionID)
+                // The registry checks original resource scope and operation ownership.
+                policyGrant = AgentGrant(connectionID: grant.connectionID, libraryID: grant.libraryID,
+                    expiresAt: grant.expiresAt, revoked: grant.revoked, capabilities: grant.capabilities,
+                    scope: .library, grantID: grant.grantID)
+            }
+            switch AgentPermissionPolicy.evaluate(request, connectionID: grant.connectionID, grant: policyGrant, now: now()) {
             case .permitted: break
             case .denied(let error): throw error
             case .needsHumanApproval, .needsEffectAuthorization: throw AgentErrorCode.unavailable
@@ -602,6 +617,12 @@ import AgentContracts
     private func dispatch(_ request: AgentRequest, parameters: [String: AgentJSONValue], grant: AgentGrant,
                           sessionID: UUID) throws -> [String: AgentJSONValue] {
         switch request.operation {
+        case "operations.get", "operations.cancel":
+            guard let operationRegistry else { throw AgentErrorCode.unavailable }
+            let result = try operationRegistry.control(request, connectionID: grant.connectionID)
+            var values: [String: AgentJSONValue] = ["operation": try result.snapshot.wireValue()]
+            if request.operation == "operations.cancel" { values["cancellationAccepted"] = .bool(result.cancellationAccepted) }
+            return values
         case "workspaces.get":
             guard let id = request.targets.first?.id, grant.scope.permits(.init(kind: .workspace, id: id)),
                   let workspace = actionLibrary.workspaces.first(where: { $0.id == id }) else { throw AgentErrorCode.notFound }

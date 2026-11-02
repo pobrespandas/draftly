@@ -104,7 +104,7 @@ import AgentLocalSecurity
                     guard let owner else { throw AgentErrorCode.cancelled }
                     try owner.validateOwnership()
                     return try activity.entries(libraryID: owner.libraryID).filter { $0.connectionID == connectionID && $0.grantID == grantID }
-                })
+                }, operations: operations)
         } catch { lease.close(); throw error }
         pairing = AgentPairingCoordinator(registry: registry, libraryID: lease.libraryID,
             validateHost: validateOwner, isLocked: isLocked, resolveTargets: resolveTargets)
