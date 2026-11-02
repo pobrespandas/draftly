@@ -16,6 +16,7 @@ import AgentLocalSecurity
     private let publications: AgentHostPublications
     private let activity: AgentActivityStore
     private(set) var activityRecordingError: AgentErrorCode?
+    private var activityGeneration = UUID()
     var locatorCleanupError: AgentErrorCode? { publications.cleanupError }
     private let socketParentDirectory: URL
     private let validateApplication: () throws -> Void
@@ -35,6 +36,7 @@ import AgentLocalSecurity
     func clearActivity() throws {
         try validateOwnership()
         try activity.clear(libraryID: libraryID)
+        activityGeneration = UUID()
         activityRecordingError = nil
     }
 
@@ -85,9 +87,10 @@ import AgentLocalSecurity
                 editors: editors,
                 pendingEditorGeneration: pendingEditorGeneration,
                 recordActivity: { connectionID, requestID, operation, result in
-                    let currentOwner = owner
+                    guard let currentOwner = owner else { return }
+                    let generation = currentOwner.activityGeneration
                     Task { @MainActor [weak currentOwner] in
-                        guard let currentOwner else { return }
+                        guard let currentOwner, currentOwner.activityGeneration == generation else { return }
                         do {
                             try currentOwner.validateOwnership()
                             try activity.append(libraryID: currentOwner.libraryID, connectionID: connectionID,

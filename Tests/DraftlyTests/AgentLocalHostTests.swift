@@ -412,6 +412,25 @@ struct AgentLocalHostTests {
         #expect(try Data(contentsOf: file) == invalid)
     }
 
+    @Test func clearingActivityDiscardsQueuedRecordsButKeepsFutureRequests() async throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let host = try f.host(); defer { host.close() }
+        try host.setEnabledFromUserInterface(true)
+        let record = try f.connect(host)
+        let session = try host.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        func request() throws -> AgentResponse {
+            let request = AgentRequest(requestID: UUID(), libraryID: host.libraryID, operation: "server.status")
+            return try JSONDecoder().decode(AgentResponse.self, from: host.service.respond(to: JSONEncoder().encode(request), session: session))
+        }
+        guard case .result = try request().outcome else { Issue.record("Expected success"); return }
+        try host.clearActivity()
+        for _ in 0..<10 { await Task.yield() }
+        #expect(try host.recentActivity().isEmpty)
+        guard case .result = try request().outcome else { Issue.record("Expected success"); return }
+        for _ in 0..<100 where try host.recentActivity().isEmpty { await Task.yield() }
+        #expect(try host.recentActivity().count == 1)
+    }
+
     @Test func closingAnEditorBeforePairingApprovalInvalidatesTheReview() throws {
         let f = try Fixture(); defer { f.cleanup() }
         let preferences = try TestPreferences(prefix: "Draftly-Agent-Window-Grant-")
