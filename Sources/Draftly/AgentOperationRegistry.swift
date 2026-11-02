@@ -22,6 +22,8 @@ import AgentContracts
         var cancellationRequested = false
     }
     private var entries: [UUID: Entry] = [:]
+    private struct RequestKey: Hashable { let connectionID: UUID; let requestID: UUID }
+    private var requests: [RequestKey: (value: AgentJSONValue, operationID: UUID)] = [:]
     private let currentGrant: (UUID) throws -> AgentGrant?
     private let validateHost: () throws -> Void
     private let isLocked: () -> Bool
@@ -38,6 +40,25 @@ import AgentContracts
     func start(grant: AgentGrant, targets: Set<AgentResourceReference>,
                work: @escaping @MainActor () async throws -> AutomationActionExecution.Output) throws -> UUID {
         try startIdentified(grant: grant, targets: targets) { _ in try await work() }
+    }
+
+    func startRequest(_ request: AgentRequest, grant: AgentGrant,
+                      work: @escaping @MainActor (UUID) async throws -> AutomationActionExecution.Output) throws -> UUID {
+        guard request.operation == "actions.run" else { throw AgentErrorCode.invalidInput }
+        let prepared = try AgentRequestBinding.prepare(request, preferences: AgentPreferenceCatalog.make())
+        if case .denied(let error) = AgentPermissionPolicy.evaluate(prepared.request,
+            connectionID: grant.connectionID, grant: grant, now: now()) { throw error }
+        try validate(grant, targets: Set(request.targets))
+        let key = RequestKey(connectionID: grant.connectionID, requestID: request.requestID)
+        if let previous = requests[key] {
+            guard previous.value == prepared.value else { throw AgentErrorCode.versionConflict }
+            _ = try snapshot(previous.operationID, connectionID: grant.connectionID)
+            return previous.operationID
+        }
+        guard requests.count < capacity else { throw AgentErrorCode.busy }
+        let id = try startIdentified(grant: grant, targets: Set(request.targets), work: work)
+        requests[key] = (prepared.value, id)
+        return id
     }
 
     func startIdentified(grant: AgentGrant, targets: Set<AgentResourceReference>,

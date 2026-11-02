@@ -6,6 +6,23 @@ import DraftlyCore
 
 @Suite("Agent operation lifetime") @MainActor
 struct AgentOperationRegistryTests {
+    @Test func repeatedRequestReturnsTheSameOperationWithoutStartingWorkAgain() throws {
+        let connection = UUID(), library = UUID(), action = UUID(), draft = UUID()
+        let grant = AgentGrant(connectionID: connection, libraryID: library, expiresAt: Date().addingTimeInterval(600),
+            capabilities: [.actionsRun, .draftsRead], scope: .library)
+        let registry = AgentOperationRegistry(currentGrant: { _ in grant }, validateHost: {}, isLocked: { false })
+        defer { registry.cancelAll() }
+        let request = AgentRequest(requestID: UUID(), libraryID: library, operation: "actions.run",
+            targets: [.init(kind: .action, id: action), .init(kind: .draft, id: draft)], expectedVersion: "v1")
+        let id = try registry.startRequest(request, grant: grant) { _ in fatalError("Cancelled before starting") }
+        let repeated = try registry.startRequest(request, grant: grant) { _ in fatalError("Must not start again") }
+        #expect(repeated == id)
+        let changed = AgentRequest(requestID: request.requestID, libraryID: library, operation: "actions.run",
+            targets: request.targets, expectedVersion: "v2")
+        #expect(throws: AgentErrorCode.versionConflict) {
+            try registry.startRequest(changed, grant: grant) { _ in fatalError("Must not start") }
+        }
+    }
     @Test func cancellationWaitsForWorkAndKeepsOwnership() async throws {
         let connection = UUID(), library = UUID(), action = UUID()
         let grant = AgentGrant(connectionID: connection, libraryID: library, expiresAt: Date().addingTimeInterval(600),
