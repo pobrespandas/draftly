@@ -1,0 +1,16 @@
+Draftly 0.1.5
+
+Use native Settings tabs, action group buttons, and action list selection.
+Select an action with one click. Run it with Return or a double click.
+
+Improve default action colors, symbols, and action bar labels. Correct the
+default Inbox, Save Version, and Stats actions. Upgrade unchanged local copies
+while preserving customized actions. Existing cloud libraries retain their
+actions; defaults can be installed explicitly from Settings.
+
+Open and close panels without an added transition. Keep the action panel
+toolbar button visible as an enabled control when its panel is closed.
+
+Agent access remains disabled in normal app startup.
+
+Requires macOS 26 or later.
