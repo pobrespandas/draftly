@@ -79,6 +79,7 @@ final class AppController: ObservableObject {
     }
     private var cachedAgentEditors: AgentEditorRegistry?
     private var agentHost: AgentLocalHost?
+    private var agentLifecycleObservers: [NSObjectProtocol] = []
     @Published var startupError: String?
     @Published var agentSettings: AgentConnectionsSettingsModel?
     @Published var globalShortcutErrors: [String: String] = [:]
@@ -126,6 +127,23 @@ final class AppController: ObservableObject {
         if let previous = agentHost { previous.close(); agentSettings = nil }
         agentHost = host
         agentSettings = settings
+        observeAgentSessionSuspension()
+    }
+
+    private func observeAgentSessionSuspension() {
+        guard agentLifecycleObservers.isEmpty else { return }
+        let center = NSWorkspace.shared.notificationCenter
+        for name in [NSWorkspace.willSleepNotification, NSWorkspace.screensDidSleepNotification,
+                     NSWorkspace.sessionDidResignActiveNotification] {
+            agentLifecycleObservers.append(center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor [weak self] in self?.suspendAgentSession() }
+            })
+        }
+    }
+
+    func suspendAgentSession() {
+        agentHost?.suspend()
+        agentSettings?.refresh()
     }
 
     func configureAgentHost(isLocked: @escaping () -> Bool,
@@ -144,6 +162,9 @@ final class AppController: ObservableObject {
     }
 
     func closeAgentContext() {
+        let center = NSWorkspace.shared.notificationCenter
+        agentLifecycleObservers.forEach { center.removeObserver($0) }
+        agentLifecycleObservers.removeAll()
         if let host = agentHost {
             agentHost = nil; host.close(); agentSettings = nil
         }

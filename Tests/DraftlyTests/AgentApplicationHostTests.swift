@@ -1,4 +1,5 @@
 import Combine
+import AppKit
 import Foundation
 import CoreData
 import Testing
@@ -165,6 +166,25 @@ struct AgentApplicationHostTests {
         #expect(settings.accessEnabled)
         app.closeAgentContext()
         #expect(app.agentSettings == nil)
+    }
+
+    @Test(arguments: [NSWorkspace.willSleepNotification, NSWorkspace.screensDidSleepNotification,
+                      NSWorkspace.sessionDidResignActiveNotification])
+    func workspaceSuspensionClosesAgentSessionsWithoutResumingAutomatically(_ name: Notification.Name) async throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let app = try #require(f.app), host = try f.host(); defer { host.close() }
+        try app.adoptAgentHost(host)
+        let settings = try #require(app.agentSettings)
+        let session = try f.session(host)
+        let pending = try host.pairing.request(clientName: "Pending")
+        NSWorkspace.shared.notificationCenter.post(name: name, object: NSWorkspace.shared)
+        for _ in 0..<100 where host.endpoint != nil { await Task.yield() }
+        #expect(host.endpoint == nil && !settings.accessEnabled)
+        #expect(try host.pairing.state(pending.id) == .invalidated)
+        #expect(throws: AgentErrorCode.permissionDenied) { try host.service.authorizedLibraryID(for: session) }
+        NSWorkspace.shared.notificationCenter.post(name: NSWorkspace.didWakeNotification, object: NSWorkspace.shared)
+        await Task.yield()
+        #expect(host.endpoint == nil && !settings.accessEnabled)
     }
 
     @Test func foreignClosedAndUntrackedHostsCannotReplaceTheApplicationContext() throws {
