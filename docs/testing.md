@@ -202,3 +202,16 @@ edits during a wait. They do not open visible windows.
 HTTP uses an isolated URLProtocol fixture. Those tests do not establish socket or
 redirect acceptance. The auditor requires fourteen engine contracts and rejects
 missing, duplicate, or unnamed records during strict parity checks.
+
+## Test execution refactoring — 1 November 2026
+
+The host cleanup test uses a controlled clock for its execution deadline. It
+still checks cancellation and timeout as separate outcomes. Both cases must keep
+the library busy until host cleanup returns. Real timer tests remain in
+AsyncNativeHostTests, AsyncWindowOpeningTests, and XMLRPCAsyncTests.
+The default production clock and sleep behavior remain unchanged.
+
+The current host cleanup test is
+`scriptRequestKeepsLibraryBusyUntilInterruptedHostCleanupReturns(reason:)`.
+It replaces `scriptRequestKeepsLibraryBusyUntilCancelledHostCleanupReturns(timeout:)`.
+The API matrix uses the current name. Dated records retain the previous name.
