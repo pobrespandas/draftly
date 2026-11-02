@@ -189,7 +189,13 @@ import AgentLocalSecurity
                 guard let self else { return nil }
                 return Self.mcpConfiguration(connectionID: connectionID, libraryID: self.libraryID,
                     stateDirectory: self.lease.location.url.deletingLastPathComponent(), bundleURL: Bundle.main.bundleURL)
-            })
+            }, readActivity: { [weak self] in
+                guard let self else { throw AgentErrorCode.cancelled }
+                return try self.recentActivity()
+            }, eraseActivity: { [weak self] in
+                guard let self else { throw AgentErrorCode.cancelled }
+                try self.clearActivity()
+            }, activityRecordingError: { [weak self] in self?.activityRecordingError })
     }
 
     static func pairingCommand(libraryID: UUID, stateDirectory: URL, bundleURL: URL) -> String? {

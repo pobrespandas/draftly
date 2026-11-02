@@ -385,6 +385,7 @@ struct AgentLocalHostTests {
     @Test func authenticatedRequestsRecordMetadataWithoutChangingTheirResultOnStorageFailure() async throws {
         let f = try Fixture(); defer { f.cleanup() }
         let host = try f.host(); defer { host.close() }
+        let model = try host.makeLibrarySettingsModel()
         try host.setEnabledFromUserInterface(true)
         let record = try f.connect(host)
         let session = try host.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
@@ -398,6 +399,8 @@ struct AgentLocalHostTests {
         let entries = try host.recentActivity()
         #expect(entries.count == 1 && entries[0].connectionID == record.id)
         #expect(entries[0].operation == "server.status" && entries[0].result == "success")
+        model.refresh()
+        #expect(model.activity == entries && model.activityError == nil)
         let deniedRequest = AgentRequest(requestID: UUID(), libraryID: host.libraryID, operation: "actions.list")
         let denied = try JSONDecoder().decode(AgentResponse.self, from: host.service.respond(to: JSONEncoder().encode(deniedRequest), session: session))
         #expect(denied.outcome == .error(.permissionDenied))
@@ -409,12 +412,15 @@ struct AgentLocalHostTests {
         guard case .result = next.outcome else { Issue.record("Activity failure changed the response"); return }
         for _ in 0..<100 where host.activityRecordingError == nil { await Task.yield() }
         #expect(host.activityRecordingError == .storageError)
+        model.refresh()
+        #expect(model.activityError == .storageError)
         #expect(try Data(contentsOf: file) == invalid)
     }
 
     @Test func clearingActivityDiscardsQueuedRecordsButKeepsFutureRequests() async throws {
         let f = try Fixture(); defer { f.cleanup() }
         let host = try f.host(); defer { host.close() }
+        let model = try host.makeLibrarySettingsModel()
         try host.setEnabledFromUserInterface(true)
         let record = try f.connect(host)
         let session = try host.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
@@ -423,7 +429,7 @@ struct AgentLocalHostTests {
             return try JSONDecoder().decode(AgentResponse.self, from: host.service.respond(to: JSONEncoder().encode(request), session: session))
         }
         guard case .result = try request().outcome else { Issue.record("Expected success"); return }
-        try host.clearActivity()
+        try model.clearActivity()
         for _ in 0..<10 { await Task.yield() }
         #expect(try host.recentActivity().isEmpty)
         guard case .result = try request().outcome else { Issue.record("Expected success"); return }

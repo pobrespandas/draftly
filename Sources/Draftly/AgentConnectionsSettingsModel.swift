@@ -23,6 +23,8 @@ import AgentContracts
     var cleanupPending: Bool { !cleanupPendingIDs.isEmpty }
     @Published private(set) var readable = false
     @Published private(set) var accessEnabled = false
+    @Published private(set) var activity: [AgentActivityStore.Entry] = []
+    @Published private(set) var activityError: AgentErrorCode?
     @Published var draft: AgentGrantEditingCopy? { didSet { review = nil } }
 
     let libraryID: UUID
@@ -38,6 +40,9 @@ import AgentContracts
     private let setAccessEnabled: (Bool) throws -> Void
     private let isAccessActive: () -> Bool
     private let makeMCPConfiguration: (UUID) -> String?
+    private let readActivity: () throws -> [AgentActivityStore.Entry]
+    private let eraseActivity: () throws -> Void
+    private let activityRecordingError: () -> AgentErrorCode?
 
     init(libraryID: UUID, registry: AgentConnectionRegistry, pairing: AgentPairingCoordinator,
          now: @escaping () -> Date = Date.init, choices: @escaping () -> [ResourceChoice],
@@ -46,13 +51,18 @@ import AgentContracts
          setAccessEnabled: @escaping (Bool) throws -> Void,
          isAccessActive: @escaping () -> Bool = { true }, pairingCommand: String? = nil,
          availableCapabilities: Set<AgentCapability> = Set(AgentCapability.allCases),
-         makeMCPConfiguration: @escaping (UUID) -> String? = { _ in nil }) throws {
+         makeMCPConfiguration: @escaping (UUID) -> String? = { _ in nil },
+         readActivity: @escaping () throws -> [AgentActivityStore.Entry] = { [] },
+         eraseActivity: @escaping () throws -> Void = {},
+         activityRecordingError: @escaping () -> AgentErrorCode? = { nil }) throws {
         guard pairing.isBound(to: registry, libraryID: libraryID) else { throw AgentErrorCode.invalidInput }
         self.libraryID = libraryID; self.pairingCommand = pairingCommand; self.availableCapabilities = availableCapabilities
         self.registry = registry; self.pairing = pairing; self.now = now
         self.choices = choices; self.initialTargets = initialTargets; self.resolveTargets = resolveTargets
         self.setAccessEnabled = setAccessEnabled; self.isAccessActive = isAccessActive
         self.makeMCPConfiguration = makeMCPConfiguration
+        self.readActivity = readActivity; self.eraseActivity = eraseActivity
+        self.activityRecordingError = activityRecordingError
         refresh()
     }
 
@@ -80,6 +90,8 @@ import AgentContracts
             readable = true
         } catch { readable = false; accessEnabled = false; lastError = code(error) }
         pending = pairing.pendingFromUserInterface()
+        do { activity = try readActivity(); activityError = activityRecordingError() }
+        catch { activity = []; activityError = code(error) }
         if case .pairing(let challenge) = context, !pending.contains(where: { $0.id == challenge.id }) { review = nil }
     }
 
@@ -96,6 +108,11 @@ import AgentContracts
     }
 
     func stopWork() throws { try setEnabled(false) }
+
+    func clearActivity() throws {
+        do { try eraseActivity(); refresh() }
+        catch { activityError = code(error); throw error }
+    }
 
     func mcpConfiguration(for id: UUID) -> String? {
         guard let record = try? currentRecord(id), !record.revoked else { return nil }

@@ -4,6 +4,7 @@ import AgentContracts
 
 struct AgentConnectionsSettingsView: View {
     @ObservedObject var model: AgentConnectionsSettingsModel
+    @State private var confirmClearActivity = false
 
     var body: some View {
         Form {
@@ -69,6 +70,24 @@ struct AgentConnectionsSettingsView: View {
                     }
                 }
             }
+            Section("Recent activity") {
+                if let error = model.activityError {
+                    Text("Some activity may be missing. " + error.connectionMessage).foregroundStyle(.red)
+                }
+                if model.activity.isEmpty && model.activityError == nil { Text("No recorded activity.").foregroundStyle(.secondary) }
+                ForEach(model.activity.prefix(20)) { entry in
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(entry.operation + " · " + entry.result)
+                        Text(entry.date.formatted(date: .abbreviated, time: .shortened) + " · " +
+                             (model.connections.first(where: { $0.id == entry.connectionID })?.name ?? "Connection " + entry.connectionID.uuidString))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                Text("Results describe responses. A failed response can require checking whether a change took effect.")
+                    .font(.caption).foregroundStyle(.secondary)
+                Button("Clear activity…", role: .destructive) { confirmClearActivity = true }
+                    .disabled(model.activity.isEmpty && model.activityError == nil)
+            }
             if model.cleanupPending {
                 Text("Access is revoked. Credential cleanup is still pending.").foregroundStyle(.secondary)
             }
@@ -80,6 +99,10 @@ struct AgentConnectionsSettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .confirmationDialog("Clear activity for this library?", isPresented: $confirmClearActivity) {
+            Button("Clear activity", role: .destructive) { try? model.clearActivity() }
+            Button("Cancel", role: .cancel) {}
+        } message: { Text("This removes the local activity history for this library.") }
         .sheet(isPresented: Binding(get: { model.draft != nil }, set: { if !$0 { model.cancelEditing() } })) {
             AgentConnectionGrantEditor(model: model)
         }
