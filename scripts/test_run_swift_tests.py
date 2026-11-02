@@ -140,6 +140,20 @@ class SwiftResultVerificationTests(unittest.TestCase):
         self.assertEqual(record["command"][0:2], ["swift", "test"])
         self.assertEqual(command.call_count, 1)
 
+    def test_termination_trace_environment_is_passed_only_on_ci(self):
+        for ci in ["false", "true"]:
+            with self.subTest(ci=ci), \
+                    patch.dict(runner.os.environ, {"GITHUB_ACTIONS": ci,
+                        "DRAFTLY_TEST_EXIT_TRACE_LIBRARY": "/neutral/trace.dylib"}), \
+                    patch.object(runner.subprocess, "run", return_value=CompletedProcess([], 0)) as command, \
+                    patch.object(runner, "capture_native_crashes", return_value={"state": "scanned", "files": []}):
+                with self.assertRaisesRegex(ValueError, "no test report"):
+                    runner.run_target("DraftlyTests", self.expected, Path(self.folder.name))
+                if ci == "true":
+                    self.assertEqual(command.call_args.kwargs["env"]["DYLD_INSERT_LIBRARIES"], "/neutral/trace.dylib")
+                else:
+                    self.assertNotIn("env", command.call_args.kwargs)
+
     def test_local_execution_does_not_read_system_crash_reports(self):
         with patch.object(runner.subprocess, "run", return_value=CompletedProcess([], 0)), \
                 patch.object(runner, "capture_native_crashes") as capture:

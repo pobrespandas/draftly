@@ -142,7 +142,15 @@ def run_target(module, expected, output, *, concurrent_app=False, test_filter=No
     save_record()
     try:
         with (output / "tests.log").open("w") as log:
-            process = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT)
+            trace_library = os.environ.get("DRAFTLY_TEST_EXIT_TRACE_LIBRARY")
+            if os.environ.get("GITHUB_ACTIONS") == "true" and trace_library:
+                environment = dict(os.environ)
+                environment["DYLD_INSERT_LIBRARIES"] = trace_library
+                record["terminationTraceRequested"] = True
+                save_record()
+                process = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, env=environment)
+            else:
+                process = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT)
     except OSError:
         record.update(state="launch_failed", elapsedSeconds=time.monotonic() - started)
         save_record()

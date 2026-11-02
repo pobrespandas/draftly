@@ -19,6 +19,18 @@ All 21 runner unit tests pass. This improves diagnostics; it does not prove that
 the interruption is fixed. A targeted hosted Typewriter diagnostic is separate
 from release acceptance. No merge, release tag, or publication has occurred.
 
+Run `41381660136` also stopped with CLI status zero and an incomplete XML.
+Its last log was a parameter case in the Typewriter native editor test.
+The expanded crash collector found no report. The isolated Typewriter run
+`41381508965` passed all three method identities. These results do not establish
+the cause of the complete-suite interruption.
+
+CI now loads a test-process-only exit tracer. It records `exit` and `_exit`
+call stacks and preserves their status. It does not change report validation,
+test selection, deadlines, or retries. The dylib is a CI diagnostic and is not
+bundled in the app. Local smoke checks preserved exit statuses 73 and 74 and
+captured their stacks. All 22 runner unit tests passed.
+
 ## Default catalog replacement — 1 November
 
 Settings > Maintenance now replaces the canonical default actions by ID.
