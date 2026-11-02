@@ -26,6 +26,21 @@ availability. They do not establish every graphical screen-lock transition.
 Do not use them alone as proof that the screen is unlocked. See the
 [Apple Developer Forums discussion](https://developer.apple.com/forums/thread/850327).
 
+For isolated signed integration testing only, compile the app with
+`DRAFTLY_AGENT_QA` and start it with both `--ui-testing` and
+`--agent-isolated-qa`. This uses the temporary UI-test library and creates the
+host for pairing. The test adapter does not detect screen lock. Do not use it
+with personal data or ship a build that defines this flag. A successful test
+does not validate lock behavior or normal startup.
+
+On 2 November, a Developer ID build with this flag and a signed embedded helper
+opened an isolated library. Settings showed access disabled at startup. After
+enabling it, the helper discovered the host and both sides showed the same
+pairing code. The Review button did not open a permission editor in that test.
+Stop work disabled access and the waiting helper returned unavailable. Pairing,
+credential sharing and an authenticated CLI or MCP session remain unverified.
+The signed test build must exclude `get-task-allow`; the host rejects it.
+
 ## Current components
 
 - AgentContracts owns the request, response and authentication envelopes.

@@ -199,6 +199,12 @@ final class AppController: ObservableObject {
                 .flatMap(UUID.init(uuidString:)) ?? UUID()
             if cloudTesting && cloud == nil { throw DraftlyError.message("The iCloud test build has no CloudKit container.") }
             let directory = testing || cloudTesting ? FileManager.default.temporaryDirectory.appendingPathComponent("Draftly-UITesting").appendingPathComponent(testLibraryID.uuidString) : nil
+            #if DRAFTLY_AGENT_QA
+            if testing && ProcessInfo.processInfo.arguments.contains("--agent-isolated-qa"), let directory {
+                try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true,
+                                                        attributes: [.posixPermissions: 0o700])
+            }
+            #endif
             let store = try LibraryStore(cloudIdentifier: cloud, directory: directory, seed: !cloudTesting)
             let catalogQATesting = testing && ProcessInfo.processInfo.arguments.contains("--catalog-installation-testing")
             let catalogCloudQATesting = cloudTesting && ProcessInfo.processInfo.arguments.contains("--catalog-cloud-installation-testing")
@@ -214,6 +220,21 @@ final class AppController: ObservableObject {
             do { try LocalThemeMigration.run(in: store) }
             catch { store.error = "Theme migration failed: " + error.localizedDescription }
             library = store
+            #if DRAFTLY_AGENT_QA
+            if testing && ProcessInfo.processInfo.arguments.contains("--agent-isolated-qa") {
+                do {
+                    do { try AgentCredentialIdentity.validateCurrentProcess(.application) }
+                    catch { FileHandle.standardError.write(Data("Agent QA identity check failed\n".utf8)); throw error }
+                    do { _ = try AgentLibraryLocation(library: store) }
+                    catch { FileHandle.standardError.write(Data("Agent QA library check failed\n".utf8)); throw error }
+                    try configureAgentHost(isLocked: { false })
+                }
+                catch {
+                    FileHandle.standardError.write(Data("Agent QA host failed: \(error)\n".utf8))
+                    throw error
+                }
+            }
+            #endif
             if spotlightRequested { startSpotlightIndexing() }
             refreshThemeDevelopmentFolder()
             startupError = nil
