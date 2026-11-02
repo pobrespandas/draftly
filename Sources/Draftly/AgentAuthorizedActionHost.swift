@@ -88,7 +88,7 @@ import DraftlyCore
     }
 
     private func effectOutcome(_ operation: String, value: Any?) -> String {
-        guard ["share", "shareFile", "print", "clipboard", "htmlToClipboard"].contains(operation) else { return "completed" }
+        guard ["share", "shareFile", "print", "clipboard", "htmlToClipboard", "openURL"].contains(operation) else { return "completed" }
         guard let completed = value as? Bool else {
             hasUncertainOutcome = true
             return "unknown"

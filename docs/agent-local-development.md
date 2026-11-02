@@ -715,3 +715,17 @@ turned access off. QA quit and its exact registration was removed.
 This checks plain-text replacement. Installed append, prepend, formatted output
 and denied clipboard-read behavior remain pending. No personal clipboard data
 was read through the agent connection.
+
+### Reviewed link Action steps
+
+URL steps now suspend for a concrete native-effect review in the QA executor.
+The review shows the final URL after template expansion and tag encoding.
+The connection needs native permission and current Action and draft access.
+Opening the URL requires a single-use decision. A rejected native result stops
+following Action steps. The journal records confirmed handoff or an unknown
+result. A completed handoff means macOS accepted the open request; it does not
+prove that a destination loaded or completed its own effects.
+
+Focused tests cover encoded Unicode destinations, rejection, changed authority,
+and waiting for approval before native handoff. Installed URL acceptance remains
+pending. Script URL calls are still outside the permitted script API.

@@ -32,7 +32,7 @@ struct AgentAuthorizedActionHostTests {
         func finishAction() { finished += 1 }
     }
 
-    @Test(arguments: ["completed", "failed", "unknown", "malformed", "wrongType"], ["share", "shareFile", "print", "clipboard", "htmlToClipboard"])
+    @Test(arguments: ["completed", "failed", "unknown", "malformed", "wrongType"], ["share", "shareFile", "print", "clipboard", "htmlToClipboard", "openURL"])
     func nativeEffectsRecordHandoffAndItsOutcome(outcome: String, operation: String) async throws {
         let host = Host()
         if outcome == "failed" { host.asyncResult = "{\"value\":false}" }

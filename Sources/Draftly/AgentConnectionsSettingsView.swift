@@ -147,6 +147,7 @@ private struct AgentOperationReviewSheet: View {
         case "share": return "Share text"
         case "shareFile": return "Share a text file"
         case "print": return "Print text"
+        case "openURL": return "Open a link"
         default: return nil
         }
     }
@@ -155,7 +156,7 @@ private struct AgentOperationReviewSheet: View {
         guard case .object(let fields) = review.effects.snapshot["nativeParameters"] else { return [] }
         return fields.keys.sorted().map { key in
             let value = fields[key]!
-            let label = ["text": "Text", "html": "HTML content", "name": "File name", "format": "Format", "template": "Template"][key] ?? key
+            let label = ["text": "Text", "html": "HTML content", "name": "File name", "format": "Format", "template": "Template", "url": "URL"][key] ?? key
             if case .string(let text) = value { return (label, text) }
             let data = try? JSONEncoder().encode(value)
             return (label, data.flatMap { String(data: $0, encoding: .utf8) } ?? "Unavailable")

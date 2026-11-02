@@ -72,6 +72,22 @@ struct AsyncFilePreviewStepTests {
         #expect(f.editor.content == "Keep")
     }
 
+    @Test(arguments: [true, false])
+    func linksReviewTheEncodedDestinationAndStopOnFailure(accepted: Bool) async throws {
+        let host = FilePreviewStepHost()
+        host.response = accepted ? #"{"value":true}"# : #"{"value":false}"#
+        let f = try ScriptTestFixture(content: "café 🐼", host: host)
+        let action = DraftAction(name: "Link", steps: [
+            ActionStep("url", ["url": "https://example.invalid/search?q=[[draft]]"]),
+            ActionStep("insertText", ["template": "Later"])
+        ])
+        #expect(await f.runner.runAsync(action).reason == (accepted ? .success : .cancelled))
+        #expect(host.calls == ["openURL"])
+        let raw = try #require(host.payloads.first?["url"] as? String)
+        #expect(URLComponents(string: raw)?.queryItems?.first?.value == "café 🐼")
+        if !accepted { #expect(f.editor.content == "café 🐼") }
+    }
+
     @Test func exportUsesItsDefaultRenderedName() async throws {
         let f = try ScriptTestFixture(content: "Title\nBody", host: FilePreviewStepHost())
         let report = await f.runner.runAsync(DraftAction(name: "Export", steps: [ActionStep("export")]))

@@ -120,7 +120,7 @@ struct AgentScriptAuthorityTests {
         #expect(try authority.visibleActions([after]).isEmpty)
     }
 
-    @Test(arguments: ["share", "openIn", "print", "clipboard"])
+    @Test(arguments: ["share", "openIn", "print", "clipboard", "url"])
     func reviewedNativeStepsRequireNativePermissionAndCurrentDefinition(stepType: String) throws {
         let draft = UUID(), step = ActionStep(stepType)
         let action = DraftAction(name: "Reviewed", steps: [step])
@@ -129,7 +129,7 @@ struct AgentScriptAuthorityTests {
             capabilities: [.actionsRun, .draftsRead, .nativeUse],
             scope: .resources([.init(kind: .draft, id: draft), .init(kind: .action, id: action.id)]))
         var current = grant, definition = action
-        let operation = stepType == "openIn" ? "shareFile" : stepType
+        let operation = stepType == "openIn" ? "shareFile" : stepType == "url" ? "openURL" : stepType
         func authority(reviewed: Bool) -> AgentScriptAuthority {
             AgentScriptAuthority(grant: grant, currentGrant: { current }, validateHost: {}, isLocked: { false },
                 now: { now }, draftExists: { $0 == draft }, targetDraftID: draft,

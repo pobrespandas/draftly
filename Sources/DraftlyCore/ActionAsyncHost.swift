@@ -84,8 +84,7 @@ import Foundation
             return true
         case "url":
             let url = try await renderURLAsync(step.values["url"] ?? text, note: current, encodeTags: step.values["encodeTags"] != "false")
-            _ = try platform("openURL", ["url": url])
-            return true
+            return try await nativeValue("openURL", ["url": url]) as? Bool != false
         case "share":
             return try await nativeValue("share", ["text": rendered]) as? Bool != false
         case "openIn":
