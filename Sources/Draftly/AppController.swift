@@ -215,6 +215,13 @@ final class AppController: ObservableObject {
             }
             #endif
             let store = try LibraryStore(cloudIdentifier: cloud, directory: directory, seed: !cloudTesting)
+            #if DRAFTLY_AGENT_QA
+            if testing && ProcessInfo.processInfo.arguments.contains("--agent-isolated-qa") &&
+                ProcessInfo.processInfo.arguments.contains("--agent-workspace-fixtures") {
+                guard store.workspaces.isEmpty else { throw DraftlyError.message("QA workspace fixtures require an empty test library.") }
+                try store.saveWorkspaces([Workspace(name: "QA Visible"), Workspace(name: "QA Hidden")])
+            }
+            #endif
             let catalogQATesting = testing && ProcessInfo.processInfo.arguments.contains("--catalog-installation-testing")
             let catalogCloudQATesting = cloudTesting && ProcessInfo.processInfo.arguments.contains("--catalog-cloud-installation-testing")
             if (!testing && !cloudTesting) || catalogQATesting || catalogCloudQATesting {
