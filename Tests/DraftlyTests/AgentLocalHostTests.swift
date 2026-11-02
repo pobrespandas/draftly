@@ -352,6 +352,27 @@ struct AgentLocalHostTests {
         #expect(model.accessEnabled && host.endpoint != nil)
     }
 
+    @Test func stopWorkClosesSessionsAndPendingPairingWithoutRevokingGrants() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let host = try f.host(); defer { host.close() }
+        let model = try host.makeLibrarySettingsModel()
+        try model.setEnabled(true)
+        let record = try f.connect(host)
+        let credential = try #require(f.secrets[record.id])
+        let session = try host.service.authenticate(connectionID: record.id, credential: credential)
+        let challenge = try host.pairing.request(clientName: "Pending client")
+        let endpoint = try #require(host.endpoint)
+        try model.stopWork()
+        #expect(host.endpoint == nil && !model.accessEnabled)
+        #expect(!FileManager.default.fileExists(atPath: endpoint))
+        #expect(try host.pairing.state(challenge.id) == .invalidated)
+        #expect(throws: AgentErrorCode.permissionDenied) { try host.service.authorizedLibraryID(for: session) }
+        #expect(try host.connections.configurationForUserInterface().connections.contains { $0.id == record.id && !$0.revoked })
+        try model.setEnabled(true)
+        #expect(throws: AgentErrorCode.permissionDenied) { try host.service.authorizedLibraryID(for: session) }
+        _ = try host.service.authenticate(connectionID: record.id, credential: credential)
+    }
+
     @Test func realPairingSettingsAndSocketReadsShareOneAuthorityAndLibrary() async throws {
         let f = try Fixture(); defer { f.cleanup() }
         let note = try f.library.createNote(content: "Allowed 🐼")

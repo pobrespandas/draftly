@@ -90,6 +90,8 @@ import AgentContracts
         } catch { refresh(); lastError = code(error); throw error }
     }
 
+    func stopWork() throws { try setEnabled(false) }
+
     func beginEditing(_ id: UUID) throws {
         do {
             let record = try currentRecord(id)
