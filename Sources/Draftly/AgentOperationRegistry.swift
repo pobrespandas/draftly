@@ -9,6 +9,33 @@ import AgentContracts
         let updatedAt: Date
         let output: AutomationActionExecution.Output?
         let error: AgentErrorCode?
+
+        func wireValue() throws -> AgentJSONValue {
+            let formatter = ISO8601DateFormatter()
+            func date(_ value: Date) -> AgentJSONValue { .string(formatter.string(from: value)) }
+            var report: AgentJSONValue = .null
+            if let output, state.isTerminal, state != .outcomeUnknown {
+                let value = output.report
+                report = .object([
+                    "executionID": .string(value.executionID.uuidString), "actionID": .string(value.actionID.uuidString),
+                    "startedAt": date(value.startedAt), "finishedAt": date(value.finishedAt),
+                    "status": .string(value.result.succeeded ? "success" : value.reason == .cancelled ? "cancelled" : "failure"),
+                    "reason": .string(value.reason.rawValue), "message": .string(output.message),
+                    "successParameters": .object(value.result.succeeded ? value.successParameters.mapValues(AgentJSONValue.string) : [:])
+                ])
+            } else if state.isTerminal && state != .outcomeUnknown {
+                throw AgentErrorCode.unavailable
+            }
+            let value: AgentJSONValue = .object([
+                "operationID": .string(id.uuidString), "name": .string("actions.run"),
+                "state": .string(state.rawValue), "updatedAt": date(updatedAt),
+                "result": state == .succeeded ? .object([:]) : .null,
+                "error": error.map { .object(["code": .string($0.rawValue), "message": .string($0.rawValue)]) } ?? .null,
+                "actionReport": report, "completedEffects": .array([])
+            ])
+            try AgentExecutionSchemas.validateResult(["operation": value], for: "operations.get")
+            return value
+        }
     }
     private struct Entry {
         let connectionID: UUID

@@ -66,12 +66,14 @@ struct AgentOperationRegistryTests {
         try registry.setWaitingForUser(id, waiting: true)
         #expect(try registry.snapshot(id, connectionID: connection).updatedAt == clock)
         #expect(try registry.snapshot(id, connectionID: connection).state == .waitingForUser)
+        _ = try registry.snapshot(id, connectionID: connection).wireValue()
         try registry.setWaitingForUser(id, waiting: false)
         #expect(try registry.cancel(id, connectionID: connection))
         #expect(try !registry.cancel(id, connectionID: connection))
         #expect(try registry.snapshot(id, connectionID: connection).state == .running)
         for _ in 0..<1000 where try registry.snapshot(id, connectionID: connection).state == .running { await Task.yield() }
         #expect(try registry.snapshot(id, connectionID: connection).state == .cancelled)
+        _ = try registry.snapshot(id, connectionID: connection).wireValue()
         try registry.removeCompleted(id, connectionID: connection)
         #expect(throws: AgentErrorCode.notFound) { try registry.snapshot(id, connectionID: connection) }
     }
@@ -87,6 +89,7 @@ struct AgentOperationRegistryTests {
         for _ in 0..<1000 where try registry.snapshot(id, connectionID: connection).state == .running { await Task.yield() }
         let result = try registry.snapshot(id, connectionID: connection)
         #expect(result.state == .outcomeUnknown && result.error == .outcomeUnknown && result.output == nil)
+        _ = try result.wireValue()
     }
 
     @Test func revokedGrantCannotReadOrCancelAnOperation() async throws {
