@@ -13,10 +13,20 @@ import DraftlyCore
     let syntaxDefinition: SyntaxDefinition?
     let theme: EditorTheme?
     let linksEnabled: Bool
+    private static let linkDetector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
+    private static var expressions: [String: NSRegularExpression] = [:]
+    private static func expression(_ pattern: String) -> NSRegularExpression? {
+        if let cached = expressions[pattern] { return cached }
+        guard let compiled = try? NSRegularExpression(pattern: pattern) else { return nil }
+        expressions[pattern] = compiled
+        return compiled
+    }
 
     func apply(to view: NSTextView, defaultLinkAttributes: [NSAttributedString.Key: Any]?) {
         guard let storage = view.textStorage else { return }
         let range = NSRange(location: 0, length: storage.length)
+        let styledRanges = syntaxDefinition.map { $0.styledRanges(in: view.string) + $0.linkStyledRanges(in: view.string) } ?? []
+        let taskRanges = syntaxDefinition?.taskStyledRanges(in: view.string) ?? []
         let activeScope = ["text.linkModeLink", "text.activeLink", "text.link"].first { theme?.scopeStyle(named: $0) != nil }
         var activeRanges: [NSRange] = []
         var font = fontName == "System" ? NSFont.systemFont(ofSize: fontSize) : NSFont(name: fontName, size: fontSize) ?? NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
@@ -42,19 +52,19 @@ import DraftlyCore
                 ("\\[[^\\]]+\\]\\([^)]+\\)", [.foregroundColor: NSColor.systemBlue])
             ]
             for (pattern, attributes) in rules {
-                guard let regex = try? NSRegularExpression(pattern: pattern) else { continue }
+                guard let regex = Self.expression(pattern) else { continue }
                 for match in regex.matches(in: view.string, range: range) { storage.addAttributes(attributes, range: match.range) }
             }
         }
         if syntax == "TaskPaper" || syntax == "Simple List" {
             for (pattern, color) in [("(?m)^.*:$", NSColor.systemBlue), ("@[a-zA-Z0-9_]+(?:\\([^)]*\\))?", NSColor.systemOrange), ("(?m)^\\s*- .*@done.*$", NSColor.secondaryLabelColor)] {
-                if let regex = try? NSRegularExpression(pattern: pattern) {
+                if let regex = Self.expression(pattern) {
                     for match in regex.matches(in: view.string, range: range) { storage.addAttribute(.foregroundColor, value: color, range: match.range) }
                 }
             }
         }
         if syntax == "JavaScript" {
-            if let regex = try? NSRegularExpression(pattern: "\\b(let|const|var|function|return|if|else|class|new|throw|try|catch|async|await)\\b") {
+            if let regex = Self.expression("\\b(let|const|var|function|return|if|else|class|new|throw|try|catch|async|await)\\b") {
                 for match in regex.matches(in: view.string, range: range) { storage.addAttribute(.foregroundColor, value: NSColor.systemPurple, range: match.range) }
             }
         }
@@ -83,14 +93,14 @@ import DraftlyCore
                     storage.addAttributes(attributes, range: range)
                 }
             }
-            for (range, scopes) in definition.styledRanges(in: view.string) + definition.linkStyledRanges(in: view.string) {
+            for (range, scopes) in styledRanges {
                 applyDefault(scopes, range: range)
             }
-            for (range, scopes) in definition.taskStyledRanges(in: view.string) {
+            for (range, scopes) in taskRanges {
                 applyDefault(scopes, range: range, foregroundAllowed: false)
             }
         }
-        if linksEnabled, let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) {
+        if linksEnabled, let detector = Self.linkDetector {
             for match in detector.matches(in: view.string, range: range) {
                 if let url = match.url {
                     activeRanges.append(match.range)
@@ -125,21 +135,21 @@ import DraftlyCore
                     ("\\[[^\\]]+\\]\\([^)]+\\)", "text.link")
                 ]
                 for (pattern, scope) in scopedRules {
-                    if let regex = try? NSRegularExpression(pattern: pattern) {
+                    if let regex = Self.expression(pattern) {
                         for match in regex.matches(in: view.string, range: range) { apply(scope, range: match.range) }
                     }
                 }
                 for level in 1...6 {
-                    if let regex = try? NSRegularExpression(pattern: "(?m)^#{\(level)} .*$") {
+                    if let regex = Self.expression("(?m)^#{\(level)} .*$") {
                         for match in regex.matches(in: view.string, range: range) { apply("text.heading0\(level)", range: match.range) }
                     }
                 }
             }
-            if let definition = syntaxDefinition {
-                for (range, scopes) in definition.styledRanges(in: view.string) + definition.linkStyledRanges(in: view.string) {
+            if syntaxDefinition != nil {
+                for (range, scopes) in styledRanges {
                     for scope in scopes.split(separator: ",").map({ $0.trimmingCharacters(in: .whitespaces) }) { apply(scope, range: range) }
                 }
-                for (range, scopes) in definition.taskStyledRanges(in: view.string) {
+                for (range, scopes) in taskRanges {
                     for scope in scopes.split(separator: ",").map({ $0.trimmingCharacters(in: .whitespaces) }) { apply(scope, range: range, foregroundAllowed: false) }
                 }
             }
