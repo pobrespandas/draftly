@@ -10,7 +10,7 @@ The sections below record incremental development. Their statements about
 missing handlers describe the checkpoint at which each section was written.
 The current branch implements authenticated action and group reads, action
 step defaults, shortcut validation, `actions.create`, `actions.update`,
-`actions.duplicate`, `actions.move`, `actionGroups.create`, and
+`actions.duplicate`, `actions.move`, `actions.reorder`, `actionGroups.create`, and
 `actionGroups.update`, `actionGroups.duplicate`, and `actionGroups.reorder`.
 Creating an action requires access to the full library. Action changes use
 an expected version, a signed retry key, and an atomic action and receipt
@@ -32,7 +32,8 @@ With full-library access, `actions.groups` returns an `orderVersion` for the
 complete group list. Each cursor page checks that version and reports a conflict
 if the list changed. Scoped reads do not return a full-library version.
 The write validates the full target set and commits all orders and the receipt
-together. Action reordering remains unavailable. A full-library `actions.list`
+together. Action reordering also requires full-library access and the complete
+set of actions in one group. A full-library `actions.list`
 request with a group ID and the `all` surface returns an order version for the
 complete group. Its cursor pages reject concurrent changes.
 
