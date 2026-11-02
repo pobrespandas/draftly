@@ -170,6 +170,16 @@ class SwiftResultVerificationTests(unittest.TestCase):
         self.assertEqual(list(destination.iterdir()), [destination / good.name])
         self.assertEqual((destination / good.name).read_text(), "neutral crash fixture")
 
+    def test_crash_capture_includes_the_swift_package_test_executable(self):
+        source = Path(self.folder.name) / "reports"; source.mkdir()
+        destination = Path(self.folder.name) / "copied"
+        package = source / "DraftlyPackageTests-neutral.ips"
+        package.write_text("neutral package crash fixture")
+        (source / "OtherPackageTests-neutral.ips").write_text("unrelated")
+        record = runner.capture_native_crashes(source, destination, 0)
+        self.assertEqual(record["files"], [package.name])
+        self.assertEqual((destination / package.name).read_text(), package.read_text())
+
     def test_crash_capture_is_bounded_and_handles_missing_directories(self):
         source = Path(self.folder.name) / "reports"; source.mkdir()
         destination = Path(self.folder.name) / "copied"

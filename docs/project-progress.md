@@ -3,6 +3,22 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Catalog release CI interruption — 2 November
+
+PR #86 run `41380539924` passed tooling and the matrix check. Native execution
+returned CLI status zero with an incomplete app XML. The strict inventory
+verifier rejected it. Artifact `13113232443` retains the failed reports.
+The last logged test was
+`URLActionInstallationTests.draftlyGroupLinkInstallsGroupAndOrderedActionsAtomically`.
+The Typewriter suite had completed. This log position does not establish the
+cause. No assertion failure or matching crash report was captured.
+
+The crash collector now also accepts the actual `DraftlyPackageTests` executable
+name. Its bounded file checks and CI-only restriction remain unchanged.
+All 21 runner unit tests pass. This improves diagnostics; it does not prove that
+the interruption is fixed. A targeted hosted Typewriter diagnostic is separate
+from release acceptance. No merge, release tag, or publication has occurred.
+
 ## Default catalog replacement — 1 November
 
 Settings > Maintenance now replaces the canonical default actions by ID.

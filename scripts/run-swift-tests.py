@@ -76,7 +76,7 @@ def capture_native_crashes(source, destination, started_at):
     except OSError:
         return {"state": "unavailable", "files": []}
     for path in candidates:
-        if not re.fullmatch(r"(?:DraftlyTests|swiftpm-testing-helper|swift-test|xctest)[_-].+\.(?:ips|crash)", path.name):
+        if not re.fullmatch(r"(?:DraftlyTests|DraftlyPackageTests|swiftpm-testing-helper|swift-test|xctest)[_-].+\.(?:ips|crash)", path.name):
             continue
         descriptor = None
         try:
