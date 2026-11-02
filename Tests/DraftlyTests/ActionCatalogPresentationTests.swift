@@ -19,7 +19,7 @@ struct ActionCatalogPresentationTests {
         #expect(list.symbol == "chevron.left")
         #expect(list.presentation.tintColor == "yellow")
         #expect(list.steps == source.steps && list.id == source.id)
-        #expect(source.symbol == "arrow.left" && source.presentation.tintColor == nil)
+        #expect(source.symbol == "chevron.left" && source.presentation.tintColor == "yellow")
     }
 
     @Test func customizedAndUnrelatedActionsKeepTheirAppearance() throws {

@@ -1,0 +1,16 @@
+Draftly 0.1.6
+
+Replace the default action catalog from Settings > Maintenance. This restores
+deleted defaults and replaces edited defaults with the current Basic, Editing,
+Markdown, Tools, and Processing actions. Personal actions remain unchanged.
+Repeated replacement does not create duplicate groups or actions.
+
+Store the reviewed action symbols, colors, and bar labels with the catalog.
+The action list, bar, inspector, and exports use those stored values.
+
+Existing libraries keep their current actions until you choose Replace Default
+Actions. Automatic catalog updates are not enabled in this version.
+
+Agent access remains disabled in normal app startup. No agent helper is bundled.
+
+Requires macOS 26 or later.

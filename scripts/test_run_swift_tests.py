@@ -140,6 +140,22 @@ class SwiftResultVerificationTests(unittest.TestCase):
         self.assertEqual(record["command"][0:2], ["swift", "test"])
         self.assertEqual(command.call_count, 1)
 
+    def test_termination_trace_environment_is_passed_only_on_ci(self):
+        for ci in ["false", "true"]:
+            with self.subTest(ci=ci), \
+                    patch.dict(runner.os.environ, {"GITHUB_ACTIONS": ci,
+                        "DRAFTLY_TEST_EXIT_TRACE_LIBRARY": "/neutral/trace.dylib",
+                        "DRAFTLY_TEST_SWIFT_EXECUTABLE": "/neutral/toolchain/swift"}), \
+                    patch.object(runner.subprocess, "run", return_value=CompletedProcess([], 0)) as command, \
+                    patch.object(runner, "capture_native_crashes", return_value={"state": "scanned", "files": []}):
+                with self.assertRaisesRegex(ValueError, "no test report"):
+                    runner.run_target("DraftlyTests", self.expected, Path(self.folder.name))
+                if ci == "true":
+                    self.assertEqual(command.call_args.kwargs["env"]["DYLD_INSERT_LIBRARIES"], "/neutral/trace.dylib")
+                    self.assertEqual(command.call_args.args[0][0], "/neutral/toolchain/swift")
+                else:
+                    self.assertNotIn("env", command.call_args.kwargs)
+
     def test_local_execution_does_not_read_system_crash_reports(self):
         with patch.object(runner.subprocess, "run", return_value=CompletedProcess([], 0)), \
                 patch.object(runner, "capture_native_crashes") as capture:
@@ -169,6 +185,16 @@ class SwiftResultVerificationTests(unittest.TestCase):
         self.assertEqual(record["files"], [good.name])
         self.assertEqual(list(destination.iterdir()), [destination / good.name])
         self.assertEqual((destination / good.name).read_text(), "neutral crash fixture")
+
+    def test_crash_capture_includes_the_swift_package_test_executable(self):
+        source = Path(self.folder.name) / "reports"; source.mkdir()
+        destination = Path(self.folder.name) / "copied"
+        package = source / "DraftlyPackageTests-neutral.ips"
+        package.write_text("neutral package crash fixture")
+        (source / "OtherPackageTests-neutral.ips").write_text("unrelated")
+        record = runner.capture_native_crashes(source, destination, 0)
+        self.assertEqual(record["files"], [package.name])
+        self.assertEqual((destination / package.name).read_text(), package.read_text())
 
     def test_crash_capture_is_bounded_and_handles_missing_directories(self):
         source = Path(self.folder.name) / "reports"; source.mkdir()

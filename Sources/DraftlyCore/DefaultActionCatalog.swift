@@ -16,12 +16,14 @@ public enum DefaultActionCatalog {
             var group = ActionGroupRecord(name: name)
             group.id = stableID("group/" + name)
             group.order = order
+            group.symbol = ["Editing": "character.cursor.ibeam", "Markdown": "text.badge.star",
+                            "Tools": "curlybraces", "Processing": "arrow.left.arrow.right"][name] ?? group.symbol
             return group
         }
     }
 
     public static var actions: [DraftAction] {
-        basic + editing + markdown + tools + processing
+        (basic + editing + markdown + tools + processing).map { DefaultActionAppearance.applying(to: $0) }
     }
 
     public static func restoredBundle(existingGroupNames: [String]) -> (groups: [ActionGroupRecord], actions: [DraftAction]) {

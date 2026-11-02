@@ -4,6 +4,55 @@ import Testing
 
 @Suite("Initial action catalog") @MainActor
 struct DefaultActionCatalogTests {
+    @Test func replacementOverwritesDefaultsRestoresDeletionsAndKeepsPersonalActionsAcrossRestart() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        var library: LibraryStore? = try LibraryStore(directory: folder)
+        let note = try library!.createNote(content: "Keep this draft 🐼")
+        var copy = try #require(library!.actions.first { $0.name == "Copy" })
+        copy.name = "Edited Copy"
+        copy.symbol = "star"
+        copy.presentation.tintColor = "red"
+        copy.steps = []
+        try library!.saveAction(copy)
+        let deleted = try #require(library!.actions.first { $0.name == "Message" })
+        try library!.deleteAction(deleted.id)
+        var personal = DraftAction(name: "Copy", steps: [])
+        personal.group = "Basic"
+        personal.symbol = "heart"
+        personal.presentation.tintColor = "purple"
+        try library!.saveAction(personal)
+        for _ in 0..<2 {
+            let result = try library!.replaceDefaultActions()
+            #expect(result.actionCount == DefaultActionCatalog.actions.count)
+            #expect(library!.actions.count == result.actionCount + 1)
+            #expect(library!.actions.first { $0.id == personal.id } == personal)
+            #expect(DefaultActionCatalog.actions.allSatisfy { library!.actions.contains($0) })
+            #expect(library!.notes == [note])
+            #expect(library!.groupNames == DefaultActionCatalog.groupNames)
+        }
+        library = nil
+        let reopened = try LibraryStore(directory: folder)
+        #expect(reopened.actions.first { $0.id == personal.id } == personal)
+        #expect(DefaultActionCatalog.actions.allSatisfy { reopened.actions.contains($0) })
+        let message = try #require(reopened.actions.first { $0.id == deleted.id })
+        #expect(message.symbol == "message.fill" && message.presentation.tintColor == "green")
+    }
+
+    @Test func replacementFailureKeepsTheWholePreviousCatalog() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        var action = try #require(DefaultActionCatalog.actions.first)
+        action.name = "Edited default"
+        try library.saveAction(action)
+        let actions = library.actions, groups = library.actionGroups
+        library.beforeBatchCommit = { throw DraftlyError.message("Injected failure") }
+        #expect(throws: (any Error).self) { try library.replaceDefaultActions() }
+        #expect(library.actions == actions && library.actionGroups == groups)
+        library.beforeBatchCommit = nil
+        try library.replaceDefaultActions()
+        #expect(Set(library.actions.map(\.id)) == Set(DefaultActionCatalog.actions.map(\.id)))
+    }
+
     @Test func statisticsMatchesReferencePreviewWithoutChangingDraft() throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let note = try library.createNote(content: "The cat sat on the mat. This is a simple test.")
