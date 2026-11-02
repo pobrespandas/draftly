@@ -83,6 +83,11 @@ The operation registry tracks ownership, waiting, cancellation and completion
 in memory. A cancellation request does not claim completion before the work
 returns. Unexpected interruption after work starts has an unknown outcome.
 Restart recovery and transport access to operation status remain unimplemented.
+Within one host lifetime, repeated Action request IDs return the same operation.
+Changed request fields fail with a version conflict. Removing a completed
+operation does not permit its request ID to start work again. Request history
+has a fixed limit and rejects new work when full. This history is not durable
+across a restart, so it does not provide recovery or replay protection then.
 For the guarded draft operations, the runner checks authority again before it
 returns a result to the script. If authority changes after an update, it stops
 the Action and records an unknown outcome even when the script catches the

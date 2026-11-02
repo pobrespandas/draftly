@@ -6,6 +6,22 @@ import DraftlyCore
 
 @Suite("Agent operation lifetime") @MainActor
 struct AgentOperationRegistryTests {
+    @Test func removingCompletedOperationDoesNotReplayItsRequest() async throws {
+        let connection = UUID(), library = UUID(), action = UUID(), draft = UUID()
+        let grant = AgentGrant(connectionID: connection, libraryID: library, expiresAt: Date().addingTimeInterval(600),
+            capabilities: [.actionsRun, .draftsRead], scope: .library)
+        let registry = AgentOperationRegistry(currentGrant: { _ in grant }, validateHost: {}, isLocked: { false })
+        let request = AgentRequest(requestID: UUID(), libraryID: library, operation: "actions.run",
+            targets: [.init(kind: .action, id: action), .init(kind: .draft, id: draft)], expectedVersion: "v1")
+        let id = try registry.startRequest(request, grant: grant) { _ in
+            .init(report: .notStarted(actionID: action, reason: .cancelled, message: "Cancelled"), noteID: draft, message: "Cancelled")
+        }
+        for _ in 0..<1000 where try !registry.snapshot(id, connectionID: connection).state.isTerminal { await Task.yield() }
+        try registry.removeCompleted(id, connectionID: connection)
+        #expect(throws: AgentErrorCode.notFound) {
+            try registry.startRequest(request, grant: grant) { _ in fatalError("Must not replay") }
+        }
+    }
     @Test func repeatedRequestReturnsTheSameOperationWithoutStartingWorkAgain() throws {
         let connection = UUID(), library = UUID(), action = UUID(), draft = UUID()
         let grant = AgentGrant(connectionID: connection, libraryID: library, expiresAt: Date().addingTimeInterval(600),
