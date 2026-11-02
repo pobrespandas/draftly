@@ -8,7 +8,10 @@ import AgentContracts
 struct AgentCommandServiceTests {
     @Test func actionSubmissionIsAvailableOnlyWithConnectedExecutorAndRegistry() throws {
         let f = try Fixture()
-        let (record, _) = try f.connect(capabilities: [.actionsRun, .draftsRead])
+        let (record, _) = try f.connect(capabilities: [.actionsRun, .actionsRead, .draftsRead])
+        let action = DraftAction(name: "Neutral", steps: [])
+        try f.library.saveAction(action)
+        let note = try f.note("Neutral")
         let registry = AgentOperationRegistry(currentGrant: { try f.connections.grantForAuthenticatedConnection($0) },
             validateHost: {}, isLocked: { false }, now: { f.wall })
         defer { registry.cancelAll() }
@@ -24,8 +27,14 @@ struct AgentCommandServiceTests {
             })
         let credential = try #require(f.secrets[record.id])
         let session = try service.authenticate(connectionID: record.id, credential: credential)
+        let read = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "actions.get",
+            targets: [.init(kind: .action, id: action.id)])
+        let readResponse = try JSONDecoder().decode(AgentResponse.self,
+            from: service.respond(to: JSONEncoder().encode(read), session: session))
+        guard case .result(.object(let fields)) = readResponse.outcome,
+              case .string(let version) = fields["versionToken"] else { Issue.record("Expected action version"); return }
         let request = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "actions.run",
-            targets: [.init(kind: .action, id: UUID()), .init(kind: .draft, id: UUID())], expectedVersion: "v1")
+            targets: [.init(kind: .action, id: action.id), .init(kind: .draft, id: note.id)], expectedVersion: version)
         let response = try JSONDecoder().decode(AgentResponse.self,
             from: service.respond(to: JSONEncoder().encode(request), session: session))
         guard case .result(.object(let result)) = response.outcome else { Issue.record("Expected queued operation"); return }

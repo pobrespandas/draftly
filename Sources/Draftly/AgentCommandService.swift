@@ -627,6 +627,11 @@ import AgentContracts
         switch request.operation {
         case "actions.run":
             guard let submitAction, let operationRegistry else { throw AgentErrorCode.unavailable }
+            guard let actionID = request.targets.first(where: { $0.kind == .action })?.id,
+                  let draftID = request.targets.first(where: { $0.kind == .draft })?.id,
+                  let action = actionLibrary.actions.first(where: { $0.id == actionID }),
+                  actionLibrary.notes.contains(where: { $0.id == draftID }) else { throw AgentErrorCode.notFound }
+            guard try actionVersion(action) == request.expectedVersion else { throw AgentErrorCode.versionConflict }
             let id = try submitAction(request, grant)
             let snapshot = try operationRegistry.snapshot(id, connectionID: grant.connectionID)
             guard !snapshot.state.isTerminal else { throw AgentErrorCode.unavailable }
