@@ -180,7 +180,7 @@ import AgentContracts
         return Data(HMAC<SHA256>.authenticationCode(for: try encoder.encode(action), using: actionVersionKey)).base64EncodedString()
     }
 
-    private func checkedActionUpdate(_ request: AgentRequest) throws -> DraftAction {
+    private func checkedActionUpdate(_ request: AgentRequest, connectionID: UUID) throws -> DraftAction {
         guard let target = request.targets.first?.id, let expected = request.expectedVersion,
               let original = actionLibrary.actions.first(where: { $0.id == target }) else { throw AgentErrorCode.notFound }
         guard try actionVersion(original) == expected else { throw AgentErrorCode.versionConflict }
@@ -194,6 +194,9 @@ import AgentContracts
         guard edited.id == target, edited.group == original.group,
               !edited.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw AgentErrorCode.invalidInput }
         if edited.shortcut != original.shortcut || edited.shortcutModifiers != original.shortcutModifiers {
+            guard let grant = try connections.grantForAuthenticatedConnection(connectionID), grant.scope == .library else {
+                throw AgentErrorCode.permissionDenied
+            }
             guard ActionShortcut.conflict(for: edited, in: actionLibrary.actions) == nil else { throw AgentErrorCode.invalidInput }
         }
         return edited
@@ -221,7 +224,7 @@ import AgentContracts
         guard request.retryKey == nil, request.libraryID == libraryID else { throw AgentErrorCode.invalidInput }
         try validateAdmission()
         let ticket = try retryKeys.issue(request, connectionID: connectionID)
-        if try actionMutationReceipt(request, ticket: ticket) == nil { _ = try checkedActionUpdate(request) }
+        if try actionMutationReceipt(request, ticket: ticket) == nil { _ = try checkedActionUpdate(request, connectionID: connectionID) }
         try validateAdmission(); _ = try retryKeys.verify(ticket.value, request: request, connectionID: connectionID)
         return ticket
     }
@@ -230,13 +233,16 @@ import AgentContracts
         guard let key = request.retryKey else { throw AgentErrorCode.invalidInput }
         try validateAdmission()
         let ticket = try retryKeys.verify(key, request: request, connectionID: connectionID)
-        if let previous = try actionMutationReceipt(request, ticket: ticket) { return previous }
-        let action = try checkedActionUpdate(request)
+        if let previous = try actionMutationReceipt(request, ticket: ticket) {
+            try validateAdmission(); _ = try retryKeys.verify(key, request: request, connectionID: connectionID)
+            return previous
+        }
+        let action = try checkedActionUpdate(request, connectionID: connectionID)
         let identity = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
         do {
             return try actionLibrary.commitActions([action], mutation: identity, at: now(), validateCommit: {
                 try self.validateAdmission(); _ = try self.retryKeys.verify(key, request: request, connectionID: connectionID)
-                _ = try self.checkedActionUpdate(request)
+                _ = try self.checkedActionUpdate(request, connectionID: connectionID)
             }, makeResources: { actions in
                 try actions.map { .init(id: $0.id, versionToken: try self.actionVersion($0)) }
             })

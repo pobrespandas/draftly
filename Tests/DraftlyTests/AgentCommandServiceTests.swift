@@ -148,6 +148,33 @@ struct AgentCommandServiceTests {
         #expect(try send(signed(retryKey), reopened).outcome == .error(.permissionDenied))
     }
 
+    @Test func shortcutValidationDoesNotRevealActionsOutsideScope() throws {
+        let f = try Fixture(), action = DraftAction(name: "Allowed", steps: [])
+        var hidden = DraftAction(name: "Hidden", steps: []); hidden.shortcut = "q"
+        try f.library.saveActions([action, hidden])
+        let target = AgentResourceReference(kind: .action, id: action.id)
+        let (_, limited) = try f.connect(scope: .resources([target]), capabilities: [.actionsRead, .actionsManage])
+        let (_, full) = try f.connect(capabilities: [.actionsRead, .actionsManage])
+        guard case .string(let version) = try f.values("actions.get", session: limited, targets: [target])["versionToken"] else {
+            Issue.record("Missing version"); return
+        }
+        func prepare(_ key: String, _ session: AgentCommandService.Session) throws -> AgentResponse {
+            var changed = action; changed.shortcut = key
+            let definition = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(changed))
+            let request = AgentRequest(requestID: UUID(), libraryID: nil, operation: "actions.update", targets: [target],
+                                       expectedVersion: version, parameters: ["action": definition])
+            let frame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(request))
+            return try f.response("mutations.prepare", session: session, parameters: ["request": frame])
+        }
+        #expect(try prepare("q", limited).outcome == .error(.permissionDenied))
+        #expect(try prepare("z", limited).outcome == .error(.permissionDenied))
+        #expect(try prepare("q", full).outcome == .error(.invalidInput))
+        guard case .result = try prepare("z", full).outcome else { Issue.record("Expected available shortcut"); return }
+        #expect(f.library.actions.contains(action) && f.library.actions.contains(hidden))
+        try f.library.deleteAction(hidden.id)
+        #expect(try prepare("z", limited).outcome == .error(.permissionDenied))
+    }
+
     @Test func actionGetRequiresScopeAndReturnsTheListedVersion() throws {
         let f = try Fixture()
         var allowed = DraftAction(name: "Allowed", steps: [])
