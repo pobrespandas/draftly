@@ -18,6 +18,11 @@ import AgentContracts
     private static let actionReadOperations: Set<String> = ["actions.list", "actions.get", "actions.groups"]
     static let implementedOperations = readOperations.union(actionReadOperations).union([AgentMutationSchemas.name]).union(AgentDraftWriting.operationNames).union(editorReadOperations)
     private var availableOperations: Set<String> { editorRegistry == nil ? Self.readOperations.union(Self.actionReadOperations) : (writes == nil ? Self.readOperations.union(Self.editorReadOperations).union(Self.actionReadOperations) : Self.implementedOperations) }
+    var availableCapabilities: Set<AgentCapability> {
+        availableOperations.reduce(into: Set<AgentCapability>()) { result, name in
+            if let operation = AgentOperationCatalog.operation(named: name) { result.formUnion(operation.capabilities) }
+        }
+    }
     private let actionLibrary: LibraryStore
     private let actionVersionKey = SymmetricKey(size: .bits256)
     private let editorRegistry: AgentEditorRegistry?

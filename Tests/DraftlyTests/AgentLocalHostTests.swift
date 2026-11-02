@@ -387,6 +387,12 @@ struct AgentLocalHostTests {
         model.cancelEditing()
         #expect(f.secrets.isEmpty)
         try model.beginPairing(#require(challenge.pairingID))
+        #expect(model.availableCapabilities.contains(.actionsRead))
+        #expect(!model.availableCapabilities.contains(.actionsRun))
+        var unsupported = try #require(model.draft)
+        unsupported.capabilities.insert(.actionsRun); model.draft = unsupported
+        #expect(throws: AgentErrorCode.unavailable) { try model.preparePairingReview() }
+        unsupported.capabilities.remove(.actionsRun); model.draft = unsupported
         try model.preparePairingReview()
         let record = try model.approvePairing(codesMatch: true)
         let decision = try await peer.poll()

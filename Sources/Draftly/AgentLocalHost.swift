@@ -153,7 +153,8 @@ import AgentLocalSecurity
                 try self.setEnabledFromUserInterface(enabled)
             }, isAccessActive: { [weak self] in self?.endpoint != nil },
             pairingCommand: Self.pairingCommand(libraryID: libraryID,
-                stateDirectory: lease.location.url.deletingLastPathComponent(), bundleURL: Bundle.main.bundleURL))
+                stateDirectory: lease.location.url.deletingLastPathComponent(), bundleURL: Bundle.main.bundleURL),
+            availableCapabilities: service.availableCapabilities)
     }
 
     static func pairingCommand(libraryID: UUID, stateDirectory: URL, bundleURL: URL) -> String? {

@@ -132,13 +132,15 @@ private struct AgentConnectionGrantEditor: View {
             }
             Section("Permissions") {
                 ForEach(AgentCapability.allCases, id: \.rawValue) { capability in
-                    Toggle(capability.userTitle, isOn: Binding(get: { model.draft?.capabilities.contains(capability) == true }, set: { enabled in
+                    Toggle(capability.userTitle + (model.availableCapabilities.contains(capability) ? "" : " (unavailable)"), isOn: Binding(get: { model.draft?.capabilities.contains(capability) == true }, set: { enabled in
                         guard var copy = model.draft else { return }
                         if enabled { copy.capabilities.insert(capability) } else { copy.capabilities.remove(capability) }
                         model.draft = copy
-                    }))
+                    })).disabled(!model.availableCapabilities.contains(capability) && !draft.capabilities.contains(capability))
                 }
                 Text("Permissions do not approve individual destructive operations or native effects.")
+                    .font(.caption).foregroundStyle(.secondary)
+                Text("Some available permissions cover only part of their operation category.")
                     .font(.caption).foregroundStyle(.secondary)
                 if draft.capabilities.contains(.scriptsUnrestricted) {
                     Text("Unrestricted scripts can affect files, other apps and external systems. Each use still needs your approval.")

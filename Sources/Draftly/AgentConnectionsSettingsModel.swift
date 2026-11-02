@@ -27,6 +27,7 @@ import AgentContracts
 
     let libraryID: UUID
     let pairingCommand: String?
+    let availableCapabilities: Set<AgentCapability>
     private let registry: AgentConnectionRegistry
     private let pairing: AgentPairingCoordinator
     private let now: () -> Date
@@ -42,9 +43,10 @@ import AgentContracts
          initialTargets: @escaping () -> Set<AgentResourceReference> = { [] },
          resolveTargets: @escaping (Set<AgentResourceReference>) throws -> Set<AgentResourceReference>,
          setAccessEnabled: @escaping (Bool) throws -> Void,
-         isAccessActive: @escaping () -> Bool = { true }, pairingCommand: String? = nil) throws {
+         isAccessActive: @escaping () -> Bool = { true }, pairingCommand: String? = nil,
+         availableCapabilities: Set<AgentCapability> = Set(AgentCapability.allCases)) throws {
         guard pairing.isBound(to: registry, libraryID: libraryID) else { throw AgentErrorCode.invalidInput }
-        self.libraryID = libraryID; self.pairingCommand = pairingCommand
+        self.libraryID = libraryID; self.pairingCommand = pairingCommand; self.availableCapabilities = availableCapabilities
         self.registry = registry; self.pairing = pairing; self.now = now
         self.choices = choices; self.initialTargets = initialTargets; self.resolveTargets = resolveTargets
         self.setAccessEnabled = setAccessEnabled; self.isAccessActive = isAccessActive
@@ -122,6 +124,7 @@ import AgentContracts
             let current = try currentRecord(id)
             guard current.grantID == draft.originalGrantID else { throw AgentErrorCode.versionConflict }
             guard !current.revoked else { throw AgentErrorCode.permissionDenied }
+            guard draft.capabilities.subtracting(current.capabilities).isSubset(of: availableCapabilities) else { throw AgentErrorCode.unavailable }
             // Renaming is not part of the registry's grant replacement command.
             guard draft.name == current.name else { throw AgentErrorCode.invalidInput }
             try validate(draft)
@@ -134,6 +137,7 @@ import AgentContracts
     func preparePairingReview() throws {
         do {
             guard case .pairing(let challenge) = context, let draft else { throw AgentErrorCode.invalidInput }
+            guard draft.capabilities.isSubset(of: availableCapabilities) else { throw AgentErrorCode.unavailable }
             try validate(draft)
             review = try pairing.prepareReviewFromUserInterface(challenge.id, name: draft.name,
                 capabilities: draft.capabilities, scope: draft.scope, grantExpiresAt: draft.expiresAt, renewable: draft.renewable)
