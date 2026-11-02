@@ -57,6 +57,12 @@ normal startup, notarization, restart recovery or production acceptance.
 
 ## Remaining integration
 
+The private operation journal can reserve a request identity and save a validated
+snapshot through atomic file replacement. Its tests cover reopening, retained
+effects, grant changes and corrupt files. Request parameters are represented by
+a fingerprint. The journal is not connected to the operation registry yet, so
+the running host still has no restart recovery or durable replay protection.
+
 1. Complete result coverage and records for non-native effects. Native effect
    records are connected. Snapshot encoding checks the execution result schema.
 2. Verify operation queries and cancellation through installed CLI and MCP.
