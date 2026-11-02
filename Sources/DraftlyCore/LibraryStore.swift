@@ -57,12 +57,7 @@ public final class LibraryStore: ObservableObject {
             onRemoteChange: { [weak self] in
                 do { try self?.reload() } catch { self?.error = error.localizedDescription }
             }, onImportCompleted: { [weak self] in
-                guard let self, let installation = self.pendingCatalogInstallation else { return }
-                do {
-                    try self.reload()
-                    try self.replaceActionCatalogIfNeeded(installation: installation)
-                    self.pendingCatalogInstallation = nil
-                } catch { self.error = error.localizedDescription }
+                self?.completePendingCatalogImport()
             }, onStatusChange: { [weak self] in self?.syncStatus = $0 })
     }
 
@@ -286,11 +281,25 @@ public final class LibraryStore: ObservableObject {
         return DefaultActionCatalogInstallation(groupNames: groups.map(\.name), actionCount: actions.count)
     }
     public func requestActionCatalogReplacement(installation: String) throws {
-        if cloudIdentifier != nil {
+        try requestActionCatalogReplacement(installation: installation, requiresImport: cloudIdentifier != nil)
+    }
+
+    func requestActionCatalogReplacement(installation: String, requiresImport: Bool) throws {
+        guard !installation.isEmpty else { throw DraftlyError.message("The installation identity is missing.") }
+        if requiresImport {
             pendingCatalogInstallation = installation
         } else {
             try replaceActionCatalogIfNeeded(installation: installation)
         }
+    }
+
+    func completePendingCatalogImport() {
+        guard let installation = pendingCatalogInstallation else { return }
+        do {
+            try reload()
+            try replaceActionCatalogIfNeeded(installation: installation)
+            pendingCatalogInstallation = nil
+        } catch { self.error = error.localizedDescription }
     }
 
     private struct InstalledActionCatalog: Codable { let installation: String }

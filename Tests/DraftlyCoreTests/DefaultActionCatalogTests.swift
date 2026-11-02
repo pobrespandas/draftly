@@ -4,6 +4,27 @@ import Testing
 
 @Suite("Initial action catalog") @MainActor
 struct DefaultActionCatalogTests {
+    @Test func cloudImportGatesReplacementAndFailedCommitCanRetry() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let personal = DraftAction(name: "Personal before import", steps: [])
+        try library.saveAction(personal)
+        try library.requestActionCatalogReplacement(installation: "cloud-install", requiresImport: true)
+        #expect(library.actions == [personal])
+        let imported = DraftAction(name: "Imported after request", steps: [])
+        try library.saveAction(imported)
+        library.beforeBatchCommit = { throw DraftlyError.message("Injected failure") }
+        library.completePendingCatalogImport()
+        #expect(Set(library.actions.map(\.id)) == Set([personal.id, imported.id]))
+        #expect(library.error != nil)
+        library.beforeBatchCommit = nil
+        library.completePendingCatalogImport()
+        #expect(Set(library.actions.map(\.id)) == Set(DefaultActionCatalog.actions.map(\.id)))
+        let later = DraftAction(name: "After replacement", steps: [])
+        try library.saveAction(later)
+        library.completePendingCatalogImport()
+        #expect(library.actions.contains(later))
+    }
+
     @Test func installationMarkerSurvivesRestart() throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: folder) }
