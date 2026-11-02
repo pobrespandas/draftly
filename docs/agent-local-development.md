@@ -9,13 +9,14 @@ permission to connect to a personal library.
 The sections below record incremental development. Their statements about
 missing handlers describe the checkpoint at which each section was written.
 The current branch implements authenticated action and group reads, action
-step defaults, shortcut validation, `actions.create`, and `actions.update`.
+step defaults, shortcut validation, `actions.create`, `actions.update`, and
+`actions.move`.
 Creating an action requires access to the full library. Action changes use
 an expected version, a signed retry key, and an atomic action and receipt
 transaction. Recovery checks the current grant. A client with resource scope
 cannot change a shortcut, because conflict checks use the entire catalog.
-Moving an action to another group is a separate operation and is not available
-through `actions.update`.
+Moving an action requires access to both the action and its destination group.
+It is a separate operation from `actions.update`.
 
 The host does not start in the normal app. Agent access remains unavailable in
 released builds. The signed helper and host still need a real installed-app
