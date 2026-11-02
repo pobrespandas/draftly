@@ -747,9 +747,17 @@ It returns the effective value, origin, override flag and opaque version tokens.
 Invalid scalar overrides remain stored and return a null invalid reading.
 
 A batch with an unsupported address returns unavailable without partial values.
-Native, syntax, encoded and command preferences still need their read adapters
-connected. Update and reset remain unavailable. Schema descriptors describe the
+Native and syntax preferences still need their read adapters connected. Update and reset remain unavailable. Schema descriptors describe the
 contract, while operation availability describes the connected handlers.
 Focused service tests cover permission denial, stable and changed tokens,
 invalid overrides, list defaults, unsupported batches and locked admission.
 Installed CLI and MCP acceptance for this handler remains pending.
+
+
+Markdown option maps and command shortcuts now use the existing encoded read
+adapter. Missing stores use their defaults. Malformed or wrongly typed stores
+return an invalid reading without rewriting the source or unknown fields.
+The default Workspace uses its resource-aware adapter. A stored reference needs
+both `workspaces.read` and scope for that Workspace; otherwise it returns
+`not_found` without disclosing the identifier. Focused service tests cover these
+paths. Native installed acceptance and preference writes remain pending.

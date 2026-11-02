@@ -432,6 +432,56 @@ struct AgentCommandServiceTests {
         #expect(f.library.actions.count == 2)
     }
 
+    @Test func encodedPreferenceReadsPreserveUnknownDataAndInvalidStores() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let defaults = try #require(UserDefaults(suiteName: f.editorDefaultsName))
+        let (_, session) = try f.connect(capabilities: [.preferencesRead])
+        let config = #"{"smartQuotesEnabled":false,"future":{"keep":"🐼"}}"#
+        defaults.set(config, forKey: MarkdownPreferences.multiKey)
+        let address = AgentJSONValue.object(["id": .string("markdown.multi.smartQuotesEnabled")])
+        func reading() throws -> [String: AgentJSONValue] {
+            let values = try f.values("preferences.get", session: session, parameters: ["items": .array([address])])
+            guard case .array(let items) = values["items"], case .object(let item) = items.first else {
+                throw AgentErrorCode.invalidInput
+            }
+            return item
+        }
+        #expect(try reading()["effectiveValue"] == .bool(false))
+        #expect(try reading()["valueOrigin"] == .string("stored"))
+        #expect(defaults.string(forKey: MarkdownPreferences.multiKey) == config)
+        defaults.set(7, forKey: MarkdownPreferences.multiKey)
+        #expect(try reading()["valueOrigin"] == .string("invalid"))
+        #expect(defaults.integer(forKey: MarkdownPreferences.multiKey) == 7)
+        let shortcut = AgentJSONValue.object(["id": .string("commands.shortcut"), "command": .string("New Draft")])
+        let value = try f.values("preferences.get", session: session, parameters: ["items": .array([shortcut])])
+        guard case .array(let items) = value["items"], case .object(let item) = items.first else {
+            Issue.record("Missing shortcut"); return
+        }
+        #expect(item["valueOrigin"] == .string("default") && item["hasOverride"] == .bool(false))
+    }
+
+    @Test func defaultWorkspacePreferenceCannotExposeAnUnscopedReference() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let defaults = try #require(UserDefaults(suiteName: f.editorDefaultsName))
+        let workspace = Workspace(name: "Allowed workspace")
+        try f.library.saveWorkspace(workspace)
+        defaults.set(workspace.id.uuidString, forKey: WorkspaceDefaults.key)
+        let params: [String: AgentJSONValue] = ["items": .array([.object(["id": .string(WorkspaceDefaults.key)])])]
+        let (_, noWorkspaceRead) = try f.connect(capabilities: [.preferencesRead])
+        let (_, unscoped) = try f.connect(scope: .resources([]), capabilities: [.preferencesRead, .workspacesRead])
+        for session in [noWorkspaceRead, unscoped] {
+            #expect(try f.response("preferences.get", session: session, parameters: params).outcome == .error(.notFound))
+        }
+        let (_, allowed) = try f.connect(scope: .resources([.init(kind: .workspace, id: workspace.id)]),
+            capabilities: [.preferencesRead, .workspacesRead])
+        let result = try f.values("preferences.get", session: allowed, parameters: params)
+        guard case .array(let items) = result["items"], case .object(let item) = items.first else {
+            Issue.record("Missing workspace preference"); return
+        }
+        #expect(item["effectiveValue"] == .string(workspace.id.uuidString))
+        #expect(item["valueOrigin"] == .string("stored"))
+    }
+
     @Test func listPreferenceReadUsesDeviceDefaultsAndRejectsPartialBatches() throws {
         let f = try Fixture(); defer { f.cleanEditorPreferences() }
         let defaults = try #require(UserDefaults(suiteName: f.editorDefaultsName))

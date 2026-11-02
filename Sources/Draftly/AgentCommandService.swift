@@ -844,6 +844,17 @@ import AgentContracts
                     reading = try AgentDevicePreferenceAccess.read(address: item, defaults: preferenceDefaults)
                 } else if AgentListPreferenceAccess.supportedIDs.contains(address.id) {
                     reading = try AgentListPreferenceAccess.read(address: item, defaults: preferenceDefaults)
+                } else if address.id == WorkspaceDefaults.key {
+                    reading = try AgentWorkspacePreferenceAccess.read(defaults: preferenceDefaults,
+                        capabilities: grant.capabilities, scope: grant.scope,
+                        workspaceExists: { id in actionLibrary.workspaces.contains { $0.id == id } })
+                } else if address.id.hasPrefix("markdown.multi.") || address.id.hasPrefix("markdown.github.") || address.id == "commands.shortcut" {
+                    let key = address.id == "commands.shortcut" ? CommandShortcuts.storageKey :
+                        address.id.hasPrefix("markdown.multi.") ? MarkdownPreferences.multiKey : MarkdownPreferences.githubKey
+                    let configuration: String
+                    if let stored = preferenceDefaults.object(forKey: key) { configuration = stored as? String ?? "null" }
+                    else { configuration = "{}" }
+                    reading = try AgentEncodedPreferenceAccess.read(address: item, configuration: configuration)
                 } else { throw AgentErrorCode.unavailable }
                 guard case .object(var fields) = item else { throw AgentErrorCode.invalidInput }
                 fields["effectiveValue"] = reading.effectiveValue
