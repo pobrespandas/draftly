@@ -23,10 +23,13 @@ recovery, and revocation. A signed isolated run also updated one granted
 workspace, repeated the request, and read back the saved value. The test
 connection was revoked and the host stopped. The run did not validate an
 installed release or screen-lock handling.
-An unconnected native host wrapper can check each concrete invocation before
+An optional native host wrapper can check each concrete invocation before
 handoff and again after a result. If authority is lost after handoff, it reports
 an unknown outcome. It does not authorize scripts, library access, templates,
-or execution. No agent Action can run through this wrapper yet. Runtime checks
+or execution. The existing automation executor can now use the wrapper with
+either a visible editor or a headless editor. Agent Action execution remains
+unavailable. The executor currently flushes all editor models, so it must not
+be used for scoped agent access until that behavior is guarded. Runtime checks
 at every bridge and an approval path are still required.
 Creating an action requires access to the full library. Action changes use
 an expected version, a signed retry key, and an atomic action and receipt
