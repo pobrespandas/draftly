@@ -18,6 +18,11 @@ worker. Keep main stable during candidate preparation and publication.
 | Earlier editor projection | 5ff376b is an ancestor of main. | Already integrated; do not duplicate it. |
 | Product documents | e0cf84d was carried into PR82 and merged as6340434. | Already integrated; do not cherry-pick again. |
 
+Two earlier Settings worktrees retain uncommitted SwiftUI background/transaction
+experiments. Recovery patches were saved outside Git; their source was left
+intact. They target the superseded selector, not the current native controller.
+The original workspace also retains independent user edits and website work.
+
 This inventory does not claim native parity or agent activation. The active
 release keeps agents disabled. Full stage-zero completion still requires public
 artifact/feed verification and resolution of each integration disposition.
