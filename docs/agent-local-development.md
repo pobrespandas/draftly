@@ -19,6 +19,16 @@ The broker is not started by any app route. Its constructor rejects disabled or
 locked access. Tests explicitly create it with an in-memory library and fake
 credentials. Real process-signature checks are replaced only inside those tests.
 
+## Session state during startup
+
+The native host must fail closed until it has a reliable unlocked-session state.
+AppKit workspace session notifications describe switching user sessions. They do
+not establish the screen-lock state or a safe initial value. Register workspace
+notifications on `NSWorkspace.shared.notificationCenter`. Validate screen lock,
+unlock, session switching, and startup while locked in signed native QA before
+using these signals to resume a broker. An uncertain state must deny access.
+See [Apple's session notification documentation](https://developer.apple.com/documentation/appkit/nsworkspace/sessiondidresignactivenotification).
+
 ## Build the helper
 
 Run `swift build --product draftly-agent`. Use `swift build --show-bin-path` to

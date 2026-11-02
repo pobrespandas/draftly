@@ -8,6 +8,19 @@ import unittest
 
 
 class GeneratedProjectTests(unittest.TestCase):
+    def test_checked_in_project_contains_all_current_sources(self):
+        source_root = Path(__file__).resolve().parent.parent
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "scripts").mkdir()
+            (root / "Sources").mkdir()
+            (root / "Sources/Draftly").symlink_to(source_root / "Sources/Draftly", target_is_directory=True)
+            generator = root / "scripts/generate-project.py"
+            shutil.copyfile(source_root / "scripts/generate-project.py", generator)
+            subprocess.run(["python3", str(generator)], check=True, capture_output=True)
+            self.assertEqual((root / "Draftly.xcodeproj/project.pbxproj").read_bytes(),
+                             (source_root / "Draftly.xcodeproj/project.pbxproj").read_bytes())
+
     def test_app_links_internal_contracts_with_the_same_package_identity(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
