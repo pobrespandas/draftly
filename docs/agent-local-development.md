@@ -45,6 +45,11 @@ The policy rejects unclassified operations.
 This incomplete policy is not connected to an agent executor. It does not yet
 cover initial context, native Action steps, nested execution, final disposition,
 or the full runtime contract.
+For the guarded draft operations, the runner checks authority again before it
+returns a result to the script. If authority changes after an update, it stops
+the Action and records an unknown outcome even when the script catches the
+error. The automation result carries that state. A future agent operation
+registry must retain and expose it; this does not yet provide durable recovery.
 Do not enable agent Action execution until those paths have enforced authority.
 Creating an action requires access to the full library. Action changes use
 an expected version, a signed retry key, and an atomic action and receipt

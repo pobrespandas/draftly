@@ -98,10 +98,29 @@ struct AgentAuthorizedActionHostTests {
             if operation != "device" && !allowed { throw AgentErrorCode.permissionDenied }
         }
         let action = DraftAction(name: "Copy", steps: [ActionStep("clipboard", ["template": "Neutral"])])
-        _ = try await AutomationActionExecution.run(action, noteID: note.id, library: library,
+        let result = try await AutomationActionExecution.run(action, noteID: note.id, library: library,
             models: [], host: native, hostOverride: guarded, editorScope: .targetDraft)
         #expect(native.operations.contains("clipboard"))
-        #expect(guarded.hasUncertainOutcome)
+        #expect(guarded.hasUncertainOutcome && result.outcomeUnknown)
+    }
+
+    @Test func updateRemainsUncertainIfPermissionChangesAfterCommitEvenWhenScriptCatchesError() async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Original")
+        let host = NativeActionHost()
+        var updateChecks = 0
+        let action = DraftAction(name: "Change", steps: [ActionStep("script", ["script":
+            "draft.content='Changed'; try { draft.update(); } catch(e) {} "])])
+        let result = try await AutomationActionExecution.run(action, noteID: note.id, library: library,
+            models: [], host: host, editorScope: .targetDraft, scriptAuthorization: { operation, _ in
+                if operation == "updateDraft" {
+                    updateChecks += 1
+                    if updateChecks > 1 { throw AgentErrorCode.permissionDenied }
+                }
+            })
+        #expect(updateChecks == 2)
+        #expect(library.notes.first { $0.id == note.id }?.content == "Changed")
+        #expect(result.outcomeUnknown)
     }
 
     @Test(arguments: [false, true]) func scriptAuthorizationStopsLibraryWrites(visible: Bool) async throws {

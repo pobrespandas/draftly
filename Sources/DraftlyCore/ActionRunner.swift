@@ -31,6 +31,7 @@ public final class ActionRunner: ObservableObject {
     public var authorizeScriptOperation: ((String, String) throws -> Void)?
     // A guarded query must filter its input before it evaluates the query.
     public var filterScriptDrafts: (([Note]) throws -> [Note])?
+    public private(set) var scriptOutcomeUnknown = false
     public var readTheme: (EditorThemeDefinition) throws -> EditorThemeDefinition = { try ThemeFileAccess.read($0) }
     public var selectedDrafts: (() -> [Note])?
     public var applyWorkspace: ((Workspace) throws -> Void)?
@@ -95,6 +96,7 @@ public final class ActionRunner: ObservableObject {
         }
         activeSession = session
         defer { Self.runningLibraries.remove(libraryID); activeSession = nil }
+        scriptOutcomeUnknown = false
         terminationReason = .error
         successParameters = [:]
         _ = executeRun(action)
@@ -118,6 +120,7 @@ public final class ActionRunner: ObservableObject {
         }
         activeSession = session
         asyncExecutionID = session.id
+        scriptOutcomeUnknown = false
         scriptNoteContents = [:]
         if let id = editor.noteID, let stored = library.notes.first(where: { $0.id == id }) {
             if let baseline = editor.persistedDraft, baseline.id == id, editor.content != stored.content {
@@ -386,9 +389,17 @@ public final class ActionRunner: ObservableObject {
         let wasApplying = isApplyingScriptCommand
         isApplyingScriptCommand = true
         defer { isApplyingScriptCommand = wasApplying }
-        if let command = try ScriptCommand(operation: operation, values: values) {
-            return try perform(command)
+        let result: Any?
+        if let command = try ScriptCommand(operation: operation, values: values) { result = try perform(command) }
+        else { result = try dispatchAPI(operation, values: values) }
+        if ["findDraft", "queryDrafts", "updateDraft"].contains(operation), let authorizeScriptOperation {
+            do { try authorizeScriptOperation(operation, json(values)) }
+            catch {
+                if operation == "updateDraft" { scriptOutcomeUnknown = true }
+                cancel()
+                throw error
+            }
         }
-        return try dispatchAPI(operation, values: values)
+        return result
     }
 }

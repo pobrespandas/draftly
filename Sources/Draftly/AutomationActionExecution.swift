@@ -10,6 +10,7 @@ import DraftlyCore
         let noteID: UUID?
         let message: String
         var presentationHandled = false
+        var outcomeUnknown = false
     }
 
     typealias ModelResolver = @MainActor ([WindowModel], UUID) -> WindowModel?
@@ -185,8 +186,10 @@ import DraftlyCore
             }
         } else { report = await runner.runAsync(action); resultDraftID = editor.noteID }
         _ = host
+        let guardedHost = (hostOverride as? AgentAuthorizedActionHost) ?? (model == nil ? host as? AgentAuthorizedActionHost : nil)
         return Output(report: report, noteID: resultDraftID, message: runner.message ?? "",
-                      presentationHandled: model?.window?.isVisible == true)
+                      presentationHandled: model?.window?.isVisible == true,
+                      outcomeUnknown: runner.scriptOutcomeUnknown || guardedHost?.hasUncertainOutcome == true)
     }
 
     private static func notStarted(_ action: DraftAction, noteID: UUID?, reason: ActionTerminationReason,
