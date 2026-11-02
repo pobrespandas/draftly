@@ -75,8 +75,10 @@ route supported operations through this flow.
 Native effect reviews bind the concrete operation and its parameters to a
 single-use decision. Unclassified effects are denied. File writes and
 unrestricted automation require library scope, and unrestricted automation
-also requires its separate capability. The Action executor is not connected
-to this review flow yet.
+also requires its separate capability. An internal Action executor can route a
+share step through this review flow. It checks the approved Action definitions,
+target scope and current version snapshots again before the effect. The agent
+service does not expose Action execution yet.
 For the guarded draft operations, the runner checks authority again before it
 returns a result to the script. If authority changes after an update, it stops
 the Action and records an unknown outcome even when the script catches the

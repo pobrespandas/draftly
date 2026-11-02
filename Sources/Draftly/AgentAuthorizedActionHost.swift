@@ -10,11 +10,14 @@ import DraftlyCore
     private let host: any ActionHost
     private let authorize: Authorize
     private let approve: Approve?
+    private let requiresApproval: (String) -> Bool
     private(set) var hasUncertainOutcome = false
 
-    init(host: any ActionHost, approve: Approve? = nil, authorize: @escaping Authorize) {
+    init(host: any ActionHost, approve: Approve? = nil,
+         requiresApproval: @escaping (String) -> Bool = { _ in true }, authorize: @escaping Authorize) {
         self.host = host
         self.approve = approve
+        self.requiresApproval = requiresApproval
         self.authorize = authorize
     }
 
@@ -23,7 +26,7 @@ import DraftlyCore
     func perform(_ operation: String, values: [String: Any]) throws -> Any? {
         try Task.checkCancellation()
         // A synchronous call cannot wait for a human decision.
-        guard approve == nil else { throw AgentErrorCode.interactionRequired }
+        guard approve == nil || !requiresApproval(operation) else { throw AgentErrorCode.interactionRequired }
         try authorize(operation, values)
         let result: Any?
         do { result = try host.perform(operation, values: values) }
@@ -40,7 +43,7 @@ import DraftlyCore
         }
         try Task.checkCancellation()
         try authorize(operation, values)
-        if let approve {
+        if let approve, requiresApproval(operation) {
             try await approve(operation, values)
             try Task.checkCancellation()
             try authorize(operation, values)

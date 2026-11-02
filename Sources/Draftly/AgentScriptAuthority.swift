@@ -17,17 +17,20 @@ import DraftlyCore
     private let windowID: UUID?
     private var approvedActions: [UUID: DraftAction]
     private let currentAction: ((UUID) -> DraftAction?)?
+    private let reviewedNativeEffects: Bool
 
     init(grant: AgentGrant, currentGrant: @escaping () throws -> AgentGrant?,
          validateHost: @escaping () throws -> Void, isLocked: @escaping () -> Bool,
          now: @escaping () -> Date = Date.init, draftExists: @escaping (UUID) -> Bool,
          targetDraftID: UUID? = nil, editorDraftID: (() -> UUID?)? = nil, windowID: UUID? = nil,
-         approvedActions: [UUID: DraftAction] = [:], currentAction: ((UUID) -> DraftAction?)? = nil) {
+         approvedActions: [UUID: DraftAction] = [:], currentAction: ((UUID) -> DraftAction?)? = nil,
+         reviewedNativeEffects: Bool = false) {
         connectionID = grant.connectionID; grantID = grant.grantID; libraryID = grant.libraryID
         self.currentGrant = currentGrant; self.validateHost = validateHost
         self.isLocked = isLocked; self.now = now; self.draftExists = draftExists
         self.targetDraftID = targetDraftID; self.editorDraftID = editorDraftID; self.windowID = windowID
         self.approvedActions = approvedActions; self.currentAction = currentAction
+        self.reviewedNativeEffects = reviewedNativeEffects
     }
 
     func authorize(_ operation: String, payload: String) throws {
@@ -88,6 +91,9 @@ import DraftlyCore
         guard approved.steps.contains(step) else { throw AgentErrorCode.versionConflict }
         switch step.type {
         case "script", "includeAction", "configurationKey": break
+        case "share":
+            guard reviewedNativeEffects else { throw AgentErrorCode.unavailable }
+            guard grant.capabilities.contains(.nativeUse) else { throw AgentErrorCode.permissionDenied }
         case "insertText":
             guard grant.capabilities.contains(.draftsWrite), editorDraftID?() == targetDraftID else {
                 throw AgentErrorCode.permissionDenied
@@ -102,6 +108,27 @@ import DraftlyCore
         try requireUnchanged(grant)
         guard try checkedAction(owner) == approved else { throw AgentErrorCode.versionConflict }
         try requireUnchanged(grant)
+    }
+
+    func authorizeNative(_ operation: String, rootActionID: UUID) throws {
+        let grant = try currentBaseline()
+        try requireTarget(grant, actionID: rootActionID)
+        let approved = try checkedAction(rootActionID)
+        try requireApprovedActionsUnchanged()
+        if operation != "device" {
+            guard operation == "share", reviewedNativeEffects,
+                  grant.capabilities.contains(.nativeUse) else { throw AgentErrorCode.permissionDenied }
+        }
+        try requireUnchanged(grant)
+        guard try checkedAction(rootActionID) == approved else { throw AgentErrorCode.versionConflict }
+        try requireApprovedActionsUnchanged()
+        try requireUnchanged(grant)
+    }
+
+    private func requireApprovedActionsUnchanged() throws {
+        for (id, approved) in approvedActions where currentAction?(id) != approved {
+            throw AgentErrorCode.versionConflict
+        }
     }
 
     func authorizeConfiguration(_ action: DraftAction) throws {
