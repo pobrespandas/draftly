@@ -159,6 +159,11 @@ import AgentLocalSecurity
         return try makeSettingsModel(choices: { resources.choices() })
     }
 
+    func makeLibrarySettingsModel() throws -> AgentConnectionsSettingsModel {
+        let resources = AgentLibraryResourceChoices(library: library)
+        return try makeSettingsModel(choices: { resources.choices() })
+    }
+
     private func requireReady() throws {
         do {
             try validateOwnership()

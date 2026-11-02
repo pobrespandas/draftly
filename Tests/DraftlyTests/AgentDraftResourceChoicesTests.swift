@@ -22,4 +22,19 @@ struct AgentDraftResourceChoicesTests {
         try library.emptyTrash()
         #expect(choices.resolve([target]).isEmpty)
     }
+
+    @Test func actionChoicesAndResolutionFollowLiveLibrary() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Draft")
+        let action = DraftAction(name: "Allowed action", steps: [])
+        try library.saveAction(action)
+        let choices = AgentLibraryResourceChoices(library: library)
+        let draft = AgentResourceReference(kind: .draft, id: note.id)
+        let target = AgentResourceReference(kind: .action, id: action.id)
+        let wrongKind = AgentResourceReference(kind: .draft, id: action.id)
+        #expect(Set(choices.choices().map(\.reference)) == [draft, target])
+        #expect(choices.resolve([draft, target, wrongKind]) == [draft, target])
+        try library.deleteAction(action.id)
+        #expect(choices.resolve([draft, target]) == [draft])
+    }
 }

@@ -35,7 +35,7 @@ struct AgentLocalHostTests {
         func host(editors: AgentEditorRegistry? = nil, socketParent: URL = FileManager.default.temporaryDirectory) throws -> AgentLocalHost {
             try AgentLocalHost(library: library, appVersion: "Neutral QA", editors: editors, isLocked: { [self] in self.locked },
                 pendingEditorGeneration: { _ in "" }, resolveTargets: { [self] targets in
-                    Set(targets.filter { target in target.kind == .draft && self.library.notes.contains { $0.id == target.id } })
+                    AgentLibraryResourceChoices(library: self.library).resolve(targets)
                 }, socketParentDirectory: socketParent,
                 credentials: .init(read: { [self] id in self.credentialReads += 1; return self.secrets[id] },
                     create: { [self] id, value in
@@ -301,6 +301,18 @@ struct AgentLocalHostTests {
         #expect(model.resourceChoices().map(\.reference) == [target])
         #expect(model.resourceChoices().first?.title == note.title)
         #expect(!model.accessEnabled && host.endpoint == nil && f.secrets.isEmpty)
+    }
+
+    @Test func librarySettingsOffersActionsWithoutStartingAccess() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let action = DraftAction(name: "Scoped action", steps: [])
+        try f.library.saveAction(action)
+        let host = try f.host(); defer { host.close() }
+        let model = try host.makeLibrarySettingsModel()
+        #expect(model.resourceChoices().contains { $0.reference == .init(kind: .action, id: action.id) && $0.title == action.name })
+        #expect(!model.accessEnabled && host.endpoint == nil && f.secrets.isEmpty)
+        try f.library.deleteAction(action.id)
+        #expect(model.resourceChoices().isEmpty)
     }
 
     @Test func realPairingSettingsAndSocketReadsShareOneAuthorityAndLibrary() async throws {
