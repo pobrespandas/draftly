@@ -119,6 +119,10 @@ struct AgentCommandServiceTests {
         let page = try f.values("actions.groups", session: session)
         guard case .array(let items) = page["items"], case .object(let item) = items.first else { Issue.record("Missing group"); return }
         #expect(items.count == 1 && item["id"] == .string(id.uuidString) && item["name"] == .string("Allowed"))
+        let detail = try f.values("actionGroups.get", session: session, targets: [.init(kind: .actionGroup, id: id)])
+        #expect(detail["versionToken"] == item["versionToken"])
+        let hidden = try #require(f.library.actionGroupIdentifiers["Hidden"])
+        #expect(try f.response("actionGroups.get", session: session, targets: [.init(kind: .actionGroup, id: hidden)]).outcome == .error(.notFound))
         try f.library.deleteAction(first.id)
         #expect(try f.values("actions.groups", session: session)["items"] == .array([]))
     }
@@ -582,7 +586,7 @@ struct AgentCommandServiceTests {
             guard case .object(let fields) = item, fields["available"] == .bool(true), case .string(let name) = fields["name"] else { return nil }
             return name
         })
-        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", AgentMutationSchemas.name, "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.groups"]) && available.count == 22)
+        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", AgentMutationSchemas.name, "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.groups", "actionGroups.get"]) && available.count == 23)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.unavailable))
         #expect(f.library.notes.isEmpty)
         #expect(try f.values("server.capabilities", session: session)["capabilities"] == .array([.string("drafts.read"), .string("drafts.write")]))

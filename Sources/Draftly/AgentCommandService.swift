@@ -15,7 +15,7 @@ import AgentContracts
     private static let readOperations: Set<String> = ["server.status", "server.capabilities", "server.schemas",
         "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions", "preferences.schema"]
     private static let editorReadOperations: Set<String> = ["editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks"]
-    private static let actionReadOperations: Set<String> = ["actions.list", "actions.get", "actions.groups"]
+    private static let actionReadOperations: Set<String> = ["actions.list", "actions.get", "actions.groups", "actionGroups.get"]
     static let implementedOperations = readOperations.union(actionReadOperations).union([AgentMutationSchemas.name]).union(AgentDraftWriting.operationNames).union(editorReadOperations)
     private var availableOperations: Set<String> { editorRegistry == nil ? Self.readOperations.union(Self.actionReadOperations) : (writes == nil ? Self.readOperations.union(Self.editorReadOperations).union(Self.actionReadOperations) : Self.implementedOperations) }
     var availableCapabilities: Set<AgentCapability> {
@@ -160,24 +160,35 @@ import AgentContracts
         return Data(HMAC<SHA256>.authenticationCode(for: try encoder.encode(action), using: actionVersionKey)).base64EncodedString()
     }
 
+    private func groupVersion(_ group: ActionGroupRecord) throws -> String {
+        let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
+        return Data(HMAC<SHA256>.authenticationCode(for: try encoder.encode(group), using: actionVersionKey)).base64EncodedString()
+    }
+
+    private func groups(in scope: AgentResourceScope) -> [ActionGroupRecord] {
+        let identifiers = actionLibrary.actionGroupIdentifiers
+        return actionLibrary.groupNames.enumerated().compactMap { order, name in
+            guard let id = identifiers[name], scope.permits(.init(kind: .actionGroup, id: id)) else { return nil }
+            if let record = actionLibrary.actionGroups.first(where: { $0.name == name && $0.id == id }) { return record }
+            var record = ActionGroupRecord(name: name); record.id = id; record.order = order
+            return record
+        }
+    }
+
     private func dispatch(_ request: AgentRequest, parameters: [String: AgentJSONValue], grant: AgentGrant,
                           sessionID: UUID) throws -> [String: AgentJSONValue] {
         switch request.operation {
-        case "actions.groups":
-            func groups() -> [ActionGroupRecord] {
-                self.actionLibrary.groupNames.enumerated().compactMap { order, name in
-                    guard let id = self.actionLibrary.actionGroupIdentifiers[name],
-                          grant.scope.permits(.init(kind: .actionGroup, id: id)) else { return nil }
-                    if let record = self.actionLibrary.actionGroups.first(where: { $0.name == name && $0.id == id }) { return record }
-                    var record = ActionGroupRecord(name: name); record.id = id; record.order = order
-                    return record
-                }
+        case "actionGroups.get":
+            guard let id = request.targets.first?.id, let group = groups(in: grant.scope).first(where: { $0.id == id }) else {
+                throw AgentErrorCode.notFound
             }
+            let encoded = try JSONEncoder().encode(group)
+            return ["group": try JSONDecoder().decode(AgentJSONValue.self, from: encoded), "versionToken": .string(try groupVersion(group))]
+        case "actions.groups":
             return try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
-                parameters: parameters, expiresAt: grant.expiresAt, ids: { groups().map(\.id) }, value: { id in
-                    guard let group = groups().first(where: { $0.id == id }) else { return nil }
-                    let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
-                    let token = Data(HMAC<SHA256>.authenticationCode(for: try encoder.encode(group), using: self.actionVersionKey)).base64EncodedString()
+                parameters: parameters, expiresAt: grant.expiresAt, ids: { self.groups(in: grant.scope).map(\.id) }, value: { id in
+                    guard let group = self.groups(in: grant.scope).first(where: { $0.id == id }) else { return nil }
+                    let token = try self.groupVersion(group)
                     return .object(["id": .string(id.uuidString), "name": .string(group.name),
                         "symbol": .string(group.symbol), "order": .integer(Int64(group.order)), "versionToken": .string(token)])
                 })
