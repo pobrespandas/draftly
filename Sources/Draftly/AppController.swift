@@ -218,8 +218,12 @@ final class AppController: ObservableObject {
             #if DRAFTLY_AGENT_QA
             if testing && ProcessInfo.processInfo.arguments.contains("--agent-isolated-qa") &&
                 ProcessInfo.processInfo.arguments.contains("--agent-workspace-fixtures") {
-                guard store.workspaces.isEmpty else { throw DraftlyError.message("QA workspace fixtures require an empty test library.") }
-                try store.saveWorkspaces([Workspace(name: "QA Visible"), Workspace(name: "QA Hidden")])
+                guard store.workspaces.isEmpty && store.notes.isEmpty else { throw DraftlyError.message("QA workspace fixtures require an empty test library.") }
+                var visible = Workspace(name: "QA Visible"); visible.query = "QA query"
+                try store.saveWorkspaces([visible, Workspace(name: "QA Hidden")])
+                _ = try store.createNote(content: "QA query visible")
+                _ = try store.createNote(content: "QA query hidden")
+                _ = try store.createNote(content: "QA unrelated")
             }
             #endif
             let catalogQATesting = testing && ProcessInfo.processInfo.arguments.contains("--catalog-installation-testing")
