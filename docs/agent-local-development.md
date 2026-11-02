@@ -23,6 +23,11 @@ recovery, and revocation. A signed isolated run also updated one granted
 workspace, repeated the request, and read back the saved value. The test
 connection was revoked and the host stopped. The run did not validate an
 installed release or screen-lock handling.
+An unconnected native host wrapper can check each concrete invocation before
+handoff and again after a result. If authority is lost after handoff, it reports
+an unknown outcome. It does not authorize scripts, library access, templates,
+or execution. No agent Action can run through this wrapper yet. Runtime checks
+at every bridge and an approval path are still required.
 Creating an action requires access to the full library. Action changes use
 an expected version, a signed retry key, and an atomic action and receipt
 transaction. Recovery checks the current grant. A client with resource scope

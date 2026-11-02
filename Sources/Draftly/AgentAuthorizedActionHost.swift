@@ -1,0 +1,42 @@
+import Foundation
+import AgentContracts
+import DraftlyCore
+
+// A caller must authorize each concrete native invocation. This wrapper does
+// not authorize scripts, library access, templates, or action execution itself.
+@MainActor final class AgentAuthorizedActionHost: ActionHost {
+    typealias Authorize = (String, [String: Any]) throws -> Void
+    private let host: any ActionHost
+    private let authorize: Authorize
+
+    init(host: any ActionHost, authorize: @escaping Authorize) {
+        self.host = host
+        self.authorize = authorize
+    }
+
+    func supportsAsync(_ operation: String) -> Bool { host.supportsAsync(operation) }
+
+    func perform(_ operation: String, values: [String: Any]) throws -> Any? {
+        try Task.checkCancellation()
+        try authorize(operation, values)
+        let result = try host.perform(operation, values: values)
+        do { try authorize(operation, values); try Task.checkCancellation() }
+        catch { throw AgentErrorCode.outcomeUnknown }
+        return result
+    }
+
+    func performAsync(_ operation: String, payload: String) async throws -> String {
+        guard let data = payload.data(using: .utf8),
+              let values = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw AgentErrorCode.invalidInput
+        }
+        try Task.checkCancellation()
+        try authorize(operation, values)
+        let result = try await host.performAsync(operation, payload: payload)
+        do { try authorize(operation, values); try Task.checkCancellation() }
+        catch { throw AgentErrorCode.outcomeUnknown }
+        return result
+    }
+
+    func finishAction() { host.finishAction() }
+}
