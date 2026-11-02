@@ -125,11 +125,13 @@ private struct AgentGrantSheetPresenter: NSViewRepresentable {
             coordinator.update(parent: view?.window, model: model)
         }
     }
-    static func dismantleNSView(_ view: NSView, coordinator: Coordinator) { coordinator.close() }
+    static func dismantleNSView(_ view: NSView, coordinator: Coordinator) { coordinator.invalidate() }
 
     @MainActor final class Coordinator {
         private var panel: NSPanel?
+        private var invalidated = false
         func update(parent: NSWindow?, model: AgentConnectionsSettingsModel) {
+            guard !invalidated else { return }
             guard model.draft != nil else { close(); return }
             guard panel == nil, let parent else { return }
             let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 620, height: 620),
@@ -139,6 +141,7 @@ private struct AgentGrantSheetPresenter: NSViewRepresentable {
             self.panel = panel
             parent.beginSheet(panel)
         }
+        func invalidate() { invalidated = true; close() }
         func close() {
             guard let panel else { return }
             self.panel = nil
