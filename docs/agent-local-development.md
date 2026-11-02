@@ -665,3 +665,22 @@ The adapter now accepts `plainText` as a text format, including case variants.
 The focused regression passed 54 tests in three suites. Installed print-sheet
 and cancellation acceptance remain pending on the corrected build. The QA
 connection was revoked, Stop Work disabled access, and QA quit normally.
+
+### Installed print and Open In cancellation — 2 November 2026
+
+The signed corrected app at `9486d69` and its embedded helper passed the
+installed MCP print review and cancellation check. Allow once opened the native
+print sheet with one page. Cancel returned `cancelled` through `operations.get`.
+The print effect was `failed`, not completed. No print job was submitted.
+
+A new connection had access to the isolated QA library only. Through the CLI,
+it prepared and created a neutral Open In Action. MCP execution then presented
+a review with the file name and text. Allow once opened the native share picker
+with `QA-neutral`, a 42-byte text document. Cancelling the picker returned
+`cancelled` with a `shareFile` effect marked `failed`. No destination was chosen.
+The earlier scoped print request also reached review, before the format fix.
+
+The connection was revoked and Stop Work disabled access. QA quit, its exact
+LaunchServices registration was removed, and the usual app reopened with its
+10 drafts. These checks used the signed helper and a custom MCP probe. They do
+not establish support for a named external client or production screen lock.
