@@ -451,6 +451,35 @@ struct AgentLocalHostTests {
         #expect(try reopened.recentActivity().contains { $0.requestID == request.requestID && $0.result == "success" })
     }
 
+    @Test func activityListOnlyExposesTheCurrentConnectionAndGrant() async throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let host = try f.host(); defer { host.close() }
+        try host.setEnabledFromUserInterface(true)
+        let first = try f.connect(host), second = try f.connect(host)
+        let firstSecret = try #require(f.secrets[first.id]), secondSecret = try #require(f.secrets[second.id])
+        let session = try host.service.authenticate(connectionID: first.id, credential: firstSecret)
+        let other = try host.service.authenticate(connectionID: second.id, credential: secondSecret)
+        func request(_ name: String, _ session: AgentCommandService.Session) throws -> AgentResponse {
+            let request = AgentRequest(requestID: UUID(), libraryID: host.libraryID, operation: name)
+            return try JSONDecoder().decode(AgentResponse.self, from: host.service.respond(to: JSONEncoder().encode(request), session: session))
+        }
+        let own = try request("server.status", session), hidden = try request("server.status", other)
+        for _ in 0..<100 where try host.recentActivity().count < 2 { await Task.yield() }
+        let result = try request("activity.list", session)
+        guard case .result(.object(let page)) = result.outcome, case .array(let items) = page["items"] else {
+            Issue.record("Expected activity page: \(result.outcome)"); return
+        }
+        #expect(items.count == 1)
+        guard case .object(let item) = items[0] else { Issue.record("Expected activity entry"); return }
+        #expect(item["requestID"] == .string(own.requestID.uuidString))
+        #expect(item["requestID"] != .string(hidden.requestID.uuidString))
+        _ = try host.connections.replaceGrantFromUserInterface(first.id, capabilities: [.draftsRead], scope: .library)
+        let renewed = try host.service.authenticate(connectionID: first.id, credential: firstSecret)
+        let fresh = try request("activity.list", renewed)
+        guard case .result(.object(let freshPage)) = fresh.outcome else { Issue.record("Expected fresh activity page"); return }
+        #expect(freshPage["items"] == .array([]))
+    }
+
     @Test func closingAnEditorBeforePairingApprovalInvalidatesTheReview() throws {
         let f = try Fixture(); defer { f.cleanup() }
         let preferences = try TestPreferences(prefix: "Draftly-Agent-Window-Grant-")

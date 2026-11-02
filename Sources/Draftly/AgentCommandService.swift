@@ -17,7 +17,11 @@ import AgentContracts
     private static let editorReadOperations: Set<String> = ["editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks"]
     private static let actionReadOperations: Set<String> = ["actions.list", "actions.get", "actions.groups", "actionGroups.get"]
     static let implementedOperations = readOperations.union(actionReadOperations).union([AgentMutationSchemas.name]).union(AgentDraftWriting.operationNames).union(editorReadOperations)
-    private var availableOperations: Set<String> { editorRegistry == nil ? Self.readOperations.union(Self.actionReadOperations) : (writes == nil ? Self.readOperations.union(Self.editorReadOperations).union(Self.actionReadOperations) : Self.implementedOperations) }
+    private var availableOperations: Set<String> {
+        var operations = editorRegistry == nil ? Self.readOperations.union(Self.actionReadOperations) : (writes == nil ? Self.readOperations.union(Self.editorReadOperations).union(Self.actionReadOperations) : Self.implementedOperations)
+        if readActivity != nil { operations.insert("activity.list") }
+        return operations
+    }
     var availableCapabilities: Set<AgentCapability> {
         availableOperations.reduce(into: Set<AgentCapability>()) { result, name in
             if let operation = AgentOperationCatalog.operation(named: name) { result.formUnion(operation.capabilities) }
@@ -37,7 +41,8 @@ import AgentContracts
     private let appVersion: String
     private let preferences: AgentPreferenceRegistry
     private let pages: AgentReadPages
-    private let recordActivity: (UUID, UUID, String, String) -> Void
+    private let recordActivity: (UUID, UUID, UUID, String, String) -> Void
+    private let readActivity: ((UUID, UUID) throws -> [AgentActivityStore.Entry])?
     private let preferenceDescriptorIDs: [UUID]
     private let preferenceDescriptors: [UUID: AgentPreferenceField]
     private let drafts: AgentDraftReading
@@ -48,7 +53,8 @@ import AgentContracts
          uptime: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
          editors: AgentEditorRegistry? = nil,
          pendingEditorGeneration: @escaping (UUID) -> String,
-         recordActivity: @escaping (UUID, UUID, String, String) -> Void = { _, _, _, _ in }) throws {
+         recordActivity: @escaping (UUID, UUID, UUID, String, String) -> Void = { _, _, _, _, _ in },
+         readActivity: ((UUID, UUID) throws -> [AgentActivityStore.Entry])? = nil) throws {
         guard editors?.isBound(to: library) ?? true else { throw AgentErrorCode.invalidInput }
         self.actionLibrary = library
         self.libraryID = libraryID; self.connections = connections; self.appVersion = appVersion
@@ -56,6 +62,7 @@ import AgentContracts
         self.validateHost = validateHost
         self.isLocked = isLocked; self.now = now
         self.recordActivity = recordActivity
+        self.readActivity = readActivity
         let preferences = try AgentPreferenceCatalog.make()
         self.preferences = preferences
         let descriptors = preferences.fields.map { (UUID(), $0) }
@@ -108,16 +115,16 @@ import AgentContracts
     // An invalid envelope has no trusted request identity and fails before dispatch.
     func respond(to data: Data, session: Session) throws -> Data {
         let request = try AgentRequest.decode(data)
-        var connectionID: UUID?
+        var authority: (connectionID: UUID, grantID: UUID)?
         var result = AgentErrorCode.storageError.rawValue
         defer {
-            if let connectionID, AgentOperationCatalog.operation(named: request.operation) != nil {
-                recordActivity(connectionID, request.requestID, request.operation, result)
+            if let authority, AgentOperationCatalog.operation(named: request.operation) != nil {
+                recordActivity(authority.connectionID, authority.grantID, request.requestID, request.operation, result)
             }
         }
         do {
             let grant = try authorize(session)
-            connectionID = grant.connectionID
+            authority = (grant.connectionID, grant.grantID)
             switch AgentPermissionPolicy.evaluate(request, connectionID: grant.connectionID, grant: grant, now: now()) {
             case .permitted: break
             case .denied(let error): throw error
@@ -191,6 +198,18 @@ import AgentContracts
     private func dispatch(_ request: AgentRequest, parameters: [String: AgentJSONValue], grant: AgentGrant,
                           sessionID: UUID) throws -> [String: AgentJSONValue] {
         switch request.operation {
+        case "activity.list":
+            guard let readActivity else { throw AgentErrorCode.unavailable }
+            let entries = try readActivity(grant.connectionID, grant.grantID).filter {
+                $0.connectionID == grant.connectionID && $0.grantID == grant.grantID && $0.libraryID == libraryID
+            }
+            let byID = Dictionary(entries.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+            return try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
+                parameters: parameters, expiresAt: grant.expiresAt, ids: { entries.map(\.id) }, value: { id in
+                    guard let entry = byID[id] else { return nil }
+                    return .object(["id": .string(entry.id.uuidString), "requestID": .string(entry.requestID.uuidString),
+                        "operation": .string(entry.operation), "date": .string(APIValues.date(entry.date)), "result": .string(entry.result)])
+                })
         case "actionGroups.get":
             guard let id = request.targets.first?.id, let group = groups(in: grant.scope).first(where: { $0.id == id }) else {
                 throw AgentErrorCode.notFound

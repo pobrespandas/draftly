@@ -8,6 +8,7 @@ import AgentLocalSecurity
         let id: UUID
         let libraryID: UUID
         let connectionID: UUID
+        var grantID: UUID? = nil
         let requestID: UUID
         let operation: String
         let date: Date
@@ -35,12 +36,12 @@ import AgentLocalSecurity
             .sorted { $0.date == $1.date ? $0.id.uuidString > $1.id.uuidString : $0.date > $1.date }
     }
 
-    func append(libraryID: UUID, connectionID: UUID, requestID: UUID, operation: String, result: String) throws {
+    func append(libraryID: UUID, connectionID: UUID, grantID: UUID? = nil, requestID: UUID, operation: String, result: String) throws {
         let timestamp = now()
         guard timestamp.timeIntervalSince1970.isFinite,
               AgentOperationCatalog.operation(named: operation) != nil,
               result == "success" || AgentErrorCode(rawValue: result) != nil else { throw AgentErrorCode.invalidInput }
-        let entry = Entry(id: UUID(), libraryID: libraryID, connectionID: connectionID, requestID: requestID,
+        let entry = Entry(id: UUID(), libraryID: libraryID, connectionID: connectionID, grantID: grantID, requestID: requestID,
                           operation: operation, date: timestamp, result: result)
         _ = try update { entries in
             let cutoff = timestamp.addingTimeInterval(-retention)

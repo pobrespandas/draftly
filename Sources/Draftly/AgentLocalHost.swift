@@ -18,6 +18,7 @@ import AgentLocalSecurity
     private(set) var activityRecordingError: AgentErrorCode?
     private struct PendingActivity {
         let connectionID: UUID
+        let grantID: UUID
         let requestID: UUID
         let operation: String
         let result: String
@@ -93,9 +94,13 @@ import AgentLocalSecurity
                 appVersion: appVersion, validateHost: validateOwner, isLocked: isLocked,
                 editors: editors,
                 pendingEditorGeneration: pendingEditorGeneration,
-                recordActivity: { connectionID, requestID, operation, result in
-                    owner?.enqueueActivity(.init(connectionID: connectionID, requestID: requestID,
+                recordActivity: { connectionID, grantID, requestID, operation, result in
+                    owner?.enqueueActivity(.init(connectionID: connectionID, grantID: grantID, requestID: requestID,
                                                  operation: operation, result: result))
+                }, readActivity: { connectionID, grantID in
+                    guard let owner else { throw AgentErrorCode.cancelled }
+                    try owner.validateOwnership()
+                    return try activity.entries(libraryID: owner.libraryID).filter { $0.connectionID == connectionID && $0.grantID == grantID }
                 })
         } catch { lease.close(); throw error }
         pairing = AgentPairingCoordinator(registry: registry, libraryID: lease.libraryID,
@@ -137,7 +142,7 @@ import AgentLocalSecurity
         do {
             try validateOwnership()
             for entry in entries {
-                try activity.append(libraryID: libraryID, connectionID: entry.connectionID,
+                try activity.append(libraryID: libraryID, connectionID: entry.connectionID, grantID: entry.grantID,
                                     requestID: entry.requestID, operation: entry.operation, result: entry.result)
             }
         } catch { activityRecordingError = (error as? AgentErrorCode) ?? .storageError }
