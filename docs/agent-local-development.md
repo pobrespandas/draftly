@@ -76,6 +76,11 @@ test library, revoked the connection, and received `permission_denied` on the
 next CLI request. Both test hosts were stopped. These checks do not inspect the
 Keychain item separately or verify screen lock or an installed release.
 
+Another isolated run used matching signed builds to duplicate a group with 18
+actions through the CLI. The copies had new action IDs. A repeated request
+returned the same receipt, and the library contained one copied group. The
+connection was revoked and the test host was stopped.
+
 ## Current components
 
 - AgentContracts owns the request, response and authentication envelopes.
