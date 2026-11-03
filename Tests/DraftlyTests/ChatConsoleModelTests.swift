@@ -9,6 +9,24 @@ struct ChatConsoleModelTests {
         UserDefaults(suiteName: "ChatConsoleTests-\(UUID().uuidString)")!
     }
 
+    @Test func restoresSelectedModelWithoutGrantingAccess() async {
+        let defaults = isolatedDefaults()
+        let first = ChatConsoleModel(loadModes: { ["onDevice", "pcc"] }, respond: { _, _ in "unused" }, defaults: defaults)
+        await first.loadModels()
+        first.selectedModel = "chatgpt:previous-model"
+        first.close()
+        let restored = ChatConsoleModel(loadModes: { ["onDevice", "pcc"] }, respond: { _, _ in "unused" }, defaults: defaults)
+        await restored.loadModels()
+        restored.prompt = "Wait for the selected provider"
+        #expect(restored.selectedModel == "chatgpt:previous-model")
+        #expect(!restored.canSend && !restored.hasTools)
+        restored.selectedModel = "pcc"
+        let cloud = ChatConsoleModel(loadModes: { ["onDevice", "pcc"] }, respond: { _, _ in "unused" }, defaults: defaults)
+        await cloud.loadModels()
+        #expect(cloud.selectedModel == "pcc")
+        restored.close(); cloud.close()
+    }
+
     @Test func sendsContextAndKeepsConversationsSeparate() async throws {
         let model = ChatConsoleModel(loadModes: { ["onDevice", "unsupported"] }, respond: { prompt, mode in
             #expect(mode == "onDevice")

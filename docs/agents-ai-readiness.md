@@ -29,7 +29,7 @@ agent pairing and grants.
 | Installed MCP | The bundled helper exposes the local service through bounded stdio MCP. | A probe negotiated `2025-11-25`, listed read tools, omitted write tools, and read the approved draft. | Fresh native helper pairing in the current build and a full session for each named client. No Codex or Claude Code compatibility claim follows from this probe. |
 | Revocation | Disconnect closes the chat session, revokes its connection, and removes its credential and revoked metadata. | An existing MCP process denied its next read. A new CLI request returned `permission_denied`. No draft text returned after revocation. | Revocation during writes and native effects, plus installed storage-failure cases. |
 | Stop Work | The host suspends transport, reviews, and operations. | With no granted session left, Stop Work set access off and removed endpoint publication. | Stop Work during an open authorized session and during an active operation or review. |
-| Restart | Account and conversation persistence are connected. A new host does not start a listener automatically. | The signed QA retained account and conversation after process exit. Access remained off. | Model choice reset to Apple On-Device. Correct that behavior or make the restart choice explicit before acceptance. Test permission and result recovery for the remaining operations. |
+| Restart | Account and conversation persistence are connected. A new host does not start a listener automatically. | The signed QA retained account and conversation after process exit. Access remained off. | Model choice reset to Apple On-Device in QA. Model selection now persists in source with a focused restart test; installed verification remains pending. Test permission and result recovery for the remaining operations. |
 | Normal startup and lock | Host creation is still gated to isolated agent QA. | Fresh QA access started off. The QA lock adapter does not detect screen lock. | Normal startup with access off, verified initial lock state, lock/sleep transitions, and explicit resume. |
 | Distribution | App and helper profiles and signatures are checked. | Both ran installed with matching Developer ID identities. | Combined notarization, final release packaging, architecture checks, signed updates, and post-update CLI/MCP sessions. |
 | Apple Intelligence | Available on-device and Cloud choices are connected through the native model adapter. | Both choices appeared in this QA. An earlier isolated QA checked an on-device reply. | Availability is separate from inference. Cloud inference and tool integration need their own acceptance. |
@@ -109,8 +109,8 @@ its tool definitions with MCP. It exposes no inbound HTTP server.
 - Full CI [41598564068](https://github.com/pobrespandas/draftly/actions/runs/41598564068)
   passed for native consent commit `698c883`.
 - QA isolation commit `e891051` has 30 focused tests, two generator checks, a
-  native QA build, and the signed installed evidence above. Its full CI remains
-  to be run. The 78-test consent/lifecycle run preceded that QA-only change.
+  native QA build, and the signed installed evidence above. Full CI [41608020603](https://github.com/pobrespandas/draftly/actions/runs/41608020603)
+  passed for `33b8b41`, which includes that change. The 78-test consent/lifecycle run preceded that QA-only change.
 - [Chat checkpoint](chat-console-checkpoint.md) records the source, native QA,
   local evidence location, and acceptance limits.
 - [Operation checkpoint](agent-operation-checkpoint.md) retains earlier signed

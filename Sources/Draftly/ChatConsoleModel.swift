@@ -32,6 +32,7 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
         var selectedConversationID: UUID?
     }
     static let storageKey = "chatConsole.state"
+    static let selectedModelKey = "chatConsole.selectedModel"
     typealias LoadModes = @MainActor () async throws -> [String]
     typealias Respond = @MainActor (_ prompt: String, _ mode: String) async throws -> String
 
@@ -41,6 +42,7 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
     @Published var selectedModel = "onDevice" {
         didSet {
             guard oldValue != selectedModel else { return }
+            defaults.set(selectedModel, forKey: Self.selectedModelKey)
             stopCurrentResponse()
             if !selectedModel.hasPrefix("chatgpt:") { disconnectTools() }
         }
@@ -76,6 +78,9 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
          chatGPTAccount: ChatGPTAccountModel? = nil) {
         self.loadModes = loadModes; self.respond = respond; self.defaults = defaults
         self.chatGPTAccount = chatGPTAccount
+        if let savedModel = defaults.string(forKey: Self.selectedModelKey), !savedModel.isEmpty {
+            selectedModel = savedModel
+        }
         if let data = defaults.data(forKey: Self.storageKey),
            let saved = try? JSONDecoder().decode(SavedState.self, from: data) {
             conversations = Array(saved.conversations.sorted { $0.updatedAt > $1.updatedAt }.prefix(50))
@@ -131,7 +136,7 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
 
     private func updateModelOptions() {
         availableModels = appleModels + directModels.map { "chatgpt:" + $0.id }
-        if !availableModels.contains(selectedModel), !selectedModel.hasPrefix("chatgpt:") {
+        if hasLoadedModels, !availableModels.contains(selectedModel), !selectedModel.hasPrefix("chatgpt:") {
             selectedModel = availableModels.first ?? ""
         }
     }

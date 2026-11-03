@@ -1,3 +1,12 @@
+# Model selection follow-up — 3 November 2026
+
+The selected model now persists separately from conversation history. Restoring
+it does not restore a tool grant. A missing ChatGPT model stays selected but
+cannot send, so startup does not silently switch providers. Eight console tests
+passed, including restored ChatGPT and Apple Cloud choices. Installed restart
+acceptance for this change is pending. Full CI `41608020603` passed for the
+preceding `33b8b41` source.
+
 # Current status — 3 November 2026
 
 Read [agents and AI readiness](agents-ai-readiness.md) for the current closure map.
