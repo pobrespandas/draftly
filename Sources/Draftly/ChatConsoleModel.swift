@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import AgentContracts
 
 struct ChatConsoleMessage: Codable, Equatable, Identifiable {
     enum Role: String, Codable { case user, assistant }
@@ -37,7 +38,15 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
     @Published private(set) var conversations: [ChatConsoleConversation] = []
     @Published private(set) var selectedConversationID: UUID?
     @Published private(set) var availableModels: [String] = []
-    @Published var selectedModel = "onDevice"
+    @Published var selectedModel = "onDevice" {
+        didSet {
+            guard oldValue != selectedModel else { return }
+            stopCurrentResponse()
+            if !selectedModel.hasPrefix("chatgpt:") { disconnectTools() }
+        }
+    }
+    @Published private(set) var hasTools = false
+    private var toolSession: AgentChatToolSession?
     @Published var prompt = ""
     @Published private(set) var isResponding = false
     @Published private(set) var errorMessage: String?
@@ -82,7 +91,9 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
                 self?.updateModelOptions()
             }.store(in: &subscriptions)
             account.$sessionEpoch.sink { [weak self] _ in
-                if self?.selectedModel.hasPrefix("chatgpt:") == true { self?.stopCurrentResponse() }
+                if self?.selectedModel.hasPrefix("chatgpt:") == true {
+                    self?.stopCurrentResponse(); self?.disconnectTools()
+                }
             }.store(in: &subscriptions)
             account.objectWillChange.sink { [weak self] in self?.objectWillChange.send() }.store(in: &subscriptions)
         }
@@ -137,6 +148,7 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
     }
 
     func startConversation() {
+        disconnectTools()
         stopCurrentResponse(); errorMessage = nil
         let conversation = ChatConsoleConversation()
         conversations.insert(conversation, at: 0)
@@ -148,6 +160,7 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
     func selectConversation(_ id: UUID) {
         mergeSavedConversations()
         guard conversations.contains(where: { $0.id == id }) else { return }
+        disconnectTools()
         stopCurrentResponse(); errorMessage = nil
         selectedConversationID = id
         persist()
@@ -162,6 +175,7 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
         let context = contextForResponse(conversationID)
         let messages = selectedConversation?.messages ?? []
         let mode = selectedModel
+        let tools = toolSession
         let id = UUID()
         responseID = id
         isResponding = true
@@ -175,7 +189,7 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
             do {
                 let answer: String
                 if mode.hasPrefix("chatgpt:"), let account = chatGPTAccount {
-                    answer = try await account.respond(messages: messages, model: String(mode.dropFirst(8))) { [weak self] text in
+                    answer = try await account.respond(messages: messages, model: String(mode.dropFirst(8)), tools: tools) { [weak self] text in
                         guard let self, self.responseID == id else { return }
                         self.streamingText = text
                     }
@@ -195,7 +209,30 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
         responseTask?.cancel()
     }
 
+    func connectTools(_ session: AgentChatToolSession) throws {
+        guard selectedModel.hasPrefix("chatgpt:"), chatGPTAccount?.isSignedIn == true else {
+            session.invalidate()
+            throw AgentErrorCode.permissionDenied
+        }
+        disconnectTools()
+        toolSession = session; hasTools = true
+        session.onInvalidated = { [weak self] in self?.disconnectTools() }
+    }
+
+    func disconnectTools() {
+        guard let session = toolSession else { return }
+        stopCurrentResponse()
+        toolSession = nil; hasTools = false
+        session.onInvalidated = nil
+        session.invalidate()
+    }
+
+    func reportToolError(_ error: Error) {
+        errorMessage = (error as? AgentErrorCode)?.connectionMessage ?? "Draftly could not connect local tools."
+    }
+
     func close() {
+        disconnectTools()
         stopCurrentResponse()
     }
 

@@ -62,6 +62,17 @@ struct AgentChatToolSessionTests {
         await #expect(throws: AgentErrorCode.permissionDenied) { try await tools.tools() }
     }
 
+    @Test func changedContextEndsAccessBeforeAnyRequest() async throws {
+        var calls = 0, disconnects = 0, invalidations = 0
+        let tools = AgentChatToolSession(backend: { _ in
+            calls += 1; throw AgentErrorCode.unavailable
+        }, onDisconnect: { disconnects += 1 }, validateContext: { throw AgentErrorCode.permissionDenied })
+        tools.onInvalidated = { invalidations += 1 }
+        await #expect(throws: AgentErrorCode.permissionDenied) { try await tools.tools() }
+        await #expect(throws: AgentErrorCode.cancelled) { try await tools.tools() }
+        #expect(calls == 0 && disconnects == 1 && invalidations == 1)
+    }
+
     @Test func invalidationDiscardsLateResultsAndBlocksNewCalls() async throws {
         let runtime = try Runtime()
         var toolSession: AgentChatToolSession!

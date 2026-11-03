@@ -69,6 +69,7 @@ struct LibraryView: View {
         .onChange(of: typewriter) { _, enabled in model.editor.typewriterScrollingEnabled = enabled }
         .onChange(of: model.selectedDraftIDs) { _, ids in if ids.count == 1 { model.selectFromList(ids.first) } }
         .onChange(of: model.editor.noteID) { _, id in
+            model.chatConsole.disconnectTools()
             restoredDraftID = id?.uuidString ?? ""
             hub.draftSelectionDidChange(id, for: model)
         }
@@ -131,8 +132,13 @@ struct LibraryView: View {
         ActionListPanel(model: model, library: library)
     }
 
-    private var chatConsole: some View {
-        ChatConsolePanel(model: model.chatConsole)
+    @ViewBuilder private var chatConsole: some View {
+        if let settings = hub.agentSettings {
+            LocalChatConsolePanel(model: model.chatConsole, settings: settings,
+                connectTools: { try hub.requestChatToolsFromUserInterface(for: model) })
+        } else {
+            ChatConsolePanel(model: model.chatConsole)
+        }
     }
 
 }

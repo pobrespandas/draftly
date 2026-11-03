@@ -1,13 +1,20 @@
 import SwiftUI
+import AgentContracts
 
 struct ChatConsolePanel: View {
     @ObservedObject var model: ChatConsoleModel
+    var connectTools: (@MainActor () throws -> AgentChatToolSession)? = nil
+    var toolsUnavailableReason = "Local agent access is unavailable in this build."
     @FocusState private var promptFocused: Bool
     @State private var showChatGPTAccount = false
 
     var body: some View {
         VStack(spacing: 0) {
             header
+            if model.hasTools {
+                Label("Draftly tools · this draft", systemImage: "checkmark.shield")
+                    .font(.caption).foregroundStyle(.secondary).padding(.bottom, 8)
+            }
             Divider()
             if let conversation = model.selectedConversation, conversation.messages.isEmpty {
                 emptyState
@@ -55,6 +62,19 @@ struct ChatConsolePanel: View {
             .pickerStyle(.menu)
             .frame(maxWidth: .infinity)
             .disabled(model.availableModels.isEmpty)
+
+            Button {
+                if model.hasTools { model.disconnectTools() }
+                else if let connectTools {
+                    do { try model.connectTools(connectTools()) }
+                    catch is CancellationError {}
+                    catch let error as AgentErrorCode where error == .cancelled {}
+                    catch { model.reportToolError(error) }
+                }
+            } label: { Image(systemName: model.hasTools ? "wrench.and.screwdriver.fill" : "wrench.and.screwdriver") }
+                .help(model.hasTools ? "Disconnect Draftly tools" : (connectTools == nil ? toolsUnavailableReason : "Connect Draftly tools"))
+                .disabled(!model.hasTools && (connectTools == nil || !model.selectedModel.hasPrefix("chatgpt:")
+                    || model.chatGPTAccount?.isSignedIn != true))
 
             Button { showChatGPTAccount = true } label: { Image(systemName: "person.crop.circle") }
                 .help("ChatGPT Account")
@@ -151,5 +171,17 @@ struct ChatConsolePanel: View {
 
     private func modelName(_ value: String) -> String {
         model.modelName(value)
+    }
+}
+
+
+struct LocalChatConsolePanel: View {
+    @ObservedObject var model: ChatConsoleModel
+    @ObservedObject var settings: AgentConnectionsSettingsModel
+    let connectTools: @MainActor () throws -> AgentChatToolSession
+
+    var body: some View {
+        ChatConsolePanel(model: model, connectTools: settings.accessEnabled ? connectTools : nil,
+            toolsUnavailableReason: "Enable local agent access in Settings to connect tools.")
     }
 }

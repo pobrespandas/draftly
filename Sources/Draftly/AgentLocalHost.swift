@@ -26,6 +26,12 @@ import AgentLocalSecurity
     private let validateHelper: @Sendable (Data) throws -> Void
     private let isLocked: () -> Bool
     private let resolveTargets: (Set<AgentResourceReference>) throws -> Set<AgentResourceReference>
+    private let readCredential: (UUID) throws -> Data?
+    private final class WeakChatSession {
+        weak var value: AgentChatToolSession?
+        init(_ value: AgentChatToolSession) { self.value = value }
+    }
+    private var chatSessions: [UUID: WeakChatSession] = [:]
     private var broker: AgentSocketBroker?
     private var closed = false
 
@@ -78,11 +84,13 @@ import AgentLocalSecurity
             guard let owner else { throw AgentErrorCode.cancelled }
             try owner.validateOwnership()
         }
+        let credentialAccess = credentials ?? AgentCredentialKeychain(role: .application).registryAccess
+        self.readCredential = credentialAccess.read
         let registry = AgentConnectionRegistry(metadata: .init(read: {
             try validateOwner(); return try file.read()
         }, replace: { data, expected in
             try validateOwner(); try file.replace(data, expected: expected)
-        }), credentials: credentials ?? AgentCredentialKeychain(role: .application).registryAccess,
+        }), credentials: credentialAccess,
             authorityChanged: { id in owner?.authorityChanged(id) })
         self.lease = lease; self.publications = AgentHostPublications(locator: locator); libraryID = lease.libraryID; connections = registry
         self.library = library; self.editors = editors
@@ -169,6 +177,36 @@ import AgentLocalSecurity
         !closed && self.library === library && self.editors === editors && editors.isBound(to: library)
     }
 
+    func makeChatToolsFromUserInterface(capabilities: Set<AgentCapability>, targets: Set<AgentResourceReference>,
+                                       onRevocationError: @escaping @MainActor (Error) -> Void,
+                                       validateContext: @escaping @MainActor () throws -> Void = {}) throws -> AgentChatToolSession {
+        try requireReady()
+        guard broker != nil, try service.permitsTransportStart(), !targets.isEmpty,
+              try resolveTargets(targets) == targets else { throw AgentErrorCode.permissionDenied }
+        let permitted: Set<AgentCapability> = [.draftsRead, .draftsWrite, .editorRead, .editorWrite]
+        guard capabilities.isSubset(of: permitted) else { throw AgentErrorCode.invalidInput }
+        let record = try connections.connectFromUserInterface(name: "Draftly Chat · ChatGPT", libraryID: libraryID,
+            capabilities: capabilities, scope: .resources(targets), expiresAt: Date().addingTimeInterval(900))
+        do {
+            guard let credential = try readCredential(record.id) else { throw AgentErrorCode.permissionDenied }
+            let authenticated = try service.authenticate(connectionID: record.id, credential: credential, expectedLibraryID: libraryID)
+            let tools = AgentChatToolSession(service: service, session: authenticated, onDisconnect: { [weak self] in
+                guard let self else { return }
+                do {
+                    _ = try self.connections.revokeFromUserInterface(record.id)
+                    try self.connections.forgetRevokedFromUserInterface(record.id)
+                }
+                catch { onRevocationError(error) }
+            }, validateContext: validateContext)
+            chatSessions[record.id] = WeakChatSession(tools)
+            return tools
+        } catch {
+            do { _ = try connections.revokeFromUserInterface(record.id) }
+            catch { onRevocationError(error) }
+            throw error
+        }
+    }
+
     func close() {
         guard !closed else { publications.withdraw(); return }
         suspend()
@@ -197,6 +235,9 @@ import AgentLocalSecurity
     }
 
     func suspend() {
+        let chats = chatSessions.values.compactMap(\.value)
+        chats.forEach { $0.invalidate() }
+        chatSessions.removeAll()
         broker?.stop(); broker = nil
         service.invalidateAll(); pairing.invalidatePending()
         approvals.invalidateForScreenLock()
@@ -335,6 +376,7 @@ import AgentLocalSecurity
     }
 
     private func authorityChanged(_ id: UUID) {
+        chatSessions.removeValue(forKey: id)?.value?.invalidate(revoke: false)
         service.invalidate(connectionID: id)
         pairing.invalidatePending()
         approvals.invalidateConnection(id)

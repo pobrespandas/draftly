@@ -6,15 +6,23 @@ import AgentContracts
     typealias Backend = @MainActor (AgentRequest) async throws -> AgentResponse
     private let backend: Backend
     private let onClose: @MainActor () -> Void
+    private let onDisconnect: @MainActor () -> Void
+    private let validateContext: @MainActor () throws -> Void
+    var onInvalidated: (@MainActor () -> Void)?
     private var closed = false
     private var inFlight = false
     private var usedCalls = Set<String>()
 
-    init(backend: @escaping Backend, onClose: @escaping @MainActor () -> Void = {}) {
-        self.backend = backend; self.onClose = onClose
+    init(backend: @escaping Backend, onClose: @escaping @MainActor () -> Void = {},
+         onDisconnect: @escaping @MainActor () -> Void = {},
+         validateContext: @escaping @MainActor () throws -> Void = {}) {
+        self.backend = backend; self.onClose = onClose; self.onDisconnect = onDisconnect
+        self.validateContext = validateContext
     }
 
-    convenience init(service: AgentCommandService, session: AgentCommandService.Session) {
+    convenience init(service: AgentCommandService, session: AgentCommandService.Session,
+                     onDisconnect: @escaping @MainActor () -> Void = {},
+                     validateContext: @escaping @MainActor () throws -> Void = {}) {
         self.init(backend: { request in
             let libraryID = try service.authorizedLibraryID(for: session)
             guard request.libraryID == nil || request.libraryID == libraryID else { throw AgentErrorCode.permissionDenied }
@@ -22,15 +30,18 @@ import AgentContracts
                 targets: request.targets, expectedVersion: request.expectedVersion, retryKey: request.retryKey,
                 parameters: request.parameters)
             return try JSONDecoder().decode(AgentResponse.self, from: service.respond(to: JSONEncoder().encode(bound), session: session))
-        }, onClose: { service.close(session) })
+        }, onClose: { service.close(session) }, onDisconnect: onDisconnect, validateContext: validateContext)
     }
 
     isolated deinit { invalidate() }
 
-    func invalidate() {
+    func invalidate(revoke: Bool = true) {
         guard !closed else { return }
         closed = true
         onClose()
+        if revoke { onDisconnect() }
+        let notify = onInvalidated; onInvalidated = nil
+        notify?()
     }
 
     func tools() async throws -> [AgentAvailableTools.Definition] {
@@ -80,5 +91,7 @@ import AgentContracts
     private func check() throws {
         try Task.checkCancellation()
         guard !closed else { throw AgentErrorCode.cancelled }
+        do { try validateContext() }
+        catch { invalidate(); throw error }
     }
 }

@@ -79,6 +79,48 @@ struct AgentLocalHostTests {
         }
     }
 
+    @Test func chatGrantRequiresEnabledHostAndClosesWithoutRevokingOtherConnections() async throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let note = Note(content: "Chat grant café 🐼"), hidden = Note(content: "Hidden")
+        try f.library.saveNotes([note, hidden], preserveRevision: false)
+        let host = try f.host(); defer { host.close() }
+        let targets: Set<AgentResourceReference> = [.init(kind: .draft, id: note.id)]
+        #expect(throws: AgentErrorCode.permissionDenied) {
+            try host.makeChatToolsFromUserInterface(capabilities: [.draftsRead], targets: targets,
+                onRevocationError: { _ in Issue.record("Unexpected cleanup error") })
+        }
+        try host.setEnabledFromUserInterface(true)
+        let other = try f.connect(host)
+        let tools = try host.makeChatToolsFromUserInterface(capabilities: [.draftsRead], targets: targets,
+            onRevocationError: { _ in Issue.record("Unexpected cleanup error") })
+        let configuration = try host.connections.configurationForUserInterface()
+        let record = try #require(configuration.connections.first { $0.id != other.id })
+        #expect(Set(record.resources) == targets)
+        #expect(record.expiresAt.timeIntervalSinceNow > 0 && record.expiresAt.timeIntervalSinceNow <= 900)
+        #expect(try await tools.tools().contains { $0.name == "draftly_drafts_get" })
+        tools.invalidate()
+        let remaining = try host.connections.configurationForUserInterface().connections
+        #expect(!remaining.contains { $0.id == record.id })
+        #expect(remaining.first { $0.id == other.id }?.revoked == false)
+        #expect(f.secrets[record.id] == nil && f.secrets[other.id] != nil)
+        let externallyRevoked = try host.makeChatToolsFromUserInterface(capabilities: [.draftsRead], targets: targets,
+            onRevocationError: { _ in Issue.record("Unexpected cleanup error") })
+        let beforeRevocation = try host.connections.configurationForUserInterface()
+        let revokedID = try #require(beforeRevocation.connections.first { $0.id != other.id }?.id)
+        var revocationNotifications = 0
+        externallyRevoked.onInvalidated = { revocationNotifications += 1 }
+        _ = try host.connections.revokeFromUserInterface(revokedID)
+        #expect(revocationNotifications == 1)
+        #expect(try host.connections.configurationForUserInterface().connections.first { $0.id == revokedID }?.revoked == true)
+        let stopped = try host.makeChatToolsFromUserInterface(capabilities: [.draftsRead], targets: targets,
+            onRevocationError: { _ in Issue.record("Unexpected cleanup error") })
+        var notified = false
+        stopped.onInvalidated = { notified = true }
+        host.suspend()
+        #expect(notified)
+        await #expect(throws: AgentErrorCode.cancelled) { try await stopped.tools() }
+    }
+
     @Test func reviewedActionAdmissionRequiresAnExplicitAuthorizedEditorWindow() async throws {
         let f = try Fixture(); defer { f.cleanup() }
         let note = try f.library.createNote(content: "Unchanged")

@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import AgentContracts
 @testable import Draftly
 
 @Suite("Chat Console") @MainActor
@@ -112,6 +113,19 @@ struct ChatConsoleModelTests {
         #expect(!model.isResponding)
     }
 
+    @Test func rejectedToolAttachmentClosesTheIncomingSession() throws {
+        let model = ChatConsoleModel(loadModes: { [] }, respond: { _, _ in "unused" }, defaults: isolatedDefaults())
+        var closes = 0
+        let tools = AgentChatToolSession(backend: { _ in
+            Issue.record("An unsigned-in console invoked local tools")
+            throw CancellationError()
+        }, onDisconnect: { closes += 1 })
+        #expect(throws: AgentErrorCode.permissionDenied) { try model.connectTools(tools) }
+        #expect(!model.hasTools && closes == 1)
+        model.close(); tools.invalidate()
+        #expect(closes == 1)
+    }
+
     @Test func directCatalogRoutesTheChatAndLogoutDoesNotSwitchProviders() async throws {
         let defaults = isolatedDefaults(), vault = ChatGPTLoginServiceTests.Vault()
         let login = ChatGPTLoginService(defaults: defaults, store: vault.store, lease: { _ in NSObject() })
@@ -136,12 +150,19 @@ struct ChatConsoleModelTests {
         await model.loadModels()
         #expect(model.availableModels == ["chatgpt:model-a"])
         #expect(model.modelName(model.selectedModel) == "ChatGPT · Test model")
+        let runtime = try AgentChatToolSessionTests.Runtime()
+        var toolDisconnects = 0
+        let tools = AgentChatToolSession(service: runtime.service, session: runtime.session,
+            onDisconnect: { toolDisconnects += 1 })
+        try model.connectTools(tools)
+        #expect(model.hasTools)
         model.prompt = "Neutral café"; model.send()
         let deadline = ContinuousClock.now.advanced(by: .seconds(3))
         while model.isResponding, ContinuousClock.now < deadline { await Task.yield() }
         #expect(model.errorMessage == nil)
         #expect(model.selectedConversation?.messages.map(\.text) == ["Neutral café", "Reply café"])
         await account.signOut()
+        #expect(!model.hasTools && toolDisconnects == 1)
         model.prompt = "Keep this prompt"; model.send()
         #expect(!model.canSend && model.prompt == "Keep this prompt")
         #expect(model.selectedModel == "chatgpt:model-a" && appleCalls == 0)

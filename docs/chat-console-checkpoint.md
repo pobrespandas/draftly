@@ -6,7 +6,9 @@ The direct connection is in progress on PR #105. The installed QA account sheet
 uses direct ChatGPT OAuth. Real sign-in and restoration after full process exit
 passed. The account model catalog and completed Responses worked in installed
 QA. Native Stop removed a partial response, and the next request succeeded.
-MCP login and authorized tools remain pending.
+Draftly's own local tool bridge and native consent are now implemented behind
+the existing host gate. Installed tool-using chat acceptance remains pending.
+External MCP clients are out of scope for now.
 
 `ChatGPTAuthorization` creates a fresh state, nonce, and PKCE verifier. It
 builds the official authorization request. Callback validation checks the
@@ -82,7 +84,7 @@ Next steps:
    failure was in a removed process test; removal is not proof of green CI.
 5. Require `response.completed` before reporting inference success.
 6. Complete regression and CI validation.
-7. Add authorized MCP tools through the existing permission and review rules.
+7. Finish installed acceptance for the native local-tool consent and execution path.
 
 Keep one account-session owner per installed app. Serialize refresh for each
 renewable session. Console history merges saved conversations and message IDs before each write.
@@ -282,3 +284,43 @@ continuation changes still need full CI.
 The unsigned native Debug build passed for `12c1c9c` with the worktree package
 name override. Full CI `41595947234` now validates that commit. No signing,
 notarization, installed tool invocation, or native approval acceptance is implied.
+
+
+## Native local-tool consent in progress
+
+The console has a Draftly tools button. It is disabled without an available,
+enabled local host. The native confirmation identifies the current draft and
+offers reading or editing. It states that approved content can go to the selected
+ChatGPT account. Access targets the exact draft and editor window and expires
+after 15 minutes. Editing includes text, tags, flags, and versions.
+
+The host creates a separate connection for the chat. It uses the existing
+Keychain credential and authenticated command-service session. The console
+uses the same tool definitions as MCP and calls that service in process.
+It does not expose a remote HTTP server or use hosted MCP.
+
+Disconnect, account changes, another conversation, another provider, and chat
+closure invalidate the session. A context check also rejects a changed draft or
+account before and after each request. The host invalidates chat sessions when
+it suspends or receives a permission change. Stop Work and revocation retain
+the existing review and operation cancellation rules.
+
+Normal disconnect revokes the chat connection, removes its credential, and
+forgets its revoked metadata. Other connections remain unchanged. Cleanup
+failures reach the console. External revocation closes the chat session without
+starting a second revocation transaction. Normal app host startup and its lock
+adapter are unchanged. Signed helper distribution, normal activation, and
+installed interactive acceptance remain pending. Do not describe this as an
+available release feature yet.
+
+Validation: 78 focused tests passed serially across connection, host, app-owner,
+console, local adapter, and ChatGPT tool-continuation suites. The host tests
+cover enabled admission, exact scope, expiry, cleanup, independent connections,
+external revocation, and suspension. Console tests cover rejected attachment
+and account sign-out. Both project-generator checks passed. Native approval
+interaction and a real ChatGPT tool call have not been accepted yet.
+
+The unsigned native Debug build also passed with the worktree package-name
+override after the consent UI changes. Full CI `41595947234` passed for the
+prior provider commit `12c1c9c`. The new consent and lifecycle changes still
+need full CI and installed signed acceptance.

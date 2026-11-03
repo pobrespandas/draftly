@@ -184,6 +184,47 @@ final class AppController: ObservableObject {
         do { try adoptAgentHost(host) } catch { host.close(); throw error }
     }
 
+    func requestChatToolsFromUserInterface(for model: WindowModel) throws -> AgentChatToolSession {
+        guard let host = agentHost, let library, model.library === library,
+              let editors = cachedAgentEditors, host.isBound(to: library, editors: editors),
+              let draftID = model.editor.noteID else { throw AgentErrorCode.unavailable }
+        guard model.chatConsole.chatGPTAccount?.isSignedIn == true,
+              model.chatConsole.selectedModel.hasPrefix("chatgpt:") else { throw AgentErrorCode.permissionDenied }
+        let accountEpoch = model.chatConsole.chatGPTAccount?.sessionEpoch
+        guard let window = try editors.windowSnapshots().first(where: { snapshot in
+            snapshot.draftID == draftID && (try? editors.executionModels(draftID: draftID, windowID: snapshot.id)
+                .contains(where: { $0 === model })) == true
+        }) else { throw AgentErrorCode.notFound }
+        let alert = NSAlert()
+        let title = String((model.currentNote?.title ?? "this draft").prefix(80))
+        alert.messageText = "Allow ChatGPT to use “\(title)”?"
+        alert.informativeText = "The selected draft and its editor content can be sent to your selected ChatGPT account. "
+            + "Access applies only to this draft and editor and expires in 15 minutes. "
+            + "Editing permits changes to this draft's text, tags, flags and versions. "
+            + "You can disconnect from this chat or revoke access in Settings."
+        alert.addButton(withTitle: "Allow Reading")
+        alert.addButton(withTitle: "Allow Editing")
+        alert.addButton(withTitle: "Cancel")
+        let decision = alert.runModal()
+        guard decision != .alertThirdButtonReturn else { throw AgentErrorCode.cancelled }
+        guard decision == .alertFirstButtonReturn || decision == .alertSecondButtonReturn else { throw AgentErrorCode.cancelled }
+        guard model.editor.noteID == draftID, model.chatConsole.chatGPTAccount?.sessionEpoch == accountEpoch,
+              try editors.executionModels(draftID: draftID, windowID: window.id).contains(where: { $0 === model }) else {
+            throw AgentErrorCode.versionConflict
+        }
+        var capabilities: Set<AgentCapability> = [.draftsRead, .editorRead]
+        if decision == .alertSecondButtonReturn { capabilities.formUnion([.draftsWrite, .editorWrite]) }
+        return try host.makeChatToolsFromUserInterface(capabilities: capabilities,
+            targets: [.init(kind: .draft, id: draftID), .init(kind: .window, id: window.id)],
+            onRevocationError: { [weak model] error in model?.chatConsole.reportToolError(error) },
+            validateContext: { [weak model] in
+                guard let model, model.editor.noteID == draftID,
+                      model.chatConsole.chatGPTAccount?.sessionEpoch == accountEpoch else {
+                    throw AgentErrorCode.permissionDenied
+                }
+            })
+    }
+
     func closeAgentContext() {
         let center = NSWorkspace.shared.notificationCenter
         agentLifecycleObservers.forEach { center.removeObserver($0) }

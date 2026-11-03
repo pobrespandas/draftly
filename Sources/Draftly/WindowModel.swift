@@ -44,7 +44,9 @@ final class WindowModel: ObservableObject {
     var recoverDictation: (String) -> Void
     @Published var showActionBar = true
     @Published var showActions = false
-    @Published var showChatConsole = false
+    @Published var showChatConsole = false {
+        didSet { if oldValue && !showChatConsole { chatConsole.close() } }
+    }
     @Published var darkTheme: Bool?
     @Published var showTags = true
     var prefersAdvancedFind: () -> Bool
