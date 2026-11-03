@@ -8,7 +8,15 @@ one transaction. A repeated request returns the saved receipt. Recreating the
 service and preparing the same request also returns that receipt without a
 second draft. Revocation at the commit boundary rolls back the draft and receipt.
 The focused service regression passed. Installed CLI and MCP acceptance for
-creation remains pending. Normal startup still keeps agent access disabled.
+creation passed in an isolated signed QA app built from `b1c51e8`.
+The matching signed helper completed native pairing. CLI created a Unicode
+draft and repeated its request with the same receipt. MCP created a second
+Unicode draft and also recovered its receipt on repetition. The library reported
+exactly two drafts. The connection had only draft read and write permissions.
+The user interface then revoked the connection and disabled access. QA quit.
+This check does not establish normal startup, screen-lock handling, combined
+notarization, or acceptance for a named external client.
+Normal startup still keeps agent access disabled.
 
 The agent service exposes operation queries and cancellation when its registry
 is connected. An internal host option connects Action submission to the reviewed
