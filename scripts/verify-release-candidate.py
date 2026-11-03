@@ -28,7 +28,7 @@ def verify(directory, tag, public_key, *, verify_signature=stage.verify_candidat
     version, build = metadata.get("version"), metadata.get("build")
     stage.prepare.history.version_tuple(version)
     stage.prepare.history.build_number(build)
-    if tag != "v" + version or metadata.get("tag") != tag:
+    if stage.prepare.release.channels.parse(tag)[0] != version or metadata.get("tag") != tag:
         raise ValueError("The candidate tag does not match.")
     commit = metadata.get("sourceCommit")
     if not isinstance(commit, str) or not re.fullmatch(r"[a-f0-9]{40}", commit):

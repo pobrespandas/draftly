@@ -10,6 +10,27 @@ Use [CI/CD](ci-cd.md) for workflow selection and publication gates. Use
 The [rehearsal record](release-rehearsal.md) preserves implementation history
 and dated acceptance. Its old pending statements are not current instructions.
 
+## Release channels
+
+Use `vMAJOR.MINOR.PATCH` for a stable release. Use `vMAJOR.MINOR.PATCH-alpha.N`
+or `vMAJOR.MINOR.PATCH-beta.N` for a prerelease. Start N at 1. The numeric part
+must match `CFBundleShortVersionString`. Keep `CFBundleVersion` increasing
+across all three channels, including the later stable release.
+
+All channels require the same rehearsal, Developer ID signature, notarization,
+and candidate verification. A candidate or workflow artifact is not a download
+offer. Alpha and beta files stay in a private GitHub draft until all expected
+assets have uploaded and their hashes match. Publication marks them as a
+prerelease and never makes them the latest stable release. The publisher then
+checks the public downloads. An uncertain result requires inspection before
+recovery; it does not permit replacing public assets.
+
+Alpha and beta publication does not deploy Firebase or change the stable
+appcast. The website's main download stays on the verified stable feed.
+Prerelease users currently receive stable-channel update checks. There is no
+automatic alpha or beta update feed in this change. Agent access stays off by
+default in every channel.
+
 ## Prepare source
 
 1. Validate the PR and integrate it through branch protection.
@@ -43,7 +64,7 @@ Use an isolated directory for candidates. Keep credentials in the protected
 release environment or local credential store. Never pass secrets in command
 arguments or print them. Keep packages and logs outside Git.
 
-## Publish in order
+## Publish a stable release in order
 
 1. Prepare and verify the signed appcast. Preserve existing release items.
 2. Acquire the site writer lock. Inspect the current live site and stage a

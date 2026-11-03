@@ -8,15 +8,21 @@ import re
 import subprocess
 
 
-TAG_PATTERN = re.compile(r"v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\Z")
+
+import importlib.util
+_channels_spec = importlib.util.spec_from_file_location("release_channels", Path(__file__).with_name("release-channels.py"))
+channels = importlib.util.module_from_spec(_channels_spec)
+_channels_spec.loader.exec_module(channels)
+
+TAG_PATTERN = channels.TAG_PATTERN
 BUILD_PATTERN = re.compile(r"[1-9][0-9]*\Z")
 
 
 def validate(tag, head, main, tag_commit, version, build):
     match = TAG_PATTERN.fullmatch(tag)
     if not match:
-        raise ValueError("The tag must use the form vMAJOR.MINOR.PATCH.")
-    if version != tag[1:]:
+        raise ValueError("Use vMAJOR.MINOR.PATCH, optionally followed by -alpha.N or -beta.N.")
+    if version != channels.parse(tag)[0]:
         raise ValueError("The tag must match CFBundleShortVersionString.")
     if not isinstance(build, str) or not BUILD_PATTERN.fullmatch(build):
         raise ValueError("CFBundleVersion must be a positive integer.")
@@ -41,7 +47,7 @@ def main():
     parser.add_argument("tag", help="Existing release tag to rehearse")
     args = parser.parse_args()
     if not TAG_PATTERN.fullmatch(args.tag):
-        parser.error("The tag must use the form vMAJOR.MINOR.PATCH.")
+        parser.error("Use vMAJOR.MINOR.PATCH, optionally followed by -alpha.N or -beta.N.")
     try:
         with Path("Configuration/Info.plist").open("rb") as source:
             info = plistlib.load(source)

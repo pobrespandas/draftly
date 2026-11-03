@@ -20,7 +20,7 @@ if [[ "${DRAFTLY_AGENT_HELPER_ENABLED:-}" == "true" && -z "${APPLE_AGENT_PROFILE
     echo "Release signing configuration is incomplete: APPLE_AGENT_PROFILE_B64." >&2
     exit 1
 fi
-if [[ ! "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+if [[ ! "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(alpha|beta)\.[1-9][0-9]*)?$ ]]; then
     echo "The release tag is invalid." >&2
     exit 1
 fi

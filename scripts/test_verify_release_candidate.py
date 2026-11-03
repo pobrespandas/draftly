@@ -47,6 +47,13 @@ class CandidateRecoveryTests(unittest.TestCase):
         return verify.verify(self.directory, "v0.1.0", self.public, source_commit=self.commit,
                              source_info=self.source, verify_signature=lambda path: self.checked.append(path), **kwargs)
 
+    def test_prerelease_checks_the_same_numeric_app_and_native_signature(self):
+        self.metadata["tag"] = "v0.1.0-alpha.1"
+        self.write_metadata()
+        self.assertEqual(verify.verify(self.directory, self.metadata["tag"], self.public,
+            source_commit=self.commit, source_info=self.source, verify_signature=lambda path: self.checked.append(path)), self.metadata)
+        self.assertEqual(self.checked, [self.directory])
+
     def test_valid_candidate_checks_native_signature(self):
         self.assertEqual(self.check(), self.metadata)
         self.assertEqual(self.checked, [self.directory])
