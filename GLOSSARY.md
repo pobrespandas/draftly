@@ -284,8 +284,18 @@ The person's decision to let Chat Console use specified Draftly resources with
 the chosen model provider. It is distinct from approval of one operation's effects.
 
 **Stop Work**:
-The person's command to stop active agent access and pending work in Draftly.
-It is distinct from revoking a saved connection.
+The person's command to suspend agent access and request cancellation of active
+and pending work. It does not revoke a saved connection or undo completed changes.
+
+**Agent cancellation request**:
+A request to stop one agent operation before its remaining work completes.
+The request alone does not confirm that the operation stopped or undo completed changes.
+_Avoid_: Rollback, Undo
+
+**Unknown agent outcome**:
+An agent operation result for which completion or cancellation cannot be confirmed.
+It is distinct from confirmed failure or confirmed cancellation.
+_Avoid_: Cancelled (when completion is unconfirmed)
 
 **Agent pairing challenge**:
 A short-lived request to connect an agent to Draftly. The person compares its

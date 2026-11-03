@@ -140,6 +140,45 @@ its tool definitions with MCP. It exposes no inbound HTTP server.
 5. Complete full relevant CI, final signed/notarized packaging, update testing,
    and each named client's acceptance before publication.
 
+## Next acceptance: editing and Stop Work
+
+Use the glossary terms **Stop Work**, **Agent cancellation request**, and **Unknown agent
+outcome**. A cancellation request is separate from its confirmed outcome. Stop
+Work does not perform Undo or revoke a saved connection.
+
+Keep the existing responsibility boundaries:
+
+- The connection registry owns grants, scope, expiry, and revocation.
+- The local host suspends access and invalidates pending reviews and sessions.
+- The operation registry owns cancellation requests and operation outcomes.
+- The editor owns edits, version checks, and native Undo history.
+- The mutation receipt and operation journal retain the evidence for recovery.
+- Native review presents the person's decision. It does not widen a grant.
+
+CLI, MCP, and Chat Console must use these same rules. Do not add a separate edit
+or cancellation rule for one client.
+
+Test these cases in an installed signed QA with a limited editing grant:
+
+1. Request an edit, then use Stop Work before the edit starts. Confirm that the
+   text is unchanged and that no later callback applies the edit. Report confirmed
+   cancellation only when the app has evidence that work stopped.
+2. Complete an edit, then use Stop Work. Preserve the completed change and its
+   native Undo entry. Confirm that a retry does not apply the edit again.
+3. Use Stop Work while a native review is open. Confirm that the review cannot
+   authorize a later effect, including after explicit resume.
+4. Stop an operation after an external effect starts but before its result is
+   confirmed. Retain an unknown outcome. Do not retry the effect automatically.
+5. Change the draft manually while an agent edit waits. Reject a stale edit and
+   preserve the person's change and Undo history.
+6. Expire, revoke, or replace the grant before an edit is applied. Reject the old
+   authority even when the replacement grant has the same scope.
+
+The current registry can request cancellation and retain unknown outcomes for
+running work. These scenarios still need installed acceptance. Do not equate a
+cancelled task with a confirmed absence of effects. Do not add an automatic Undo
+path to make a cancellation look complete.
+
 ## Validation references
 
 - Full CI [41643931168](https://github.com/pobrespandas/draftly/actions/runs/41643931168)
