@@ -1,3 +1,35 @@
+# Installed read-only permissions acceptance — 3 November 2026
+
+The user approved a new CLI/MCP read-only grant in the signed `2ea267b` QA.
+The app and current helper showed the same pairing code. Native review selected
+only the neutral draft `QA own MCP café 🐼 — only this draft.` and its current
+window. Capabilities were exactly `drafts.read` and `editor.read`. Renewal and
+entire-library access stayed off. The actual deadline was `13:53:30Z`.
+
+The installed CLI listed only that draft. A direct read of the other existing
+neutral draft returned `not_found`. Mutation preparation, a direct draft write,
+and an editor write returned `permission_denied`. A later read confirmed that
+the approved text was unchanged. A single MCP process read the approved draft,
+rejected the other draft, and omitted write tools.
+
+Native Stop Work withdrew the endpoint and denied the existing authorized MCP
+reader. The connection showed Paused. Explicit resume reused the same grant and
+expiry; the same MCP process read again. At `13:53:32Z`, that process received
+`permission_denied`, without text, after real expiry. A new CLI read also failed.
+The host remained published and the unrevoked, nonrenewable grant record was
+unchanged. The last pre-expiry CLI read had succeeded.
+
+The QA then stopped, revoked the expired connection, and fully exited. Discovery
+was empty. Original shared preferences and saved window state were restored and
+verified. The normal library was not opened. The QA bundle and neutral test
+library remain available for later checks. The private evidence and recovery
+location are recorded in `/tmp/draftly-agent-qa-followup.json`.
+
+This proves fresh pairing, one read-only scope, negative writes, actual expiry,
+and Stop Work for an open read session. It does not prove Stop Work during an
+active mutation, native effect, or pending effect review, nor every client's
+compatibility. Those acceptance gates remain open. Earlier entries follow.
+
 # Installed model selection acceptance — 3 November 2026
 
 A fresh signed app and embedded helper from `2ea267b` replaced only the named
