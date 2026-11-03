@@ -992,7 +992,7 @@ import AgentContracts
             let receipt = try writes.update(request, connectionID: grant.connectionID)
             guard let resource = receipt.resources.first else { throw AgentErrorCode.storageError }
             return ["resource": .object(["id": .string(resource.id.uuidString), "versionToken": .string(resource.versionToken)])]
-        case "editor.setSelection", "editor.replaceRange", "editor.undo", "editor.redo", "editor.tasks":
+        case "editor.setSelection", "editor.replaceRange", "editor.undo", "editor.redo", "editor.tasks", "editor.replaceAll":
             guard let editorWrites else { throw AgentErrorCode.unavailable }
             return try editorWrites.update(request, connectionID: grant.connectionID)
         case "preferences.get":

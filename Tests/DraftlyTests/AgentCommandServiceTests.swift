@@ -1633,7 +1633,7 @@ struct AgentCommandServiceTests {
         #expect(available.remove("syntaxes.list") != nil)
         #expect(available.remove("syntaxes.get") != nil)
         #expect(available.remove("drafts.duplicate") != nil)
-        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", "preferences.get", AgentMutationSchemas.name, "drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.setSelection", "editor.replaceRange", "editor.undo", "editor.redo", "editor.tasks", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.update"]) && available.count == 45)
+        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", "preferences.get", AgentMutationSchemas.name, "drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.setSelection", "editor.replaceRange", "editor.undo", "editor.redo", "editor.tasks", "editor.replaceAll", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.update"]) && available.count == 46)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.invalidInput))
         #expect(f.library.notes.isEmpty)
         #expect(try f.values("server.capabilities", session: session)["capabilities"] == .array([.string("drafts.read"), .string("drafts.write")]))
@@ -1990,6 +1990,50 @@ struct AgentCommandServiceTests {
         model.editor.selection = NSRange(location: 1, length: 0)
         #expect(try prepare(session).outcome == .error(.versionConflict))
         #expect(model.editor.content == note.content && f.library.notes.first?.content == note.content)
+    }
+
+    @Test(arguments: [false, true])
+    func replaceAllUsesNativeSearchUndoAndReplay(regex: Bool) throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let note = try f.note("café 12 🐼 CAFÉ 34"), model = try f.window(note)
+        f.editors = [model]
+        let native = NativeEditor(session: model.editor, fontName: "System", fontSize: 17,
+            lineSpacing: 2, markdown: false, onChange: { model.contentChanged() })
+        let history = ScriptUndoEditorFixture(native, content: note.content)
+        model.editor.selection = NSRange(location: 3, length: 4)
+        model.editor.synchronizeScriptEdit?()
+        history.text.manager.removeAllActions()
+        model.editor.canApplyExternalEdit = { true }
+        defer { model.pausePendingAutosave { true }; history.close(); model.editor.canApplyExternalEdit = nil }
+        let target = AgentResourceReference(kind: .window, id: try #require(f.editorRegistry.windowSnapshots().first).id)
+        let (_, session) = try f.connect(scope: .resources([target, .init(kind: .draft, id: note.id)]),
+            capabilities: [.draftsRead, .draftsWrite, .editorRead, .editorWrite])
+        guard case .string(let version) = try f.values("editor.get", session: session, targets: [target])["versionToken"] else {
+            throw AgentErrorCode.executionError
+        }
+        let parameters: [String: AgentJSONValue] = ["query": .string(regex ? "(café) ([0-9]+)" : "café"),
+            "regularExpression": .bool(regex), "replacement": .string(regex ? "$2-$1" : "$1🐼")]
+        let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "editor.replaceAll",
+            targets: [target], expectedVersion: version, parameters: parameters)
+        let frame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(intent))
+        let (_, reader) = try f.connect(scope: .resources([target, .init(kind: .draft, id: note.id)]),
+            capabilities: [.draftsRead, .editorRead])
+        #expect(try f.response("mutations.prepare", session: reader, parameters: ["request": frame]).outcome == .error(.permissionDenied))
+        guard case .string(let key) = try f.values("mutations.prepare", session: session,
+            parameters: ["request": frame])["retryKey"] else { throw AgentErrorCode.executionError }
+        let request = AgentRequest(requestID: intent.requestID, libraryID: f.libraryID, operation: intent.operation,
+            targets: [target], expectedVersion: version, retryKey: key, parameters: parameters)
+        func send() throws -> AgentResponse {
+            try JSONDecoder().decode(AgentResponse.self, from: f.service.respond(to: JSONEncoder().encode(request), session: session))
+        }
+        let reply = try send()
+        guard case .result = reply.outcome else { Issue.record("Replace all failed: \(reply.outcome)"); return }
+        #expect(model.editor.content == (regex ? "12-café 🐼 34-CAFÉ" : "$1🐼 12 🐼 $1🐼 34"))
+        #expect(model.editor.selection == NSRange(location: 3, length: 4))
+        model.editor.performUndo?(false)
+        #expect(model.editor.content == note.content)
+        #expect(try send().outcome == reply.outcome)
+        #expect(model.editor.content == note.content)
     }
 
     @Test func editorVersionChangesWhenTaskSyntaxChangesWithoutTextEdits() throws {

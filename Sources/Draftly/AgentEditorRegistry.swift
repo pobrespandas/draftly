@@ -98,13 +98,17 @@ import AgentContracts
         return model.editor.safeSelection
     }
 
-    func replaceRange(_ expected: WindowSnapshot, range: NSRange, text: String, authorize: () throws -> Void) throws {
+    func replaceRange(_ expected: WindowSnapshot, range: NSRange, text: String, preservingSelection: Bool = false, authorize: () throws -> Void) throws {
         try validateReplacement(expected)
         try authorize()
         try validateReplacement(expected)
         let model = try matchingModel(expected)
         let result = (expected.content as NSString).replacingCharacters(in: range, with: text)
         try model.editor.replace(range, with: text)
+        if preservingSelection {
+            let offset = min(expected.selection.location, result.utf16.count)
+            model.editor.selection = NSRange(location: offset, length: min(expected.selection.length, result.utf16.count - offset))
+        }
         func validateProjection() throws {
             guard valid, trackedModels().contains(where: { $0 === model }), model.editor.noteID == expected.draftID,
                   DraftOperations.sameText(model.editor.content, result) else { throw AgentErrorCode.outcomeUnknown }

@@ -42,8 +42,8 @@ chat history, and library remain available for follow-up.
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-56 names in implemented or conditional handler sets. The other 81 names have
-no direct handler in those sets. These counts do not prove that 56 operations
+57 names in implemented or conditional handler sets. The other 80 names have
+no direct handler in those sets. These counts do not prove that 57 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -55,7 +55,7 @@ a direct handler for every `native.*` contract.
 | Family | Direct contracts still outside those handler sets |
 | --- | --- |
 | Drafts | `drafts.archive`, `drafts.flag`, `drafts.merge`, `drafts.purge`, `drafts.restore`, `drafts.syntax`, `drafts.tags`, `drafts.trash` |
-| Editor | `editor.navigate`, `editor.open`, `editor.preview`, `editor.replaceAll` |
+| Editor | `editor.navigate`, `editor.open`, `editor.preview` |
 | Actions and groups | `actions.delete`, `actionGroups.delete` |
 | Workspaces | `workspaces.apply`, `workspaces.create`, `workspaces.delete`, `workspaces.duplicate`, `workspaces.reorder` |
 | Themes | All 14 declared `themes.*` contracts. |
@@ -83,6 +83,14 @@ path. Editor versions include syntax source, name, and feature state. A syntax
 change rejects a prepared task edit even when text has not changed. The final
 104-test service/editor run and native QA build passed. Installed task editing
 acceptance remains pending.
+
+`editor.replaceAll` now uses the shared find query with bounded replacement,
+native selection preservation, and one native Undo change. The final focused
+run passed 113 tests, and the native QA build passed. Output is limited to
+8,388,608 UTF-16 units. Matching checks cancellation and a 250 ms deadline at
+Foundation progress callbacks. A single template expansion also has a memory
+bound. This is not a hard timeout for regex compilation or a separate worker.
+Installed-client replacement acceptance remains pending.
 
 ## Responsibility boundaries
 

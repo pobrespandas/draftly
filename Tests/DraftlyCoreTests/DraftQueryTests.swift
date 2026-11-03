@@ -4,6 +4,34 @@ import Testing
 
 @Suite("Draft search contracts")
 struct DraftQueryTests {
+    @Test func boundedReplacementKeepsNativeLiteralAndCaptureSemantics() throws {
+        for (pattern, regex, replacement) in [("café", false, "$1🐼"), ("(café) ([0-9]+)", true, "$2-$1"), ("$", true, "!"), ("", false, "none")] {
+            let query = try EditorFindQuery(pattern, regularExpression: regex)
+            let text = "café 12 🐼 CAFÉ 34"
+            #expect(try query.replacingAll(in: text, with: replacement, maximumUTF16Length: 1024,
+                continueMatching: { true }) == query.replacingAll(in: text, with: replacement))
+        }
+    }
+
+    @Test func boundedReplacementRejectsExpansionAndInterruptedWork() throws {
+        let query = try EditorFindQuery("a")
+        #expect(throws: EditorFindQuery.ReplacementError.limitExceeded) {
+            try query.replacingAll(in: String(repeating: "a", count: 100), with: String(repeating: "x", count: 100),
+                maximumUTF16Length: 1000, continueMatching: { true })
+        }
+        let captures = try EditorFindQuery("(a+)", regularExpression: true)
+        #expect(throws: EditorFindQuery.ReplacementError.limitExceeded) {
+            try captures.replacingAll(in: String(repeating: "a", count: 32), with: "$1$1$1$1",
+                maximumUTF16Length: 32, continueMatching: { true })
+        }
+        var callbacks = 0
+        #expect(throws: EditorFindQuery.ReplacementError.interrupted) {
+            try query.replacingAll(in: "aaaa", with: "b", maximumUTF16Length: 1000,
+                continueMatching: { callbacks += 1; return callbacks < 3 })
+        }
+        #expect(callbacks >= 3)
+    }
+
     @Test func individualReplacementKeepsFullTextRegexContextAndLiteralTemplates() throws {
         let text = "🐼 café=12 café=34"
         let query = try EditorFindQuery("(?<=café=)([0-9]+)", regularExpression: true)

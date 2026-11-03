@@ -1,3 +1,27 @@
+# Bounded replace-all mutations — 3 November 2026
+
+`editor.replaceAll` now uses `EditorFindQuery` with literal or regex replacement.
+It preserves the current selection with the same length clamping as native
+find. It uses one native history change, current scope and version checks,
+mutation preparation, and the existing host-lifetime receipt. Replaying a
+completed request after user Undo does not repeat the replacement.
+
+The shared query has an additive package-only bounded replacement method.
+It limits the output to 8,388,608 UTF-16 units for agent calls. It checks a
+250 ms deadline and cancellation at Foundation match/progress callbacks.
+It checks a conservative single-template expansion bound before allocation.
+A budget failure occurs before a mutation receipt or editor effect. No partial
+replacement reaches the editor. Regex compilation has no hard timeout in this
+change. These checks do not establish active-operation Stop Work acceptance.
+
+The final focused run passed 105 service/editor tests and eight query tests.
+Cases covered literal dollar signs, case-insensitive matching, regex captures,
+zero-length matches, empty queries, output limits, interrupted matching,
+read-only denial, selection preservation, Undo, and receipt replay. The final
+native QA build passed. Full CI passed for preceding task commit `2181892`
+(run `41640505392`). The new source needs full CI and installed-client QA.
+The handler sets now contain 57 names; 80 direct contracts remain absent.
+
 # Syntax task mutations — 3 November 2026
 
 `editor.tasks` now uses `SyntaxDefinition.taskChange` for complete, reset, and
