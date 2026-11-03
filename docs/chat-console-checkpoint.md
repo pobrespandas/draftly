@@ -246,3 +246,35 @@ library-binding fix. They check permitted Unicode text, hidden resource denial,
 call-ID replay rejection, revocation, and late-result invalidation. Both project
 generator checks passed. This does not prove tool execution through a real
 ChatGPT response or installed native approval.
+
+## Direct ChatGPT tool continuation in progress
+
+`ChatGPTProvider` now accepts an optional authenticated `AgentChatToolSession`.
+It sends functions inside the `draftly` namespace. This follows the ChatGPT plan
+route, which supports namespaced function tools but not hosted MCP tools.
+The app executes the local call through its own permission service.
+
+Only a completed model response can supply executable calls. Names must match
+the advertised tools. Call IDs and arguments are bounded. Duplicate call IDs
+are rejected before a batch starts. Calls run serially and have no automatic
+retry. Discovery refreshes before each inference round and local call. Account
+identity and cancellation are checked around each network and local step.
+The stateless continuation includes returned output items, reasoning items, and
+matching function results. Calls and rounds are bounded; the last allowed model
+round cannot start another local effect. Text-only callers keep tools disabled.
+
+The account owner supplies its session-epoch check to the provider. The native
+console does not yet pass a tool session. Permission UI, real model tool calls,
+installed acceptance, Stop Work, and helper distribution remain pending.
+
+References checked: OpenAI Sign in with ChatGPT preview limitations and the
+function-calling guide. The official Python SDK confirms the optional function
+call namespace field. No external MCP client is added.
+
+Validation: 20 focused tests passed serially across direct provider, local tool
+continuation, account, console, and local permission-adapter suites. The new
+continuation tests use simulated model events with the real permission service.
+They check scoped text, reasoning and result continuation, duplicate batches,
+revocation, and account changes. No real ChatGPT tool invocation is accepted yet.
+Full CI `41594155092` passed for scope cleanup `b4ccd5f`; the tool bridge and
+continuation changes still need full CI.

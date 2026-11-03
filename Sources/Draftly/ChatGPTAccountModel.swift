@@ -136,13 +136,15 @@ import Foundation
         }
     }
 
-    func respond(messages: [ChatConsoleMessage], model: String, onText: @escaping @MainActor (String) -> Void) async throws -> String {
+    func respond(messages: [ChatConsoleMessage], model: String, tools: AgentChatToolSession? = nil, onText: @escaping @MainActor (String) -> Void) async throws -> String {
         guard let provider, models.contains(where: { $0.id == model }) else { throw ChatGPTProvider.Failure.unavailable }
         let epoch = sessionEpoch
         let token = try await accessToken()
         try Task.checkCancellation()
         guard epoch == sessionEpoch else { throw CancellationError() }
-        let response = try await provider.respond(messages: messages, model: model, token: token) { [weak self] text in
+        let response = try await provider.respond(messages: messages, model: model, token: token, tools: tools, validate: { [weak self] in
+            guard self?.sessionEpoch == epoch else { throw CancellationError() }
+        }) { [weak self] text in
             guard self?.sessionEpoch == epoch else { throw CancellationError() }
             onText(text)
         }
