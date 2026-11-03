@@ -83,7 +83,12 @@ struct AgentReviewedActionExecutionTests {
                 recordEffect: { try operations.recordEffect(id, effectID: $0, kind: $1, outcome: $2) },
                 resolveModel: { models, _ in models.first })
         }
-        for _ in 0..<1000 where approvals.pendingFromUserInterface().isEmpty { await Task.yield() }
+        defer { operations.cancelAll() }
+        let reviewDeadline = ContinuousClock.now.advanced(by: .seconds(5))
+        while approvals.pendingFromUserInterface().isEmpty && ContinuousClock.now < reviewDeadline {
+            if try operations.snapshot(operationID, connectionID: connection).state.isTerminal { break }
+            try await Task.sleep(for: .milliseconds(1))
+        }
         let review = try #require(approvals.pendingFromUserInterface().first)
         #expect(host.shares == 0 && review.effects.snapshot["nativeOperation"] == .string(stepType == "openIn" ? "shareFile" : stepType == "url" ? "openURL" : stepType))
         #expect(waiting == [true])
