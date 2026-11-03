@@ -17,9 +17,11 @@ import AgentContracts
     private static let editorReadOperations: Set<String> = ["editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks"]
     private static let actionReadOperations: Set<String> = ["actions.list", "actions.get", "actions.stepSchemas", "actions.groups", "actionGroups.get"]
     private static let workspaceReadOperations: Set<String> = ["workspaces.list", "workspaces.get", "workspaces.query"]
-    static let implementedOperations = readOperations.union(actionReadOperations).union(workspaceReadOperations).union([AgentMutationSchemas.name, "workspaces.update", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder"]).union(AgentDraftWriting.operationNames).union(AgentEditorWriting.operationNames).union(editorReadOperations)
+    static let implementedOperations = readOperations.union(actionReadOperations).union(workspaceReadOperations).union([AgentMutationSchemas.name, "workspaces.update", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder"]).union(AgentDraftWriting.operationNames).union(AgentEditorWriting.operationNames).union(AgentPreferenceWriting.operationNames).union(editorReadOperations)
     private var availableOperations: Set<String> {
         var operations = editorRegistry == nil ? Self.readOperations.union(Self.actionReadOperations).union(Self.workspaceReadOperations) : (writes == nil ? Self.readOperations.union(Self.editorReadOperations).union(Self.actionReadOperations).union(Self.workspaceReadOperations) : Self.implementedOperations)
+        if preferenceWrites != nil { operations.formUnion(AgentPreferenceWriting.operationNames.union([AgentMutationSchemas.name])) }
+        else { operations.subtract(AgentPreferenceWriting.operationNames) }
         if readActivity != nil { operations.insert("activity.list") }
         if operationRegistry != nil { operations.formUnion(["operations.get", "operations.cancel"]) }
         if submitAction != nil && operationRegistry != nil { operations.insert("actions.run") }
@@ -30,6 +32,7 @@ import AgentContracts
             if let operation = AgentOperationCatalog.operation(named: name) { result.formUnion(operation.capabilities) }
         }
         if availableOperations.contains("preferences.get") { capabilities.insert(.appearanceRead) }
+        if availableOperations.contains("preferences.update") { capabilities.insert(.appearanceManage) }
         if availableOperations.contains("actions.run") {
             capabilities.formUnion([.draftsWrite, .editorWrite, .nativeUse])
         }
@@ -44,6 +47,7 @@ import AgentContracts
     private let retryKeys: AgentRetryKeys
     private var writes: AgentDraftWriting?
     private var editorWrites: AgentEditorWriting?
+    private var preferenceWrites: AgentPreferenceWriting?
     private let libraryID: UUID
     private let connections: AgentConnectionRegistry
     private let validateHost: () throws -> Void
@@ -64,6 +68,7 @@ import AgentContracts
 
     init(library: LibraryStore, libraryID: UUID, connections: AgentConnectionRegistry, appVersion: String,
          preferenceDefaults: UserDefaults = .standard,
+         preferenceStorage: AgentPreferenceStorage? = nil,
          nativePreferenceRead: ((String) throws -> AgentPreferenceReading)? = nil,
          validateHost: @escaping () throws -> Void, isLocked: @escaping () -> Bool, now: @escaping () -> Date = Date.init,
          uptime: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
@@ -95,6 +100,30 @@ import AgentContracts
         drafts = AgentDraftReading(library: library, pages: pages, editors: editors, pendingEditorGeneration: pendingEditorGeneration)
         retryKeys = AgentRetryKeys(now: now, uptime: uptime,
             currentGrant: { try? connections.grantForAuthenticatedConnection($0) }, isLocked: isLocked)
+        if let preferenceStorage {
+            preferenceWrites = AgentPreferenceWriting(storage: preferenceStorage, keys: retryKeys, preferences: preferences,
+                currentGrant: { try connections.grantForAuthenticatedConnection($0) }, validateAdmission: { [weak self] in
+                    guard let self else { throw AgentErrorCode.cancelled }; try self.validateAdmission()
+                }, plan: { [weak self] request, grant in
+                    guard let self else { throw AgentErrorCode.cancelled }
+                    return try AgentPreferenceBatch.prepare(request, defaults: self.preferenceDefaults, library: self.actionLibrary,
+                        grant: grant, resolveSyntax: { address in
+                            switch address.syntax {
+                            case .builtIn(let name): return try ScriptSyntax.definition(name)
+                            case .installed(let id):
+                                guard grant.scope.permits(.init(kind: .syntax, id: id)),
+                                      let syntax = self.actionLibrary.syntaxes.first(where: { $0.id == id && $0.type != "builtIn" }) else {
+                                    throw AgentErrorCode.notFound
+                                }
+                                return syntax
+                            case nil: throw AgentErrorCode.invalidInput
+                            }
+                        })
+                }, readReceipt: { [weak self] request, grant in
+                    guard let self else { throw AgentErrorCode.cancelled }
+                    return try self.preferenceReceipt(request, grant: grant)
+                })
+        }
         if let editors {
             writes = try AgentDraftWriting(library: library, libraryID: libraryID, reader: drafts, editors: editors,
                 keys: retryKeys, now: now, validateAdmission: { [weak self] in
@@ -170,9 +199,9 @@ import AgentContracts
             case .denied(let error): throw error
             case .needsHumanApproval: throw AgentErrorCode.unavailable
             case .needsEffectAuthorization:
-                guard request.operation == "actions.run", submitAction != nil, operationRegistry != nil else {
-                    throw AgentErrorCode.unavailable
-                }
+                let reviewedAction = request.operation == "actions.run" && submitAction != nil && operationRegistry != nil
+                let preferenceMutation = AgentPreferenceWriting.operationNames.contains(request.operation) && preferenceWrites != nil
+                guard reviewedAction || preferenceMutation else { throw AgentErrorCode.unavailable }
             }
             guard availableOperations.contains(request.operation) else { throw AgentErrorCode.unavailable }
             let parameters: [String: AgentJSONValue]
@@ -217,6 +246,86 @@ import AgentContracts
             close(session); throw AgentErrorCode.permissionDenied
         }
         return grant
+    }
+
+    private func readPreferences(_ parameters: [String: AgentJSONValue], grant: AgentGrant) throws -> [String: AgentJSONValue] {
+        guard case .array(let items) = parameters["items"] else { throw AgentErrorCode.invalidInput }
+        func version(_ value: AgentJSONValue) throws -> String {
+            let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
+            return Data(HMAC<SHA256>.authenticationCode(for: try encoder.encode(value), using: preferenceVersionKey)).base64EncodedString()
+        }
+        let values: [AgentJSONValue] = try items.map { item in
+            let address = try preferences.address(item)
+            let reading: AgentPreferenceReading
+            if AgentDevicePreferenceAccess.supportedIDs.contains(address.id) {
+                reading = try AgentDevicePreferenceAccess.read(address: item, defaults: preferenceDefaults)
+            } else if AgentListPreferenceAccess.supportedIDs.contains(address.id) {
+                reading = try AgentListPreferenceAccess.read(address: item, defaults: preferenceDefaults)
+            } else if ["application.launchAtLogin", SpotlightPreferences.enabledKey].contains(address.id) {
+                guard let nativePreferenceRead else { throw AgentErrorCode.unavailable }
+                reading = try nativePreferenceRead(address.id)
+            } else if address.id.hasPrefix("syntax.") {
+                guard grant.capabilities.contains(.appearanceRead) else { throw AgentErrorCode.permissionDenied }
+                let syntax: SyntaxDefinition
+                switch address.syntax {
+                case .builtIn(let name): syntax = try ScriptSyntax.definition(name)
+                case .installed(let id):
+                    guard grant.scope.permits(.init(kind: .syntax, id: id)),
+                          let installed = actionLibrary.syntaxes.first(where: { $0.id == id && $0.type != "builtIn" }) else {
+                        throw AgentErrorCode.notFound
+                    }
+                    syntax = installed
+                case nil: throw AgentErrorCode.invalidInput
+                }
+                let name = String(address.id.dropFirst("syntax.".count))
+                let key = try AgentEncodedPreferenceAccess.syntaxStorageKey(name)
+                let configuration = preferenceDefaults.object(forKey: key).map { $0 as? String ?? "null" } ?? "{}"
+                let inherited: AgentJSONValue?
+                if try preferences.field(address.id).defaultSource == .inherited {
+                    let global = try AgentDevicePreferenceAccess.read(
+                        address: .object(["id": .string("editor." + name)]), defaults: preferenceDefaults)
+                    guard global.origin != "invalid" else { throw AgentErrorCode.invalidInput }
+                    inherited = global.effectiveValue
+                } else { inherited = nil }
+                reading = try AgentEncodedPreferenceAccess.read(address: item, configuration: configuration,
+                    syntax: syntax, inherited: inherited)
+            } else if address.id == WorkspaceDefaults.key {
+                reading = try AgentWorkspacePreferenceAccess.read(defaults: preferenceDefaults,
+                    capabilities: grant.capabilities, scope: grant.scope,
+                    workspaceExists: { id in actionLibrary.workspaces.contains { $0.id == id } })
+            } else if address.id.hasPrefix("markdown.multi.") || address.id.hasPrefix("markdown.github.") || address.id == "commands.shortcut" {
+                let key = address.id == "commands.shortcut" ? CommandShortcuts.storageKey :
+                    address.id.hasPrefix("markdown.multi.") ? MarkdownPreferences.multiKey : MarkdownPreferences.githubKey
+                let configuration: String
+                if let stored = preferenceDefaults.object(forKey: key) { configuration = stored as? String ?? "null" }
+                else { configuration = "{}" }
+                reading = try AgentEncodedPreferenceAccess.read(address: item, configuration: configuration)
+            } else { throw AgentErrorCode.unavailable }
+            guard case .object(var fields) = item else { throw AgentErrorCode.invalidInput }
+            fields["effectiveValue"] = reading.effectiveValue
+            fields["valueOrigin"] = .string(reading.origin)
+            fields["hasOverride"] = .bool(reading.hasOverride)
+            fields["versionToken"] = .string(try version(.object(fields)))
+            return .object(fields)
+        }
+        return ["items": .array(values), "versionToken": .string(try version(.array(values)))]
+    }
+
+    private func preferenceReceipt(_ request: AgentRequest, grant: AgentGrant) throws -> [String: AgentJSONValue] {
+        let parameters = try AgentPreferenceSchemas.validatedParameters(for: request, registry: preferences)
+        guard case .array(let items) = parameters["items"] else { throw AgentErrorCode.invalidInput }
+        let addresses: [AgentJSONValue] = try items.map { item in
+            guard case .object(var fields) = item else { throw AgentErrorCode.invalidInput }
+            fields.removeValue(forKey: "value")
+            return .object(fields)
+        }
+        let readings = try readPreferences(["items": .array(addresses)], grant: grant)
+        guard case .array(let values) = readings["items"], let version = readings["versionToken"] else { throw AgentErrorCode.storageError }
+        return ["items": .array(try values.map { item in
+            guard case .object(var fields) = item else { throw AgentErrorCode.storageError }
+            for key in ["effectiveValue", "valueOrigin", "hasOverride"] { fields.removeValue(forKey: key) }
+            return .object(fields)
+        }), "versionToken": version]
     }
 
     private func actionVersion(_ action: DraftAction) throws -> String {
@@ -803,17 +912,23 @@ import AgentContracts
         case "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks":
             return try readEditor(request, parameters: parameters, grant: grant, sessionID: sessionID)
         case "mutations.prepare":
-            guard let writes else { throw AgentErrorCode.unavailable }
             let input = try AgentMutationSchemas.mutation(from: parameters)
             let bound = AgentRequest(requestID: input.requestID, libraryID: input.libraryID ?? libraryID,
                 operation: input.operation, targets: input.targets, expectedVersion: input.expectedVersion, parameters: input.parameters)
+            guard availableOperations.contains(bound.operation) else { throw AgentErrorCode.unavailable }
             let ticket: AgentRetryKeys.Ticket
-            if AgentEditorWriting.operationNames.contains(bound.operation) {
+            if AgentPreferenceWriting.operationNames.contains(bound.operation) {
+                guard let preferenceWrites else { throw AgentErrorCode.unavailable }
+                ticket = try preferenceWrites.prepare(bound, connectionID: grant.connectionID)
+            } else if AgentEditorWriting.operationNames.contains(bound.operation) {
                 guard let editorWrites else { throw AgentErrorCode.unavailable }
                 ticket = try editorWrites.prepare(bound, connectionID: grant.connectionID)
             } else if bound.operation == "workspaces.update" { ticket = try prepareWorkspaceUpdate(bound, connectionID: grant.connectionID) }
             else if ["actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder"].contains(bound.operation) { ticket = try prepareActionUpdate(bound, connectionID: grant.connectionID) }
-            else { ticket = try writes.prepare(bound, connectionID: grant.connectionID) }
+            else {
+                guard let writes else { throw AgentErrorCode.unavailable }
+                ticket = try writes.prepare(bound, connectionID: grant.connectionID)
+            }
             return ["requestID": .string(bound.requestID.uuidString), "retryKey": .string(ticket.value),
                 "expiresAt": .string(APIValues.date(min(ticket.expiresAt, grant.expiresAt)))]
         case "actionGroups.reorder", "actions.reorder":
@@ -836,66 +951,10 @@ import AgentContracts
             guard let editorWrites else { throw AgentErrorCode.unavailable }
             return try editorWrites.update(request, connectionID: grant.connectionID)
         case "preferences.get":
-            guard case .array(let items) = parameters["items"] else { throw AgentErrorCode.invalidInput }
-            func version(_ value: AgentJSONValue) throws -> String {
-                let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
-                return Data(HMAC<SHA256>.authenticationCode(for: try encoder.encode(value), using: preferenceVersionKey)).base64EncodedString()
-            }
-            let values: [AgentJSONValue] = try items.map { item in
-                let address = try preferences.address(item)
-                let reading: AgentPreferenceReading
-                if AgentDevicePreferenceAccess.supportedIDs.contains(address.id) {
-                    reading = try AgentDevicePreferenceAccess.read(address: item, defaults: preferenceDefaults)
-                } else if AgentListPreferenceAccess.supportedIDs.contains(address.id) {
-                    reading = try AgentListPreferenceAccess.read(address: item, defaults: preferenceDefaults)
-                } else if ["application.launchAtLogin", SpotlightPreferences.enabledKey].contains(address.id) {
-                    guard let nativePreferenceRead else { throw AgentErrorCode.unavailable }
-                    reading = try nativePreferenceRead(address.id)
-                } else if address.id.hasPrefix("syntax.") {
-                    guard grant.capabilities.contains(.appearanceRead) else { throw AgentErrorCode.permissionDenied }
-                    let syntax: SyntaxDefinition
-                    switch address.syntax {
-                    case .builtIn(let name): syntax = try ScriptSyntax.definition(name)
-                    case .installed(let id):
-                        guard grant.scope.permits(.init(kind: .syntax, id: id)),
-                              let installed = actionLibrary.syntaxes.first(where: { $0.id == id && $0.type != "builtIn" }) else {
-                            throw AgentErrorCode.notFound
-                        }
-                        syntax = installed
-                    case nil: throw AgentErrorCode.invalidInput
-                    }
-                    let name = String(address.id.dropFirst("syntax.".count))
-                    let key = try AgentEncodedPreferenceAccess.syntaxStorageKey(name)
-                    let configuration = preferenceDefaults.object(forKey: key).map { $0 as? String ?? "null" } ?? "{}"
-                    let inherited: AgentJSONValue?
-                    if try preferences.field(address.id).defaultSource == .inherited {
-                        let global = try AgentDevicePreferenceAccess.read(
-                            address: .object(["id": .string("editor." + name)]), defaults: preferenceDefaults)
-                        guard global.origin != "invalid" else { throw AgentErrorCode.invalidInput }
-                        inherited = global.effectiveValue
-                    } else { inherited = nil }
-                    reading = try AgentEncodedPreferenceAccess.read(address: item, configuration: configuration,
-                        syntax: syntax, inherited: inherited)
-                } else if address.id == WorkspaceDefaults.key {
-                    reading = try AgentWorkspacePreferenceAccess.read(defaults: preferenceDefaults,
-                        capabilities: grant.capabilities, scope: grant.scope,
-                        workspaceExists: { id in actionLibrary.workspaces.contains { $0.id == id } })
-                } else if address.id.hasPrefix("markdown.multi.") || address.id.hasPrefix("markdown.github.") || address.id == "commands.shortcut" {
-                    let key = address.id == "commands.shortcut" ? CommandShortcuts.storageKey :
-                        address.id.hasPrefix("markdown.multi.") ? MarkdownPreferences.multiKey : MarkdownPreferences.githubKey
-                    let configuration: String
-                    if let stored = preferenceDefaults.object(forKey: key) { configuration = stored as? String ?? "null" }
-                    else { configuration = "{}" }
-                    reading = try AgentEncodedPreferenceAccess.read(address: item, configuration: configuration)
-                } else { throw AgentErrorCode.unavailable }
-                guard case .object(var fields) = item else { throw AgentErrorCode.invalidInput }
-                fields["effectiveValue"] = reading.effectiveValue
-                fields["valueOrigin"] = .string(reading.origin)
-                fields["hasOverride"] = .bool(reading.hasOverride)
-                fields["versionToken"] = .string(try version(.object(fields)))
-                return .object(fields)
-            }
-            return ["items": .array(values), "versionToken": .string(try version(.array(values)))]
+            return try readPreferences(parameters, grant: grant)
+        case "preferences.update", "preferences.reset":
+            guard let preferenceWrites else { throw AgentErrorCode.unavailable }
+            return try preferenceWrites.update(request, connectionID: grant.connectionID)
         case "preferences.schema":
             let selected: Set<String>?
             if case .array(let ids) = parameters["ids"] {
@@ -916,7 +975,7 @@ import AgentContracts
             return ["operations": .array(names.map { name in
                 let schema = AgentOperationSchemas.schema(for: name, preferences: preferences)
                 return .object(["name": .string(name), "inputSchema": schema?.parameters.jsonSchema ?? .null,
-                    "resultSchema": schema?.result.jsonSchema ?? .null, "available": .bool(availableOperations.contains(name) && (name != AgentMutationSchemas.name || !grant.capabilities.isDisjoint(with: [.draftsWrite, .actionsManage, .workspacesManage])))])
+                    "resultSchema": schema?.result.jsonSchema ?? .null, "available": .bool(availableOperations.contains(name) && (name != AgentMutationSchemas.name || !grant.capabilities.isDisjoint(with: [.draftsWrite, .actionsManage, .workspacesManage, .preferencesWrite])))])
             })]
         default: return try drafts.read(request, parameters: parameters, grant: grant, sessionID: sessionID)
         }

@@ -84,6 +84,7 @@ struct AgentCommandServiceTests {
                 create: { [unowned self] in self.secrets[$0] = $1 },
                 remove: { [unowned self] in self.secrets.removeValue(forKey: $0) }),
             now: { [unowned self] in self.wall }, authorityChanged: { _ in })
+        var preferenceStorage: AgentPreferenceStorage?
         var nativePreferenceRead: ((String) throws -> AgentPreferenceReading)?
         var service: AgentCommandService!
 
@@ -92,15 +93,30 @@ struct AgentCommandServiceTests {
             service = try makeService()
             try connections.setEnabledFromUserInterface(true)
         }
-        func makeService() throws -> AgentCommandService {
+        func makeService(withoutEditors: Bool = false) throws -> AgentCommandService {
             try AgentCommandService(library: library, libraryID: libraryID, connections: connections,
                 appVersion: "QA", preferenceDefaults: try #require(UserDefaults(suiteName: editorDefaultsName)),
-                nativePreferenceRead: nativePreferenceRead, validateHost: { [unowned self] in
+                preferenceStorage: preferenceStorage, nativePreferenceRead: nativePreferenceRead, validateHost: { [unowned self] in
                     if let error = self.hostError { throw error }
                 }, isLocked: { [unowned self] in self.locked }, now: { [unowned self] in self.wall },
-                uptime: { [unowned self] in self.uptime }, editors: editorRegistry, pendingEditorGeneration: { [unowned self] _ in
+                uptime: { [unowned self] in self.uptime }, editors: withoutEditors ? nil : editorRegistry, pendingEditorGeneration: { [unowned self] _ in
                     self.onGeneration?(); return self.generation
                 })
+        }
+        func enablePreferenceWrites() throws {
+            let defaults = try #require(UserDefaults(suiteName: editorDefaultsName))
+            preferenceStorage = try AgentPreferenceStorage(defaults: defaults, domain: editorDefaultsName)
+            service = try makeService()
+        }
+        func preparedPreference(_ request: AgentRequest, session: AgentCommandService.Session) throws -> AgentRequest {
+            let frame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(request))
+            let prepared = try values("mutations.prepare", session: session, parameters: ["request": frame])
+            guard case .string(let key) = prepared["retryKey"] else { throw AgentErrorCode.invalidInput }
+            return AgentRequest(requestID: request.requestID, libraryID: libraryID, operation: request.operation,
+                targets: request.targets, expectedVersion: request.expectedVersion, retryKey: key, parameters: request.parameters)
+        }
+        func send(_ request: AgentRequest, session: AgentCommandService.Session) throws -> AgentResponse {
+            try JSONDecoder().decode(AgentResponse.self, from: service.respond(to: JSONEncoder().encode(request), session: session))
         }
         func connect(scope: AgentResourceScope = .library, capabilities: Set<AgentCapability> = [.draftsRead]) throws
             -> (AgentConnectionRecord, AgentCommandService.Session) {
@@ -432,6 +448,87 @@ struct AgentCommandServiceTests {
         #expect(f.library.actions.first(where: { $0.id == action.id })?.group == "Destination")
         #expect(try send() == reply)
         #expect(f.library.actions.count == 2)
+    }
+
+    @Test func preferenceServicePreparesWritesResetsAndRecoversWithoutReapplying() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        try f.enablePreferenceWrites()
+        let defaults = try #require(UserDefaults(suiteName: f.editorDefaultsName))
+        let (_, session) = try f.connect(scope: .resources([]), capabilities: [.preferencesRead, .preferencesWrite])
+        let params: [String: AgentJSONValue] = ["items": .array([.object(["id": .string("editor.fontSize")])])]
+        guard case .string(let version) = try f.values("preferences.get", session: session, parameters: params)["versionToken"] else {
+            Issue.record("Missing version"); return
+        }
+        let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "preferences.update", expectedVersion: version,
+            parameters: ["items": .array([.object(["id": .string("editor.fontSize"), "value": .integer(23)])])])
+        let signed = try f.preparedPreference(intent, session: session)
+        #expect(defaults.object(forKey: "editor.fontSize") == nil)
+        let first = try f.send(signed, session: session)
+        guard case .result = first.outcome else { Issue.record("Preference write failed: \(first.outcome)"); return }
+        #expect(defaults.double(forKey: "editor.fontSize") == 23)
+        defaults.set(31, forKey: "editor.fontSize")
+        #expect(try f.send(signed, session: session) == first && defaults.double(forKey: "editor.fontSize") == 31)
+        guard case .string(let current) = try f.values("preferences.get", session: session, parameters: params)["versionToken"] else {
+            Issue.record("Missing updated version"); return
+        }
+        let reset = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "preferences.reset", expectedVersion: current, parameters: params)
+        let preparedReset = try f.preparedPreference(reset, session: session)
+        let restored = try f.send(preparedReset, session: session)
+        guard case .result = restored.outcome else { Issue.record("Preference reset failed"); return }
+        #expect(defaults.object(forKey: "editor.fontSize") == nil)
+        let schemas = try f.values("server.schemas", session: session,
+            parameters: ["operations": .array(["preferences.update", "preferences.reset", "mutations.prepare"].map(AgentJSONValue.string))])
+        guard case .array(let operations) = schemas["operations"] else { Issue.record("Missing schemas"); return }
+        #expect(operations.allSatisfy { if case .object(let value) = $0 { return value["available"] == .bool(true) }; return false })
+    }
+
+    @Test func preferenceWritesDoNotRequireAnEditorRegistry() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        try f.enablePreferenceWrites()
+        f.service = try f.makeService(withoutEditors: true)
+        let (_, session) = try f.connect(capabilities: [.preferencesRead, .preferencesWrite])
+        let params: [String: AgentJSONValue] = ["items": .array([.object(["id": .string("editor.fontSize")])])]
+        let values = try f.values("preferences.get", session: session, parameters: params)
+        guard case .string(let version) = values["versionToken"] else { Issue.record("Missing version"); return }
+        let request = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "preferences.update", expectedVersion: version,
+            parameters: ["items": .array([.object(["id": .string("editor.fontSize"), "value": .integer(24)])])])
+        let signed = try f.preparedPreference(request, session: session)
+        let response = try f.send(signed, session: session)
+        guard case .result = response.outcome else { Issue.record("Preference write needs an editor"); return }
+        #expect(UserDefaults(suiteName: f.editorDefaultsName)?.double(forKey: "editor.fontSize") == 24)
+    }
+
+    @Test func preferencePreparationCannotOverwriteChangedSharedStorage() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        try f.enablePreferenceWrites()
+        let defaults = try #require(UserDefaults(suiteName: f.editorDefaultsName))
+        let (_, session) = try f.connect(capabilities: [.preferencesRead, .preferencesWrite])
+        let address = AgentJSONValue.object(["id": .string("markdown.multi.smartQuotesEnabled")])
+        let reading = try f.values("preferences.get", session: session, parameters: ["items": .array([address])])
+        guard case .string(let version) = reading["versionToken"] else { Issue.record("Missing version"); return }
+        let request = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "preferences.update", expectedVersion: version,
+            parameters: ["items": .array([.object(["id": .string("markdown.multi.smartQuotesEnabled"), "value": .bool(false)])])])
+        let signed = try f.preparedPreference(request, session: session)
+        let changed = #"{"future":{"keep":"café 🐼"}}"#
+        defaults.set(changed, forKey: MarkdownPreferences.multiKey)
+        #expect(try f.send(signed, session: session).outcome == .error(.versionConflict))
+        #expect(defaults.string(forKey: MarkdownPreferences.multiKey) == changed)
+    }
+
+    @Test func nativePreferenceMutationStopsBeforeStorageWithoutHumanReview() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        f.nativePreferenceRead = { _ in .init(effectiveValue: .bool(false), origin: "system", hasOverride: false) }
+        try f.enablePreferenceWrites()
+        let (_, session) = try f.connect(capabilities: [.preferencesRead, .preferencesWrite])
+        let address = AgentJSONValue.object(["id": .string("application.launchAtLogin")])
+        let reading = try f.values("preferences.get", session: session, parameters: ["items": .array([address])])
+        guard case .string(let version) = reading["versionToken"] else { Issue.record("Missing version"); return }
+        let request = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "preferences.update", expectedVersion: version,
+            parameters: ["interactive": .bool(true), "items": .array([.object(["id": .string("application.launchAtLogin"), "value": .bool(true)])])])
+        let frame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(request))
+        #expect(try f.response("mutations.prepare", session: session, parameters: ["request": frame]).outcome == .error(.unavailable))
+        let defaults = try #require(UserDefaults(suiteName: f.editorDefaultsName))
+        #expect(defaults.object(forKey: "application.launchAtLogin") == nil)
     }
 
     @Test func spotlightPreferenceReadDoesNotChangeTheIndex() throws {

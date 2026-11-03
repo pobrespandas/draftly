@@ -47,6 +47,8 @@ import AgentLocalSecurity
          editors: AgentEditorRegistry? = nil,
          enableReviewedActions: Bool = false,
          nativePreferenceRead: ((String) throws -> AgentPreferenceReading)? = nil,
+         preferenceDefaults: UserDefaults = .standard,
+         preferenceStorage: AgentPreferenceStorage? = nil,
          isLocked: @escaping () -> Bool,
          pendingEditorGeneration: @escaping (UUID) -> String,
          resolveTargets: @escaping (Set<AgentResourceReference>) throws -> Set<AgentResourceReference>,
@@ -96,7 +98,8 @@ import AgentLocalSecurity
         }, validateHost: validateOwner, isLocked: isLocked, journal: journal)
         do {
             service = try AgentCommandService(library: library, libraryID: lease.libraryID, connections: registry,
-                appVersion: appVersion, nativePreferenceRead: nativePreferenceRead, validateHost: validateOwner, isLocked: isLocked,
+                appVersion: appVersion, preferenceDefaults: preferenceDefaults, preferenceStorage: preferenceStorage,
+                nativePreferenceRead: nativePreferenceRead, validateHost: validateOwner, isLocked: isLocked,
                 editors: editors,
                 pendingEditorGeneration: pendingEditorGeneration,
                 recordActivity: { connectionID, grantID, requestID, operation, result in

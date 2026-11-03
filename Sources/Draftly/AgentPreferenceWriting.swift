@@ -109,7 +109,9 @@ import AgentContracts
         let before = try readReceipt(request, grant)
         guard before["versionToken"] == request.expectedVersion.map(AgentJSONValue.string) else { throw AgentErrorCode.versionConflict }
         let batch = try plan(request, grant)
-        guard !batch.requiresHumanApproval && batch.native.isEmpty else { throw AgentErrorCode.interactionRequired }
+        guard !batch.requiresHumanApproval && batch.native.isEmpty else {
+            throw request.parameters["interactive"] == .bool(true) ? AgentErrorCode.unavailable : .interactionRequired
+        }
         return batch
     }
 

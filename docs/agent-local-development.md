@@ -863,3 +863,24 @@ replace the approval flow with a signed retry key. Focused tests cover replay,
 stale preparation, changed grants, unknown writes, capacity and reset. Service
 routing, sensitive-operation review, native execution and installed acceptance
 remain pending. Public preference mutation availability is unchanged.
+
+### Connected preference mutation service
+
+A service with a configured preference storage adapter now routes
+`preferences.update`, `preferences.reset` and their `mutations.prepare` requests
+to the prepared coordinator. Availability includes only connected handlers.
+Preparation rejects unavailable operations. Preference changes do not require
+an editor registry. The isolated QA startup supplies the app's preference store;
+normal agent startup remains disabled.
+
+Ordinary scalar, list, Markdown, local shortcut, scoped Workspace and syntax
+changes use batch preparation, raw snapshot comparison and host-local receipts.
+Sensitive and native changes still have no review executor. Noninteractive
+requests return `interaction_required`; interactive requests return unavailable,
+without creating a review or applying storage. A retry key cannot bypass this.
+
+Service tests use separate preference domains. They verify prepare without a
+write, update, reset, exact result recovery after a later Settings change,
+conflicts in shared encoded storage, native admission and operation availability.
+The focused service, writer, storage, host and settings run passed 132 tests.
+Signed installed mutation acceptance and native review integration remain pending.

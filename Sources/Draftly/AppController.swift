@@ -155,6 +155,7 @@ final class AppController: ObservableObject {
 
     func configureAgentHost(isLocked: @escaping () -> Bool,
                             enableReviewedActions: Bool = false,
+                            preferenceStorage: AgentPreferenceStorage? = nil,
                             protectedDataAvailable: @escaping () -> Bool = { NSApplication.shared.isProtectedDataAvailable },
                             credentials: AgentConnectionRegistry.CredentialAccess? = nil,
                             validateApplication: @escaping () throws -> Void = { try AgentCredentialIdentity.validateCurrentProcess(.application) },
@@ -176,7 +177,7 @@ final class AppController: ObservableObject {
                 }
                 return try AgentNativePreferenceAccess.readSpotlight(spotlight,
                     hasStoredOverride: UserDefaults.standard.object(forKey: SpotlightPreferences.enabledKey) != nil)
-            },
+            }, preferenceStorage: preferenceStorage,
             isLocked: { isLocked() || !protectedDataAvailable() },
             pendingEditorGeneration: { _ in "" }, resolveTargets: { resources.resolve($0) },
             credentials: credentials, validateApplication: validateApplication, validateHelper: validateHelper)
@@ -262,7 +263,8 @@ final class AppController: ObservableObject {
                     catch { FileHandle.standardError.write(Data("Agent QA identity check failed\n".utf8)); throw error }
                     do { _ = try AgentLibraryLocation(library: store) }
                     catch { FileHandle.standardError.write(Data("Agent QA library check failed\n".utf8)); throw error }
-                    try configureAgentHost(isLocked: { false }, enableReviewedActions: true)
+                    try configureAgentHost(isLocked: { false }, enableReviewedActions: true,
+                        preferenceStorage: AgentPreferenceStorage(defaults: .standard, domain: ApplicationIdentityMigration.identifier))
                 }
                 catch {
                     FileHandle.standardError.write(Data("Agent QA host failed: \(error)\n".utf8))
