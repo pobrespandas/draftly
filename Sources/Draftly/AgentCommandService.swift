@@ -12,32 +12,20 @@ import AgentContracts
         let connectionID: UUID
         let grantID: UUID
     }
-    private static let readOperations: Set<String> = ["server.status", "server.capabilities", "server.schemas",
-        "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions", "preferences.schema", "preferences.get", "syntaxes.list", "syntaxes.get", "syntaxes.getBuiltIn", "syntaxes.exportBuiltIn"]
-    private static let editorReadOperations: Set<String> = ["editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks"]
-    private static let actionReadOperations: Set<String> = ["actions.list", "actions.get", "actions.stepSchemas", "actions.groups", "actionGroups.get"]
-    private static let workspaceReadOperations: Set<String> = ["workspaces.list", "workspaces.get", "workspaces.query"]
-    static let implementedOperations = readOperations.union(actionReadOperations).union(workspaceReadOperations).union([AgentMutationSchemas.name, "workspaces.update", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder"]).union(AgentDraftWriting.operationNames).union(AgentEditorWriting.operationNames).union(AgentPreferenceWriting.operationNames).union(editorReadOperations)
-    private var availableOperations: Set<String> {
-        var operations = editorRegistry == nil ? Self.readOperations.union(Self.actionReadOperations).union(Self.workspaceReadOperations) : (writes == nil ? Self.readOperations.union(Self.editorReadOperations).union(Self.actionReadOperations).union(Self.workspaceReadOperations) : Self.implementedOperations)
-        if preferenceWrites != nil { operations.formUnion(AgentPreferenceWriting.operationNames.union([AgentMutationSchemas.name])) }
-        else { operations.subtract(AgentPreferenceWriting.operationNames) }
-        if readActivity != nil { operations.insert("activity.list") }
-        if operationRegistry != nil { operations.formUnion(["operations.get", "operations.cancel"]) }
-        if submitAction != nil && operationRegistry != nil { operations.insert("actions.run") }
-        return operations
+    static var implementedOperations: Set<String> { AgentOperationAvailability.implementedOperations }
+    private var availability: AgentOperationAvailability {
+        var handlers: Set<AgentOperationAvailability.Handler> = []
+        if editorRegistry != nil { handlers.insert(.editorRead) }
+        if writes != nil { handlers.insert(.draftWrite) }
+        if editorWrites != nil { handlers.insert(.editorWrite) }
+        if preferenceWrites != nil { handlers.insert(.preferenceWrite) }
+        if readActivity != nil { handlers.insert(.activityRead) }
+        if operationRegistry != nil { handlers.insert(.operationControl) }
+        if submitAction != nil { handlers.insert(.actionExecution) }
+        return AgentOperationAvailability(handlers: handlers)
     }
-    var availableCapabilities: Set<AgentCapability> {
-        var capabilities = availableOperations.reduce(into: Set<AgentCapability>()) { result, name in
-            if let operation = AgentOperationCatalog.operation(named: name) { result.formUnion(operation.capabilities) }
-        }
-        if availableOperations.contains("preferences.get") { capabilities.insert(.appearanceRead) }
-        if availableOperations.contains("preferences.update") { capabilities.insert(.appearanceManage) }
-        if availableOperations.contains("actions.run") {
-            capabilities.formUnion([.draftsWrite, .editorWrite, .nativeUse])
-        }
-        return capabilities
-    }
+    private var availableOperations: Set<String> { availability.operations }
+    var availableCapabilities: Set<AgentCapability> { availability.capabilities }
     private lazy var actions = AgentActionAccess(library: actionLibrary, libraryID: libraryID, connections: connections,
             versionKey: actionVersionKey, retryKeys: retryKeys, pages: pages,
             validateAdmission: { [weak self] in

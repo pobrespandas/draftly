@@ -200,6 +200,19 @@ The focused integration run passed 164 tests in four suites. The two project
 generator checks and the native Debug build passed. Installed acceptance and
 full CI for this extraction remain pending.
 
+## Connected operation availability
+
+`AgentOperationAvailability` maps connected handlers to operations and derives
+host capabilities from those operations. The service uses this result for
+request admission, mutation preparation, schema availability, and connection
+settings. Grant checks remain separate. Missing execution or operation-control
+handlers do not expose `actions.run`. Preference writes can remain available
+without an editor. Losing the draft writer withdraws the dependent mutations.
+No handler, grant, or normal host startup is added by this refactor.
+The focused run passed 169 tests in five suites, including partial-handler
+configurations. The two generator checks and native Debug build passed. Full
+CI and installed acceptance for this change remain pending.
+
 ## Validation references
 
 - Full CI [41643931168](https://github.com/pobrespandas/draftly/actions/runs/41643931168)
