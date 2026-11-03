@@ -4,6 +4,56 @@ import Testing
 
 @Suite("Initial action catalog") @MainActor
 struct DefaultActionCatalogTests {
+    @Test func emptyCloudCacheGetsDefaultsBeforeAnyImportAndReconcilesLater() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Keep this draft café 🐼")
+        try library.requestActionCatalogReplacement(installation: "fresh-cloud", requiresImport: true)
+        #expect(library.groupNames == DefaultActionCatalog.groupNames)
+        #expect(Set(library.actions.map(\.id)) == Set(DefaultActionCatalog.actions.map(\.id)))
+        try library.requestActionCatalogReplacement(installation: "fresh-cloud", requiresImport: true)
+        #expect(library.actionGroups.count == DefaultActionCatalog.groups.count)
+        #expect(library.actions.count == DefaultActionCatalog.actions.count)
+        let imported = DraftAction(name: "Imported old action", steps: [])
+        try library.saveAction(imported)
+        library.completePendingCatalogImport()
+        #expect(!library.actions.contains(imported))
+        #expect(library.actions.count == DefaultActionCatalog.actions.count)
+        #expect(library.notes.contains(note))
+        let personal = DraftAction(name: "After completed install", steps: [])
+        try library.saveAction(personal)
+        library.completePendingCatalogImport()
+        #expect(library.actions.contains(personal))
+    }
+
+    @Test func emptyCloudCacheSeedCanRetryAfterWriteFailure() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        library.beforeBatchCommit = { throw DraftlyError.message("Injected failure") }
+        #expect(throws: (any Error).self) {
+            try library.requestActionCatalogReplacement(installation: "retry-cloud", requiresImport: true)
+        }
+        #expect(library.actions.isEmpty && library.actionGroups.isEmpty)
+        library.beforeBatchCommit = nil
+        try library.requestActionCatalogReplacement(installation: "retry-cloud", requiresImport: true)
+        #expect(library.actions.count == DefaultActionCatalog.actions.count)
+    }
+
+    @Test func completedCloudInstallDoesNotReseedDeletedCatalogOnRestart() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        var library: LibraryStore? = try LibraryStore(directory: folder, seed: false)
+        try library!.requestActionCatalogReplacement(installation: "same-cloud", requiresImport: true)
+        library!.completePendingCatalogImport()
+        for action in library!.actions { try library!.deleteAction(action.id) }
+        for group in library!.actionGroups { try library!.removeActionGroup(group.name, movingActionsTo: "Unused") }
+        #expect(library!.actions.isEmpty && library!.actionGroups.isEmpty)
+        library = nil
+        let reopened = try LibraryStore(directory: folder, seed: false)
+        try reopened.requestActionCatalogReplacement(installation: "same-cloud", requiresImport: true)
+        #expect(reopened.actions.isEmpty && reopened.actionGroups.isEmpty)
+        try reopened.requestActionCatalogReplacement(installation: "updated-cloud", requiresImport: true)
+        #expect(reopened.actions.count == DefaultActionCatalog.actions.count)
+    }
+
     @Test func cloudImportGatesReplacementAndFailedCommitCanRetry() throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let personal = DraftAction(name: "Personal before import", steps: [])
