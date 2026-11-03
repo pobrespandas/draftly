@@ -61,6 +61,32 @@ struct ChatConsoleModelTests {
         #expect(restored.selectedConversation?.messages.map(\.text) == ["Keep this conversation", "Saved reply"])
     }
 
+    @Test func twoWindowsKeepBothHistoriesAndMergeSharedMessages() async throws {
+        let defaults = isolatedDefaults()
+        func makeWindow() -> ChatConsoleModel {
+            ChatConsoleModel(loadModes: { ["onDevice"] }, respond: { _, _ in "Reply" }, defaults: defaults)
+        }
+        let first = makeWindow(), second = makeWindow()
+        await first.loadModels(); await second.loadModels()
+        let sharedID = try #require(first.selectedConversationID)
+        first.prompt = "First window"; first.send()
+        for _ in 0..<100 where first.isResponding { await Task.yield() }
+        second.prompt = "Second window"; second.send()
+        for _ in 0..<100 where second.isResponding { await Task.yield() }
+        #expect(second.selectedConversation?.messages.map(\.text) == ["First window", "Reply", "Second window", "Reply"])
+        second.startConversation()
+        let separateID = try #require(second.selectedConversationID)
+        second.prompt = "Separate conversation"; second.send()
+        for _ in 0..<100 where second.isResponding { await Task.yield() }
+        first.prompt = "Still here"; first.send()
+        for _ in 0..<100 where first.isResponding { await Task.yield() }
+        let restored = makeWindow()
+        #expect(restored.conversations.contains { $0.id == separateID && $0.messages.count == 2 })
+        let shared = try #require(restored.conversations.first { $0.id == sharedID })
+        #expect(shared.messages.count == 6)
+        #expect(Set(shared.messages.map(\.id)).count == 6)
+    }
+
     @Test func lateResponseFromClosedConversationCannotAffectTheNewChat() async throws {
         var pending: [CheckedContinuation<String, Never>] = []
         let model = ChatConsoleModel(loadModes: { ["onDevice"] }, respond: { _, _ in

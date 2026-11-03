@@ -146,6 +146,7 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
     }
 
     func selectConversation(_ id: UUID) {
+        mergeSavedConversations()
         guard conversations.contains(where: { $0.id == id }) else { return }
         stopCurrentResponse(); errorMessage = nil
         selectedConversationID = id
@@ -205,6 +206,7 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
     }
 
     private func append(_ message: ChatConsoleMessage, to id: UUID) {
+        mergeSavedConversations()
         guard let index = conversations.firstIndex(where: { $0.id == id }) else { return }
         conversations[index].messages.append(message)
         conversations[index].updatedAt = message.date
@@ -215,7 +217,30 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
         persist()
     }
 
+    private func mergeSavedConversations() {
+        guard let data = defaults.data(forKey: Self.storageKey),
+              let saved = try? JSONDecoder().decode(SavedState.self, from: data) else { return }
+        var merged = Dictionary(uniqueKeysWithValues: conversations.map { ($0.id, $0) })
+        for stored in saved.conversations {
+            guard var local = merged[stored.id] else {
+                merged[stored.id] = stored
+                continue
+            }
+            let localIDs = Set(local.messages.map(\.id))
+            local.messages += stored.messages.filter { !localIDs.contains($0.id) }
+            local.messages.sort { $0.date < $1.date }
+            local.updatedAt = max(local.updatedAt, stored.updatedAt)
+            if let first = local.messages.first(where: { $0.role == .user }) {
+                local.title = String(first.text.prefix(48))
+            }
+            merged[stored.id] = local
+        }
+        conversations = Array(merged.values.sorted { $0.updatedAt > $1.updatedAt }.prefix(50))
+    }
+
     private func persist() {
+        // MainActor serializes each merge and write across app windows.
+        mergeSavedConversations()
         let state = SavedState(conversations: conversations, selectedConversationID: selectedConversationID)
         guard let data = try? JSONEncoder().encode(state) else { return }
         defaults.set(data, forKey: Self.storageKey)

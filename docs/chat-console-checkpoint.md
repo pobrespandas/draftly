@@ -85,8 +85,10 @@ Next steps:
 7. Add authorized MCP tools through the existing permission and review rules.
 
 Keep one account-session owner per installed app. Serialize refresh for each
-renewable session. The current console history is owned by each window and can
-overwrite another window's history. Resolve that before reliability acceptance.
+renewable session. Console history merges saved conversations and message IDs before each write.
+MainActor serializes these writes across app windows. A two-window regression
+checks shared messages and separate conversations. Installed acceptance remains
+pending. Window selection and active response state remain local to each window.
 MCP login remains separate from provider login. MCP tools must use the existing
 grant, review, cancellation, and revocation rules.
 
