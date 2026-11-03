@@ -788,3 +788,25 @@ Focused service tests verify enabled and disabled system registration, pending
 approval, unavailable status, and reading Spotlight without registration or
 index effects. Installed CLI/MCP checks for these native reads remain pending.
 Preference mutation handlers remain unavailable.
+
+### Installed preference reads — 2 November 2026
+
+The signed app and embedded helper at `e06c2c4` passed installed CLI and MCP
+preference reads. The connection had preference and appearance read permission,
+no draft permission and no selected resource IDs. Both transports returned the
+same six scalar, list, Markdown, shortcut and built-in syntax readings. They
+also returned matching Launch at Login and Spotlight readings. The values
+matched the visible Settings controls. Listing drafts returned permission denied.
+No preference, login registration or Spotlight option was changed.
+
+This QA found that the catalog had not marked preference queries as read-only.
+The installed helper required explicit request IDs, which the probes supplied.
+The catalog now marks both `preferences.get` and `preferences.schema` read-only;
+focused CLI and tool-input tests verify that request IDs are optional. Installed
+acceptance for the new helper classification remains pending.
+
+The complete local inventory at `e06c2c4` passed: 1 consumer, 167 contract,
+814 core and 1417 app tests, 2399 total. The later classification change has
+focused evidence, not a new complete inventory. The connection was revoked,
+Stop Work disabled access, and QA quit. Its exact registration was removed.
+The usual app reopened with its ten drafts.
