@@ -824,3 +824,22 @@ Focused tests cover shared-store composition, unknown fields, reset, invalid
 batches and native review requirements. This component is not a public mutation
 handler. Version checks, storage commit, retry receipts, native review execution
 and recovery still need integration before update and reset become available.
+
+### Preference storage comparison and verification
+
+`AgentPreferenceStorage` compares a prepared raw snapshot before replacing its
+persistent domain. Its opaque snapshot token retains raw value types, binary
+data and dates. A stale snapshot fails before writing. Replacement checks again
+at the storage boundary. The store retains unrelated keys and rejects numbers
+that cannot round-trip through the numeric storage representation.
+
+Authorization is checked before and after the write. A thrown write, failed
+read-back or lost authority after replacement returns `outcome_unknown`. The
+store does not roll back over later settings. Reentrant commits return busy.
+Focused tests cover real isolated UserDefaults storage, unknown values, stale
+settings, boundary conflicts, failure after writing and authority loss.
+
+This component serializes one process. It does not provide a cross-process
+transaction or prove power-loss durability. It is not connected to public
+preference mutations. Request receipts, operation review and caller-side
+coordination still need integration before update and reset become available.
