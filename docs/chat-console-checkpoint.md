@@ -4,8 +4,9 @@
 
 The direct connection is in progress on PR #105. The installed QA account sheet
 uses direct ChatGPT OAuth. Real sign-in and restoration after full process exit
-passed. Direct model listing, Responses inference, and MCP tools remain pending.
-The console still offers Apple models. Do not claim ChatGPT inference works yet.
+passed. The account model catalog also loaded in installed QA. Direct Responses
+is implemented; final installed response acceptance remains pending. MCP login
+and authorized tools remain pending. Do not claim real inference works yet.
 
 `ChatGPTAuthorization` creates a fresh state, nonce, and PKCE verifier. It
 builds the official authorization request. Callback validation checks the
@@ -49,6 +50,18 @@ stay in Keychain. A failed additional login keeps the previous active account.
 The direct account sheet supports selection, login, cancellation, and sign-out.
 Production console startup no longer initializes a Codex connection.
 
+`ChatGPTProvider` loads the active account's visible models from the public API.
+It sends structured history with `store: false` and `stream: true`. The bounded
+SSE decoder handles UTF-8, comments, multiline data, and all line endings.
+Only a completed response can enter saved history. Partial streams, refusal,
+usage limits, stale responses, and unconnected tools do not count as success.
+Account changes cancel active chat work and reject late catalog results. A
+missing model does not silently select another provider.
+
+The obsolete Codex account, process, and chat sources and their protocol
+fixtures are removed. The direct provider tests replace their relevant chat
+contracts. There is no Codex executable or app-server requirement for this path.
+
 `ChatGPTSessionService` shares refresh work between callers. A device-local file
 lock also excludes other owners of the same account. Before refresh, it saves
 an uncertainty marker in Keychain. A lost response or failed rotated-token write
@@ -61,12 +74,12 @@ a returning session that changed while authorization was in progress.
 
 Next steps:
 
-1. Load the model catalog for the active account and connect streamed Responses.
+1. Finish installed Responses acceptance with the active QA account.
 2. Check cancellation and account changes during real inference.
 3. Add installed acceptance for refresh and sign-out. Unit coverage is not
    proof of provider revocation or installed multi-account behavior.
-4. Remove obsolete Codex paths and their tests after direct model coverage is
-   in place. Do not leave the known macOS 26 CI failure unresolved.
+4. Run full CI after removing the obsolete Codex paths. The prior macOS 26
+   failure was in a removed process test; removal is not proof of green CI.
 5. Require `response.completed` before reporting inference success.
 6. Complete regression and CI validation.
 7. Add authorized MCP tools through the existing permission and review rules.
@@ -140,6 +153,17 @@ The normal app and the older QA copies were not changed. The copy is ad hoc
 signed; this is not release-signing or helper-distribution acceptance. It remains
 open on the account sheet. Native refresh, revocation, inference, tools, and
 multi-account acceptance remain pending. No tokens or account labels are tracked.
+
+The direct-provider follow-up passed forty-five focused tests in serial mode.
+This includes native loopback HTTP without a Content-Type header. Two generator
+tests and the unsigned native Debug build passed. Installed QA loaded the real
+account catalog. Initial Responses requests failed because their HTTP response
+did not include Content-Type. The decoder now permits the missing header and
+still requires valid SSE frames and a completed response. Repeated native menu
+actions were interrupted by focus changes. The user was asked to leave input
+free for a short acceptance check. Real response completion and cancellation
+remain unverified. One accidental neutral paste in the isolated editor was
+undone; an empty QA draft remains. The normal library was not changed.
 
 ## Official contracts
 

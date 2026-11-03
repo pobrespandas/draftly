@@ -14,13 +14,7 @@ enum ChatGPTHTTP {
     }
 
     static func perform(_ request: URLRequest) async throws -> Response {
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.timeoutIntervalForRequest = 30
-        configuration.timeoutIntervalForResource = 30
-        configuration.httpCookieStorage = nil
-        configuration.urlCredentialStorage = nil
-        configuration.urlCache = nil
-        let session = URLSession(configuration: configuration, delegate: RedirectPolicy(), delegateQueue: nil)
+        let session = makeSession()
         defer { session.invalidateAndCancel() }
         let (bytes, response) = try await session.bytes(for: request)
         guard let response = response as? HTTPURLResponse, response.url == request.url else { throw Failure.invalidResponse }
@@ -31,5 +25,15 @@ enum ChatGPTHTTP {
             data.append(byte)
         }
         return Response(status: response.statusCode, data: data)
+    }
+
+    static func makeSession(requestTimeout: TimeInterval = 30, resourceTimeout: TimeInterval = 30) -> URLSession {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.timeoutIntervalForRequest = requestTimeout
+        configuration.timeoutIntervalForResource = resourceTimeout
+        configuration.httpCookieStorage = nil
+        configuration.urlCredentialStorage = nil
+        configuration.urlCache = nil
+        return URLSession(configuration: configuration, delegate: RedirectPolicy(), delegateQueue: nil)
     }
 }

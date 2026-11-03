@@ -86,64 +86,38 @@ struct ChatConsoleModelTests {
         #expect(!model.isResponding)
     }
 
-    @Test func codexCatalogRoutesTheChatAndLogoutDoesNotSwitchProviders() async throws {
-        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: root) }
-        let executable = root.appendingPathComponent("fake-codex")
-        let script = """
-        #!/bin/sh
-        read -r request
-        printf '%s\\n' '{"id":1,"result":{}}'
-        read -r initialized
-        read -r request
-        printf '%s\\n' '{"id":2,"result":{"account":{"type":"chatgpt"},"requiresOpenaiAuth":true}}'
-        if [ "$1" = "model" ]; then
-          read -r request
-          printf '%s\\n' '{"id":3,"result":{"thread":{"id":"thread-a"}}}'
-          read -r request
-          printf '%s\\n' '{"id":4,"result":{"turn":{"id":"turn-a"}}}' \
-            '{"method":"item/agentMessage/delta","params":{"threadId":"thread-a","turnId":"turn-a","itemId":"message","delta":"Reply café"}}' \
-            '{"method":"turn/completed","params":{"threadId":"thread-a","turn":{"id":"turn-a","status":"completed"}}}'
-        else
-          read -r request
-          printf '%s\\n' '{"id":3,"result":{"data":[{"model":"model-a","displayName":"Test model","isDefault":true},{"model":"hidden","hidden":true}],"nextCursor":null}}'
-          read -r request
-          printf '%s\\n' '{"id":4,"result":{"account":{"type":"chatgpt"},"requiresOpenaiAuth":true}}'
-          read -r request
-          printf '%s\\n' '{"id":5,"result":{}}'
-        fi
-        while read -r request; do :; done
-        """
-        try script.write(to: executable, atomically: true, encoding: .utf8)
-        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: executable.path)
-        let modelClient = CodexAppServerClient(makeLaunchPlan: { executable, _ in
-            CodexLaunchPlan(executable: executable, arguments: ["model"])
+    @Test func directCatalogRoutesTheChatAndLogoutDoesNotSwitchProviders() async throws {
+        let defaults = isolatedDefaults(), vault = ChatGPTLoginServiceTests.Vault()
+        let login = ChatGPTLoginService(defaults: defaults, store: vault.store, lease: { _ in NSObject() })
+        let record = ChatGPTAccountRecord(id: UUID(), identity: ChatGPTIdentity(issuer: "https://auth.openai.com", clientID: "oaiapp_neutral",
+            subject: "neutral", email: nil, name: nil), hostID: login.hostID,
+            tokens: ChatGPTTokens(accessToken: "neutral-token", refreshToken: "neutral-refresh", idToken: "neutral-id",
+                scopes: ["resource.invoke", "chatgpt.tokens.use.direct"], expiresAt: .distantFuture))
+        try login.save(record)
+        defaults.set([record.id.uuidString], forKey: "chatGPT.registrationIDs")
+        defaults.set(record.id.uuidString, forKey: "chatGPT.selectedID")
+        let provider = ChatGPTProvider(exchange: { _ in
+            .init(status: 200, data: Data(#"{"models":[{"slug":"model-a","display_name":"Test model","visibility":"list"}]}"#.utf8))
+        }, stream: { _, event in
+            _ = try event(Data(#"{"type":"response.completed","response":{"status":"completed","output":[{"type":"message","content":[{"type":"output_text","text":"Reply café"}]}]}}"#.utf8))
         })
-        let account = CodexAccountModel(client: modelClient, authenticationClient: .protocolFixture(), home: root.appendingPathComponent("home"))
-        account.executable = executable
+        let sessions = ChatGPTSessionService(login: login, exchange: { _ in .init(status: 503, data: Data()) }, lease: { _ in NSObject() })
+        let account = ChatGPTAccountModel(defaults: defaults, login: login, sessions: sessions, provider: provider)
         var appleCalls = 0
         let model = ChatConsoleModel(loadModes: { [] }, respond: { _, _ in appleCalls += 1; return "Wrong provider" },
-            defaults: isolatedDefaults(), codexAccount: account)
+                                     defaults: defaults, chatGPTAccount: account)
         defer { model.close() }
         await model.loadModels()
-        await account.refresh()
-        #expect(account.errorMessage == nil)
-        #expect(model.availableModels == ["codex:model-a"])
+        #expect(model.availableModels == ["chatgpt:model-a"])
         #expect(model.modelName(model.selectedModel) == "ChatGPT · Test model")
-        model.prompt = "Neutral café"
-        model.send()
+        model.prompt = "Neutral café"; model.send()
         let deadline = ContinuousClock.now.advanced(by: .seconds(3))
-        while model.isResponding, ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(10)) }
-        #expect(!model.isResponding)
+        while model.isResponding, ContinuousClock.now < deadline { await Task.yield() }
         #expect(model.errorMessage == nil)
         #expect(model.selectedConversation?.messages.map(\.text) == ["Neutral café", "Reply café"])
         await account.signOut()
-        model.prompt = "Keep this prompt"
-        model.send()
-        #expect(!model.canSend)
-        #expect(model.prompt == "Keep this prompt")
-        #expect(model.selectedModel == "codex:model-a")
-        #expect(appleCalls == 0)
+        model.prompt = "Keep this prompt"; model.send()
+        #expect(!model.canSend && model.prompt == "Keep this prompt")
+        #expect(model.selectedModel == "chatgpt:model-a" && appleCalls == 0)
     }
 }

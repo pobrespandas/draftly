@@ -25,7 +25,6 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
 }
 
 @MainActor final class ChatConsoleModel: ObservableObject {
-    let codexAccount: CodexAccountModel
     let chatGPTAccount: ChatGPTAccountModel?
     private struct SavedState: Codable {
         var conversations: [ChatConsoleConversation]
@@ -47,17 +46,17 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
     private let loadModes: LoadModes
     private let respond: Respond
     private let defaults: UserDefaults
-    private let refreshCodexOnLoad: Bool
     private var responseTask: Task<Void, Never>?
     private var responseID: UUID?
     private var hasLoadedModels = false
     private var appleModels: [String] = []
+    private var directModels: [ChatGPTModel] = []
     private var subscriptions = Set<AnyCancellable>()
 
     var canSend: Bool {
         !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isResponding
             && availableModels.contains(selectedModel)
-            && (!selectedModel.hasPrefix("codex:") || !codexAccount.isBusy)
+            && (!selectedModel.hasPrefix("chatgpt:") || (chatGPTAccount?.isSignedIn == true && chatGPTAccount?.isBusy == false))
     }
 
     var selectedConversation: ChatConsoleConversation? {
@@ -65,12 +64,9 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
     }
 
     init(loadModes: @escaping LoadModes, respond: @escaping Respond, defaults: UserDefaults = .standard,
-         codexAccount: CodexAccountModel = CodexAccountModel(), refreshCodexOnLoad: Bool = false,
          chatGPTAccount: ChatGPTAccountModel? = nil) {
         self.loadModes = loadModes; self.respond = respond; self.defaults = defaults
-        self.codexAccount = codexAccount
         self.chatGPTAccount = chatGPTAccount
-        self.refreshCodexOnLoad = refreshCodexOnLoad
         if let data = defaults.data(forKey: Self.storageKey),
            let saved = try? JSONDecoder().decode(SavedState.self, from: data) {
             conversations = Array(saved.conversations.sorted { $0.updatedAt > $1.updatedAt }.prefix(50))
@@ -80,8 +76,16 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
         }
         if conversations.isEmpty { startConversation() }
         else if selectedConversationID == nil { selectedConversationID = conversations.first?.id }
-        codexAccount.$models.sink { [weak self] models in self?.updateModelOptions(models) }.store(in: &subscriptions)
-        codexAccount.objectWillChange.sink { [weak self] in self?.objectWillChange.send() }.store(in: &subscriptions)
+        if let account = chatGPTAccount {
+            account.$models.sink { [weak self] models in
+                self?.directModels = models
+                self?.updateModelOptions()
+            }.store(in: &subscriptions)
+            account.$sessionEpoch.sink { [weak self] _ in
+                if self?.selectedModel.hasPrefix("chatgpt:") == true { self?.stopCurrentResponse() }
+            }.store(in: &subscriptions)
+            account.objectWillChange.sink { [weak self] in self?.objectWillChange.send() }.store(in: &subscriptions)
+        }
     }
 
     convenience init(models: NativeModelAPI) {
@@ -107,16 +111,16 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
         hasLoadedModels = true
         do {
             appleModels = try await loadModes().filter { ["onDevice", "pcc"].contains($0) }
-            updateModelOptions(codexAccount.models)
+            updateModelOptions()
         } catch {
             errorMessage = error.localizedDescription
         }
-        if refreshCodexOnLoad, codexAccount.executable != nil { await codexAccount.refresh() }
+        if let account = chatGPTAccount { account.refresh(); await account.loadModels() }
     }
 
-    private func updateModelOptions(_ models: [CodexChatModel]) {
-        availableModels = appleModels + models.map { "codex:" + $0.id }
-        if !availableModels.contains(selectedModel), !selectedModel.hasPrefix("codex:") {
+    private func updateModelOptions() {
+        availableModels = appleModels + directModels.map { "chatgpt:" + $0.id }
+        if !availableModels.contains(selectedModel), !selectedModel.hasPrefix("chatgpt:") {
             selectedModel = availableModels.first ?? ""
         }
     }
@@ -126,9 +130,9 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
         case "onDevice": return "On-Device"
         case "pcc": return "Cloud"
         default:
-            guard value.hasPrefix("codex:") else { return "Choose Model" }
-            let id = String(value.dropFirst(6))
-            return "ChatGPT · " + (codexAccount.models.first { $0.id == id }?.name ?? id)
+            guard value.hasPrefix("chatgpt:") else { return "Choose Model" }
+            let id = String(value.dropFirst(8))
+            return "ChatGPT · " + (directModels.first { $0.id == id }?.name ?? id)
         }
     }
 
@@ -155,6 +159,7 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
         prompt = ""; errorMessage = nil; streamingText = ""
         append(.init(role: .user, text: text), to: conversationID)
         let context = contextForResponse(conversationID)
+        let messages = selectedConversation?.messages ?? []
         let mode = selectedModel
         let id = UUID()
         responseID = id
@@ -168,8 +173,8 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
             }
             do {
                 let answer: String
-                if mode.hasPrefix("codex:") {
-                    answer = try await codexAccount.respond(prompt: context, model: String(mode.dropFirst(6))) { [weak self] text in
+                if mode.hasPrefix("chatgpt:"), let account = chatGPTAccount {
+                    answer = try await account.respond(messages: messages, model: String(mode.dropFirst(8))) { [weak self] text in
                         guard let self, self.responseID == id else { return }
                         self.streamingText = text
                     }
@@ -191,7 +196,6 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
 
     func close() {
         stopCurrentResponse()
-        codexAccount.disconnect()
     }
 
     private func stopCurrentResponse() {

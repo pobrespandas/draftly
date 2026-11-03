@@ -32,13 +32,13 @@ struct ChatGPTAccountView: View {
             if model.isBusy { ProgressView().controlSize(.small) }
             if let error = model.errorMessage { Text(error).foregroundStyle(.red).textSelection(.enabled) }
             HStack {
-                Button("Refresh") { model.refresh() }.disabled(model.isBusy)
+                Button("Refresh") { model.refresh(); Task { await model.loadModels() } }.disabled(model.isBusy || model.isLoadingModels)
                 Spacer()
                 Button("Done") { dismiss() }.keyboardShortcut(.defaultAction)
             }
         }
         .padding(24).frame(width: 440)
-        .task { model.refresh() }
+        .task { model.refresh(); await model.loadModels() }
         .onDisappear { model.cancelSignIn() }
     }
 
