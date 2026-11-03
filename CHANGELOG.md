@@ -4,6 +4,23 @@ Entries describe source changes. Public downloads are listed on [GitHub Releases
 
 Historical entries were imported from public GitHub release notes. Unpublished historical candidates were excluded.
 
+
+## [0.1.10]
+
+Draftly 0.1.10
+
+Fix an empty default action catalog on a fresh iCloud library. The five default
+action groups now appear without waiting for an iCloud import. Their stored
+symbols and colors are included.
+
+When import succeeds, Draftly completes the pending catalog replacement without
+adding duplicate defaults. During catalog stabilization, installation and updates
+replace all actions and groups, including custom and edited actions. Drafts are
+preserved. Changes made after a completed installation stay until the next update.
+
+Agent access remains disabled. Chat Console is not included in this release.
+Requires macOS 26 or later.
+
 ## [0.1.9]
 
 Draftly 0.1.9
