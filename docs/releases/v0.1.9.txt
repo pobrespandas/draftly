@@ -1,0 +1,11 @@
+Draftly 0.1.9
+
+This update improves text composition in the editor. It preserves marked text
+while the editor updates and reduces repeated syntax analysis.
+
+The default action catalog is restored after installation or update. This
+temporary behavior replaces all existing actions and action groups, including
+custom and edited actions. Drafts are not replaced. Libraries that use iCloud
+wait for a successful import before the catalog is restored.
+
+Agent access remains disabled. Agent testing continues in a separate QA build.
