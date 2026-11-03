@@ -46,7 +46,7 @@ class ReleaseCandidateCITests(unittest.TestCase):
             path.chmod(0o755)
         package = ("import json, os, sys\n"
                    "names = ['APPLE_DEVELOPER_ID_P12_B64', 'APPLE_DEVELOPER_ID_P12_PASSWORD', "
-                   "'APPLE_DEVELOPER_ID_PROFILE_B64', 'APPLE_NOTARY_API_KEY_B64', 'APPLE_NOTARY_KEY_ID', "
+                   "'APPLE_DEVELOPER_ID_PROFILE_B64', 'APPLE_AGENT_PROFILE_B64', 'APPLE_NOTARY_API_KEY_B64', 'APPLE_NOTARY_KEY_ID', "
                    "'APPLE_NOTARY_ISSUER_ID', 'DRAFTLY_SPARKLE_PRIVATE_KEY', 'DRAFTLY_FIREBASE_ACCESS_TOKEN', 'GH_TOKEN']\n"
                    "with open(os.environ['TEST_CALL_LOG'], 'a') as out: out.write(json.dumps(['package', "
                    "any(name in os.environ for name in names), *sys.argv[1:]]) + '\\n')\n"
@@ -54,7 +54,8 @@ class ReleaseCandidateCITests(unittest.TestCase):
         (self.root / "scripts/package-release.py").write_text(package)
         fake = base64.b64encode(b"neutral fixture").decode()
         self.env = {key: value for key, value in os.environ.items() if key not in (
-            "GH_TOKEN", "GITHUB_TOKEN", "DRAFTLY_SPARKLE_PRIVATE_KEY", "DRAFTLY_FIREBASE_ACCESS_TOKEN")}
+            "GH_TOKEN", "GITHUB_TOKEN", "DRAFTLY_SPARKLE_PRIVATE_KEY", "DRAFTLY_FIREBASE_ACCESS_TOKEN",
+            "APPLE_AGENT_PROFILE_B64", "DRAFTLY_AGENT_HELPER_ENABLED")}
         self.env.update({"PATH": str(self.tools) + ":/usr/bin:/bin:/usr/sbin:/sbin", "GITHUB_ACTIONS": "true",
             "RUNNER_ENVIRONMENT": "github-hosted", "RUNNER_TEMP": str(self.runner), "RELEASE_TAG": "v1.2.3",
             "DRAFTLY_DEVELOPER_ID_PROFILE": "Fixture profile",
@@ -92,6 +93,22 @@ class ReleaseCandidateCITests(unittest.TestCase):
     def test_refuses_non_hosted_runner_before_touching_keychain(self):
         result = self.run_script(RUNNER_ENVIRONMENT="self-hosted")
         self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.calls(), [])
+
+    def test_agent_profile_is_optional_scrubbed_and_removed_after_build(self):
+        encoded = base64.b64encode(b"neutral agent profile").decode()
+        result = self.run_script(DRAFTLY_AGENT_HELPER_ENABLED="true", APPLE_AGENT_PROFILE_B64=encoded)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        package = next(call for call in self.calls() if call[0] == "package")
+        self.assertFalse(package[1])
+        self.assertIn("--agent-profile", package)
+        self.assertFalse(Path(package[package.index("--agent-profile") + 1]).exists())
+        self.assertEqual(list(self.runner.iterdir()), [])
+
+    def test_missing_enabled_agent_profile_fails_before_keychain_setup(self):
+        result = self.run_script(DRAFTLY_AGENT_HELPER_ENABLED="true", APPLE_AGENT_PROFILE_B64="")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("APPLE_AGENT_PROFILE_B64", result.stderr)
         self.assertEqual(self.calls(), [])
 
     def test_missing_team_issuer_is_rejected_before_keychain_setup(self):

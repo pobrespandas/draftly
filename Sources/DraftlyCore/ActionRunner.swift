@@ -26,6 +26,18 @@ public final class ActionRunner: ObservableObject {
     public var currentWorkspace: (() -> Workspace)?
     public var uiOperation: (([String: Any]) throws -> Any?)?
     public var uiOperationAsync: (([String: Any], TimeInterval) async throws -> Any?)?
+    // Recheckable authority validation. Do not consume an approval here.
+    // This does not cover native Action steps or initial and final effects.
+    public var authorizeScriptOperation: ((String, String) throws -> Void)?
+    // A guarded query must filter its input before it evaluates the query.
+    public var filterScriptDrafts: (([Note]) throws -> [Note])?
+    // Recheckable authorization for a concrete enabled step before execution.
+    public var authorizeActionStep: ((UUID, ActionStep) throws -> Void)?
+    public var authorizeActionCompletion: ((DraftAction, UUID) throws -> Void)?
+    public var filterActionCatalog: (([DraftAction]) throws -> [DraftAction])?
+    public var authorizeActionConfiguration: ((DraftAction) throws -> Void)?
+    public var actionConfigurationCommitted: ((DraftAction, DraftAction) throws -> Void)?
+    public internal(set) var scriptOutcomeUnknown = false
     public var readTheme: (EditorThemeDefinition) throws -> EditorThemeDefinition = { try ThemeFileAccess.read($0) }
     public var selectedDrafts: (() -> [Note])?
     public var applyWorkspace: ((Workspace) throws -> Void)?
@@ -90,6 +102,7 @@ public final class ActionRunner: ObservableObject {
         }
         activeSession = session
         defer { Self.runningLibraries.remove(libraryID); activeSession = nil }
+        scriptOutcomeUnknown = false
         terminationReason = .error
         successParameters = [:]
         _ = executeRun(action)
@@ -113,6 +126,7 @@ public final class ActionRunner: ObservableObject {
         }
         activeSession = session
         asyncExecutionID = session.id
+        scriptOutcomeUnknown = false
         scriptNoteContents = [:]
         if let id = editor.noteID, let stored = library.notes.first(where: { $0.id == id }) {
             if let baseline = editor.persistedDraft, baseline.id == id, editor.content != stored.content {
@@ -134,6 +148,7 @@ public final class ActionRunner: ObservableObject {
             do {
                 try Task.checkCancellation()
                 try checkCancellation()
+                if authorizeActionStep != nil || filterActionCatalog != nil { _ = try permittedActionCatalog(for: action) }
                 if action.presentation.confirmBeforeRun,
                    try await nativeValue("confirmAction", ["name": action.name]) as? Bool != true {
                     throw ActionExecutionInterruption.cancelled
@@ -161,7 +176,7 @@ public final class ActionRunner: ObservableObject {
                 result = .success; reason = .success
                 message = logs.last ?? "\(action.name) completed"
             } catch {
-                try? flushEditor()
+                if authorizeScriptOperation == nil && authorizeActionStep == nil && authorizeActionCompletion == nil && filterActionCatalog == nil && authorizeActionConfiguration == nil && actionConfigurationCommitted == nil { try? flushEditor() }
                 if error is CancellationError || (error as? ActionExecutionInterruption) == .cancelled || session.cancellationRequested {
                     result = .cancelled; reason = .cancelled
                     message = "\(action.name) cancelled"
@@ -206,6 +221,7 @@ public final class ActionRunner: ObservableObject {
         defer { isRunning = false; executing = []; host?.finishAction() }
         do {
             try checkCancellation()
+            if authorizeActionStep != nil || filterActionCatalog != nil { _ = try permittedActionCatalog(for: action) }
             if action.presentation.confirmBeforeRun {
                 let response = try platform("confirmAction", ["name": action.name]) as? Bool ?? false
                 guard response else {
@@ -240,7 +256,7 @@ public final class ActionRunner: ObservableObject {
             if completed && action.presentation.notifyOnSuccess { _ = try? platform("actionNotification", ["title": action.name, "message": message ?? "Complete"]) }
             return completed
         } catch {
-            try? flushEditor()
+            if authorizeScriptOperation == nil && authorizeActionStep == nil && authorizeActionCompletion == nil && filterActionCatalog == nil && authorizeActionConfiguration == nil && actionConfigurationCommitted == nil { try? flushEditor() }
             message = error.localizedDescription
             let cancelled = (error as? ActionExecutionInterruption) == .cancelled
             if (error as? ActionExecutionInterruption) == .timeout { terminationReason = .timeout }
@@ -253,7 +269,7 @@ public final class ActionRunner: ObservableObject {
     }
 
     private func execute(_ initialAction: DraftAction, note: Note) throws -> Bool {
-        let steps = try ActionStepExpansion.expand(initialAction, actions: library.actions)
+        let steps = try ActionStepExpansion.expand(initialAction, actions: permittedActionCatalog(for: initialAction))
         var configurationSteps = steps
         var action = try prepareInitialConfiguration(initialAction, steps: steps)
         guard !executing.contains(action.id) else { throw DraftlyError.message("An included action refers to itself.") }
@@ -272,14 +288,17 @@ public final class ActionRunner: ObservableObject {
         func performSteps(_ items: [ActionStep], owner: UUID, path: Set<UUID>) throws -> Bool {
             for step in items where step.isEnabled != false {
                 try checkCancellation()
+                try authorizeActionStep?(owner, step)
                 activeSession?.enter(actionID: owner, step: step)
                 if context.objectForKeyedSubscript("__cancelled")?.toBool() == true { return false }
                 if let failure = context.objectForKeyedSubscript("__failure"), !failure.isNull, !failure.isUndefined { throw DraftlyError.message(failure.toString()) }
                 let text = step.values["template"] ?? step.values["text"] ?? "[[draft]]"
                 let current = library.notes.first(where: { $0.id == note.id }) ?? note
                 if step.type == "includeAction" {
-                    let included = try ActionStepExpansion.resolve(step, actions: library.actions) { try renderTemplate($0, note: current) }
-                    let includedSteps = try ActionStepExpansion.expand(included, actions: library.actions, path: path)
+                    let included = try ActionStepExpansion.resolve(step, actions: permittedActionCatalog(for: action)) { try renderTemplate($0, note: current) }
+                    let catalog = try permittedActionCatalog(for: action)
+                    if filterActionCatalog != nil && !catalog.contains(included) { throw DraftlyError.message("The Action is unavailable.") }
+                    let includedSteps = try ActionStepExpansion.expand(included, actions: catalog, path: path)
                     configurationSteps += includedSteps
                     action = try prepareInitialConfiguration(action, steps: configurationSteps)
                     context.evaluateScript(try additionalConfigurationSource(action, steps: includedSteps))
@@ -297,6 +316,7 @@ public final class ActionRunner: ObservableObject {
         try checkCancellation()
         if context.objectForKeyedSubscript("__cancelled")?.toBool() == true { return false }
         if let failure = context.objectForKeyedSubscript("__failure"), !failure.isNull, !failure.isUndefined { throw DraftlyError.message(failure.toString()) }
+        try authorizeActionCompletion?(action, note.id)
         try flushEditor()
         try applySuccessEffects(action, noteID: note.id)
         return true
@@ -373,12 +393,37 @@ public final class ActionRunner: ObservableObject {
     }
 
     func dispatch(_ operation: String, values: [String: Any]) throws -> Any? {
+        if let authorizeScriptOperation { try authorizeScriptOperation(operation, json(values)) }
+        return try dispatchAuthorized(operation, values: values)
+    }
+
+    func permittedActionCatalog(for root: DraftAction) throws -> [DraftAction] {
+        guard let filterActionCatalog else {
+            if authorizeActionStep != nil && root.steps.contains(where: { $0.isEnabled != false && $0.type == "includeAction" }) {
+                throw DraftlyError.message("The Action catalog scope is unavailable.")
+            }
+            return library.actions
+        }
+        let actions = try filterActionCatalog(library.actions)
+        guard actions.contains(where: { $0 == root }) else { throw DraftlyError.message("The Action is unavailable.") }
+        return actions
+    }
+
+    func dispatchAuthorized(_ operation: String, values: [String: Any]) throws -> Any? {
         let wasApplying = isApplyingScriptCommand
         isApplyingScriptCommand = true
         defer { isApplyingScriptCommand = wasApplying }
-        if let command = try ScriptCommand(operation: operation, values: values) {
-            return try perform(command)
+        let result: Any?
+        if let command = try ScriptCommand(operation: operation, values: values) { result = try perform(command) }
+        else { result = try dispatchAPI(operation, values: values) }
+        if ["findDraft", "queryDrafts", "updateDraft"].contains(operation), let authorizeScriptOperation {
+            do { try authorizeScriptOperation(operation, json(values)) }
+            catch {
+                if operation == "updateDraft" { scriptOutcomeUnknown = true }
+                cancel()
+                throw error
+            }
         }
-        return try dispatchAPI(operation, values: values)
+        return result
     }
 }

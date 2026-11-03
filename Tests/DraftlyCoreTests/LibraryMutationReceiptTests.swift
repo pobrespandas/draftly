@@ -14,6 +14,151 @@ struct LibraryMutationReceiptTests {
         notes.map { .init(id: $0.id, versionToken: "opaque-neutral-version") }
     }
 
+    @Test func workspaceMutationRollsBackAndReplaysAfterReopen() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let library = try LibraryStore(directory: root, seed: false)
+        let original = Workspace(name: "Original"), mutation = identity()
+        try library.saveWorkspace(original)
+        var changed = original; changed.name = "Changed"
+        #expect(throws: (any Error).self) {
+            try library.commitWorkspaces([changed], mutation: mutation, at: now,
+                validateCommit: { throw DraftlyError.message("Authority changed") }) { values in
+                    values.map { .init(id: $0.id, versionToken: "opaque-version") }
+                }
+        }
+        #expect(library.workspaces == [original])
+        #expect(try library.mutationReceipt(for: mutation, at: now) == nil)
+        let receipt = try library.commitWorkspaces([changed], mutation: mutation, at: now) { values in
+            values.map { .init(id: $0.id, versionToken: "opaque-version") }
+        }
+        let reopened = try LibraryStore(directory: root, seed: false)
+        let replay = try reopened.commitWorkspaces([changed], mutation: mutation, at: now.addingTimeInterval(1),
+            validateCommit: { Issue.record("A replay must not commit again") }) { _ in [] }
+        #expect(replay == receipt && reopened.workspaces == [changed])
+        #expect(throws: LibraryMutationReceiptError.requestConflict) {
+            try reopened.commitWorkspaces([Workspace(name: "Other")], mutation: mutation, at: now) { _ in [] }
+        }
+    }
+
+    @Test func groupRenameRollsBackActionsAndImplicitGroupsOnFailure() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        var first = DraftAction(name: "One", steps: []); first.group = "Original"
+        var second = DraftAction(name: "Two", steps: []); second.group = "Other"
+        try library.saveActions([first, second])
+        let identifiers = library.actionGroupIdentifiers
+        var renamed = library.actionGroupRecord(named: "Original"); renamed.name = "Renamed"
+        let mutation = identity()
+        #expect(throws: (any Error).self) {
+            try library.commitActionGroup(renamed, mutation: mutation, at: now, previousName: "Original",
+                validateCommit: { throw DraftlyError.message("Authority changed") }) {
+                    .init(id: $0.id, versionToken: "opaque-version")
+                }
+        }
+        #expect(Set(library.actions.map(\.id)) == Set([first.id, second.id]))
+        #expect(library.actions.contains(first) && library.actions.contains(second))
+        #expect(library.actionGroupIdentifiers == identifiers && library.actionGroups.isEmpty)
+        #expect(try library.mutationReceipt(for: mutation, at: now) == nil)
+    }
+
+    @Test func groupReorderRollsBackAllRecordsOnFailure() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        var a = ActionGroupRecord(name: "Alpha"); a.order = 0
+        var b = ActionGroupRecord(name: "Beta"); b.order = 1
+        try library.saveActionGroups([a, b])
+        var changedA = a; changedA.order = 1
+        var changedB = b; changedB.order = 0
+        let mutation = identity()
+        #expect(throws: (any Error).self) {
+            try library.commitActionGroups([changedB, changedA], mutation: mutation, at: now,
+                validateCommit: { throw DraftlyError.message("Authority changed") }) { groups in
+                    groups.map { .init(id: $0.id, versionToken: "opaque-version") }
+                }
+        }
+        #expect(library.groupNames == ["Alpha", "Beta"])
+        #expect(try library.mutationReceipt(for: mutation, at: now) == nil)
+    }
+
+    @Test func groupCopyCommitsAllItemsOnceAndRollsBackOnFailure() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        var original = DraftAction(name: "Original", steps: []); original.group = "Source"
+        try library.saveAction(original)
+        let identifiers = library.actionGroupIdentifiers
+        let group = ActionGroupRecord(name: "Copy")
+        var copy = original; copy.id = UUID(); copy.group = group.name; copy.shortcut = ""
+        let mutation = identity()
+        #expect(throws: (any Error).self) {
+            try library.commitActionGroupCopy(group, actions: [copy], mutation: mutation, at: now,
+                validateCommit: { throw DraftlyError.message("Authority changed") }) {
+                    .init(id: $0.id, versionToken: "opaque-version")
+                }
+        }
+        #expect(library.actions == [original] && library.actionGroupIdentifiers == identifiers)
+        #expect(try library.mutationReceipt(for: mutation, at: now) == nil)
+        let receipt = try library.commitActionGroupCopy(group, actions: [copy], mutation: mutation, at: now,
+            validateCommit: {}) { .init(id: $0.id, versionToken: "opaque-version") }
+        let retry = try library.commitActionGroupCopy(group, actions: [copy], mutation: mutation, at: now,
+            validateCommit: { Issue.record("A retry must not commit again") }) {
+                .init(id: $0.id, versionToken: "opaque-version")
+            }
+        #expect(retry == receipt && library.actions.count == 2)
+        #expect(library.actions.contains(copy) && library.actionGroupIdentifiers["Source"] == identifiers["Source"])
+    }
+
+    @Test func groupAndReceiptRollBackTogetherWhenCommitValidationFails() throws {
+        let library = try LibraryStore(inMemory: true, seed: false), group = ActionGroupRecord(name: "Neutral"), mutation = identity()
+        #expect(throws: (any Error).self) {
+            try library.commitActionGroup(group, mutation: mutation, at: now,
+                validateCommit: { throw DraftlyError.message("Authority changed") }) {
+                    .init(id: $0.id, versionToken: "opaque-version")
+                }
+        }
+        #expect(library.actionGroups.isEmpty)
+        #expect(try library.mutationReceipt(for: mutation, at: now) == nil)
+        #expect(!library.container.viewContext.hasChanges)
+        let receipt = try library.commitActionGroup(group, mutation: mutation, at: now) {
+            .init(id: $0.id, versionToken: "opaque-version")
+        }
+        #expect(try library.mutationReceipt(for: mutation, at: now) == receipt)
+        #expect(library.actionGroups == [group])
+    }
+
+    @Test func actionAndReceiptCommitTogetherAndReplayAfterReopen() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let library = try LibraryStore(directory: root, seed: false)
+        let action = DraftAction(name: "Neutral", steps: []), mutation = identity()
+        let receipt = try library.commitActions([action], mutation: mutation, at: now) { actions in
+            actions.map { .init(id: $0.id, versionToken: "opaque-version") }
+        }
+        let reopened = try LibraryStore(directory: root, seed: false)
+        #expect(reopened.actions == [action])
+        let replay = try reopened.commitActions([action], mutation: mutation, at: now.addingTimeInterval(1)) { _ in
+            Issue.record("Replay must not stage another action"); return []
+        }
+        #expect(replay == receipt && reopened.actions == [action])
+        #expect(throws: LibraryMutationReceiptError.requestConflict) {
+            try reopened.commitActions([DraftAction(name: "Other", steps: [])], mutation: mutation, at: now) { _ in [] }
+        }
+    }
+
+    @Test func actionAndReceiptRollBackWhenFinalValidationFails() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let original = DraftAction(name: "Original", steps: [])
+        try library.saveAction(original)
+        var changed = original; changed.name = "Changed"
+        let mutation = identity()
+        #expect(throws: (any Error).self) {
+            try library.commitActions([changed], mutation: mutation, at: now,
+                validateCommit: { throw DraftlyError.message("Authority changed") }) { actions in
+                    actions.map { .init(id: $0.id, versionToken: "opaque-version") }
+                }
+        }
+        #expect(library.actions == [original])
+        #expect(try library.mutationReceipt(for: mutation, at: now) == nil)
+        #expect(!library.container.viewContext.hasChanges)
+    }
+
     @Test func noteAndReceiptSurviveReopenAndAReplyLossCannotRepeatEffects() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }

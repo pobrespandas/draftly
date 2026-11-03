@@ -62,7 +62,7 @@ class SigningTests(unittest.TestCase):
         verify.assert_called_once_with(str(self.app), expected_bundle_identifier="com.example.draftly",
                                        expected_team="TEAM", expected_container="iCloud.com.example.draftly",
                                        expected_cloud_environment=None, expected_push_environment=None,
-                                       require_developer_id=False)
+                                       require_developer_id=False, expected_keychain_group=None)
 
     def test_command_line_preserves_generic_mode(self):
         with patch.object(module, "verify", return_value={}) as verify, contextlib.redirect_stdout(io.StringIO()):
@@ -70,7 +70,20 @@ class SigningTests(unittest.TestCase):
         verify.assert_called_once_with(str(self.app), expected_bundle_identifier=None,
                                        expected_team=None, expected_container=None,
                                        expected_cloud_environment=None, expected_push_environment=None,
-                                       require_developer_id=False)
+                                       require_developer_id=False, expected_keychain_group=None)
+
+    def test_agent_group_must_be_signed_and_allowed_by_profile(self):
+        group = "TEAM.com.example.agent-access"
+        self.rights["keychain-access-groups"] = [group]
+        self.profile["Entitlements"]["keychain-access-groups"] = ["TEAM.*"]
+        module.verify(self.app, expected_keychain_group=group)
+        self.rights["keychain-access-groups"] = []
+        with self.assertRaisesRegex(ValueError, "Keychain group"):
+            module.verify(self.app, expected_keychain_group=group)
+        self.rights["keychain-access-groups"] = [group]
+        self.profile["Entitlements"]["keychain-access-groups"] = ["OTHER.*"]
+        with self.assertRaisesRegex(ValueError, "Keychain group"):
+            module.verify(self.app, expected_keychain_group=group)
 
     def test_expected_production_environments_reject_development_even_if_profile_allows_it(self):
         with self.assertRaisesRegex(ValueError, "CloudKit environment.*expected"):

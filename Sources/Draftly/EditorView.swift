@@ -48,6 +48,12 @@ struct NativeEditor: NSViewRepresentable {
         scroll.hasVerticalRuler = true; scroll.rulersVisible = showParagraphNumbers
         context.coordinator.textView = text
         session.synchronizeScriptEdit = { [weak coordinator = context.coordinator] in coordinator?.synchronizeScriptEdit() }
+        session.canApplyExternalEdit = { [weak text, weak coordinator = context.coordinator, weak session] in
+            guard let text, let coordinator, let session else { return false }
+            return text.window != nil && !text.hasMarkedText() && !coordinator.updating
+                && coordinator.noteID == session.noteID && DraftOperations.sameText(text.string, session.content)
+                && text.selectedRange() == session.safeSelection
+        }
         session.performUndo = { [weak text] redo in if redo { text?.undoManager?.redo() } else { text?.undoManager?.undo() } }
         session.focusForDictation = { [weak text] in
             guard let text, let window = text.window else { return false }

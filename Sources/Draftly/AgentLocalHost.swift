@@ -9,11 +9,17 @@ import AgentLocalSecurity
     let libraryID: UUID
     let connections: AgentConnectionRegistry
     let pairing: AgentPairingCoordinator
+    let approvals: AgentApprovalStore
+    let operations: AgentOperationRegistry
     let service: AgentCommandService
     private let library: LibraryStore
     private let editors: AgentEditorRegistry?
     private let lease: AgentHostLease
     private let publications: AgentHostPublications
+    private let activity: AgentActivityStore
+    private(set) var activityRecordingError: AgentErrorCode?
+    private var pendingActivity: [AgentActivityStore.Entry] = []
+    private var activityFlushScheduled = false
     var locatorCleanupError: AgentErrorCode? { publications.cleanupError }
     private let socketParentDirectory: URL
     private let validateApplication: () throws -> Void
@@ -25,8 +31,24 @@ import AgentLocalSecurity
 
     var endpoint: String? { broker?.path }
 
+    func recentActivity() throws -> [AgentActivityStore.Entry] {
+        try validateOwnership()
+        return try activity.entries(libraryID: libraryID)
+    }
+
+    func clearActivity() throws {
+        try validateOwnership()
+        try activity.clear(libraryID: libraryID)
+        pendingActivity.removeAll()
+        activityRecordingError = nil
+    }
+
     init(library: LibraryStore, appVersion: String,
          editors: AgentEditorRegistry? = nil,
+         enableReviewedActions: Bool = false,
+         nativePreferenceRead: ((String) throws -> AgentPreferenceReading)? = nil,
+         preferenceDefaults: UserDefaults = .standard,
+         preferenceStorage: AgentPreferenceStorage? = nil,
          isLocked: @escaping () -> Bool,
          pendingEditorGeneration: @escaping (UUID) -> String,
          resolveTargets: @escaping (Set<AgentResourceReference>) throws -> Set<AgentResourceReference>,
@@ -40,10 +62,14 @@ import AgentLocalSecurity
         let lease = try AgentHostLease(location: AgentLibraryLocation(library: library))
         let file: AgentConnectionFile
         let locator: AgentHostLocator
+        let activity: AgentActivityStore
+        let journal: AgentOperationJournal?
         do {
             let parent = lease.location.url.deletingLastPathComponent()
             file = try AgentConnectionFile(parentDirectory: parent)
             locator = try AgentHostLocator(parentDirectory: parent)
+            activity = try AgentActivityStore(parentDirectory: parent)
+            journal = enableReviewedActions ? try AgentOperationJournal(parentDirectory: parent) : nil
             _ = try locator.endpoints()
         }
         catch { lease.close(); throw error }
@@ -60,14 +86,35 @@ import AgentLocalSecurity
             authorityChanged: { id in owner?.authorityChanged(id) })
         self.lease = lease; self.publications = AgentHostPublications(locator: locator); libraryID = lease.libraryID; connections = registry
         self.library = library; self.editors = editors
+        self.activity = activity
         self.socketParentDirectory = socketParentDirectory
         self.validateApplication = validateApplication; self.validateHelper = validateHelper
         self.isLocked = isLocked; self.resolveTargets = resolveTargets
+        approvals = AgentApprovalStore(currentGrant: { id in
+            try? registry.grantForAuthenticatedConnection(id)
+        }, isLocked: isLocked)
+        operations = AgentOperationRegistry(currentGrant: { id in
+            try registry.grantForAuthenticatedConnection(id)
+        }, validateHost: validateOwner, isLocked: isLocked, journal: journal)
         do {
             service = try AgentCommandService(library: library, libraryID: lease.libraryID, connections: registry,
-                appVersion: appVersion, validateHost: validateOwner, isLocked: isLocked,
+                appVersion: appVersion, preferenceDefaults: preferenceDefaults, preferenceStorage: preferenceStorage,
+                nativePreferenceRead: nativePreferenceRead, validateHost: validateOwner, isLocked: isLocked,
                 editors: editors,
-                pendingEditorGeneration: pendingEditorGeneration)
+                pendingEditorGeneration: pendingEditorGeneration,
+                recordActivity: { connectionID, grantID, requestID, operation, result in
+                    guard let owner else { return }
+                    owner.enqueueActivity(.init(id: UUID(), libraryID: owner.libraryID, connectionID: connectionID,
+                                                grantID: grantID, requestID: requestID, operation: operation,
+                                                date: Date(), result: result))
+                }, readActivity: { connectionID, grantID in
+                    guard let owner else { throw AgentErrorCode.cancelled }
+                    try owner.validateOwnership()
+                    return try activity.entries(libraryID: owner.libraryID).filter { $0.connectionID == connectionID && $0.grantID == grantID }
+                }, operations: operations, submitAction: enableReviewedActions ? { request, grant in
+                    guard let owner else { throw AgentErrorCode.cancelled }
+                    return try owner.submitReviewedAction(request, grant: grant)
+                } : nil)
         } catch { lease.close(); throw error }
         pairing = AgentPairingCoordinator(registry: registry, libraryID: lease.libraryID,
             validateHost: validateOwner, isLocked: isLocked, resolveTargets: resolveTargets)
@@ -80,19 +127,80 @@ import AgentLocalSecurity
     // discarded host; it preserves the same ordering on MainActor.
     isolated deinit { close() }
 
+    private func submitReviewedAction(_ request: AgentRequest, grant: AgentGrant) throws -> UUID {
+        try validateOwnership()
+        guard let editors, case .string(let rawWindow) = request.parameters["windowID"],
+              let windowID = UUID(uuidString: rawWindow),
+              let draftID = request.targets.first(where: { $0.kind == .draft })?.id,
+              let actionID = request.targets.first(where: { $0.kind == .action })?.id,
+              let action = library.actions.first(where: { $0.id == actionID }) else { throw AgentErrorCode.interactionRequired }
+        guard grant.capabilities.isSuperset(of: [.draftsWrite, .editorWrite]),
+              grant.scope.permits(.init(kind: .window, id: windowID)) else { throw AgentErrorCode.permissionDenied }
+        let models = try editors.executionModels(draftID: draftID, windowID: windowID)
+        guard let model = models.first else { throw AgentErrorCode.notFound }
+        let approved = library.actions.filter { grant.scope.permits(.init(kind: .action, id: $0.id)) }
+        let authority = AgentScriptAuthority(grant: grant, currentGrant: { [weak self] in
+            guard let self else { throw AgentErrorCode.cancelled }
+            return try self.connections.grantForAuthenticatedConnection(grant.connectionID)
+        }, validateHost: { [weak self, weak model] in
+            guard let self, let model else { throw AgentErrorCode.cancelled }
+            try self.validateOwnership()
+            guard try editors.executionModels(draftID: draftID, windowID: windowID).first === model else {
+                throw AgentErrorCode.notFound
+            }
+        }, isLocked: isLocked, draftExists: { [weak self] id in self?.library.notes.contains { $0.id == id } == true },
+            targetDraftID: draftID, editorDraftID: { [weak model] in model?.editor.noteID }, windowID: windowID,
+            approvedActions: Dictionary(uniqueKeysWithValues: approved.map { ($0.id, $0) }),
+            currentAction: { [weak self] id in self?.library.actions.first { $0.id == id } }, reviewedNativeEffects: true)
+        return try operations.startRequest(request, grant: grant) { [self] id in
+            try await AgentReviewedActionExecution.run(action: action, draftID: draftID, request: request,
+                connectionID: grant.connectionID, library: library, models: models, host: model.host,
+                authority: authority, approvals: approvals,
+                currentSnapshot: { try self.service.actionExecutionSnapshot(request, connectionID: grant.connectionID) },
+                waitingForUser: { try self.operations.setWaitingForUser(id, waiting: $0) },
+                recordEffect: { effectID, kind, outcome in
+                    try self.operations.recordEffect(id, effectID: effectID, kind: kind, outcome: outcome)
+                },
+                resolveModel: { models, _ in models.first })
+        }
+    }
+
     func isBound(to library: LibraryStore, editors: AgentEditorRegistry) -> Bool {
         !closed && self.library === library && self.editors === editors && editors.isBound(to: library)
     }
 
     func close() {
-        guard !closed else { publications.withdraw(); return }; closed = true
+        guard !closed else { publications.withdraw(); return }
         suspend()
+        flushActivity()
+        closed = true
         lease.close()
+    }
+
+    private func enqueueActivity(_ entry: AgentActivityStore.Entry) {
+        guard pendingActivity.count < 1024 else { activityRecordingError = .busy; return }
+        pendingActivity.append(entry)
+        guard !activityFlushScheduled else { return }
+        activityFlushScheduled = true
+        Task { @MainActor [weak self] in self?.flushActivity() }
+    }
+
+    private func flushActivity() {
+        activityFlushScheduled = false
+        let entries = pendingActivity
+        pendingActivity.removeAll()
+        guard !entries.isEmpty else { return }
+        do {
+            try validateOwnership()
+            try activity.append(entries)
+        } catch { activityRecordingError = (error as? AgentErrorCode) ?? .storageError }
     }
 
     func suspend() {
         broker?.stop(); broker = nil
         service.invalidateAll(); pairing.invalidatePending()
+        approvals.invalidateForScreenLock()
+        operations.cancelAll()
         publications.withdraw()
     }
 
@@ -151,11 +259,58 @@ import AgentLocalSecurity
             setAccessEnabled: { [weak self] enabled in
                 guard let self else { throw AgentErrorCode.cancelled }
                 try self.setEnabledFromUserInterface(enabled)
+            }, isAccessActive: { [weak self] in self?.endpoint != nil },
+            pairingCommand: Self.pairingCommand(libraryID: libraryID,
+                stateDirectory: lease.location.url.deletingLastPathComponent(), bundleURL: Bundle.main.bundleURL),
+            availableCapabilities: service.availableCapabilities,
+            makeMCPConfiguration: { [weak self] connectionID in
+                guard let self else { return nil }
+                return Self.mcpConfiguration(connectionID: connectionID, libraryID: self.libraryID,
+                    stateDirectory: self.lease.location.url.deletingLastPathComponent(), bundleURL: Bundle.main.bundleURL)
+            }, readActivity: { [weak self] in
+                guard let self else { throw AgentErrorCode.cancelled }
+                return try self.recentActivity()
+            }, eraseActivity: { [weak self] in
+                guard let self else { throw AgentErrorCode.cancelled }
+                try self.clearActivity()
+            }, activityRecordingError: { [weak self] in self?.activityRecordingError },
+            pendingReviews: { [weak self] in
+                guard let self else { throw AgentErrorCode.cancelled }
+                try self.validateOwnership()
+                return self.approvals.pendingFromUserInterface()
+            }, decideReview: { [weak self] review, approved in
+                guard let self else { throw AgentErrorCode.cancelled }
+                try self.validateOwnership()
+                guard self.endpoint != nil else { throw AgentErrorCode.permissionDenied }
+                if approved { try self.approvals.approveFromUserInterface(review.id, reviewedFingerprint: review.fingerprint) }
+                else { try self.approvals.denyFromUserInterface(review.id) }
             })
+    }
+
+    static func pairingCommand(libraryID: UUID, stateDirectory: URL, bundleURL: URL) -> String? {
+        let helper = bundleURL.appendingPathComponent("Contents/Helpers/DraftlyAgent.app/Contents/MacOS/draftly-agent")
+        guard stateDirectory.isFileURL, helper.isFileURL, FileManager.default.isExecutableFile(atPath: helper.path) else { return nil }
+        func quoted(_ value: String) -> String { "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'" }
+        return quoted(helper.path) + " connect --name 'Local agent' --library " + libraryID.uuidString
+            + " --state-parent " + quoted(stateDirectory.path)
+    }
+
+    static func mcpConfiguration(connectionID: UUID, libraryID: UUID, stateDirectory: URL, bundleURL: URL) -> String? {
+        let helper = bundleURL.appendingPathComponent("Contents/Helpers/DraftlyAgent.app/Contents/MacOS/draftly-agent")
+        guard stateDirectory.isFileURL, helper.isFileURL, FileManager.default.isExecutableFile(atPath: helper.path),
+              let configuration = try? AgentClientConfiguration(helperPath: helper.path, connectionID: connectionID,
+                  libraryID: libraryID, stateParent: stateDirectory.path),
+              let data = try? configuration.encoded() else { return nil }
+        return String(data: data, encoding: .utf8)
     }
 
     func makeDraftSettingsModel() throws -> AgentConnectionsSettingsModel {
         let resources = AgentDraftResourceChoices(library: library)
+        return try makeSettingsModel(choices: { resources.choices() })
+    }
+
+    func makeLibrarySettingsModel() throws -> AgentConnectionsSettingsModel {
+        let resources = AgentLibraryResourceChoices(library: library, editors: editors)
         return try makeSettingsModel(choices: { resources.choices() })
     }
 
@@ -182,5 +337,7 @@ import AgentLocalSecurity
     private func authorityChanged(_ id: UUID) {
         service.invalidate(connectionID: id)
         pairing.invalidatePending()
+        approvals.invalidateConnection(id)
+        operations.cancelConnection(id)
     }
 }

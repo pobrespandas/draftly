@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 import DraftlyCore
 import AgentContracts
+import AgentLocalSecurity
 
 extension Notification.Name {
     static let draftlyOpenNote = Notification.Name("DraftlyOpenNote")
@@ -78,6 +79,8 @@ final class AppController: ObservableObject {
     }
     private var cachedAgentEditors: AgentEditorRegistry?
     private var agentHost: AgentLocalHost?
+    private var agentLifecycleObservers: [NSObjectProtocol] = []
+    private var agentProtectedDataObserver: NSObjectProtocol?
     @Published var startupError: String?
     @Published var agentSettings: AgentConnectionsSettingsModel?
     @Published var globalShortcutErrors: [String: String] = [:]
@@ -85,6 +88,7 @@ final class AppController: ObservableObject {
     let recentDrafts: RecentDraftStore
     private(set) var spotlight: SpotlightPreferences?
     private var spotlightRequested = false
+    private lazy var agentLoginItemPreferences = LoginItemPreferences()
     var pendingNoteID: UUID? { didSet { pendingTargetWindow = nil; pendingTargetModel = nil; pendingExcludedModels = nil } }
     private var pendingExcludedModels: Set<ObjectIdentifier>?
     private weak var pendingTargetWindow: NSWindow?
@@ -121,11 +125,71 @@ final class AppController: ObservableObject {
         guard let library, let editors = cachedAgentEditors,
               host.isBound(to: library, editors: editors) else { throw AgentErrorCode.invalidInput }
         guard agentHost !== host else { return }
+        let settings = try host.makeLibrarySettingsModel()
         if let previous = agentHost { previous.close(); agentSettings = nil }
         agentHost = host
+        agentSettings = settings
+        observeAgentSessionSuspension()
+    }
+
+    private func observeAgentSessionSuspension() {
+        guard agentLifecycleObservers.isEmpty else { return }
+        let center = NSWorkspace.shared.notificationCenter
+        for name in [NSWorkspace.willSleepNotification, NSWorkspace.screensDidSleepNotification,
+                     NSWorkspace.sessionDidResignActiveNotification] {
+            agentLifecycleObservers.append(center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor [weak self] in self?.suspendAgentSession() }
+            })
+        }
+        agentProtectedDataObserver = NotificationCenter.default.addObserver(
+            forName: .NSApplicationProtectedDataWillBecomeUnavailable, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.suspendAgentSession() }
+        }
+    }
+
+    func suspendAgentSession() {
+        agentHost?.suspend()
+        agentSettings?.refresh()
+    }
+
+    func configureAgentHost(isLocked: @escaping () -> Bool,
+                            enableReviewedActions: Bool = false,
+                            preferenceStorage: AgentPreferenceStorage? = nil,
+                            protectedDataAvailable: @escaping () -> Bool = { NSApplication.shared.isProtectedDataAvailable },
+                            credentials: AgentConnectionRegistry.CredentialAccess? = nil,
+                            validateApplication: @escaping () throws -> Void = { try AgentCredentialIdentity.validateCurrentProcess(.application) },
+                            validateHelper: @escaping @Sendable (Data) throws -> Void = { try AgentPeerIdentity.validate($0, role: .helper) }) throws {
+        guard let library else { throw AgentErrorCode.unavailable }
+        guard agentHost == nil else { return }
+        let editors = try agentEditorRegistry(for: library)
+        let resources = AgentLibraryResourceChoices(library: library, editors: editors)
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
+        let host = try AgentLocalHost(library: library, appVersion: version, editors: editors,
+            enableReviewedActions: enableReviewedActions,
+            nativePreferenceRead: { [weak self] id in
+                guard let self else { throw AgentErrorCode.cancelled }
+                if id == "application.launchAtLogin" {
+                    return try AgentNativePreferenceAccess.readLoginItem(self.agentLoginItemPreferences)
+                }
+                guard id == SpotlightPreferences.enabledKey, let spotlight = self.spotlight else {
+                    throw AgentErrorCode.unavailable
+                }
+                return try AgentNativePreferenceAccess.readSpotlight(spotlight,
+                    hasStoredOverride: UserDefaults.standard.object(forKey: SpotlightPreferences.enabledKey) != nil)
+            }, preferenceStorage: preferenceStorage,
+            isLocked: { isLocked() || !protectedDataAvailable() },
+            pendingEditorGeneration: { _ in "" }, resolveTargets: { resources.resolve($0) },
+            credentials: credentials, validateApplication: validateApplication, validateHelper: validateHelper)
+        do { try adoptAgentHost(host) } catch { host.close(); throw error }
     }
 
     func closeAgentContext() {
+        let center = NSWorkspace.shared.notificationCenter
+        agentLifecycleObservers.forEach { center.removeObserver($0) }
+        agentLifecycleObservers.removeAll()
+        if let observer = agentProtectedDataObserver { NotificationCenter.default.removeObserver(observer) }
+        agentProtectedDataObserver = nil
         if let host = agentHost {
             agentHost = nil; host.close(); agentSettings = nil
         }
@@ -160,7 +224,24 @@ final class AppController: ObservableObject {
                 .flatMap(UUID.init(uuidString:)) ?? UUID()
             if cloudTesting && cloud == nil { throw DraftlyError.message("The iCloud test build has no CloudKit container.") }
             let directory = testing || cloudTesting ? FileManager.default.temporaryDirectory.appendingPathComponent("Draftly-UITesting").appendingPathComponent(testLibraryID.uuidString) : nil
+            #if DRAFTLY_AGENT_QA
+            if testing && ProcessInfo.processInfo.arguments.contains("--agent-isolated-qa"), let directory {
+                try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true,
+                                                        attributes: [.posixPermissions: 0o700])
+            }
+            #endif
             let store = try LibraryStore(cloudIdentifier: cloud, directory: directory, seed: !cloudTesting)
+            #if DRAFTLY_AGENT_QA
+            if testing && ProcessInfo.processInfo.arguments.contains("--agent-isolated-qa") &&
+                ProcessInfo.processInfo.arguments.contains("--agent-workspace-fixtures") {
+                guard store.workspaces.isEmpty && store.notes.isEmpty else { throw DraftlyError.message("QA workspace fixtures require an empty test library.") }
+                var visible = Workspace(name: "QA Visible"); visible.query = "QA query"
+                try store.saveWorkspaces([visible, Workspace(name: "QA Hidden")])
+                _ = try store.createNote(content: "QA query visible")
+                _ = try store.createNote(content: "QA query hidden")
+                _ = try store.createNote(content: "QA unrelated")
+            }
+            #endif
             let catalogQATesting = testing && ProcessInfo.processInfo.arguments.contains("--catalog-installation-testing")
             let catalogCloudQATesting = cloudTesting && ProcessInfo.processInfo.arguments.contains("--catalog-cloud-installation-testing")
             if (!testing && !cloudTesting) || catalogQATesting || catalogCloudQATesting {
@@ -175,6 +256,22 @@ final class AppController: ObservableObject {
             do { try LocalThemeMigration.run(in: store) }
             catch { store.error = "Theme migration failed: " + error.localizedDescription }
             library = store
+            #if DRAFTLY_AGENT_QA
+            if testing && ProcessInfo.processInfo.arguments.contains("--agent-isolated-qa") {
+                do {
+                    do { try AgentCredentialIdentity.validateCurrentProcess(.application) }
+                    catch { FileHandle.standardError.write(Data("Agent QA identity check failed\n".utf8)); throw error }
+                    do { _ = try AgentLibraryLocation(library: store) }
+                    catch { FileHandle.standardError.write(Data("Agent QA library check failed\n".utf8)); throw error }
+                    try configureAgentHost(isLocked: { false }, enableReviewedActions: true,
+                        preferenceStorage: AgentPreferenceStorage(defaults: .standard, domain: ApplicationIdentityMigration.identifier))
+                }
+                catch {
+                    FileHandle.standardError.write(Data("Agent QA host failed: \(error)\n".utf8))
+                    throw error
+                }
+            }
+            #endif
             if spotlightRequested { startSpotlightIndexing() }
             refreshThemeDevelopmentFolder()
             startupError = nil

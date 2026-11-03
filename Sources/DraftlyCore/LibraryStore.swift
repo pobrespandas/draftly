@@ -175,7 +175,8 @@ public final class LibraryStore: ObservableObject {
 
     // The application owns authorization, expected versions and request hashing.
     package func commitNotes(_ values: [Note], mutation: LibraryMutationIdentity, at now: Date,
-                             preserveDates: Bool = false, validateCommit: () throws -> Void = {},
+                             preserveRevision: Bool = true, preserveDates: Bool = false,
+                             validateCommit: () throws -> Void = {},
                              makeResources: @Sendable ([Note]) throws -> [LibraryMutationReceipt.Resource]) throws -> LibraryMutationReceipt {
         guard !values.isEmpty, Set(values.map(\.id)).count == values.count else {
             throw LibraryMutationReceiptError.invalidReceipt
@@ -187,7 +188,7 @@ public final class LibraryStore: ObservableObject {
             return previous
         }
         do {
-            let staged = try stageNotes(values, preserveRevision: true, preserveDates: preserveDates)
+            let staged = try stageNotes(values, preserveRevision: preserveRevision, preserveDates: preserveDates)
             let receipt = LibraryMutationReceipt(id: UUID(), mutation: mutation, committedAt: now,
                 resources: try makeResources(staged))
             try receipt.validate()
@@ -266,6 +267,111 @@ public final class LibraryStore: ObservableObject {
             try beforeBatchCommit?(); try commit()
         } catch { container.viewContext.rollback(); try? reload(); throw error }
     }
+    // The application checks authority and versions before the transaction commits.
+    package func commitActions(_ values: [DraftAction], mutation: LibraryMutationIdentity, at now: Date,
+                               validateCommit: () throws -> Void = {},
+                               makeResources: ([DraftAction]) throws -> [LibraryMutationReceipt.Resource]) throws -> LibraryMutationReceipt {
+        let ids = Set(values.map(\.id))
+        guard !values.isEmpty, ids.count == values.count else { throw LibraryMutationReceiptError.invalidReceipt }
+        if let previous = try mutationReceipt(for: mutation, at: now) {
+            guard Set(previous.resources.map(\.id)) == ids else { throw LibraryMutationReceiptError.requestConflict }
+            return previous
+        }
+        do {
+            for action in values { try persist(action, id: action.id, kind: "action") }
+            let receipt = LibraryMutationReceipt(id: UUID(), mutation: mutation, committedAt: now,
+                                                 resources: try makeResources(values))
+            try receipt.validate()
+            guard Set(receipt.resources.map(\.id)) == ids else { throw LibraryMutationReceiptError.invalidReceipt }
+            try persist(receipt, id: receipt.id, kind: "agentMutationReceipt")
+            try beforeBatchCommit?()
+            try validateCommit()
+            try commit()
+            return receipt
+        } catch {
+            container.viewContext.rollback(); try? reload(); throw error
+        }
+    }
+
+    package func commitActionGroup(_ group: ActionGroupRecord, mutation: LibraryMutationIdentity, at now: Date,
+                                   previousName: String? = nil,
+                                   validateCommit: () throws -> Void = {},
+                                   makeResource: (ActionGroupRecord) throws -> LibraryMutationReceipt.Resource) throws -> LibraryMutationReceipt {
+        if let previous = try mutationReceipt(for: mutation, at: now) {
+            guard previous.resources.count == 1, previous.resources[0].id == group.id else {
+                throw LibraryMutationReceiptError.requestConflict
+            }
+            return previous
+        }
+        do {
+            if let previousName, previousName != group.name {
+                let reserved = actionGroupIdentifiers
+                for (order, name) in groupNames.enumerated() where name != previousName && name != group.name && !actionGroups.contains(where: { $0.name == name }) {
+                    guard let id = reserved[name] else { throw LibraryMutationReceiptError.invalidReceipt }
+                    var record = ActionGroupRecord(name: name); record.id = id; record.order = order
+                    try persist(record, id: id, kind: "actionGroup")
+                }
+                for var action in actions where action.group == previousName {
+                    action.group = group.name
+                    try persist(action, id: action.id, kind: "action")
+                }
+            }
+            try persist(group, id: group.id, kind: "actionGroup")
+            let receipt = LibraryMutationReceipt(id: UUID(), mutation: mutation, committedAt: now, resources: [try makeResource(group)])
+            try receipt.validate()
+            guard receipt.resources[0].id == group.id else { throw LibraryMutationReceiptError.invalidReceipt }
+            try persist(receipt, id: receipt.id, kind: "agentMutationReceipt")
+            try beforeBatchCommit?(); try validateCommit(); try commit()
+            return receipt
+        } catch { container.viewContext.rollback(); try? reload(); throw error }
+    }
+    package func commitActionGroups(_ groups: [ActionGroupRecord], mutation: LibraryMutationIdentity, at now: Date,
+                                    validateCommit: () throws -> Void,
+                                    makeResources: ([ActionGroupRecord]) throws -> [LibraryMutationReceipt.Resource]) throws -> LibraryMutationReceipt {
+        let ids = Set(groups.map(\.id))
+        guard !groups.isEmpty, ids.count == groups.count else { throw LibraryMutationReceiptError.invalidReceipt }
+        if let previous = try mutationReceipt(for: mutation, at: now) {
+            guard Set(previous.resources.map(\.id)) == ids else { throw LibraryMutationReceiptError.requestConflict }
+            return previous
+        }
+        do {
+            for group in groups { try persist(group, id: group.id, kind: "actionGroup") }
+            let receipt = LibraryMutationReceipt(id: UUID(), mutation: mutation, committedAt: now, resources: try makeResources(groups))
+            try receipt.validate()
+            guard Set(receipt.resources.map(\.id)) == ids else { throw LibraryMutationReceiptError.invalidReceipt }
+            try persist(receipt, id: receipt.id, kind: "agentMutationReceipt")
+            try beforeBatchCommit?(); try validateCommit(); try commit()
+            return receipt
+        } catch { container.viewContext.rollback(); try? reload(); throw error }
+    }
+
+    package func commitActionGroupCopy(_ group: ActionGroupRecord, actions copies: [DraftAction],
+                                       mutation: LibraryMutationIdentity, at now: Date,
+                                       validateCommit: () throws -> Void,
+                                       makeResource: (ActionGroupRecord) throws -> LibraryMutationReceipt.Resource) throws -> LibraryMutationReceipt {
+        if let previous = try mutationReceipt(for: mutation, at: now) { return previous }
+        let ids = Set(copies.map(\.id))
+        guard ids.count == copies.count, copies.allSatisfy({ $0.group == group.name }),
+              ids.isDisjoint(with: Set(actions.map(\.id))), !groupNames.contains(group.name),
+              !actionGroupIdentifiers.values.contains(group.id) else { throw LibraryMutationReceiptError.invalidReceipt }
+        do {
+            let identifiers = actionGroupIdentifiers
+            for (order, name) in groupNames.enumerated() where !actionGroups.contains(where: { $0.name == name }) {
+                guard let id = identifiers[name] else { throw LibraryMutationReceiptError.invalidReceipt }
+                var record = ActionGroupRecord(name: name); record.id = id; record.order = order
+                try persist(record, id: id, kind: "actionGroup")
+            }
+            for action in copies { try persist(action, id: action.id, kind: "action") }
+            try persist(group, id: group.id, kind: "actionGroup")
+            let receipt = LibraryMutationReceipt(id: UUID(), mutation: mutation, committedAt: now, resources: [try makeResource(group)])
+            try receipt.validate()
+            guard receipt.resources[0].id == group.id else { throw LibraryMutationReceiptError.invalidReceipt }
+            try persist(receipt, id: receipt.id, kind: "agentMutationReceipt")
+            try beforeBatchCommit?(); try validateCommit(); try commit()
+            return receipt
+        } catch { container.viewContext.rollback(); try? reload(); throw error }
+    }
+
     @discardableResult
     public func reinstallDefaultActions() throws -> DefaultActionCatalogInstallation {
         let bundle = DefaultActionCatalog.restoredBundle(existingGroupNames: groupNames)
@@ -358,6 +464,30 @@ public final class LibraryStore: ObservableObject {
             for workspace in values { try persist(workspace, id: workspace.id, kind: "workspace") }
             try beforeBatchCommit?(); try commit()
         } catch { container.viewContext.rollback(); try? reload(); throw error }
+    }
+    package func commitWorkspaces(_ values: [Workspace], mutation: LibraryMutationIdentity, at now: Date,
+                                  validateCommit: () throws -> Void = {},
+                                  makeResources: ([Workspace]) throws -> [LibraryMutationReceipt.Resource]) throws -> LibraryMutationReceipt {
+        let ids = Set(values.map(\.id))
+        guard !values.isEmpty, ids.count == values.count else { throw LibraryMutationReceiptError.invalidReceipt }
+        if let previous = try mutationReceipt(for: mutation, at: now) {
+            guard Set(previous.resources.map(\.id)) == ids else { throw LibraryMutationReceiptError.requestConflict }
+            return previous
+        }
+        do {
+            for workspace in values { try persist(workspace, id: workspace.id, kind: "workspace") }
+            let receipt = LibraryMutationReceipt(id: UUID(), mutation: mutation, committedAt: now,
+                                                 resources: try makeResources(values))
+            try receipt.validate()
+            guard Set(receipt.resources.map(\.id)) == ids else { throw LibraryMutationReceiptError.invalidReceipt }
+            try persist(receipt, id: receipt.id, kind: "agentMutationReceipt")
+            try beforeBatchCommit?()
+            try validateCommit()
+            try commit()
+            return receipt
+        } catch {
+            container.viewContext.rollback(); try? reload(); throw error
+        }
     }
     private var actionCatalog: ActionCatalog {
         ActionCatalog(actions: actions, groups: actionGroups)

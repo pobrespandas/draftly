@@ -1,4 +1,5 @@
 import Combine
+import AppKit
 import Foundation
 import CoreData
 import Testing
@@ -15,6 +16,8 @@ struct AgentApplicationHostTests {
         let defaults: UserDefaults
         let domain = "Draftly-Agent-Application-" + UUID().uuidString
         let secrets = Secrets()
+        var locked = false
+        var protectedDataAvailable = true
         var app: AppController?
 
         init() throws {
@@ -37,16 +40,14 @@ struct AgentApplicationHostTests {
             return try AgentLocalHost(library: library, appVersion: "Neutral QA",
                 editors: supplied ?? app.agentEditorRegistry(for: library), isLocked: { false },
                 pendingEditorGeneration: { _ in "" }, resolveTargets: { targets in
-                    Set(targets.filter { target in target.kind == .draft && library.notes.contains(where: { $0.id == target.id }) })
+                    AgentLibraryResourceChoices(library: library).resolve(targets)
                 }, credentials: .init(read: { secrets.values[$0] }, create: { id, value in
                     guard secrets.values[id] == nil else { throw AgentErrorCode.versionConflict }
                     secrets.values[id] = value
                 }, remove: { secrets.values.removeValue(forKey: $0) }), validateApplication: {}, validateHelper: { _ in })
         }
         func handToApplication(_ host: AgentLocalHost) throws {
-            let app = try #require(app), settings = try host.makeSettingsModel(choices: { [] })
-            try app.adoptAgentHost(host)
-            app.agentSettings = settings
+            try #require(app).adoptAgentHost(host)
         }
         func session(_ host: AgentLocalHost) throws -> AgentCommandService.Session {
             try host.setEnabledFromUserInterface(true)
@@ -120,7 +121,7 @@ struct AgentApplicationHostTests {
         let f = try Fixture(); defer { f.cleanup() }
         let app = try #require(f.app), host = try f.host(); defer { host.close() }
         try app.adoptAgentHost(host)
-        #expect(host.endpoint == nil && app.agentSettings == nil)
+        #expect(host.endpoint == nil && app.agentSettings != nil && app.agentSettings?.accessEnabled == false)
         try f.handToApplication(host)
         let session = try f.session(host), settings = app.agentSettings
         try app.adoptAgentHost(host)
@@ -129,6 +130,102 @@ struct AgentApplicationHostTests {
         app.closeAgentContext(); app.closeAgentContext()
         #expect(host.endpoint == nil && app.agentSettings == nil)
         #expect(throws: AgentErrorCode.cancelled) { try host.service.authorizedLibraryID(for: session) }
+    }
+
+    @Test func adoptedHostExposesLiveResourcesToSettingsWhileDisabled() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let app = try #require(f.app), host = try f.host(); defer { host.close() }
+        let note = try f.library.createNote(content: "Scoped draft")
+        let action = DraftAction(name: "Scoped action", steps: [])
+        try f.library.saveAction(action)
+        try app.adoptAgentHost(host)
+        let settings = try #require(app.agentSettings)
+        #expect(Set(settings.resourceChoices().map(\.reference).filter { $0.kind != .revision }) == [
+            .init(kind: .draft, id: note.id), .init(kind: .action, id: action.id),
+            .init(kind: .actionGroup, id: try #require(f.library.actionGroupIdentifiers[action.group]))
+        ])
+        #expect(!settings.accessEnabled && host.endpoint == nil && f.secrets.values.isEmpty)
+        try f.library.deleteAction(action.id)
+        #expect(settings.resourceChoices().map(\.reference).filter { $0.kind != .revision } == [.init(kind: .draft, id: note.id)])
+    }
+
+    @Test func applicationConstructsAnIdleHostBoundToItsLiveLibrary() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let app = try #require(f.app), secrets = f.secrets
+        let note = try f.library.createNote(content: "Scoped draft")
+        try app.configureAgentHost(isLocked: { f.locked }, protectedDataAvailable: { f.protectedDataAvailable }, credentials: .init(read: { secrets.values[$0] },
+            create: { secrets.values[$0] = $1 }, remove: { secrets.values.removeValue(forKey: $0) }),
+            validateApplication: {}, validateHelper: { _ in })
+        let settings = try #require(app.agentSettings)
+        #expect(!settings.accessEnabled && secrets.values.isEmpty)
+        #expect(settings.resourceChoices().contains { $0.reference == .init(kind: .draft, id: note.id) })
+        f.locked = true
+        #expect(throws: AgentErrorCode.permissionDenied) { try settings.setEnabled(true) }
+        #expect(!settings.accessEnabled)
+        f.locked = false
+        f.protectedDataAvailable = false
+        #expect(throws: AgentErrorCode.permissionDenied) { try settings.setEnabled(true) }
+        #expect(!settings.accessEnabled)
+        f.protectedDataAvailable = true
+        try settings.setEnabled(true)
+        #expect(settings.accessEnabled)
+        app.closeAgentContext()
+        #expect(app.agentSettings == nil)
+    }
+
+    @Test func applicationOffersOnlyCurrentlyOpenEditorWindows() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let app = try #require(f.app), secrets = f.secrets
+        let note = try f.library.createNote(content: "Window draft")
+        var dependencies = WindowDependencies(); dependencies.preferences = WindowPreferences(defaults: f.defaults)
+        let window = WindowModel(library: f.library, dependencies: dependencies)
+        window.editor.load(note, focusEditor: false)
+        app.registerWindow(window)
+        try app.configureAgentHost(isLocked: { f.locked }, protectedDataAvailable: { f.protectedDataAvailable }, credentials: .init(read: { secrets.values[$0] },
+            create: { secrets.values[$0] = $1 }, remove: { secrets.values.removeValue(forKey: $0) }),
+            validateApplication: {}, validateHelper: { _ in })
+        let settings = try #require(app.agentSettings)
+        let target = try #require(settings.resourceChoices().first(where: { $0.reference.kind == .window })?.reference)
+        let resources = AgentLibraryResourceChoices(library: f.library, editors: try app.agentEditorRegistry(for: f.library))
+        #expect(resources.resolve([target]) == [target])
+        app.unregisterWindow(window)
+        #expect(!settings.resourceChoices().contains { $0.reference == target })
+        #expect(resources.resolve([target]).isEmpty)
+    }
+
+    @Test(arguments: [NSWorkspace.willSleepNotification, NSWorkspace.screensDidSleepNotification,
+                      NSWorkspace.sessionDidResignActiveNotification])
+    func workspaceSuspensionClosesAgentSessionsWithoutResumingAutomatically(_ name: Notification.Name) async throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let app = try #require(f.app), host = try f.host(); defer { host.close() }
+        try app.adoptAgentHost(host)
+        let settings = try #require(app.agentSettings)
+        let session = try f.session(host)
+        let pending = try host.pairing.request(clientName: "Pending")
+        NSWorkspace.shared.notificationCenter.post(name: name, object: NSWorkspace.shared)
+        for _ in 0..<100 where host.endpoint != nil { await Task.yield() }
+        #expect(host.endpoint == nil && !settings.accessEnabled)
+        #expect(try host.pairing.state(pending.id) == .invalidated)
+        #expect(throws: AgentErrorCode.permissionDenied) { try host.service.authorizedLibraryID(for: session) }
+        NSWorkspace.shared.notificationCenter.post(name: NSWorkspace.didWakeNotification, object: NSWorkspace.shared)
+        await Task.yield()
+        #expect(host.endpoint == nil && !settings.accessEnabled)
+    }
+
+    @Test func protectedDataLossSuspendsWithoutAutomaticallyResuming() async throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let app = try #require(f.app), host = try f.host(); defer { host.close() }
+        try app.adoptAgentHost(host)
+        let settings = try #require(app.agentSettings), session = try f.session(host)
+        let pending = try host.pairing.request(clientName: "Pending")
+        NotificationCenter.default.post(name: .NSApplicationProtectedDataWillBecomeUnavailable, object: NSApp)
+        for _ in 0..<100 where host.endpoint != nil { await Task.yield() }
+        #expect(host.endpoint == nil && !settings.accessEnabled)
+        #expect(try host.pairing.state(pending.id) == .invalidated)
+        #expect(throws: AgentErrorCode.permissionDenied) { try host.service.authorizedLibraryID(for: session) }
+        NotificationCenter.default.post(name: .NSApplicationProtectedDataDidBecomeAvailable, object: NSApp)
+        await Task.yield()
+        #expect(host.endpoint == nil && !settings.accessEnabled)
     }
 
     @Test func foreignClosedAndUntrackedHostsCannotReplaceTheApplicationContext() throws {

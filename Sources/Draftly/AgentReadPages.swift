@@ -12,6 +12,7 @@ import AgentContracts
         let owner: Owner
         let query: Data
         let ids: [UUID]
+        let revision: String?
         let expiresAt: Date
         let startedAt: TimeInterval
     }
@@ -30,7 +31,7 @@ import AgentContracts
 
     func page(owner: Owner, request: AgentRequest, parameters: [String: AgentJSONValue],
               expiresAt: Date, ids: () throws -> [UUID],
-              value: (UUID) throws -> AgentJSONValue?) throws -> [String: AgentJSONValue] {
+              value: (UUID) throws -> AgentJSONValue?, revision: (() throws -> String)? = nil) throws -> [String: AgentJSONValue] {
         snapshots = snapshots.filter { live($0.value) }
         var query = parameters
         query.removeValue(forKey: "cursor"); query.removeValue(forKey: "limit")
@@ -57,9 +58,12 @@ import AgentContracts
                 throw AgentErrorCode.busy
             }
             id = UUID(); offset = 0
-            snapshot = Snapshot(owner: owner, query: binding, ids: members,
+            snapshot = Snapshot(owner: owner, query: binding, ids: members, revision: try revision?(),
                 expiresAt: min(expiresAt, now().addingTimeInterval(Self.lifetime)), startedAt: uptime())
         }
+        if let expected = snapshot.revision {
+            guard let revision, try revision() == expected else { throw AgentErrorCode.versionConflict }
+        } else if revision != nil { throw AgentErrorCode.invalidInput }
         let limit = Int(try AgentTextShapes.count(parameters["limit"]))
         var index = offset, items: [AgentJSONValue] = []
         while index < snapshot.ids.count && items.count < limit {
@@ -74,7 +78,9 @@ import AgentContracts
         } else { next = .null }
         // Do not retain a new snapshot after a failed or single-page read.
         if offset == 0 && next != .null { snapshots[id] = snapshot }
-        return ["items": .array(items), "nextCursor": next]
+        var result: [String: AgentJSONValue] = ["items": .array(items), "nextCursor": next]
+        if let revision = snapshot.revision { result["orderVersion"] = .string(revision) }
+        return result
     }
 
     private func live(_ snapshot: Snapshot) -> Bool {

@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 import plistlib
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -63,6 +64,12 @@ def validate_metadata(source, built, *, public_key=None):
     return version, build
 
 
+def reject_agent_qa_build(app):
+    executable = app / "Contents/MacOS/Draftly"
+    if b"--agent-isolated-qa" in executable.read_bytes():
+        raise ValueError("The app contains the isolated agent QA adapter.")
+
+
 def run_command(command, *, runner=subprocess.run, capture=False):
     result = runner(command, cwd=ROOT, check=True, text=True, capture_output=capture,
                     env=toolchain.clean_environment())
@@ -101,7 +108,31 @@ def source_commit(tag, runner):
     return commit
 
 
-def package(output, profile, notary_profile, tag, *, public_key=None, runner=subprocess.run, include_dmg=False):
+def embed_agent_helper(app, work, profile, version, build, runner):
+    """Build and sign the helper before the outer app is sealed."""
+    scratch = work / "agent-build"
+    command = ["swift", "build", "--package-path", str(ROOT), "--scratch-path", str(scratch),
+               "--configuration", "release", "--arch", "arm64", "--arch", "x86_64"]
+    run_command(command + ["--product", "draftly-agent"], runner=runner)
+    binary_dir = run_command(command + ["--show-bin-path"], runner=runner, capture=True).strip()
+    if not binary_dir or not Path(binary_dir).is_absolute():
+        raise ValueError("The helper build did not return an absolute binary path.")
+    result = read_json(run_command([sys.executable, str(ROOT / "scripts/package-agent-helper.py"),
+        "--executable", str(Path(binary_dir) / "draftly-agent"), "--profile", str(profile),
+        "--output", str(work / "agent-signed"), "--identity", "Developer ID Application",
+        "--version", version, "--build", build], runner=runner, capture=True), "Helper signing")
+    helper = Path(result.get("app", ""))
+    if helper != (work / "agent-signed/DraftlyAgent.app").absolute() or not helper.is_dir():
+        raise ValueError("The helper signing output is invalid.")
+    destination = app / "Contents/Helpers/DraftlyAgent.app"
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(helper, destination, symlinks=True)
+    requirement = '=anchor apple generic and certificate leaf[subject.OU] = "' + TEAM + '" and identifier "com.pobrespandas.draftly.agent"'
+    run_command(["codesign", "--verify", "--deep", "--strict", "-R", requirement, str(destination)], runner=runner)
+
+
+def package(output, profile, notary_profile, tag, *, public_key=None, runner=subprocess.run, include_dmg=False,
+            agent_profile=None):
     if not profile or notary_profile.startswith("-") or not notary_profile or "\n" in profile + notary_profile:
         raise ValueError("A signing profile and a Keychain notary profile are required.")
     if public_key is not None:
@@ -133,13 +164,19 @@ def package(output, profile, notary_profile, tag, *, public_key=None, runner=sub
         run_command(command, runner=runner)
         if source_commit(tag, runner) != commit:
             raise ValueError("The source commit changed during the build.")
-        sign_embedded_sparkle(app, runner)
         built = plistlib.loads((app / "Contents/Info.plist").read_bytes())
         version, build = validate_metadata(source, built, public_key=public_key)
+        reject_agent_qa_build(app)
+        if agent_profile is not None:
+            embed_agent_helper(app, work, agent_profile, version, build, runner)
+            if source_commit(tag, runner) != commit:
+                raise ValueError("The source commit changed during the helper build.")
+        sign_embedded_sparkle(app, runner)
         signing = read_json(run_command([sys.executable, str(ROOT / "scripts/verify-cloud-signing.py"), str(app),
                             "--expected-bundle-identifier", BUNDLE, "--expected-team", TEAM,
                             "--expected-container", CONTAINER, "--expected-cloud-environment", "Production",
-                            "--expected-push-environment", "production", "--require-developer-id"],
+                            "--expected-push-environment", "production", "--require-developer-id",
+                            "--expected-keychain-group", TEAM + ".com.pobrespandas.draftly.agent-access"],
                             runner=runner, capture=True), "Signing verification")
         # Keep the submitted bytes and receipt if the wait is interrupted.
         submission = output / "notary-submission.zip"
@@ -189,9 +226,11 @@ def main():
     parser.add_argument("--tag", required=True, help="Existing version tag for the clean source commit.")
     parser.add_argument("--public-key", help="Sparkle public EdDSA key. Omit to disable update checks.")
     parser.add_argument("--dmg", action="store_true", help="Create a signed and notarized disk image.")
+    parser.add_argument("--agent-profile", help="Helper provisioning profile. Omit to exclude the helper.")
     args = parser.parse_args()
     try:
-        package(args.output, args.profile, args.notary_profile, args.tag, public_key=args.public_key, include_dmg=args.dmg)
+        package(args.output, args.profile, args.notary_profile, args.tag, public_key=args.public_key,
+                include_dmg=args.dmg, agent_profile=args.agent_profile)
     except (OSError, ValueError, plistlib.InvalidFileException, subprocess.SubprocessError) as error:
         raise SystemExit("Release candidate failed: " + str(error))
     print("Notarized candidate is ready. Nothing was published: " + args.output)

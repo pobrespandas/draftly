@@ -21,6 +21,12 @@ public struct ActionExecutionReport: Equatable, Sendable {
                     result: reason == .cancelled ? .cancelled : .failure(message),
                     reason: reason, successParameters: [:])
     }
+
+    package func timedOutAfterCancellation(message: String) -> Self {
+        guard reason == .cancelled else { return self }
+        return Self(executionID: executionID, actionID: actionID, startedAt: startedAt,
+                    finishedAt: finishedAt, result: .failure(message), reason: .timeout, successParameters: [:])
+    }
 }
 
 public struct ActionExecutionStep: Equatable, Sendable {

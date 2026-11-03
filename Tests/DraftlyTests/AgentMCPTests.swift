@@ -17,6 +17,11 @@ struct AgentMCPTests {
         var notes: [Note] = []
         var hidden: Note!
         var revision: Revision?
+        var allowedAction: DraftAction?
+        var hiddenAction: DraftAction?
+        var allowedGroup: UUID?
+        var activityRoot: URL?
+        var activityRequestID: UUID?
         var editorModels: [WindowModel] = []
         var editorPreferences: TestPreferences?
         lazy var registry = AgentConnectionRegistry(metadata: .init(read: { [unowned self] in self.metadata }, replace: { [unowned self] data, _ in self.metadata = data }),
@@ -28,7 +33,7 @@ struct AgentMCPTests {
         var server: MCP.Server!
         let client = MCP.Client(name: "Neutral QA", version: "1", configuration: .strict)
 
-        init(count: Int, writeAccess: Bool = false, revisionAccess: Bool = false, editorAccess: Bool = false) throws {
+        init(count: Int, writeAccess: Bool = false, revisionAccess: Bool = false, editorAccess: Bool = false, actionAccess: Bool = false, activityAccess: Bool = false) throws {
             library = try LibraryStore(inMemory: true, seed: false)
             notes = (0..<count).map { Note(content: "Neutral \($0)\ne\u{301} 🐼") }
             hidden = Note(content: "Hidden private title")
@@ -55,13 +60,38 @@ struct AgentMCPTests {
             var resources = notes.map { AgentResourceReference(kind: .draft, id: $0.id) }
             resources += revision.map { [.init(kind: .revision, id: $0.id)] } ?? []
             if editorAccess { resources += try editors?.windowSnapshots().map { .init(kind: .window, id: $0.id) } ?? [] }
+            if actionAccess {
+                var allowed = DraftAction(name: "Allowed action", steps: []); allowed.group = "Allowed group"
+                var hidden = DraftAction(name: "Hidden action", steps: []); hidden.group = "Hidden group"
+                try library.saveActions([allowed, hidden])
+                let group = try #require(library.actionGroupIdentifiers[allowed.group])
+                allowedAction = allowed; hiddenAction = hidden; allowedGroup = group
+                resources += [.init(kind: .action, id: allowed.id), .init(kind: .actionGroup, id: group)]
+            }
             try registry.setEnabledFromUserInterface(true)
             var capabilities: Set<AgentCapability> = writeAccess ? [.draftsRead, .draftsWrite] : [.draftsRead]
             if editorAccess { capabilities.insert(.editorRead) }
+            if actionAccess { capabilities.insert(.actionsRead) }
             record = try registry.connectFromUserInterface(name: "SDK QA", libraryID: libraryID,
                 capabilities: capabilities, scope: .resources(Set(resources)))
+            let activityReader: ((UUID, UUID) throws -> [AgentActivityStore.Entry])?
+            if activityAccess {
+                let root = FileManager.default.temporaryDirectory.appendingPathComponent("Draftly-MCP-Activity-" + UUID().uuidString)
+                try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
+                activityRoot = root
+                let store = try AgentActivityStore(parentDirectory: root), own = UUID()
+                activityRequestID = own
+                try store.append(libraryID: libraryID, connectionID: record.id, grantID: record.grantID,
+                                 requestID: own, operation: "server.status", result: "success")
+                try store.append(libraryID: libraryID, connectionID: record.id, grantID: UUID(),
+                                 requestID: UUID(), operation: "drafts.get", result: "success")
+                try store.append(libraryID: libraryID, connectionID: UUID(), grantID: record.grantID,
+                                 requestID: UUID(), operation: "drafts.get", result: "success")
+                let id = libraryID
+                activityReader = { _, _ in try store.entries(libraryID: id) }
+            } else { activityReader = nil }
             let service = try AgentCommandService(library: library, libraryID: libraryID, connections: registry, appVersion: "QA",
-                validateHost: {}, isLocked: { false }, editors: editors, pendingEditorGeneration: { _ in "" })
+                validateHost: {}, isLocked: { false }, editors: editors, pendingEditorGeneration: { _ in "" }, readActivity: activityReader)
             broker = try AgentSocketBroker(service: service, parentDirectory: FileManager.default.temporaryDirectory, validateHelper: { _ in })
             helper = AgentHelperConnection(connect: { [unowned self] in try await self.localClient() })
         }
@@ -87,10 +117,11 @@ struct AgentMCPTests {
             await client.disconnect(); await server?.stop(); await helper?.close(); broker?.stop()
             editorModels.forEach { $0.hasUnsavedChanges = false }
             editorModels.removeAll(); editorPreferences?.close()
+            if let activityRoot { try? FileManager.default.removeItem(at: activityRoot) }
         }
     }
-    private func run(count: Int = 1, writeAccess: Bool = false, revisionAccess: Bool = false, editorAccess: Bool = false, _ body: @MainActor (Runtime) async throws -> Void) async throws {
-        let runtime = try Runtime(count: count, writeAccess: writeAccess, revisionAccess: revisionAccess, editorAccess: editorAccess)
+    private func run(count: Int = 1, writeAccess: Bool = false, revisionAccess: Bool = false, editorAccess: Bool = false, actionAccess: Bool = false, activityAccess: Bool = false, _ body: @MainActor (Runtime) async throws -> Void) async throws {
+        let runtime = try Runtime(count: count, writeAccess: writeAccess, revisionAccess: revisionAccess, editorAccess: editorAccess, actionAccess: actionAccess, activityAccess: activityAccess)
         do { try await runtime.start(); try await body(runtime); await runtime.close() }
         catch { await runtime.close(); throw error }
     }
@@ -109,6 +140,40 @@ struct AgentMCPTests {
             #expect(try response(reply.content).outcome == .result(.object(["draftCount": .integer(1)])))
             let denied = try await r.client.callTool(name: "draftly_actions_run")
             #expect(denied.isError == true)
+        }
+    }
+
+    @Test func actionReadsThroughMCPRespectResourceScope() async throws {
+        try await run(actionAccess: true) { r in
+            let allowed = try #require(r.allowedAction), hidden = try #require(r.hiddenAction), group = try #require(r.allowedGroup)
+            let names = Set(try await r.client.listTools().tools.map(\.name))
+            #expect(names.contains("draftly_actions_get") && names.contains("draftly_actionGroups_get"))
+            #expect(!names.contains("draftly_actions_run"))
+            func target(_ kind: String, _ id: UUID) -> [String: MCP.Value] {
+                ["targets": .array([.object(["kind": .string(kind), "id": .string(id.uuidString)])])]
+            }
+            let good = try await r.client.callTool(name: "draftly_actions_get", arguments: target("action", allowed.id))
+            #expect(good.isError == false)
+            let denied = try await r.client.callTool(name: "draftly_actions_get", arguments: target("action", hidden.id))
+            #expect(denied.isError == true)
+            #expect(try response(denied.content).outcome == .error(.notFound))
+            let groupResult = try await r.client.callTool(name: "draftly_actionGroups_get", arguments: target("actionGroup", group))
+            #expect(groupResult.isError == false)
+        }
+    }
+
+    @Test func activityThroughMCPExcludesOtherConnectionsAndEarlierGrants() async throws {
+        try await run(activityAccess: true) { r in
+            let tools = try await r.client.listTools().tools
+            let tool = try #require(tools.first { $0.name == "draftly_activity_list" })
+            #expect(tool.annotations.readOnlyHint == true)
+            let response = try await r.client.callTool(name: "draftly_activity_list")
+            guard case .result(.object(let page)) = try self.response(response.content).outcome,
+                  case .array(let items) = page["items"], case .object(let entry) = items.first else {
+                Issue.record("Expected an activity page"); return
+            }
+            let expectedID = try #require(r.activityRequestID)
+            #expect(items.count == 1 && entry["requestID"] == .string(expectedID.uuidString))
         }
     }
 

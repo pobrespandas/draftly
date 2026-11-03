@@ -5,7 +5,7 @@ import DraftlyCore
 // Existing-draft writes only. No transport or normal-startup activation.
 @MainActor final class AgentDraftWriting {
     private let libraryID: UUID
-    static let operationNames: Set<String> = ["drafts.update", "drafts.patch", "drafts.restoreVersion"]
+    static let operationNames: Set<String> = ["drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion"]
     private let library: LibraryStore
     private let reader: AgentDraftReading
     private let editors: AgentEditorRegistry
@@ -32,12 +32,17 @@ import DraftlyCore
             guard request.libraryID == libraryID else { throw AgentErrorCode.permissionDenied }
             try validateAdmission()
             let ticket = try keys.issue(request, connectionID: connectionID)
-            guard let target = request.targets.first(where: { $0.kind == .draft }), let expected = request.expectedVersion else { throw AgentErrorCode.invalidInput }
             let mutation = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
-            if try recoveredReceipt(for: mutation, target: target.id) == nil {
-                guard !ActionRunner.isExecuting(in: library) else { throw AgentErrorCode.busy }
-                let snapshot = try reader.checkedSnapshot(for: target.id, expectedVersion: expected)
-                _ = try applying(request, parameters: AgentDraftSchemas.validatedParameters(for: request), to: snapshot.note)
+            let parameters = try AgentDraftSchemas.validatedParameters(for: request)
+            if request.operation == "drafts.create" {
+                _ = try creationNote(parameters)
+            } else {
+                guard let target = request.targets.first(where: { $0.kind == .draft }), let expected = request.expectedVersion else { throw AgentErrorCode.invalidInput }
+                if try recoveredReceipt(for: mutation, target: target.id) == nil {
+                    guard !ActionRunner.isExecuting(in: library) else { throw AgentErrorCode.busy }
+                    let snapshot = try reader.checkedSnapshot(for: target.id, expectedVersion: expected)
+                    _ = try applying(request, parameters: parameters, to: snapshot.note)
+                }
             }
             try validateAdmission(); _ = try keys.verify(ticket.value, request: request, connectionID: connectionID)
             return ticket
@@ -55,6 +60,27 @@ import DraftlyCore
             try validateAdmission()
             let ticket = try keys.verify(key, request: request, connectionID: connectionID)
             let parameters = try AgentDraftSchemas.validatedParameters(for: request)
+            if request.operation == "drafts.create" {
+                let mutation = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
+                if let previous = try library.mutationReceipt(for: mutation, at: now()) {
+                    try validateAdmission(); _ = try keys.verify(key, request: request, connectionID: connectionID)
+                    return previous
+                }
+                guard !ActionRunner.isExecuting(in: library) else { throw AgentErrorCode.busy }
+                let note = try creationNote(parameters)
+                let resource = try reader.mutationResource(for: note)
+                let receipt = try library.commitNotes([note], mutation: mutation, at: now(), preserveRevision: false,
+                    preserveDates: true, validateCommit: {
+                        try self.validateAdmission(); _ = try self.keys.verify(key, request: request, connectionID: connectionID)
+                        guard !ActionRunner.isExecuting(in: self.library) else { throw AgentErrorCode.busy }
+                    }, makeResources: { values in
+                        guard values.count == 1, let value = values.first else { throw AgentErrorCode.storageError }
+                        guard value.id == resource.id else { throw AgentErrorCode.storageError }
+                        return [resource]
+                    })
+                try validateAdmission(); _ = try keys.verify(key, request: request, connectionID: connectionID)
+                return receipt
+            }
             guard let target = request.targets.first(where: { $0.kind == .draft }), let expected = request.expectedVersion else { throw AgentErrorCode.invalidInput }
             let mutation = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
             // Check authority before returning any receipt, including recovery after a lost reply.
@@ -149,6 +175,28 @@ import DraftlyCore
             text.replaceCharacters(in: range, with: replacement)
         }
         var note = original; note.content = text as String
+        return note
+    }
+
+    private func creationNote(_ parameters: [String: AgentJSONValue]) throws -> Note {
+        guard case .string(let content) = parameters["content"],
+              case .array(let tags) = parameters["tags"],
+              case .integer(let rawFlag) = parameters["flag"],
+              let flag = Int(exactly: rawFlag),
+              case .string(let syntax) = parameters["syntax"],
+              case .string(let folder) = parameters["folder"] else { throw AgentErrorCode.invalidInput }
+        let rawTags = try tags.map {
+            guard case .string(let value) = $0 else { throw AgentErrorCode.invalidInput }
+            return value
+        }
+        var note = Note(content: content, tags: TagRules.normalize(rawTags), flag: flag,
+                        isArchived: folder == "archive", syntax: syntax)
+        if case .object(let metadata) = parameters["scriptMetadata"] {
+            note.scriptMetadata = try metadata.mapValues {
+                guard case .string(let value) = $0 else { throw AgentErrorCode.invalidInput }
+                return value
+            }
+        }
         return note
     }
 

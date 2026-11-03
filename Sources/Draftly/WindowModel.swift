@@ -466,15 +466,46 @@ final class WindowModel: ObservableObject {
     func runAsync(_ action: DraftAction) async -> ActionExecutionReport? {
         await runActionOutcome(action)?.report
     }
-    func runActionOutcome(_ action: DraftAction) async -> ActionOutcome? {
+    func runActionOutcome(_ action: DraftAction, hostOverride: (any ActionHost)? = nil,
+                          scriptAuthorization: ((String, String) throws -> Void)? = nil,
+                          scriptDraftFilter: (([Note]) throws -> [Note])? = nil,
+                          stepAuthorization: ((UUID, ActionStep) throws -> Void)? = nil,
+                          completionAuthorization: ((DraftAction, UUID) throws -> Void)? = nil,
+                          actionCatalogFilter: (([DraftAction]) throws -> [DraftAction])? = nil,
+                          configurationAuthorization: ((DraftAction) throws -> Void)? = nil,
+                          configurationCommitted: ((DraftAction, DraftAction) throws -> Void)? = nil) async -> ActionOutcome? {
         guard !actionPending, !runner.isRunning else { return nil }
         actionPending = true
-        defer { actionPending = false }
+        let previousHost = runner.host
+        let previousAuthorization = runner.authorizeScriptOperation
+        let previousFilter = runner.filterScriptDrafts
+        let previousStepAuthorization = runner.authorizeActionStep
+        let previousCompletionAuthorization = runner.authorizeActionCompletion
+        let previousCatalogFilter = runner.filterActionCatalog
+        let previousConfigurationAuthorization = runner.authorizeActionConfiguration
+        let previousConfigurationCommitted = runner.actionConfigurationCommitted
+        if let hostOverride { runner.host = hostOverride }
+        if let scriptAuthorization { runner.authorizeScriptOperation = scriptAuthorization }
+        if scriptAuthorization != nil || scriptDraftFilter != nil { runner.filterScriptDrafts = scriptDraftFilter }
+        if let stepAuthorization { runner.authorizeActionStep = stepAuthorization }
+        if let completionAuthorization { runner.authorizeActionCompletion = completionAuthorization }
+        if stepAuthorization != nil || actionCatalogFilter != nil { runner.filterActionCatalog = actionCatalogFilter }
+        if actionCatalogFilter != nil || configurationAuthorization != nil { runner.authorizeActionConfiguration = configurationAuthorization }
+        if actionCatalogFilter != nil || configurationCommitted != nil { runner.actionConfigurationCommitted = configurationCommitted }
+        defer { runner.host = previousHost; runner.authorizeScriptOperation = previousAuthorization; runner.filterScriptDrafts = previousFilter; runner.authorizeActionStep = previousStepAuthorization; runner.authorizeActionCompletion = previousCompletionAuthorization; runner.filterActionCatalog = previousCatalogFilter; runner.authorizeActionConfiguration = previousConfigurationAuthorization; runner.actionConfigurationCommitted = previousConfigurationCommitted; actionPending = false }
         return await executeAction(action)
     }
     private func executeAction(_ action: DraftAction) async -> ActionOutcome? {
         guard !Task.isCancelled else { return nil }
         if let busy = libraryBusyReport(for: action) { return ActionOutcome(report: busy, draftID: editor.noteID) }
+        if let authorize = runner.authorizeActionCompletion {
+            guard let id = editor.noteID else { return nil }
+            do { try authorize(action, id) }
+            catch {
+                return ActionOutcome(report: .notStarted(actionID: action.id, reason: .error,
+                    message: "The action is not authorized to save the draft."), draftID: id)
+            }
+        }
         guard flush() else { return nil }
         if var note = scratchNote {
             note.content = editor.content

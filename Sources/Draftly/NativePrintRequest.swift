@@ -13,7 +13,7 @@ struct NativePrintConfiguration: Equatable {
     init(_ values: [String: Any]) throws {
         text = values["text"] as? String ?? ""
         let raw = (values["format"] as? String ?? values["printFormat"] as? String ?? "Text").lowercased()
-        guard let format = Format(rawValue: raw == "plain" ? "text" : raw) else { throw DraftlyError.message("The print format is invalid.") }
+        guard let format = Format(rawValue: ["plain", "plaintext"].contains(raw) ? "text" : raw) else { throw DraftlyError.message("The print format is invalid.") }
         self.format = format
         func margin(_ key: String) throws -> CGFloat {
             guard let value = values[key] else { return 72 }

@@ -36,14 +36,15 @@ struct AgentConnectionsSettingsTests {
                     self.secrets.removeValue(forKey: id)
                 }), now: { [unowned self] in self.wall }, authorityChanged: { [unowned self] in self.authorityChanges.append($0) })
         }
-        func model() throws -> AgentConnectionsSettingsModel {
+        func model(available: Set<AgentCapability> = Set(AgentCapability.allCases),
+                   configuration: @escaping (UUID) -> String? = { _ in nil }) throws -> AgentConnectionsSettingsModel {
             try AgentConnectionsSettingsModel(libraryID: libraryID, registry: registry, pairing: pairing,
                 now: { [unowned self] in self.wall }, choices: { [unowned self] in self.labels },
                 initialTargets: { [unowned self] in self.selected }, resolveTargets: { [unowned self] in $0.intersection(self.targets) },
                 setAccessEnabled: { [unowned self] value in
                     if self.failHostCommand { throw AgentErrorCode.unavailable }
                     if !self.ignoreHostCommand { try self.registry.setEnabledFromUserInterface(value) }
-                })
+                }, availableCapabilities: available, makeMCPConfiguration: configuration)
         }
         func connect(libraryID: UUID? = nil) throws -> AgentConnectionRecord {
             try registry.connectFromUserInterface(name: "Neutral 🐼", libraryID: libraryID ?? self.libraryID)
@@ -66,6 +67,41 @@ struct AgentConnectionsSettingsTests {
         model.cancelEditing()
         #expect(f.bytes == before && model.draft == nil && model.context == nil)
         #expect(try f.registry.configurationForUserInterface().connections[0].grantID == record.grantID)
+    }
+
+    @Test func existingUnavailablePermissionsCanBeRemovedButNotAdded() throws {
+        let f = Fixture()
+        let record = try f.registry.connectFromUserInterface(name: "Existing", libraryID: f.libraryID,
+            capabilities: [.draftsRead, .actionsRun], scope: .resources([]))
+        let model = try f.model(available: [.draftsRead, .actionsRead])
+        try model.beginEditing(record.id)
+        model.draft?.capabilities.insert(.scriptsUnrestricted)
+        #expect(throws: AgentErrorCode.unavailable) { try model.saveExisting() }
+        #expect(Set(try f.registry.configurationForUserInterface().connections[0].capabilities) == [.draftsRead, .actionsRun])
+        model.draft?.capabilities.remove(.scriptsUnrestricted)
+        model.draft?.capabilities.remove(.actionsRun)
+        model.draft?.capabilities.insert(.actionsRead)
+        try model.saveExisting()
+        try model.beginEditing(record.id)
+        model.draft?.capabilities.insert(.actionsRun)
+        #expect(throws: AgentErrorCode.unavailable) { try model.saveExisting() }
+    }
+
+    @Test func mcpConfigurationRequiresCurrentNonrevokedConnectionInThisLibrary() throws {
+        let f = Fixture()
+        let local = try f.connect(), foreign = try f.connect(libraryID: UUID())
+        let expiring = try f.registry.connectFromUserInterface(name: "Expiring", libraryID: f.libraryID,
+            scope: .resources([]), expiresAt: f.wall.addingTimeInterval(1))
+        var requests: [UUID] = []
+        let model = try f.model(configuration: { id in requests.append(id); return "configuration" })
+        #expect(model.mcpConfiguration(for: local.id) == "configuration")
+        #expect(model.mcpConfiguration(for: foreign.id) == nil)
+        #expect(model.mcpConfiguration(for: UUID()) == nil)
+        f.wall = f.wall.addingTimeInterval(2)
+        #expect(model.mcpConfiguration(for: expiring.id) == nil)
+        try model.revoke(local.id)
+        #expect(model.mcpConfiguration(for: local.id) == nil)
+        #expect(requests == [local.id])
     }
 
     @Test func saveReplacesOnlyTheChosenGrantAndRotatesItsIdentity() throws {
@@ -192,6 +228,20 @@ struct AgentConnectionsSettingsTests {
         #expect(model.cleanupPendingIDs == [a.id])
         try model.revoke(a.id)
         #expect(!model.cleanupPending && f.secrets.isEmpty)
+    }
+
+    @Test func reopeningSettingsRetriesFailedCredentialCleanup() throws {
+        let f = Fixture(), record = try f.connect(), model = try f.model()
+        #expect(throws: AgentErrorCode.permissionDenied) { try f.registry.cleanUpRevokedCredentialFromUserInterface(record.id) }
+        #expect(f.secrets[record.id] != nil)
+        f.failDelete = true
+        try model.revoke(record.id)
+        let reopened = try f.model()
+        #expect(reopened.cleanupPendingIDs == [record.id])
+        #expect(try f.registry.grantForAuthenticatedConnection(record.id) == nil)
+        f.failDelete = false
+        let recovered = try f.model()
+        #expect(!recovered.cleanupPending && f.secrets.isEmpty)
     }
 
     @Test func failedRevocationAndDisableDoNotDisplayActiveAuthority() throws {

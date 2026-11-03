@@ -150,6 +150,42 @@ struct AutomationActionExecutionTests {
         #expect(library.notes.first { $0.id == note.id }?.content == "Pending done")
     }
 
+    @Test func targetDraftScopeDoesNotFlushOtherEditors() async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let target = try library.createNote(content: "Target stored")
+        let other = try library.createNote(content: "Other stored")
+        let targetModel = WindowModel(library: library), otherModel = WindowModel(library: library)
+        targetModel.select(target.id); otherModel.select(other.id)
+        targetModel.editor.content = "Target pending"; targetModel.contentChanged()
+        otherModel.editor.content = "Other pending"; otherModel.contentChanged()
+        let action = DraftAction(name: "Neutral", steps: [])
+        let result = try await AutomationActionExecution.run(action, noteID: target.id, library: library,
+            models: [targetModel, otherModel], host: targetModel.host, editorScope: .targetDraft,
+            resolveModel: { models, _ in models.first })
+        #expect(result.report.reason == .success)
+        #expect(library.notes.first { $0.id == target.id }?.content == "Target pending")
+        #expect(library.notes.first { $0.id == other.id }?.content == "Other stored")
+        #expect(otherModel.editor.content == "Other pending" && otherModel.hasUnsavedChanges)
+    }
+
+    @Test func targetDraftScopeStillRejectsConflictingEditors() async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let target = try library.createNote(content: "Stored")
+        let first = WindowModel(library: library), second = WindowModel(library: library)
+        first.select(target.id); second.select(target.id)
+        first.editor.content = "First"; first.contentChanged()
+        second.editor.content = "Second"; second.contentChanged()
+        let action = DraftAction(name: "Neutral", steps: [])
+        do {
+            _ = try await AutomationActionExecution.run(action, noteID: target.id, library: library,
+                models: [first, second], host: first.host, editorScope: .targetDraft)
+            Issue.record("Conflicting target editors must prevent execution")
+        } catch {
+            #expect(library.notes.first { $0.id == target.id }?.content == "Stored")
+            #expect(first.hasUnsavedChanges && second.hasUnsavedChanges)
+        }
+    }
+
     @Test func ownNativeTextAndDraftCreationDoNotCancelAutomation() async throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let note = try library.createNote(content: "Stored")

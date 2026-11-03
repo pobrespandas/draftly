@@ -17,7 +17,7 @@ def validate(sdk, swift):
 def clean_environment():
     environment = dict(os.environ)
     for name in ("APPLE_DEVELOPER_ID_P12_B64", "APPLE_DEVELOPER_ID_P12_PASSWORD",
-                 "APPLE_DEVELOPER_ID_PROFILE_B64", "APPLE_NOTARY_API_KEY_B64",
+                 "APPLE_DEVELOPER_ID_PROFILE_B64", "APPLE_AGENT_PROFILE_B64", "APPLE_NOTARY_API_KEY_B64",
                  "APPLE_NOTARY_KEY_ID", "APPLE_NOTARY_ISSUER_ID", "DRAFTLY_SPARKLE_PRIVATE_KEY",
                  "DRAFTLY_FIREBASE_ACCESS_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"):
         environment.pop(name, None)

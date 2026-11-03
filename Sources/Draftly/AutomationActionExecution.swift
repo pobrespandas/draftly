@@ -4,11 +4,13 @@ import Foundation
 import DraftlyCore
 
 @MainActor enum AutomationActionExecution {
+    enum EditorScope: Equatable { case library, targetDraft }
     struct Output {
         let report: ActionExecutionReport
         let noteID: UUID?
         let message: String
         var presentationHandled = false
+        var outcomeUnknown = false
     }
 
     typealias ModelResolver = @MainActor ([WindowModel], UUID) -> WindowModel?
@@ -79,14 +81,32 @@ import DraftlyCore
 
     static func run(_ action: DraftAction, noteID: UUID, library: LibraryStore,
                     models: [WindowModel], host: any ActionHost,
+                    hostOverride: (any ActionHost)? = nil,
+                    editorScope: EditorScope = .library,
+                    scriptAuthorization: ((String, String) throws -> Void)? = nil,
+                    scriptDraftFilter: (([Note]) throws -> [Note])? = nil,
+                    stepAuthorization: ((UUID, ActionStep) throws -> Void)? = nil,
+                    completionAuthorization: ((DraftAction, UUID) throws -> Void)? = nil,
+                    actionCatalogFilter: (([DraftAction]) throws -> [DraftAction])? = nil,
+                    configurationAuthorization: ((DraftAction) throws -> Void)? = nil,
+                    configurationCommitted: ((DraftAction, DraftAction) throws -> Void)? = nil,
                     resolveModel: ModelResolver = { AutomationActionExecution.visibleModel($0, noteID: $1) },
                     registerClose: CloseRegistration = { AutomationActionExecution.registerOwnerClose($0, close: $1) }) async throws -> Output {
         guard !Task.isCancelled else {
             return notStarted(action, noteID: noteID, reason: .cancelled, message: "The action was cancelled before it started.")
         }
-        let models = models.filter { $0.library === library }
-        if ActionRunner.isExecuting(in: library) || models.contains(where: { $0.actionPending || $0.runner.isRunning }) {
+        if let actionCatalogFilter {
+            guard try actionCatalogFilter(library.actions).contains(action) else {
+                throw DraftlyError.message("The Action is unavailable.")
+            }
+        }
+        let libraryModels = models.filter { $0.library === library }
+        if ActionRunner.isExecuting(in: library) || libraryModels.contains(where: { $0.actionPending || $0.runner.isRunning }) {
             return notStarted(action, noteID: noteID, reason: .busy, message: "An action is already running in this library.")
+        }
+        let models = editorScope == .targetDraft ? libraryModels.filter { $0.editor.noteID == noteID } : libraryModels
+        if completionAuthorization != nil && models.contains(where: { $0.editor.noteID != noteID }) {
+            throw DraftlyError.message("The action cannot save editors outside its target draft.")
         }
         let candidate = resolveModel(models, noteID)
         let model = candidate.flatMap { $0.library === library && $0.editor.noteID == noteID ? $0 : nil }
@@ -113,6 +133,11 @@ import DraftlyCore
             throw DraftlyError.message("Multiple windows have conflicting unsaved edits. Resolve them before running the action.")
         }
         for model in models {
+            do { try completionAuthorization?(action, noteID) }
+            catch {
+                return notStarted(action, noteID: noteID, reason: .error,
+                                  message: "The action is not authorized to save the draft.")
+            }
             model.synchronizeStoredEditor(library.notes)
             guard model.flush() else { throw DraftlyError.message("Pending edits could not be saved. The action was not started.") }
         }
@@ -131,7 +156,14 @@ import DraftlyCore
             runner = model.runner
         } else {
             editor = EditorSession(); editor.load(note)
-            runner = ActionRunner(library: library, editor: editor, host: host)
+            runner = ActionRunner(library: library, editor: editor, host: hostOverride ?? host)
+            runner.authorizeScriptOperation = scriptAuthorization
+            runner.filterScriptDrafts = scriptDraftFilter
+            runner.authorizeActionStep = stepAuthorization
+            runner.authorizeActionCompletion = completionAuthorization
+            runner.filterActionCatalog = actionCatalogFilter
+            runner.authorizeActionConfiguration = configurationAuthorization
+            runner.actionConfigurationCommitted = configurationCommitted
         }
         var subscriptions: [AnyCancellable] = []
         var previous = Dictionary(uniqueKeysWithValues: library.notes.map { ($0.id, $0.content) })
@@ -161,7 +193,10 @@ import DraftlyCore
         if let model {
             let operation = Task { @MainActor in
                 guard !lifetime.closed, !Task.isCancelled else { return Optional<WindowModel.ActionOutcome>.none }
-                return await model.runActionOutcome(action)
+                return await model.runActionOutcome(action, hostOverride: hostOverride, scriptAuthorization: scriptAuthorization,
+                                                    scriptDraftFilter: scriptDraftFilter, stepAuthorization: stepAuthorization,
+                                                    completionAuthorization: completionAuthorization, actionCatalogFilter: actionCatalogFilter,
+                                                    configurationAuthorization: configurationAuthorization, configurationCommitted: configurationCommitted)
             }
             lifetime.attach(operation)
             let completed = await withTaskCancellationHandler { await operation.value } onCancel: { operation.cancel() }
@@ -176,8 +211,10 @@ import DraftlyCore
             }
         } else { report = await runner.runAsync(action); resultDraftID = editor.noteID }
         _ = host
+        let guardedHost = (hostOverride as? AgentAuthorizedActionHost) ?? (model == nil ? host as? AgentAuthorizedActionHost : nil)
         return Output(report: report, noteID: resultDraftID, message: runner.message ?? "",
-                      presentationHandled: model?.window?.isVisible == true)
+                      presentationHandled: model?.window?.isVisible == true,
+                      outcomeUnknown: runner.scriptOutcomeUnknown || guardedHost?.hasUncertainOutcome == true)
     }
 
     private static func notStarted(_ action: DraftAction, noteID: UUID?, reason: ActionTerminationReason,

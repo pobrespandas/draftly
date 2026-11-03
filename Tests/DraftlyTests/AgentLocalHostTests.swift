@@ -32,10 +32,12 @@ struct AgentLocalHostTests {
             }
             try? FileManager.default.removeItem(at: root)
         }
-        func host(editors: AgentEditorRegistry? = nil, socketParent: URL = FileManager.default.temporaryDirectory) throws -> AgentLocalHost {
-            try AgentLocalHost(library: library, appVersion: "Neutral QA", editors: editors, isLocked: { [self] in self.locked },
+        func host(editors: AgentEditorRegistry? = nil, enableReviewedActions: Bool = false,
+                  socketParent: URL = FileManager.default.temporaryDirectory) throws -> AgentLocalHost {
+            try AgentLocalHost(library: library, appVersion: "Neutral QA", editors: editors,
+                enableReviewedActions: enableReviewedActions, isLocked: { [self] in self.locked },
                 pendingEditorGeneration: { _ in "" }, resolveTargets: { [self] targets in
-                    Set(targets.filter { target in target.kind == .draft && self.library.notes.contains { $0.id == target.id } })
+                    AgentLibraryResourceChoices(library: self.library, editors: editors).resolve(targets)
                 }, socketParentDirectory: socketParent,
                 credentials: .init(read: { [self] id in self.credentialReads += 1; return self.secrets[id] },
                     create: { [self] id, value in
@@ -75,6 +77,130 @@ struct AgentLocalHostTests {
             let request = AgentRequest(requestID: UUID(), libraryID: nil, operation: operation)
             return try JSONDecoder().decode(AgentResponse.self, from: service.respond(to: JSONEncoder().encode(request), session: session))
         }
+    }
+
+    @Test func reviewedActionAdmissionRequiresAnExplicitAuthorizedEditorWindow() async throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let note = try f.library.createNote(content: "Unchanged")
+        let action = DraftAction(name: "Neutral", steps: [ActionStep("insertText", ["template": " café 🐼"])])
+        try f.library.saveAction(action)
+        let model = WindowModel(library: f.library); model.select(note.id)
+        let editors = AgentEditorRegistry(library: f.library, models: { [model] })
+        let host = try f.host(editors: editors, enableReviewedActions: true)
+        defer { host.close() }
+        #expect(host.service.availableCapabilities.isSuperset(of: [.actionsRun, .draftsWrite, .editorWrite, .nativeUse]))
+        try host.setEnabledFromUserInterface(true)
+        let record = try host.connections.connectFromUserInterface(name: "Admission", libraryID: host.libraryID,
+            capabilities: [.actionsRead, .actionsRun, .draftsRead, .draftsWrite, .editorRead, .editorWrite], scope: .library)
+        let session = try host.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        func response(_ request: AgentRequest) throws -> AgentResponse {
+            try JSONDecoder().decode(AgentResponse.self,
+                from: host.service.respond(to: JSONEncoder().encode(request), session: session))
+        }
+        let read = try response(.init(requestID: UUID(), libraryID: host.libraryID, operation: "actions.get",
+            targets: [.init(kind: .action, id: action.id)]))
+        guard case .result(.object(let values)) = read.outcome,
+              case .string(let version) = values["versionToken"] else { Issue.record("Missing action version"); return }
+        let before = try f.backupSnapshot()
+        for parameters: [String: AgentJSONValue] in [[:], ["windowID": .string(UUID().uuidString)]] {
+            let result = try response(.init(requestID: UUID(), libraryID: host.libraryID, operation: "actions.run",
+                targets: [.init(kind: .action, id: action.id), .init(kind: .draft, id: note.id)],
+                expectedVersion: version, parameters: parameters))
+            let expected: AgentErrorCode = parameters.isEmpty ? .interactionRequired : .notFound
+            #expect(result.outcome == .error(expected))
+        }
+        #expect(try f.backupSnapshot() == before)
+        #expect(host.approvals.pendingFromUserInterface().isEmpty)
+        let window = try #require(editors.windowSnapshots().first)
+        let admitted = try response(.init(requestID: UUID(), libraryID: host.libraryID, operation: "actions.run",
+            targets: [.init(kind: .action, id: action.id), .init(kind: .draft, id: note.id)],
+            expectedVersion: version, parameters: ["windowID": .string(window.id.uuidString)]))
+        guard case .result(.object(let submission)) = admitted.outcome,
+              case .string(let rawID) = submission["operationID"], let id = UUID(uuidString: rawID) else {
+            Issue.record("Expected an accepted operation: \(admitted.outcome)"); return
+        }
+        for _ in 0..<1000 {
+            if try host.operations.snapshot(id, connectionID: record.id).state.isTerminal { break }
+            try await Task.sleep(for: .milliseconds(1))
+        }
+        let finished = try host.operations.snapshot(id, connectionID: record.id)
+        #expect(finished.state == .succeeded)
+        #expect(finished.output?.report.reason == .success)
+        let polled = try response(.init(requestID: UUID(), libraryID: host.libraryID, operation: "operations.get",
+            targets: [.init(kind: .operation, id: id)]))
+        guard case .result = polled.outcome else { Issue.record("Missing completed operation"); return }
+        #expect(model.editor.content.contains(" café 🐼"))
+        #expect(f.library.notes.first?.content == model.editor.content)
+    }
+
+    @Test(arguments: ["stopWork", "removeEditor", "timeout"])
+    func hostActionCannotContinueAfterInterruption(interruption: String) async throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let note = try f.library.createNote(content: "Private neutral text")
+        let action = DraftAction(name: "Reviewed share", steps: [
+            ActionStep("share", ["template": "[[draft]]"]),
+            ActionStep("insertText", ["template": "ERROR: continued after Stop Work"])
+        ])
+        try f.library.saveAction(action)
+        let model = WindowModel(library: f.library); model.select(note.id)
+        var registeredModels = [model]
+        let editors = AgentEditorRegistry(library: f.library, models: { registeredModels })
+        let host = try f.host(editors: editors, enableReviewedActions: true)
+        defer { host.close() }
+        try host.setEnabledFromUserInterface(true)
+        let record = try host.connections.connectFromUserInterface(name: "Reviewed execution", libraryID: host.libraryID,
+            capabilities: [.actionsRead, .actionsRun, .draftsRead, .draftsWrite, .editorWrite, .nativeUse], scope: .library)
+        let session = try host.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        func response(_ request: AgentRequest) throws -> AgentResponse {
+            try JSONDecoder().decode(AgentResponse.self,
+                from: host.service.respond(to: JSONEncoder().encode(request), session: session))
+        }
+        let read = try response(.init(requestID: UUID(), libraryID: host.libraryID, operation: "actions.get",
+            targets: [.init(kind: .action, id: action.id)]))
+        guard case .result(.object(let values)) = read.outcome,
+              case .string(let version) = values["versionToken"] else { Issue.record("Missing action version"); return }
+        let window = try #require(editors.windowSnapshots().first)
+        let admitted = try response(.init(requestID: UUID(), libraryID: host.libraryID, operation: "actions.run",
+            targets: [.init(kind: .action, id: action.id), .init(kind: .draft, id: note.id)], expectedVersion: version,
+            parameters: ["windowID": .string(window.id.uuidString), "interactive": .bool(true),
+                         "timeoutSeconds": .integer(interruption == "timeout" ? 1 : 120)]))
+        guard case .result(.object(let submission)) = admitted.outcome,
+              case .string(let rawID) = submission["operationID"], let id = UUID(uuidString: rawID) else {
+            Issue.record("Expected an accepted operation"); return
+        }
+        for _ in 0..<1000 where host.approvals.pendingFromUserInterface().isEmpty {
+            try await Task.sleep(for: .milliseconds(1))
+        }
+        let review = try #require(host.approvals.pendingFromUserInterface().first)
+        #expect(review.effects.snapshot["nativeOperation"] == .string("share"))
+        #expect(try host.operations.snapshot(id, connectionID: record.id).state == .waitingForUser)
+        if interruption == "stopWork" {
+            try host.makeLibrarySettingsModel().stopWork()
+        } else if interruption == "removeEditor" {
+            registeredModels = []
+            editors.refreshMembership()
+            try host.approvals.approveFromUserInterface(review.id, reviewedFingerprint: review.fingerprint)
+        }
+        for _ in 0..<3000 {
+            if !model.runner.isRunning && !model.actionPending { break }
+            try await Task.sleep(for: .milliseconds(1))
+        }
+        #expect(!model.runner.isRunning && !model.actionPending)
+        if interruption == "stopWork" {
+            #expect(throws: AgentErrorCode.permissionDenied) { try host.operations.snapshot(id, connectionID: record.id) }
+        } else {
+            for _ in 0..<1000 {
+                if try host.operations.snapshot(id, connectionID: record.id).state.isTerminal { break }
+                try await Task.sleep(for: .milliseconds(1))
+            }
+            let finished = try host.operations.snapshot(id, connectionID: record.id)
+            #expect(finished.state == (interruption == "timeout" ? .timedOut : .failed))
+            #expect(finished.output?.outcomeUnknown == false)
+            _ = try finished.wireValue()
+        }
+        #expect(host.approvals.pendingFromUserInterface().isEmpty)
+        #expect(model.editor.content == note.content)
+        #expect(f.library.notes.first?.content == note.content)
     }
 
     @Test func hostRejectsAnotherLibraryEditorRegistryBeforeCreatingPrivateState() throws {
@@ -303,6 +429,289 @@ struct AgentLocalHostTests {
         #expect(!model.accessEnabled && host.endpoint == nil && f.secrets.isEmpty)
     }
 
+    @Test func librarySettingsOffersActionsWithoutStartingAccess() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let action = DraftAction(name: "Scoped action", steps: [])
+        try f.library.saveAction(action)
+        let host = try f.host(); defer { host.close() }
+        let model = try host.makeLibrarySettingsModel()
+        #expect(model.resourceChoices().contains { $0.reference == .init(kind: .action, id: action.id) && $0.title == action.name })
+        #expect(!model.accessEnabled && host.endpoint == nil && f.secrets.isEmpty)
+        try f.library.deleteAction(action.id)
+        #expect(model.resourceChoices().isEmpty)
+    }
+
+    @Test func pairingCommandQuotesPathsAndUsesTheLoadedLibrary() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("Draftly QA ' " + UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let bundle = root.appendingPathComponent("Draftly.app")
+        let executable = bundle.appendingPathComponent("Contents/Helpers/DraftlyAgent.app/Contents/MacOS/draftly-agent")
+        try FileManager.default.createDirectory(at: executable.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data("#!/bin/sh\nprintf '%s\\n' \"$@\"\n".utf8).write(to: executable)
+        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: executable.path)
+        let id = UUID(), command = try #require(AgentLocalHost.pairingCommand(libraryID: id, stateDirectory: root, bundleURL: bundle))
+        let process = Process(), pipe = Pipe()
+        process.executableURL = URL(fileURLWithPath: "/bin/sh")
+        process.arguments = ["-c", command]; process.standardOutput = pipe
+        try process.run(); process.waitUntilExit()
+        let output = String(decoding: pipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+        #expect(process.terminationStatus == 0)
+        #expect(output == "connect\n--name\nLocal agent\n--library\n\(id.uuidString)\n--state-parent\n\(root.path)\n")
+        let connectionID = UUID()
+        let json = try #require(AgentLocalHost.mcpConfiguration(connectionID: connectionID, libraryID: id, stateDirectory: root, bundleURL: bundle))
+        let parsed = try #require(JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any])
+        let servers = try #require(parsed["mcpServers"] as? [String: [String: Any]])
+        let server = try #require(servers["draftly-" + connectionID.uuidString.lowercased()])
+        #expect(server["command"] as? String == executable.path)
+        #expect(server["args"] as? [String] == ["mcp", "--connection", connectionID.uuidString, "--library", id.uuidString, "--state-parent", root.path])
+        #expect(!json.contains("credential"))
+        try FileManager.default.removeItem(at: executable)
+        #expect(AgentLocalHost.pairingCommand(libraryID: id, stateDirectory: root, bundleURL: bundle) == nil)
+        #expect(AgentLocalHost.mcpConfiguration(connectionID: connectionID, libraryID: id, stateDirectory: root, bundleURL: bundle) == nil)
+    }
+
+    @Test func settingsShowsSuspendedAccessAsOffAndCanResumeIt() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let first = try f.host()
+        try first.setEnabledFromUserInterface(true)
+        first.close()
+        let host = try f.host(); defer { host.close() }
+        let model = try host.makeLibrarySettingsModel()
+        #expect(try host.connections.configurationForUserInterface().enabled)
+        #expect(host.endpoint == nil && !model.accessEnabled)
+        try model.setEnabled(true)
+        #expect(host.endpoint != nil && model.accessEnabled)
+        host.suspend(); model.refresh()
+        #expect(!model.accessEnabled && host.endpoint == nil)
+        try model.setEnabled(true)
+        #expect(model.accessEnabled && host.endpoint != nil)
+    }
+
+    @Test func stopWorkClosesSessionsAndPendingPairingWithoutRevokingGrants() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let host = try f.host(); defer { host.close() }
+        let model = try host.makeLibrarySettingsModel()
+        try model.setEnabled(true)
+        let record = try f.connect(host)
+        let credential = try #require(f.secrets[record.id])
+        let session = try host.service.authenticate(connectionID: record.id, credential: credential)
+        let challenge = try host.pairing.request(clientName: "Pending client")
+        let endpoint = try #require(host.endpoint)
+        try model.stopWork()
+        #expect(host.endpoint == nil && !model.accessEnabled)
+        #expect(!FileManager.default.fileExists(atPath: endpoint))
+        #expect(try host.pairing.state(challenge.id) == .invalidated)
+        #expect(throws: AgentErrorCode.permissionDenied) { try host.service.authorizedLibraryID(for: session) }
+        #expect(try host.connections.configurationForUserInterface().connections.contains { $0.id == record.id && !$0.revoked })
+        try model.setEnabled(true)
+        #expect(throws: AgentErrorCode.permissionDenied) { try host.service.authorizedLibraryID(for: session) }
+        _ = try host.service.authenticate(connectionID: record.id, credential: credential)
+    }
+
+    @Test func operationReviewRequiresLiveHostAndStopWorkInvalidatesIt() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let host = try f.host(); defer { host.close() }
+        let model = try host.makeLibrarySettingsModel()
+        try model.setEnabled(true)
+        let record = try host.connections.connectFromUserInterface(name: "Review test", libraryID: host.libraryID,
+            capabilities: [.preferencesRead, .preferencesWrite], scope: .library)
+        let request = AgentRequest(requestID: UUID(), libraryID: host.libraryID, operation: "preferences.update",
+            expectedVersion: "version", parameters: ["items": .array([.object([
+                "id": .string(SpotlightPreferences.enabledKey), "value": .bool(true)
+            ])])])
+        let effects = AgentApprovalStore.Effects(capabilities: [.preferencesWrite], targets: [],
+            requiresLibraryScope: false, snapshot: ["value": .bool(true)])
+        let review = try host.approvals.requestReview(request, connectionID: record.id, effects: effects)
+        model.refresh()
+        #expect(model.pendingOperationReviews.map(\.id) == [review.id])
+        try model.stopWork()
+        #expect(model.pendingOperationReviews.isEmpty)
+        #expect(throws: AgentErrorCode.permissionDenied) { try model.decideOperation(review, approved: true) }
+        try model.setEnabled(true)
+        #expect(throws: AgentErrorCode.versionConflict) { try model.decideOperation(review, approved: true) }
+    }
+
+    @Test func humanDecisionInSettingsReleasesWaitingOperationOnce() async throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let host = try f.host(); defer { host.close() }
+        let model = try host.makeLibrarySettingsModel()
+        try model.setEnabled(true)
+        let record = try host.connections.connectFromUserInterface(name: "Review test", libraryID: host.libraryID,
+            capabilities: [.preferencesRead, .preferencesWrite], scope: .library)
+        let request = AgentRequest(requestID: UUID(), libraryID: host.libraryID, operation: "preferences.update",
+            expectedVersion: "version", parameters: ["items": .array([.object([
+                "id": .string(SpotlightPreferences.enabledKey), "value": .bool(true)
+            ])])])
+        let effects = AgentApprovalStore.Effects(capabilities: [.preferencesWrite], targets: [],
+            requiresLibraryScope: false, snapshot: ["value": .bool(true)])
+        let task = Task { @MainActor in
+            try await host.approvals.waitForApproval(request, connectionID: record.id, resolveEffects: { effects })
+        }
+        for _ in 0..<100 where model.pendingOperationReviews.isEmpty {
+            await Task.yield(); model.refresh()
+        }
+        let review = try #require(model.pendingOperationReviews.first)
+        try model.decideOperation(review, approved: true)
+        try await task.value
+        #expect(try host.approvals.statusForConnection(review.id, connectionID: record.id) == .consumed)
+        #expect(throws: AgentErrorCode.permissionDenied) { try model.decideOperation(review, approved: true) }
+    }
+
+    @Test func stopWorkCancelsRunningAgentOperations() async throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let host = try f.host(); defer { host.close() }
+        let model = try host.makeLibrarySettingsModel(); try model.setEnabled(true)
+        let record = try host.connections.connectFromUserInterface(name: "Operation test", libraryID: host.libraryID,
+            capabilities: [.actionsRun, .draftsRead], scope: .library)
+        let currentGrant = try host.connections.grantForAuthenticatedConnection(record.id)
+        let grant = try #require(currentGrant)
+        var started = false, cancelled = false
+        let operationID = try host.operations.start(grant: grant, targets: []) {
+            started = true
+            do { try await Task.sleep(for: .seconds(30)) } catch { cancelled = true }
+            let report = ActionExecutionReport.notStarted(actionID: UUID(), reason: .cancelled, message: "Cancelled")
+            return .init(report: report, noteID: nil, message: "Cancelled")
+        }
+        for _ in 0..<100 where !started { await Task.yield() }
+        #expect(started)
+        let session = try host.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        let request = AgentRequest(requestID: UUID(), libraryID: host.libraryID, operation: "operations.get",
+            targets: [.init(kind: .operation, id: operationID)])
+        let response = try JSONDecoder().decode(AgentResponse.self,
+            from: host.service.respond(to: JSONEncoder().encode(request), session: session))
+        guard case .result = response.outcome else { Issue.record("Expected an operation snapshot"); return }
+        try model.stopWork()
+        for _ in 0..<1000 where !cancelled { await Task.yield() }
+        #expect(cancelled)
+    }
+
+    @Test func authenticatedRequestsRecordMetadataWithoutChangingTheirResultOnStorageFailure() async throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let host = try f.host(); defer { host.close() }
+        let model = try host.makeLibrarySettingsModel()
+        try host.setEnabledFromUserInterface(true)
+        let record = try f.connect(host)
+        let session = try host.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        func status() throws -> AgentResponse {
+            let request = AgentRequest(requestID: UUID(), libraryID: host.libraryID, operation: "server.status")
+            return try JSONDecoder().decode(AgentResponse.self, from: host.service.respond(to: JSONEncoder().encode(request), session: session))
+        }
+        let reply = try status()
+        guard case .result = reply.outcome else { Issue.record("Expected a successful response: \(reply.outcome)"); return }
+        for _ in 0..<100 where try host.recentActivity().isEmpty { await Task.yield() }
+        let entries = try host.recentActivity()
+        #expect(entries.count == 1 && entries[0].connectionID == record.id)
+        #expect(entries[0].operation == "server.status" && entries[0].result == "success")
+        model.refresh()
+        #expect(model.activity == entries && model.activityError == nil)
+        let deniedRequest = AgentRequest(requestID: UUID(), libraryID: host.libraryID, operation: "actions.list")
+        let denied = try JSONDecoder().decode(AgentResponse.self, from: host.service.respond(to: JSONEncoder().encode(deniedRequest), session: session))
+        #expect(denied.outcome == .error(.permissionDenied))
+        for _ in 0..<100 where try host.recentActivity().count < 2 { await Task.yield() }
+        #expect(try host.recentActivity().contains { $0.requestID == deniedRequest.requestID && $0.result == "permission_denied" })
+        let file = f.root.appendingPathComponent("Agents/activity.json"), invalid = Data("invalid".utf8)
+        try invalid.write(to: file)
+        let next = try status()
+        guard case .result = next.outcome else { Issue.record("Activity failure changed the response"); return }
+        for _ in 0..<100 where host.activityRecordingError == nil { await Task.yield() }
+        #expect(host.activityRecordingError == .storageError)
+        model.refresh()
+        #expect(model.activityError == .storageError)
+        #expect(try Data(contentsOf: file) == invalid)
+    }
+
+    @Test func clearingActivityDiscardsQueuedRecordsButKeepsFutureRequests() async throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let host = try f.host(); defer { host.close() }
+        let model = try host.makeLibrarySettingsModel()
+        try host.setEnabledFromUserInterface(true)
+        let record = try f.connect(host)
+        let session = try host.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        func request() throws -> AgentResponse {
+            let request = AgentRequest(requestID: UUID(), libraryID: host.libraryID, operation: "server.status")
+            return try JSONDecoder().decode(AgentResponse.self, from: host.service.respond(to: JSONEncoder().encode(request), session: session))
+        }
+        guard case .result = try request().outcome else { Issue.record("Expected success"); return }
+        try model.clearActivity()
+        for _ in 0..<10 { await Task.yield() }
+        #expect(try host.recentActivity().isEmpty)
+        guard case .result = try request().outcome else { Issue.record("Expected success"); return }
+        for _ in 0..<100 where try host.recentActivity().isEmpty { await Task.yield() }
+        #expect(try host.recentActivity().count == 1)
+    }
+
+    @Test func closingHostFlushesQueuedActivityBeforeReleasingTheLibrary() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let host = try f.host()
+        try host.setEnabledFromUserInterface(true)
+        let record = try f.connect(host)
+        let session = try host.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        let requests = (0..<20).map { _ in AgentRequest(requestID: UUID(), libraryID: host.libraryID, operation: "server.status") }
+        for request in requests {
+            let response = try JSONDecoder().decode(AgentResponse.self, from: host.service.respond(to: JSONEncoder().encode(request), session: session))
+            guard case .result = response.outcome else { Issue.record("Expected success"); return }
+        }
+        host.close()
+        let reopened = try f.host(); defer { reopened.close() }
+        let saved = try reopened.recentActivity().filter { $0.result == "success" }
+        #expect(Set(saved.map(\.requestID)) == Set(requests.map(\.requestID)))
+    }
+
+    @Test func activityListOnlyExposesTheCurrentConnectionAndGrant() async throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let host = try f.host(); defer { host.close() }
+        try host.setEnabledFromUserInterface(true)
+        let first = try f.connect(host), second = try f.connect(host)
+        let firstSecret = try #require(f.secrets[first.id]), secondSecret = try #require(f.secrets[second.id])
+        let session = try host.service.authenticate(connectionID: first.id, credential: firstSecret)
+        let other = try host.service.authenticate(connectionID: second.id, credential: secondSecret)
+        func request(_ name: String, _ session: AgentCommandService.Session) throws -> AgentResponse {
+            let request = AgentRequest(requestID: UUID(), libraryID: host.libraryID, operation: name)
+            return try JSONDecoder().decode(AgentResponse.self, from: host.service.respond(to: JSONEncoder().encode(request), session: session))
+        }
+        let own = try request("server.status", session), hidden = try request("server.status", other)
+        for _ in 0..<100 where try host.recentActivity().count < 2 { await Task.yield() }
+        let result = try request("activity.list", session)
+        guard case .result(.object(let page)) = result.outcome, case .array(let items) = page["items"] else {
+            Issue.record("Expected activity page: \(result.outcome)"); return
+        }
+        #expect(items.count == 1)
+        guard case .object(let item) = items[0] else { Issue.record("Expected activity entry"); return }
+        #expect(item["requestID"] == .string(own.requestID.uuidString))
+        #expect(item["requestID"] != .string(hidden.requestID.uuidString))
+        _ = try host.connections.replaceGrantFromUserInterface(first.id, capabilities: [.draftsRead], scope: .library)
+        let renewed = try host.service.authenticate(connectionID: first.id, credential: firstSecret)
+        let fresh = try request("activity.list", renewed)
+        guard case .result(.object(let freshPage)) = fresh.outcome else { Issue.record("Expected fresh activity page"); return }
+        #expect(freshPage["items"] == .array([]))
+    }
+
+    @Test func closingAnEditorBeforePairingApprovalInvalidatesTheReview() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let preferences = try TestPreferences(prefix: "Draftly-Agent-Window-Grant-")
+        defer { preferences.close() }
+        let note = try f.library.createNote(content: "Editor draft")
+        var dependencies = WindowDependencies(); dependencies.preferences = WindowPreferences(defaults: preferences.defaults)
+        let window = WindowModel(library: f.library, dependencies: dependencies)
+        window.editor.load(note, focusEditor: false)
+        var windows = [window]
+        let editors = AgentEditorRegistry(library: f.library, models: { windows })
+        defer { editors.invalidate() }
+        let host = try f.host(editors: editors); defer { host.close() }
+        let model = try host.makeLibrarySettingsModel()
+        try model.setEnabled(true)
+        let challenge = try host.pairing.request(clientName: "Editor client")
+        try model.beginPairing(challenge.id)
+        let target = try #require(model.resourceChoices().first(where: { $0.reference.kind == .window })?.reference)
+        model.draft?.targets = [target, .init(kind: .draft, id: note.id)]
+        model.draft?.capabilities.insert(.editorRead)
+        try model.preparePairingReview()
+        windows.removeAll()
+        #expect(throws: AgentErrorCode.notFound) { try model.approvePairing(codesMatch: true) }
+        #expect(try host.pairing.state(challenge.id) == .invalidated)
+        #expect(f.secrets.isEmpty && model.connections.isEmpty)
+    }
+
     @Test func realPairingSettingsAndSocketReadsShareOneAuthorityAndLibrary() async throws {
         let f = try Fixture(); defer { f.cleanup() }
         let note = try f.library.createNote(content: "Allowed 🐼")
@@ -317,6 +726,12 @@ struct AgentLocalHostTests {
         model.cancelEditing()
         #expect(f.secrets.isEmpty)
         try model.beginPairing(#require(challenge.pairingID))
+        #expect(model.availableCapabilities.contains(.actionsRead))
+        #expect(!model.availableCapabilities.contains(.actionsRun))
+        var unsupported = try #require(model.draft)
+        unsupported.capabilities.insert(.actionsRun); model.draft = unsupported
+        #expect(throws: AgentErrorCode.unavailable) { try model.preparePairingReview() }
+        unsupported.capabilities.remove(.actionsRun); model.draft = unsupported
         try model.preparePairingReview()
         let record = try model.approvePairing(codesMatch: true)
         let decision = try await peer.poll()

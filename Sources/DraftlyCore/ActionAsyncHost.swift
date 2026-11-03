@@ -54,6 +54,25 @@ import Foundation
     func performSuspendingStep(_ step: ActionStep, text: String, rendered: String, current: Note,
                                evaluate: (String) -> Void) async throws -> Bool? {
         switch step.type {
+        case "clipboard":
+            if ["html", "richText"].contains(step.values["output"] ?? "") {
+                let html = try MarkdownPreferences.render(rendered, defaults: markdownDefaults)
+                return try await nativeValue("htmlToClipboard", ["html": html]) as? Bool != false
+            }
+            let mode = step.values["writeType"] ?? "replace"
+            guard ["replace", "append", "prepend"].contains(mode) else {
+                throw DraftlyError.message("Unsupported clipboard write type: \(mode)")
+            }
+            let previous: String
+            if mode == "replace" { previous = "" }
+            else {
+                guard let value = try await nativeValue("getClipboard", [:]) as? String else {
+                    throw DraftlyError.message("The clipboard read returned an invalid response.")
+                }
+                previous = value
+            }
+            let result = mode == "append" ? previous + rendered : mode == "prepend" ? rendered + previous : rendered
+            return try await nativeValue("clipboard", ["text": result]) as? Bool != false
         case "createDraft":
             let creation = try await ActionTemplateBuilder.build(render: { try await self.renderTemplateAsync($0, note: current) }) { render in
                 try ActionCreateDraftStep(step, text: rendered, validateSyntax: { _ = try self.library.syntaxDefinition(named: $0) }, render: render)
@@ -65,15 +84,17 @@ import Foundation
             return true
         case "url":
             let url = try await renderURLAsync(step.values["url"] ?? text, note: current, encodeTags: step.values["encodeTags"] != "false")
-            _ = try platform("openURL", ["url": url])
-            return true
+            return try await nativeValue("openURL", ["url": url]) as? Bool != false
         case "share":
             return try await nativeValue("share", ["text": rendered]) as? Bool != false
         case "openIn":
             let name = try await renderTemplateAsync(step.values["name"] ?? "[[safe_title]].txt", note: current)
             return try await nativeValue("shareFile", ["text": rendered, "name": name]) as? Bool != false
         case "print":
-            return try await nativeValue("print", step.values.merging(["text": rendered]) { _, new in new }) as? Bool != false
+            let markdown = step.values["format"] == "markdown"
+            let body = markdown ? try MarkdownPreferences.render(rendered, defaults: markdownDefaults) : rendered
+            let values = step.values.merging(["text": body, "format": markdown ? "html" : step.values["format"] ?? "plainText"]) { _, new in new }
+            return try await nativeValue("print", values) as? Bool != false
         case "prompt":
             let prompt = try await ActionTemplateBuilder.build(render: { try await self.renderTemplateAsync($0, note: current) }) { try ActionPromptStep(step, render: $0) }
             guard let tags = try prompt.tags(from: await nativeValue("prompt", prompt.values)) else { return false }

@@ -13,37 +13,83 @@ import AgentContracts
         let grantID: UUID
     }
     private static let readOperations: Set<String> = ["server.status", "server.capabilities", "server.schemas",
-        "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions", "preferences.schema"]
+        "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions", "preferences.schema", "preferences.get"]
     private static let editorReadOperations: Set<String> = ["editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks"]
-    static let implementedOperations = readOperations.union([AgentMutationSchemas.name]).union(AgentDraftWriting.operationNames).union(editorReadOperations)
-    private var availableOperations: Set<String> { editorRegistry == nil ? Self.readOperations : (writes == nil ? Self.readOperations.union(Self.editorReadOperations) : Self.implementedOperations) }
+    private static let actionReadOperations: Set<String> = ["actions.list", "actions.get", "actions.stepSchemas", "actions.groups", "actionGroups.get"]
+    private static let workspaceReadOperations: Set<String> = ["workspaces.list", "workspaces.get", "workspaces.query"]
+    static let implementedOperations = readOperations.union(actionReadOperations).union(workspaceReadOperations).union([AgentMutationSchemas.name, "workspaces.update", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder"]).union(AgentDraftWriting.operationNames).union(AgentEditorWriting.operationNames).union(AgentPreferenceWriting.operationNames).union(editorReadOperations)
+    private var availableOperations: Set<String> {
+        var operations = editorRegistry == nil ? Self.readOperations.union(Self.actionReadOperations).union(Self.workspaceReadOperations) : (writes == nil ? Self.readOperations.union(Self.editorReadOperations).union(Self.actionReadOperations).union(Self.workspaceReadOperations) : Self.implementedOperations)
+        if preferenceWrites != nil { operations.formUnion(AgentPreferenceWriting.operationNames.union([AgentMutationSchemas.name])) }
+        else { operations.subtract(AgentPreferenceWriting.operationNames) }
+        if readActivity != nil { operations.insert("activity.list") }
+        if operationRegistry != nil { operations.formUnion(["operations.get", "operations.cancel"]) }
+        if submitAction != nil && operationRegistry != nil { operations.insert("actions.run") }
+        return operations
+    }
+    var availableCapabilities: Set<AgentCapability> {
+        var capabilities = availableOperations.reduce(into: Set<AgentCapability>()) { result, name in
+            if let operation = AgentOperationCatalog.operation(named: name) { result.formUnion(operation.capabilities) }
+        }
+        if availableOperations.contains("preferences.get") { capabilities.insert(.appearanceRead) }
+        if availableOperations.contains("preferences.update") { capabilities.insert(.appearanceManage) }
+        if availableOperations.contains("actions.run") {
+            capabilities.formUnion([.draftsWrite, .editorWrite, .nativeUse])
+        }
+        return capabilities
+    }
+    private let actionLibrary: LibraryStore
+    private let operationRegistry: AgentOperationRegistry?
+    private let submitAction: ((AgentRequest, AgentGrant) throws -> UUID)?
+    private let actionVersionKey = SymmetricKey(size: .bits256)
     private let editorRegistry: AgentEditorRegistry?
     private let windowReadKey = SymmetricKey(size: .bits256)
     private let retryKeys: AgentRetryKeys
     private var writes: AgentDraftWriting?
+    private var editorWrites: AgentEditorWriting?
+    private var preferenceWrites: AgentPreferenceWriting?
     private let libraryID: UUID
     private let connections: AgentConnectionRegistry
     private let validateHost: () throws -> Void
     private let isLocked: () -> Bool
     private let now: () -> Date
     private let appVersion: String
+    private let nativePreferenceRead: ((String) throws -> AgentPreferenceReading)?
+    private let preferenceDefaults: UserDefaults
+    private let preferenceVersionKey = SymmetricKey(size: .bits256)
     private let preferences: AgentPreferenceRegistry
     private let pages: AgentReadPages
+    private let recordActivity: (UUID, UUID, UUID, String, String) -> Void
+    private let readActivity: ((UUID, UUID) throws -> [AgentActivityStore.Entry])?
     private let preferenceDescriptorIDs: [UUID]
     private let preferenceDescriptors: [UUID: AgentPreferenceField]
     private let drafts: AgentDraftReading
     private var sessions: [UUID: Authorization] = [:]
 
     init(library: LibraryStore, libraryID: UUID, connections: AgentConnectionRegistry, appVersion: String,
+         preferenceDefaults: UserDefaults = .standard,
+         preferenceStorage: AgentPreferenceStorage? = nil,
+         nativePreferenceRead: ((String) throws -> AgentPreferenceReading)? = nil,
          validateHost: @escaping () throws -> Void, isLocked: @escaping () -> Bool, now: @escaping () -> Date = Date.init,
          uptime: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
          editors: AgentEditorRegistry? = nil,
-         pendingEditorGeneration: @escaping (UUID) -> String) throws {
+         pendingEditorGeneration: @escaping (UUID) -> String,
+         recordActivity: @escaping (UUID, UUID, UUID, String, String) -> Void = { _, _, _, _, _ in },
+         readActivity: ((UUID, UUID) throws -> [AgentActivityStore.Entry])? = nil,
+         operations: AgentOperationRegistry? = nil,
+         submitAction: ((AgentRequest, AgentGrant) throws -> UUID)? = nil) throws {
         guard editors?.isBound(to: library) ?? true else { throw AgentErrorCode.invalidInput }
+        self.nativePreferenceRead = nativePreferenceRead
+        self.preferenceDefaults = preferenceDefaults
+        self.actionLibrary = library
+        self.operationRegistry = operations
+        self.submitAction = submitAction
         self.libraryID = libraryID; self.connections = connections; self.appVersion = appVersion
         self.editorRegistry = editors
         self.validateHost = validateHost
         self.isLocked = isLocked; self.now = now
+        self.recordActivity = recordActivity
+        self.readActivity = readActivity
         let preferences = try AgentPreferenceCatalog.make()
         self.preferences = preferences
         let descriptors = preferences.fields.map { (UUID(), $0) }
@@ -54,10 +100,41 @@ import AgentContracts
         drafts = AgentDraftReading(library: library, pages: pages, editors: editors, pendingEditorGeneration: pendingEditorGeneration)
         retryKeys = AgentRetryKeys(now: now, uptime: uptime,
             currentGrant: { try? connections.grantForAuthenticatedConnection($0) }, isLocked: isLocked)
+        if let preferenceStorage {
+            preferenceWrites = AgentPreferenceWriting(storage: preferenceStorage, keys: retryKeys, preferences: preferences,
+                currentGrant: { try connections.grantForAuthenticatedConnection($0) }, validateAdmission: { [weak self] in
+                    guard let self else { throw AgentErrorCode.cancelled }; try self.validateAdmission()
+                }, plan: { [weak self] request, grant in
+                    guard let self else { throw AgentErrorCode.cancelled }
+                    return try AgentPreferenceBatch.prepare(request, defaults: self.preferenceDefaults, library: self.actionLibrary,
+                        grant: grant, resolveSyntax: { address in
+                            switch address.syntax {
+                            case .builtIn(let name): return try ScriptSyntax.definition(name)
+                            case .installed(let id):
+                                guard grant.scope.permits(.init(kind: .syntax, id: id)),
+                                      let syntax = self.actionLibrary.syntaxes.first(where: { $0.id == id && $0.type != "builtIn" }) else {
+                                    throw AgentErrorCode.notFound
+                                }
+                                return syntax
+                            case nil: throw AgentErrorCode.invalidInput
+                            }
+                        })
+                }, readReceipt: { [weak self] request, grant in
+                    guard let self else { throw AgentErrorCode.cancelled }
+                    return try self.preferenceReceipt(request, grant: grant)
+                })
+        }
         if let editors {
             writes = try AgentDraftWriting(library: library, libraryID: libraryID, reader: drafts, editors: editors,
                 keys: retryKeys, now: now, validateAdmission: { [weak self] in
                     guard let self else { throw AgentErrorCode.cancelled }; try self.validateAdmission()
+                })
+            editorWrites = AgentEditorWriting(registry: editors, keys: retryKeys,
+                currentGrant: { try connections.grantForAuthenticatedConnection($0) }, validateAdmission: { [weak self] in
+                    guard let self else { throw AgentErrorCode.cancelled }; try self.validateAdmission()
+                }, read: { [weak self] id, grant in
+                    guard let self else { throw AgentErrorCode.cancelled }
+                    return try self.editorContext(id, grant: grant)
                 })
         }
     }
@@ -96,12 +173,35 @@ import AgentContracts
     // An invalid envelope has no trusted request identity and fails before dispatch.
     func respond(to data: Data, session: Session) throws -> Data {
         let request = try AgentRequest.decode(data)
+        var authority: (connectionID: UUID, grantID: UUID)?
+        var result = AgentErrorCode.storageError.rawValue
+        defer {
+            if let authority, AgentOperationCatalog.operation(named: request.operation) != nil {
+                recordActivity(authority.connectionID, authority.grantID, request.requestID, request.operation, result)
+            }
+        }
         do {
             let grant = try authorize(session)
-            switch AgentPermissionPolicy.evaluate(request, connectionID: grant.connectionID, grant: grant, now: now()) {
+            authority = (grant.connectionID, grant.grantID)
+            var policyGrant = grant
+            if ["operations.get", "operations.cancel"].contains(request.operation), let operationRegistry {
+                guard request.targets.count == 1, let target = request.targets.first, target.kind == .operation else {
+                    throw AgentErrorCode.invalidInput
+                }
+                _ = try operationRegistry.snapshot(target.id, connectionID: grant.connectionID)
+                // The registry checks original resource scope and operation ownership.
+                policyGrant = AgentGrant(connectionID: grant.connectionID, libraryID: grant.libraryID,
+                    expiresAt: grant.expiresAt, revoked: grant.revoked, capabilities: grant.capabilities,
+                    scope: .library, grantID: grant.grantID)
+            }
+            switch AgentPermissionPolicy.evaluate(request, connectionID: grant.connectionID, grant: policyGrant, now: now()) {
             case .permitted: break
             case .denied(let error): throw error
-            case .needsHumanApproval, .needsEffectAuthorization: throw AgentErrorCode.unavailable
+            case .needsHumanApproval: throw AgentErrorCode.unavailable
+            case .needsEffectAuthorization:
+                let reviewedAction = request.operation == "actions.run" && submitAction != nil && operationRegistry != nil
+                let preferenceMutation = AgentPreferenceWriting.operationNames.contains(request.operation) && preferenceWrites != nil
+                guard reviewedAction || preferenceMutation else { throw AgentErrorCode.unavailable }
             }
             guard availableOperations.contains(request.operation) else { throw AgentErrorCode.unavailable }
             let parameters: [String: AgentJSONValue]
@@ -117,8 +217,10 @@ import AgentContracts
             let current = try authorize(session)
             guard current.grantID == grant.grantID, current.capabilities == grant.capabilities,
                   current.scope == grant.scope, current.expiresAt == grant.expiresAt else { throw AgentErrorCode.permissionDenied }
+            result = "success"
             return encoded
         } catch let error as AgentErrorCode {
+            result = error.rawValue
             return try JSONEncoder().encode(AgentResponse(requestID: request.requestID, outcome: .error(error)))
         } catch {
             return try JSONEncoder().encode(AgentResponse(requestID: request.requestID, outcome: .error(.storageError)))
@@ -146,9 +248,656 @@ import AgentContracts
         return grant
     }
 
+    private func readPreferences(_ parameters: [String: AgentJSONValue], grant: AgentGrant) throws -> [String: AgentJSONValue] {
+        guard case .array(let items) = parameters["items"] else { throw AgentErrorCode.invalidInput }
+        func version(_ value: AgentJSONValue) throws -> String {
+            let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
+            return Data(HMAC<SHA256>.authenticationCode(for: try encoder.encode(value), using: preferenceVersionKey)).base64EncodedString()
+        }
+        let values: [AgentJSONValue] = try items.map { item in
+            let address = try preferences.address(item)
+            let reading: AgentPreferenceReading
+            if AgentDevicePreferenceAccess.supportedIDs.contains(address.id) {
+                reading = try AgentDevicePreferenceAccess.read(address: item, defaults: preferenceDefaults)
+            } else if AgentListPreferenceAccess.supportedIDs.contains(address.id) {
+                reading = try AgentListPreferenceAccess.read(address: item, defaults: preferenceDefaults)
+            } else if ["application.launchAtLogin", SpotlightPreferences.enabledKey].contains(address.id) {
+                guard let nativePreferenceRead else { throw AgentErrorCode.unavailable }
+                reading = try nativePreferenceRead(address.id)
+            } else if address.id.hasPrefix("syntax.") {
+                guard grant.capabilities.contains(.appearanceRead) else { throw AgentErrorCode.permissionDenied }
+                let syntax: SyntaxDefinition
+                switch address.syntax {
+                case .builtIn(let name): syntax = try ScriptSyntax.definition(name)
+                case .installed(let id):
+                    guard grant.scope.permits(.init(kind: .syntax, id: id)),
+                          let installed = actionLibrary.syntaxes.first(where: { $0.id == id && $0.type != "builtIn" }) else {
+                        throw AgentErrorCode.notFound
+                    }
+                    syntax = installed
+                case nil: throw AgentErrorCode.invalidInput
+                }
+                let name = String(address.id.dropFirst("syntax.".count))
+                let key = try AgentEncodedPreferenceAccess.syntaxStorageKey(name)
+                let configuration = preferenceDefaults.object(forKey: key).map { $0 as? String ?? "null" } ?? "{}"
+                let inherited: AgentJSONValue?
+                if try preferences.field(address.id).defaultSource == .inherited {
+                    let global = try AgentDevicePreferenceAccess.read(
+                        address: .object(["id": .string("editor." + name)]), defaults: preferenceDefaults)
+                    guard global.origin != "invalid" else { throw AgentErrorCode.invalidInput }
+                    inherited = global.effectiveValue
+                } else { inherited = nil }
+                reading = try AgentEncodedPreferenceAccess.read(address: item, configuration: configuration,
+                    syntax: syntax, inherited: inherited)
+            } else if address.id == WorkspaceDefaults.key {
+                reading = try AgentWorkspacePreferenceAccess.read(defaults: preferenceDefaults,
+                    capabilities: grant.capabilities, scope: grant.scope,
+                    workspaceExists: { id in actionLibrary.workspaces.contains { $0.id == id } })
+            } else if address.id.hasPrefix("markdown.multi.") || address.id.hasPrefix("markdown.github.") || address.id == "commands.shortcut" {
+                let key = address.id == "commands.shortcut" ? CommandShortcuts.storageKey :
+                    address.id.hasPrefix("markdown.multi.") ? MarkdownPreferences.multiKey : MarkdownPreferences.githubKey
+                let configuration: String
+                if let stored = preferenceDefaults.object(forKey: key) { configuration = stored as? String ?? "null" }
+                else { configuration = "{}" }
+                reading = try AgentEncodedPreferenceAccess.read(address: item, configuration: configuration)
+            } else { throw AgentErrorCode.unavailable }
+            guard case .object(var fields) = item else { throw AgentErrorCode.invalidInput }
+            fields["effectiveValue"] = reading.effectiveValue
+            fields["valueOrigin"] = .string(reading.origin)
+            fields["hasOverride"] = .bool(reading.hasOverride)
+            fields["versionToken"] = .string(try version(.object(fields)))
+            return .object(fields)
+        }
+        return ["items": .array(values), "versionToken": .string(try version(.array(values)))]
+    }
+
+    private func preferenceReceipt(_ request: AgentRequest, grant: AgentGrant) throws -> [String: AgentJSONValue] {
+        let parameters = try AgentPreferenceSchemas.validatedParameters(for: request, registry: preferences)
+        guard case .array(let items) = parameters["items"] else { throw AgentErrorCode.invalidInput }
+        let addresses: [AgentJSONValue] = try items.map { item in
+            guard case .object(var fields) = item else { throw AgentErrorCode.invalidInput }
+            fields.removeValue(forKey: "value")
+            return .object(fields)
+        }
+        let readings = try readPreferences(["items": .array(addresses)], grant: grant)
+        guard case .array(let values) = readings["items"], let version = readings["versionToken"] else { throw AgentErrorCode.storageError }
+        return ["items": .array(try values.map { item in
+            guard case .object(var fields) = item else { throw AgentErrorCode.storageError }
+            for key in ["effectiveValue", "valueOrigin", "hasOverride"] { fields.removeValue(forKey: key) }
+            return .object(fields)
+        }), "versionToken": version]
+    }
+
+    private func actionVersion(_ action: DraftAction) throws -> String {
+        let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
+        return Data(HMAC<SHA256>.authenticationCode(for: try encoder.encode(action), using: actionVersionKey)).base64EncodedString()
+    }
+
+    func actionExecutionSnapshot(_ request: AgentRequest, connectionID: UUID) throws -> [String: AgentJSONValue] {
+        try validateAdmission()
+        guard request.operation == "actions.run", let grant = try connections.grantForAuthenticatedConnection(connectionID) else {
+            throw AgentErrorCode.permissionDenied
+        }
+        if case .denied(let error) = AgentPermissionPolicy.evaluate(request, connectionID: connectionID, grant: grant, now: now()) {
+            throw error
+        }
+        guard let actionID = request.targets.first(where: { $0.kind == .action })?.id,
+              let draftID = request.targets.first(where: { $0.kind == .draft })?.id,
+              let action = actionLibrary.actions.first(where: { $0.id == actionID }),
+              let stored = actionLibrary.notes.first(where: { $0.id == draftID }), let editorRegistry else {
+            throw AgentErrorCode.notFound
+        }
+        let snapshot = try editorRegistry.snapshot(stored)
+        let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
+        let data = try encoder.encode(snapshot.note) + encoder.encode(snapshot.storedNote) + Data(snapshot.generation.utf8)
+        let draftVersion = Data(HMAC<SHA256>.authenticationCode(for: data, using: windowReadKey)).base64EncodedString()
+        try validateAdmission()
+        guard let current = try connections.grantForAuthenticatedConnection(connectionID),
+              AgentRequestBinding.grantValue(current) == AgentRequestBinding.grantValue(grant) else {
+            throw AgentErrorCode.permissionDenied
+        }
+        return ["actionVersion": .string(try actionVersion(action)), "draftVersion": .string(draftVersion)]
+    }
+
+    private func checkedActionUpdate(_ request: AgentRequest, connectionID: UUID) throws -> DraftAction {
+        guard let target = request.targets.first?.id, let expected = request.expectedVersion,
+              let original = actionLibrary.actions.first(where: { $0.id == target }) else { throw AgentErrorCode.notFound }
+        guard try actionVersion(original) == expected else { throw AgentErrorCode.versionConflict }
+        let parameters: [String: AgentJSONValue]
+        do { parameters = try AgentActionSchemas.validatedParameters(for: request) }
+        catch { throw AgentErrorCode.invalidInput }
+        guard let value = parameters["action"] else { throw AgentErrorCode.invalidInput }
+        let edited: DraftAction
+        do { edited = try JSONDecoder().decode(DraftAction.self, from: JSONEncoder().encode(value)) }
+        catch { throw AgentErrorCode.invalidInput }
+        guard edited.id == target, edited.group == original.group,
+              !edited.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw AgentErrorCode.invalidInput }
+        if edited.shortcut != original.shortcut || edited.shortcutModifiers != original.shortcutModifiers {
+            guard let grant = try connections.grantForAuthenticatedConnection(connectionID), grant.scope == .library else {
+                throw AgentErrorCode.permissionDenied
+            }
+            guard ActionShortcut.conflict(for: edited, in: actionLibrary.actions) == nil else { throw AgentErrorCode.invalidInput }
+        }
+        return edited
+    }
+
+    private func newAction(_ request: AgentRequest) throws -> DraftAction {
+        let parameters: [String: AgentJSONValue]
+        do { parameters = try AgentActionSchemas.validatedParameters(for: request) }
+        catch { throw AgentErrorCode.invalidInput }
+        guard case .object(let input) = parameters["action"], case .string(let name) = input["name"],
+              case .array(let steps) = input["steps"], !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw AgentErrorCode.invalidInput
+        }
+        let base = DraftAction(name: name, steps: [])
+        guard case .object(var definition) = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(base)) else {
+            throw AgentErrorCode.storageError
+        }
+        definition.merge(input) { _, new in new }
+        definition["steps"] = .array(try steps.map { value in
+            guard case .object(let input) = value, case .string(let type) = input["type"] else { throw AgentErrorCode.invalidInput }
+            let base = ActionStep(type, ActionStepCreationDefaults.values(for: type))
+            guard case .object(var fields) = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(base)) else {
+                throw AgentErrorCode.storageError
+            }
+            fields.merge(input) { _, new in new }
+            return .object(fields)
+        })
+        do { return try JSONDecoder().decode(DraftAction.self, from: JSONEncoder().encode(AgentJSONValue.object(definition))) }
+        catch { throw AgentErrorCode.invalidInput }
+    }
+
+    private func validateNewAction(_ action: DraftAction) throws {
+        guard !actionLibrary.actions.contains(where: { $0.id == action.id }) else { throw AgentErrorCode.versionConflict }
+        guard ActionShortcut.conflict(for: action, in: actionLibrary.actions) == nil else { throw AgentErrorCode.invalidInput }
+    }
+
+    private func checkedActionMove(_ request: AgentRequest) throws -> DraftAction {
+        guard let actionID = request.targets.first(where: { $0.kind == .action })?.id,
+              let groupID = request.targets.first(where: { $0.kind == .actionGroup })?.id,
+              let expected = request.expectedVersion,
+              var action = actionLibrary.actions.first(where: { $0.id == actionID }),
+              let group = groups(in: .library).first(where: { $0.id == groupID }) else { throw AgentErrorCode.notFound }
+        guard try actionVersion(action) == expected else { throw AgentErrorCode.versionConflict }
+        action.group = group.name
+        return action
+    }
+
+    private func checkedActionDuplicate(_ request: AgentRequest, newID: UUID = UUID()) throws -> DraftAction {
+        guard let target = request.targets.first?.id, let expected = request.expectedVersion,
+              var copy = actionLibrary.actions.first(where: { $0.id == target }) else { throw AgentErrorCode.notFound }
+        guard try actionVersion(copy) == expected else { throw AgentErrorCode.versionConflict }
+        let parameters: [String: AgentJSONValue]
+        do { parameters = try AgentActionSchemas.validatedParameters(for: request) }
+        catch { throw AgentErrorCode.invalidInput }
+        if case .string(let name) = parameters["name"] { copy.name = name }
+        else { copy.name += " Copy" }
+        guard !copy.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw AgentErrorCode.invalidInput }
+        copy.id = newID
+        copy.shortcut = ""
+        return copy
+    }
+
+    private func newActionGroup(_ request: AgentRequest) throws -> ActionGroupRecord {
+        let parameters: [String: AgentJSONValue]
+        do { parameters = try AgentActionSchemas.validatedParameters(for: request) }
+        catch { throw AgentErrorCode.invalidInput }
+        guard case .object(let input) = parameters["group"], case .string(let name) = input["name"],
+              !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw AgentErrorCode.invalidInput }
+        var base = ActionGroupRecord(name: name.trimmingCharacters(in: .whitespacesAndNewlines)); base.id = UUID()
+        guard case .object(var definition) = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(base)) else {
+            throw AgentErrorCode.storageError
+        }
+        definition.merge(input) { _, new in new }
+        definition["name"] = .string(base.name)
+        do { return try JSONDecoder().decode(ActionGroupRecord.self, from: JSONEncoder().encode(AgentJSONValue.object(definition))) }
+        catch { throw AgentErrorCode.invalidInput }
+    }
+
+    private func validateNewGroup(_ group: ActionGroupRecord) throws {
+        guard !actionLibrary.groupNames.contains(group.name),
+              !actionLibrary.actionGroupIdentifiers.values.contains(group.id) else { throw AgentErrorCode.versionConflict }
+    }
+
+    private func checkedGroupUpdate(_ request: AgentRequest) throws -> (updated: ActionGroupRecord, original: ActionGroupRecord, actions: [DraftAction]) {
+        guard let id = request.targets.first?.id, let expected = request.expectedVersion,
+              let original = groups(in: .library).first(where: { $0.id == id }) else { throw AgentErrorCode.notFound }
+        guard try groupVersion(original) == expected else { throw AgentErrorCode.versionConflict }
+        let parameters: [String: AgentJSONValue]
+        do { parameters = try AgentActionSchemas.validatedParameters(for: request) }
+        catch { throw AgentErrorCode.invalidInput }
+        guard let input = parameters["group"] else { throw AgentErrorCode.invalidInput }
+        var updated: ActionGroupRecord
+        do { updated = try JSONDecoder().decode(ActionGroupRecord.self, from: JSONEncoder().encode(input)) }
+        catch { throw AgentErrorCode.invalidInput }
+        updated.name = updated.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard updated.id == id, !updated.name.isEmpty else { throw AgentErrorCode.invalidInput }
+        guard updated.name == original.name || !actionLibrary.groupNames.contains(updated.name) else { throw AgentErrorCode.versionConflict }
+        return (updated, original, actionLibrary.actions.filter { $0.group == original.name })
+    }
+
+    private func checkedGroupCopy(_ request: AgentRequest) throws -> (original: ActionGroupRecord, actions: [DraftAction], name: String) {
+        guard let id = request.targets.first?.id, let expected = request.expectedVersion,
+              let original = groups(in: .library).first(where: { $0.id == id }) else { throw AgentErrorCode.notFound }
+        guard try groupVersion(original) == expected else { throw AgentErrorCode.versionConflict }
+        let parameters: [String: AgentJSONValue]
+        do { parameters = try AgentActionSchemas.validatedParameters(for: request) }
+        catch { throw AgentErrorCode.invalidInput }
+        let proposed: String
+        if case .string(let value) = parameters["name"] { proposed = value }
+        else { proposed = original.name + " Copy" }
+        let name = proposed.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { throw AgentErrorCode.invalidInput }
+        guard !actionLibrary.groupNames.contains(name) else { throw AgentErrorCode.versionConflict }
+        return (original, actionLibrary.actions.filter { $0.group == original.name }, name)
+    }
+
+    private func checkedGroupOrder(_ request: AgentRequest) throws -> [ActionGroupRecord] {
+        guard let expected = request.expectedVersion, try groupOrderVersion() == expected else { throw AgentErrorCode.versionConflict }
+        let parameters: [String: AgentJSONValue]
+        do { parameters = try AgentActionSchemas.validatedParameters(for: request) }
+        catch { throw AgentErrorCode.invalidInput }
+        guard case .array(let values) = parameters["order"] else { throw AgentErrorCode.invalidInput }
+        let existing = groups(in: .library)
+        let byID = Dictionary(uniqueKeysWithValues: existing.map { ($0.id, $0) })
+        let ids = values.compactMap { value -> UUID? in
+            guard case .string(let text) = value else { return nil }; return UUID(uuidString: text)
+        }
+        guard !ids.isEmpty, ids.count == existing.count, Set(ids) == Set(byID.keys) else { throw AgentErrorCode.versionConflict }
+        return try ids.enumerated().map { order, id in
+            guard var group = byID[id] else { throw AgentErrorCode.versionConflict }
+            group.order = order; return group
+        }
+    }
+
+    private func checkedActionOrder(_ request: AgentRequest) throws -> [DraftAction] {
+        let parameters: [String: AgentJSONValue]
+        do { parameters = try AgentActionSchemas.validatedParameters(for: request) }
+        catch { throw AgentErrorCode.invalidInput }
+        guard case .array(let values) = parameters["order"], let firstID = request.targets.first?.id,
+              let first = actionLibrary.actions.first(where: { $0.id == firstID }),
+              let groupID = actionLibrary.actionGroupIdentifiers[first.group], let expected = request.expectedVersion else {
+            throw AgentErrorCode.notFound
+        }
+        guard try actionOrderVersion(groupID: groupID) == expected else { throw AgentErrorCode.versionConflict }
+        let existing = actionLibrary.actions.filter { $0.group == first.group }
+        let byID = Dictionary(uniqueKeysWithValues: existing.map { ($0.id, $0) })
+        let ids = values.compactMap { value -> UUID? in
+            guard case .string(let text) = value else { return nil }; return UUID(uuidString: text)
+        }
+        guard !ids.isEmpty, ids.count == existing.count, Set(ids) == Set(byID.keys) else { throw AgentErrorCode.versionConflict }
+        return try ids.enumerated().map { order, id in
+            guard var action = byID[id] else { throw AgentErrorCode.versionConflict }
+            action.presentation.order = order; return action
+        }
+    }
+
+    private func actionMutationReceipt(_ request: AgentRequest, ticket: AgentRetryKeys.Ticket) throws -> LibraryMutationReceipt? {
+        let identity = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
+        do {
+            let receipt = try actionLibrary.mutationReceipt(for: identity, at: now())
+            if request.operation == "actionGroups.reorder" || request.operation == "actions.reorder" {
+                if let receipt, Set(receipt.resources.map(\.id)) != Set(request.targets.map(\.id)) { throw AgentErrorCode.storageError }
+                return receipt
+            }
+            let expected: UUID?
+            if request.operation == "actionGroups.create", case .object(let group) = request.parameters["group"],
+               case .string(let raw) = group["id"] { expected = UUID(uuidString: raw) }
+            else if request.operation == "actions.create", case .object(let action) = request.parameters["action"],
+               case .string(let raw) = action["id"] { expected = UUID(uuidString: raw) }
+            else if request.operation == "actions.duplicate" || request.operation == "actionGroups.duplicate" { expected = nil }
+            else if request.operation == "actionGroups.update" { expected = request.targets.first(where: { $0.kind == .actionGroup })?.id }
+            else { expected = request.targets.first(where: { $0.kind == .action })?.id }
+            guard receipt == nil || (receipt?.resources.count == 1 && (expected == nil || receipt?.resources.first?.id == expected)) else {
+                throw AgentErrorCode.storageError
+            }
+            return receipt
+        } catch let error as LibraryMutationReceiptError {
+            switch error {
+            case .requestConflict: throw AgentErrorCode.invalidInput
+            case .retryWindowExpired: throw AgentErrorCode.retryWindowExpired
+            case .pendingChanges: throw AgentErrorCode.busy
+            case .invalidReceipt: throw AgentErrorCode.storageError
+            }
+        }
+    }
+
+    private func prepareActionUpdate(_ request: AgentRequest, connectionID: UUID) throws -> AgentRetryKeys.Ticket {
+        guard request.retryKey == nil, request.libraryID == libraryID else { throw AgentErrorCode.invalidInput }
+        try validateAdmission()
+        let ticket = try retryKeys.issue(request, connectionID: connectionID)
+        if try actionMutationReceipt(request, ticket: ticket) == nil {
+            if request.operation == "actionGroups.create" { try validateNewGroup(newActionGroup(request)) }
+            else if request.operation == "actionGroups.update" { _ = try checkedGroupUpdate(request) }
+            else if request.operation == "actionGroups.duplicate" { _ = try checkedGroupCopy(request) }
+            else if request.operation == "actionGroups.reorder" { _ = try checkedGroupOrder(request) }
+            else if request.operation == "actions.reorder" { _ = try checkedActionOrder(request) }
+            else if request.operation == "actions.create" { try validateNewAction(newAction(request)) }
+            else if request.operation == "actions.duplicate" { try validateNewAction(checkedActionDuplicate(request)) }
+            else if request.operation == "actions.move" { _ = try checkedActionMove(request) }
+            else { _ = try checkedActionUpdate(request, connectionID: connectionID) }
+        }
+        try validateAdmission(); _ = try retryKeys.verify(ticket.value, request: request, connectionID: connectionID)
+        return ticket
+    }
+
+    private func updateAction(_ request: AgentRequest, connectionID: UUID) throws -> LibraryMutationReceipt {
+        guard let key = request.retryKey else { throw AgentErrorCode.invalidInput }
+        try validateAdmission()
+        let ticket = try retryKeys.verify(key, request: request, connectionID: connectionID)
+        if let previous = try actionMutationReceipt(request, ticket: ticket) {
+            try validateAdmission(); _ = try retryKeys.verify(key, request: request, connectionID: connectionID)
+            return previous
+        }
+        if request.operation == "actions.reorder" {
+            let actions = try checkedActionOrder(request)
+            let identity = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
+            do {
+                return try actionLibrary.commitActions(actions, mutation: identity, at: now(), validateCommit: {
+                    try self.validateAdmission(); _ = try self.retryKeys.verify(key, request: request, connectionID: connectionID)
+                    guard try self.checkedActionOrder(request) == actions else { throw AgentErrorCode.versionConflict }
+                }, makeResources: { actions in
+                    try actions.map { .init(id: $0.id, versionToken: try self.actionVersion($0)) }
+                })
+            } catch let error as AgentErrorCode { throw error }
+            catch { throw AgentErrorCode.storageError }
+        }
+        if request.operation == "actionGroups.reorder" {
+            let records = try checkedGroupOrder(request)
+            let identity = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
+            do {
+                return try actionLibrary.commitActionGroups(records, mutation: identity, at: now(), validateCommit: {
+                    try self.validateAdmission(); _ = try self.retryKeys.verify(key, request: request, connectionID: connectionID)
+                    guard try self.checkedGroupOrder(request) == records else { throw AgentErrorCode.versionConflict }
+                }, makeResources: { groups in
+                    try groups.map { .init(id: $0.id, versionToken: try self.groupVersion($0)) }
+                })
+            } catch let error as AgentErrorCode { throw error }
+            catch { throw AgentErrorCode.storageError }
+        }
+        if request.operation == "actionGroups.duplicate" {
+            let source = try checkedGroupCopy(request)
+            var group = source.original; group.id = UUID(); group.name = source.name
+            let lastOrder = groups(in: .library).map(\.order).max() ?? -1
+            guard lastOrder < Int.max else { throw AgentErrorCode.invalidInput }
+            group.order = lastOrder + 1
+            let copies = source.actions.map { action in
+                var copy = action; copy.id = UUID(); copy.group = group.name; copy.shortcut = ""
+                return copy
+            }
+            let identity = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
+            do {
+                return try actionLibrary.commitActionGroupCopy(group, actions: copies, mutation: identity, at: now(), validateCommit: {
+                    try self.validateAdmission(); _ = try self.retryKeys.verify(key, request: request, connectionID: connectionID)
+                    let current = try self.checkedGroupCopy(request)
+                    guard current.original == source.original, current.actions == source.actions,
+                          current.name == source.name else { throw AgentErrorCode.versionConflict }
+                }, makeResource: { .init(id: $0.id, versionToken: try self.groupVersion($0)) })
+            } catch let error as AgentErrorCode { throw error }
+            catch { throw AgentErrorCode.storageError }
+        }
+        if request.operation == "actionGroups.create" || request.operation == "actionGroups.update" {
+            let checked = request.operation == "actionGroups.update" ? try checkedGroupUpdate(request) : nil
+            let group = try checked?.updated ?? newActionGroup(request)
+            if checked == nil { try validateNewGroup(group) }
+            let identity = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
+            do {
+                return try actionLibrary.commitActionGroup(group, mutation: identity, at: now(), previousName: checked?.original.name, validateCommit: {
+                    try self.validateAdmission(); _ = try self.retryKeys.verify(key, request: request, connectionID: connectionID)
+                    if let checked {
+                        let current = try self.checkedGroupUpdate(request)
+                        guard current.updated == checked.updated, current.original == checked.original,
+                              current.actions == checked.actions else { throw AgentErrorCode.versionConflict }
+                    } else { try self.validateNewGroup(group) }
+                }, makeResource: { .init(id: $0.id, versionToken: try self.groupVersion($0)) })
+            } catch let error as AgentErrorCode { throw error }
+            catch { throw AgentErrorCode.storageError }
+        }
+        let action: DraftAction
+        if request.operation == "actions.create" { action = try newAction(request); try validateNewAction(action) }
+        else if request.operation == "actions.duplicate" { action = try checkedActionDuplicate(request); try validateNewAction(action) }
+        else if request.operation == "actions.move" { action = try checkedActionMove(request) }
+        else { action = try checkedActionUpdate(request, connectionID: connectionID) }
+        let identity = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
+        do {
+            return try actionLibrary.commitActions([action], mutation: identity, at: now(), validateCommit: {
+                try self.validateAdmission(); _ = try self.retryKeys.verify(key, request: request, connectionID: connectionID)
+                if request.operation == "actions.create" { try self.validateNewAction(action) }
+                else if request.operation == "actions.duplicate" {
+                    try self.validateNewAction(action)
+                    guard try self.checkedActionDuplicate(request, newID: action.id) == action else { throw AgentErrorCode.versionConflict }
+                }
+                else if request.operation == "actions.move" {
+                    guard try self.checkedActionMove(request) == action else { throw AgentErrorCode.versionConflict }
+                }
+                else { _ = try self.checkedActionUpdate(request, connectionID: connectionID) }
+            }, makeResources: { actions in
+                try actions.map { .init(id: $0.id, versionToken: try self.actionVersion($0)) }
+            })
+        } catch let error as AgentErrorCode { throw error }
+        catch { throw AgentErrorCode.storageError }
+    }
+
+    private func groupVersion(_ group: ActionGroupRecord) throws -> String {
+        let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
+        return Data(HMAC<SHA256>.authenticationCode(for: try encoder.encode(group), using: actionVersionKey)).base64EncodedString()
+    }
+
+    private func groupOrderVersion() throws -> String {
+        let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
+        return Data(HMAC<SHA256>.authenticationCode(for: try encoder.encode(groups(in: .library)), using: actionVersionKey)).base64EncodedString()
+    }
+
+    private func actionOrderVersion(groupID: UUID) throws -> String {
+        guard let group = groups(in: .library).first(where: { $0.id == groupID }) else { throw AgentErrorCode.versionConflict }
+        let actions = actionLibrary.orderedActions().filter { $0.group == group.name }
+        let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
+        let data = try encoder.encode(group) + encoder.encode(actions)
+        return Data(HMAC<SHA256>.authenticationCode(for: data, using: actionVersionKey)).base64EncodedString()
+    }
+
+    private func workspaceVersion(_ workspace: Workspace) throws -> String {
+        let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
+        return Data(HMAC<SHA256>.authenticationCode(for: try encoder.encode(workspace), using: actionVersionKey)).base64EncodedString()
+    }
+
+    private func checkedWorkspaceUpdate(_ request: AgentRequest) throws -> Workspace {
+        guard let target = request.targets.first?.id, let expected = request.expectedVersion,
+              let original = actionLibrary.workspaces.first(where: { $0.id == target }) else { throw AgentErrorCode.notFound }
+        guard try workspaceVersion(original) == expected else { throw AgentErrorCode.versionConflict }
+        let parameters: [String: AgentJSONValue]
+        do { parameters = try AgentWorkspaceSchemas.validatedParameters(for: request) }
+        catch { throw AgentErrorCode.invalidInput }
+        guard let value = parameters["workspace"] else { throw AgentErrorCode.invalidInput }
+        let updated: Workspace
+        do { updated = try JSONDecoder().decode(Workspace.self, from: JSONEncoder().encode(value)) }
+        catch { throw AgentErrorCode.invalidInput }
+        guard updated.id == target, updated.order == original.order,
+              !updated.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw AgentErrorCode.invalidInput
+        }
+        return updated
+    }
+
+    private func workspaceReceipt(_ request: AgentRequest, ticket: AgentRetryKeys.Ticket) throws -> LibraryMutationReceipt? {
+        let identity = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
+        do {
+            let receipt = try actionLibrary.mutationReceipt(for: identity, at: now())
+            guard receipt == nil || (receipt?.resources.count == 1 && receipt?.resources.first?.id == request.targets.first?.id) else {
+                throw AgentErrorCode.storageError
+            }
+            return receipt
+        } catch let error as LibraryMutationReceiptError {
+            switch error {
+            case .requestConflict: throw AgentErrorCode.invalidInput
+            case .retryWindowExpired: throw AgentErrorCode.retryWindowExpired
+            case .pendingChanges: throw AgentErrorCode.busy
+            case .invalidReceipt: throw AgentErrorCode.storageError
+            }
+        }
+    }
+
+    private func prepareWorkspaceUpdate(_ request: AgentRequest, connectionID: UUID) throws -> AgentRetryKeys.Ticket {
+        guard request.retryKey == nil, request.libraryID == libraryID else { throw AgentErrorCode.invalidInput }
+        try validateAdmission()
+        let ticket = try retryKeys.issue(request, connectionID: connectionID)
+        if try workspaceReceipt(request, ticket: ticket) == nil { _ = try checkedWorkspaceUpdate(request) }
+        try validateAdmission(); _ = try retryKeys.verify(ticket.value, request: request, connectionID: connectionID)
+        return ticket
+    }
+
+    private func updateWorkspace(_ request: AgentRequest, connectionID: UUID) throws -> LibraryMutationReceipt {
+        guard let key = request.retryKey else { throw AgentErrorCode.invalidInput }
+        try validateAdmission()
+        let ticket = try retryKeys.verify(key, request: request, connectionID: connectionID)
+        if let previous = try workspaceReceipt(request, ticket: ticket) {
+            try validateAdmission(); _ = try retryKeys.verify(key, request: request, connectionID: connectionID)
+            return previous
+        }
+        let updated = try checkedWorkspaceUpdate(request)
+        let identity = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
+        do {
+            return try actionLibrary.commitWorkspaces([updated], mutation: identity, at: now(), validateCommit: {
+                try self.validateAdmission(); _ = try self.retryKeys.verify(key, request: request, connectionID: connectionID)
+                guard try self.checkedWorkspaceUpdate(request) == updated else { throw AgentErrorCode.versionConflict }
+            }, makeResources: { values in
+                try values.map { .init(id: $0.id, versionToken: try self.workspaceVersion($0)) }
+            })
+        } catch let error as AgentErrorCode { throw error }
+        catch { throw AgentErrorCode.storageError }
+    }
+
+    private func groups(in scope: AgentResourceScope) -> [ActionGroupRecord] {
+        let identifiers = actionLibrary.actionGroupIdentifiers
+        return actionLibrary.groupNames.enumerated().compactMap { order, name in
+            guard let id = identifiers[name], scope.permits(.init(kind: .actionGroup, id: id)) else { return nil }
+            if let record = actionLibrary.actionGroups.first(where: { $0.name == name && $0.id == id }) { return record }
+            var record = ActionGroupRecord(name: name); record.id = id; record.order = order
+            return record
+        }
+    }
+
     private func dispatch(_ request: AgentRequest, parameters: [String: AgentJSONValue], grant: AgentGrant,
                           sessionID: UUID) throws -> [String: AgentJSONValue] {
         switch request.operation {
+        case "actions.run":
+            guard let submitAction, let operationRegistry else { throw AgentErrorCode.unavailable }
+            if let id = try operationRegistry.existingRequest(request, grant: grant) {
+                let snapshot = try operationRegistry.snapshot(id, connectionID: grant.connectionID)
+                return ["operationID": .string(id.uuidString), "state": .string(snapshot.state.rawValue)]
+            }
+            guard let actionID = request.targets.first(where: { $0.kind == .action })?.id,
+                  let draftID = request.targets.first(where: { $0.kind == .draft })?.id,
+                  let action = actionLibrary.actions.first(where: { $0.id == actionID }),
+                  actionLibrary.notes.contains(where: { $0.id == draftID }) else { throw AgentErrorCode.notFound }
+            guard try actionVersion(action) == request.expectedVersion else { throw AgentErrorCode.versionConflict }
+            let id = try submitAction(request, grant)
+            let snapshot = try operationRegistry.snapshot(id, connectionID: grant.connectionID)
+            return ["operationID": .string(id.uuidString), "state": .string(snapshot.state.rawValue)]
+        case "operations.get", "operations.cancel":
+            guard let operationRegistry else { throw AgentErrorCode.unavailable }
+            let result = try operationRegistry.control(request, connectionID: grant.connectionID)
+            var values: [String: AgentJSONValue] = ["operation": try result.snapshot.wireValue()]
+            if request.operation == "operations.cancel" { values["cancellationAccepted"] = .bool(result.cancellationAccepted) }
+            return values
+        case "workspaces.get":
+            guard let id = request.targets.first?.id, grant.scope.permits(.init(kind: .workspace, id: id)),
+                  let workspace = actionLibrary.workspaces.first(where: { $0.id == id }) else { throw AgentErrorCode.notFound }
+            let value = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(workspace))
+            return ["workspace": value, "versionToken": .string(try workspaceVersion(workspace))]
+        case "workspaces.list":
+            return try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
+                parameters: parameters, expiresAt: grant.expiresAt,
+                ids: { self.actionLibrary.workspaces.filter { grant.scope.permits(.init(kind: .workspace, id: $0.id)) }.map(\.id) },
+                value: { id in
+                    guard grant.scope.permits(.init(kind: .workspace, id: id)),
+                          let workspace = self.actionLibrary.workspaces.first(where: { $0.id == id }) else { return nil }
+                    return .object(["id": .string(id.uuidString), "name": .string(workspace.name),
+                        "order": workspace.order.map { .integer(Int64($0)) } ?? .null,
+                        "versionToken": .string(try self.workspaceVersion(workspace))])
+                })
+        case "actions.validateShortcut":
+            guard case .string(let key) = parameters["key"] else { throw AgentErrorCode.invalidInput }
+            let modifiers: [String]?
+            if case .array(let values) = parameters["modifiers"] {
+                modifiers = try values.map { guard case .string(let value) = $0 else { throw AgentErrorCode.invalidInput }; return value }
+            } else { modifiers = nil }
+            var candidate: DraftAction
+            if case .string(let value) = parameters["actionID"] {
+                guard let id = UUID(uuidString: value), let existing = actionLibrary.actions.first(where: { $0.id == id }) else {
+                    throw AgentErrorCode.notFound
+                }
+                candidate = existing
+            } else { candidate = DraftAction(name: "", steps: []) }
+            candidate.shortcut = key; candidate.shortcutModifiers = modifiers
+            return ["available": .bool(ActionShortcut.conflict(for: candidate, in: actionLibrary.actions) == nil)]
+        case "actions.stepSchemas":
+            return ["steps": .array(DraftAction.supportedSteps.sorted().map { type in
+                .object(["type": .string(type), "creationDefaults": .object(
+                    ActionStepCreationDefaults.values(for: type).mapValues { .string($0) })])
+            })]
+        case "activity.list":
+            guard let readActivity else { throw AgentErrorCode.unavailable }
+            let entries = try readActivity(grant.connectionID, grant.grantID).filter {
+                $0.connectionID == grant.connectionID && $0.grantID == grant.grantID && $0.libraryID == libraryID
+            }
+            let byID = Dictionary(entries.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+            return try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
+                parameters: parameters, expiresAt: grant.expiresAt, ids: { entries.map(\.id) }, value: { id in
+                    guard let entry = byID[id] else { return nil }
+                    return .object(["id": .string(entry.id.uuidString), "requestID": .string(entry.requestID.uuidString),
+                        "operation": .string(entry.operation), "date": .string(APIValues.date(entry.date)), "result": .string(entry.result)])
+                })
+        case "actionGroups.get":
+            guard let id = request.targets.first?.id, let group = groups(in: grant.scope).first(where: { $0.id == id }) else {
+                throw AgentErrorCode.notFound
+            }
+            let encoded = try JSONEncoder().encode(group)
+            return ["group": try JSONDecoder().decode(AgentJSONValue.self, from: encoded), "versionToken": .string(try groupVersion(group))]
+        case "actions.groups":
+            return try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
+                parameters: parameters, expiresAt: grant.expiresAt, ids: { self.groups(in: grant.scope).map(\.id) }, value: { id in
+                    guard let group = self.groups(in: grant.scope).first(where: { $0.id == id }) else { return nil }
+                    let token = try self.groupVersion(group)
+                    return .object(["id": .string(id.uuidString), "name": .string(group.name),
+                        "symbol": .string(group.symbol), "order": .integer(Int64(group.order)), "versionToken": .string(token)])
+                }, revision: grant.scope == .library ? { try self.groupOrderVersion() } : nil)
+        case "actions.get":
+            guard let id = request.targets.first?.id,
+                  grant.scope.permits(.init(kind: .action, id: id)),
+                  let action = actionLibrary.actions.first(where: { $0.id == id }) else { throw AgentErrorCode.notFound }
+            let encoded = try JSONEncoder().encode(action)
+            let value = try JSONDecoder().decode(AgentJSONValue.self, from: encoded)
+            return ["action": value, "versionToken": .string(try actionVersion(action))]
+        case "actions.list":
+            let surface: ActionSurface?
+            switch parameters["surface"] {
+            case .string("bar"): surface = .bar
+            case .string("search"): surface = .search
+            case .string("all"): surface = nil
+            default: surface = .list
+            }
+            let requestedGroup: UUID?
+            if case .string(let value) = parameters["groupID"] { requestedGroup = UUID(uuidString: value) }
+            else { requestedGroup = nil }
+            let orderGroup = grant.scope == .library && surface == nil ? requestedGroup : nil
+            func permitted(_ action: DraftAction) -> Bool {
+                guard grant.scope.permits(.init(kind: .action, id: action.id)),
+                      let group = actionLibrary.actionGroupIdentifiers[action.group] else { return false }
+                return requestedGroup == nil || requestedGroup == group
+            }
+            return try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
+                parameters: parameters, expiresAt: grant.expiresAt,
+                ids: { self.actionLibrary.orderedActions(on: surface).filter(permitted).map(\.id) },
+                value: { id in
+                    guard let action = self.actionLibrary.actions.first(where: { $0.id == id }), permitted(action),
+                          let group = self.actionLibrary.actionGroupIdentifiers[action.group],
+                          surface.map({ action.appears(on: $0) }) ?? true else { return nil }
+                    let token = try self.actionVersion(action)
+                    return .object(["id": .string(action.id.uuidString), "name": .string(action.name),
+                        "symbol": .string(action.symbol), "groupID": .string(group.uuidString),
+                        "group": .string(action.group), "versionToken": .string(token)])
+                }, revision: orderGroup.map { id in { try self.actionOrderVersion(groupID: id) } })
         case "server.status":
             return ["apiVersion": .integer(Int64(AgentRequest.version)), "appVersion": .string(appVersion), "accessEnabled": .bool(true)]
         case "server.capabilities":
@@ -163,18 +912,49 @@ import AgentContracts
         case "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks":
             return try readEditor(request, parameters: parameters, grant: grant, sessionID: sessionID)
         case "mutations.prepare":
-            guard let writes else { throw AgentErrorCode.unavailable }
             let input = try AgentMutationSchemas.mutation(from: parameters)
             let bound = AgentRequest(requestID: input.requestID, libraryID: input.libraryID ?? libraryID,
                 operation: input.operation, targets: input.targets, expectedVersion: input.expectedVersion, parameters: input.parameters)
-            let ticket = try writes.prepare(bound, connectionID: grant.connectionID)
+            guard availableOperations.contains(bound.operation) else { throw AgentErrorCode.unavailable }
+            let ticket: AgentRetryKeys.Ticket
+            if AgentPreferenceWriting.operationNames.contains(bound.operation) {
+                guard let preferenceWrites else { throw AgentErrorCode.unavailable }
+                ticket = try preferenceWrites.prepare(bound, connectionID: grant.connectionID)
+            } else if AgentEditorWriting.operationNames.contains(bound.operation) {
+                guard let editorWrites else { throw AgentErrorCode.unavailable }
+                ticket = try editorWrites.prepare(bound, connectionID: grant.connectionID)
+            } else if bound.operation == "workspaces.update" { ticket = try prepareWorkspaceUpdate(bound, connectionID: grant.connectionID) }
+            else if ["actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder"].contains(bound.operation) { ticket = try prepareActionUpdate(bound, connectionID: grant.connectionID) }
+            else {
+                guard let writes else { throw AgentErrorCode.unavailable }
+                ticket = try writes.prepare(bound, connectionID: grant.connectionID)
+            }
             return ["requestID": .string(bound.requestID.uuidString), "retryKey": .string(ticket.value),
                 "expiresAt": .string(APIValues.date(min(ticket.expiresAt, grant.expiresAt)))]
-        case "drafts.update", "drafts.patch", "drafts.restoreVersion":
+        case "actionGroups.reorder", "actions.reorder":
+            let receipt = try updateAction(request, connectionID: grant.connectionID)
+            return ["resources": .array(receipt.resources.map { .object(["id": .string($0.id.uuidString), "versionToken": .string($0.versionToken)]) })]
+        case "workspaces.update":
+            let receipt = try updateWorkspace(request, connectionID: grant.connectionID)
+            guard let resource = receipt.resources.first else { throw AgentErrorCode.storageError }
+            return ["resource": .object(["id": .string(resource.id.uuidString), "versionToken": .string(resource.versionToken)])]
+        case "actions.create", "actions.update", "actions.duplicate", "actions.move", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate":
+            let receipt = try updateAction(request, connectionID: grant.connectionID)
+            guard let resource = receipt.resources.first else { throw AgentErrorCode.storageError }
+            return ["resource": .object(["id": .string(resource.id.uuidString), "versionToken": .string(resource.versionToken)])]
+        case "drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion":
             guard let writes else { throw AgentErrorCode.unavailable }
             let receipt = try writes.update(request, connectionID: grant.connectionID)
             guard let resource = receipt.resources.first else { throw AgentErrorCode.storageError }
             return ["resource": .object(["id": .string(resource.id.uuidString), "versionToken": .string(resource.versionToken)])]
+        case "editor.setSelection", "editor.replaceRange":
+            guard let editorWrites else { throw AgentErrorCode.unavailable }
+            return try editorWrites.update(request, connectionID: grant.connectionID)
+        case "preferences.get":
+            return try readPreferences(parameters, grant: grant)
+        case "preferences.update", "preferences.reset":
+            guard let preferenceWrites else { throw AgentErrorCode.unavailable }
+            return try preferenceWrites.update(request, connectionID: grant.connectionID)
         case "preferences.schema":
             let selected: Set<String>?
             if case .array(let ids) = parameters["ids"] {
@@ -195,11 +975,34 @@ import AgentContracts
             return ["operations": .array(names.map { name in
                 let schema = AgentOperationSchemas.schema(for: name, preferences: preferences)
                 return .object(["name": .string(name), "inputSchema": schema?.parameters.jsonSchema ?? .null,
-                    "resultSchema": schema?.result.jsonSchema ?? .null, "available": .bool(availableOperations.contains(name) && (name != AgentMutationSchemas.name || grant.capabilities.contains(.draftsWrite)))])
+                    "resultSchema": schema?.result.jsonSchema ?? .null, "available": .bool(availableOperations.contains(name) && (name != AgentMutationSchemas.name || !grant.capabilities.isDisjoint(with: [.draftsWrite, .actionsManage, .workspacesManage, .preferencesWrite])))])
             })]
         default: return try drafts.read(request, parameters: parameters, grant: grant, sessionID: sessionID)
         }
     }
+    private func editorContext(_ id: UUID, grant: AgentGrant) throws -> AgentEditorWriting.Context {
+        guard let editorRegistry,
+              let snapshot = try editorRegistry.windowSnapshots().first(where: { $0.id == id }),
+              grant.scope.permits(.init(kind: .window, id: id)),
+              let draft = snapshot.draftID, grant.scope.permits(.init(kind: .draft, id: draft)),
+              actionLibrary.notes.contains(where: { $0.id == draft }),
+              case .string(let version) = try editorValues(snapshot)["versionToken"] else { throw AgentErrorCode.notFound }
+        return .init(snapshot: snapshot, version: version)
+    }
+
+    private func editorValues(_ snapshot: AgentEditorRegistry.WindowSnapshot) throws -> [String: AgentJSONValue] {
+        let selection: AgentJSONValue = .object(["offset": .integer(Int64(snapshot.selection.location)),
+            "length": .integer(Int64(snapshot.selection.length))])
+        let state: AgentJSONValue = .object(["windowID": .string(snapshot.id.uuidString), "generation": .string(snapshot.generation.uuidString),
+            "draftID": snapshot.draftID.map { .string($0.uuidString) } ?? .null,
+            "content": .string(snapshot.content), "selection": selection, "dirty": .bool(snapshot.dirty)])
+        let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
+        let token = Data(HMAC<SHA256>.authenticationCode(for: try encoder.encode(state), using: windowReadKey)).base64EncodedString()
+        return ["windowID": .string(snapshot.id.uuidString),
+            "draftID": snapshot.draftID.map { .string($0.uuidString) } ?? .null,
+            "versionToken": .string(token)]
+    }
+
     private func readEditor(_ request: AgentRequest, parameters: [String: AgentJSONValue], grant: AgentGrant,
                             sessionID: UUID) throws -> [String: AgentJSONValue] {
         guard let editorRegistry else { throw AgentErrorCode.unavailable }
@@ -207,25 +1010,13 @@ import AgentContracts
             guard grant.scope.permits(.init(kind: .window, id: snapshot.id)) else { return false }
             return snapshot.draftID.map { grant.scope.permits(.init(kind: .draft, id: $0)) } ?? true
         }
-        func values(_ snapshot: AgentEditorRegistry.WindowSnapshot) throws -> [String: AgentJSONValue] {
-            let selection: AgentJSONValue = .object(["offset": .integer(Int64(snapshot.selection.location)),
-                "length": .integer(Int64(snapshot.selection.length))])
-            let state: AgentJSONValue = .object(["windowID": .string(snapshot.id.uuidString), "generation": .string(snapshot.generation.uuidString),
-                "draftID": snapshot.draftID.map { .string($0.uuidString) } ?? .null,
-                "content": .string(snapshot.content), "selection": selection, "dirty": .bool(snapshot.dirty)])
-            let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
-            let token = Data(HMAC<SHA256>.authenticationCode(for: try encoder.encode(state), using: windowReadKey)).base64EncodedString()
-            return ["windowID": .string(snapshot.id.uuidString),
-                "draftID": snapshot.draftID.map { .string($0.uuidString) } ?? .null,
-                "versionToken": .string(token)]
-        }
         if request.operation == "editor.windows" {
             return try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
                 parameters: parameters, expiresAt: grant.expiresAt, ids: {
                     try editorRegistry.windowSnapshots().filter(authorized).map(\.id)
                 }, value: { id in
                     guard let snapshot = try editorRegistry.windowSnapshots().first(where: { $0.id == id }), authorized(snapshot) else { return nil }
-                    var result = try values(snapshot)
+                    var result = try editorValues(snapshot)
                     result["title"] = .string(Note(content: snapshot.content).title)
                     result["hasUnsavedChanges"] = .bool(snapshot.dirty)
                     return .object(result)
@@ -236,7 +1027,7 @@ import AgentContracts
             throw AgentErrorCode.notFound
         }
         guard snapshot.draftID != nil || (snapshot.content.isEmpty && !snapshot.dirty) else { throw AgentErrorCode.unavailable }
-        var result = try values(snapshot)
+        var result = try editorValues(snapshot)
         if request.operation != "editor.get" {
             let items: [AgentJSONValue]
             var bound = parameters; bound["editorVersion"] = result["versionToken"]

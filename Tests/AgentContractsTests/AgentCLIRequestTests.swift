@@ -4,6 +4,14 @@ import AgentContracts
 
 @Suite("Agent CLI request preparation")
 struct AgentCLIRequestTests {
+    @Test func workspaceReadsGenerateRequestIDs() throws {
+        let list = try AgentCLIRequest.make(mode: "call", operationName: "workspaces.list") { Data("{}".utf8) }
+        let id = UUID()
+        let input = Data("{\"targets\":[{\"kind\":\"workspace\",\"id\":\"\(id.uuidString)\"}]}".utf8)
+        let detail = try AgentCLIRequest.make(mode: "call", operationName: "workspaces.get") { input }
+        #expect(list.operation == "workspaces.list" && list.targets.isEmpty)
+        #expect(detail.operation == "workspaces.get" && detail.targets.first?.id == id)
+    }
     @Test(arguments: ["status", "capabilities"])
     func generatedRequestsDoNotReadInput(mode: String) throws {
         let request = try AgentCLIRequest.make(mode: mode) {

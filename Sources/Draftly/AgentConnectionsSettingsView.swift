@@ -1,8 +1,11 @@
 import SwiftUI
+import AppKit
 import AgentContracts
 
 struct AgentConnectionsSettingsView: View {
     @ObservedObject var model: AgentConnectionsSettingsModel
+    @State private var confirmClearActivity = false
+    @State private var operationReview: AgentApprovalStore.Review?
 
     var body: some View {
         Form {
@@ -10,8 +13,20 @@ struct AgentConnectionsSettingsView: View {
                 Toggle("Allow local agent access", isOn: Binding(get: { model.accessEnabled }, set: { enabled in
                     try? model.setEnabled(enabled)
                 })).disabled(!model.readable)
+                Button("Stop work") { try? model.stopWork() }
+                    .disabled(!model.readable || !model.accessEnabled)
+                Text("Stops local connections and pending connection requests. You can enable access again later.")
+                    .font(.caption).foregroundStyle(.secondary)
                 Text("Each connection needs your approval. Permissions stay on this Mac and are not included in backups.")
                     .font(.caption).foregroundStyle(.secondary)
+                if let command = model.pairingCommand {
+                    Button("Copy connection command") {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(command, forType: .string)
+                    }.disabled(!model.accessEnabled)
+                    Text("Run the command in Terminal, then compare the code shown here before approving.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
             }
             if !model.pending.isEmpty {
                 Section("Connection requests") {
@@ -31,6 +46,21 @@ struct AgentConnectionsSettingsView: View {
                     }
                 }
             }
+            if !model.pendingOperationReviews.isEmpty {
+                Section("Operation requests") {
+                    ForEach(model.pendingOperationReviews) { review in
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text(review.operation)
+                                Text(model.connections.first(where: { $0.id == review.connectionID })?.name ?? "Local connection")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Button("Review…") { operationReview = review }
+                        }
+                    }
+                }
+            }
             Section("Connections for this library") {
                 if model.connections.isEmpty { Text("No approved connections.").foregroundStyle(.secondary) }
                 ForEach(model.connections) { record in
@@ -43,12 +73,36 @@ struct AgentConnectionsSettingsView: View {
                         Text(record.scopeKind == .library ? "Entire library" : "Selected resources: \(record.resources.count)")
                         Text("Expires " + record.expiresAt.formatted(date: .abbreviated, time: .shortened)).font(.caption)
                         HStack {
+                            if let configuration = model.mcpConfiguration(for: record.id) {
+                                Button("Copy MCP configuration") {
+                                    NSPasteboard.general.clearContents()
+                                    NSPasteboard.general.setString(configuration, forType: .string)
+                                }
+                            }
                             Button("Edit permissions…") { try? model.beginEditing(record.id) }.disabled(record.revoked || !model.readable)
-                            Button(record.revoked ? "Retry credential cleanup" : "Revoke access", role: .destructive) { try? model.revoke(record.id) }
+                            Button(record.revoked ? "Clean up credential" : "Revoke access", role: .destructive) { try? model.revoke(record.id) }
                                 .disabled(!model.readable)
                         }
                     }
                 }
+            }
+            Section("Recent activity") {
+                if let error = model.activityError {
+                    Text("Some activity may be missing. " + error.connectionMessage).foregroundStyle(.red)
+                }
+                if model.activity.isEmpty && model.activityError == nil { Text("No recorded activity.").foregroundStyle(.secondary) }
+                ForEach(model.activity.prefix(20)) { entry in
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(entry.operation + " · " + entry.result)
+                        Text(entry.date.formatted(date: .abbreviated, time: .shortened) + " · " +
+                             (model.connections.first(where: { $0.id == entry.connectionID })?.name ?? "Connection " + entry.connectionID.uuidString))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                Text("Results describe responses. A failed response can require checking whether a change took effect.")
+                    .font(.caption).foregroundStyle(.secondary)
+                Button("Clear activity…", role: .destructive) { confirmClearActivity = true }
+                    .disabled(model.activity.isEmpty && model.activityError == nil)
             }
             if model.cleanupPending {
                 Text("Access is revoked. Credential cleanup is still pending.").foregroundStyle(.secondary)
@@ -61,14 +115,157 @@ struct AgentConnectionsSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .sheet(isPresented: Binding(get: { model.draft != nil }, set: { if !$0 { model.cancelEditing() } })) {
-            AgentConnectionGrantEditor(model: model)
+        .confirmationDialog("Clear activity for this library?", isPresented: $confirmClearActivity) {
+            Button("Clear activity", role: .destructive) { try? model.clearActivity() }
+            Button("Cancel", role: .cancel) {}
+        } message: { Text("This removes the local activity history for this library.") }
+        .background(AgentGrantSheetPresenter(model: model))
+        .sheet(item: $operationReview) { review in
+            AgentOperationReviewSheet(model: model, review: review, dismiss: { operationReview = nil })
         }
         .task {
             while !Task.isCancelled {
                 model.refresh()
                 try? await Task.sleep(for: .seconds(2))
             }
+        }
+    }
+}
+
+private struct AgentOperationReviewSheet: View {
+    @ObservedObject var model: AgentConnectionsSettingsModel
+    let review: AgentApprovalStore.Review
+    let dismiss: () -> Void
+    @State private var showTechnicalDetails = false
+
+    private var nativeTitle: String? {
+        guard case .string(let operation) = review.effects.snapshot["nativeOperation"] else { return nil }
+        switch operation {
+        case "clipboard": return "Copy text to the clipboard"
+        case "getClipboard": return "Read the current clipboard"
+        case "htmlToClipboard": return "Copy formatted text to the clipboard"
+        case "share": return "Share text"
+        case "shareFile": return "Share a text file"
+        case "print": return "Print text"
+        case "openURL": return "Open a link"
+        default: return nil
+        }
+    }
+
+    private var nativeFields: [(String, String)] {
+        guard case .object(let fields) = review.effects.snapshot["nativeParameters"] else { return [] }
+        return fields.keys.sorted().map { key in
+            let value = fields[key]!
+            let label = ["text": "Text", "html": "HTML content", "name": "File name", "format": "Format", "template": "Template", "url": "URL"][key] ?? key
+            if case .string(let text) = value { return (label, text) }
+            let data = try? JSONEncoder().encode(value)
+            return (label, data.flatMap { String(data: $0, encoding: .utf8) } ?? "Unavailable")
+        }
+    }
+
+    private var details: String? {
+        func references(_ values: [AgentResourceReference]) -> AgentJSONValue {
+            .array(values.sorted { ($0.kind.rawValue, $0.id.uuidString) < ($1.kind.rawValue, $1.id.uuidString) }
+                .map { .object(["kind": .string($0.kind.rawValue), "id": .string($0.id.uuidString)]) })
+        }
+        let value: AgentJSONValue = .object([
+            "parameters": .object(review.parameters),
+            "targets": references(review.targets),
+            "expectedVersion": review.expectedVersion.map(AgentJSONValue.string) ?? .null,
+            "effectTargets": references(Array(review.effects.targets)),
+            "effectCapabilities": .array(review.effects.capabilities.map(\.rawValue).sorted().map(AgentJSONValue.string)),
+            "requiresEntireLibrary": .bool(review.effects.requiresLibraryScope),
+            "effectDetails": .object(review.effects.snapshot)
+        ])
+        let encoder = JSONEncoder(); encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        guard let data = try? encoder.encode(value) else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Review operation").font(.headline)
+            Text(nativeTitle ?? review.operation).font(.title3)
+            Text((model.connections.first(where: { $0.id == review.connectionID })?.name ?? "Connection")
+                 + " · " + review.connectionID.uuidString).textSelection(.enabled)
+            Text("Expires " + review.expiresAt.formatted(date: .omitted, time: .standard))
+                .foregroundStyle(.secondary)
+            Text("Check the request and its effects before allowing it once.")
+            if let details {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        if nativeTitle != nil {
+                            if review.effects.snapshot["nativeOperation"] == .string("getClipboard") {
+                                Text("This Action will read the current clipboard before preparing its next step.")
+                            }
+                            ForEach(Array(nativeFields.enumerated()), id: \.offset) { _, field in
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(field.0).font(.headline)
+                                    Text(field.1).textSelection(.enabled)
+                                }
+                            }
+                            DisclosureGroup("Technical details", isExpanded: $showTechnicalDetails) {
+                                Text(details).font(.system(.caption, design: .monospaced)).textSelection(.enabled)
+                            }
+                        } else {
+                            Text(details).font(.system(.body, design: .monospaced)).textSelection(.enabled)
+                        }
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+                }
+            } else {
+                Text("The request details cannot be displayed.").foregroundStyle(.red)
+            }
+            if let error = model.lastError { Text(error.connectionMessage).foregroundStyle(.red) }
+            HStack {
+                Button("Close") { dismiss() }.keyboardShortcut(.cancelAction)
+                Spacer()
+                Button("Deny", role: .destructive) {
+                    if (try? model.decideOperation(review, approved: false)) != nil { dismiss() }
+                }
+                Button("Allow once") {
+                    if (try? model.decideOperation(review, approved: true)) != nil { dismiss() }
+                }.keyboardShortcut(.defaultAction)
+                    .disabled(details == nil || !model.pendingOperationReviews.contains { $0.id == review.id && $0.fingerprint == review.fingerprint })
+            }
+        }
+        .padding(20).frame(minWidth: 520, minHeight: 400)
+    }
+}
+
+private struct AgentGrantSheetPresenter: NSViewRepresentable {
+    @ObservedObject var model: AgentConnectionsSettingsModel
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+    func makeNSView(context: Context) -> NSView { NSView() }
+    func updateNSView(_ view: NSView, context: Context) {
+        let coordinator = context.coordinator
+        DispatchQueue.main.async { [weak view, weak model] in
+            guard let model else { return }
+            coordinator.update(parent: view?.window, model: model)
+        }
+    }
+    static func dismantleNSView(_ view: NSView, coordinator: Coordinator) { coordinator.invalidate() }
+
+    @MainActor final class Coordinator {
+        private var panel: NSPanel?
+        private var invalidated = false
+        func update(parent: NSWindow?, model: AgentConnectionsSettingsModel) {
+            guard !invalidated else { return }
+            guard model.draft != nil else { close(); return }
+            guard panel == nil, let parent else { return }
+            let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 620, height: 620),
+                                styleMask: [.titled], backing: .buffered, defer: false)
+            panel.title = "Agent Permissions"
+            panel.contentViewController = NSHostingController(rootView: AgentConnectionGrantEditor(model: model))
+            self.panel = panel
+            parent.beginSheet(panel)
+        }
+        func invalidate() { invalidated = true; close() }
+        func close() {
+            guard let panel else { return }
+            self.panel = nil
+            if let parent = panel.sheetParent { parent.endSheet(panel) }
+            else { panel.orderOut(nil) }
         }
     }
 }
@@ -119,13 +316,15 @@ private struct AgentConnectionGrantEditor: View {
             }
             Section("Permissions") {
                 ForEach(AgentCapability.allCases, id: \.rawValue) { capability in
-                    Toggle(capability.userTitle, isOn: Binding(get: { model.draft?.capabilities.contains(capability) == true }, set: { enabled in
+                    Toggle(capability.userTitle + (model.availableCapabilities.contains(capability) ? "" : " (unavailable)"), isOn: Binding(get: { model.draft?.capabilities.contains(capability) == true }, set: { enabled in
                         guard var copy = model.draft else { return }
                         if enabled { copy.capabilities.insert(capability) } else { copy.capabilities.remove(capability) }
                         model.draft = copy
-                    }))
+                    })).disabled(!model.availableCapabilities.contains(capability) && !draft.capabilities.contains(capability))
                 }
                 Text("Permissions do not approve individual destructive operations or native effects.")
+                    .font(.caption).foregroundStyle(.secondary)
+                Text("Some available permissions cover only part of their operation category.")
                     .font(.caption).foregroundStyle(.secondary)
                 if draft.capabilities.contains(.scriptsUnrestricted) {
                     Text("Unrestricted scripts can affect files, other apps and external systems. Each use still needs your approval.")

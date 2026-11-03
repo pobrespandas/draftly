@@ -30,6 +30,74 @@ import AgentContracts
         }
     }
 
+    func executionModels(draftID: UUID, windowID: UUID? = nil) throws -> [WindowModel] {
+        guard valid else { throw AgentErrorCode.cancelled }
+        let candidates = trackedModels().filter { $0.editor.noteID == draftID }
+        if let windowID {
+            guard let selected = candidates.first(where: { entries[ObjectIdentifier($0)]?.windowID == windowID }) else {
+                throw AgentErrorCode.notFound
+            }
+            return [selected]
+        }
+        return candidates
+    }
+
+    func setSelection(_ expected: WindowSnapshot, range: NSRange, authorize: () throws -> Void) throws {
+        guard valid else { throw AgentErrorCode.cancelled }
+        try validateSelection(expected)
+        try authorize()
+        try validateSelection(expected)
+        let model = try matchingModel(expected)
+        model.editor.selection = range
+        try authorize()
+        guard trackedModels().contains(where: { $0 === model }), model.editor.noteID == expected.draftID,
+              DraftOperations.sameText(model.editor.content, expected.content), model.editor.selection == range else {
+            throw AgentErrorCode.outcomeUnknown
+        }
+    }
+
+    private func matchingModel(_ expected: WindowSnapshot) throws -> WindowModel {
+        guard valid else { throw AgentErrorCode.cancelled }
+        guard let model = trackedModels().first(where: { entries[ObjectIdentifier($0)]?.windowID == expected.id }),
+              let entry = entries[ObjectIdentifier(model)] else { throw AgentErrorCode.notFound }
+        guard entry.generation == expected.generation, model.editor.noteID == expected.draftID else {
+            throw AgentErrorCode.versionConflict
+        }
+        return model
+    }
+
+    func validateSelection(_ expected: WindowSnapshot) throws {
+        let model = try matchingModel(expected)
+        guard model.editor.canApplyExternalEdit?() != false else { throw AgentErrorCode.interactionRequired }
+    }
+
+    func validateReplacement(_ expected: WindowSnapshot) throws {
+        let model = try matchingModel(expected)
+        guard !ActionRunner.isExecuting(in: library), !model.actionPending, !model.runner.isRunning else { throw AgentErrorCode.busy }
+        guard model.editor.synchronizeScriptEdit != nil, model.editor.canApplyExternalEdit?() == true else {
+            throw AgentErrorCode.interactionRequired
+        }
+    }
+
+    func replaceRange(_ expected: WindowSnapshot, range: NSRange, text: String, authorize: () throws -> Void) throws {
+        try validateReplacement(expected)
+        try authorize()
+        try validateReplacement(expected)
+        let model = try matchingModel(expected)
+        let result = (expected.content as NSString).replacingCharacters(in: range, with: text)
+        try model.editor.replace(range, with: text)
+        func validateProjection() throws {
+            guard valid, trackedModels().contains(where: { $0 === model }), model.editor.noteID == expected.draftID,
+                  DraftOperations.sameText(model.editor.content, result) else { throw AgentErrorCode.outcomeUnknown }
+        }
+        try validateProjection()
+        model.contentChanged()
+        try validateProjection()
+        model.editor.synchronizeScriptEdit?()
+        try validateProjection()
+        try authorize()
+    }
+
     func syntaxDefinition(windowID: UUID) throws -> SyntaxDefinition {
         guard valid else { throw AgentErrorCode.cancelled }
         guard let model = trackedModels().first(where: { entries[ObjectIdentifier($0)]?.windowID == windowID }) else {

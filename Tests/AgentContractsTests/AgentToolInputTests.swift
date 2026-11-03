@@ -9,8 +9,23 @@ struct AgentToolInputTests {
         #expect(names.count == 137 && Set(names).count == names.count)
         for operation in AgentOperationCatalog.operations { #expect(AgentToolInput.operation(named: AgentToolInput.name(for: operation.name))?.name == operation.name) }
         #expect(AgentToolInput.operation(named: "run_any_script") == nil)
-        #expect(Set(AgentOperationCatalog.operations.filter(\.isReadOnly).map(\.name)) == AgentReadSchemas.operationNames.union(["editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks"]))
+        #expect(Set(AgentOperationCatalog.operations.filter(\.isReadOnly).map(\.name)) == AgentReadSchemas.operationNames.union([
+            "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks",
+            "actions.list", "actions.get", "actions.stepSchemas", "actions.validateShortcut",
+            "actions.groups", "actionGroups.get", "workspaces.list", "workspaces.get", "workspaces.query", "activity.list", "preferences.schema", "preferences.get"
+        ]))
     }
+    @Test(arguments: ["preferences.get", "preferences.schema"])
+    func preferenceReadsDoNotRequireAMutationIdentity(name: String) throws {
+        let operation = try #require(AgentOperationCatalog.operation(named: name))
+        let values: [String: AgentJSONValue] = name == "preferences.get" ?
+            ["items": .array([.object(["id": .string("editor.fontSize")])])] : [:]
+        let request = try AgentToolInput.request(operation: operation, arguments: ["parameters": .object(values)])
+        #expect(operation.isReadOnly && !operation.requiresExpectedVersion)
+        #expect(request.parameters == values && request.retryKey == nil && request.expectedVersion == nil)
+        #expect(request.targets.isEmpty && request.libraryID == nil)
+    }
+
     @Test func requestTargetsAndAuthorityCannotBeReboundByToolArguments() throws {
         let operation = try #require(AgentToolInput.operation(named: "draftly_drafts_get")), id = UUID()
         let targets = AgentJSONValue.array([.object(["kind": .string("draft"), "id": .string(id.uuidString)])])

@@ -8,7 +8,11 @@ import Foundation
             guard let id else { return nil }
             return library.notes.first(where: { $0.id == id }).map(noteValue)
         case .queryDrafts(let query):
-            var notes = query.workspace.filter(library.notes).filter { !query.omitFlagged || $0.flag == 0 }
+            let input: [Note]
+            if let filterScriptDrafts { input = try filterScriptDrafts(library.notes) }
+            else if authorizeScriptOperation != nil { throw DraftlyError.message("The draft query scope is unavailable.") }
+            else { input = library.notes }
+            var notes = query.workspace.filter(input).filter { !query.omitFlagged || $0.flag == 0 }
             if query.flaggedToTop { notes = notes.filter { $0.flag > 0 } + notes.filter { $0.flag == 0 } }
             return notes.map(noteValue)
         case .updateDraft(let input):

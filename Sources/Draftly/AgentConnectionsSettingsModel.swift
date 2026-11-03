@@ -23,9 +23,14 @@ import AgentContracts
     var cleanupPending: Bool { !cleanupPendingIDs.isEmpty }
     @Published private(set) var readable = false
     @Published private(set) var accessEnabled = false
+    @Published private(set) var activity: [AgentActivityStore.Entry] = []
+    @Published private(set) var activityError: AgentErrorCode?
+    @Published private(set) var pendingOperationReviews: [AgentApprovalStore.Review] = []
     @Published var draft: AgentGrantEditingCopy? { didSet { review = nil } }
 
     let libraryID: UUID
+    let pairingCommand: String?
+    let availableCapabilities: Set<AgentCapability>
     private let registry: AgentConnectionRegistry
     private let pairing: AgentPairingCoordinator
     private let now: () -> Date
@@ -34,17 +39,43 @@ import AgentContracts
     private let resolveTargets: (Set<AgentResourceReference>) throws -> Set<AgentResourceReference>
     // The host owns broker startup, shutdown, provisioning and lock observation.
     private let setAccessEnabled: (Bool) throws -> Void
+    private let isAccessActive: () -> Bool
+    private let makeMCPConfiguration: (UUID) -> String?
+    private let readActivity: () throws -> [AgentActivityStore.Entry]
+    private let eraseActivity: () throws -> Void
+    private let activityRecordingError: () -> AgentErrorCode?
+    private let pendingReviews: () throws -> [AgentApprovalStore.Review]
+    private let decideReview: (AgentApprovalStore.Review, Bool) throws -> Void
 
     init(libraryID: UUID, registry: AgentConnectionRegistry, pairing: AgentPairingCoordinator,
          now: @escaping () -> Date = Date.init, choices: @escaping () -> [ResourceChoice],
          initialTargets: @escaping () -> Set<AgentResourceReference> = { [] },
          resolveTargets: @escaping (Set<AgentResourceReference>) throws -> Set<AgentResourceReference>,
-         setAccessEnabled: @escaping (Bool) throws -> Void) throws {
+         setAccessEnabled: @escaping (Bool) throws -> Void,
+         isAccessActive: @escaping () -> Bool = { true }, pairingCommand: String? = nil,
+         availableCapabilities: Set<AgentCapability> = Set(AgentCapability.allCases),
+         makeMCPConfiguration: @escaping (UUID) -> String? = { _ in nil },
+         readActivity: @escaping () throws -> [AgentActivityStore.Entry] = { [] },
+         eraseActivity: @escaping () throws -> Void = {},
+         activityRecordingError: @escaping () -> AgentErrorCode? = { nil },
+         pendingReviews: @escaping () throws -> [AgentApprovalStore.Review] = { [] },
+         decideReview: @escaping (AgentApprovalStore.Review, Bool) throws -> Void = { _, _ in throw AgentErrorCode.unavailable }) throws {
         guard pairing.isBound(to: registry, libraryID: libraryID) else { throw AgentErrorCode.invalidInput }
-        self.libraryID = libraryID; self.registry = registry; self.pairing = pairing; self.now = now
+        self.libraryID = libraryID; self.pairingCommand = pairingCommand; self.availableCapabilities = availableCapabilities
+        self.registry = registry; self.pairing = pairing; self.now = now
         self.choices = choices; self.initialTargets = initialTargets; self.resolveTargets = resolveTargets
-        self.setAccessEnabled = setAccessEnabled
+        self.setAccessEnabled = setAccessEnabled; self.isAccessActive = isAccessActive
+        self.makeMCPConfiguration = makeMCPConfiguration
+        self.readActivity = readActivity; self.eraseActivity = eraseActivity
+        self.activityRecordingError = activityRecordingError
+        self.pendingReviews = pendingReviews; self.decideReview = decideReview
         refresh()
+        if readable {
+            for record in connections where record.revoked {
+                do { try registry.cleanUpRevokedCredentialFromUserInterface(record.id) }
+                catch { cleanupPendingIDs.insert(record.id) }
+            }
+        }
     }
 
     var connections: [AgentConnectionRecord] { configuration.connections.filter { $0.libraryID == libraryID } }
@@ -67,22 +98,48 @@ import AgentContracts
     func refresh() {
         do {
             configuration = try registry.configurationForUserInterface()
-            accessEnabled = try registry.permitsTransportStart()
+            accessEnabled = try registry.permitsTransportStart() && isAccessActive()
             readable = true
         } catch { readable = false; accessEnabled = false; lastError = code(error) }
         pending = pairing.pendingFromUserInterface()
+        do { activity = try readActivity(); activityError = activityRecordingError() }
+        catch { activity = []; activityError = code(error) }
+        do { pendingOperationReviews = try pendingReviews() }
+        catch { pendingOperationReviews = []; lastError = code(error) }
         if case .pairing(let challenge) = context, !pending.contains(where: { $0.id == challenge.id }) { review = nil }
     }
 
     func clearError() { lastError = nil }
 
+    func decideOperation(_ review: AgentApprovalStore.Review, approved: Bool) throws {
+        do { try decideReview(review, approved); lastError = nil; refresh() }
+        catch { refresh(); lastError = code(error); throw error }
+    }
+
     func setEnabled(_ enabled: Bool) throws {
         do {
             try setAccessEnabled(enabled)
             guard try registry.configurationForUserInterface().enabled == enabled,
-                  try registry.permitsTransportStart() == enabled else { throw AgentErrorCode.outcomeUnknown }
+                  try registry.permitsTransportStart() == enabled,
+                  !enabled || isAccessActive() else { throw AgentErrorCode.outcomeUnknown }
             lastError = nil; refresh()
         } catch { refresh(); lastError = code(error); throw error }
+    }
+
+    func stopWork() throws { try setEnabled(false) }
+
+    func clearActivity() throws {
+        do { try eraseActivity(); refresh() }
+        catch { activityError = code(error); throw error }
+    }
+
+    func mcpConfiguration(for id: UUID) -> String? {
+        guard let record = try? currentRecord(id), !record.revoked else { return nil }
+        switch registry.displayStatusFromUserInterface(record, enabled: accessEnabled) {
+        case .active, .paused: break
+        case .inactive, .revoked, .needsReview: return nil
+        }
+        return makeMCPConfiguration(id)
     }
 
     func beginEditing(_ id: UUID) throws {
@@ -115,6 +172,7 @@ import AgentContracts
             let current = try currentRecord(id)
             guard current.grantID == draft.originalGrantID else { throw AgentErrorCode.versionConflict }
             guard !current.revoked else { throw AgentErrorCode.permissionDenied }
+            guard draft.capabilities.subtracting(current.capabilities).isSubset(of: availableCapabilities) else { throw AgentErrorCode.unavailable }
             // Renaming is not part of the registry's grant replacement command.
             guard draft.name == current.name else { throw AgentErrorCode.invalidInput }
             try validate(draft)
@@ -127,6 +185,7 @@ import AgentContracts
     func preparePairingReview() throws {
         do {
             guard case .pairing(let challenge) = context, let draft else { throw AgentErrorCode.invalidInput }
+            guard draft.capabilities.isSubset(of: availableCapabilities) else { throw AgentErrorCode.unavailable }
             try validate(draft)
             review = try pairing.prepareReviewFromUserInterface(challenge.id, name: draft.name,
                 capabilities: draft.capabilities, scope: draft.scope, grantExpiresAt: draft.expiresAt, renewable: draft.renewable)

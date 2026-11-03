@@ -3,6 +3,17 @@
 Updated: 1 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Signed helper smoke check — 2 November
+
+An isolated Developer ID app contained the signed universal agent helper.
+The app and nested helper passed strict signature and profile checks. The helper
+ran `discover` against a new temporary directory and returned an empty list.
+This command validates the helper identity before discovery. The same binary
+also completed an MCP initialize exchange over standard input and output with
+protocol version 2025-11-25. No app host was connected during this exchange.
+The check does not prove pairing, Keychain exchange with the installed app,
+screen-lock handling, or notarization of the combined app.
+
 ## Public 0.1.7 — 2 November
 
 [0.1.7/build8](https://github.com/pobrespandas/draftly/releases/tag/v0.1.7)

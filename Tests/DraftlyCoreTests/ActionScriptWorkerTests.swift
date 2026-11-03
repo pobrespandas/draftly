@@ -4,6 +4,79 @@ import Testing
 
 @Suite("Script worker host lifetime") @MainActor
 struct ActionScriptWorkerTests {
+    @Test func synchronousIncludedActionIsResolvedOnlyFromFilteredCatalog() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Original")
+        let editor = EditorSession(); editor.load(note)
+        let helper = DraftAction(name: "Helper", steps: [ActionStep("insertText", ["template": "Added"])])
+        let root = DraftAction(name: "Root", steps: [ActionStep("includeAction", ["uuid": helper.id.uuidString])])
+        try library.saveActions([root, helper])
+        let runner = ActionRunner(library: library, editor: editor)
+        runner.authorizeActionStep = { _, _ in }
+        runner.filterActionCatalog = { $0.filter { $0.id == root.id } }
+        let report = runner.runReport(root)
+        #expect(report.reason == .error && library.notes.first?.content == "Original")
+        runner.filterActionCatalog = nil
+        let withoutFilter = runner.runReport(root)
+        #expect(withoutFilter.reason == .error && library.notes.first?.content == "Original")
+    }
+    @Test(arguments: [false, true]) func deniedCompletionDoesNotApplyDispositionOrFlush(worker: Bool) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Original")
+        let editor = EditorSession(); editor.load(note)
+        let runner = ActionRunner(library: library, editor: editor)
+        var action = DraftAction(name: "Finish", steps: []); action.afterSuccess = "trash"
+        runner.authorizeActionCompletion = { candidate, id in
+            #expect(candidate.id == action.id && id == note.id)
+            editor.content = "Unapproved"
+            throw DraftlyError.message("Denied")
+        }
+        let report = worker ? await runner.runAsync(action) : runner.runReport(action)
+        #expect(report.reason == .error)
+        #expect(library.notes.first?.content == "Original" && library.notes.first?.trashedAt == nil)
+    }
+    @Test(arguments: [false, true]) func deniedStepDoesNotFlushPendingEditorChanges(worker: Bool) async throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Original")
+        let editor = EditorSession(); editor.load(note)
+        let runner = ActionRunner(library: library, editor: editor)
+        runner.authorizeActionStep = { _, _ in
+            editor.content = "Unapproved"
+            throw DraftlyError.message("Denied")
+        }
+        let action = DraftAction(name: "Create", steps: [ActionStep("createDraft", ["template": "Created"])])
+        let report = worker ? await runner.runAsync(action) : runner.runReport(action)
+        #expect(report.reason == .error)
+        #expect(library.notes.count == 1 && library.notes.first?.content == "Original")
+    }
+    @Test func synchronousNativeStepRequiresAuthorizationBeforeCreation() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Original")
+        let editor = EditorSession(); editor.load(note)
+        let runner = ActionRunner(library: library, editor: editor)
+        var denied = 0
+        runner.authorizeActionStep = { _, step in
+            if step.type == "createDraft" { denied += 1; throw DraftlyError.message("Denied") }
+        }
+        let action = DraftAction(name: "Create", steps: [ActionStep("createDraft", ["template": "Created"])])
+        let report = runner.runReport(action)
+        #expect(denied == 1 && report.reason == .error)
+        #expect(library.notes.count == 1 && library.notes.first?.content == "Original")
+    }
+    @Test func synchronousScriptChecksAuthorizationBeforeUpdatingDraft() throws {
+        let library = try LibraryStore(inMemory: true, seed: false)
+        let note = try library.createNote(content: "Original")
+        let editor = EditorSession(); editor.load(note)
+        let runner = ActionRunner(library: library, editor: editor)
+        var denied = 0
+        runner.authorizeScriptOperation = { operation, _ in
+            if operation == "updateDraft" { denied += 1; throw DraftlyError.message("Denied") }
+        }
+        let action = DraftAction(name: "Change", steps: [ActionStep("script", ["script": "draft.content='Changed'; draft.update();"])])
+        let report = runner.runReport(action)
+        #expect(denied == 1 && report.reason == .error)
+        #expect(library.notes.first { $0.id == note.id }?.content == "Original")
+    }
     @Test func concurrentWorkersCompleteMainActorHostRequests() async {
         let counter = WorkerRequestCounter()
         let results = await withTaskGroup(of: Bool.self, returning: [Bool].self) { group in

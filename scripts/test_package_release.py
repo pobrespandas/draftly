@@ -53,6 +53,8 @@ class FakeRunner:
             archive = Path(command[command.index("-archivePath") + 1])
             contents = archive / "Products/Applications/Draftly.app/Contents"
             contents.mkdir(parents=True)
+            (contents / "MacOS").mkdir()
+            (contents / "MacOS/Draftly").write_bytes(b"production executable fixture")
             info = {"CFBundleIdentifier": release.BUNDLE, "CFBundleName": "Draftly",
                     "CFBundleShortVersionString": "0.1.0", "CFBundleVersion": "1",
                     "CFBundleURLTypes": [{"CFBundleURLSchemes": ["draftly"]}],
@@ -61,6 +63,13 @@ class FakeRunner:
                     "SURequireSignedFeed": True, "SUVerifyUpdateBeforeExtraction": True,
                     "SUEnableAutomaticChecks": True}
             (contents / "Info.plist").write_bytes(plistlib.dumps(info))
+        elif command[:2] == ["swift", "build"] and "--show-bin-path" in command:
+            output = str(Path(command[command.index("--scratch-path") + 1]) / "release") + "\n"
+        elif "package-agent-helper.py" in command[1]:
+            app = Path(command[command.index("--output") + 1]) / "DraftlyAgent.app"
+            (app / "Contents/MacOS").mkdir(parents=True)
+            (app / "Contents/MacOS/draftly-agent").write_bytes(b"signed helper fixture")
+            output = json.dumps({"app": str(app)})
         elif command[:2] == ["hdiutil", "create"]:
             Path(command[-1]).write_bytes(b"neutral disk image")
         elif command[0] == "ditto":
@@ -89,6 +98,22 @@ class PackageReleaseTests(unittest.TestCase):
         source = patch.object(release, "ROOT", root)
         source.start()
         self.addCleanup(source.stop)
+
+    def test_candidate_rejects_agent_qa_adapter_before_notarization(self):
+        class QARunner(FakeRunner):
+            def __call__(self, command, **kwargs):
+                result = super().__call__(command, **kwargs)
+                if command[0] == "xcodebuild":
+                    archive = Path(command[command.index("-archivePath") + 1])
+                    binary = archive / "Products/Applications/Draftly.app/Contents/MacOS/Draftly"
+                    binary.write_bytes(b"fixture --agent-isolated-qa fixture")
+                return result
+
+        with tempfile.TemporaryDirectory() as directory:
+            runner = QARunner()
+            with self.assertRaisesRegex(ValueError, "isolated agent QA"):
+                release.package(Path(directory) / "candidate", "QA profile", "QA notary", TAG, runner=runner)
+            self.assertFalse(any(command[:3] == ["xcrun", "notarytool", "submit"] for command in runner.commands))
 
     def test_ci_disk_image_finishes_before_candidate_is_ready(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -162,10 +187,38 @@ class PackageReleaseTests(unittest.TestCase):
             self.assertLess(commands.index(signed[-1]), next(i for i, command in enumerate(commands) if "verify-cloud-signing.py" in command[1]))
             verify = next(command for command in commands if "verify-cloud-signing.py" in command[1])
             self.assertIn("--require-developer-id", verify)
+            self.assertEqual(verify[verify.index("--expected-keychain-group") + 1],
+                             release.TEAM + ".com.pobrespandas.draftly.agent-access")
             self.assertLess(next(i for i, command in enumerate(commands) if command[:3] == ["xcrun", "notarytool", "wait"]),
                             next(i for i, command in enumerate(commands) if command[:3] == ["xcrun", "stapler", "staple"]))
             self.assertLess(next(i for i, command in enumerate(commands) if command[0] == "spctl"),
                             max(i for i, command in enumerate(commands) if command[0] == "ditto"))
+
+    def test_helper_is_built_signed_and_verified_before_app_is_sealed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            runner = FakeRunner()
+            release.package(Path(directory) / "candidate", "QA profile", "QA notary", TAG,
+                            agent_profile="agent-profile", runner=runner)
+            commands = runner.commands
+            build = next(c for c in commands if c[:2] == ["swift", "build"] and "--product" in c)
+            self.assertIn("arm64", build)
+            self.assertIn("x86_64", build)
+            helper = next(i for i, c in enumerate(commands) if "package-agent-helper.py" in c[1])
+            verify = next(i for i, c in enumerate(commands) if c[:2] == ["codesign", "--verify"] and "-R" in c)
+            seal = next(i for i, c in enumerate(commands) if c[:2] == ["codesign", "--force"] and c[-1].endswith("/Draftly.app"))
+            notary = next(i for i, c in enumerate(commands) if c[:3] == ["xcrun", "notarytool", "submit"])
+            self.assertLess(helper, verify)
+            self.assertLess(verify, seal)
+            self.assertLess(seal, notary)
+
+    def test_helper_signing_failure_prevents_app_seal_and_notarization(self):
+        with tempfile.TemporaryDirectory() as directory:
+            runner = FakeRunner(fail_command=[release.sys.executable, str(release.ROOT / "scripts/package-agent-helper.py")])
+            with self.assertRaises(subprocess.CalledProcessError):
+                release.package(Path(directory) / "candidate", "QA profile", "QA notary", TAG,
+                                agent_profile="agent-profile", runner=runner)
+            self.assertFalse(any(c[:3] == ["xcrun", "notarytool", "submit"] for c in runner.commands))
+            self.assertFalse((Path(directory) / "candidate/READY").exists())
 
     def test_embedded_signing_failure_stops_before_notary_submission(self):
         with tempfile.TemporaryDirectory() as directory:

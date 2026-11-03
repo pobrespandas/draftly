@@ -5,9 +5,14 @@ import Foundation
         guard hostOperationTimeout.isFinite, hostOperationTimeout > 0 else {
             throw DraftlyError.message("The host operation timeout must be positive and finite.")
         }
-        let steps = try ActionStepExpansion.expand(initialAction, actions: library.actions)
+        let steps = try ActionStepExpansion.expand(initialAction, actions: permittedActionCatalog(for: initialAction))
         var configurationSteps = steps
         var action = try await prepareInitialConfigurationAsync(initialAction, steps: steps)
+        if filterActionCatalog != nil {
+            guard try ActionStepExpansion.expand(action, actions: permittedActionCatalog(for: action)) == steps else {
+                throw DraftlyError.message("The Action changed during preparation.")
+            }
+        }
         let initialStepID = UUID()
         bridgeStepID = initialStepID
         let authority = ActionBridgeRequestAuthority()
@@ -22,16 +27,26 @@ import Foundation
                 for step in items where step.isEnabled != false {
                     try checkCancellation()
                     try Task.checkCancellation()
+                    try authorizeActionStep?(owner, step)
                     session.enter(actionID: owner, step: step)
                     bridgeStepID = step.id
                     if step.type == "includeAction" {
                         let current = library.notes.first(where: { $0.id == note.id }) ?? note
                         let included = try await ActionTemplateBuilder.build(render: { try await self.renderTemplateAsync($0, note: current) }) { render in
-                            try ActionStepExpansion.resolve(step, actions: self.library.actions, render: render)
+                            try ActionStepExpansion.resolve(step, actions: self.permittedActionCatalog(for: action), render: render)
                         }
-                        let includedSteps = try ActionStepExpansion.expand(included, actions: library.actions, path: path)
+                        let catalog = try permittedActionCatalog(for: action)
+                        if filterActionCatalog != nil && !catalog.contains(included) { throw DraftlyError.message("The Action is unavailable.") }
+                        let includedSteps = try ActionStepExpansion.expand(included, actions: catalog, path: path)
                         configurationSteps += includedSteps
                         action = try await prepareInitialConfigurationAsync(action, steps: configurationSteps)
+                        if filterActionCatalog != nil {
+                            let refreshed = try permittedActionCatalog(for: action)
+                            guard refreshed.contains(included),
+                                  try ActionStepExpansion.expand(included, actions: refreshed, path: path) == includedSteps else {
+                                throw DraftlyError.message("The Action changed during preparation.")
+                            }
+                        }
                         try await worker.evaluateSource(additionalConfigurationSource(action, steps: includedSteps))
                         try await performSteps(included.steps, owner: included.id, path: path.union([included.id]))
                         continue
@@ -66,6 +81,7 @@ import Foundation
             try await performSteps(action.steps, owner: action.id, path: [action.id])
             try checkCancellation()
             try Task.checkCancellation()
+            try authorizeActionCompletion?(action, note.id)
             try flushEditor()
             try applySuccessEffects(action, noteID: note.id)
             bridgeStepID = nil
@@ -107,6 +123,7 @@ import Foundation
             guard Date() < request.deadline else { throw ActionExecutionInterruption.timeout }
             guard authority.consume(request) else { throw DraftlyError.message("The host request is unknown or already consumed.") }
             try checkCancellation()
+            try authorizeScriptOperation?(request.operation, request.payload)
             if request.operation == "ui", let uiOperationAsync,
                let values = try JSONSerialization.jsonObject(with: Data(request.payload.utf8)) as? [String: Any],
                ["openInNewTab", "openInNewWindow"].contains(values["operation"] as? String ?? "") {
@@ -158,7 +175,9 @@ import Foundation
                 }
                 return response
             }
-            if host?.supportsAsync(request.operation) == true {
+            let guardedDraftCall = authorizeScriptOperation != nil && ["findDraft", "updateDraft", "queryDrafts"].contains(request.operation)
+            if !guardedDraftCall,
+               host?.supportsAsync(request.operation) == true {
                 let response = try await platformAsync(request.operation, payload: request.payload)
                 guard activeSession?.id == request.executionID, bridgeStepID == request.stepID else {
                     throw DraftlyError.message("The action was closed.")
@@ -168,7 +187,7 @@ import Foundation
             let values = (try? JSONSerialization.jsonObject(with: Data(request.payload.utf8))) as? [String: Any] ?? [:]
             let result: Any?
             if request.operation == "requireScript" { result = try platform("requireScript", values) }
-            else { result = try dispatch(request.operation, values: values) }
+            else { result = try dispatchAuthorized(request.operation, values: values) }
             try checkCancellation()
             return try json(request.operation == "appleScript" ? AppleScriptValueTransport.encode(result ?? NSNull()) : ["value": result ?? NSNull()])
         } catch {

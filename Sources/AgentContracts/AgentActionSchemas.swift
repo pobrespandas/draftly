@@ -93,18 +93,20 @@ package enum AgentActionSchemas {
         list["surface"] = o(.string(choices: ["list", "bar", "search", "all"]), default: .string("list"))
         return [
             "actions.list": .init(parameters: .init(fields: list), result: .init(fields: [
-                "items": r(.array(.object(summary), maximum: 200)), "nextCursor": r(.nullable(token))
+                "items": r(.array(.object(summary), maximum: 200)), "nextCursor": r(.nullable(token)), "orderVersion": o(token)
             ])),
             "actions.get": .init(parameters: none, result: .init(fields: [
                 "action": r(.object(action)), "versionToken": r(token)
             ])),
             "actions.stepSchemas": .init(parameters: none, result: .init(fields: [
-                "steps": r(.array(rawObject, maximum: 10_000))
+                "steps": r(.array(.object(.init(fields: [
+                    "type": r(text), "creationDefaults": r(stringMap)
+                ])), maximum: 10_000))
             ])),
             "actions.groups": .init(parameters: page, result: .init(fields: [
                 "items": r(.array(.object(.init(fields: ["id": r(.uuid), "name": r(text),
                     "symbol": r(text), "order": r(.integer()), "versionToken": r(token)])), maximum: 200)),
-                "nextCursor": r(.nullable(token))
+                "nextCursor": r(.nullable(token)), "orderVersion": o(token)
             ])),
             "actions.create": .init(parameters: .init(fields: ["action": r(.object(newAction))]), result: updated),
             "actions.update": .init(parameters: .init(fields: ["action": r(.object(action))]), result: updated),
@@ -119,7 +121,7 @@ package enum AgentActionSchemas {
                 "interactive": o(.boolean, default: .bool(false)), "windowID": o(.uuid),
                 "timeoutSeconds": o(.integer(minimum: 1, maximum: 3600))
             ]), result: .init(fields: ["operationID": r(.uuid),
-                "state": r(.string(choices: ["queued", "running", "waiting_for_user"]))])),
+                "state": r(.string(choices: AgentOperationState.allCases.map(\.rawValue)))])),
             "actionGroups.get": .init(parameters: none, result: .init(fields: [
                 "group": r(.object(group)), "versionToken": r(token)
             ])),
