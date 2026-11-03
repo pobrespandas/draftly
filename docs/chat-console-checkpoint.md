@@ -190,83 +190,26 @@ needs its own final CI result. The QA copy remains open with the neutral chat.
 - [Models and inference](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference)
 - [Accounts and sessions](https://developers.openai.com/siwc/token-sharing-open-source/profiles-and-sessions)
 
-## MCP credentials in progress
+## Scope correction — 3 November 2026
 
-`MCPConnectionCredentialStore` keeps complete records in a separate Keychain
-service. Each record binds a connection ID to one HTTPS resource endpoint and
-authorization server. It rejects endpoint substitution. QA bundle identity
-separates its records from production. ChatGPT uses its existing service.
-`DeviceCredentialStore` provides the shared device-local Keychain operations.
-Writes report failures and do not delete the previous item.
+The user excluded external MCP servers for now. The active PR removes outbound
+MCP discovery, OAuth, and credential code. The local branch
+`at/mcp-external-deferred-20261103` retains that work for reference. It is not a
+prerequisite or an available console feature.
 
-Before refresh, the store persists an uncertainty marker. A failed replacement
-keeps this marker across restart. This is storage support, not a working MCP
-login. The session owner, discovery, browser flow, renewal, connection UI, and
-authorized tools remain pending. The pinned SDK's `TokenStorage` methods do not
-throw. Do not hide Keychain errors behind that interface or retry an uncertain
-refresh automatically.
+Prioritize Draftly's own local MCP server and ChatGPT's use of its authorized
+tools. The existing server uses the signed helper, native pairing, Keychain,
+and limited grants. Keep that authority path. Do not add an inbound remote
+HTTP server or substitute OAuth for local pairing. ChatGPT model authentication
+remains separate. The console must check grants before each local call and
+must honor pause, Stop Work, revocation, and effect reviews.
 
-Validation: six credential tests passed serially, including the existing
-ChatGPT Keychain tests. Both project-generator checks passed. Installed MCP
-login and production Keychain acceptance are not yet verified.
+Full CI `41590666299` passed for baseline `52f5d32`. Later history and scope
+changes still need full CI. No installed tool-using chat acceptance exists yet.
 
-`MCPConnectionSession` coordinates renewal across callers and checks required
-scopes again after renewal. It saves uncertainty before network work. It holds
-a device-local lease during renewal. Disconnect blocks new callers, waits for
-renewal, and removes the saved record. This is local disconnect; remote
-revocation is not implemented. A conditional credential replacement rejects a
-late result if the saved session changed or was removed. Network renewal is
-injected for now. Browser login and real MCP transport integration remain open.
+Full CI `41592308292` passed for `ae0587a`, including native macOS checks.
+The current external-MCP removal still needs its own full CI validation.
 
-Full CI run `41590666299` completed successfully for commit `52f5d32`.
-This validates the direct ChatGPT baseline. It does not cover the later
-Apple labels, history merge, or MCP credential and session changes.
-
-Validation: six MCP credential and session tests passed serially. They cover
-coalesced renewal, returned scope checks, disconnect during renewal, durable
-uncertainty after network failure, and rejected completion after deletion.
-Both project-generator checks passed. These tests inject renewal responses;
-they do not establish a working MCP server login or remote revocation.
-
-## MCP authorization discovery and request
-
-`MCPAuthorizationDiscovery` loads protected resource metadata, then OAuth or
-OIDC authorization server metadata. It verifies the resource and issuer. It
-requires S256 and HTTPS. Multiple issuers require an explicit advertised choice.
-Requests have no credentials. Redirects are denied and responses are bounded by
-the shared HTTP implementation. A malformed successful document stops discovery;
-only HTTP 404 tries the next discovery path.
-
-`MCPAuthorizationRequest` creates fresh state and a PKCE verifier. It binds the
-authorization and token requests to one resource, client, and redirect URI.
-Callback checks cover destination, state, duplicate parameters, and a returned
-issuer. The verifier remains in memory. The browser session, client registration,
-token response exchange, connection UI, and installed login remain pending.
-
-Reference: https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization
-
-Validation: all six discovery and authorization-request tests passed serially.
-Both project-generator checks passed. Next, use `ASWebAuthenticationSession`
-with the app's registered callback scheme. Apple documentation was checked for
-session start, cancellation, and presentation-context ownership. The native
-browser flow is not implemented or accepted yet.
-
-## Scope clarification — Draftly's own MCP server
-
-The user expects Draftly to provide its own MCP server. That local server is
-already implemented in `AgentMCP`. It runs through the signed helper and the
-application's local permission service. Its authentication is native pairing
-and limited grants, not an external server's OAuth login. Finish the installed
-Draftly server and console-to-Draftly permission path first. An external MCP
-server URL is not a prerequisite for this work.
-
-The outbound MCP browser and code-exchange implementation is staged separately
-from the active console. `MCPBrowserAuthorization` uses the system web session.
-`MCPLoginService` validates callbacks, exchanges the code, checks cancellation,
-and saves complete credentials under the same session lease used by renewal.
-It rejects a login result if the saved session changed while login was pending.
-It currently requires a registered public client ID. Dynamic registration,
-connection UI, real-server acceptance, and remote revocation remain open.
-Nine request, session, and login tests passed serially. Login tests use injected
-browser and HTTP responses. The native browser has compiled but has not passed
-installed interactive acceptance. Do not report it as a usable console feature.
+After removal, all 15 focused ChatGPT credential, provider, and console tests
+passed serially. Both project-generator checks passed. The own-MCP tool bridge
+is still missing; no tool execution is advertised by Chat Console.
