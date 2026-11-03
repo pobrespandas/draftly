@@ -1492,6 +1492,41 @@ struct AgentCommandServiceTests {
         #expect(try f.library.backupData() == before)
     }
 
+    @Test func syntaxListPaginatesOnlyGrantedInstalledDefinitions() throws {
+        let f = try Fixture()
+        var firstSource = try ScriptSyntax.definition("Markdown").object
+        firstSource["name"] = "First syntax"
+        let first = try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: firstSource))
+        var secondSource = try ScriptSyntax.definition("TaskPaper").object
+        secondSource["name"] = "Second syntax"
+        let second = try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: secondSource))
+        try f.library.saveSyntax(first); try f.library.saveSyntax(second)
+        let firstTarget = AgentResourceReference(kind: .syntax, id: first.id)
+        let secondTarget = AgentResourceReference(kind: .syntax, id: second.id)
+        let (_, denied) = try f.connect(scope: .resources([]), capabilities: [])
+        let (_, hidden) = try f.connect(scope: .resources([]), capabilities: [.appearanceRead])
+        let (_, allowed) = try f.connect(scope: .resources([firstTarget, secondTarget]), capabilities: [.appearanceRead])
+        let (_, limited) = try f.connect(scope: .resources([firstTarget]), capabilities: [.appearanceRead])
+        #expect(try f.response("syntaxes.list", session: denied).outcome == .error(.permissionDenied))
+        let empty = try f.values("syntaxes.list", session: hidden)
+        #expect(empty["items"] == .array([]))
+        #expect(empty["builtInNames"] == .array(ScriptSyntax.names.map(AgentJSONValue.string)))
+        let page = try f.values("syntaxes.list", session: allowed, parameters: ["limit": .integer(1)])
+        guard case .array(let items) = page["items"], case .object(let item) = items.first,
+              case .string(let token) = item["versionToken"], case .string(let cursor) = page["nextCursor"] else {
+            Issue.record("Missing scoped syntax or cursor"); return
+        }
+        #expect(items.count == 1 && item["id"] == .string(first.id.uuidString))
+        #expect(item["name"] == .string("First syntax") && !token.isEmpty)
+        let next = try f.values("syntaxes.list", session: allowed, parameters: ["limit": .integer(1), "cursor": .string(cursor)])
+        guard case .array(let nextItems) = next["items"], case .object(let nextItem) = nextItems.first else {
+            Issue.record("Missing next syntax page"); return
+        }
+        #expect(nextItems.count == 1 && nextItem["id"] == .string(second.id.uuidString))
+        let limitedItems = try f.values("syntaxes.list", session: limited)["items"]
+        #expect(limitedItems == .array([.object(item)]))
+    }
+
     @Test func schemasReportActualHandlersAndUnsupportedOperationsNeverSimulateSuccess() throws {
         let f = try Fixture(), (_, session) = try f.connect(capabilities: [.draftsRead, .draftsWrite])
         let values = try f.values("server.schemas", session: session)
@@ -1501,6 +1536,7 @@ struct AgentCommandServiceTests {
             return name
         })
         #expect(available.remove("syntaxes.getBuiltIn") != nil)
+        #expect(available.remove("syntaxes.list") != nil)
         #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", "preferences.get", AgentMutationSchemas.name, "drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.setSelection", "editor.replaceRange", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.update"]) && available.count == 42)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.invalidInput))
         #expect(f.library.notes.isEmpty)
