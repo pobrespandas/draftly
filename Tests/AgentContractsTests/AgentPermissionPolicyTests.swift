@@ -132,6 +132,9 @@ struct AgentPermissionPolicyTests {
             == .needsEffectAuthorization(.library, humanApproval: false))
         #expect(evaluate("syntaxes.install", grant: access) == .needsEffectAuthorization(.library, humanApproval: false))
         #expect(evaluate("themes.selection", grant: grant([.appearanceRead], scope: .library)) == .permitted(.library))
+        let syntax = AgentResourceReference(kind: .syntax, id: UUID())
+        #expect(evaluate("syntaxes.get", targets: [syntax], grant: grant([.appearanceRead], scope: .resources([syntax])))
+            == .permitted(.resources([syntax])))
     }
 
     @Test func bookmarkCreationNeedsHumanConsentAndDoesNotGrantNativeAccess() {
