@@ -32,3 +32,8 @@ Run the availability tests with `node --test website/release.test.mjs` from
 the repository root. This source change is not a deployment. The live site
 must receive the page and script together through a coordinated deployment
 that preserves the appcast and other site files.
+
+Alpha and beta releases are separate GitHub prereleases. Their publisher does
+not change this site or its stable appcast. Keep the main download on the
+verified stable feed. A candidate artifact or private draft is not a public
+download offer. See [release channels](../docs/releasing.md#release-channels).

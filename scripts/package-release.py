@@ -25,6 +25,11 @@ toolchain = importlib.util.module_from_spec(toolchain_spec)
 toolchain_spec.loader.exec_module(toolchain)
 
 
+import importlib.util
+_channels_spec = importlib.util.spec_from_file_location("release_channels", Path(__file__).with_name("release-channels.py"))
+channels = importlib.util.module_from_spec(_channels_spec)
+_channels_spec.loader.exec_module(channels)
+
 def validate_key(value):
     try:
         decoded = base64.b64decode(value, validate=True)
@@ -143,7 +148,7 @@ def package(output, profile, notary_profile, tag, *, public_key=None, runner=sub
     source = plistlib.loads((ROOT / "Configuration/Info.plist").read_bytes())
     version = source.get("CFBundleShortVersionString")
     if (not isinstance(version, str) or not re.fullmatch(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)", version)
-            or tag != "v" + version):
+            or channels.parse(tag)[0] != version):
         raise ValueError("The candidate tag must match the source version.")
     commit = source_commit(tag, runner)
     toolchain.check(runner)

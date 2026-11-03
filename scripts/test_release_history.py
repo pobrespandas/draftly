@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import subprocess
 import unittest
+from unittest.mock import patch
 from unittest.mock import Mock, patch
 from urllib.error import HTTPError
 
@@ -26,6 +27,29 @@ def feed(*versions):
 
 
 class ReleaseHistoryTests(unittest.TestCase):
+    def test_prerelease_build_metadata_must_match_its_uploaded_digest(self):
+        contents = b'{"tag":"v1.0.0-beta.1","version":"1.0.0","build":"9"}'
+        asset = dict(name="candidate.json", id=42, size=len(contents),
+                     digest="sha256:" + history.hashlib.sha256(contents).hexdigest())
+        published = dict(tag_name="v1.0.0-beta.1", draft=False, prerelease=True, assets=[asset])
+        with patch.object(history.subprocess, "run", return_value=history.subprocess.CompletedProcess([], 0, stdout=contents)) as run:
+            self.assertEqual(history.fetch_prerelease_builds([published]), ["9"])
+            self.assertEqual(history.fetch_prerelease_builds([published], published["tag_name"]), [])
+            self.assertEqual(run.call_count, 1)
+            asset["digest"] = "sha256:" + "0" * 64
+            with self.assertRaisesRegex(ValueError, "checksum"):
+                history.fetch_prerelease_builds([published])
+
+    def test_prerelease_history_and_recovery_do_not_change_stable_feed(self):
+        tag = "v1.0.0-beta.1"
+        candidate = release("1.0.0-beta.1", draft=True, prerelease=True)
+        history.validate_history("1.0.0", "3", [candidate], None, candidate_tag=tag, resume_candidate=True,
+                                 prerelease_builds=["2"])
+        with self.assertRaisesRegex(ValueError, "prerelease build"):
+            history.validate_history("1.0.0", "2", [], None, prerelease_builds=["2"])
+        with self.assertRaisesRegex(ValueError, "already has"):
+            history.validate_history("1.0.0", "3", [candidate], None, candidate_tag=tag)
+
     def test_first_release_requires_no_existing_stable_history(self):
         history.validate_history("0.1.0", "1", [], None)
         history.validate_history("0.1.0", "1", [], feed())

@@ -10,8 +10,8 @@ release workflow also accepts a manual dispatch on main. It checks the
 candidate source tree before accessing release credentials. Its rehearsal job has read-only
 permissions. It does not create a release or deploy the website.
 
-Use an existing tag in the form `vMAJOR.MINOR.PATCH`. The tag must identify the
-current `main` commit. It must match
+Use an existing stable, alpha, or beta tag as defined in [release operations](releasing.md). The tag must identify the
+current `main` commit. Its numeric part must match
 `CFBundleShortVersionString`. `CFBundleVersion` must be a positive integer.
 The workflow runs the test suites, matrix structural check, and local build.
 It checks the built app identity and URL scheme. The local build uses an ad hoc

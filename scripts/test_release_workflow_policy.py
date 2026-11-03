@@ -17,6 +17,17 @@ def jobs():
 
 
 class ReleaseWorkflowPolicyTests(unittest.TestCase):
+    def test_prerelease_uses_verified_candidate_and_never_stages_the_site(self):
+        job = jobs()['prerelease']
+        self.assertEqual(job['needs'], 'candidate')
+        self.assertEqual(job['environment'], 'release')
+        self.assertIn("DRAFTLY_RELEASE_PUBLICATION_ENABLED == 'true'", job['if'])
+        self.assertIn("contains(inputs.tag, '-')", job['if'])
+        steps = json.dumps(job['steps'])
+        self.assertIn('publish-prerelease.py', steps)
+        self.assertNotIn('firebase', steps.lower())
+        self.assertNotIn('SPARKLE_PRIVATE_KEY', steps)
+
     def test_candidate_artifact_retains_dmg_and_notarization_receipts(self):
         step = next(s for s in jobs()['candidate']['steps']
                     if s.get('name') == 'Save verified candidate for review')
@@ -53,7 +64,7 @@ class ReleaseWorkflowPolicyTests(unittest.TestCase):
         candidate = configured['candidate']['if']
         stage = configured['stage']['if']
         self.assertEqual(candidate, "${{ vars.DRAFTLY_RELEASE_SIGNING_ENABLED == 'true' || (github.event_name == 'workflow_dispatch' && inputs.resume_run_id != '') }}")
-        self.assertEqual(stage, "${{ vars.DRAFTLY_RELEASE_STAGING_ENABLED == 'true' }}")
+        self.assertEqual(stage, "${{ vars.DRAFTLY_RELEASE_STAGING_ENABLED == 'true' && !contains(inputs.tag, '-') }}")
 
     def test_only_main_dispatch_can_reach_release_credentials(self):
         configured = jobs()

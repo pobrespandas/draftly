@@ -202,10 +202,10 @@ def find_release(releases, tag):
     return matches[0] if matches else None
 
 
-def validate_assets(release, expected, notes, tag, *, allow_missing):
+def validate_assets(release, expected, notes, tag, *, allow_missing, prerelease=False):
     if (not isinstance(release, dict) or not isinstance(release.get("draft"), bool)
             or release.get("tag_name") != tag or release.get("name") != "Draftly " + tag[1:]
-            or release.get("prerelease") is not False or release.get("body") != notes
+            or release.get("prerelease") is not prerelease or release.get("body") != notes
             or not isinstance(release.get("assets"), list)):
         raise ValueError("The GitHub release metadata does not match the candidate.")
     seen = set()
