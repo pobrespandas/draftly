@@ -393,7 +393,13 @@ public final class LibraryStore: ObservableObject {
     func requestActionCatalogReplacement(installation: String, requiresImport: Bool) throws {
         guard !installation.isEmpty else { throw DraftlyError.message("The installation identity is missing.") }
         if requiresImport {
+            guard try !hasInstalledActionCatalog(installation) else { return }
             pendingCatalogInstallation = installation
+            // An empty cache still needs usable actions when iCloud cannot import.
+            // Keep replacement pending so imported actions are reconciled later.
+            if actions.isEmpty && actionGroups.isEmpty {
+                try installActionCatalog(groups: DefaultActionCatalog.groups, actions: DefaultActionCatalog.actions)
+            }
         } else {
             try replaceActionCatalogIfNeeded(installation: installation)
         }
@@ -410,13 +416,17 @@ public final class LibraryStore: ObservableObject {
 
     private struct InstalledActionCatalog: Codable { let installation: String }
 
+    private func hasInstalledActionCatalog(_ installation: String) throws -> Bool {
+        try persistence.decode("installedActionCatalog", InstalledActionCatalog.self)
+            .contains { $0.installation == installation }
+    }
+
     /// Replace the entire action catalog once for an application installation.
     public func replaceActionCatalogIfNeeded(installation: String) throws {
         guard !installation.isEmpty else { throw DraftlyError.message("The installation identity is missing.") }
         let bytes = Array(SHA256.hash(data: Data(installation.utf8)).prefix(16))
         let markerID = bytes.withUnsafeBufferPointer { NSUUID(uuidBytes: $0.baseAddress!) as UUID }
-        let markers = try persistence.decode("installedActionCatalog", InstalledActionCatalog.self)
-        guard !markers.contains(where: { $0.installation == installation }) else { return }
+        guard try !hasInstalledActionCatalog(installation) else { return }
         do {
             for action in actions {
                 if let record = persistence.record(for: "action:\(action.id.uuidString)") { container.viewContext.delete(record) }
