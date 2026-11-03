@@ -1,5 +1,15 @@
 # Local agent operation checkpoint
 
+## Draft creation — 2 November 2026
+
+The local service implements `drafts.create`. It requires a prepared request
+and a signed retry key. The library commits the new draft and its receipt in
+one transaction. A repeated request returns the saved receipt. Recreating the
+service and preparing the same request also returns that receipt without a
+second draft. Revocation at the commit boundary rolls back the draft and receipt.
+The focused service regression passed. Installed CLI and MCP acceptance for
+creation remains pending. Normal startup still keeps agent access disabled.
+
 The agent service exposes operation queries and cancellation when its registry
 is connected. An internal host option connects Action submission to the reviewed
 executor. The option is off by default.
