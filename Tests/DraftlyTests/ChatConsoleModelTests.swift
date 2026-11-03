@@ -98,23 +98,29 @@ struct ChatConsoleModelTests {
         read -r initialized
         read -r request
         printf '%s\\n' '{"id":2,"result":{"account":{"type":"chatgpt"},"requiresOpenaiAuth":true}}'
-        read -r request
-        printf '%s\\n' '{"id":3,"result":{"data":[{"model":"model-a","displayName":"Test model","isDefault":true},{"model":"hidden","hidden":true}],"nextCursor":null}}'
-        read -r request
-        printf '%s\\n' '{"id":4,"result":{"account":{"type":"chatgpt"},"requiresOpenaiAuth":true}}'
-        read -r request
-        printf '%s\\n' '{"id":5,"result":{"thread":{"id":"thread-a"}}}'
-        read -r request
-        printf '%s\\n' '{"id":6,"result":{"turn":{"id":"turn-a"}}}' \
-          '{"method":"item/agentMessage/delta","params":{"threadId":"thread-a","turnId":"turn-a","itemId":"message","delta":"Reply café"}}' \
-          '{"method":"turn/completed","params":{"threadId":"thread-a","turn":{"id":"turn-a","status":"completed"}}}'
-        read -r request
-        printf '%s\\n' '{"id":7,"result":{}}'
+        if [ "$1" = "model" ]; then
+          read -r request
+          printf '%s\\n' '{"id":3,"result":{"thread":{"id":"thread-a"}}}'
+          read -r request
+          printf '%s\\n' '{"id":4,"result":{"turn":{"id":"turn-a"}}}' \
+            '{"method":"item/agentMessage/delta","params":{"threadId":"thread-a","turnId":"turn-a","itemId":"message","delta":"Reply café"}}' \
+            '{"method":"turn/completed","params":{"threadId":"thread-a","turn":{"id":"turn-a","status":"completed"}}}'
+        else
+          read -r request
+          printf '%s\\n' '{"id":3,"result":{"data":[{"model":"model-a","displayName":"Test model","isDefault":true},{"model":"hidden","hidden":true}],"nextCursor":null}}'
+          read -r request
+          printf '%s\\n' '{"id":4,"result":{"account":{"type":"chatgpt"},"requiresOpenaiAuth":true}}'
+          read -r request
+          printf '%s\\n' '{"id":5,"result":{}}'
+        fi
         while read -r request; do :; done
         """
         try script.write(to: executable, atomically: true, encoding: .utf8)
         try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: executable.path)
-        let account = CodexAccountModel(client: .protocolFixture(), home: root.appendingPathComponent("home"))
+        let modelClient = CodexAppServerClient(makeLaunchPlan: { executable, _ in
+            CodexLaunchPlan(executable: executable, arguments: ["model"])
+        })
+        let account = CodexAccountModel(client: modelClient, authenticationClient: .protocolFixture(), home: root.appendingPathComponent("home"))
         account.executable = executable
         var appleCalls = 0
         let model = ChatConsoleModel(loadModes: { [] }, respond: { _, _ in appleCalls += 1; return "Wrong provider" },

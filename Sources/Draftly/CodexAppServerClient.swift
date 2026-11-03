@@ -14,9 +14,17 @@ import Foundation
     private var deadlines: [Int: Task<Void, Never>] = [:]
     private var generation = UUID()
     private let makeLaunchPlan: (URL, URL) throws -> CodexLaunchPlan
+    private let allowedMethods: Set<String>?
 
-    init(makeLaunchPlan: @escaping (URL, URL) throws -> CodexLaunchPlan = CodexProcessIsolation.launch) {
+    init(makeLaunchPlan: @escaping (URL, URL) throws -> CodexLaunchPlan = CodexProcessIsolation.launch,
+         allowedMethods: Set<String>? = nil) {
         self.makeLaunchPlan = makeLaunchPlan
+        self.allowedMethods = allowedMethods
+    }
+
+    static func authenticationClient() -> CodexAppServerClient {
+        CodexAppServerClient(makeLaunchPlan: CodexProcessIsolation.authenticationLaunch,
+            allowedMethods: ["initialize", "account/read", "account/login/start", "account/login/cancel", "account/logout", "model/list"])
     }
 
     func start(executable: URL, home: URL) throws {
@@ -61,6 +69,9 @@ import Foundation
 
     func request(_ method: String, params: Data = Data("{}".utf8), timeout: Duration = .seconds(60)) async throws -> Data {
         try Task.checkCancellation()
+        guard allowedMethods?.contains(method) != false else {
+            throw CodexConnectionError.remote("The authentication connection cannot run this operation.")
+        }
         guard process?.isRunning == true else { throw CodexConnectionError.disconnected }
         let object = try JSONSerialization.jsonObject(with: params)
         sequence += 1
@@ -86,7 +97,10 @@ import Foundation
         }
     }
 
-    func notify(_ method: String) throws { try write(["method": method]) }
+    func notify(_ method: String) throws {
+        guard allowedMethods == nil || method == "initialized" else { throw CodexConnectionError.invalidMessage }
+        try write(["method": method])
+    }
 
     func close() { close(with: CodexConnectionError.disconnected) }
 
@@ -124,7 +138,6 @@ import Foundation
                 }
                 if let method = object["method"] as? String {
                     if let id = object["id"] {
-                        // Requests need a UI handler before the client can authorize them.
                         try write(["id": id, "error": ["code": -32601, "message": "This request is not authorized by Draftly."]])
                     } else {
                         let params = try JSONSerialization.data(withJSONObject: object["params"] ?? [:])
@@ -142,6 +155,8 @@ import Foundation
             } catch { close(with: error); return }
         }
     }
+
+
 }
 
 enum CodexConnectionError: LocalizedError {

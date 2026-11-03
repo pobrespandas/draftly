@@ -8,8 +8,28 @@ struct CodexLaunchPlan {
 
 enum CodexProcessIsolation {
     static func launch(executable: URL, home: URL) throws -> CodexLaunchPlan {
-        let executable = try canonicalURL(executable)
+        let executable = try validatedExecutable(executable)
         let home = try canonicalURL(home)
+        return CodexLaunchPlan(executable: URL(fileURLWithPath: "/usr/bin/sandbox-exec"),
+            arguments: ["-p", try profile(executable: executable, home: home), executable.path] + arguments)
+    }
+
+    static func authenticationLaunch(executable: URL, home: URL) throws -> CodexLaunchPlan {
+        CodexLaunchPlan(executable: try validatedExecutable(executable), arguments: arguments)
+    }
+
+    private static var arguments: [String] {
+        ["app-server", "--listen", "stdio://", "-c", "cli_auth_credentials_store=\"keyring\"",
+         "-c", "mcp_oauth_credentials_store=\"keyring\"",
+         "-c", "features.shell_tool=false", "-c", "features.shell_snapshot=false",
+         "-c", "agents.enabled=false", "-c", "features.multi_agent_v2=false",
+         "-c", "features.multi_agent=false", "-c", "features.apps=false", "-c", "features.plugins=false",
+         "-c", "features.browser_use=false", "-c", "features.computer_use=false", "-c", "features.in_app_browser=false",
+         "-c", "web_search=\"disabled\""]
+    }
+
+    private static func validatedExecutable(_ executable: URL) throws -> URL {
+        let executable = try canonicalURL(executable)
         let handle = try FileHandle(forReadingFrom: executable)
         defer { try? handle.close() }
         let magic = Array(try handle.read(upToCount: 4) ?? Data())
@@ -18,12 +38,7 @@ enum CodexProcessIsolation {
                [0xca, 0xfe, 0xba, 0xbf], [0xbf, 0xba, 0xfe, 0xca]].contains(magic) else {
             throw CodexConnectionError.remote("Choose the native Codex executable. Script launchers are not supported.")
         }
-        return CodexLaunchPlan(executable: URL(fileURLWithPath: "/usr/bin/sandbox-exec"),
-            arguments: ["-p", try profile(executable: executable, home: home), executable.path, "app-server", "--listen", "stdio://",
-                        "-c", "cli_auth_credentials_store=\"keyring\"",
-                        "-c", "features.shell_tool=false", "-c", "features.shell_snapshot=false",
-                        "-c", "agents.enabled=false", "-c", "features.multi_agent_v2=false",
-                        "-c", "web_search=\"disabled\""])
+        return executable
     }
 
     static func profile(executable: URL, home: URL) throws -> String {

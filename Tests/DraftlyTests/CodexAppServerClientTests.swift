@@ -4,6 +4,16 @@ import Testing
 
 @Suite("Codex app-server transport") @MainActor
 struct CodexAppServerClientTests {
+    @Test func authenticationConnectionCannotStartInferenceOrTools() async {
+        let client = CodexAppServerClient.authenticationClient()
+        for method in ["thread/start", "turn/start", "mcpServer/tool/call", "config/batchWrite"] {
+            do {
+                _ = try await client.request(method)
+                Issue.record("An authentication connection accepted an execution request.")
+            } catch { #expect(error.localizedDescription.contains("authentication connection cannot run")) }
+        }
+        #expect(throws: (any Error).self) { try client.notify("turn/start") }
+    }
     @Test func routesRepliesAndDeniesServerRequestsUntilAHandlerExists() async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)

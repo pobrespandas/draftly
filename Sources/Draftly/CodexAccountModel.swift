@@ -14,16 +14,20 @@ struct CodexChatModel: Equatable, Identifiable {
     @Published private(set) var errorMessage: String?
     @Published private(set) var models: [CodexChatModel] = []
     private let client: CodexAppServerClient
+    private let authenticationClient: CodexAppServerClient
     private let chatSession: CodexChatSession
     private let home: URL
     private var initialized = false
+    private var modelInitialized = false
     private var loginID: String?
     private var startingLogin = false
     private var earlyLoginCompletion: Data?
     var executable: URL?
 
-    init(client: CodexAppServerClient = CodexAppServerClient(), home: URL? = nil) {
+    init(client: CodexAppServerClient = CodexAppServerClient(),
+         authenticationClient: CodexAppServerClient = .authenticationClient(), home: URL? = nil) {
         self.client = client
+        self.authenticationClient = authenticationClient
         self.chatSession = CodexChatSession(client: client)
         let identifier = Bundle.main.bundleIdentifier ?? "com.pobrespandas.draftly"
         let folder = identifier == "com.pobrespandas.draftly" ? "Draftly" : identifier.replacingOccurrences(of: "/", with: "_")
@@ -33,14 +37,20 @@ struct CodexChatModel: Equatable, Identifiable {
                           "/opt/homebrew/bin/codex", "/usr/local/bin/codex"]
         executable = candidates.first(where: { FileManager.default.isExecutableFile(atPath: $0) }).map { URL(fileURLWithPath: $0) }
         client.onNotification = { [weak self] method, data in
+            self?.chatSession.receive(method, data: data)
+        }
+        authenticationClient.onNotification = { [weak self] method, data in
             guard let self else { return }
-            self.chatSession.receive(method, data: data)
             guard method == "account/login/completed" else { return }
             if self.startingLogin, self.loginID == nil { self.earlyLoginCompletion = data }
             else { self.completeLogin(data) }
         }
         client.onDisconnect = { [weak self] in
             self?.chatSession.disconnected()
+            self?.modelInitialized = false
+        }
+        authenticationClient.onDisconnect = { [weak self] in
+            self?.client.close()
             self?.initialized = false; self?.isSignedIn = false
             self?.models = []
             self?.loginID = nil; self?.isAwaitingLogin = false
@@ -93,7 +103,7 @@ struct CodexChatModel: Equatable, Identifiable {
         guard let id = loginID else { return }
         loginID = nil; isAwaitingLogin = false
         do { _ = try await request("account/login/cancel", ["loginId": id]) }
-        catch { client.close(); errorMessage = error.localizedDescription }
+        catch { authenticationClient.close(); errorMessage = error.localizedDescription }
     }
 
     func signOut() async {
@@ -103,12 +113,13 @@ struct CodexChatModel: Equatable, Identifiable {
         do {
             try await initialize()
             _ = try await request("account/logout", [:])
+            client.close()
             isSignedIn = false; loginID = nil; isAwaitingLogin = false
             models = []
         } catch { errorMessage = error.localizedDescription }
     }
 
-    func disconnect() { client.close() }
+    func disconnect() { client.close(); authenticationClient.close() }
 
     private func loadModels() async throws -> [CodexChatModel] {
         var cursor: String?, visited = Set<String>(), result: [String: CodexChatModel] = [:]
@@ -142,6 +153,14 @@ struct CodexChatModel: Equatable, Identifiable {
         let account = try await request("account/read", ["refreshToken": false])
         isSignedIn = (account["account"] as? [String: Any])?["type"] as? String == "chatgpt"
         guard isSignedIn else { throw CodexConnectionError.remote("Sign in with ChatGPT before sending a message.") }
+        if !modelInitialized {
+            try await startAndInitialize(client)
+            modelInitialized = true
+        }
+        let modelAccount = try await request("account/read", ["refreshToken": false], using: client)
+        guard (modelAccount["account"] as? [String: Any])?["type"] as? String == "chatgpt" else {
+            throw CodexConnectionError.remote("The model connection could not access the saved ChatGPT session.")
+        }
         let workspace = home.appendingPathComponent("workspace", isDirectory: true)
         try FileManager.default.createDirectory(at: workspace, withIntermediateDirectories: true,
             attributes: [.posixPermissions: 0o700])
@@ -151,18 +170,22 @@ struct CodexChatModel: Equatable, Identifiable {
 
     private func initialize() async throws {
         guard !initialized else { return }
-        guard let executable else { throw CodexConnectionError.remote("Choose the Codex executable to connect your ChatGPT account.") }
-        try client.start(executable: executable, home: home)
-        do {
-            _ = try await request("initialize", ["clientInfo": ["name": "draftly", "title": "Draftly", "version": Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "development"], "capabilities": [:]])
-            try client.notify("initialized")
-            initialized = true
-        } catch { client.close(); throw error }
+        try await startAndInitialize(authenticationClient)
+        initialized = true
     }
 
-    private func request(_ method: String, _ params: [String: Any]) async throws -> [String: Any] {
+    private func startAndInitialize(_ connection: CodexAppServerClient) async throws {
+        guard let executable else { throw CodexConnectionError.remote("Choose the Codex executable to connect your ChatGPT account.") }
+        try connection.start(executable: executable, home: home)
+        do {
+            _ = try await request("initialize", ["clientInfo": ["name": "draftly", "title": "Draftly", "version": Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "development"], "capabilities": [:]], using: connection)
+            try connection.notify("initialized")
+        } catch { connection.close(); throw error }
+    }
+
+    private func request(_ method: String, _ params: [String: Any], using connection: CodexAppServerClient? = nil) async throws -> [String: Any] {
         let data = try JSONSerialization.data(withJSONObject: params)
-        let result = try await client.request(method, params: data)
+        let result = try await (connection ?? authenticationClient).request(method, params: data)
         guard let object = try JSONSerialization.jsonObject(with: result) as? [String: Any] else {
             throw CodexConnectionError.invalidMessage
         }

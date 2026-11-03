@@ -51,11 +51,13 @@ struct CodexProcessIsolationTests {
         let path = try #require(ProcessInfo.processInfo.environment["DRAFTLY_CODEX_TEST_EXECUTABLE"])
         let home = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: home) }
-        let account = CodexAccountModel(home: home)
-        account.executable = URL(fileURLWithPath: path)
-        defer { account.disconnect() }
-        await account.refresh()
-        #expect(account.errorMessage == nil)
-        #expect(!account.isSignedIn)
+        let client = CodexAppServerClient()
+        defer { client.close() }
+        try client.start(executable: URL(fileURLWithPath: path), home: home)
+        _ = try await client.request("initialize", params: Data(#"{"clientInfo":{"name":"draftly_probe","version":"1"},"capabilities":{}}"#.utf8))
+        try client.notify("initialized")
+        let data = try await client.request("account/read", params: Data(#"{"refreshToken":false}"#.utf8))
+        let account = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        #expect(account?["account"] is NSNull)
     }
 }

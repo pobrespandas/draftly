@@ -32,7 +32,7 @@ struct CodexAccountModelTests {
         """
         try script.write(to: executable, atomically: true, encoding: .utf8)
         try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: executable.path)
-        let model = CodexAccountModel(client: .protocolFixture(), home: root.appendingPathComponent("home"))
+        let model = CodexAccountModel(authenticationClient: .protocolFixture(), home: root.appendingPathComponent("home"))
         model.executable = executable
         defer { model.disconnect() }
         var opened: URL?
