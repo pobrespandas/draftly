@@ -189,6 +189,17 @@ running work. These scenarios still need installed acceptance. Do not equate a
 cancelled task with a confirmed absence of effects. Do not add an automatic Undo
 path to make a cancellation look complete.
 
+## Action catalog component
+
+`AgentActionAccess` owns agent catalog reads and action and group mutations.
+`AgentCommandService` keeps session authorization, request dispatch, and action
+execution admission. Both components use the existing version key, retry keys,
+and read pages. Mutation validation, commit checks, receipt recovery, and page
+scope checks keep their prior behavior. No operation or capability is added.
+The focused integration run passed 164 tests in four suites. The two project
+generator checks and the native Debug build passed. Installed acceptance and
+full CI for this extraction remain pending.
+
 ## Validation references
 
 - Full CI [41643931168](https://github.com/pobrespandas/draftly/actions/runs/41643931168)
