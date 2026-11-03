@@ -12,7 +12,8 @@ struct AgentToolInputTests {
         #expect(Set(AgentOperationCatalog.operations.filter(\.isReadOnly).map(\.name)) == AgentReadSchemas.operationNames.union([
             "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks",
             "actions.list", "actions.get", "actions.stepSchemas", "actions.validateShortcut",
-            "actions.groups", "actionGroups.get", "workspaces.list", "workspaces.get", "workspaces.query", "activity.list", "preferences.schema", "preferences.get"
+            "actions.groups", "actionGroups.get", "workspaces.list", "workspaces.get", "workspaces.query", "activity.list",
+            "preferences.schema", "preferences.get", "syntaxes.list", "syntaxes.get", "syntaxes.getBuiltIn"
         ]))
     }
     @Test(arguments: ["preferences.get", "preferences.schema"])
@@ -24,6 +25,19 @@ struct AgentToolInputTests {
         #expect(operation.isReadOnly && !operation.requiresExpectedVersion)
         #expect(request.parameters == values && request.retryKey == nil && request.expectedVersion == nil)
         #expect(request.targets.isEmpty && request.libraryID == nil)
+    }
+    @Test func syntaxReadsDoNotRequestMutationAuthority() throws {
+        let id = UUID()
+        let cases: [(String, [String: AgentJSONValue])] = [
+            ("syntaxes.list", [:]),
+            ("syntaxes.get", ["targets": .array([.object(["kind": .string("syntax"), "id": .string(id.uuidString)])])]),
+            ("syntaxes.getBuiltIn", ["parameters": .object(["name": .string("Markdown")])])
+        ]
+        for (name, arguments) in cases {
+            let operation = try #require(AgentOperationCatalog.operation(named: name))
+            let request = try AgentToolInput.request(operation: operation, arguments: arguments)
+            #expect(operation.isReadOnly && request.retryKey == nil)
+        }
     }
 
     @Test func requestTargetsAndAuthorityCannotBeReboundByToolArguments() throws {

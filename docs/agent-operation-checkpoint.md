@@ -1,5 +1,20 @@
 # Local agent operation checkpoint
 
+## Syntax reads — 2 November 2026
+
+The service reads all seven built-in syntax definitions. `syntaxes.list` returns
+installed custom and file syntaxes in pages. It filters each result by the
+connection scope and returns the built-in names separately. `syntaxes.get`
+returns a definition only when the connection has access to that syntax. Both
+operations return a version token. The syntax reads use `appearance.read` and
+do not need a mutation key or human approval.
+
+Focused service tests cover the built-in definitions, permission checks,
+resource scope, pagination and version changes. The full agent contract suite
+and service suite pass locally. The installed host and helper have not been
+validated for these syntax reads. Normal application startup keeps agent
+access disabled.
+
 ## Draft creation — 2 November 2026
 
 The local service implements `drafts.create`. It requires a prepared request

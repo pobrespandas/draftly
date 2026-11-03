@@ -13,7 +13,7 @@ import AgentContracts
         let grantID: UUID
     }
     private static let readOperations: Set<String> = ["server.status", "server.capabilities", "server.schemas",
-        "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions", "preferences.schema", "preferences.get", "syntaxes.list", "syntaxes.getBuiltIn"]
+        "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions", "preferences.schema", "preferences.get", "syntaxes.list", "syntaxes.get", "syntaxes.getBuiltIn"]
     private static let editorReadOperations: Set<String> = ["editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks"]
     private static let actionReadOperations: Set<String> = ["actions.list", "actions.get", "actions.stepSchemas", "actions.groups", "actionGroups.get"]
     private static let workspaceReadOperations: Set<String> = ["workspaces.list", "workspaces.get", "workspaces.query"]
@@ -800,6 +800,15 @@ import AgentContracts
                 })
             result["builtInNames"] = .array(ScriptSyntax.names.map(AgentJSONValue.string))
             return result
+        case "syntaxes.get":
+            guard let id = request.targets.first?.id,
+                  grant.scope.permits(.init(kind: .syntax, id: id)),
+                  let syntax = actionLibrary.syntaxes.first(where: { $0.id == id && $0.type != "builtIn" }) else {
+                throw AgentErrorCode.notFound
+            }
+            let token = Data(HMAC<SHA256>.authenticationCode(for: Data(syntax.source.utf8), using: preferenceVersionKey)).base64EncodedString()
+            let definition = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(syntax))
+            return ["definition": definition, "versionToken": .string(token)]
         case "actions.run":
             guard let submitAction, let operationRegistry else { throw AgentErrorCode.unavailable }
             if let id = try operationRegistry.existingRequest(request, grant: grant) {

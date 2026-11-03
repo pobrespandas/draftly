@@ -1527,6 +1527,34 @@ struct AgentCommandServiceTests {
         #expect(limitedItems == .array([.object(item)]))
     }
 
+    @Test func syntaxGetRequiresCapabilityAndResourceScopeAndTracksChanges() throws {
+        let f = try Fixture()
+        var source = try ScriptSyntax.definition("Markdown").object
+        source["name"] = "Scoped syntax"
+        let syntax = try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: source))
+        try f.library.saveSyntax(syntax)
+        let target = AgentResourceReference(kind: .syntax, id: syntax.id)
+        let (_, denied) = try f.connect(scope: .resources([target]), capabilities: [])
+        let (_, hidden) = try f.connect(scope: .resources([]), capabilities: [.appearanceRead])
+        let (_, allowed) = try f.connect(scope: .resources([target]), capabilities: [.appearanceRead])
+        let before = try f.library.backupData()
+        #expect(try f.response("syntaxes.get", session: denied, targets: [target]).outcome == .error(.permissionDenied))
+        #expect(try f.response("syntaxes.get", session: hidden, targets: [target]).outcome == .error(.notFound))
+        let value = try f.values("syntaxes.get", session: allowed, targets: [target])
+        guard case .object(let definition) = value["definition"], case .string(let token) = value["versionToken"] else {
+            Issue.record("Missing syntax definition"); return
+        }
+        #expect(definition["id"] == .string(syntax.id.uuidString))
+        #expect(definition["name"] == .string("Scoped syntax") && definition["source"] == .string(syntax.source))
+        #expect(!token.isEmpty)
+        #expect(try f.values("syntaxes.get", session: allowed, targets: [target]) == value)
+        #expect(try f.library.backupData() == before)
+        source["name"] = "Updated syntax"
+        try f.library.saveSyntax(try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: source), id: syntax.id))
+        let changed = try f.values("syntaxes.get", session: allowed, targets: [target])
+        #expect(changed["versionToken"] != value["versionToken"])
+    }
+
     @Test func schemasReportActualHandlersAndUnsupportedOperationsNeverSimulateSuccess() throws {
         let f = try Fixture(), (_, session) = try f.connect(capabilities: [.draftsRead, .draftsWrite])
         let values = try f.values("server.schemas", session: session)
@@ -1537,6 +1565,7 @@ struct AgentCommandServiceTests {
         })
         #expect(available.remove("syntaxes.getBuiltIn") != nil)
         #expect(available.remove("syntaxes.list") != nil)
+        #expect(available.remove("syntaxes.get") != nil)
         #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", "preferences.get", AgentMutationSchemas.name, "drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.setSelection", "editor.replaceRange", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.update"]) && available.count == 42)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.invalidInput))
         #expect(f.library.notes.isEmpty)
