@@ -148,7 +148,7 @@ package enum AgentOperationCatalog {
         .init(name: "syntaxes.list", owner: "SyntaxDefinition + ScriptSyntax", capabilities: [.appearanceRead], targets: .none, isReadOnly: true),
         .init(name: "syntaxes.get", owner: "SyntaxDefinition + ScriptSyntax", capabilities: [.appearanceRead], targets: .one(.syntax), isReadOnly: true),
         .init(name: "syntaxes.getBuiltIn", owner: "ScriptSyntax", capabilities: [.appearanceRead], targets: .none, isReadOnly: true),
-        .init(name: "syntaxes.exportBuiltIn", owner: "ScriptSyntax", capabilities: [.appearanceRead], targets: .none),
+        .init(name: "syntaxes.exportBuiltIn", owner: "ScriptSyntax", capabilities: [.appearanceRead], targets: .none, isReadOnly: true),
         .init(name: "syntaxes.reload", owner: "SyntaxFileAccess", capabilities: [.appearanceManage, .filesRead], targets: .one(.syntax), requiresExpectedVersion: true),
         .init(name: "syntaxes.export", owner: "SyntaxDefinition + ScriptSyntax", capabilities: [.appearanceRead], targets: .one(.syntax)),
         .init(name: "syntaxes.install", owner: "SyntaxImportPreparation + ApplicationURLRouter", capabilities: [.appearanceManage, .filesRead], targets: .none),

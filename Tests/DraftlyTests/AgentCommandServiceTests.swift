@@ -1492,6 +1492,30 @@ struct AgentCommandServiceTests {
         #expect(try f.library.backupData() == before)
     }
 
+    @Test func builtInSyntaxExportFormatsAndChunks() throws {
+        let f = try Fixture()
+        let (_, allowed) = try f.connect(capabilities: [.appearanceRead])
+        let (_, denied) = try f.connect(capabilities: [])
+        let name = "GitHub Markdown"
+        let before = try f.library.backupData()
+        let parameters: [String: AgentJSONValue] = ["name": .string(name), "offset": .integer(0), "length": .integer(20)]
+        #expect(try f.response("syntaxes.exportBuiltIn", session: denied, parameters: ["name": .string(name)]).outcome == .error(.permissionDenied))
+        let source = try f.values("syntaxes.exportBuiltIn", session: allowed, parameters: parameters)
+        guard case .object(let chunk) = source["content"] else { Issue.record("Missing source chunk"); return }
+        #expect(source["format"] == .string("source") && source["name"] == .string(name))
+        #expect(chunk["offset"] == .integer(0) && chunk["length"] == .integer(20) && chunk["hasMore"] == .bool(true))
+        let url = try f.values("syntaxes.exportBuiltIn", session: allowed, parameters: [
+            "name": .string(name), "format": .string("installationURL")
+        ])
+        guard case .object(let urlChunk) = url["content"], case .string(let text) = urlChunk["text"] else {
+            Issue.record("Missing installation URL"); return
+        }
+        #expect(url["format"] == .string("installationURL"))
+        #expect(try AgentImportSource.validate(.object(["kind": .string("installationURL"), "url": .string(text)]), installationEndpoint: "syntax") == "installationURL")
+        #expect(url["versionToken"] == source["versionToken"])
+        #expect(try f.library.backupData() == before)
+    }
+
     @Test func syntaxListPaginatesOnlyGrantedInstalledDefinitions() throws {
         let f = try Fixture()
         var firstSource = try ScriptSyntax.definition("Markdown").object
@@ -1564,6 +1588,7 @@ struct AgentCommandServiceTests {
             return name
         })
         #expect(available.remove("syntaxes.getBuiltIn") != nil)
+        #expect(available.remove("syntaxes.exportBuiltIn") != nil)
         #expect(available.remove("syntaxes.list") != nil)
         #expect(available.remove("syntaxes.get") != nil)
         #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", "preferences.get", AgentMutationSchemas.name, "drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.setSelection", "editor.replaceRange", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.update"]) && available.count == 42)

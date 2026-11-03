@@ -13,7 +13,7 @@ import AgentContracts
         let grantID: UUID
     }
     private static let readOperations: Set<String> = ["server.status", "server.capabilities", "server.schemas",
-        "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions", "preferences.schema", "preferences.get", "syntaxes.list", "syntaxes.get", "syntaxes.getBuiltIn"]
+        "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions", "preferences.schema", "preferences.get", "syntaxes.list", "syntaxes.get", "syntaxes.getBuiltIn", "syntaxes.exportBuiltIn"]
     private static let editorReadOperations: Set<String> = ["editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks"]
     private static let actionReadOperations: Set<String> = ["actions.list", "actions.get", "actions.stepSchemas", "actions.groups", "actionGroups.get"]
     private static let workspaceReadOperations: Set<String> = ["workspaces.list", "workspaces.get", "workspaces.query"]
@@ -785,6 +785,22 @@ import AgentContracts
             let source = try ScriptSyntax.definition(name).source
             let token = Data(HMAC<SHA256>.authenticationCode(for: Data(source.utf8), using: preferenceVersionKey)).base64EncodedString()
             return ["name": .string(name), "source": .string(source), "versionToken": .string(token)]
+        case "syntaxes.exportBuiltIn":
+            guard case .string(let name) = parameters["name"] else { throw AgentErrorCode.invalidInput }
+            let source = try ScriptSyntax.definition(name).source
+            let token = Data(HMAC<SHA256>.authenticationCode(for: Data(source.utf8), using: preferenceVersionKey)).base64EncodedString()
+            let text: String
+            switch parameters["format"] {
+            case .string("installationURL"):
+                var components = URLComponents(); components.scheme = "draftly"; components.host = "syntax"
+                components.queryItems = [URLQueryItem(name: "name", value: name)]
+                guard let url = components.string else { throw AgentErrorCode.storageError }
+                text = url
+            default: text = source
+            }
+            let chunk = try AgentDraftReading.chunk(text, parameters: parameters)
+            return ["content": .object(chunk), "format": parameters["format"] ?? .string("source"),
+                "name": .string(name), "versionToken": .string(token)]
         case "syntaxes.list":
             let syntaxes = actionLibrary.syntaxes.filter {
                 $0.type != "builtIn" && grant.scope.permits(.init(kind: .syntax, id: $0.id))
