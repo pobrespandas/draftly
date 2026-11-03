@@ -42,6 +42,28 @@ struct AgentEditorMutationTests {
         }
     }
 
+    @Test func undoRequiresALiveEditorAndAuthorizationBeforeChangingNativeHistory() throws {
+        let f = try Fixture(); defer { f.close() }
+        let model = f.model()
+        model.editor.canApplyExternalEdit = { true }
+        defer { model.pausePendingAutosave { true }; model.editor.canApplyExternalEdit = nil }
+        model.editor.content = "Pending 🐼"; model.editor.synchronizeScriptEdit?()
+        let snapshot = try #require(f.registry.windowSnapshots().first)
+        #expect(throws: AgentErrorCode.permissionDenied) {
+            try f.registry.undo(snapshot, redo: false) { throw AgentErrorCode.permissionDenied }
+        }
+        #expect(model.editor.content == "Pending 🐼" && f.undo[0].text.manager.canUndo)
+        model.editor.selection = NSRange(location: 1, length: 0)
+        #expect(throws: AgentErrorCode.versionConflict) {
+            try f.registry.undo(snapshot, redo: false) {}
+        }
+        #expect(model.editor.content == "Pending 🐼")
+        let current = try #require(f.registry.windowSnapshots().first)
+        model.editor.performUndo = nil
+        #expect(throws: AgentErrorCode.interactionRequired) { try f.registry.undo(current, redo: false) {} }
+        #expect(model.editor.content == "Pending 🐼")
+    }
+
     @Test func committedTextReachesEveryEditorWithUndoAndStableGeneration() throws {
         let f = try Fixture(); defer { f.close() }
         let first = f.model(), second = f.model()

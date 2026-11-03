@@ -1,3 +1,20 @@
+# Editor Undo and Redo — 3 November 2026
+
+`editor.undo` and `editor.redo` now use the registered native editor history.
+They require draft and editor write access, the current window version, an
+available native history adapter, and mutation preparation. The existing
+host-lifetime receipt returns a completed result without replaying the effect.
+The app retains library and editor ownership. No separate agent undo stack was
+added.
+
+The final focused run passed 102 tests in the command-service and editor
+mutation suites. It checked native Undo/Redo, Unicode text, duplicate receipts,
+read-only rejection, stale editor state, missing history, and authorization
+before history changes. This is integration evidence in native test fixtures.
+Installed CLI/MCP acceptance, restart recovery, and active-operation Stop Work
+remain pending. The required manifest still has 137 contracts; the current
+handler sets include 55 names, with 82 direct named handlers still absent.
+
 # Current local agents status — 3 November 2026
 
 Read [agents and AI readiness](agents-ai-readiness.md) for the current closure

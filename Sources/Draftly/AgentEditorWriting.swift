@@ -3,7 +3,7 @@ import AgentContracts
 
 // Editor receipts belong to this host lifetime. Old keys cannot select a new window.
 @MainActor final class AgentEditorWriting {
-    static let operationNames: Set<String> = ["editor.setSelection", "editor.replaceRange"]
+    static let operationNames: Set<String> = ["editor.setSelection", "editor.replaceRange", "editor.undo", "editor.redo"]
     struct Context {
         let snapshot: AgentEditorRegistry.WindowSnapshot
         let version: String
@@ -68,6 +68,8 @@ import AgentContracts
                 guard case .string(let text) = request.parameters["text"] else { throw AgentErrorCode.invalidInput }
                 try registry.replaceRange(context.snapshot, range: range, text: text, authorize: authorize)
                 selection = NSRange(location: range.location + text.utf16.count, length: 0)
+            } else if request.operation == "editor.undo" || request.operation == "editor.redo" {
+                selection = try registry.undo(context.snapshot, redo: request.operation == "editor.redo", authorize: authorize)
             } else {
                 try registry.setSelection(context.snapshot, range: range, authorize: authorize)
                 selection = range
@@ -112,6 +114,10 @@ import AgentContracts
         let context = try read(target.id, grant)
         guard context.snapshot.draftID != nil else { throw AgentErrorCode.notFound }
         guard context.version == request.expectedVersion else { throw AgentErrorCode.versionConflict }
+        if request.operation == "editor.undo" || request.operation == "editor.redo" {
+            try registry.validateUndo(context.snapshot)
+            return (context, context.snapshot.selection)
+        }
         let text = context.snapshot.content as NSString
         let bounds: (offset: Int64, end: Int64)
         do { bounds = try AgentTextShapes.bounds(parameters["range"], totalLength: Int64(text.length)) }

@@ -42,8 +42,8 @@ chat history, and library remain available for follow-up.
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-53 names in implemented or conditional handler sets. The other 84 names have
-no direct handler in those sets. These counts do not prove that 53 operations
+55 names in implemented or conditional handler sets. The other 82 names have
+no direct handler in those sets. These counts do not prove that 55 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -55,7 +55,7 @@ a direct handler for every `native.*` contract.
 | Family | Direct contracts still outside those handler sets |
 | --- | --- |
 | Drafts | `drafts.archive`, `drafts.flag`, `drafts.merge`, `drafts.purge`, `drafts.restore`, `drafts.syntax`, `drafts.tags`, `drafts.trash` |
-| Editor | `editor.navigate`, `editor.open`, `editor.preview`, `editor.redo`, `editor.replaceAll`, `editor.tasks`, `editor.undo` |
+| Editor | `editor.navigate`, `editor.open`, `editor.preview`, `editor.replaceAll`, `editor.tasks` |
 | Actions and groups | `actions.delete`, `actionGroups.delete` |
 | Workspaces | `workspaces.apply`, `workspaces.create`, `workspaces.delete`, `workspaces.duplicate`, `workspaces.reorder` |
 | Themes | All 14 declared `themes.*` contracts. |
@@ -72,6 +72,11 @@ Keep the full [operation inventory](research/agent-operation-inventory.md) and
 Reconcile overlapping commands through existing domain rules. Do not remove a
 required contract merely to reduce the unfinished count. Advertise a tool only
 when its handler is connected and its current grant permits it.
+
+`editor.undo` and `editor.redo` now use native editor history, prepared mutations,
+version checks, and host-lifetime receipts. A 102-test service/editor run passed,
+including read-only denial and replay without another Undo. Installed acceptance
+for these two handlers remains pending.
 
 ## Responsibility boundaries
 

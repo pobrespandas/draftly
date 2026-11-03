@@ -1633,7 +1633,7 @@ struct AgentCommandServiceTests {
         #expect(available.remove("syntaxes.list") != nil)
         #expect(available.remove("syntaxes.get") != nil)
         #expect(available.remove("drafts.duplicate") != nil)
-        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", "preferences.get", AgentMutationSchemas.name, "drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.setSelection", "editor.replaceRange", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.update"]) && available.count == 42)
+        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", "preferences.get", AgentMutationSchemas.name, "drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.setSelection", "editor.replaceRange", "editor.undo", "editor.redo", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.update"]) && available.count == 44)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.invalidInput))
         #expect(f.library.notes.isEmpty)
         #expect(try f.values("server.capabilities", session: session)["capabilities"] == .array([.string("drafts.read"), .string("drafts.write")]))
@@ -1990,6 +1990,54 @@ struct AgentCommandServiceTests {
         model.editor.selection = NSRange(location: 1, length: 0)
         #expect(try prepare(session).outcome == .error(.versionConflict))
         #expect(model.editor.content == note.content && f.library.notes.first?.content == note.content)
+    }
+
+    @Test func undoAndRedoUseNativeHistoryAndReplayDoesNotUndoAgain() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let note = try f.note("Original café 🐼"), model = try f.window(note)
+        f.editors = [model]
+        let native = NativeEditor(session: model.editor, fontName: "System", fontSize: 17,
+            lineSpacing: 2, markdown: false, onChange: { model.contentChanged() })
+        let history = ScriptUndoEditorFixture(native, content: note.content)
+        model.editor.canApplyExternalEdit = { true }
+        defer { model.pausePendingAutosave { true }; history.close(); model.editor.canApplyExternalEdit = nil }
+        model.editor.content = "Changed 🐼"; model.editor.synchronizeScriptEdit?()
+        let target = AgentResourceReference(kind: .window, id: try #require(f.editorRegistry.windowSnapshots().first).id)
+        let (_, session) = try f.connect(scope: .resources([target, .init(kind: .draft, id: note.id)]),
+            capabilities: [.draftsRead, .draftsWrite, .editorRead, .editorWrite])
+        func prepare(_ operation: String) throws -> AgentRequest {
+            guard case .string(let version) = try f.values("editor.get", session: session, targets: [target])["versionToken"] else {
+                throw AgentErrorCode.executionError
+            }
+            let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: operation,
+                targets: [target], expectedVersion: version)
+            let frame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(intent))
+            guard case .string(let key) = try f.values("mutations.prepare", session: session,
+                parameters: ["request": frame])["retryKey"] else { throw AgentErrorCode.executionError }
+            return AgentRequest(requestID: intent.requestID, libraryID: f.libraryID, operation: operation,
+                targets: [target], expectedVersion: version, retryKey: key)
+        }
+        func send(_ request: AgentRequest) throws -> AgentResponse {
+            try JSONDecoder().decode(AgentResponse.self, from: f.service.respond(to: JSONEncoder().encode(request), session: session))
+        }
+        let (_, reader) = try f.connect(scope: .resources([target, .init(kind: .draft, id: note.id)]),
+            capabilities: [.draftsRead, .editorRead])
+        let deniedIntent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "editor.undo",
+            targets: [target], expectedVersion: "untrusted-version")
+        let deniedFrame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(deniedIntent))
+        #expect(try f.response("mutations.prepare", session: reader, parameters: ["request": deniedFrame]).outcome == .error(.permissionDenied))
+        #expect(model.editor.content == "Changed 🐼" && history.text.manager.canUndo)
+        let undo = try prepare("editor.undo")
+        let reply = try send(undo)
+        guard case .result = reply.outcome else { Issue.record("Undo failed: \(reply.outcome)"); return }
+        #expect(model.editor.content == note.content && history.text.manager.canRedo)
+        #expect(try send(undo).outcome == reply.outcome)
+        #expect(model.editor.content == note.content && history.text.manager.canRedo)
+        let redo = try prepare("editor.redo")
+        guard case .result = try send(redo).outcome else { Issue.record("Redo failed"); return }
+        #expect(model.editor.content == "Changed 🐼")
+        #expect(try send(undo).outcome == reply.outcome)
+        #expect(model.editor.content == "Changed 🐼")
     }
 
     @Test func rangeReplacementUsesNativeUndoAndDoesNotRepeatAfterUserUndo() throws {

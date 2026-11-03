@@ -79,6 +79,25 @@ import AgentContracts
         }
     }
 
+    func validateUndo(_ expected: WindowSnapshot) throws {
+        try validateReplacement(expected)
+        guard try matchingModel(expected).editor.performUndo != nil else { throw AgentErrorCode.interactionRequired }
+    }
+
+    func undo(_ expected: WindowSnapshot, redo: Bool, authorize: () throws -> Void) throws -> NSRange {
+        try validateUndo(expected)
+        try authorize()
+        try validateUndo(expected)
+        let model = try matchingModel(expected)
+        guard let perform = model.editor.performUndo else { throw AgentErrorCode.interactionRequired }
+        perform(redo)
+        guard valid, trackedModels().contains(where: { $0 === model }), model.editor.noteID == expected.draftID else {
+            throw AgentErrorCode.outcomeUnknown
+        }
+        try authorize()
+        return model.editor.safeSelection
+    }
+
     func replaceRange(_ expected: WindowSnapshot, range: NSRange, text: String, authorize: () throws -> Void) throws {
         try validateReplacement(expected)
         try authorize()
