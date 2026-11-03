@@ -1463,11 +1463,17 @@ struct AgentCommandServiceTests {
         let first = try f.send(request, session: session)
         #expect(try f.send(request, session: session) == first)
         #expect(f.library.notes.count == 1)
+        try f.library.reload()
+        f.service = try f.makeService()
+        let resumed = try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        let recoveredRequest = try f.preparedPreference(intent, session: resumed)
+        #expect(try f.send(recoveredRequest, session: resumed) == first)
+        #expect(f.library.notes.count == 1)
         let next = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "drafts.create",
             parameters: ["content": .string("Must roll back")])
-        let prepared = try f.preparedPreference(next, session: session)
+        let prepared = try f.preparedPreference(next, session: resumed)
         f.library.beforeBatchCommit = { _ = try f.connections.revokeFromUserInterface(record.id) }
-        #expect(try f.send(prepared, session: session).outcome == .error(.permissionDenied))
+        #expect(try f.send(prepared, session: resumed).outcome == .error(.permissionDenied))
         #expect(f.library.notes.count == 1)
     }
 
