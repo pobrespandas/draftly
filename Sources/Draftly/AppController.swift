@@ -266,14 +266,14 @@ final class AppController: ObservableObject {
             if cloudTesting && cloud == nil { throw DraftlyError.message("The iCloud test build has no CloudKit container.") }
             let directory = testing || cloudTesting ? FileManager.default.temporaryDirectory.appendingPathComponent("Draftly-UITesting").appendingPathComponent(testLibraryID.uuidString) : nil
             #if DRAFTLY_AGENT_QA
-            if testing && ProcessInfo.processInfo.arguments.contains("--agent-isolated-qa"), let directory {
+            if AgentQAConfiguration.isActive, let directory {
                 try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true,
                                                         attributes: [.posixPermissions: 0o700])
             }
             #endif
             let store = try LibraryStore(cloudIdentifier: cloud, directory: directory, seed: !cloudTesting)
             #if DRAFTLY_AGENT_QA
-            if testing && ProcessInfo.processInfo.arguments.contains("--agent-isolated-qa") &&
+            if AgentQAConfiguration.isActive &&
                 ProcessInfo.processInfo.arguments.contains("--agent-workspace-fixtures") {
                 guard store.workspaces.isEmpty && store.notes.isEmpty else { throw DraftlyError.message("QA workspace fixtures require an empty test library.") }
                 var visible = Workspace(name: "QA Visible"); visible.query = "QA query"
@@ -298,7 +298,7 @@ final class AppController: ObservableObject {
             catch { store.error = "Theme migration failed: " + error.localizedDescription }
             library = store
             #if DRAFTLY_AGENT_QA
-            if testing && ProcessInfo.processInfo.arguments.contains("--agent-isolated-qa") {
+            if AgentQAConfiguration.isActive {
                 do {
                     do { try AgentCredentialIdentity.validateCurrentProcess(.application) }
                     catch { FileHandle.standardError.write(Data("Agent QA identity check failed\n".utf8)); throw error }

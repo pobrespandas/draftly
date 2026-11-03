@@ -2,7 +2,13 @@ import Combine
 import Foundation
 
 @MainActor final class ChatGPTAccountModel: ObservableObject {
-    static let shared = ChatGPTAccountModel(provider: ChatGPTProvider())
+    static let shared: ChatGPTAccountModel = {
+        if let defaults = AgentQAConfiguration.chatDefaults, let namespace = AgentQAConfiguration.chatNamespace {
+            let login = ChatGPTLoginService(defaults: defaults, store: ChatGPTCredentialStore(bundleID: namespace))
+            return ChatGPTAccountModel(defaults: defaults, login: login, provider: ChatGPTProvider())
+        }
+        return ChatGPTAccountModel(provider: ChatGPTProvider())
+    }()
     @Published private(set) var accounts: [ChatGPTAccountRecord] = []
     @Published private(set) var selectedID: UUID?
     @Published private(set) var isBusy = false

@@ -1,3 +1,17 @@
+# Current status — 3 November 2026
+
+Signed isolated QA verified direct ChatGPT tool reading, native read consent,
+Keychain sharing with the installed helper, an installed MCP read session, and
+revocation for new CLI requests and an existing MCP session. Stop Work removed
+the idle host publication. Full process exit and restart retained the ChatGPT
+account and conversation with local access off. The QA is closed. Original
+preferences and saved window state are restored.
+
+Normal host startup, screen-lock acceptance, active-session Stop Work, installed
+expiry and negative access cases, remaining handlers, and final distribution
+are not complete. No agents release is established. The sections below record
+chronological work; an earlier pending statement is not the current result.
+
 # Chat Console checkpoint
 
 ## Direct ChatGPT connection
@@ -324,3 +338,78 @@ The unsigned native Debug build also passed with the worktree package-name
 override after the consent UI changes. Full CI `41595947234` passed for the
 prior provider commit `12c1c9c`. The new consent and lifecycle changes still
 need full CI and installed signed acceptance.
+
+## Signed installed QA preparation — 3 November 2026
+
+`AgentQAConfiguration` permits Info.plist startup only in a build compiled with
+`DRAFTLY_AGENT_QA`. It keeps ChatGPT account preferences, credentials, and chat
+history in a namespace derived from the temporary library UUID. Normal builds
+keep their existing startup and account behavior. Thirty focused account,
+console, app-owner, and identity-migration tests passed. Both project-generator
+checks passed. The QA native build passed.
+
+The matching Developer ID app and helper profiles are available in retained
+local QA artifacts. The helper packager checked its profile, certificate, and
+static signature. The installed QA app initially failed because its sibling
+Debug library had a different signing team. Signing that library with the same
+team fixed launch without disabling library validation.
+
+Installed `Draftly Agent Chat QA 20261103.app` opened an empty temporary library.
+Settings showed local access off and no approved connections. The test enabled
+only that QA host. The embedded signed helper discovered its published endpoint.
+This does not prove Keychain sharing, pairing, a tool call, or notarization.
+The new official ChatGPT login is pending user completion. Do not reuse the
+other QA accounts. Private preference and saved-state backups exist. Restore
+them after this QA process exits. The normal app was not running at startup.
+
+Local QA metadata: `/tmp/draftly-agent-chat-qa-20261103.json`. It records the
+exact bundle, UUID, signature evidence, discovery, and backup locations. It
+contains no tokens. The app remains open for the login. No grant was approved.
+Full CI `41598564068` passed for native consent commit `698c883`; the QA isolation
+changes still need their own full CI.
+
+
+The signed QA now shows `Signed in` and loaded the account's real model list.
+No model inference or local tool call has been accepted in this QA. Model menu
+automation did not change the Apple selection. The user then asked to open the
+login and leave it visible. Since sign-in had completed, the assistant left the
+ChatGPT account sheet open with `Signed in`. Keep that UI in place. Do not
+resume native input or replace this running QA without new user steering.
+Independent source and CI work can continue. The QA source changes are not yet
+committed. Preference restoration must wait until this process exits.
+
+
+## Signed read-only acceptance completed — 3 November 2026
+
+The user approved only reading the current neutral draft and its editor for
+15 minutes. The native confirmation created a separate connection. Its saved
+capabilities were exactly `drafts.read` and `editor.read`; its scope held one
+draft and one editor window. No editing permission was granted.
+
+GPT-6.1-Sol called `drafts.list` and `drafts.get` through the real local service.
+The completed response returned the exact neutral Unicode text. Native Settings
+activity recorded both successful operations. This is real model inference,
+not an injected response. The app and helper ran with matching Developer ID
+profiles. The helper authenticated and returned the same limited capabilities.
+This verifies their real Keychain sharing for this QA connection.
+
+An installed stdio MCP probe negotiated `2025-11-25`, listed read tools, omitted
+write tools, and read the approved draft. Native console disconnect removed the
+connection metadata and credential. The same MCP process then denied another
+read without returning draft text. A new CLI request returned
+`permission_denied`. The probe exited normally. This is generic MCP protocol
+acceptance, not acceptance for a named external client or fresh helper pairing.
+
+Stop Work then set access off and withdrew the published endpoint. There was
+no active granted session at that point. Do not claim active-session Stop Work
+or effect cancellation from that check. After complete process exit, reopening
+the same app restored the signed-in account and saved conversation without a
+browser login. Local access stayed off. The selected model returned to Apple
+On-Device; model-choice persistence needs a separate correction or explicit UX.
+
+The QA exited again. The original production-identity preference domain was
+restored and compared with its private backup. Saved window state was restored.
+The isolated account, chat history, temporary library, signed bundle, and
+non-secret local evidence remain available for follow-up. No normal library
+was opened. No combined notarization, real expiry, forbidden write, hidden-draft
+negative case, or normal screen-lock behavior was accepted by this session.

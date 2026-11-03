@@ -884,3 +884,28 @@ write, update, reset, exact result recovery after a later Settings change,
 conflicts in shared encoded storage, native admission and operation availability.
 The focused service, writer, storage, host and settings run passed 132 tests.
 Signed installed mutation acceptance and native review integration remain pending.
+
+## Signed chat QA startup
+
+A build with `DRAFTLY_AGENT_QA` can also use these Info.plist keys:
+
+- `DraftlyUITesting`: `true`.
+- `DraftlyAgentIsolatedQA`: `true`.
+- `DraftlyUITestingLibraryID`: a unique UUID string.
+
+This opens the temporary library and the QA host without launch arguments.
+Production builds ignore `DraftlyAgentIsolatedQA`. The QA host still starts with
+access off in a new library. Never ship a build with `DRAFTLY_AGENT_QA`.
+
+ChatGPT account preferences, conversation history, and credential service names
+use a namespace derived from that library UUID. Complete a separate official
+sign-in. Do not copy tokens from another installation. This does not isolate all
+application preferences. The signed app must keep its provisioned bundle ID.
+Close the normal app, preserve its preferences and saved window state before
+QA, and restore them after QA exits. Do not run the normal app during that test.
+
+Sign the app and helper with their matching profiles and the same team. A Debug
+app can load a sibling `Draftly.debug.dylib`. Sign each sibling dynamic library
+with the same team before signing the outer app. Static bundle verification can
+pass even when a dynamic library has a different team and fails at launch.
+Keep library validation enabled. Check installed launch separately.

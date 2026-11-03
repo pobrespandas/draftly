@@ -114,7 +114,7 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
                   let value = frame["value"] as? [String: Any],
                   let response = value["response"] as? String else { throw ChatConsoleError.invalidModelResponse }
             return response
-        }, chatGPTAccount: .shared)
+        }, defaults: AgentQAConfiguration.chatDefaults ?? .standard, chatGPTAccount: .shared)
     }
 
     func loadModels() async {
