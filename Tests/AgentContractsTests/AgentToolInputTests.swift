@@ -13,7 +13,7 @@ struct AgentToolInputTests {
             "editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks",
             "actions.list", "actions.get", "actions.stepSchemas", "actions.validateShortcut",
             "actions.groups", "actionGroups.get", "workspaces.list", "workspaces.get", "workspaces.query", "activity.list",
-            "preferences.schema", "preferences.get", "syntaxes.list", "syntaxes.get", "syntaxes.getBuiltIn"
+            "preferences.schema", "preferences.get", "syntaxes.list", "syntaxes.get", "syntaxes.getBuiltIn", "syntaxes.exportBuiltIn"
         ]))
     }
     @Test(arguments: ["preferences.get", "preferences.schema"])
@@ -31,7 +31,8 @@ struct AgentToolInputTests {
         let cases: [(String, [String: AgentJSONValue])] = [
             ("syntaxes.list", [:]),
             ("syntaxes.get", ["targets": .array([.object(["kind": .string("syntax"), "id": .string(id.uuidString)])])]),
-            ("syntaxes.getBuiltIn", ["parameters": .object(["name": .string("Markdown")])])
+            ("syntaxes.getBuiltIn", ["parameters": .object(["name": .string("Markdown")])]),
+            ("syntaxes.exportBuiltIn", ["parameters": .object(["name": .string("Markdown")])])
         ]
         for (name, arguments) in cases {
             let operation = try #require(AgentOperationCatalog.operation(named: name))
