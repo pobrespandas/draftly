@@ -24,6 +24,8 @@ import DraftlyCore
         let error: AgentErrorCode?
         let effects: [Effect]
         var restoredValue: AgentJSONValue? = nil
+        var name = "actions.run"
+        var result: AgentJSONValue? = nil
 
         func wireValue() throws -> AgentJSONValue {
             if let restoredValue {
@@ -42,13 +44,13 @@ import DraftlyCore
                     "reason": .string(value.reason.rawValue), "message": .string(output.message),
                     "successParameters": .object(value.result.succeeded ? value.successParameters.mapValues(AgentJSONValue.string) : [:])
                 ])
-            } else if state.isTerminal && state != .outcomeUnknown {
+            } else if name == "actions.run", state.isTerminal && state != .outcomeUnknown {
                 throw AgentErrorCode.unavailable
             }
             let value: AgentJSONValue = .object([
-                "operationID": .string(id.uuidString), "name": .string("actions.run"),
+                "operationID": .string(id.uuidString), "name": .string(name),
                 "state": .string(state.rawValue), "updatedAt": date(updatedAt),
-                "result": state == .succeeded ? .object([:]) : .null,
+                "result": state == .succeeded ? (result ?? .object([:])) : .null,
                 "error": error.map { .object(["code": .string($0.rawValue), "message": .string($0.rawValue)]) } ?? .null,
                 "actionReport": report, "completedEffects": .array(effects.map(\.wireValue))
             ])
@@ -70,6 +72,8 @@ import DraftlyCore
         var deadlineTask: Task<Void, Never>?
         var effects: [Effect] = []
         var durable = false
+        var name = "actions.run"
+        var result: AgentJSONValue?
     }
     private var entries: [UUID: Entry] = [:]
     private struct RequestKey: Hashable { let connectionID: UUID; let requestID: UUID }
@@ -132,8 +136,65 @@ import DraftlyCore
         return id
     }
 
+    // App-owned handlers must obtain effect approval before they perform work.
+    // This registry preserves identity and results. It does not grant approval.
+    func startValueRequest(_ request: AgentRequest, grant: AgentGrant,
+                           work: @escaping @MainActor (UUID) async throws -> [String: AgentJSONValue]) throws -> UUID {
+        guard request.operation != "actions.run",
+              AgentOperationJournal.supports(request.operation),
+              request.libraryID == grant.libraryID else { throw AgentErrorCode.invalidInput }
+        let prepared = try AgentRequestBinding.prepare(request, preferences: AgentPreferenceCatalog.make())
+        switch AgentPermissionPolicy.evaluate(prepared.request, connectionID: grant.connectionID, grant: grant, now: now()) {
+        case .denied(let error): throw error
+        default: break
+        }
+        try validate(grant, targets: Set(request.targets), operationName: request.operation)
+        if let previous = try existingRequest(prepared.request, grant: grant) { return previous }
+        guard entries.count < capacity, requests.count < capacity else { throw AgentErrorCode.busy }
+        let id = UUID()
+        if let reservation = try journal?.reserve(prepared.request, grant: grant, operationID: id), !reservation.isNew {
+            _ = try snapshot(reservation.record.operationID, connectionID: grant.connectionID)
+            return reservation.record.operationID
+        }
+        entries[id] = Entry(connectionID: grant.connectionID, grant: grant, targets: Set(request.targets),
+            updatedAt: now(), durable: journal != nil, name: request.operation)
+        requests[RequestKey(connectionID: grant.connectionID, requestID: request.requestID)] = (prepared.value, id)
+        entries[id]?.task = Task { @MainActor [weak self] in
+            guard let self, self.entries[id] != nil else { return }
+            do {
+                try Task.checkCancellation()
+                try self.validate(grant, targets: Set(request.targets), operationName: request.operation)
+                self.entries[id]?.state = .running
+                self.entries[id]?.updatedAt = self.now()
+                let result = try await work(id)
+                try AgentOperationSchemas.validateResult(result, for: prepared.request, preferences: AgentPreferenceCatalog.make())
+                self.entries[id]?.deadlineTask?.cancel()
+                self.entries[id]?.deadlineTask = nil
+                self.entries[id]?.state = .succeeded
+                self.entries[id]?.result = .object(result)
+                self.entries[id]?.updatedAt = self.now()
+                self.entries[id]?.task = nil
+                self.persistCompletion(id)
+            } catch is CancellationError {
+                self.finish(id, error: self.entries[id]?.state == .queued ? .cancelled : .outcomeUnknown)
+            } catch let error as AgentErrorCode {
+                self.finish(id, error: self.entries[id]?.state == .queued ? error : .outcomeUnknown)
+            } catch {
+                self.finish(id, error: self.entries[id]?.state == .queued ? .storageError : .outcomeUnknown)
+            }
+        }
+        entries[id]?.deadlineTask = Task { @MainActor [weak self] in
+            do { try await Task.sleep(for: .seconds(120)) } catch { return }
+            guard let self, let entry = self.entries[id], !entry.state.isTerminal, !entry.cancellationRequested else { return }
+            self.entries[id]?.deadlineExpired = true
+            self.entries[id]?.cancellationRequested = true
+            self.entries[id]?.task?.cancel()
+        }
+        return id
+    }
+
     func existingRequest(_ request: AgentRequest, grant: AgentGrant) throws -> UUID? {
-        try validate(grant, targets: Set(request.targets))
+        try validate(grant, targets: Set(request.targets), operationName: request.operation)
         let prepared = try AgentRequestBinding.prepare(request, preferences: AgentPreferenceCatalog.make())
         let key = RequestKey(connectionID: grant.connectionID, requestID: request.requestID)
         let id: UUID
@@ -179,9 +240,9 @@ import DraftlyCore
     func snapshot(_ id: UUID, connectionID: UUID) throws -> Snapshot {
         guard let entry = entries[id] else { return try recoveredSnapshot(id, connectionID: connectionID) }
         guard entry.connectionID == connectionID else { throw AgentErrorCode.notFound }
-        try validate(entry.grant, targets: entry.targets)
+        try validate(entry.grant, targets: entry.targets, operationName: entry.name)
         return Snapshot(id: id, state: entry.state, updatedAt: entry.updatedAt, output: entry.output,
-            error: entry.error, effects: entry.effects)
+            error: entry.error, effects: entry.effects, name: entry.name, result: entry.result)
     }
 
     func recordEffect(_ operationID: UUID, effectID: UUID, kind: String, outcome: String) throws {
@@ -220,7 +281,7 @@ import DraftlyCore
 
     func cancel(_ id: UUID, connectionID: UUID) throws -> Bool {
         guard let entry = entries[id], entry.connectionID == connectionID else { throw AgentErrorCode.notFound }
-        try validate(entry.grant, targets: entry.targets)
+        try validate(entry.grant, targets: entry.targets, operationName: entry.name)
         guard !entry.state.isTerminal, !entry.cancellationRequested else { return false }
         entries[id]?.cancellationRequested = true
         entries[id]?.task?.cancel()
@@ -243,7 +304,7 @@ import DraftlyCore
 
     func setWaitingForUser(_ id: UUID, waiting: Bool) throws {
         guard let entry = entries[id] else { throw AgentErrorCode.notFound }
-        try validate(entry.grant, targets: entry.targets)
+        try validate(entry.grant, targets: entry.targets, operationName: entry.name)
         guard !entry.cancellationRequested else { throw AgentErrorCode.cancelled }
         if waiting && entry.state == .running { entries[id]?.state = .waitingForUser }
         else if !waiting && entry.state == .waitingForUser { entries[id]?.state = .running }
@@ -253,17 +314,18 @@ import DraftlyCore
 
     func removeCompleted(_ id: UUID, connectionID: UUID) throws {
         guard let entry = entries[id], entry.connectionID == connectionID else { throw AgentErrorCode.notFound }
-        try validate(entry.grant, targets: entry.targets)
+        try validate(entry.grant, targets: entry.targets, operationName: entry.name)
         guard entry.state.isTerminal else { throw AgentErrorCode.busy }
         entries.removeValue(forKey: id)
     }
 
-    private func validate(_ original: AgentGrant, targets: Set<AgentResourceReference>) throws {
+    private func validate(_ original: AgentGrant, targets: Set<AgentResourceReference>, operationName: String = "actions.run") throws {
+        guard let descriptor = AgentOperationCatalog.operation(named: operationName) else { throw AgentErrorCode.invalidInput }
         guard !isLocked() else { throw AgentErrorCode.permissionDenied }
         try validateHost()
         guard let current = try currentGrant(original.connectionID), !current.revoked,
               current.expiresAt.timeIntervalSince1970.isFinite, current.expiresAt > now(),
-              current.capabilities.isSuperset(of: [.actionsRun, .draftsRead]),
+              current.capabilities.isSuperset(of: descriptor.capabilities),
               AgentRequestBinding.grantValue(current) == AgentRequestBinding.grantValue(original),
               targets.allSatisfy(current.scope.permits), !isLocked() else { throw AgentErrorCode.permissionDenied }
     }
@@ -318,7 +380,7 @@ import DraftlyCore
     private func persist(_ id: UUID) throws {
         guard let journal, let entry = entries[id], entry.durable else { return }
         let value = try Snapshot(id: id, state: entry.state, updatedAt: entry.updatedAt,
-            output: entry.output, error: entry.error, effects: entry.effects).wireValue()
+            output: entry.output, error: entry.error, effects: entry.effects, name: entry.name, result: entry.result).wireValue()
         try journal.save(value, operationID: id, grant: entry.grant)
     }
 
@@ -326,6 +388,7 @@ import DraftlyCore
         do { try persist(id) } catch {
             entries[id]?.state = .outcomeUnknown
             entries[id]?.output = nil
+            entries[id]?.result = nil
             entries[id]?.error = .outcomeUnknown
         }
     }
@@ -333,13 +396,13 @@ import DraftlyCore
     private func recoveredSnapshot(_ id: UUID, connectionID: UUID) throws -> Snapshot {
         guard let journal else { throw AgentErrorCode.notFound }
         guard let grant = try currentGrant(connectionID), grant.connectionID == connectionID else { throw AgentErrorCode.permissionDenied }
-        try validate(grant, targets: [])
         guard let record = try journal.record(id, grant: grant) else { throw AgentErrorCode.notFound }
+        try validate(grant, targets: [], operationName: record.operationName ?? "actions.run")
         var value: AgentJSONValue
         if let saved = record.snapshot { value = saved }
         else {
             value = try Snapshot(id: id, state: .outcomeUnknown, updatedAt: now(),
-                output: nil, error: .outcomeUnknown, effects: []).wireValue()
+                output: nil, error: .outcomeUnknown, effects: [], name: record.operationName ?? "actions.run").wireValue()
         }
         guard case .object(var fields) = value, case .string(let rawState) = fields["state"],
               var state = AgentOperationState(rawValue: rawState) else { throw AgentErrorCode.storageError }
@@ -375,7 +438,8 @@ import DraftlyCore
         guard case .string(let timestamp) = fields["updatedAt"], let date = ISO8601DateFormatter().date(from: timestamp) else {
             throw AgentErrorCode.storageError
         }
-        var snapshot = Snapshot(id: id, state: state, updatedAt: date, output: nil, error: error, effects: effects)
+        var snapshot = Snapshot(id: id, state: state, updatedAt: date, output: nil, error: error, effects: effects,
+            name: record.operationName ?? "actions.run", result: fields["result"] == .null ? nil : fields["result"])
         snapshot.restoredValue = value
         return snapshot
     }

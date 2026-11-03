@@ -92,6 +92,14 @@ Foundation progress callbacks. A single template expansion also has a memory
 bound. This is not a hard timeout for regex compilation or a separate worker.
 Installed-client replacement acceptance remains pending.
 
+The registry and private journal now support typed results for other reviewed
+operations. They preserve names, capability checks, request identity, completed
+effect records, and uncertain recovery. No additional handler is advertised.
+App handlers must still connect their native approval and effect paths. The
+service/host integration run passed 162 tests; the final registry/journal run
+passed 24 tests after stricter result validation. Native-effect acceptance is
+still pending.
+
 ## Responsibility boundaries
 
 | Boundary | Responsibility |

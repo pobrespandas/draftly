@@ -12,6 +12,7 @@ import AgentLocalSecurity
         let operationID: UUID
         let requestFingerprint: String
         let grantFingerprint: String
+        var operationName: String? = nil
         var snapshot: AgentJSONValue?
     }
 
@@ -26,7 +27,7 @@ import AgentLocalSecurity
     }
 
     func reserve(_ request: AgentRequest, grant: AgentGrant, operationID: UUID) throws -> (record: Record, isNew: Bool) {
-        guard request.operation == "actions.run", request.libraryID == grant.libraryID else { throw AgentErrorCode.invalidInput }
+        guard Self.supports(request.operation), request.libraryID == grant.libraryID else { throw AgentErrorCode.invalidInput }
         let prepared = try AgentRequestBinding.prepare(request, preferences: AgentPreferenceCatalog.make())
         let requestFingerprint = try fingerprint(prepared.value)
         let grantFingerprint = try fingerprint(AgentRequestBinding.grantValue(grant))
@@ -46,7 +47,7 @@ import AgentLocalSecurity
                 }
                 let record = Record(connectionID: grant.connectionID, libraryID: grant.libraryID,
                     requestID: request.requestID, operationID: operationID, requestFingerprint: requestFingerprint,
-                    grantFingerprint: grantFingerprint)
+                    grantFingerprint: grantFingerprint, operationName: request.operation)
                 records.append(record); selected = record; isNew = true
             }
         }
@@ -66,7 +67,7 @@ import AgentLocalSecurity
     }
 
     func existingRequest(_ request: AgentRequest, grant: AgentGrant) throws -> Record? {
-        guard request.operation == "actions.run", request.libraryID == grant.libraryID else { throw AgentErrorCode.invalidInput }
+        guard Self.supports(request.operation), request.libraryID == grant.libraryID else { throw AgentErrorCode.invalidInput }
         let prepared = try AgentRequestBinding.prepare(request, preferences: AgentPreferenceCatalog.make())
         guard let record = try read().records.first(where: {
             $0.connectionID == grant.connectionID && $0.requestID == request.requestID
@@ -89,6 +90,7 @@ import AgentLocalSecurity
             guard records[index].libraryID == grant.libraryID, records[index].grantFingerprint == grantFingerprint else {
                 throw AgentErrorCode.permissionDenied
             }
+            try validateSnapshot(snapshot, operationID: operationID, name: records[index].operationName ?? "actions.run")
             if let previous = records[index].snapshot, previous != snapshot,
                case .object(let fields) = previous, case .string(let raw) = fields["state"],
                let state = AgentOperationState(rawValue: raw), state.isTerminal {
@@ -102,11 +104,22 @@ import AgentLocalSecurity
         Data(SHA256.hash(data: try AgentRequestBinding.encoded(value, maximum: AgentRequest.maximumBytes * 2))).base64EncodedString()
     }
 
-    private func validateSnapshot(_ value: AgentJSONValue, operationID: UUID) throws {
+    static func supports(_ name: String) -> Bool {
+        guard let operation = AgentOperationCatalog.operation(named: name) else { return false }
+        return operation.requiresEffectAuthorization || operation.requiresHumanApproval
+    }
+
+    private func validateSnapshot(_ value: AgentJSONValue, operationID: UUID, name: String? = nil) throws {
         try AgentExecutionSchemas.validateResult(["operation": value], for: "operations.get")
         guard case .object(let fields) = value,
-              fields["operationID"] == .string(operationID.uuidString), fields["name"] == .string("actions.run") else {
+              fields["operationID"] == .string(operationID.uuidString),
+              case .string(let actualName) = fields["name"], Self.supports(actualName),
+              name == nil || name == actualName else {
             throw AgentErrorCode.invalidInput
+        }
+        if actualName != "actions.run", fields["state"] == .string("succeeded") {
+            guard case .object(let result) = fields["result"] else { throw AgentErrorCode.invalidInput }
+            try AgentOperationSchemas.validateResult(result, for: actualName, preferences: AgentPreferenceCatalog.make())
         }
     }
 
@@ -122,7 +135,8 @@ import AgentLocalSecurity
             for record in records {
                 guard Data(base64Encoded: record.requestFingerprint)?.count == 32,
                       Data(base64Encoded: record.grantFingerprint)?.count == 32 else { throw AgentErrorCode.storageError }
-                if let snapshot = record.snapshot { try validateSnapshot(snapshot, operationID: record.operationID) }
+                guard Self.supports(record.operationName ?? "actions.run") else { throw AgentErrorCode.storageError }
+                if let snapshot = record.snapshot { try validateSnapshot(snapshot, operationID: record.operationID, name: record.operationName ?? "actions.run") }
             }
             return (data, records)
         } catch { throw AgentErrorCode.storageError }

@@ -34,6 +34,148 @@ struct AgentOperationJournalTests {
         func cleanup() { try? FileManager.default.removeItem(at: root) }
     }
 
+    private func previewFixture() throws -> (Fixture, AgentGrant, AgentRequest, [String: AgentJSONValue]) {
+        let f = try Fixture(), window = UUID(), draft = UUID()
+        let targets: Set<AgentResourceReference> = [.init(kind: .window, id: window), .init(kind: .draft, id: draft)]
+        let grant = AgentGrant(connectionID: f.grant.connectionID, libraryID: f.grant.libraryID,
+            expiresAt: f.grant.expiresAt, capabilities: [.presentUI, .draftsRead], scope: .resources(targets))
+        let request = AgentRequest(requestID: UUID(), libraryID: grant.libraryID, operation: "editor.preview",
+            targets: [.init(kind: .window, id: window)], parameters: ["visible": .bool(true)])
+        return (f, grant, request, ["windowID": .string(window.uuidString), "draftID": .string(draft.uuidString), "visible": .bool(true)])
+    }
+
+    @Test func nonActionResultSurvivesRestartWithoutActionPermissionOrReplay() async throws {
+        let (f, grant, request, result) = try previewFixture(); defer { f.cleanup() }
+        let journal = try AgentOperationJournal(parentDirectory: f.root)
+        let first = AgentOperationRegistry(currentGrant: { _ in grant }, validateHost: {}, isLocked: { false }, journal: journal)
+        var starts = 0
+        let id = try first.startValueRequest(request, grant: grant) { _ in starts += 1; return result }
+        for _ in 0..<1000 where try !first.snapshot(id, connectionID: grant.connectionID).state.isTerminal { await Task.yield() }
+        let original = try first.snapshot(id, connectionID: grant.connectionID)
+        #expect(original.state == .succeeded && original.name == "editor.preview" && original.result == .object(result))
+        guard case .object(let fields) = try original.wireValue() else { Issue.record("Missing operation"); return }
+        #expect(fields["actionReport"] == .null)
+        let second = AgentOperationRegistry(currentGrant: { _ in grant }, validateHost: {}, isLocked: { false },
+            journal: try AgentOperationJournal(parentDirectory: f.root))
+        #expect(try second.startValueRequest(request, grant: grant) { _ in starts += 1; return result } == id)
+        let restored = try second.snapshot(id, connectionID: grant.connectionID)
+        #expect(restored.name == "editor.preview" && restored.result == .object(result))
+        #expect(try restored.wireValue() == original.wireValue())
+        #expect(starts == 1)
+    }
+
+    @Test func interruptedNonActionReservationRecoversAsUnknownWithoutStarting() throws {
+        let (f, grant, request, result) = try previewFixture(); defer { f.cleanup() }
+        let journal = try AgentOperationJournal(parentDirectory: f.root), id = UUID()
+        _ = try journal.reserve(request, grant: grant, operationID: id)
+        let reopened = AgentOperationRegistry(currentGrant: { _ in grant }, validateHost: {}, isLocked: { false },
+            journal: try AgentOperationJournal(parentDirectory: f.root))
+        #expect(try reopened.startValueRequest(request, grant: grant) { _ in Issue.record("Unexpected replay"); return result } == id)
+        let snapshot = try reopened.snapshot(id, connectionID: grant.connectionID)
+        #expect(snapshot.state == .outcomeUnknown && snapshot.name == "editor.preview" && snapshot.result == nil)
+        _ = try snapshot.wireValue()
+    }
+
+    @Test func genericResultCannotChangeItsReservedOperationName() throws {
+        let (f, grant, request, _) = try previewFixture(); defer { f.cleanup() }
+        let journal = try AgentOperationJournal(parentDirectory: f.root), id = UUID()
+        _ = try journal.reserve(request, grant: grant, operationID: id)
+        let path = f.root.appendingPathComponent("Agents/operations.json"), original = try Data(contentsOf: path)
+        let wrong = try AgentOperationRegistry.Snapshot(id: id, state: .outcomeUnknown, updatedAt: Date(),
+            output: nil, error: .outcomeUnknown, effects: [], name: "themes.reload").wireValue()
+        #expect(throws: AgentErrorCode.invalidInput) { try journal.save(wrong, operationID: id, grant: grant) }
+        #expect(try Data(contentsOf: path) == original)
+    }
+
+    @Test func malformedNonActionResultCannotBeSavedAsSuccess() throws {
+        let (f, grant, request, _) = try previewFixture(); defer { f.cleanup() }
+        let journal = try AgentOperationJournal(parentDirectory: f.root), id = UUID()
+        _ = try journal.reserve(request, grant: grant, operationID: id)
+        let path = f.root.appendingPathComponent("Agents/operations.json"), original = try Data(contentsOf: path)
+        let malformed = try AgentOperationRegistry.Snapshot(id: id, state: .succeeded, updatedAt: Date(),
+            output: nil, error: nil, effects: [], name: "editor.preview", result: .object([:])).wireValue()
+        #expect(throws: (any Error).self) { try journal.save(malformed, operationID: id, grant: grant) }
+        #expect(try Data(contentsOf: path) == original)
+    }
+
+    @Test func legacyActionReservationWithoutNameRemainsReadable() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let id = UUID(), journal = try AgentOperationJournal(parentDirectory: f.root)
+        _ = try journal.reserve(f.request, grant: f.grant, operationID: id)
+        let path = f.root.appendingPathComponent("Agents/operations.json")
+        var records = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: path)) as? [[String: Any]])
+        records[0].removeValue(forKey: "operationName")
+        try JSONSerialization.data(withJSONObject: records).write(to: path)
+        let registry = AgentOperationRegistry(currentGrant: { _ in f.grant }, validateHost: {}, isLocked: { false },
+            journal: try AgentOperationJournal(parentDirectory: f.root))
+        let value = try registry.snapshot(id, connectionID: f.grant.connectionID)
+        #expect(value.name == "actions.run" && value.state == .outcomeUnknown)
+        _ = try value.wireValue()
+    }
+
+    @Test func stopWorkPreservesCompletedNonActionEffectsAndDoesNotReplay() async throws {
+        let (f, grant, request, result) = try previewFixture(); defer { f.cleanup() }
+        let registry = AgentOperationRegistry(currentGrant: { _ in grant }, validateHost: {}, isLocked: { false },
+            journal: try AgentOperationJournal(parentDirectory: f.root))
+        var starts = 0
+        let id = try registry.startValueRequest(request, grant: grant) { id in
+            starts += 1
+            let effect = UUID()
+            try registry.recordEffect(id, effectID: effect, kind: "preview", outcome: "submitted")
+            try registry.recordEffect(id, effectID: effect, kind: "preview", outcome: "completed")
+            while !Task.isCancelled { await Task.yield() }
+            throw CancellationError()
+        }
+        for _ in 0..<1000 where try registry.snapshot(id, connectionID: grant.connectionID).effects.isEmpty { await Task.yield() }
+        registry.cancelAll()
+        for _ in 0..<1000 where try !registry.snapshot(id, connectionID: grant.connectionID).state.isTerminal { await Task.yield() }
+        let snapshot = try registry.snapshot(id, connectionID: grant.connectionID)
+        #expect(snapshot.state == .outcomeUnknown && snapshot.result == nil)
+        #expect(snapshot.effects.map(\.outcome) == ["completed"])
+        #expect(try registry.startValueRequest(request, grant: grant) { _ in starts += 1; return result } == id)
+        #expect(starts == 1)
+    }
+
+    @Test func queuedNonActionCancellationDoesNotStartWorkOrCreateAnActionReport() async throws {
+        let (f, grant, request, result) = try previewFixture(); defer { f.cleanup() }
+        let registry = AgentOperationRegistry(currentGrant: { _ in grant }, validateHost: {}, isLocked: { false },
+            journal: try AgentOperationJournal(parentDirectory: f.root))
+        var starts = 0
+        let id = try registry.startValueRequest(request, grant: grant) { _ in starts += 1; return result }
+        registry.cancelAll()
+        for _ in 0..<1000 where try !registry.snapshot(id, connectionID: grant.connectionID).state.isTerminal { await Task.yield() }
+        let snapshot = try registry.snapshot(id, connectionID: grant.connectionID)
+        #expect(starts == 0 && snapshot.state == .cancelled)
+        guard case .object(let fields) = try snapshot.wireValue() else { Issue.record("Missing snapshot"); return }
+        #expect(fields["actionReport"] == .null && fields["result"] == .null)
+    }
+
+    @Test func revokedValueGrantCannotReadItsRecoveredResult() async throws {
+        let (f, grant, request, result) = try previewFixture(); defer { f.cleanup() }
+        var current: AgentGrant? = grant
+        let registry = AgentOperationRegistry(currentGrant: { _ in current }, validateHost: {}, isLocked: { false },
+            journal: try AgentOperationJournal(parentDirectory: f.root))
+        let id = try registry.startValueRequest(request, grant: grant) { _ in result }
+        for _ in 0..<1000 where try !registry.snapshot(id, connectionID: grant.connectionID).state.isTerminal { await Task.yield() }
+        current = nil
+        #expect(throws: AgentErrorCode.permissionDenied) { try registry.snapshot(id, connectionID: grant.connectionID) }
+        let recovered = AgentOperationRegistry(currentGrant: { _ in current }, validateHost: {}, isLocked: { false },
+            journal: try AgentOperationJournal(parentDirectory: f.root))
+        #expect(throws: AgentErrorCode.permissionDenied) { try recovered.snapshot(id, connectionID: grant.connectionID) }
+    }
+
+    @Test func missingPermissionRejectsGenericWorkBeforeReservation() throws {
+        let (f, approved, request, result) = try previewFixture(); defer { f.cleanup() }
+        let grant = AgentGrant(connectionID: approved.connectionID, libraryID: approved.libraryID,
+            expiresAt: approved.expiresAt, capabilities: [.draftsRead], scope: approved.scope)
+        let registry = AgentOperationRegistry(currentGrant: { _ in grant }, validateHost: {}, isLocked: { false },
+            journal: try AgentOperationJournal(parentDirectory: f.root))
+        #expect(throws: AgentErrorCode.permissionDenied) {
+            try registry.startValueRequest(request, grant: grant) { _ in Issue.record("Unexpected work"); return result }
+        }
+        #expect(!FileManager.default.fileExists(atPath: f.root.appendingPathComponent("Agents/operations.json").path))
+    }
+
     @Test func reservationSurvivesReopenWithoutStoringRequestParameters() throws {
         let f = try Fixture(); defer { f.cleanup() }
         let original = UUID(), journal = try AgentOperationJournal(parentDirectory: f.root)

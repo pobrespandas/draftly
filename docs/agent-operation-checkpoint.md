@@ -1,3 +1,26 @@
+# Typed results for reviewed operations — 3 November 2026
+
+The operation registry now has an app-owned path for typed results outside
+`actions.run`. It binds the operation name to the durable reservation, checks
+that operation's capabilities, validates successful result fields, and retains
+the same request identity through restart. An interrupted reservation becomes
+`outcome_unknown`; it does not run again. Old Action reservations without the
+new optional name remain readable as `actions.run`.
+
+The registry does not grant effect approval. Each app handler must obtain the
+required native review before it performs its effect. No new transport handler
+or permission was enabled by this change. The absent-handler count stays 80.
+The new path has a 120-second cancellation deadline. Unconfirmed cancellation
+after work starts remains uncertain. Completed effect records remain visible.
+
+The service, host, registry, and journal integration run passed 162 tests.
+After adding stricter saved-result validation, the final registry/journal run
+passed 24 tests. Cases cover typed results, restart without replay, recovery of
+an interrupted reservation, queued and active cancellation, revocation, missing
+permissions, operation-name binding, malformed results, and legacy records.
+The final native QA build passed. Installed native-effect review and active
+effect cancellation remain pending; mocked work is not their acceptance.
+
 # Bounded replace-all mutations — 3 November 2026
 
 `editor.replaceAll` now uses `EditorFindQuery` with literal or regex replacement.
