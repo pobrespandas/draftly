@@ -13,7 +13,7 @@ import AgentContracts
         let grantID: UUID
     }
     private static let readOperations: Set<String> = ["server.status", "server.capabilities", "server.schemas",
-        "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions", "preferences.schema", "preferences.get"]
+        "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions", "preferences.schema", "preferences.get", "syntaxes.getBuiltIn"]
     private static let editorReadOperations: Set<String> = ["editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks"]
     private static let actionReadOperations: Set<String> = ["actions.list", "actions.get", "actions.stepSchemas", "actions.groups", "actionGroups.get"]
     private static let workspaceReadOperations: Set<String> = ["workspaces.list", "workspaces.get", "workspaces.query"]
@@ -780,6 +780,11 @@ import AgentContracts
     private func dispatch(_ request: AgentRequest, parameters: [String: AgentJSONValue], grant: AgentGrant,
                           sessionID: UUID) throws -> [String: AgentJSONValue] {
         switch request.operation {
+        case "syntaxes.getBuiltIn":
+            guard case .string(let name) = parameters["name"] else { throw AgentErrorCode.invalidInput }
+            let source = try ScriptSyntax.definition(name).source
+            let token = Data(HMAC<SHA256>.authenticationCode(for: Data(source.utf8), using: preferenceVersionKey)).base64EncodedString()
+            return ["name": .string(name), "source": .string(source), "versionToken": .string(token)]
         case "actions.run":
             guard let submitAction, let operationRegistry else { throw AgentErrorCode.unavailable }
             if let id = try operationRegistry.existingRequest(request, grant: grant) {
