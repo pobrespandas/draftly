@@ -1477,14 +1477,30 @@ struct AgentCommandServiceTests {
         #expect(f.library.notes.count == 1)
     }
 
+    @Test func builtInSyntaxReadRequiresPermissionAndPreservesStorage() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let (_, allowed) = try f.connect(capabilities: [.appearanceRead])
+        let (_, denied) = try f.connect(capabilities: [])
+        let before = try f.library.backupData()
+        for name in ScriptSyntax.names {
+            let parameters: [String: AgentJSONValue] = ["name": .string(name)]
+            #expect(try f.response("syntaxes.getBuiltIn", session: denied, parameters: parameters).outcome == .error(.permissionDenied))
+            let value = try f.values("syntaxes.getBuiltIn", session: allowed, parameters: parameters)
+            #expect(value["source"] == .string(try ScriptSyntax.definition(name).source))
+            #expect(value == (try f.values("syntaxes.getBuiltIn", session: allowed, parameters: parameters)))
+        }
+        #expect(try f.library.backupData() == before)
+    }
+
     @Test func schemasReportActualHandlersAndUnsupportedOperationsNeverSimulateSuccess() throws {
         let f = try Fixture(), (_, session) = try f.connect(capabilities: [.draftsRead, .draftsWrite])
         let values = try f.values("server.schemas", session: session)
         guard case .array(let operations) = values["operations"] else { Issue.record("Missing schemas"); return }
-        let available = Set(operations.compactMap { item -> String? in
+        var available = Set(operations.compactMap { item -> String? in
             guard case .object(let fields) = item, fields["available"] == .bool(true), case .string(let name) = fields["name"] else { return nil }
             return name
         })
+        #expect(available.remove("syntaxes.getBuiltIn") != nil)
         #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", "preferences.get", AgentMutationSchemas.name, "drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.setSelection", "editor.replaceRange", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.update"]) && available.count == 42)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.invalidInput))
         #expect(f.library.notes.isEmpty)
