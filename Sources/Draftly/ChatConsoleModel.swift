@@ -127,8 +127,8 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
 
     func modelName(_ value: String) -> String {
         switch value {
-        case "onDevice": return "On-Device"
-        case "pcc": return "Cloud"
+        case "onDevice": return "Apple Intelligence · On-Device"
+        case "pcc": return "Apple Intelligence · Cloud"
         default:
             guard value.hasPrefix("chatgpt:") else { return "Choose Model" }
             let id = String(value.dropFirst(8))
