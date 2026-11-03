@@ -227,3 +227,26 @@ coalesced renewal, returned scope checks, disconnect during renewal, durable
 uncertainty after network failure, and rejected completion after deletion.
 Both project-generator checks passed. These tests inject renewal responses;
 they do not establish a working MCP server login or remote revocation.
+
+## MCP authorization discovery and request
+
+`MCPAuthorizationDiscovery` loads protected resource metadata, then OAuth or
+OIDC authorization server metadata. It verifies the resource and issuer. It
+requires S256 and HTTPS. Multiple issuers require an explicit advertised choice.
+Requests have no credentials. Redirects are denied and responses are bounded by
+the shared HTTP implementation. A malformed successful document stops discovery;
+only HTTP 404 tries the next discovery path.
+
+`MCPAuthorizationRequest` creates fresh state and a PKCE verifier. It binds the
+authorization and token requests to one resource, client, and redirect URI.
+Callback checks cover destination, state, duplicate parameters, and a returned
+issuer. The verifier remains in memory. The browser session, client registration,
+token response exchange, connection UI, and installed login remain pending.
+
+Reference: https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization
+
+Validation: all six discovery and authorization-request tests passed serially.
+Both project-generator checks passed. Next, use `ASWebAuthenticationSession`
+with the app's registered callback scheme. Apple documentation was checked for
+session start, cancellation, and presentation-context ownership. The native
+browser flow is not implemented or accepted yet.
