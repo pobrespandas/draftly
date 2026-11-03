@@ -29,7 +29,7 @@ agent pairing and grants.
 | Installed MCP | The bundled helper exposes the local service through bounded stdio MCP. | A probe negotiated `2025-11-25`, listed read tools, omitted write tools, and read the approved draft. | Fresh native helper pairing in the current build and a full session for each named client. No Codex or Claude Code compatibility claim follows from this probe. |
 | Revocation | Disconnect closes the chat session, revokes its connection, and removes its credential and revoked metadata. | An existing MCP process denied its next read. A new CLI request returned `permission_denied`. No draft text returned after revocation. | Revocation during writes and native effects, plus installed storage-failure cases. |
 | Stop Work | The host suspends transport, reviews, and operations. | With no granted session left, Stop Work set access off and removed endpoint publication. | Stop Work during an open authorized session and during an active operation or review. |
-| Restart | Account and conversation persistence are connected. A new host does not start a listener automatically. | The signed QA retained account and conversation after process exit. Access remained off. | Model choice reset to Apple On-Device in QA. Model selection now persists in source with a focused restart test; installed verification remains pending. Test permission and result recovery for the remaining operations. |
+| Restart | Account and conversation persistence are connected. A new host does not start a listener automatically. | The signed QA retained account and conversation after process exit. Access remained off. | A follow-up signed QA from `2ea267b` retained the selected ChatGPT model after verified process exit. Tools stayed disconnected and access stayed off. Other model/provider restart paths remain pending. Test permission and result recovery for the remaining operations. |
 | Normal startup and lock | Host creation is still gated to isolated agent QA. | Fresh QA access started off. The QA lock adapter does not detect screen lock. | Normal startup with access off, verified initial lock state, lock/sleep transitions, and explicit resume. |
 | Distribution | App and helper profiles and signatures are checked. | Both ran installed with matching Developer ID identities. | Combined notarization, final release packaging, architecture checks, signed updates, and post-update CLI/MCP sessions. |
 | Apple Intelligence | Available on-device and Cloud choices are connected through the native model adapter. | Both choices appeared in this QA. An earlier isolated QA checked an on-device reply. | Availability is separate from inference. Cloud inference and tool integration need their own acceptance. |
@@ -119,7 +119,7 @@ its tool definitions with MCP. It exposes no inbound HTTP server.
    editing, Undo, concurrency, cancellation, and recovery through installed
    clients. Complete non-native effect result records and durability checks.
 4. Complete model-account renewal/revocation acceptance, Apple Cloud acceptance,
-   model-choice persistence, and remaining chat reliability checks.
+   remaining model/provider restart paths, and chat reliability checks.
 5. Complete full relevant CI, final signed/notarized packaging, update testing,
    and each named client's acceptance before publication.
 

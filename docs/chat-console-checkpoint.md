@@ -1,3 +1,23 @@
+# Installed model selection acceptance — 3 November 2026
+
+A fresh signed app and embedded helper from `2ea267b` replaced only the named
+Agent Chat QA bundle. The previous bundle, shared preferences, and saved window
+state have private recovery copies. The QA retained its temporary library and
+separate ChatGPT account/history namespace. The normal library was not opened.
+
+Native UI selected ChatGPT GPT-6.1-Sol. The QA fully exited and the process was
+confirmed absent. After reopening, Chat Console retained that model identifier,
+and tools remained disconnected. Agents Settings showed access off and no
+approved connections. Two neutral drafts are present for the next scope test.
+This closes installed model-choice persistence for this path. It does not prove
+account renewal, account switching, or a new model response after restart.
+
+The QA is open on Agents Settings with access off. A new read-only pairing and
+15-minute grant require fresh user approval. No new grant was created. The
+local non-secret checkpoint is `/tmp/draftly-agent-qa-followup.json`. Its private
+work directory holds recovery files. Do not restore shared preferences while
+the QA is running. Stop the QA and verify process exit before restoration.
+
 # Model selection follow-up — 3 November 2026
 
 The selected model now persists separately from conversation history. Restoring
