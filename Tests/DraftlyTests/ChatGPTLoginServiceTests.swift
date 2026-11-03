@@ -5,7 +5,7 @@ import Testing
 
 @Suite("Direct ChatGPT login transaction") @MainActor
 struct ChatGPTLoginServiceTests {
-    @MainActor private final class Vault {
+    @MainActor final class Vault {
         var records: [String: Data] = [:]
         var rejectWrites = false
         var writes = 0
@@ -74,13 +74,13 @@ struct ChatGPTLoginServiceTests {
             exchange: { _ in response }, verify: { _, nonce, client, subject in
                 #expect(!nonce.isEmpty && subject == nil)
                 return Self.identity(client)
-            })
+            }, lease: { _ in NSObject() })
         let record = try await service.signIn()
-        #expect(record.tokens.allowsInference && vault.writes == 1)
+        #expect(record.tokens?.allowsInference == true && vault.writes == 1)
         #expect(record.identity.subject == "neutral-subject")
-        let restarted = ChatGPTLoginService(defaults: defaults, store: vault.store)
+        let restarted = ChatGPTLoginService(defaults: defaults, store: vault.store, lease: { _ in NSObject() })
         #expect(restarted.hostID == service.hostID)
-        #expect(try restarted.read(record.id)?.tokens.accessToken == "neutral-access")
+        #expect(try restarted.read(record.id)?.tokens?.accessToken == "neutral-access")
         let serializedDefaults = String(describing: defaults.persistentDomain(forName: suite))
         #expect(!serializedDefaults.contains("neutral-access") && !serializedDefaults.contains("neutral-refresh"))
     }
@@ -89,7 +89,7 @@ struct ChatGPTLoginServiceTests {
         let (defaults, suite) = try defaults(); defer { defaults.removePersistentDomain(forName: suite) }
         let vault = Vault(), response = try Self.response()
         let first = ChatGPTLoginService(defaults: defaults, store: vault.store, authorize: Self.authorize,
-            exchange: { _ in response }, verify: { _, _, client, _ in Self.identity(client) })
+            exchange: { _ in response }, verify: { _, _, client, _ in Self.identity(client) }, lease: { _ in NSObject() })
         let record = try await first.signIn(), oldData = vault.records
         let replacement = ChatGPTLoginService(defaults: defaults, store: vault.store, authorize: { host, client in
             #expect(client == record.identity.clientID)
@@ -97,7 +97,7 @@ struct ChatGPTLoginServiceTests {
         }, exchange: { _ in response }, verify: { _, _, client, subject in
             #expect(subject == record.identity.subject)
             return Self.identity(client, subject: "wrong-subject")
-        })
+        }, lease: { _ in NSObject() })
         await #expect(throws: ChatGPTLoginService.Failure.identityMismatch) { try await replacement.signIn(registrationID: record.id) }
         #expect(vault.records == oldData && vault.writes == 1)
     }
@@ -109,7 +109,7 @@ struct ChatGPTLoginServiceTests {
         let service = ChatGPTLoginService(defaults: defaults, store: vault.store, authorize: { host, client in
             suppliedClients.append(client)
             return try Self.authorize(host: host, client: client)
-        }, exchange: { _ in .init(status: 400, data: Data()) }, verify: { _, _, client, _ in Self.identity(client) })
+        }, exchange: { _ in .init(status: 400, data: Data()) }, verify: { _, _, client, _ in Self.identity(client) }, lease: { _ in NSObject() })
         for _ in 0..<2 {
             await #expect(throws: ChatGPTLoginService.Failure.exchangeRejected) { try await service.signIn() }
         }
@@ -123,7 +123,7 @@ struct ChatGPTLoginServiceTests {
         let (defaults, suite) = try defaults(); defer { defaults.removePersistentDomain(forName: suite) }
         let vault = Vault(), gate = Gate()
         let service = ChatGPTLoginService(defaults: defaults, store: vault.store, authorize: Self.authorize,
-            exchange: { _ in await gate.response() }, verify: { _, _, client, _ in Self.identity(client) })
+            exchange: { _ in await gate.response() }, verify: { _, _, client, _ in Self.identity(client) }, lease: { _ in NSObject() })
         let task = Task { try await service.signIn() }
         await gate.waitUntilEntered()
         await #expect(throws: ChatGPTLoginService.Failure.busy) { try await service.signIn() }
@@ -137,8 +137,8 @@ struct ChatGPTLoginServiceTests {
         let (defaults, suite) = try defaults(); defer { defaults.removePersistentDomain(forName: suite) }
         let vault = Vault(), response = try Self.response(scope: "openid profile email")
         let service = ChatGPTLoginService(defaults: defaults, store: vault.store, authorize: Self.authorize,
-            exchange: { _ in response }, verify: { _, _, client, _ in Self.identity(client) })
-        #expect(try await service.signIn().tokens.allowsInference == false)
+            exchange: { _ in response }, verify: { _, _, client, _ in Self.identity(client) }, lease: { _ in NSObject() })
+        #expect(try await service.signIn().tokens?.allowsInference == false)
     }
 
     @Test func storageFailureDoesNotReportSuccessfulLogin() async throws {
@@ -146,7 +146,7 @@ struct ChatGPTLoginServiceTests {
         let vault = Vault(), response = try Self.response()
         vault.rejectWrites = true
         let service = ChatGPTLoginService(defaults: defaults, store: vault.store, authorize: Self.authorize,
-            exchange: { _ in response }, verify: { _, _, client, _ in Self.identity(client) })
+            exchange: { _ in response }, verify: { _, _, client, _ in Self.identity(client) }, lease: { _ in NSObject() })
         await #expect(throws: ChatGPTLoginService.Failure.storage) { try await service.signIn() }
         #expect(vault.records.isEmpty)
     }

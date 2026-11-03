@@ -26,6 +26,7 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
 
 @MainActor final class ChatConsoleModel: ObservableObject {
     let codexAccount: CodexAccountModel
+    let chatGPTAccount: ChatGPTAccountModel?
     private struct SavedState: Codable {
         var conversations: [ChatConsoleConversation]
         var selectedConversationID: UUID?
@@ -64,9 +65,11 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
     }
 
     init(loadModes: @escaping LoadModes, respond: @escaping Respond, defaults: UserDefaults = .standard,
-         codexAccount: CodexAccountModel = CodexAccountModel(), refreshCodexOnLoad: Bool = false) {
+         codexAccount: CodexAccountModel = CodexAccountModel(), refreshCodexOnLoad: Bool = false,
+         chatGPTAccount: ChatGPTAccountModel? = nil) {
         self.loadModes = loadModes; self.respond = respond; self.defaults = defaults
         self.codexAccount = codexAccount
+        self.chatGPTAccount = chatGPTAccount
         self.refreshCodexOnLoad = refreshCodexOnLoad
         if let data = defaults.data(forKey: Self.storageKey),
            let saved = try? JSONDecoder().decode(SavedState.self, from: data) {
@@ -96,7 +99,7 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
                   let value = frame["value"] as? [String: Any],
                   let response = value["response"] as? String else { throw ChatConsoleError.invalidModelResponse }
             return response
-        }, refreshCodexOnLoad: true)
+        }, chatGPTAccount: .shared)
     }
 
     func loadModels() async {

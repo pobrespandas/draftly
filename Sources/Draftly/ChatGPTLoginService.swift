@@ -1,14 +1,15 @@
 import AppKit
 import Foundation
 
-struct ChatGPTAccountRecord: Codable, Sendable {
+struct ChatGPTAccountRecord: Codable, Equatable, Sendable {
     let id: UUID
     let identity: ChatGPTIdentity
     let hostID: String
-    let tokens: ChatGPTTokens
+    var tokens: ChatGPTTokens?
+    var refreshUncertain: Bool?
 }
 
-struct ChatGPTTokens: Codable, Sendable {
+struct ChatGPTTokens: Codable, Equatable, Sendable {
     let accessToken: String
     let refreshToken: String?
     let idToken: String
@@ -43,6 +44,7 @@ struct ChatGPTTokens: Codable, Sendable {
     private let verify: Verify
     private let store: ChatGPTCredentialStore
     private let now: @Sendable () -> Date
+    private let lease: @MainActor (UUID) throws -> AnyObject
     let hostID: String
     private var activeID: UUID?
     private var task: Task<ChatGPTAccountRecord, any Error>?
@@ -52,7 +54,8 @@ struct ChatGPTTokens: Codable, Sendable {
     init(defaults: UserDefaults = .standard, store: ChatGPTCredentialStore = ChatGPTCredentialStore(),
          authorize: @escaping Authorize = ChatGPTLoginService.browserAuthorization,
          exchange: @escaping Exchange = ChatGPTHTTP.perform,
-         verify: Verify? = nil, now: @escaping @Sendable () -> Date = { Date() }) {
+         verify: Verify? = nil, now: @escaping @Sendable () -> Date = { Date() },
+         lease: @escaping @MainActor (UUID) throws -> AnyObject = { try ChatGPTSessionLease(accountID: $0) }) {
         let key = "chatGPT.hostID"
         if let saved = defaults.string(forKey: key), saved.hasPrefix("urn:uuid:"),
            UUID(uuidString: String(saved.dropFirst(9))) != nil { hostID = saved }
@@ -60,7 +63,7 @@ struct ChatGPTTokens: Codable, Sendable {
             hostID = "urn:uuid:" + UUID().uuidString.lowercased()
             defaults.set(hostID, forKey: key)
         }
-        self.store = store; self.authorize = authorize; self.exchange = exchange; self.now = now
+        self.store = store; self.authorize = authorize; self.exchange = exchange; self.now = now; self.lease = lease
         if let verify { self.verify = verify }
         else {
             let verifier = ChatGPTIdentityVerifier()
@@ -78,6 +81,12 @@ struct ChatGPTTokens: Codable, Sendable {
             throw Failure.invalidRegistration
         }
         return record
+    }
+
+    func save(_ record: ChatGPTAccountRecord) throws {
+        guard record.hostID == hostID else { throw Failure.invalidRegistration }
+        do { try store.write(JSONEncoder().encode(record), accountID: record.id) }
+        catch { throw Failure.storage }
     }
 
     func signIn(registrationID: UUID? = nil) async throws -> ChatGPTAccountRecord {
@@ -113,8 +122,10 @@ struct ChatGPTTokens: Codable, Sendable {
                 tokens: ChatGPTTokens(accessToken: tokens.access_token, refreshToken: tokens.refresh_token,
                     idToken: tokens.id_token, scopes: Set(tokens.scope.split(separator: " ").map(String.init)),
                     expiresAt: now().addingTimeInterval(tokens.expires_in)))
-            do { try store.write(JSONEncoder().encode(record), accountID: record.id) }
-            catch { throw Failure.storage }
+            let lock = try lease(record.id)
+            defer { withExtendedLifetime(lock) {} }
+            if let previous, try read(previous.id) != previous { throw Failure.invalidRegistration }
+            try save(record)
             pendingClientID = nil
             return record
         }

@@ -24,7 +24,9 @@ struct ChatConsolePanel: View {
         .frame(minWidth: 260, maxWidth: .infinity, maxHeight: .infinity)
         .background(.background)
         .task { await model.loadModels() }
-        .sheet(isPresented: $showChatGPTAccount) { CodexAccountView(model: model.codexAccount) }
+        .sheet(isPresented: $showChatGPTAccount) {
+            if let account = model.chatGPTAccount { ChatGPTAccountView(model: account) }
+        }
     }
 
     private var header: some View {

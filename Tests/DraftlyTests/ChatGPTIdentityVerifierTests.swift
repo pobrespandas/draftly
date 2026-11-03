@@ -119,6 +119,23 @@ struct ChatGPTIdentityVerifierTests {
         }
     }
 
+    @Test func renewedTokenWithoutLoginNonceRequiresThePreviouslyVerifiedAccount() async throws {
+        let key = try SigningKey(), documents = try Documents([keySet([key])]), verifier = verifier(documents)
+        var renewed = claims(); renewed["nonce"] = nil
+        let token = try key.token(renewed)
+        let identity = ChatGPTIdentity(issuer: "https://auth.openai.com", clientID: "oaiapp_test",
+                                      subject: "neutral-subject", email: nil, name: nil)
+        #expect(try await verifier.verifyRenewed(token, identity: identity).subject == identity.subject)
+        await #expect(throws: ChatGPTIdentityVerifier.Failure.invalidToken) {
+            try await verifier.verify(token, nonce: "neutral-nonce", clientID: "oaiapp_test")
+        }
+        let wrongAccount = ChatGPTIdentity(issuer: identity.issuer, clientID: identity.clientID,
+                                          subject: "other-subject", email: nil, name: nil)
+        await #expect(throws: ChatGPTIdentityVerifier.Failure.invalidToken) {
+            try await verifier.verifyRenewed(token, identity: wrongAccount)
+        }
+    }
+
     @Test func rejectsUntrustedAlgorithmsAndCriticalHeadersBeforeFetchingKeys() async throws {
         let key = try SigningKey(), documents = try Documents([keySet([key])]), verifier = verifier(documents)
         let headers: [[String: Any]] = [["alg": "none", "kid": "neutral-key"],

@@ -28,9 +28,19 @@ actor ChatGPTIdentityVerifier {
 
     func verify(_ token: String, nonce: String, clientID: String,
                 expectedSubject: String? = nil) async throws -> ChatGPTIdentity {
+        guard !nonce.isEmpty else { throw Failure.invalidToken }
+        return try await verifyToken(token, nonce: nonce, clientID: clientID, expectedSubject: expectedSubject)
+    }
+
+    func verifyRenewed(_ token: String, identity: ChatGPTIdentity) async throws -> ChatGPTIdentity {
+        try await verifyToken(token, nonce: nil, clientID: identity.clientID, expectedSubject: identity.subject)
+    }
+
+    private func verifyToken(_ token: String, nonce: String?, clientID: String,
+                             expectedSubject: String?) async throws -> ChatGPTIdentity {
         do {
             try Task.checkCancellation()
-            guard !nonce.isEmpty, clientID.hasPrefix("oaiapp_"), token.utf8.count <= 65536 else { throw Failure.invalidToken }
+            guard clientID.hasPrefix("oaiapp_"), token.utf8.count <= 65536 else { throw Failure.invalidToken }
             let parts = token.split(separator: ".", omittingEmptySubsequences: false)
             guard parts.count == 3, let headerBytes = Self.decodeBase64URL(String(parts[0])) else { throw Failure.invalidToken }
             let header = try JSONDecoder().decode(Header.self, from: headerBytes)
@@ -54,7 +64,7 @@ actor ChatGPTIdentityVerifier {
             let claims = try await collection.verify(token, as: Claims.self)
             let instant = now().timeIntervalSince1970
             guard claims.iss == Self.issuer, !claims.sub.isEmpty,
-                  claims.aud.value.contains(clientID), claims.nonce == nonce,
+                  claims.aud.value.contains(clientID), nonce == nil || claims.nonce == nonce,
                   claims.exp.isFinite, claims.iat.isFinite,
                   claims.exp > instant - 5, claims.iat <= instant + 5, claims.exp > claims.iat,
                   claims.nbf == nil || (claims.nbf!.isFinite && claims.nbf! <= instant + 5),
@@ -140,7 +150,7 @@ actor ChatGPTIdentityVerifier {
         let iss: String
         let sub: String
         let aud: AudienceClaim
-        let nonce: String
+        let nonce: String?
         let exp: Double
         let iat: Double
         let nbf: Double?

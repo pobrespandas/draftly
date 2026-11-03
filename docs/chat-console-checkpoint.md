@@ -2,8 +2,10 @@
 
 ## Direct ChatGPT connection
 
-The direct connection is in progress on PR #105. The current UI still uses
-the Codex account model. Do not describe direct sign-in as available yet.
+The direct connection is in progress on PR #105. The installed QA account sheet
+uses direct ChatGPT OAuth. Real sign-in and restoration after full process exit
+passed. Direct model listing, Responses inference, and MCP tools remain pending.
+The console still offers Apple models. Do not claim ChatGPT inference works yet.
 
 `ChatGPTAuthorization` creates a fresh state, nonce, and PKCE verifier. It
 builds the official authorization request. Callback validation checks the
@@ -41,16 +43,32 @@ that pending client. Plan permissions come from granted scopes, not identity.
 It rejects redirects and bounds response size and duration. It does not log
 requests, responses, codes, or tokens.
 
-These components are not connected to the UI. Next steps:
+`ChatGPTAccountModel.shared` owns accounts across app windows. Preferences keep
+only the host ID, registration IDs, and selected ID. Account details and tokens
+stay in Keychain. A failed additional login keeps the previous active account.
+The direct account sheet supports selection, login, cancellation, and sign-out.
+Production console startup no longer initializes a Codex connection.
 
-1. Connect the tested login service to the account UI and account index.
-2. Add saved-account selection without mixing registrations or credentials.
-3. Add installed acceptance for login, Keychain storage, and process restart.
-4. Add serialized token refresh and sign-out. A late refresh must not restore
-   a signed-out account.
-5. Load the account model catalog and stream Responses requests directly.
-   Require `response.completed` before reporting success.
-6. Connect the console UI. Replace the Codex dependency after direct native QA.
+`ChatGPTSessionService` shares refresh work between callers. A device-local file
+lock also excludes other owners of the same account. Before refresh, it saves
+an uncertainty marker in Keychain. A lost response or failed rotated-token write
+requires sign-in after restart; it does not repeat the old token automatically.
+Successful refresh replaces credentials, scopes, and expiry together. Sign-out
+blocks new requests, waits for pending rotation, attempts remote revocation,
+and clears local tokens while retaining the registration. The UI reports when
+remote revocation was not confirmed. Login commits use the same lock and reject
+a returning session that changed while authorization was in progress.
+
+Next steps:
+
+1. Load the model catalog for the active account and connect streamed Responses.
+2. Check cancellation and account changes during real inference.
+3. Add installed acceptance for refresh and sign-out. Unit coverage is not
+   proof of provider revocation or installed multi-account behavior.
+4. Remove obsolete Codex paths and their tests after direct model coverage is
+   in place. Do not leave the known macOS 26 CI failure unresolved.
+5. Require `response.completed` before reporting inference success.
+6. Complete regression and CI validation.
 7. Add authorized MCP tools through the existing permission and review rules.
 
 Keep one account-session owner per installed app. Serialize refresh for each
@@ -104,6 +122,24 @@ scope, and Keychain failure. The first test build failed on the fixture vault's
 actor isolation. The corrected fixture passed. Two project-generator tests
 and the unsigned native Debug build passed. These checks do not establish real
 provider login, installed Keychain acceptance, refresh, sign-out, or inference.
+
+The account-controls follow-up passed thirty-seven focused tests in serial
+mode, including the existing console tests. New cases cover shared rotation,
+durable uncertainty, revoked scopes, sign-out during rotation, remote revocation
+failure, lease exclusion, symlink rejection, account restoration, and failed
+additional login. A signed renewed ID token without a login nonce is accepted
+only for the previously verified account. The first lifecycle test build failed
+because a throwing read needed `try` inside `#require`. The corrected tests
+passed. Two project-generator tests and the unsigned native Debug build passed.
+
+Installed Direct Chat QA completed real authorization and showed Signed in.
+It used a separate bundle identity, temporary library, and Keychain service.
+QA quit through the app menu. A process check confirmed the old process exited.
+The same installed binary reopened and showed Signed in without browser login.
+The normal app and the older QA copies were not changed. The copy is ad hoc
+signed; this is not release-signing or helper-distribution acceptance. It remains
+open on the account sheet. Native refresh, revocation, inference, tools, and
+multi-account acceptance remain pending. No tokens or account labels are tracked.
 
 ## Official contracts
 
