@@ -73,6 +73,7 @@ class ReleasePreflightCLITests(unittest.TestCase):
             notes = root / "docs/releases"
             notes.mkdir(parents=True)
             (notes / "v1.2.3.txt").write_text("Neutral fixture release notes.\n", encoding="utf-8")
+            (root / "CHANGELOG.md").write_text("# Changelog\n\n## [1.2.3]\n\nNeutral fixture release notes.\n")
             def git(*args):
                 return subprocess.run(["git", *args], cwd=root, check=True,
                                       capture_output=True, text=True).stdout.strip()

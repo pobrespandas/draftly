@@ -92,3 +92,43 @@ For a defective public release, withdraw its update offer through a coordinated
 feed deployment and publish a correction with a higher version and build.
 Preserve old assets. Do not replace bytes or move tags of a published version.
 Keep distribution, updates, and CloudKit acceptance separate.
+
+## Semantic versions and changelog
+
+Use [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html). Draftly's
+public contracts include its documented scripting API, CLI and MCP contracts,
+URL actions, export formats, and data migration guarantees. Record incompatible
+changes explicitly. From 1.0.0, use major for incompatible changes, minor for
+compatible features, and patch for fixes. During 0.x, use minor for features
+or incompatible changes and patch for fixes. This 0.x rule is Draftly policy;
+SemVer does not promise a stable API before 1.0.0.
+
+Use scoped [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
+Mark incompatible changes with `!` or a `BREAKING CHANGE:` footer. The note
+generator uses those markers to recommend a minimum version. It retains legacy
+subjects in Other changes so they remain visible for review. It does not infer
+all compatibility changes from source code. A maintainer must review the notes
+and version before creating a tag.
+
+Preview the notes from the previous stable tag:
+
+```sh
+python3 scripts/prepare-release-notes.py --since v0.1.9 --tag v0.2.0-alpha.1
+```
+
+After review, use `--write` to add `docs/releases/v0.2.0-alpha.1.txt` and the same
+entry in `CHANGELOG.md`. The command does not change the app version, build,
+Git tags, GitHub, or the live website. It refuses to overwrite existing release
+notes or changelog entries. A release preflight requires one changelog entry
+that exactly matches the reviewed release notes.
+
+Use the previous stable tag as the baseline for alpha, beta, and final notes.
+This gives each release a complete change list. Alpha and beta are below the
+stable version with the same numeric part. Sequence numbers compare as numbers:
+alpha.2 is before alpha.10; alpha is before beta; beta is before stable. Keep
+published tags and assets immutable. Do not rewrite old version numbers to
+apply the new policy retroactively.
+
+The initial changelog includes only the eight releases that GitHub reported
+as public during this change. It excludes unpublished 0.1.4 and 0.1.8 candidates.
+A changelog entry alone does not prove that a download is public or ready.

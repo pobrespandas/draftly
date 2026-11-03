@@ -30,10 +30,21 @@ def validate(tag, head, main, tag_commit, version, build):
         raise ValueError("The checked-out commit and tag must match origin/main.")
 
 
-def validate_notes(tag, directory=Path("docs/releases")):
+def validate_notes(tag, directory=Path("docs/releases"), *, changelog=None):
     notes = (Path(directory) / (tag + ".txt")).read_text(encoding="utf-8")
     if not notes.strip():
         raise ValueError("Release notes must not be empty: " + tag + ".txt")
+    if changelog is not None:
+        contents = Path(changelog).read_text(encoding="utf-8")
+        heading = "## [" + tag[1:] + "]"
+        sections = contents.splitlines()
+        matches = [i for i, line in enumerate(sections) if line == heading]
+        if len(matches) != 1:
+            raise ValueError("The changelog must contain one entry for the release tag.")
+        start = matches[0] + 1
+        end = next((i for i in range(start, len(sections)) if sections[i].startswith("## [")), len(sections))
+        if "\n".join(sections[start:end]).strip() != notes.strip():
+            raise ValueError("The changelog entry must match the release notes.")
 
 
 def git_commit(ref):
@@ -54,7 +65,7 @@ def main():
         validate(args.tag, git_commit("HEAD"), git_commit("refs/remotes/origin/main"),
                  git_commit("refs/tags/" + args.tag), info.get("CFBundleShortVersionString"),
                  info.get("CFBundleVersion"))
-        validate_notes(args.tag)
+        validate_notes(args.tag, changelog=Path("CHANGELOG.md"))
     except (ValueError, OSError, plistlib.InvalidFileException, subprocess.CalledProcessError) as error:
         parser.exit(1, "Release preflight failed: " + str(error) + "\n")
     print("Release source preflight passed. Nothing was published.")

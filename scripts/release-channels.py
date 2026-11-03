@@ -9,3 +9,11 @@ def parse(tag):
     if match is None:
         raise ValueError("Use vMAJOR.MINOR.PATCH, optionally followed by -alpha.N or -beta.N.")
     return match.group("version"), match.group("channel") or "stable"
+
+
+def precedence(tag):
+    version, channel = parse(tag)
+    numbers = tuple(int(part) for part in version.split('.'))
+    rank = {'alpha': 0, 'beta': 1, 'stable': 2}[channel]
+    sequence = 0 if channel == 'stable' else int(tag.rsplit('.', 1)[1])
+    return numbers + (rank, sequence)
