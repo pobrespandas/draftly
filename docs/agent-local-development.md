@@ -810,3 +810,17 @@ The complete local inventory at `e06c2c4` passed: 1 consumer, 167 contract,
 focused evidence, not a new complete inventory. The connection was revoked,
 Stop Work disabled access, and QA quit. Its exact registration was removed.
 The usual app reopened with its ten drafts.
+
+### Preference mutation batch preparation
+
+`AgentPreferenceBatch` prepares all requested preference changes without writing
+storage or running native effects. It combines changes that share a Markdown,
+list, shortcut or syntax store. Resets retain unknown fields. Workspace and
+installed syntax references use their required permission and resource scope.
+Native changes remain separate and require human review; Spotlight also requires
+library scope. A failed batch does not apply earlier prepared values.
+
+Focused tests cover shared-store composition, unknown fields, reset, invalid
+batches and native review requirements. This component is not a public mutation
+handler. Version checks, storage commit, retry receipts, native review execution
+and recovery still need integration before update and reset become available.
