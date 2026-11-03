@@ -189,3 +189,23 @@ needs its own final CI result. The QA copy remains open with the neutral chat.
 - [ID-token validation](https://developers.openai.com/siwc/website)
 - [Models and inference](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference)
 - [Accounts and sessions](https://developers.openai.com/siwc/token-sharing-open-source/profiles-and-sessions)
+
+## MCP credentials in progress
+
+`MCPConnectionCredentialStore` keeps complete records in a separate Keychain
+service. Each record binds a connection ID to one HTTPS resource endpoint and
+authorization server. It rejects endpoint substitution. QA bundle identity
+separates its records from production. ChatGPT uses its existing service.
+`DeviceCredentialStore` provides the shared device-local Keychain operations.
+Writes report failures and do not delete the previous item.
+
+Before refresh, the store persists an uncertainty marker. A failed replacement
+keeps this marker across restart. This is storage support, not a working MCP
+login. The session owner, discovery, browser flow, renewal, connection UI, and
+authorized tools remain pending. The pinned SDK's `TokenStorage` methods do not
+throw. Do not hide Keychain errors behind that interface or retry an uncertain
+refresh automatically.
+
+Validation: six credential tests passed serially, including the existing
+ChatGPT Keychain tests. Both project-generator checks passed. Installed MCP
+login and production Keychain acceptance are not yet verified.
