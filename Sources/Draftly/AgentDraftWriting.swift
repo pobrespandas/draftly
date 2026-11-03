@@ -5,7 +5,7 @@ import DraftlyCore
 // Existing-draft writes only. No transport or normal-startup activation.
 @MainActor final class AgentDraftWriting {
     private let libraryID: UUID
-    static let operationNames: Set<String> = ["drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion"]
+    static let operationNames: Set<String> = ["drafts.create", "drafts.update", "drafts.patch", "drafts.duplicate", "drafts.restoreVersion"]
     private let library: LibraryStore
     private let reader: AgentDraftReading
     private let editors: AgentEditorRegistry
@@ -36,6 +36,15 @@ import DraftlyCore
             let parameters = try AgentDraftSchemas.validatedParameters(for: request)
             if request.operation == "drafts.create" {
                 _ = try creationNote(parameters)
+            } else if request.operation == "drafts.duplicate" {
+                guard let target = request.targets.first(where: { $0.kind == .draft }), let expected = request.expectedVersion else {
+                    throw AgentErrorCode.invalidInput
+                }
+                if try recoveredDuplicateReceipt(for: mutation, source: target.id) == nil {
+                    guard !ActionRunner.isExecuting(in: library) else { throw AgentErrorCode.busy }
+                    let snapshot = try reader.checkedSnapshot(for: target.id, expectedVersion: expected)
+                    _ = DraftOperations.duplicate(snapshot.note, at: now())
+                }
             } else {
                 guard let target = request.targets.first(where: { $0.kind == .draft }), let expected = request.expectedVersion else { throw AgentErrorCode.invalidInput }
                 if try recoveredReceipt(for: mutation, target: target.id) == nil {
@@ -83,6 +92,28 @@ import DraftlyCore
             }
             guard let target = request.targets.first(where: { $0.kind == .draft }), let expected = request.expectedVersion else { throw AgentErrorCode.invalidInput }
             let mutation = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
+            if request.operation == "drafts.duplicate" {
+                if let previous = try recoveredDuplicateReceipt(for: mutation, source: target.id) {
+                    try validateAdmission(); _ = try keys.verify(key, request: request, connectionID: connectionID)
+                    return previous
+                }
+                guard !ActionRunner.isExecuting(in: library) else { throw AgentErrorCode.busy }
+                let initial = try reader.checkedSnapshot(for: target.id, expectedVersion: expected)
+                let copy = DraftOperations.duplicate(initial.note, at: now())
+                let resource = try reader.mutationResource(for: copy)
+                let copyID = resource.id
+                let receipt = try library.commitNotes([copy], mutation: mutation, at: now(), preserveRevision: false,
+                    preserveDates: true, validateCommit: {
+                        try self.validateAdmission(); _ = try self.keys.verify(key, request: request, connectionID: connectionID)
+                        guard !ActionRunner.isExecuting(in: self.library) else { throw AgentErrorCode.busy }
+                        _ = try self.reader.checkedSnapshot(for: target.id, expectedVersion: expected)
+                    }, makeResources: { values in
+                        guard values.count == 1, values.first?.id == copyID else { throw AgentErrorCode.storageError }
+                        return [resource]
+                    })
+                try validateAdmission(); _ = try keys.verify(key, request: request, connectionID: connectionID)
+                return receipt
+            }
             // Check authority before returning any receipt, including recovery after a lost reply.
             if let previous = try recoveredReceipt(for: mutation, target: target.id) {
                 try validateAdmission(); _ = try keys.verify(key, request: request, connectionID: connectionID)
@@ -128,6 +159,15 @@ import DraftlyCore
     private func recoveredReceipt(for mutation: LibraryMutationIdentity, target: UUID) throws -> LibraryMutationReceipt? {
         guard let value = try library.mutationReceipt(for: mutation, at: now()) else { return nil }
         guard value.resources.count == 1, value.resources.first?.id == target else { throw AgentErrorCode.storageError }
+        return value
+    }
+
+    private func recoveredDuplicateReceipt(for mutation: LibraryMutationIdentity, source: UUID) throws -> LibraryMutationReceipt? {
+        guard let value = try library.mutationReceipt(for: mutation, at: now()) else { return nil }
+        guard value.resources.count == 1, let resource = value.resources.first,
+              resource.id != source, library.notes.contains(where: { $0.id == resource.id }) else {
+            throw AgentErrorCode.storageError
+        }
         return value
     }
 

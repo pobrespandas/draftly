@@ -1477,6 +1477,47 @@ struct AgentCommandServiceTests {
         #expect(f.library.notes.count == 1)
     }
 
+    @Test func draftDuplicateCopiesUnicodeAndRecoversWithoutCreatingAnotherCopy() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let (record, session) = try f.connect(capabilities: [.draftsRead, .draftsWrite])
+        var original = try f.note("Duplicate café 🐼")
+        original.tags = ["Focus"]; original.flag = 3; original.syntax = "TaskPaper"
+        try f.library.saveNote(original)
+        original = try #require(f.library.notes.first(where: { $0.id == original.id }))
+        let revisionCount = f.library.revisions.count
+        let source: [String: AgentJSONValue]
+        do { source = try f.get(original, session: session) }
+        catch { Issue.record("Source read failed: \(error)"); return }
+        guard case .object(let draft) = source["draft"], case .string(let version) = draft["versionToken"] else {
+            Issue.record("Missing source version"); return
+        }
+        guard case .object(let repeatedDraft) = try f.get(original, session: session)["draft"],
+              case .string(let repeatedVersion) = repeatedDraft["versionToken"] else {
+            Issue.record("Missing repeated source version"); return
+        }
+        #expect(repeatedVersion == version)
+        let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "drafts.duplicate",
+            targets: [.init(kind: .draft, id: original.id)], expectedVersion: version)
+        let request: AgentRequest
+        do { request = try f.preparedPreference(intent, session: session) }
+        catch { Issue.record("Duplicate prepare failed: \(error)"); return }
+        let first = try f.send(request, session: session)
+        #expect(try f.send(request, session: session) == first)
+        guard case .result(.object(let values)) = first.outcome,
+              case .object(let resource) = values["resource"], case .string(let rawID) = resource["id"],
+              let copyID = UUID(uuidString: rawID) else { Issue.record("Missing copy receipt"); return }
+        #expect(copyID != original.id && f.library.notes.count == 2)
+        let copy = try #require(f.library.notes.first(where: { $0.id == copyID }))
+        #expect(copy.content == original.content && copy.tags == original.tags && copy.flag == original.flag)
+        #expect(copy.syntax == original.syntax && copy.id != original.id)
+        #expect(original.content == "Duplicate café 🐼" && f.library.revisions.count == revisionCount)
+        try f.library.reload(); f.service = try f.makeService()
+        let resumed = try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        let recovered = try f.preparedPreference(intent, session: resumed)
+        #expect(try f.send(recovered, session: resumed) == first)
+        #expect(f.library.notes.count == 2)
+    }
+
     @Test func builtInSyntaxReadRequiresPermissionAndPreservesStorage() throws {
         let f = try Fixture(); defer { f.cleanEditorPreferences() }
         let (_, allowed) = try f.connect(capabilities: [.appearanceRead])
@@ -1591,6 +1632,7 @@ struct AgentCommandServiceTests {
         #expect(available.remove("syntaxes.exportBuiltIn") != nil)
         #expect(available.remove("syntaxes.list") != nil)
         #expect(available.remove("syntaxes.get") != nil)
+        #expect(available.remove("drafts.duplicate") != nil)
         #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", "preferences.get", AgentMutationSchemas.name, "drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.setSelection", "editor.replaceRange", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.update"]) && available.count == 42)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.invalidInput))
         #expect(f.library.notes.isEmpty)
