@@ -96,7 +96,7 @@ import DraftlyCore
         return session
     }
 
-    private func discardSession(_ id: String) {
+    func discardSession(_ id: String) {
         toolLifetimes.removeValue(forKey: id)?.valid = false
         sessions.removeValue(forKey: id)
         backend?.discard(id)

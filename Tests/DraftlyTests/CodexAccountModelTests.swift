@@ -25,12 +25,14 @@ struct CodexAccountModelTests {
         read -r request
         printf '%s\\n' '{"id":3,"result":\(reply)}'
         read -r request
-        printf '%s\\n' '{"id":4,"result":{}}'
+        printf '%s\\n' '{"id":4,"result":{"data":[],"nextCursor":null}}'
+        read -r request
+        printf '%s\\n' '{"id":5,"result":{}}'
         while read -r request; do :; done
         """
         try script.write(to: executable, atomically: true, encoding: .utf8)
         try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: executable.path)
-        let model = CodexAccountModel(home: root.appendingPathComponent("home"))
+        let model = CodexAccountModel(client: .protocolFixture(), home: root.appendingPathComponent("home"))
         model.executable = executable
         defer { model.disconnect() }
         var opened: URL?
@@ -38,7 +40,7 @@ struct CodexAccountModelTests {
         #expect(opened?.host == "auth.openai.com")
         if browserOpens {
             let deadline = ContinuousClock.now.advanced(by: .seconds(3))
-            while !model.isSignedIn, ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(10)) }
+            while (!model.isSignedIn || model.isBusy), ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(10)) }
             #expect(model.isSignedIn)
             #expect(!model.isAwaitingLogin)
             await model.signOut()

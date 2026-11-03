@@ -25,7 +25,7 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
 }
 
 @MainActor final class ChatConsoleModel: ObservableObject {
-    let codexAccount = CodexAccountModel()
+    let codexAccount: CodexAccountModel
     private struct SavedState: Codable {
         var conversations: [ChatConsoleConversation]
         var selectedConversationID: UUID?
@@ -41,20 +41,33 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
     @Published var prompt = ""
     @Published private(set) var isResponding = false
     @Published private(set) var errorMessage: String?
+    @Published private(set) var streamingText = ""
 
     private let loadModes: LoadModes
     private let respond: Respond
     private let defaults: UserDefaults
+    private let refreshCodexOnLoad: Bool
     private var responseTask: Task<Void, Never>?
     private var responseID: UUID?
     private var hasLoadedModels = false
+    private var appleModels: [String] = []
+    private var subscriptions = Set<AnyCancellable>()
+
+    var canSend: Bool {
+        !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isResponding
+            && availableModels.contains(selectedModel)
+            && (!selectedModel.hasPrefix("codex:") || !codexAccount.isBusy)
+    }
 
     var selectedConversation: ChatConsoleConversation? {
         conversations.first { $0.id == selectedConversationID }
     }
 
-    init(loadModes: @escaping LoadModes, respond: @escaping Respond, defaults: UserDefaults = .standard) {
+    init(loadModes: @escaping LoadModes, respond: @escaping Respond, defaults: UserDefaults = .standard,
+         codexAccount: CodexAccountModel = CodexAccountModel(), refreshCodexOnLoad: Bool = false) {
         self.loadModes = loadModes; self.respond = respond; self.defaults = defaults
+        self.codexAccount = codexAccount
+        self.refreshCodexOnLoad = refreshCodexOnLoad
         if let data = defaults.data(forKey: Self.storageKey),
            let saved = try? JSONDecoder().decode(SavedState.self, from: data) {
             conversations = Array(saved.conversations.sorted { $0.updatedAt > $1.updatedAt }.prefix(50))
@@ -64,6 +77,8 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
         }
         if conversations.isEmpty { startConversation() }
         else if selectedConversationID == nil { selectedConversationID = conversations.first?.id }
+        codexAccount.$models.sink { [weak self] models in self?.updateModelOptions(models) }.store(in: &subscriptions)
+        codexAccount.objectWillChange.sink { [weak self] in self?.objectWillChange.send() }.store(in: &subscriptions)
     }
 
     convenience init(models: NativeModelAPI) {
@@ -74,23 +89,43 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
             return values
         }, respond: { prompt, mode in
             let id = UUID().uuidString
+            defer { models.discardSession(id) }
             let data = try JSONSerialization.data(withJSONObject: ["prompt": prompt, "mode": mode, "sessionID": id])
             let raw = try await models.performAsync("modelRespond", payload: String(decoding: data, as: UTF8.self))
             guard let frame = try JSONSerialization.jsonObject(with: Data(raw.utf8)) as? [String: Any],
                   let value = frame["value"] as? [String: Any],
                   let response = value["response"] as? String else { throw ChatConsoleError.invalidModelResponse }
             return response
-        })
+        }, refreshCodexOnLoad: true)
     }
 
     func loadModels() async {
         guard !hasLoadedModels else { return }
         hasLoadedModels = true
         do {
-            availableModels = try await loadModes().filter { ["onDevice", "pcc"].contains($0) }
-            if !availableModels.contains(selectedModel) { selectedModel = availableModels.first ?? "" }
+            appleModels = try await loadModes().filter { ["onDevice", "pcc"].contains($0) }
+            updateModelOptions(codexAccount.models)
         } catch {
             errorMessage = error.localizedDescription
+        }
+        if refreshCodexOnLoad, codexAccount.executable != nil { await codexAccount.refresh() }
+    }
+
+    private func updateModelOptions(_ models: [CodexChatModel]) {
+        availableModels = appleModels + models.map { "codex:" + $0.id }
+        if !availableModels.contains(selectedModel), !selectedModel.hasPrefix("codex:") {
+            selectedModel = availableModels.first ?? ""
+        }
+    }
+
+    func modelName(_ value: String) -> String {
+        switch value {
+        case "onDevice": return "On-Device"
+        case "pcc": return "Cloud"
+        default:
+            guard value.hasPrefix("codex:") else { return "Choose Model" }
+            let id = String(value.dropFirst(6))
+            return "ChatGPT · " + (codexAccount.models.first { $0.id == id }?.name ?? id)
         }
     }
 
@@ -112,9 +147,9 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
 
     func send() {
         let text = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty, !isResponding, !selectedModel.isEmpty,
+        guard canSend,
               let conversationID = selectedConversationID else { return }
-        prompt = ""; errorMessage = nil
+        prompt = ""; errorMessage = nil; streamingText = ""
         append(.init(role: .user, text: text), to: conversationID)
         let context = contextForResponse(conversationID)
         let mode = selectedModel
@@ -125,11 +160,17 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
             guard let self else { return }
             defer {
                 if responseID == id {
-                    responseID = nil; isResponding = false; responseTask = nil
+                    responseID = nil; isResponding = false; responseTask = nil; streamingText = ""
                 }
             }
             do {
-                let answer = try await respond(context, mode)
+                let answer: String
+                if mode.hasPrefix("codex:") {
+                    answer = try await codexAccount.respond(prompt: context, model: String(mode.dropFirst(6))) { [weak self] text in
+                        guard let self, self.responseID == id else { return }
+                        self.streamingText = text
+                    }
+                } else { answer = try await respond(context, mode) }
                 try Task.checkCancellation()
                 guard responseID == id else { return }
                 append(.init(role: .assistant, text: answer), to: conversationID)
@@ -145,8 +186,14 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
         responseTask?.cancel()
     }
 
+    func close() {
+        stopCurrentResponse()
+        codexAccount.disconnect()
+    }
+
     private func stopCurrentResponse() {
         responseID = nil
+        streamingText = ""
         responseTask?.cancel(); responseTask = nil; isResponding = false
     }
 

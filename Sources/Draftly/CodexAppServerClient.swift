@@ -13,17 +13,29 @@ import Foundation
     private var pending: [Int: CheckedContinuation<Data, Error>] = [:]
     private var deadlines: [Int: Task<Void, Never>] = [:]
     private var generation = UUID()
+    private let makeLaunchPlan: (URL, URL) throws -> CodexLaunchPlan
+
+    init(makeLaunchPlan: @escaping (URL, URL) throws -> CodexLaunchPlan = CodexProcessIsolation.launch) {
+        self.makeLaunchPlan = makeLaunchPlan
+    }
 
     func start(executable: URL, home: URL) throws {
         guard process == nil else { return }
         try FileManager.default.createDirectory(at: home, withIntermediateDirectories: true,
             attributes: [.posixPermissions: 0o700])
+        let temporaryDirectory = home.appendingPathComponent("tmp", isDirectory: true)
+        try FileManager.default.createDirectory(at: temporaryDirectory, withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700])
+        let plan = try makeLaunchPlan(executable, home)
         let child = Process(), stdin = Pipe(), stdout = Pipe(), stderr = Pipe()
-        child.executableURL = executable
-        child.arguments = ["app-server", "--listen", "stdio://", "-c", "cli_auth_credentials_store=\"keyring\""]
-        var environment = ProcessInfo.processInfo.environment
-        for key in ["OPENAI_API_KEY", "CODEX_API_KEY", "CODEX_ACCESS_TOKEN"] { environment.removeValue(forKey: key) }
+        child.executableURL = plan.executable
+        child.arguments = plan.arguments
+        child.currentDirectoryURL = home
+        let inherited = ProcessInfo.processInfo.environment
+        var environment = inherited.filter { ["HOME", "USER", "LOGNAME", "LANG", "LC_ALL", "LC_CTYPE"].contains($0.key) }
+        environment["PATH"] = "/usr/bin:/bin:/usr/sbin:/sbin"
         environment["CODEX_HOME"] = home.path
+        environment["TMPDIR"] = temporaryDirectory.path
         child.environment = environment
         child.standardInput = stdin; child.standardOutput = stdout; child.standardError = stderr
         let token = UUID(); generation = token

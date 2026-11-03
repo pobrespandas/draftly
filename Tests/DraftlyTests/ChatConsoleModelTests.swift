@@ -85,4 +85,59 @@ struct ChatConsoleModelTests {
         #expect(model.selectedConversation?.messages.map(\.text) == ["New request", "Current reply"])
         #expect(!model.isResponding)
     }
+
+    @Test func codexCatalogRoutesTheChatAndLogoutDoesNotSwitchProviders() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let executable = root.appendingPathComponent("fake-codex")
+        let script = """
+        #!/bin/sh
+        read -r request
+        printf '%s\\n' '{"id":1,"result":{}}'
+        read -r initialized
+        read -r request
+        printf '%s\\n' '{"id":2,"result":{"account":{"type":"chatgpt"},"requiresOpenaiAuth":true}}'
+        read -r request
+        printf '%s\\n' '{"id":3,"result":{"data":[{"model":"model-a","displayName":"Test model","isDefault":true},{"model":"hidden","hidden":true}],"nextCursor":null}}'
+        read -r request
+        printf '%s\\n' '{"id":4,"result":{"account":{"type":"chatgpt"},"requiresOpenaiAuth":true}}'
+        read -r request
+        printf '%s\\n' '{"id":5,"result":{"thread":{"id":"thread-a"}}}'
+        read -r request
+        printf '%s\\n' '{"id":6,"result":{"turn":{"id":"turn-a"}}}' \
+          '{"method":"item/agentMessage/delta","params":{"threadId":"thread-a","turnId":"turn-a","itemId":"message","delta":"Reply café"}}' \
+          '{"method":"turn/completed","params":{"threadId":"thread-a","turn":{"id":"turn-a","status":"completed"}}}'
+        read -r request
+        printf '%s\\n' '{"id":7,"result":{}}'
+        while read -r request; do :; done
+        """
+        try script.write(to: executable, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: executable.path)
+        let account = CodexAccountModel(client: .protocolFixture(), home: root.appendingPathComponent("home"))
+        account.executable = executable
+        var appleCalls = 0
+        let model = ChatConsoleModel(loadModes: { [] }, respond: { _, _ in appleCalls += 1; return "Wrong provider" },
+            defaults: isolatedDefaults(), codexAccount: account)
+        defer { model.close() }
+        await model.loadModels()
+        await account.refresh()
+        #expect(account.errorMessage == nil)
+        #expect(model.availableModels == ["codex:model-a"])
+        #expect(model.modelName(model.selectedModel) == "ChatGPT · Test model")
+        model.prompt = "Neutral café"
+        model.send()
+        let deadline = ContinuousClock.now.advanced(by: .seconds(3))
+        while model.isResponding, ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(10)) }
+        #expect(!model.isResponding)
+        #expect(model.errorMessage == nil)
+        #expect(model.selectedConversation?.messages.map(\.text) == ["Neutral café", "Reply café"])
+        await account.signOut()
+        model.prompt = "Keep this prompt"
+        model.send()
+        #expect(!model.canSend)
+        #expect(model.prompt == "Keep this prompt")
+        #expect(model.selectedModel == "codex:model-a")
+        #expect(appleCalls == 0)
+    }
 }

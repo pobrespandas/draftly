@@ -82,7 +82,7 @@ struct LibraryView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { event in
             if let window = event.object as? NSWindow, window === model.window {
-                model.chatConsole.codexAccount.disconnect()
+                model.chatConsole.close()
                 model.cancelActions(); model.actionPreview?.finish(false); model.flush()
                 hub.unregisterWindow(model)
             }

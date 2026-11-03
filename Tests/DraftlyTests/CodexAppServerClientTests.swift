@@ -25,7 +25,7 @@ struct CodexAppServerClientTests {
         """
         try script.write(to: executable, atomically: true, encoding: .utf8)
         try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: executable.path)
-        let client = CodexAppServerClient()
+        let client = CodexAppServerClient.protocolFixture()
         defer { client.close() }
         try client.start(executable: executable, home: root.appendingPathComponent("home"))
         let first = try await client.request("initialize")
@@ -37,7 +37,7 @@ struct CodexAppServerClientTests {
     @Test func failedLaunchLeavesTheClientDisconnected() async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }
-        let client = CodexAppServerClient()
+        let client = CodexAppServerClient.protocolFixture()
         #expect(throws: (any Error).self) {
             try client.start(executable: root.appendingPathComponent("missing"), home: root)
         }

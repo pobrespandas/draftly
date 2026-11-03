@@ -1,11 +1,18 @@
 import AppKit
 import Combine
 
+struct CodexChatModel: Equatable, Identifiable {
+    let id: String
+    let name: String
+    let isDefault: Bool
+}
+
 @MainActor final class CodexAccountModel: ObservableObject {
     @Published private(set) var isSignedIn = false
     @Published private(set) var isBusy = false
     @Published private(set) var isAwaitingLogin = false
     @Published private(set) var errorMessage: String?
+    @Published private(set) var models: [CodexChatModel] = []
     private let client: CodexAppServerClient
     private let chatSession: CodexChatSession
     private let home: URL
@@ -18,8 +25,10 @@ import Combine
     init(client: CodexAppServerClient = CodexAppServerClient(), home: URL? = nil) {
         self.client = client
         self.chatSession = CodexChatSession(client: client)
+        let identifier = Bundle.main.bundleIdentifier ?? "com.pobrespandas.draftly"
+        let folder = identifier == "com.pobrespandas.draftly" ? "Draftly" : identifier.replacingOccurrences(of: "/", with: "_")
         self.home = home ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Draftly/Codex", isDirectory: true)
+            .appendingPathComponent(folder, isDirectory: true).appendingPathComponent("Codex", isDirectory: true)
         let candidates = [FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".local/bin/codex").path,
                           "/opt/homebrew/bin/codex", "/usr/local/bin/codex"]
         executable = candidates.first(where: { FileManager.default.isExecutableFile(atPath: $0) }).map { URL(fileURLWithPath: $0) }
@@ -33,6 +42,7 @@ import Combine
         client.onDisconnect = { [weak self] in
             self?.chatSession.disconnected()
             self?.initialized = false; self?.isSignedIn = false
+            self?.models = []
             self?.loginID = nil; self?.isAwaitingLogin = false
         }
     }
@@ -45,7 +55,8 @@ import Combine
             try await initialize()
             let account = try await request("account/read", ["refreshToken": false])
             isSignedIn = (account["account"] as? [String: Any])?["type"] as? String == "chatgpt"
-        } catch { errorMessage = error.localizedDescription }
+            models = isSignedIn ? try await loadModels() : []
+        } catch { models = []; errorMessage = error.localizedDescription }
     }
 
     func signIn(openURL: (URL) -> Bool = { NSWorkspace.shared.open($0) }) async {
@@ -93,10 +104,35 @@ import Combine
             try await initialize()
             _ = try await request("account/logout", [:])
             isSignedIn = false; loginID = nil; isAwaitingLogin = false
+            models = []
         } catch { errorMessage = error.localizedDescription }
     }
 
     func disconnect() { client.close() }
+
+    private func loadModels() async throws -> [CodexChatModel] {
+        var cursor: String?, visited = Set<String>(), result: [String: CodexChatModel] = [:]
+        for _ in 0..<32 {
+            var params: [String: Any] = ["includeHidden": false, "limit": 50]
+            if let cursor { params["cursor"] = cursor }
+            let page = try await request("model/list", params)
+            guard let entries = page["data"] as? [[String: Any]] else { throw CodexConnectionError.invalidMessage }
+            for entry in entries where entry["hidden"] as? Bool != true {
+                guard let id = entry["model"] as? String, !id.isEmpty else { continue }
+                result[id] = CodexChatModel(id: id, name: entry["displayName"] as? String ?? id,
+                    isDefault: entry["isDefault"] as? Bool ?? false)
+            }
+            guard let next = page["nextCursor"] as? String else {
+                return result.values.sorted {
+                    if $0.isDefault != $1.isDefault { return $0.isDefault }
+                    return $0.id < $1.id
+                }
+            }
+            guard visited.insert(next).inserted else { throw CodexConnectionError.invalidMessage }
+            cursor = next
+        }
+        throw CodexConnectionError.invalidMessage
+    }
 
     func respond(prompt: String, model: String, onText: @escaping (String) -> Void) async throws -> String {
         guard !isBusy, !isAwaitingLogin else { throw CodexConnectionError.remote("The ChatGPT connection is busy.") }

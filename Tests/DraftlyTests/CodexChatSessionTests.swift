@@ -28,7 +28,7 @@ struct CodexChatSessionTests {
           '{"id":2,"result":{"turn":{"id":"turn-a"}}}'
         """)
         defer { try? FileManager.default.removeItem(at: root) }
-        let client = CodexAppServerClient()
+        let client = CodexAppServerClient.protocolFixture()
         let active = CodexChatSession(client: client)
         client.onNotification = { active.receive($0, data: $1) }
         client.onDisconnect = { active.disconnected() }
@@ -59,7 +59,7 @@ struct CodexChatSessionTests {
         printf '%s\\n' '{"id":4,"result":{"usable":true}}'
         """)
         defer { try? FileManager.default.removeItem(at: root) }
-        let client = CodexAppServerClient()
+        let client = CodexAppServerClient.protocolFixture()
         let active = CodexChatSession(client: client)
         client.onNotification = { active.receive($0, data: $1) }
         client.onDisconnect = { active.disconnected() }

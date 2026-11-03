@@ -128,7 +128,7 @@ final class WindowModel: ObservableObject {
         self.library = library
         let host = dependencies.makeActionHost()
         self.host = host
-        self.chatConsole = ChatConsoleModel(models: host.models)
+        self.chatConsole = ChatConsoleModel(models: NativeModelAPI())
         self.dependencies = dependencies
         self.listOptions = dependencies.preferences.listOptions
         self.recoverDictation = dependencies.recoverDictation

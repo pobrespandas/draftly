@@ -77,7 +77,7 @@ struct ChatConsolePanel: View {
             Spacer()
             Image(systemName: "bubble.left.and.bubble.right").font(.system(size: 40)).foregroundStyle(.secondary)
             Text("Chat Console").font(.title3.weight(.semibold))
-            Text("Ask about your drafts or get help writing.")
+            Text("Get help writing and developing ideas.")
                 .font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
                 .frame(maxWidth: 250)
             Spacer()
@@ -96,6 +96,10 @@ struct ChatConsolePanel: View {
                         }
                     }
                     if model.isResponding {
+                        if !model.streamingText.isEmpty {
+                            Text(model.streamingText).textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
                         ProgressView().controlSize(.small).padding(.leading, 8).id("response")
                     }
                 }
@@ -107,6 +111,7 @@ struct ChatConsolePanel: View {
             .onChange(of: model.isResponding) { _, active in
                 if active { proxy.scrollTo("response", anchor: .bottom) }
             }
+            .onChange(of: model.streamingText) { _, _ in proxy.scrollTo("response", anchor: .bottom) }
         }
     }
 
@@ -145,7 +150,7 @@ struct ChatConsolePanel: View {
                     Image(systemName: "arrow.up").frame(width: 28, height: 28)
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(model.prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || model.availableModels.isEmpty)
+                .disabled(!model.canSend)
                 .help("Send prompt")
             }
         }
@@ -153,10 +158,6 @@ struct ChatConsolePanel: View {
     }
 
     private func modelName(_ value: String) -> String {
-        switch value {
-        case "onDevice": "On-Device"
-        case "pcc": "Cloud"
-        default: "Choose Model"
-        }
+        model.modelName(value)
     }
 }
