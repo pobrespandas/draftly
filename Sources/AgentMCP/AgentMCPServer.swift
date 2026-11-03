@@ -39,39 +39,21 @@ package actor AgentMCPServer {
         return server
     }
 
-    private struct Discovery {
-        let capabilities: Set<AgentCapability>
-        let inputs: [String: AgentJSONValue]
-    }
-    private func discovery() async throws -> Discovery {
+    private func discovery() async throws -> AgentAvailableTools {
         let capabilities = try await values("server.capabilities")
-        try AgentReadSchemas.validateResult(capabilities, for: "server.capabilities")
         let schemas = try await values("server.schemas")
-        try AgentReadSchemas.validateResult(schemas, for: "server.schemas")
-        guard case .array(let caps) = capabilities["capabilities"], case .array(let operations) = schemas["operations"] else {
-            throw AgentErrorCode.unavailable
-        }
-        let allowed = Set(caps.compactMap { if case .string(let name) = $0 { return AgentCapability(rawValue: name) }; return nil })
-        var inputs: [String: AgentJSONValue] = [:]
-        for item in operations {
-            guard case .object(let fields) = item, fields["available"] == .bool(true), case .string(let name) = fields["name"],
-                  let descriptor = AgentOperationCatalog.operation(named: name), allowed.isSuperset(of: descriptor.capabilities),
-                  let input = fields["inputSchema"], input != .null else { continue }
-            inputs[name] = input
-        }
-        return .init(capabilities: allowed, inputs: inputs)
+        return try AgentAvailableTools(capabilities: capabilities, schemas: schemas)
     }
 
     package func tools() async throws -> ListTools.Result {
         let current = try await discovery()
-        let tools = try AgentOperationCatalog.operations.compactMap { operation -> Tool? in
-            guard let input = current.inputs[operation.name] else { return nil }
-            let schema = AgentToolInput.schema(for: operation, parameters: input)
-            let sdk = try Self.sdk(schema)
-            return Tool(name: AgentToolInput.name(for: operation.name), description: operation.summary,
-                inputSchema: sdk, annotations: .init(readOnlyHint: operation.isReadOnly ? true : nil,
-                    destructiveHint: operation.isReadOnly ? false : nil,
-                    idempotentHint: operation.isReadOnly ? true : nil, openWorldHint: operation.isReadOnly ? false : nil))
+        let tools = try current.definitions.map { definition in
+            Tool(name: definition.name, description: definition.summary,
+                inputSchema: try Self.sdk(definition.inputSchema),
+                annotations: .init(readOnlyHint: definition.isReadOnly ? true : nil,
+                    destructiveHint: definition.isReadOnly ? false : nil,
+                    idempotentHint: definition.isReadOnly ? true : nil,
+                    openWorldHint: definition.isReadOnly ? false : nil))
         }
         return try Self.bounded(ListTools.Result(tools: tools))
     }

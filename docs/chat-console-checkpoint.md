@@ -213,3 +213,36 @@ The current external-MCP removal still needs its own full CI validation.
 After removal, all 15 focused ChatGPT credential, provider, and console tests
 passed serially. Both project-generator checks passed. The own-MCP tool bridge
 is still missing; no tool execution is advertised by Chat Console.
+
+## Own MCP tool bridge in progress
+
+`AgentAvailableTools` now owns discovery filtering and named tool definitions.
+The MCP server and the console adapter use the same schemas. Unavailable
+handlers and capabilities outside the current grant are excluded. Duplicate
+operation descriptors fail validation instead of replacing earlier entries.
+
+`AgentChatToolSession` accepts a backend that already owns an authenticated
+local session. Tool arguments cannot select another connection, library, or
+operation. Each call refreshes discovery before dispatch. Call IDs are reserved
+before execution and cannot trigger replay. Cancellation and invalidation reject
+late results. The host remains responsible for live grants, scope, versions,
+reviews, effects, and operation cancellation.
+
+This adapter is not yet attached to ChatGPT inference or the native permission
+UI. Do not report tool-using chat as available. Next, handle completed function
+calls and their outputs in the direct ChatGPT provider, then attach the adapter
+to a user-approved local connection. Keep the full installed-agent acceptance
+and helper distribution work in scope.
+
+The native adapter takes an existing `AgentCommandService.Session`. Before each
+request, it obtains the authorized library ID from that session and binds the
+request to it. It never accepts a library ID from model arguments. Invalidation
+closes its owned service session. Tests first exposed a missing library binding;
+the native adapter now uses the same binding rule as the local MCP client.
+
+Validation: 14 real SDK/local-host MCP tests and two catalog tests passed after
+the shared-catalog change. Both native chat-adapter tests passed after the
+library-binding fix. They check permitted Unicode text, hidden resource denial,
+call-ID replay rejection, revocation, and late-result invalidation. Both project
+generator checks passed. This does not prove tool execution through a real
+ChatGPT response or installed native approval.
