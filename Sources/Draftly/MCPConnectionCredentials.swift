@@ -14,7 +14,7 @@ struct MCPConnectionCredentials: Codable, Equatable {
 
 /// Bind each credential record to one configured MCP connection and endpoint.
 @MainActor final class MCPConnectionCredentialStore {
-    enum Failure: Error { case invalidRecord, endpointMismatch, refreshUncertain }
+    enum Failure: Error { case invalidRecord, endpointMismatch, refreshUncertain, staleSession }
     private let store: DeviceCredentialStore
 
     init(bundleID: String = Bundle.main.bundleIdentifier ?? "com.pobrespandas.draftly",
@@ -46,6 +46,18 @@ struct MCPConnectionCredentials: Codable, Equatable {
         record.refreshUncertain = true
         try write(record)
         return record
+    }
+
+    func completeRefresh(expected: MCPConnectionCredentials, replacement: MCPConnectionCredentials) throws {
+        guard expected.refreshUncertain, !replacement.refreshUncertain,
+              replacement.connectionID == expected.connectionID,
+              replacement.endpoint == expected.endpoint,
+              replacement.authorizationServer == expected.authorizationServer,
+              replacement.clientID == expected.clientID,
+              try read(expected.connectionID, endpoint: expected.endpoint) == expected else {
+            throw Failure.staleSession
+        }
+        try write(replacement)
     }
 
     func remove(_ connectionID: UUID) throws { try store.remove(connectionID) }

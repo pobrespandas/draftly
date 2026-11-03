@@ -209,3 +209,21 @@ refresh automatically.
 Validation: six credential tests passed serially, including the existing
 ChatGPT Keychain tests. Both project-generator checks passed. Installed MCP
 login and production Keychain acceptance are not yet verified.
+
+`MCPConnectionSession` coordinates renewal across callers and checks required
+scopes again after renewal. It saves uncertainty before network work. It holds
+a device-local lease during renewal. Disconnect blocks new callers, waits for
+renewal, and removes the saved record. This is local disconnect; remote
+revocation is not implemented. A conditional credential replacement rejects a
+late result if the saved session changed or was removed. Network renewal is
+injected for now. Browser login and real MCP transport integration remain open.
+
+Full CI run `41590666299` completed successfully for commit `52f5d32`.
+This validates the direct ChatGPT baseline. It does not cover the later
+Apple labels, history merge, or MCP credential and session changes.
+
+Validation: six MCP credential and session tests passed serially. They cover
+coalesced renewal, returned scope checks, disconnect during renewal, durable
+uncertainty after network failure, and rejected completion after deletion.
+Both project-generator checks passed. These tests inject renewal responses;
+they do not establish a working MCP server login or remote revocation.
