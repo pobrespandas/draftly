@@ -43,29 +43,19 @@ struct ChatConsolePanel: View {
             .menuStyle(.borderlessButton)
             .help("Choose a conversation")
 
-            Menu {
-                if model.availableModels.isEmpty {
-                    Text("Apple Intelligence is unavailable")
-                } else {
-                    ForEach(model.availableModels, id: \.self) { value in
-                        Button {
-                            model.selectedModel = value
-                        } label: {
-                            if model.selectedModel == value { Label(modelName(value), systemImage: "checkmark") }
-                            else { Text(modelName(value)) }
-                        }
-                    }
+            Picker("Model", selection: $model.selectedModel) {
+                if !model.availableModels.contains(model.selectedModel) {
+                    Text(modelName(model.selectedModel)).tag(model.selectedModel).disabled(true)
                 }
-            } label: {
-                HStack(spacing: 5) {
-                    Text(modelName(model.selectedModel)).font(.headline)
-                    Image(systemName: "chevron.down").font(.caption2)
-                }.foregroundStyle(.primary)
+                ForEach(model.availableModels, id: \.self) { value in
+                    Text(modelName(value)).tag(value)
+                }
             }
-            .menuStyle(.borderlessButton)
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .frame(maxWidth: .infinity)
             .disabled(model.availableModels.isEmpty)
 
-            Spacer()
             Button { showChatGPTAccount = true } label: { Image(systemName: "person.crop.circle") }
                 .help("ChatGPT Account")
             Button { model.startConversation() } label: { Image(systemName: "plus") }

@@ -4,9 +4,9 @@
 
 The direct connection is in progress on PR #105. The installed QA account sheet
 uses direct ChatGPT OAuth. Real sign-in and restoration after full process exit
-passed. The account model catalog also loaded in installed QA. Direct Responses
-is implemented; final installed response acceptance remains pending. MCP login
-and authorized tools remain pending. Do not claim real inference works yet.
+passed. The account model catalog and completed Responses worked in installed
+QA. Native Stop removed a partial response, and the next request succeeded.
+MCP login and authorized tools remain pending.
 
 `ChatGPTAuthorization` creates a fresh state, nonce, and PKCE verifier. It
 builds the official authorization request. Callback validation checks the
@@ -74,8 +74,8 @@ a returning session that changed while authorization was in progress.
 
 Next steps:
 
-1. Finish installed Responses acceptance with the active QA account.
-2. Check cancellation and account changes during real inference.
+1. Finish full CI and the remaining chat reliability checks.
+2. Check account changes during real inference and multiple-window history.
 3. Add installed acceptance for refresh and sign-out. Unit coverage is not
    proof of provider revocation or installed multi-account behavior.
 4. Run full CI after removing the obsolete Codex paths. The prior macOS 26
@@ -162,8 +162,24 @@ did not include Content-Type. The decoder now permits the missing header and
 still requires valid SSE frames and a completed response. Repeated native menu
 actions were interrupted by focus changes. The user was asked to leave input
 free for a short acceptance check. Real response completion and cancellation
-remain unverified. One accidental neutral paste in the isolated editor was
+were pending at that point. One accidental neutral paste in the isolated editor was
 undone; an empty QA draft remains. The normal library was not changed.
+
+The native follow-up replaced the manual model menu with a native Picker.
+The desktop control tool still lost menu references; a coordinate selection
+followed by a fresh AX snapshot confirmed the selected ChatGPT model. The
+installed app then returned a completed neutral response. A longer neutral
+request showed partial text and a Stop control. Stop cleared the partial text,
+kept the user message, and showed no cancellation error. A subsequent request
+returned a new completed response. This proves real text inference and local
+stream cancellation on the installed QA copy. It does not prove MCP tools,
+provider revocation, all models, multi-account switching, or release signing.
+Two empty drafts remain from neutral editor input that was undone during UI
+automation. The normal library was not changed.
+
+Full CI run 41589286253 targets 260df45. Tooling, website, and matrix passed;
+native checks were still running at the last observation. The Picker follow-up
+needs its own final CI result. The QA copy remains open with the neutral chat.
 
 ## Official contracts
 
