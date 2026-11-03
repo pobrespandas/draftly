@@ -108,6 +108,16 @@ service/host integration run passed 162 tests; the final registry/journal run
 passed 24 tests after stricter result validation. Native-effect acceptance is
 still pending.
 
+The operation registry now shares task launch, deadlines, and interruption
+handling between Action results and typed results. A separate operation
+authorization component checks the current grant, scope, expiry, host, and lock
+state. The registry still owns operation state and the journal owns durable
+request identity and recovery. The focused integration run passed 164 tests,
+and both project-generator checks and the native build passed. Cancellation
+coverage includes queued and running work for both result kinds, with retries
+that do not start work again. Installed acceptance for this refactoring remains
+pending.
+
 ## Responsibility boundaries
 
 | Boundary | Responsibility |

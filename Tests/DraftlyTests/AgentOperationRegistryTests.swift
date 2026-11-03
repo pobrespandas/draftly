@@ -6,6 +6,47 @@ import DraftlyCore
 
 @Suite("Agent operation lifetime") @MainActor
 struct AgentOperationRegistryTests {
+    @Test(arguments: ["actions.run", "editor.preview"], [false, true])
+    func cancellationKeepsItsCertaintyAndDoesNotReplay(operation: String, started: Bool) async throws {
+        let connection = UUID(), library = UUID(), action = UUID(), draft = UUID(), window = UUID()
+        let isAction = operation == "actions.run"
+        let grant = AgentGrant(connectionID: connection, libraryID: library, expiresAt: Date().addingTimeInterval(600),
+            capabilities: isAction ? [.actionsRun, .draftsRead] : [.presentUI, .draftsRead], scope: .library)
+        let registry = AgentOperationRegistry(currentGrant: { _ in grant }, validateHost: {}, isLocked: { false })
+        let request = AgentRequest(requestID: UUID(), libraryID: library, operation: operation,
+            targets: isAction ? [.init(kind: .action, id: action), .init(kind: .draft, id: draft)] : [.init(kind: .window, id: window)],
+            expectedVersion: isAction ? "v1" : nil, parameters: isAction ? [:] : ["visible": .bool(true)])
+        var starts = 0
+        @MainActor func submit() throws -> UUID {
+            if isAction {
+                return try registry.startRequest(request, grant: grant) { _ in
+                    starts += 1
+                    try await Task.sleep(for: .seconds(30))
+                    throw AgentErrorCode.unavailable
+                }
+            }
+            return try registry.startValueRequest(request, grant: grant) { _ in
+                starts += 1
+                try await Task.sleep(for: .seconds(30))
+                throw AgentErrorCode.unavailable
+            }
+        }
+        let id = try submit()
+        if started {
+            for _ in 0..<1000 where try registry.snapshot(id, connectionID: connection).state == .queued { await Task.yield() }
+            #expect(try registry.snapshot(id, connectionID: connection).state == .running)
+        }
+        registry.cancelAll()
+        for _ in 0..<1000 where try !registry.snapshot(id, connectionID: connection).state.isTerminal { await Task.yield() }
+        let snapshot = try registry.snapshot(id, connectionID: connection)
+        #expect(snapshot.state == (started ? .outcomeUnknown : .cancelled))
+        #expect(snapshot.error == (started ? .outcomeUnknown : .cancelled))
+        #expect(snapshot.result == nil && snapshot.effects.isEmpty)
+        _ = try snapshot.wireValue()
+        #expect(try submit() == id)
+        #expect(starts == (started ? 1 : 0))
+    }
+
     @Test func completedEffectsRemainVisibleAfterALaterUncertainEffect() async throws {
         let connection = UUID(), library = UUID(), draft = UUID()
         let grant = AgentGrant(connectionID: connection, libraryID: library, expiresAt: Date().addingTimeInterval(600),
