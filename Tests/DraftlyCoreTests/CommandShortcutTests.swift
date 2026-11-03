@@ -12,7 +12,8 @@ struct CommandShortcutTests {
             ("Move to Trash", "\u{8}", ["command", "shift", "option"]),
             ("Save Version", "s", ["command"]), ("Get Info", "i", ["command", "option"]),
             ("Previous Draft", "\u{F700}", ["shift", "control"]), ("Next Draft", "\u{F701}", ["shift", "control"]),
-            ("Print", "p", ["command"]), ("Editor Settings", ",", ["command", "option"])
+            ("Print", "p", ["command"]), ("Editor Settings", ",", ["command", "option"]),
+            ("Chat Console", "3", ["command", "option"])
         ]
         let commands = CommandShortcuts.bindings(configuration: "{}")
         #expect(Set(commands.map(\.0)).count == commands.count)

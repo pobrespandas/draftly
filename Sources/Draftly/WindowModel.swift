@@ -7,6 +7,7 @@ final class WindowModel: ObservableObject {
     let library: LibraryStore
     let editor = EditorSession()
     let host: NativeActionHost
+    let chatConsole: ChatConsoleModel
     let runner: ActionRunner
     @Published var folder: NoteFolder = .inbox {
         didSet {
@@ -43,6 +44,7 @@ final class WindowModel: ObservableObject {
     var recoverDictation: (String) -> Void
     @Published var showActionBar = true
     @Published var showActions = false
+    @Published var showChatConsole = false
     @Published var darkTheme: Bool?
     @Published var showTags = true
     var prefersAdvancedFind: () -> Bool
@@ -124,7 +126,9 @@ final class WindowModel: ObservableObject {
 
     init(library: LibraryStore, dependencies: WindowDependencies = WindowDependencies(), saveDraft: ((Note) throws -> Void)? = nil, onAccessDraft: @escaping (UUID) -> Void = { _ in }) {
         self.library = library
-        self.host = dependencies.makeActionHost()
+        let host = dependencies.makeActionHost()
+        self.host = host
+        self.chatConsole = ChatConsoleModel(models: host.models)
         self.dependencies = dependencies
         self.listOptions = dependencies.preferences.listOptions
         self.recoverDictation = dependencies.recoverDictation
@@ -202,6 +206,8 @@ final class WindowModel: ObservableObject {
     }
     func toggleFilters() { setFiltersVisible(!showFilters) }
     func toggleDraftList() { setDraftListVisible(!showDraftList) }
+
+    func toggleChatConsole() { showChatConsole.toggle() }
 
     func actionUIOperation(_ values: [String: Any]) throws -> Any? {
         try WindowActionAdapter(model: self).perform(values)

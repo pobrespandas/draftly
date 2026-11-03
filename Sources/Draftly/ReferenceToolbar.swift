@@ -15,7 +15,7 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
     static let defaultItemIdentifiers: [NSToolbarItem.Identifier] = (
         ["filters", NSToolbarItem.Identifier.sidebarTrackingSeparator.rawValue, "drafts"]
         + [NSToolbarItem.Identifier.flexibleSpace.rawValue]
-        + ["last", "NSToolbarSpaceItem", "navigate", "draftEditorTrackingSeparator", "capture", "flag", "tags", "NSToolbarSpaceItem", "inbox", "archive", "trash", "NSToolbarSpaceItem", "share", "actionInspectorTrackingSeparator", "NSToolbarFlexibleSpaceItem", "palette", "quickSearch", "NSToolbarSpaceItem", "actions"]
+        + ["last", "NSToolbarSpaceItem", "navigate", "draftEditorTrackingSeparator", "capture", "flag", "tags", "NSToolbarSpaceItem", "inbox", "archive", "trash", "NSToolbarSpaceItem", "share", "actionInspectorTrackingSeparator", "NSToolbarFlexibleSpaceItem", "palette", "quickSearch", "NSToolbarSpaceItem", "actions", "chat"]
     ).map { NSToolbarItem.Identifier($0) }
     init(model: WindowModel, window: NSWindow, splitView: NSSplitView) {
         self.model = model
@@ -81,6 +81,7 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
             case "palette": description = ("sparkle.magnifyingglass", "Command Palette")
             case "quickSearch": description = ("magnifyingglass", "Quick Search")
             case "actions": description = ("sidebar.right", "Toggle Actions")
+            case "chat": description = ("bubble.left.and.bubble.right", "Chat Console")
             case "float": description = ("square.on.square", "Float on Top")
             default: return nil
             }
@@ -186,6 +187,7 @@ final class ReferenceToolbar: NSObject, NSToolbarDelegate {
         case "tags": model.showTags.toggle()
         case "share": model.perform { _ = try model.host.perform("share", values: ["text": model.editor.content]) }
         case "actions": model.showActions.toggle()
+        case "chat": model.toggleChatConsole()
         case "float": model.toggleFloat()
         case "palette": model.openCommandPalette()
         case "quickSearch": model.openQuickSearch("")

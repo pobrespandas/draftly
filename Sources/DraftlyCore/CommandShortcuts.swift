@@ -9,7 +9,7 @@ public struct CommandBinding: Codable, Equatable {
 
 public enum CommandShortcuts {
     public static let storageKey = "commands.bindings"
-    public static let editable = ["New Draft", "New Window", "Import", "Filters", "Draft List", "Actions", "Command Palette", "Quick Search", "Markdown Preview", "Main Window", "Quick Capture", "Capture Clipboard"]
+    public static let editable = ["New Draft", "New Window", "Import", "Filters", "Draft List", "Actions", "Chat Console", "Command Palette", "Quick Search", "Markdown Preview", "Main Window", "Quick Capture", "Capture Clipboard"]
     public static let defaults: [(String, String, [String])] = [
         ("Main Window", "", []), ("Capture Clipboard", "", []),
         ("New Draft", "n", ["command"]), ("New Window", "n", ["command", "shift"]),
@@ -22,7 +22,8 @@ public enum CommandShortcuts {
         ("Previous Draft", "\u{F700}", ["control", "shift"]), ("Next Draft", "\u{F701}", ["control", "shift"]),
         ("Print", "p", ["command"]), ("Editor Settings", ",", ["option", "command"]),
         ("Filters", "1", ["command", "option"]), ("Draft List", "2", ["command", "option"]),
-        ("Actions", "a", ["command", "option"]), ("Command Palette", "p", ["command", "shift"]),
+        ("Actions", "a", ["command", "option"]), ("Chat Console", "3", ["command", "option"]),
+        ("Command Palette", "p", ["command", "shift"]),
         ("Quick Search", "f", ["command", "shift"]), ("Markdown Preview", "p", ["command", "option"]),
         ("Quit", "q", ["command"]), ("Close Window", "w", ["command"]), ("Settings", ",", ["command"]),
         ("Copy", "c", ["command"]), ("Cut", "x", ["command"]), ("Paste", "v", ["command"]),

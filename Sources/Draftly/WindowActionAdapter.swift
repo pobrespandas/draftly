@@ -49,6 +49,7 @@ struct WindowActionAdapter {
         if operation == "get" {
             switch key {
             case "isActionListVisible": return model.showActions
+            case "isChatConsoleVisible": return model.showChatConsole
             case "isDraftListVisible": return model.showDraftList
             case "areFiltersVisible": return model.showFilters
             case "floatOnTop": return model.isFloating
@@ -62,7 +63,6 @@ struct WindowActionAdapter {
             case "themeMode": return model.darkTheme.map { $0 ? "dark" : "light" } ?? "automatic"
             case "currentThemeMode": return (model.window?.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua) ? "dark" : "light"
             case "darkTheme", "lightTheme": return model.configuredThemeReference(dark: key == "darkTheme")
-            case "isChatConsoleVisible": return false
             default: throw DraftlyError.message("The window property \(key) is unavailable.")
             }
         }
@@ -117,6 +117,8 @@ struct WindowActionAdapter {
             if let name = options["loadActionBarGroup"], !name.isEmpty { model.actionBarGroup = name }
         case "showActionList": model.showActions = true
         case "hideActionList": model.showActions = false
+        case "showChatConsole": model.showChatConsole = true
+        case "hideChatConsole": model.showChatConsole = false
         case "showDraftList": model.setDraftListVisible(true)
         case "hideDraftList": model.setDraftListVisible(false)
         case "showFilters": model.setFiltersVisible(true)
@@ -171,7 +173,6 @@ struct WindowActionAdapter {
             let id = (details["uuid"] as? String).flatMap(UUID.init(uuidString:))
             if operation == "openInNewTab", id == nil { return false }
             return model.dependencies.openDraftWindow(id, operation == "openInNewTab", model.window)
-        case "hideChatConsole", "showChatConsole": throw DraftlyError.message("Chat Console is outside the Draftly Mac scope.")
         default: throw DraftlyError.message("The window operation \(operation) is unavailable.")
         }
         return true

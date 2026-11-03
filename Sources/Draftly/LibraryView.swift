@@ -35,7 +35,7 @@ struct LibraryView: View {
     }
     var body: some View {
         LibrarySplitView(model: model, panels: [
-            panel(sidebar), panel(noteList), panel(editor), panel(actionPanel)
+            panel(sidebar), panel(noteList), panel(editor), panel(model.showChatConsole ? AnyView(chatConsole) : AnyView(actionPanel))
         ])
         .ignoresSafeArea(.container, edges: .top)
         .overlay(alignment: .top) {
@@ -128,6 +128,10 @@ struct LibraryView: View {
 
     private var actionPanel: some View {
         ActionListPanel(model: model, library: library)
+    }
+
+    private var chatConsole: some View {
+        ChatConsolePanel(model: model.chatConsole)
     }
 
 }

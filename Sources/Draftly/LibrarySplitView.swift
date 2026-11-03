@@ -51,7 +51,7 @@ final class LibrarySplitController: NSSplitViewController {
             item.canCollapse = false
             item.canCollapseFromWindowResize = false
             item.collapseBehavior = .preferResizingSiblingsWithFixedSplitView
-            item.isCollapsed = index == 0 ? !model.showFilters : index == 1 ? !model.showDraftList : index == 3 ? !model.showActions : false
+            item.isCollapsed = index == 0 ? !model.showFilters : index == 1 ? !model.showDraftList : index == 3 ? (!model.showActions && !model.showChatConsole) : false
             addSplitViewItem(item)
         }
     }
@@ -166,7 +166,7 @@ final class LibrarySplitController: NSSplitViewController {
         guard !changingVisibility else { return }
         let visibilityChanges = splitViewItems[0].isCollapsed == model.showFilters
             || splitViewItems[1].isCollapsed == model.showDraftList
-            || splitViewItems[3].isCollapsed == model.showActions
+            || splitViewItems[3].isCollapsed == (model.showActions || model.showChatConsole)
         if !visibilityChanges { applyPendingPanels() }
         updateVisibility()
     }
@@ -179,7 +179,7 @@ final class LibrarySplitController: NSSplitViewController {
 
     private func updateVisibility() {
         guard !changingVisibility else { return }
-        let collapsed = [!model.showFilters, !model.showDraftList, false, !model.showActions]
+        let collapsed = [!model.showFilters, !model.showDraftList, false, !model.showActions && !model.showChatConsole]
         guard zip(splitViewItems, collapsed).contains(where: { $0.isCollapsed != $1 }) else { return }
         changingVisibility = true
         pendingDivider = nil
