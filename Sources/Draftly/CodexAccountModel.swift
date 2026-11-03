@@ -7,6 +7,7 @@ import Combine
     @Published private(set) var isAwaitingLogin = false
     @Published private(set) var errorMessage: String?
     private let client: CodexAppServerClient
+    private let chatSession: CodexChatSession
     private let home: URL
     private var initialized = false
     private var loginID: String?
@@ -16,17 +17,21 @@ import Combine
 
     init(client: CodexAppServerClient = CodexAppServerClient(), home: URL? = nil) {
         self.client = client
+        self.chatSession = CodexChatSession(client: client)
         self.home = home ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Draftly/Codex", isDirectory: true)
         let candidates = [FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".local/bin/codex").path,
                           "/opt/homebrew/bin/codex", "/usr/local/bin/codex"]
         executable = candidates.first(where: { FileManager.default.isExecutableFile(atPath: $0) }).map { URL(fileURLWithPath: $0) }
         client.onNotification = { [weak self] method, data in
-            guard method == "account/login/completed", let self else { return }
+            guard let self else { return }
+            self.chatSession.receive(method, data: data)
+            guard method == "account/login/completed" else { return }
             if self.startingLogin, self.loginID == nil { self.earlyLoginCompletion = data }
             else { self.completeLogin(data) }
         }
         client.onDisconnect = { [weak self] in
+            self?.chatSession.disconnected()
             self?.initialized = false; self?.isSignedIn = false
             self?.loginID = nil; self?.isAwaitingLogin = false
         }
@@ -92,6 +97,21 @@ import Combine
     }
 
     func disconnect() { client.close() }
+
+    func respond(prompt: String, model: String, onText: @escaping (String) -> Void) async throws -> String {
+        guard !isBusy, !isAwaitingLogin else { throw CodexConnectionError.remote("The ChatGPT connection is busy.") }
+        isBusy = true
+        defer { isBusy = false; chatSession.onText = nil }
+        try await initialize()
+        let account = try await request("account/read", ["refreshToken": false])
+        isSignedIn = (account["account"] as? [String: Any])?["type"] as? String == "chatgpt"
+        guard isSignedIn else { throw CodexConnectionError.remote("Sign in with ChatGPT before sending a message.") }
+        let workspace = home.appendingPathComponent("workspace", isDirectory: true)
+        try FileManager.default.createDirectory(at: workspace, withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700])
+        chatSession.onText = onText
+        return try await chatSession.respond(prompt: prompt, model: model, workingDirectory: workspace)
+    }
 
     private func initialize() async throws {
         guard !initialized else { return }
