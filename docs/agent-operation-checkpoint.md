@@ -34,6 +34,19 @@ This check does not establish normal startup, screen-lock handling, combined
 notarization, or acceptance for a named external client.
 Normal startup still keeps agent access disabled.
 
+## Draft duplication — 3 November 2026
+
+The local service implements `drafts.duplicate` for one scoped draft with a
+current version token. It copies the content, tags, flag and syntax into a new
+draft without changing the source or creating a revision. The draft and its
+retry receipt commit in one transaction. A repeated request returns the same
+receipt, including after the service restarts. The service recovers a saved
+receipt before checking the now-rotated in-memory version token.
+
+The focused test and all 92 service tests pass locally. The full agent contract
+suite also passes with 169 tests. Installed CLI and MCP acceptance for duplicate
+has not been run. Normal application startup keeps agent access disabled.
+
 The agent service exposes operation queries and cancellation when its registry
 is connected. An internal host option connects Action submission to the reviewed
 executor. The option is off by default.
