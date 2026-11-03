@@ -942,7 +942,7 @@ import AgentContracts
             let receipt = try updateAction(request, connectionID: grant.connectionID)
             guard let resource = receipt.resources.first else { throw AgentErrorCode.storageError }
             return ["resource": .object(["id": .string(resource.id.uuidString), "versionToken": .string(resource.versionToken)])]
-        case "drafts.update", "drafts.patch", "drafts.restoreVersion":
+        case "drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion":
             guard let writes else { throw AgentErrorCode.unavailable }
             let receipt = try writes.update(request, connectionID: grant.connectionID)
             guard let resource = receipt.resources.first else { throw AgentErrorCode.storageError }

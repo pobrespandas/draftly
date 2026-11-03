@@ -175,7 +175,8 @@ public final class LibraryStore: ObservableObject {
 
     // The application owns authorization, expected versions and request hashing.
     package func commitNotes(_ values: [Note], mutation: LibraryMutationIdentity, at now: Date,
-                             preserveDates: Bool = false, validateCommit: () throws -> Void = {},
+                             preserveRevision: Bool = true, preserveDates: Bool = false,
+                             validateCommit: () throws -> Void = {},
                              makeResources: @Sendable ([Note]) throws -> [LibraryMutationReceipt.Resource]) throws -> LibraryMutationReceipt {
         guard !values.isEmpty, Set(values.map(\.id)).count == values.count else {
             throw LibraryMutationReceiptError.invalidReceipt
@@ -187,7 +188,7 @@ public final class LibraryStore: ObservableObject {
             return previous
         }
         do {
-            let staged = try stageNotes(values, preserveRevision: true, preserveDates: preserveDates)
+            let staged = try stageNotes(values, preserveRevision: preserveRevision, preserveDates: preserveDates)
             let receipt = LibraryMutationReceipt(id: UUID(), mutation: mutation, committedAt: now,
                 resources: try makeResources(staged))
             try receipt.validate()

@@ -95,6 +95,13 @@ import AgentContracts
         }
     }
 
+    func mutationResource(for note: Note) throws -> LibraryMutationReceipt.Resource {
+        let key = versionKey
+        return .init(id: note.id,
+            versionToken: try Self.version(note: note, stored: note, generation: "",
+                                           external: pendingEditorGeneration(note.id), key: key))
+    }
+
     private func snapshot(_ note: Note) throws -> AgentEditorRegistry.Snapshot {
         try editors?.snapshot(note) ?? .init(note: note, storedNote: note, generation: "")
     }

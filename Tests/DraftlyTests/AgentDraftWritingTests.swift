@@ -68,6 +68,26 @@ struct AgentDraftWritingTests {
         }
     }
 
+    @Test func createPersistsOneDraftWithoutARevisionAndRecoversItsReceipt() throws {
+        let f = try Fixture(); defer { f.close() }
+        let writer = try f.writer()
+        let revisionsBefore = f.library.revisions
+        let input = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "drafts.create",
+            parameters: ["content": .string("Created café 🐼"), "tags": .array([.string("One"), .string("one")]),
+                "flag": .integer(2), "folder": .string("archive"), "syntax": .string("Markdown")])
+        let ticket = try writer.prepare(input, connectionID: f.connectionID)
+        let request = AgentRequest(requestID: input.requestID, libraryID: input.libraryID, operation: input.operation,
+            retryKey: ticket.value, parameters: input.parameters)
+        let receipt = try writer.update(request, connectionID: f.connectionID)
+        let created = try #require(f.library.notes.first(where: { $0.id != f.note.id }))
+        #expect(created.content == "Created café 🐼" && created.tags == ["one"])
+        #expect(created.flag == 2 && created.isArchived && created.syntax == "Markdown")
+        #expect(f.library.revisions == revisionsBefore)
+        #expect(receipt.resources.first?.id == created.id)
+        #expect(try writer.update(request, connectionID: f.connectionID) == receipt)
+        #expect(f.library.notes.filter { $0.content == "Created café 🐼" }.count == 1)
+    }
+
     @Test func patchUsesOneUTF16SnapshotAndOneUndoableCommit() throws {
         let f = try Fixture(); defer { f.close() }
         let model = f.model(), writer = try f.writer()
