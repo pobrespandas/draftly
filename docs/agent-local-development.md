@@ -843,3 +843,23 @@ This component serializes one process. It does not provide a cross-process
 transaction or prove power-loss durability. It is not connected to public
 preference mutations. Request receipts, operation review and caller-side
 coordination still need integration before update and reset become available.
+
+### Prepared preference write coordination
+
+`AgentPreferenceWriting` combines signed request preparation, raw storage
+snapshots and host-local result receipts. Each request identity binds its
+normalized parameters and original grant. Repeating a completed request returns
+the saved result without applying it again, even after Settings changes the
+value. Changed parameters or grants cannot recover that result.
+
+Prepared requests reject changed values before commit. An uncertain write or a
+change during receipt construction remains unknown and cannot execute again.
+The coordinator keeps 128 identities and rejects new preparation at capacity;
+it does not evict an identity to admit more work. Existing requests still recover
+at capacity. Update and reset use the same path.
+
+Changes that need human review stop before storage. The coordinator does not
+replace the approval flow with a signed retry key. Focused tests cover replay,
+stale preparation, changed grants, unknown writes, capacity and reset. Service
+routing, sensitive-operation review, native execution and installed acceptance
+remain pending. Public preference mutation availability is unchanged.
