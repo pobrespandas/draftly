@@ -3,6 +3,7 @@ import Foundation
 /// Owns one local Codex process and its JSON-RPC connection.
 @MainActor final class CodexAppServerClient {
     var onNotification: ((String, Data) -> Void)?
+    var onDisconnect: (() -> Void)?
     private var process: Process?
     private var input: FileHandle?
     private var output: FileHandle?
@@ -21,6 +22,7 @@ import Foundation
         child.executableURL = executable
         child.arguments = ["app-server", "--listen", "stdio://", "-c", "cli_auth_credentials_store=\"keyring\""]
         var environment = ProcessInfo.processInfo.environment
+        for key in ["OPENAI_API_KEY", "CODEX_API_KEY", "CODEX_ACCESS_TOKEN"] { environment.removeValue(forKey: key) }
         environment["CODEX_HOME"] = home.path
         child.environment = environment
         child.standardInput = stdin; child.standardOutput = stdout; child.standardError = stderr
@@ -87,6 +89,7 @@ import Foundation
         deadlines.values.forEach { $0.cancel() }; deadlines.removeAll()
         let waiting = pending.values; pending.removeAll()
         for continuation in waiting { continuation.resume(throwing: error) }
+        onDisconnect?()
     }
 
     private func write(_ object: [String: Any]) throws {

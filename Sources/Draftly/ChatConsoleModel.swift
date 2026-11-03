@@ -25,6 +25,7 @@ struct ChatConsoleConversation: Codable, Equatable, Identifiable {
 }
 
 @MainActor final class ChatConsoleModel: ObservableObject {
+    let codexAccount = CodexAccountModel()
     private struct SavedState: Codable {
         var conversations: [ChatConsoleConversation]
         var selectedConversationID: UUID?

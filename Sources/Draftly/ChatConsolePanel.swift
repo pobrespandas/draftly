@@ -3,6 +3,7 @@ import SwiftUI
 struct ChatConsolePanel: View {
     @ObservedObject var model: ChatConsoleModel
     @FocusState private var promptFocused: Bool
+    @State private var showChatGPTAccount = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -23,6 +24,7 @@ struct ChatConsolePanel: View {
         .frame(minWidth: 260, maxWidth: .infinity, maxHeight: .infinity)
         .background(.background)
         .task { await model.loadModels() }
+        .sheet(isPresented: $showChatGPTAccount) { CodexAccountView(model: model.codexAccount) }
     }
 
     private var header: some View {
@@ -62,6 +64,8 @@ struct ChatConsolePanel: View {
             .disabled(model.availableModels.isEmpty)
 
             Spacer()
+            Button { showChatGPTAccount = true } label: { Image(systemName: "person.crop.circle") }
+                .help("ChatGPT Account")
             Button { model.startConversation() } label: { Image(systemName: "plus") }
                 .buttonStyle(.plain).help("New Chat")
         }
