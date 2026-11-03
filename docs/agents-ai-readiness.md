@@ -24,11 +24,11 @@ agent pairing and grants.
 | --- | --- | --- | --- |
 | ChatGPT account | Direct official OAuth, Keychain records, model catalog, session renewal, and account controls are connected. | The signed QA completed sign-in and restored the account after full process exit without another browser login. | Real renewal, uncertain renewal recovery, remote sign-out, and multiple-account behavior. |
 | Chat Console tools | Shared MCP tool definitions, completed function calls, bounded continuation, and native consent are connected to the QA host. | GPT-6.1-Sol used `drafts.list` and `drafts.get`. It returned the exact approved Unicode draft text. Native activity confirmed both calls. | Real editing, Undo, cancellation, concurrency, result recovery, and the remaining operation families. |
-| Consent and grants | The chat creates a separate connection for the current draft and editor. Reading and editing are separate choices. The grant expires after 15 minutes. | The user approved reading. Saved capabilities were exactly `drafts.read` and `editor.read`, with one draft and one window in scope. | Actual expiry, another-draft denial, and a forbidden write through installed clients. |
+| Consent and grants | The chat creates a separate connection for the current draft and editor. Reading and editing are separate choices. The grant expires after 15 minutes. | The user approved reading. A fresh native pairing on signed `2ea267b` granted exactly `drafts.read` and `editor.read` for one draft and window. Another draft returned `not_found`; draft/editor writes returned `permission_denied` without text changes. The existing MCP process and a new CLI request were denied after the actual deadline. | Other resource families, editing grants, and their installed negative cases. |
 | Keychain and helper | The app creates the connection credential. The signed helper uses it to authenticate. | The installed helper returned the same limited capabilities. This proves sharing for that QA connection. | Broader client setup and failure-path acceptance. |
-| Installed MCP | The bundled helper exposes the local service through bounded stdio MCP. | A probe negotiated `2025-11-25`, listed read tools, omitted write tools, and read the approved draft. | Fresh native helper pairing in the current build and a full session for each named client. No Codex or Claude Code compatibility claim follows from this probe. |
+| Installed MCP | The bundled helper exposes the local service through bounded stdio MCP. | A fresh native helper pairing negotiated `2025-11-25`, listed read tools, omitted write tools, and read the approved draft. It denied another draft and remained open through pause, resume, and actual expiry. | A full session for each named client. No Codex or Claude Code compatibility claim follows from this probe. |
 | Revocation | Disconnect closes the chat session, revokes its connection, and removes its credential and revoked metadata. | An existing MCP process denied its next read. A new CLI request returned `permission_denied`. No draft text returned after revocation. | Revocation during writes and native effects, plus installed storage-failure cases. |
-| Stop Work | The host suspends transport, reviews, and operations. | With no granted session left, Stop Work set access off and removed endpoint publication. | Stop Work during an open authorized session and during an active operation or review. |
+| Stop Work | The host suspends transport, reviews, and operations. | On signed `2ea267b`, Stop Work set access off, withdrew publication, and denied the existing authorized MCP reader. Explicit resume let that same process read again without changing grant or expiry. | Stop Work during an active operation with effects or a pending review. The installed check covered an open read session. |
 | Restart | Account and conversation persistence are connected. A new host does not start a listener automatically. | The signed QA retained account and conversation after process exit. Access remained off. | A follow-up signed QA from `2ea267b` retained the selected ChatGPT model after verified process exit. Tools stayed disconnected and access stayed off. Other model/provider restart paths remain pending. Test permission and result recovery for the remaining operations. |
 | Normal startup and lock | Host creation is still gated to isolated agent QA. | Fresh QA access started off. The QA lock adapter does not detect screen lock. | Normal startup with access off, verified initial lock state, lock/sleep transitions, and explicit resume. |
 | Distribution | App and helper profiles and signatures are checked. | Both ran installed with matching Developer ID identities. | Combined notarization, final release packaging, architecture checks, signed updates, and post-update CLI/MCP sessions. |
@@ -38,6 +38,14 @@ The signed session used neutral data in a temporary library with iCloud off.
 The normal library was not opened. The QA exited and its original shared
 preferences and saved window state were restored. Its separate ChatGPT account,
 chat history, and library remain available for follow-up.
+
+The follow-up signed read-only QA ended at the configured deadline
+`2026-11-03T13:53:30Z`. At `13:53:32Z`, its existing MCP process returned
+`permission_denied` without draft text. A new CLI read also failed. The host was
+still published, and the grant record was enabled, unrevoked, nonrenewable, and
+unchanged from before expiry. This distinguishes expiry from a manual stop or
+revocation. The QA then stopped, revoked the test connection, and exited.
+Shared preferences and saved window state were restored from the fresh backup.
 
 ## Operation coverage
 
@@ -119,8 +127,9 @@ its tool definitions with MCP. It exposes no inbound HTTP server.
 
 ## Next work
 
-1. Complete installed negative cases, expiry, active-session Stop Work, and
-   fresh helper pairing. Reuse the accepted read and revocation evidence.
+1. Test editing grants, other resource families, and Stop Work during active
+   effects or pending review. Reuse the accepted fresh pairing, read-only
+   negatives, active read-session pause/resume, expiry, and revocation evidence.
 2. Connect normal host startup only after lock behavior and default-off access
    have passed their checks. The QA adapter cannot satisfy this gate.
 3. Reconcile and implement the missing operation contracts. Validate editor
@@ -132,6 +141,13 @@ its tool definitions with MCP. It exposes no inbound HTTP server.
    and each named client's acceptance before publication.
 
 ## Validation references
+
+- Full CI [41643931168](https://github.com/pobrespandas/draftly/actions/runs/41643931168)
+  passed for installed QA source `2ea267b`.
+- Typed-result source `ff7d42d` has focused integration and native build evidence
+  above. Its own full CI remains pending. The installed permission QA used
+  `2ea267b`; it did not test the later typed-result framework.
+
 
 - Full CI [41598564068](https://github.com/pobrespandas/draftly/actions/runs/41598564068)
   passed for native consent commit `698c883`.

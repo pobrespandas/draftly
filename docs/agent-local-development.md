@@ -123,9 +123,10 @@ request with a group ID and the `all` surface returns an order version for the
 complete group. Its cursor pages reject concurrent changes.
 
 The host does not start in the normal app. Agent access remains unavailable in
-released builds. The current build still needs fresh installed helper pairing and complete
-operation acceptance. Its signed read-only MCP session and Keychain sharing
-passed; see [current readiness](agents-ai-readiness.md). Screen-lock behavior also needs a reliable initial
+released builds. The signed `2ea267b` QA passed fresh native helper pairing, scoped CLI/MCP
+reads, another-draft denial, forbidden writes, active read-session Stop Work,
+explicit resume, and actual expiry. Complete operation acceptance remains
+pending; see [current readiness](agents-ai-readiness.md). Screen-lock behavior also needs a reliable initial
 state and signed native checks. Protected-data notifications describe keybag
 availability. They do not establish every graphical screen-lock transition.
 Do not use them alone as proof that the screen is unlocked. See the
