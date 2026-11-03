@@ -1454,6 +1454,23 @@ struct AgentCommandServiceTests {
         #expect(try f.response("server.status", session: session).outcome == .error(.permissionDenied))
     }
 
+    @Test func draftCreationRecoversWithoutDuplicatesAndRollsBackLostAuthority() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let (record, session) = try f.connect(capabilities: [.draftsRead, .draftsWrite])
+        let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "drafts.create",
+            parameters: ["content": .string("Created café 🐼"), "tags": .array([.string("One")])])
+        let request = try f.preparedPreference(intent, session: session)
+        let first = try f.send(request, session: session)
+        #expect(try f.send(request, session: session) == first)
+        #expect(f.library.notes.count == 1)
+        let next = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "drafts.create",
+            parameters: ["content": .string("Must roll back")])
+        let prepared = try f.preparedPreference(next, session: session)
+        f.library.beforeBatchCommit = { _ = try f.connections.revokeFromUserInterface(record.id) }
+        #expect(try f.send(prepared, session: session).outcome == .error(.permissionDenied))
+        #expect(f.library.notes.count == 1)
+    }
+
     @Test func schemasReportActualHandlersAndUnsupportedOperationsNeverSimulateSuccess() throws {
         let f = try Fixture(), (_, session) = try f.connect(capabilities: [.draftsRead, .draftsWrite])
         let values = try f.values("server.schemas", session: session)
