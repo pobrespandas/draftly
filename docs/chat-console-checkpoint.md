@@ -278,3 +278,7 @@ They check scoped text, reasoning and result continuation, duplicate batches,
 revocation, and account changes. No real ChatGPT tool invocation is accepted yet.
 Full CI `41594155092` passed for scope cleanup `b4ccd5f`; the tool bridge and
 continuation changes still need full CI.
+
+The unsigned native Debug build passed for `12c1c9c` with the worktree package
+name override. Full CI `41595947234` now validates that commit. No signing,
+notarization, installed tool invocation, or native approval acceptance is implied.
