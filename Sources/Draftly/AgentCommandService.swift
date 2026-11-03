@@ -13,7 +13,7 @@ import AgentContracts
         let grantID: UUID
     }
     private static let readOperations: Set<String> = ["server.status", "server.capabilities", "server.schemas",
-        "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions", "preferences.schema", "preferences.get", "syntaxes.getBuiltIn"]
+        "library.summary", "drafts.list", "drafts.search", "drafts.get", "drafts.versions", "preferences.schema", "preferences.get", "syntaxes.list", "syntaxes.getBuiltIn"]
     private static let editorReadOperations: Set<String> = ["editor.windows", "editor.get", "editor.find", "editor.markers", "editor.links", "editor.listTasks"]
     private static let actionReadOperations: Set<String> = ["actions.list", "actions.get", "actions.stepSchemas", "actions.groups", "actionGroups.get"]
     private static let workspaceReadOperations: Set<String> = ["workspaces.list", "workspaces.get", "workspaces.query"]
@@ -785,6 +785,21 @@ import AgentContracts
             let source = try ScriptSyntax.definition(name).source
             let token = Data(HMAC<SHA256>.authenticationCode(for: Data(source.utf8), using: preferenceVersionKey)).base64EncodedString()
             return ["name": .string(name), "source": .string(source), "versionToken": .string(token)]
+        case "syntaxes.list":
+            let syntaxes = actionLibrary.syntaxes.filter {
+                $0.type != "builtIn" && grant.scope.permits(.init(kind: .syntax, id: $0.id))
+            }
+            let byID = Dictionary(syntaxes.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+            var result = try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
+                parameters: parameters, expiresAt: grant.expiresAt,
+                ids: { syntaxes.map(\.id) }, value: { id in
+                    guard let syntax = byID[id] else { return nil }
+                    let token = Data(HMAC<SHA256>.authenticationCode(for: Data(syntax.source.utf8), using: self.preferenceVersionKey)).base64EncodedString()
+                    return .object(["id": .string(id.uuidString), "name": .string(syntax.name),
+                        "type": .string(syntax.type), "versionToken": .string(token)])
+                })
+            result["builtInNames"] = .array(ScriptSyntax.names.map(AgentJSONValue.string))
+            return result
         case "actions.run":
             guard let submitAction, let operationRegistry else { throw AgentErrorCode.unavailable }
             if let id = try operationRegistry.existingRequest(request, grant: grant) {
