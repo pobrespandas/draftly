@@ -23,11 +23,18 @@ attempt. Requests, connection count, connection lifetime, and attempt lifetime
 are bounded. Cancellation closes the listener and pending connections. Browser
 replies contain no code or credential.
 
+`ChatGPTIdentityVerifier` uses JWTKit 5.8.0 to verify RS256 signatures. It loads
+the official discovery document and restricts JWKS to the official HTTPS host.
+It selects the exact key ID and does not fall back to another key. It checks
+issuer, audience, nonce, expiry, issue time, optional not-before time, authorized
+presenter, and the selected account subject. Only validated claims become a
+`ChatGPTIdentity`. Raw library errors do not reach the UI. Keys are cached for
+ten minutes. Unknown key IDs can trigger a refresh at most once per 30 seconds.
+
 These components are not connected to the UI. Next steps:
 
 1. Connect the tested listener to sign-in.
-2. Validate ID-token signatures with the official discovery document and JWKS.
-   Check issuer, audience, expiry, nonce, and the selected account identity.
+2. Connect the identity verifier to the authorization-code exchange.
 3. Store the validated identity, issued client ID, tokens, scopes, and expiry
    together. Persist a stable host ID before the first authorization attempt.
 4. Add serialized token refresh and sign-out. A late refresh must not restore
@@ -57,6 +64,17 @@ received 200 and consumed the attempt. Cancellation and failed browser launch
 completed without a pending waiter. HTTP parser checks rejected other hosts,
 methods, duplicate Host fields, bodies, and ambiguous framing. The unsigned
 native Debug build passed again. Provider login and inference remain untested.
+
+The identity follow-up passed sixteen focused tests in serial mode. Test tokens
+use temporary RSA keys and Security framework signatures. Cases cover valid
+string and array audiences, false signatures, missing claims, wrong identity,
+expiry, nonce, algorithms, critical headers, key rotation, refresh limits,
+untrusted discovery, and duplicate keys. The first test build failed on a
+test-only actor-isolation error. It passed after that error was corrected.
+Two project-generator tests and the unsigned native Debug build passed. SwiftPM
+and Xcode lockfiles resolve the same dependency versions. A public metadata
+request confirmed the official issuer, JWKS URI, RS256 support, and revocation
+endpoint. No user token was requested or read for this check.
 
 ## Official contracts
 

@@ -45,8 +45,11 @@ class GeneratedProjectTests(unittest.TestCase):
             self.assertIn("productName = AgentLocalSecurity", project)
             self.assertIn(f"productRef = {transport}", project)
             self.assertIn("productName = AgentLocalTransport", project)
-            self.assertIn(f"files = ({identifier('corebuild')},{build},{security_build},{transport_build},{identifier('sparklebuild')})", project)
-            self.assertIn(f"packageProductDependencies = ({identifier('core')},{contracts},{security},{transport},{identifier('sparkle')})", project)
+            self.assertIn(f"files = ({identifier('corebuild')},{build},{security_build},{transport_build},{identifier('sparklebuild')},{identifier('jwtbuild')})", project)
+            self.assertIn(f"packageProductDependencies = ({identifier('core')},{contracts},{security},{transport},{identifier('sparkle')},{identifier('jwt')})", project)
+            self.assertIn("productName = JWTKit", project)
+            self.assertIn('repositoryURL = "https://github.com/vapor/jwt-kit.git"', project)
+            self.assertIn("version = 5.8.0", project)
             self.assertEqual(project.count('-package-name draftly'), 2)
             self.assertIn("Fixture.swift", project)
 
