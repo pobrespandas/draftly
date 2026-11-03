@@ -3,7 +3,7 @@ import AgentContracts
 
 // Editor receipts belong to this host lifetime. Old keys cannot select a new window.
 @MainActor final class AgentEditorWriting {
-    static let operationNames: Set<String> = ["editor.setSelection", "editor.replaceRange", "editor.undo", "editor.redo"]
+    static let operationNames: Set<String> = ["editor.setSelection", "editor.replaceRange", "editor.undo", "editor.redo", "editor.tasks"]
     struct Context {
         let snapshot: AgentEditorRegistry.WindowSnapshot
         let version: String
@@ -68,6 +68,10 @@ import AgentContracts
                 guard case .string(let text) = request.parameters["text"] else { throw AgentErrorCode.invalidInput }
                 try registry.replaceRange(context.snapshot, range: range, text: text, authorize: authorize)
                 selection = NSRange(location: range.location + text.utf16.count, length: 0)
+            } else if request.operation == "editor.tasks" {
+                let change = try taskChange(request, context: context)
+                try registry.replaceRange(context.snapshot, range: change.0, text: change.1, authorize: authorize)
+                selection = NSRange(location: change.0.location + change.1.utf16.count, length: 0)
             } else if request.operation == "editor.undo" || request.operation == "editor.redo" {
                 selection = try registry.undo(context.snapshot, redo: request.operation == "editor.redo", authorize: authorize)
             } else {
@@ -102,6 +106,22 @@ import AgentContracts
         return result
     }
 
+    private func taskChange(_ request: AgentRequest, context: Context) throws -> (NSRange, String) {
+        guard case .string(let state) = request.parameters["state"],
+              case .string(let operation) = request.parameters["operation"] else { throw AgentErrorCode.invalidInput }
+        do {
+            let bounds = try AgentTextShapes.bounds(request.parameters["stateRange"],
+                totalLength: Int64(context.snapshot.content.utf16.count))
+            guard let offset = Int(exactly: bounds.offset), let end = Int(exactly: bounds.end) else {
+                throw AgentErrorCode.invalidInput
+            }
+            let syntax = try registry.syntaxDefinition(windowID: context.snapshot.id)
+            return try syntax.taskChange(in: context.snapshot.content,
+                task: ["stateRange": [offset, end - offset], "state": state], operation: operation)
+        } catch let error as AgentErrorCode { throw error }
+        catch { throw AgentErrorCode.invalidInput }
+    }
+
     private func checked(_ request: AgentRequest, connectionID: UUID) throws -> (Context, NSRange) {
         guard Self.operationNames.contains(request.operation), request.targets.count == 1,
               let target = request.targets.first, target.kind == .window,
@@ -117,6 +137,11 @@ import AgentContracts
         if request.operation == "editor.undo" || request.operation == "editor.redo" {
             try registry.validateUndo(context.snapshot)
             return (context, context.snapshot.selection)
+        }
+        if request.operation == "editor.tasks" {
+            let change = try taskChange(request, context: context)
+            try registry.validateReplacement(context.snapshot)
+            return (context, change.0)
         }
         let text = context.snapshot.content as NSString
         let bounds: (offset: Int64, end: Int64)

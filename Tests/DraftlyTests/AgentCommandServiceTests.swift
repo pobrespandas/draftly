@@ -1633,7 +1633,7 @@ struct AgentCommandServiceTests {
         #expect(available.remove("syntaxes.list") != nil)
         #expect(available.remove("syntaxes.get") != nil)
         #expect(available.remove("drafts.duplicate") != nil)
-        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", "preferences.get", AgentMutationSchemas.name, "drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.setSelection", "editor.replaceRange", "editor.undo", "editor.redo", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.update"]) && available.count == 44)
+        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", "preferences.get", AgentMutationSchemas.name, "drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.setSelection", "editor.replaceRange", "editor.undo", "editor.redo", "editor.tasks", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.update"]) && available.count == 45)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.invalidInput))
         #expect(f.library.notes.isEmpty)
         #expect(try f.values("server.capabilities", session: session)["capabilities"] == .array([.string("drafts.read"), .string("drafts.write")]))
@@ -1990,6 +1990,68 @@ struct AgentCommandServiceTests {
         model.editor.selection = NSRange(location: 1, length: 0)
         #expect(try prepare(session).outcome == .error(.versionConflict))
         #expect(model.editor.content == note.content && f.library.notes.first?.content == note.content)
+    }
+
+    @Test func editorVersionChangesWhenTaskSyntaxChangesWithoutTextEdits() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        var note = try f.note("- [ ] café 🐼")
+        let model = try f.window(note); f.editors = [model]
+        let target = AgentResourceReference(kind: .window, id: try #require(f.editorRegistry.windowSnapshots().first).id)
+        let (_, session) = try f.connect(scope: .resources([target, .init(kind: .draft, id: note.id)]),
+            capabilities: [.draftsRead, .editorRead])
+        let before = try f.values("editor.get", session: session, targets: [target])["versionToken"]
+        note.syntax = "Plain Text"; try f.library.saveNote(note)
+        let after = try f.values("editor.get", session: session, targets: [target])["versionToken"]
+        #expect(before != after && model.editor.content == note.content)
+    }
+
+    @Test(arguments: ["complete", "reset", "advance"])
+    func taskMutationUsesSyntaxAndNativeUndoWithoutReplaying(operation: String) throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let initial = operation == "reset" ? "[x]" : "[ ]"
+        let note = try f.note("- \(initial) café 🐼"), model = try f.window(note)
+        f.editors = [model]
+        let native = NativeEditor(session: model.editor, fontName: "System", fontSize: 17,
+            lineSpacing: 2, markdown: false, onChange: { model.contentChanged() })
+        let history = ScriptUndoEditorFixture(native, content: note.content)
+        model.editor.canApplyExternalEdit = { true }
+        defer { model.pausePendingAutosave { true }; history.close(); model.editor.canApplyExternalEdit = nil }
+        let target = AgentResourceReference(kind: .window, id: try #require(f.editorRegistry.windowSnapshots().first).id)
+        let (_, session) = try f.connect(scope: .resources([target, .init(kind: .draft, id: note.id)]),
+            capabilities: [.draftsRead, .draftsWrite, .editorRead, .editorWrite])
+        guard case .string(let version) = try f.values("editor.get", session: session, targets: [target])["versionToken"] else {
+            throw AgentErrorCode.executionError
+        }
+        func intent(state: String) -> AgentRequest {
+            AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "editor.tasks", targets: [target],
+                expectedVersion: version, parameters: ["stateRange": .object(["offset": .integer(2), "length": .integer(3)]),
+                    "state": .string(state), "operation": .string(operation)])
+        }
+        let wrong = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(intent(state: "wrong")))
+        #expect(try f.response("mutations.prepare", session: session, parameters: ["request": wrong]).outcome == .error(.invalidInput))
+        #expect(model.editor.content == note.content && !history.text.manager.canUndo)
+        let planned = intent(state: initial)
+        let frame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(planned))
+        guard case .string(let key) = try f.values("mutations.prepare", session: session,
+            parameters: ["request": frame])["retryKey"] else { throw AgentErrorCode.executionError }
+        let request = AgentRequest(requestID: planned.requestID, libraryID: f.libraryID, operation: planned.operation,
+            targets: [target], expectedVersion: version, retryKey: key, parameters: planned.parameters)
+        func send() throws -> AgentResponse {
+            try JSONDecoder().decode(AgentResponse.self, from: f.service.respond(to: JSONEncoder().encode(request), session: session))
+        }
+        var alternate = note; alternate.syntax = "Plain Text"
+        try f.library.saveNote(alternate)
+        #expect(try send().outcome == .error(.versionConflict))
+        #expect(model.editor.content == note.content && !history.text.manager.canUndo)
+        try f.library.saveNote(note)
+        let reply = try send()
+        guard case .result = reply.outcome else { Issue.record("Task change failed: \(reply.outcome)"); return }
+        let expected = operation == "reset" ? "- [ ] café 🐼" : "- [x] café 🐼"
+        #expect(model.editor.content == expected && history.text.manager.canUndo)
+        model.editor.performUndo?(false)
+        #expect(model.editor.content == note.content)
+        #expect(try send().outcome == reply.outcome)
+        #expect(model.editor.content == note.content)
     }
 
     @Test func undoAndRedoUseNativeHistoryAndReplayDoesNotUndoAgain() throws {

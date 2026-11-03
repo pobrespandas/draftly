@@ -42,8 +42,8 @@ chat history, and library remain available for follow-up.
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-55 names in implemented or conditional handler sets. The other 82 names have
-no direct handler in those sets. These counts do not prove that 55 operations
+56 names in implemented or conditional handler sets. The other 81 names have
+no direct handler in those sets. These counts do not prove that 56 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -55,7 +55,7 @@ a direct handler for every `native.*` contract.
 | Family | Direct contracts still outside those handler sets |
 | --- | --- |
 | Drafts | `drafts.archive`, `drafts.flag`, `drafts.merge`, `drafts.purge`, `drafts.restore`, `drafts.syntax`, `drafts.tags`, `drafts.trash` |
-| Editor | `editor.navigate`, `editor.open`, `editor.preview`, `editor.replaceAll`, `editor.tasks` |
+| Editor | `editor.navigate`, `editor.open`, `editor.preview`, `editor.replaceAll` |
 | Actions and groups | `actions.delete`, `actionGroups.delete` |
 | Workspaces | `workspaces.apply`, `workspaces.create`, `workspaces.delete`, `workspaces.duplicate`, `workspaces.reorder` |
 | Themes | All 14 declared `themes.*` contracts. |
@@ -77,6 +77,12 @@ when its handler is connected and its current grant permits it.
 version checks, and host-lifetime receipts. A 102-test service/editor run passed,
 including read-only denial and replay without another Undo. Installed acceptance
 for these two handlers remains pending.
+
+`editor.tasks` now uses the current syntax task rules and the native replacement
+path. Editor versions include syntax source, name, and feature state. A syntax
+change rejects a prepared task edit even when text has not changed. The final
+104-test service/editor run and native QA build passed. Installed task editing
+acceptance remains pending.
 
 ## Responsibility boundaries
 

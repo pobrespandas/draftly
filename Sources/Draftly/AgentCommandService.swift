@@ -992,7 +992,7 @@ import AgentContracts
             let receipt = try writes.update(request, connectionID: grant.connectionID)
             guard let resource = receipt.resources.first else { throw AgentErrorCode.storageError }
             return ["resource": .object(["id": .string(resource.id.uuidString), "versionToken": .string(resource.versionToken)])]
-        case "editor.setSelection", "editor.replaceRange", "editor.undo", "editor.redo":
+        case "editor.setSelection", "editor.replaceRange", "editor.undo", "editor.redo", "editor.tasks":
             guard let editorWrites else { throw AgentErrorCode.unavailable }
             return try editorWrites.update(request, connectionID: grant.connectionID)
         case "preferences.get":
@@ -1038,7 +1038,10 @@ import AgentContracts
     private func editorValues(_ snapshot: AgentEditorRegistry.WindowSnapshot) throws -> [String: AgentJSONValue] {
         let selection: AgentJSONValue = .object(["offset": .integer(Int64(snapshot.selection.location)),
             "length": .integer(Int64(snapshot.selection.length))])
-        let state: AgentJSONValue = .object(["windowID": .string(snapshot.id.uuidString), "generation": .string(snapshot.generation.uuidString),
+        let syntax = try? editorRegistry?.syntaxDefinition(windowID: snapshot.id)
+        let syntaxIdentity = syntax.map { $0.name + "\u{0}" + $0.source + "\u{0}" + $0.featureState }
+        let state: AgentJSONValue = .object(["syntaxVersion": syntaxIdentity.map { .string($0) } ?? .null,
+            "windowID": .string(snapshot.id.uuidString), "generation": .string(snapshot.generation.uuidString),
             "draftID": snapshot.draftID.map { .string($0.uuidString) } ?? .null,
             "content": .string(snapshot.content), "selection": selection, "dirty": .bool(snapshot.dirty)])
         let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys

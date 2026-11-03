@@ -1,3 +1,19 @@
+# Syntax task mutations — 3 November 2026
+
+`editor.tasks` now uses `SyntaxDefinition.taskChange` for complete, reset, and
+advance. It uses the same native range replacement and receipts as other editor
+mutations. It does not add separate Markdown task rules. Editor version tokens
+now include the syntax name, source, and feature state. Changing syntax rejects
+a prepared mutation before it changes text.
+
+The final focused run passed 104 tests in the command-service and editor
+mutation suites. Task cases checked all three operations, Unicode labels,
+wrong state rejection, a syntax change after preparation, native Undo, and
+receipt replay after user Undo. The native QA build passed. These are local
+integration checks, not installed-client acceptance. There are now 56 names in
+the handler sets and 81 required direct handlers still absent. All other gates
+in [current readiness](agents-ai-readiness.md) remain open.
+
 # Editor Undo and Redo — 3 November 2026
 
 `editor.undo` and `editor.redo` now use the registered native editor history.
