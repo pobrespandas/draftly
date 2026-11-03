@@ -17,6 +17,7 @@ has a distinct role. Read the sources that apply to the decision at hand.
 | [Product](../PRODUCT.md) | Audience, scope, and current priorities. | Choosing or proposing product work. |
 | [Agent instructions](../AGENTS.md) | Repository workflow and skill entry points. | Starting work or choosing a method. |
 | [Current progress](project-progress.md) | Recorded implementation and validation status. | Establishing the baseline or reporting completion. |
+| [Agents and AI readiness](agents-ai-readiness.md) | Local agent and chat closure map. | Reporting handlers, installed evidence, or release readiness. |
 | Code and relevant tests | Actual rules and tested behavior. | Checking a claim or changing behavior. |
 | [Research](research/mission-vision-values-2026-10-31.md) | Sources, arguments, and limits. | Reconsidering the framework or its assumptions. |
 

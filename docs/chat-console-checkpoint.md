@@ -1,5 +1,7 @@
 # Current status — 3 November 2026
 
+Read [agents and AI readiness](agents-ai-readiness.md) for the current closure map.
+
 Signed isolated QA verified direct ChatGPT tool reading, native read consent,
 Keychain sharing with the installed helper, an installed MCP read session, and
 revocation for new CLI requests and an existing MCP session. Stop Work removed
@@ -21,8 +23,9 @@ uses direct ChatGPT OAuth. Real sign-in and restoration after full process exit
 passed. The account model catalog and completed Responses worked in installed
 QA. Native Stop removed a partial response, and the next request succeeded.
 Draftly's own local tool bridge and native consent are now implemented behind
-the existing host gate. Installed tool-using chat acceptance remains pending.
-External MCP clients are out of scope for now.
+the existing host gate. Installed read-only tool use passed as recorded above.
+Editing and the remaining acceptance cases are pending.
+Connections to external MCP servers are out of scope for now.
 
 `ChatGPTAuthorization` creates a fresh state, nonce, and PKCE verifier. It
 builds the official authorization request. Callback validation checks the
@@ -105,7 +108,7 @@ renewable session. Console history merges saved conversations and message IDs be
 MainActor serializes these writes across app windows. A two-window regression
 checks shared messages and separate conversations. Installed acceptance remains
 pending. Window selection and active response state remain local to each window.
-MCP login remains separate from provider login. MCP tools must use the existing
+Local agent pairing and grants remain separate from provider login. MCP tools must use the existing
 grant, review, cancellation, and revocation rules.
 
 The full agents and AI goal also includes the remaining local operation

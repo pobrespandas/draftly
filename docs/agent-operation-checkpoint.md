@@ -1,3 +1,19 @@
+# Current local agents status — 3 November 2026
+
+Read [agents and AI readiness](agents-ai-readiness.md) for the current closure
+map. Historical sections below retain their source and acceptance limits.
+
+The latest signed QA verified real ChatGPT reads through native consent,
+app/helper Keychain sharing, an installed MCP read session, and revocation for
+both a new CLI request and the existing MCP session. Idle Stop Work removed
+the endpoint. Account and conversation survived full process exit; access stayed
+off. The app is closed and original shared preferences are restored.
+
+This is not acceptance for active-session Stop Work, real expiry, forbidden
+writes, other-draft denial, normal screen lock, all handlers, or distribution.
+The user excludes external MCP servers and inbound remote access. Preserve the
+full local operation, editor, effect, recovery, CLI, and signed-release scope.
+
 # Local agent operation checkpoint
 
 ## Syntax reads — 2 November 2026

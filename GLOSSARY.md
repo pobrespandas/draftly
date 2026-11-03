@@ -248,13 +248,44 @@ The local folder for files read or written by action scripts. It is separate fro
 A folder chosen by the user and recalled by name for file exports on this Mac.
 
 
-### Planned agent access
+### Agent access
 
-These terms describe the proposed agent interface, not a shipped capability.
+These terms distinguish agent authority, connections, and work.
 
 **Draftly agent connection**:
-A user-approved connection through which an external agent requests work in
-Draftly. It can be disabled independently of other connections.
+A user-approved relationship through which an agent or Chat Console requests
+work in Draftly.
+_Avoid_: Model provider account, agent grant
+
+**Chat Console**:
+A conversation space where a person works with a chosen model provider and can
+approve access to Draftly tools.
+
+**Model provider account**:
+The person's identity with a model service. It is separate from a Draftly agent
+connection and its local authority.
+_Avoid_: MCP login (when referring to model-service sign-in)
+
+**Draftly MCP server**:
+The Draftly interface through which an MCP client requests authorized work on a
+library.
+
+**External MCP server**:
+An MCP server supplied by another service or app that Chat Console could use.
+It is distinct from an agent client that uses Draftly's own MCP server.
+_Avoid_: External client (when referring to the server)
+
+**Agent session**:
+An active period of use of a Draftly agent connection under its current grant.
+Ending a session does not by itself revoke that grant.
+
+**Chat access consent**:
+The person's decision to let Chat Console use specified Draftly resources with
+the chosen model provider. It is distinct from approval of one operation's effects.
+
+**Stop Work**:
+The person's command to stop active agent access and pending work in Draftly.
+It is distinct from revoking a saved connection.
 
 **Agent pairing challenge**:
 A short-lived request to connect an agent to Draftly. The person compares its

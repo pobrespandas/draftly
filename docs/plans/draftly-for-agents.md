@@ -1,21 +1,24 @@
 # Draftly for agents
 
-Status: accepted; local stage 1 in progress. Updated: 31 October 2026.
-Code reviewed at `290d558`. This document tracks planned work; it does not claim that
-an agent interface, permissions, or remote access already exists.
+Status: accepted local plan; implementation and isolated signed QA in progress.
+Updated: 3 November 2026. Read [current readiness](../agents-ai-readiness.md) for
+implementation, integration, installed evidence, and publication gates. The
+original architecture review at `290d558` is historical.
 
 ## Goal and accepted decisions
 
-Make Draftly a complete tool for external agents while the person can continue
-writing. Support notes, the editor, organization, Actions, Workspaces, Settings,
+Make Draftly a complete tool for local agent clients and Chat Console while
+the person can continue writing. Support notes, the editor, organization, Actions, Workspaces, Settings,
 themes, syntax, imports, exports, backups, and existing native integrations.
 Use the product mission, values, and constitution to guide the design.
 
 Accepted by the user:
 
-- Support local and remote agents. Implement local access first.
-- Plan remote access now, but implement it in a future stage.
-- Initial remote access uses a private network or VPN, not a public service.
+- Provide Draftly's own local MCP server and tools for Chat Console.
+- Use Apple Intelligence and direct ChatGPT model access. Keep model sign-in
+  separate from local pairing, grants, and one-use effect approval.
+- Exclude inbound remote access through SSH, VPN, or HTTPS. External MCP servers
+  are out of scope for now.
 - Authorize reading, writing, and execution as separate capabilities.
 - Include administration of Actions and scripts, Settings, themes, syntax,
   imports, and backups. A narrower notes-only endpoint is not the final goal.
@@ -23,9 +26,10 @@ Accepted by the user:
   human control. Agents can request these operations, not approve themselves.
 - Review code and software design as part of preparing this capability.
 
-This expands the earlier exclusion of MCP for this proposed work only. It does
-not add an embedded model, a model subscription, a Pro edition, a public relay,
-or direct access to CloudKit. Existing app functionality remains available.
+The app has no Pro tier. This plan adds no public relay, connection to external MCP servers,
+or direct CloudKit access for agents. Existing app functionality remains
+available. New third-party integrations excluded by the user remain outside
+this work; see [current scope](../agents-ai-readiness.md#scope).
 
 ## Architecture and code review
 
@@ -337,10 +341,6 @@ user-authorized app interfaces outside this scoped API's security boundary.
    helper with the app and test Sparkle updates on Mac and VM. Publish local
    setup guidance and operation reference. Claim support for Codex and Claude
    Code only after each real client has passed its own end-to-end session.
-8. **Future remote stage.** Implement the design below only after local closure
-   and renewed user authorization. Its pending status does not hide missing local
-   work or count as delivered remote support.
-
 Each stage reuses accepted native evidence where the path is unchanged. Do not
 repeat the accepted microphone tests. New permission and cancellation boundaries
 need their own focused checks, not a blanket repetition of private-data tests.
@@ -351,34 +351,12 @@ handoff. Keep functional fixes separate from refactorings. Do not remove existin
 contract tests merely because new transport tests look similar. No app release
 is needed for this planning-only document.
 
-## Future remote design — planned, not implemented
+## Out-of-scope access
 
-Reuse contracts, grant checks, operation handles and app authority. The first
-remote route runs the bundled MCP stdio helper through SSH over a private network
-or VPN. SSH account/key setup remains a human system task; do not enable Remote
-Login or alter firewall rules automatically. The helper still needs a Draftly
-grant; network or SSH access alone does not grant library access.
-
-A later private HTTPS adapter can expose Streamable HTTP for clients that cannot
-launch SSH. Bind only an explicitly selected private/VPN interface, with valid
-TLS, host/origin validation, bounded requests and connection-specific authority.
-Use MCP OAuth authorization code with PKCE and resource-bound tokens, not one
-shared static token for every user. Keep grants and approvals owned by the Mac.
-Do not build public hosting, a relay, or browser-accessible internet exposure as
-part of local work. Verify protocol and SDK versions again before this stage.
-
-The Mac must be online, unlocked and running Draftly in its user session. If
-asleep, disconnected or locked, return unavailable or interaction_required.
-Do not queue new mutations for later surprise execution. Mark in-flight effects
-according to their known state; reconnection queries operation handles and never
-blindly repeats an external effect. Remote connections pause on screen lock;
-local grants also cannot approve protected UI while locked.
-
-Remote acceptance adds two-client isolation, wrong-host and invalid-token tests,
-TLS validation, revoked SSH/MCP grants, dropped connections, sleep/restart,
-no-public-interface exposure, and the same operation coverage as local access.
-Public ChatGPT/Claude services cannot reach this private route by assumption;
-that requires a separately authorized public connectivity design.
+Do not implement inbound remote access through SSH, VPN, or HTTPS, or a client
+for external MCP servers. The earlier remote-stage proposal is superseded by
+the user's current scope. Outbound model-provider requests and existing approved
+Action effects remain included. A future scope change needs a new user decision.
 
 ## Validation and definition of done
 
@@ -401,8 +379,8 @@ Local completion requires every included registry entry to have implementation,
 specific tests, applicable manual evidence and a working UI/agent path. A genuine
 system limitation needs evidence and a contractual unavailable response. A known
 partial implementation is not complete. Report implemented, automatically tested,
-verified in real use, user-confirmed and blocked separately. Remote remains a
-separate future acceptance. Neither local completion nor this plan declares
+verified in real use, user-confirmed and blocked separately. Remote access is
+excluded. Neither local completion nor this plan declares
 Draftly's full cloning or CloudKit acceptance finished.
 
 ## Sources and protocol evidence

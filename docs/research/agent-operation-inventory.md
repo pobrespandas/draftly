@@ -1,5 +1,10 @@
 # Agent operation inventory
 
+Current handler and acceptance reconciliation is in
+[agents and AI readiness](../agents-ai-readiness.md#operation-coverage).
+This inventory records required contracts, including contracts without a current
+handler. It is not a list of delivered tools.
+
 Status: eight read handlers exist in the internal application service. No endpoint
 is enabled. The installed app has no agent client access yet.
 

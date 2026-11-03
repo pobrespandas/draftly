@@ -5,6 +5,11 @@ Scope: boundaries needed for the [agent plan](../plans/draftly-for-agents.md).
 This is a targeted source audit, not a new functional acceptance of the app.
 No production code changed during the audit.
 
+This audit is historical. Its missing-code findings describe the baseline
+above. Read [current readiness](../agents-ai-readiness.md) for later code and
+installed acceptance. The current scope excludes inbound remote access and
+external MCP servers.
+
 ## Prioritized findings
 
 ### A1 — Add one structured application boundary

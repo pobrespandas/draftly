@@ -1,7 +1,31 @@
 # Project progress
 
-Updated: 1 November 2026. This is the maintained continuation summary.
+Updated: 3 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
+
+## Agents and AI development — 3 November
+
+[PR #105](https://github.com/pobrespandas/draftly/pull/105) remains development
+work. Read [agents and AI readiness](agents-ai-readiness.md) for the authoritative
+implementation, integration, installed QA, and publication map.
+
+The signed isolated QA completed direct ChatGPT sign-in, native read consent,
+real `drafts.list`/`drafts.get` inference, helper Keychain sharing, and an installed
+MCP read session. Revocation denied the existing MCP session and a new CLI
+request. Idle Stop Work withdrew the endpoint. After full process exit, the
+account and conversation returned without another login and access stayed off.
+The QA is closed and the original shared preferences and window state restored.
+
+Normal host startup, screen-lock acceptance, active-session Stop Work, real
+expiry and negative access cases, remaining handlers, and final signed/notarized
+distribution remain open. No agents release is established. Model choice reset
+to Apple On-Device after restart and needs a separate correction or explicit UX.
+
+Full CI `41598564068` passed for native consent commit `698c883`. QA isolation
+commit `e891051` has 30 focused tests, two generator checks, a native build, and
+the installed checks above; its own full CI is pending. The prior 78-test run
+covers the consent and lifecycle changes. Older release sections below remain
+historical evidence for their named versions.
 
 ## Signed helper smoke check — 2 November
 
