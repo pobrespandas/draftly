@@ -13,13 +13,16 @@ import Foundation
     private var disconnecting = Set<UUID>()
 
     init(store: MCPConnectionCredentialStore, renew: @escaping Renew,
-         lease: @escaping Lease = { id in
-             let bundle = Bundle.main.bundleIdentifier ?? "com.pobrespandas.draftly"
-             let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-                 .appendingPathComponent(bundle).appendingPathComponent("MCP/Sessions")
-             return try ChatGPTSessionLease(accountID: id, directory: directory)
-         }, now: @escaping () -> Date = { Date() }) {
+         lease: @escaping Lease = MCPConnectionSession.acquireLease,
+         now: @escaping () -> Date = { Date() }) {
         self.store = store; self.renew = renew; self.lease = lease; self.now = now
+    }
+
+    static func acquireLease(_ id: UUID) throws -> AnyObject {
+        let bundle = Bundle.main.bundleIdentifier ?? "com.pobrespandas.draftly"
+        let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent(bundle).appendingPathComponent("MCP/Sessions")
+        return try ChatGPTSessionLease(accountID: id, directory: directory)
     }
 
     func accessToken(_ id: UUID, endpoint: URL, requiredScopes: Set<String>) async throws -> String {

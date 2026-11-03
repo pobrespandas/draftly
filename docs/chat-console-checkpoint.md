@@ -250,3 +250,23 @@ Both project-generator checks passed. Next, use `ASWebAuthenticationSession`
 with the app's registered callback scheme. Apple documentation was checked for
 session start, cancellation, and presentation-context ownership. The native
 browser flow is not implemented or accepted yet.
+
+## Scope clarification — Draftly's own MCP server
+
+The user expects Draftly to provide its own MCP server. That local server is
+already implemented in `AgentMCP`. It runs through the signed helper and the
+application's local permission service. Its authentication is native pairing
+and limited grants, not an external server's OAuth login. Finish the installed
+Draftly server and console-to-Draftly permission path first. An external MCP
+server URL is not a prerequisite for this work.
+
+The outbound MCP browser and code-exchange implementation is staged separately
+from the active console. `MCPBrowserAuthorization` uses the system web session.
+`MCPLoginService` validates callbacks, exchanges the code, checks cancellation,
+and saves complete credentials under the same session lease used by renewal.
+It rejects a login result if the saved session changed while login was pending.
+It currently requires a registered public client ID. Dynamic registration,
+connection UI, real-server acceptance, and remote revocation remain open.
+Nine request, session, and login tests passed serially. Login tests use injected
+browser and HTTP responses. The native browser has compiled but has not passed
+installed interactive acceptance. Do not report it as a usable console feature.
