@@ -17,9 +17,15 @@ Bundle identity separates installed QA from production. Failed updates do not
 delete the old record or fall back to files. Tests use an injected backend;
 they do not read an account or save real credentials.
 
+`ChatGPTCallbackListener` starts on IPv4 loopback before the browser opens.
+It accepts one validated callback. Invalid callbacks do not consume the
+attempt. Requests, connection count, connection lifetime, and attempt lifetime
+are bounded. Cancellation closes the listener and pending connections. Browser
+replies contain no code or credential.
+
 These components are not connected to the UI. Next steps:
 
-1. Add a bounded loopback listener with cancellation and one-time consumption.
+1. Connect the tested listener to sign-in.
 2. Validate ID-token signatures with the official discovery document and JWKS.
    Check issuer, audience, expiry, nonce, and the selected account identity.
 3. Store the validated identity, issued client ID, tokens, scopes, and expiry
@@ -45,8 +51,16 @@ Local validation on 3 November 2026 passed seven focused authorization and
 credential-store tests in serial mode. The unsigned native Debug build also
 passed. These checks do not establish real OAuth or Keychain acceptance.
 
+The callback follow-up passed eleven focused tests in serial mode. A real
+loopback HTTP request with the wrong state received 400. The next valid request
+received 200 and consumed the attempt. Cancellation and failed browser launch
+completed without a pending waiter. HTTP parser checks rejected other hosts,
+methods, duplicate Host fields, bodies, and ambiguous framing. The unsigned
+native Debug build passed again. Provider login and inference remain untested.
+
 ## Official contracts
 
 - [Registration and sign-in](https://developers.openai.com/siwc/token-sharing-open-source/sign-in)
 - [ID-token validation](https://developers.openai.com/siwc/website)
 - [Models and inference](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference)
+- [Accounts and sessions](https://developers.openai.com/siwc/token-sharing-open-source/profiles-and-sessions)
