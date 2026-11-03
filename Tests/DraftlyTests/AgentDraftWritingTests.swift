@@ -88,6 +88,23 @@ struct AgentDraftWritingTests {
         #expect(f.library.notes.filter { $0.content == "Created café 🐼" }.count == 1)
     }
 
+    @Test func failedCreationCanRetryWithoutLeavingADraftOrReceipt() throws {
+        let f = try Fixture(); defer { f.close() }
+        let writer = try f.writer()
+        let input = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "drafts.create",
+            parameters: ["content": .string("Storage recovery 🐼")])
+        let ticket = try writer.prepare(input, connectionID: f.connectionID)
+        let signed = AgentRequest(requestID: input.requestID, libraryID: input.libraryID,
+            operation: input.operation, retryKey: ticket.value, parameters: input.parameters)
+        f.library.beforeBatchCommit = { throw AgentErrorCode.storageError }
+        #expect(throws: AgentErrorCode.storageError) { try writer.update(signed, connectionID: f.connectionID) }
+        #expect(f.library.notes.count == 1)
+        f.library.beforeBatchCommit = nil
+        let receipt = try writer.update(signed, connectionID: f.connectionID)
+        #expect(try writer.update(signed, connectionID: f.connectionID) == receipt)
+        #expect(f.library.notes.count == 2)
+    }
+
     @Test func patchUsesOneUTF16SnapshotAndOneUndoableCommit() throws {
         let f = try Fixture(); defer { f.close() }
         let model = f.model(), writer = try f.writer()
