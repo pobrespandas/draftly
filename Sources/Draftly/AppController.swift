@@ -88,6 +88,7 @@ final class AppController: ObservableObject {
     let recentDrafts: RecentDraftStore
     private(set) var spotlight: SpotlightPreferences?
     private var spotlightRequested = false
+    private lazy var agentLoginItemPreferences = LoginItemPreferences()
     var pendingNoteID: UUID? { didSet { pendingTargetWindow = nil; pendingTargetModel = nil; pendingExcludedModels = nil } }
     private var pendingExcludedModels: Set<ObjectIdentifier>?
     private weak var pendingTargetWindow: NSWindow?
@@ -165,6 +166,17 @@ final class AppController: ObservableObject {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
         let host = try AgentLocalHost(library: library, appVersion: version, editors: editors,
             enableReviewedActions: enableReviewedActions,
+            nativePreferenceRead: { [weak self] id in
+                guard let self else { throw AgentErrorCode.cancelled }
+                if id == "application.launchAtLogin" {
+                    return try AgentNativePreferenceAccess.readLoginItem(self.agentLoginItemPreferences)
+                }
+                guard id == SpotlightPreferences.enabledKey, let spotlight = self.spotlight else {
+                    throw AgentErrorCode.unavailable
+                }
+                return try AgentNativePreferenceAccess.readSpotlight(spotlight,
+                    hasStoredOverride: UserDefaults.standard.object(forKey: SpotlightPreferences.enabledKey) != nil)
+            },
             isLocked: { isLocked() || !protectedDataAvailable() },
             pendingEditorGeneration: { _ in "" }, resolveTargets: { resources.resolve($0) },
             credentials: credentials, validateApplication: validateApplication, validateHelper: validateHelper)

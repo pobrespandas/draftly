@@ -84,6 +84,7 @@ struct AgentCommandServiceTests {
                 create: { [unowned self] in self.secrets[$0] = $1 },
                 remove: { [unowned self] in self.secrets.removeValue(forKey: $0) }),
             now: { [unowned self] in self.wall }, authorityChanged: { _ in })
+        var nativePreferenceRead: ((String) throws -> AgentPreferenceReading)?
         var service: AgentCommandService!
 
         init() throws {
@@ -93,7 +94,8 @@ struct AgentCommandServiceTests {
         }
         func makeService() throws -> AgentCommandService {
             try AgentCommandService(library: library, libraryID: libraryID, connections: connections,
-                appVersion: "QA", preferenceDefaults: try #require(UserDefaults(suiteName: editorDefaultsName)), validateHost: { [unowned self] in
+                appVersion: "QA", preferenceDefaults: try #require(UserDefaults(suiteName: editorDefaultsName)),
+                nativePreferenceRead: nativePreferenceRead, validateHost: { [unowned self] in
                     if let error = self.hostError { throw error }
                 }, isLocked: { [unowned self] in self.locked }, now: { [unowned self] in self.wall },
                 uptime: { [unowned self] in self.uptime }, editors: editorRegistry, pendingEditorGeneration: { [unowned self] _ in
@@ -430,6 +432,59 @@ struct AgentCommandServiceTests {
         #expect(f.library.actions.first(where: { $0.id == action.id })?.group == "Destination")
         #expect(try send() == reply)
         #expect(f.library.actions.count == 2)
+    }
+
+    @Test func spotlightPreferenceReadDoesNotChangeTheIndex() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let defaults = try #require(UserDefaults(suiteName: f.editorDefaultsName))
+        defaults.set(true, forKey: SpotlightPreferences.enabledKey)
+        var effects = 0
+        let model = SpotlightPreferences(defaults: defaults, isAvailable: true,
+            replace: { _ in effects += 1 }, clear: { effects += 1 })
+        f.nativePreferenceRead = { id in
+            #expect(id == SpotlightPreferences.enabledKey)
+            return try AgentNativePreferenceAccess.readSpotlight(model,
+                hasStoredOverride: defaults.object(forKey: SpotlightPreferences.enabledKey) != nil)
+        }
+        f.service = try f.makeService()
+        let (_, session) = try f.connect(capabilities: [.preferencesRead])
+        let params: [String: AgentJSONValue] = ["items": .array([.object(["id": .string(SpotlightPreferences.enabledKey)])])]
+        let values = try f.values("preferences.get", session: session, parameters: params)
+        guard case .array(let items) = values["items"], case .object(let item) = items.first else {
+            Issue.record("Missing Spotlight reading"); return
+        }
+        #expect(item["effectiveValue"] == .bool(true) && item["valueOrigin"] == .string("stored"))
+        #expect(effects == 0 && defaults.bool(forKey: SpotlightPreferences.enabledKey))
+    }
+
+    @Test func nativePreferenceReadsUseTheSystemModelWithoutRegistration() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        var status = LoginItemPreferences.Status.disabled, changes = 0
+        let model = LoginItemPreferences(readStatus: { status }, register: { changes += 1 }, unregister: { changes += 1 })
+        var reads = 0
+        f.nativePreferenceRead = { id in
+            #expect(id == "application.launchAtLogin"); reads += 1
+            return try AgentNativePreferenceAccess.readLoginItem(model)
+        }
+        f.service = try f.makeService()
+        let params: [String: AgentJSONValue] = ["items": .array([.object(["id": .string("application.launchAtLogin")])])]
+        let (_, denied) = try f.connect()
+        #expect(try f.response("preferences.get", session: denied, parameters: params).outcome == .error(.permissionDenied))
+        #expect(reads == 0)
+        let (_, session) = try f.connect(capabilities: [.preferencesRead])
+        for (state, enabled) in [(LoginItemPreferences.Status.disabled, false), (.enabled, true)] {
+            status = state
+            let values = try f.values("preferences.get", session: session, parameters: params)
+            guard case .array(let items) = values["items"], case .object(let item) = items.first else {
+                Issue.record("Missing native preference"); return
+            }
+            #expect(item["effectiveValue"] == .bool(enabled) && item["valueOrigin"] == .string("system"))
+        }
+        status = .requiresApproval
+        #expect(try f.response("preferences.get", session: session, parameters: params).outcome == .error(.interactionRequired))
+        status = .unavailable
+        #expect(try f.response("preferences.get", session: session, parameters: params).outcome == .error(.unavailable))
+        #expect(changes == 0)
     }
 
     @Test func syntaxPreferenceReadsRequireAppearanceAccessAndResolveInheritance() throws {

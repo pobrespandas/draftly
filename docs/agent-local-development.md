@@ -747,7 +747,7 @@ It returns the effective value, origin, override flag and opaque version tokens.
 Invalid scalar overrides remain stored and return a null invalid reading.
 
 A batch with an unsupported address returns unavailable without partial values.
-Native preferences still need their read adapters connected. Update and reset remain unavailable. Schema descriptors describe the
+Native preference reads require application-owned model adapters. Update and reset remain unavailable. Schema descriptors describe the
 contract, while operation availability describes the connected handlers.
 Focused service tests cover permission denial, stable and changed tokens,
 invalid overrides, list defaults, unsupported batches and locked admission.
@@ -774,3 +774,17 @@ value until an override exists. No syntax or preference is changed by a read.
 Focused service and settings tests cover permission denial, inheritance,
 overrides, system values and installed-resource isolation. Installed CLI/MCP
 acceptance for these syntax reads remains pending.
+
+
+Application host setup now provides read adapters for Launch at Login and
+Spotlight. Launch at Login refreshes `LoginItemPreferences`; pending system
+approval returns `interaction_required`, and an unavailable service returns
+`unavailable`. Spotlight reads the attached application model and reports busy,
+unavailable or failed indexing states without changing the index. Headless
+hosts without these adapters keep both addresses unavailable. The command
+service checks `preferences.read` before calling either adapter.
+
+Focused service tests verify enabled and disabled system registration, pending
+approval, unavailable status, and reading Spotlight without registration or
+index effects. Installed CLI/MCP checks for these native reads remain pending.
+Preference mutation handlers remain unavailable.

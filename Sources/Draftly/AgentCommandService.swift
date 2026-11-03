@@ -50,6 +50,7 @@ import AgentContracts
     private let isLocked: () -> Bool
     private let now: () -> Date
     private let appVersion: String
+    private let nativePreferenceRead: ((String) throws -> AgentPreferenceReading)?
     private let preferenceDefaults: UserDefaults
     private let preferenceVersionKey = SymmetricKey(size: .bits256)
     private let preferences: AgentPreferenceRegistry
@@ -63,6 +64,7 @@ import AgentContracts
 
     init(library: LibraryStore, libraryID: UUID, connections: AgentConnectionRegistry, appVersion: String,
          preferenceDefaults: UserDefaults = .standard,
+         nativePreferenceRead: ((String) throws -> AgentPreferenceReading)? = nil,
          validateHost: @escaping () throws -> Void, isLocked: @escaping () -> Bool, now: @escaping () -> Date = Date.init,
          uptime: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
          editors: AgentEditorRegistry? = nil,
@@ -72,6 +74,7 @@ import AgentContracts
          operations: AgentOperationRegistry? = nil,
          submitAction: ((AgentRequest, AgentGrant) throws -> UUID)? = nil) throws {
         guard editors?.isBound(to: library) ?? true else { throw AgentErrorCode.invalidInput }
+        self.nativePreferenceRead = nativePreferenceRead
         self.preferenceDefaults = preferenceDefaults
         self.actionLibrary = library
         self.operationRegistry = operations
@@ -845,6 +848,9 @@ import AgentContracts
                     reading = try AgentDevicePreferenceAccess.read(address: item, defaults: preferenceDefaults)
                 } else if AgentListPreferenceAccess.supportedIDs.contains(address.id) {
                     reading = try AgentListPreferenceAccess.read(address: item, defaults: preferenceDefaults)
+                } else if ["application.launchAtLogin", SpotlightPreferences.enabledKey].contains(address.id) {
+                    guard let nativePreferenceRead else { throw AgentErrorCode.unavailable }
+                    reading = try nativePreferenceRead(address.id)
                 } else if address.id.hasPrefix("syntax.") {
                     guard grant.capabilities.contains(.appearanceRead) else { throw AgentErrorCode.permissionDenied }
                     let syntax: SyntaxDefinition
