@@ -101,6 +101,104 @@ import AgentContracts
         return value
     }
 
+    private func checkedDeletion(_ request: AgentRequest) throws -> Workspace {
+        guard request.operation == "workspaces.delete", request.libraryID == libraryID,
+              request.targets.count == 1, let target = request.targets.first, target.kind == .workspace,
+              let expected = request.expectedVersion else { throw AgentErrorCode.invalidInput }
+        do { _ = try AgentWorkspaceSchemas.validatedParameters(for: request) }
+        catch { throw AgentErrorCode.invalidInput }
+        guard let workspace = library.workspaces.first(where: { $0.id == target.id }) else { throw AgentErrorCode.notFound }
+        guard try version(workspace) == expected else { throw AgentErrorCode.versionConflict }
+        return workspace
+    }
+
+    func prepareDeletion(_ request: AgentRequest, connectionID: UUID) throws -> AgentRetryKeys.Ticket {
+        guard request.operation == "workspaces.delete", request.retryKey == nil,
+              request.libraryID == libraryID else { throw AgentErrorCode.invalidInput }
+        try validateAdmission()
+        let ticket = try retryKeys.issue(request, connectionID: connectionID)
+        if try workspaceReceipt(request, ticket: ticket) == nil { _ = try checkedDeletion(request) }
+        try validateAdmission()
+        _ = try retryKeys.verify(ticket.value, request: request, connectionID: connectionID)
+        return ticket
+    }
+
+    func deletionReceipt(_ request: AgentRequest, connectionID: UUID) throws -> LibraryMutationReceipt? {
+        guard request.operation == "workspaces.delete", request.libraryID == libraryID,
+              let key = request.retryKey else { throw AgentErrorCode.invalidInput }
+        try validateAdmission()
+        let ticket = try retryKeys.verify(key, request: request, connectionID: connectionID)
+        return try workspaceReceipt(request, ticket: ticket)
+    }
+
+    func deletionEffects(_ request: AgentRequest, connectionID: UUID) throws -> AgentApprovalStore.Effects {
+        guard let key = request.retryKey else { throw AgentErrorCode.invalidInput }
+        try validateAdmission()
+        _ = try retryKeys.verify(key, request: request, connectionID: connectionID)
+        let workspace = try checkedDeletion(request)
+        return .init(capabilities: [.workspacesManage, .destructiveRequest], targets: Set(request.targets),
+            requiresLibraryScope: false, snapshot: ["workspaceName": .string(workspace.name),
+                "workspaceVersion": .string(try version(workspace)), "deletesDrafts": .bool(false)])
+    }
+
+    // The caller must consume the exact app-owned review before this commit.
+    func delete(_ request: AgentRequest, connectionID: UUID,
+                validateCommit: () throws -> Void) throws -> LibraryMutationReceipt {
+        if let previous = try deletionReceipt(request, connectionID: connectionID) { return previous }
+        guard let key = request.retryKey else { throw AgentErrorCode.invalidInput }
+        let ticket = try retryKeys.verify(key, request: request, connectionID: connectionID)
+        let workspace = try checkedDeletion(request)
+        let identity = LibraryMutationIdentity(requestID: request.requestID,
+            connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
+        do {
+            return try library.commitWorkspaceDeletion(workspace.id, mutation: identity, at: now(),
+                resource: .init(id: workspace.id, versionToken: try version(workspace)), validateCommit: {
+                    try self.validateAdmission()
+                    _ = try self.retryKeys.verify(key, request: request, connectionID: connectionID)
+                    guard try self.checkedDeletion(request) == workspace else { throw AgentErrorCode.versionConflict }
+                    try validateCommit()
+                })
+        } catch let error as AgentErrorCode { throw error }
+        catch { throw AgentErrorCode.storageError }
+    }
+
+    func reviewAndDelete(_ request: AgentRequest, connectionID: UUID,
+                         operationID: UUID, approvals: AgentApprovalStore,
+                         operations: AgentOperationRegistry,
+                         validateSession: () throws -> Void) async throws -> [String: AgentJSONValue] {
+        var submitted = false
+        do {
+            try Task.checkCancellation()
+            try validateSession()
+            if let receipt = try deletionReceipt(request, connectionID: connectionID) {
+                return ["deletedIDs": .array(receipt.resources.map { .string($0.id.uuidString) })]
+            }
+            try operations.setWaitingForUser(operationID, waiting: true)
+            try await approvals.waitForApproval(request, connectionID: connectionID, resolveEffects: {
+                try validateSession()
+                return try self.deletionEffects(request, connectionID: connectionID)
+            })
+            try operations.setWaitingForUser(operationID, waiting: false)
+            try Task.checkCancellation()
+            try validateSession()
+            let effectID = UUID()
+            let receipt = try delete(request, connectionID: connectionID, validateCommit: {
+                try Task.checkCancellation()
+                try validateSession()
+                try operations.recordEffect(operationID, effectID: effectID,
+                    kind: "workspaces.delete", outcome: "submitted")
+                submitted = true
+            })
+            try operations.recordEffect(operationID, effectID: effectID,
+                kind: "workspaces.delete", outcome: "completed")
+            return ["deletedIDs": .array(receipt.resources.map { .string($0.id.uuidString) })]
+        } catch {
+            if submitted { throw AgentErrorCode.outcomeUnknown }
+            let code = error is CancellationError ? AgentErrorCode.cancelled : (error as? AgentErrorCode ?? .storageError)
+            throw AgentOperationRegistry.FailureBeforeEffects(code: code)
+        }
+    }
+
     private func workspaceReceipt(_ request: AgentRequest, ticket: AgentRetryKeys.Ticket) throws -> LibraryMutationReceipt? {
         let identity = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
         do {
@@ -113,7 +211,7 @@ import AgentContracts
             }
             guard receipt.resources.count == 1, let resource = receipt.resources.first else { throw AgentErrorCode.storageError }
             switch request.operation {
-            case "workspaces.update":
+            case "workspaces.update", "workspaces.delete":
                 guard resource.id == request.targets.first?.id else { throw AgentErrorCode.storageError }
             case "workspaces.duplicate":
                 guard resource.id != request.targets.first?.id else { throw AgentErrorCode.storageError }

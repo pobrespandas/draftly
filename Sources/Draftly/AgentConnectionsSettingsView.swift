@@ -139,6 +139,7 @@ private struct AgentOperationReviewSheet: View {
     @State private var showTechnicalDetails = false
 
     private var nativeTitle: String? {
+        if review.operation == "workspaces.delete" { return "Delete Workspace" }
         guard case .string(let operation) = review.effects.snapshot["nativeOperation"] else { return nil }
         switch operation {
         case "clipboard": return "Copy text to the clipboard"
@@ -153,6 +154,10 @@ private struct AgentOperationReviewSheet: View {
     }
 
     private var nativeFields: [(String, String)] {
+        if review.operation == "workspaces.delete",
+           case .string(let name) = review.effects.snapshot["workspaceName"] {
+            return [("Workspace", name), ("Effect", "Delete the saved Workspace. Keep all drafts.")]
+        }
         guard case .object(let fields) = review.effects.snapshot["nativeParameters"] else { return [] }
         return fields.keys.sorted().map { key in
             let value = fields[key]!
@@ -225,10 +230,17 @@ private struct AgentOperationReviewSheet: View {
                 Button("Deny", role: .destructive) {
                     if (try? model.decideOperation(review, approved: false)) != nil { dismiss() }
                 }
-                Button("Allow once") {
-                    if (try? model.decideOperation(review, approved: true)) != nil { dismiss() }
-                }.keyboardShortcut(.defaultAction)
-                    .disabled(details == nil || !model.pendingOperationReviews.contains { $0.id == review.id && $0.fingerprint == review.fingerprint })
+                Group {
+                    if review.operation == "workspaces.delete" {
+                        Button("Delete Workspace", role: .destructive) {
+                            if (try? model.decideOperation(review, approved: true)) != nil { dismiss() }
+                        }
+                    } else {
+                        Button("Allow once") {
+                            if (try? model.decideOperation(review, approved: true)) != nil { dismiss() }
+                        }.keyboardShortcut(.defaultAction)
+                    }
+                }.disabled(details == nil || !model.pendingOperationReviews.contains { $0.id == review.id && $0.fingerprint == review.fingerprint })
             }
         }
         .padding(20).frame(minWidth: 520, minHeight: 400)

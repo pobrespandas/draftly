@@ -163,6 +163,15 @@ Installed application acceptance remains pending. Direct Workspace deletion
 still needs its review handler. Its storage transaction passed 18 focused tests;
 that groundwork does not expose a new handler.
 
+## Workspace deletion flow under development
+
+The app-owned deletion flow now binds review to one Workspace and its version.
+It rejects stale definitions and lost sessions before committing. The review
+sheet states that drafts remain. The combined run passed 160 tests in five
+suites, and the normal native build passed. Service admission, host availability,
+receipt/journal reconciliation, and installed acceptance remain pending.
+`workspaces.delete` is not advertised. The operation count below is unchanged.
+
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found

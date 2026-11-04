@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 import Testing
 import AgentContracts
 import DraftlyCore
@@ -82,5 +83,137 @@ struct AgentWorkspacePreferenceAccessTests {
         let created = WorkspaceDefaults.make(in: library, defaults: preferences.defaults)
         #expect(created.id != workspace.id && created.name.isEmpty && created.order == nil)
         #expect(created.query == "neutral" && library.workspaces.first?.name == "QA 語法")
+    }
+}
+
+@Suite("Agent Workspace deletion access") @MainActor
+struct AgentWorkspaceDeletionAccessTests {
+    @Test func deletionBindsReviewToVersionAndRecoversWithoutAnotherEffect() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let preferences = try TestPreferences(prefix: "Agent-Workspace-Delete-")
+        defer { preferences.close() }
+        let library = try LibraryStore(directory: root, seed: false)
+        let workspace = Workspace(name: "Delete café 🐼"), retained = Workspace(name: "Keep")
+        try library.saveWorkspaces([workspace, retained])
+        let note = try library.createNote(content: "Keep this draft")
+        let libraryID = UUID(), connection = UUID(), clock = Date()
+        let grant = AgentGrant(connectionID: connection, libraryID: libraryID,
+            expiresAt: clock.addingTimeInterval(600), capabilities: [.workspacesManage, .destructiveRequest],
+            scope: .resources([.init(kind: .workspace, id: workspace.id)]))
+        let keys = AgentRetryKeys(currentGrant: { _ in grant }, isLocked: { false })
+        let versionKey = SymmetricKey(size: .bits256)
+        let access = AgentWorkspaceAccess(library: library, libraryID: libraryID, versionKey: versionKey,
+            retryKeys: keys, defaults: preferences.defaults, validateAdmission: {}, now: { clock })
+        let intent = AgentRequest(requestID: UUID(), libraryID: libraryID, operation: "workspaces.delete",
+            targets: [.init(kind: .workspace, id: workspace.id)], expectedVersion: try access.version(workspace))
+        let ticket = try access.prepareDeletion(intent, connectionID: connection)
+        let request = AgentRequest(requestID: intent.requestID, libraryID: libraryID, operation: intent.operation,
+            targets: intent.targets, expectedVersion: intent.expectedVersion, retryKey: ticket.value)
+        let effects = try access.deletionEffects(request, connectionID: connection)
+        #expect(effects.snapshot["workspaceName"] == .string(workspace.name))
+        #expect(effects.snapshot["deletesDrafts"] == .bool(false))
+        #expect(effects.targets == Set(intent.targets) && !effects.requiresLibraryScope)
+        #expect(throws: AgentErrorCode.cancelled) {
+            try access.delete(request, connectionID: connection, validateCommit: { throw AgentErrorCode.cancelled })
+        }
+        #expect(library.workspaces.count == 2)
+        #expect(try access.deletionReceipt(request, connectionID: connection) == nil)
+        let receipt = try access.delete(request, connectionID: connection, validateCommit: {})
+        #expect(library.workspaces == [retained] && library.notes == [note])
+        let reopened = try LibraryStore(directory: root, seed: false)
+        let nextAccess = AgentWorkspaceAccess(library: reopened, libraryID: libraryID, versionKey: versionKey,
+            retryKeys: keys, defaults: preferences.defaults, validateAdmission: {}, now: { clock })
+        #expect(try nextAccess.delete(request, connectionID: connection,
+            validateCommit: { Issue.record("A completed deletion must not run again") }) == receipt)
+        #expect(try nextAccess.prepareDeletion(intent, connectionID: connection).requestHash == ticket.requestHash)
+        #expect(reopened.notes == [note] && reopened.workspaces == [retained])
+    }
+
+    @Test(arguments: ["approve", "deny", "cancel", "stale", "session"])
+    func reviewedDeletionDoesNotRunBeforeTheDecision(decision: String) async throws {
+        let preferences = try TestPreferences(prefix: "Agent-Workspace-Delete-Review-")
+        defer { preferences.close() }
+        let library = try LibraryStore(inMemory: true, seed: false)
+        var workspace = Workspace(name: "Review café 🐼")
+        try library.saveWorkspace(workspace)
+        let note = try library.createNote(content: "Preserve")
+        let libraryID = UUID(), connection = UUID()
+        let grant = AgentGrant(connectionID: connection, libraryID: libraryID,
+            expiresAt: Date().addingTimeInterval(600), capabilities: [.workspacesManage, .destructiveRequest],
+            scope: .resources([.init(kind: .workspace, id: workspace.id)]))
+        let keys = AgentRetryKeys(currentGrant: { _ in grant }, isLocked: { false })
+        let access = AgentWorkspaceAccess(library: library, libraryID: libraryID, versionKey: .init(size: .bits256),
+            retryKeys: keys, defaults: preferences.defaults, validateAdmission: {}, now: Date.init)
+        let intent = AgentRequest(requestID: UUID(), libraryID: libraryID, operation: "workspaces.delete",
+            targets: [.init(kind: .workspace, id: workspace.id)], expectedVersion: try access.version(workspace))
+        let ticket = try access.prepareDeletion(intent, connectionID: connection)
+        let request = AgentRequest(requestID: intent.requestID, libraryID: libraryID, operation: intent.operation,
+            targets: intent.targets, expectedVersion: intent.expectedVersion, retryKey: ticket.value)
+        let approvals = AgentApprovalStore(currentGrant: { _ in grant }, isLocked: { false })
+        let operations = AgentOperationRegistry(currentGrant: { _ in grant }, validateHost: {}, isLocked: { false })
+        defer { operations.cancelAll() }
+        var sessionValid = true
+        let id = try operations.startValueRequest(request, grant: grant) { operationID in
+            try await access.reviewAndDelete(request, connectionID: connection, operationID: operationID,
+                approvals: approvals, operations: operations, validateSession: {
+                    guard sessionValid else { throw AgentErrorCode.permissionDenied }
+                })
+        }
+        for _ in 0..<1000 where approvals.pendingFromUserInterface().isEmpty { await Task.yield() }
+        let review = try #require(approvals.pendingFromUserInterface().first)
+        #expect(try operations.snapshot(id, connectionID: connection).state == .waitingForUser)
+        #expect(library.workspaces == [workspace] && library.notes == [note])
+        switch decision {
+        case "cancel": _ = try operations.cancel(id, connectionID: connection)
+        case "deny": try approvals.denyFromUserInterface(review.id)
+        default:
+            if decision == "stale" { workspace.name = "Changed"; try library.saveWorkspace(workspace) }
+            if decision == "session" { sessionValid = false }
+            try approvals.approveFromUserInterface(review.id, reviewedFingerprint: review.fingerprint)
+        }
+        for _ in 0..<1000 where try !operations.snapshot(id, connectionID: connection).state.isTerminal {
+            try await Task.sleep(for: .milliseconds(1))
+        }
+        let result = try operations.snapshot(id, connectionID: connection)
+        #expect(result.state.isTerminal)
+        #expect(library.notes == [note])
+        if decision == "approve" {
+            #expect(result.state == .succeeded && library.workspaces.isEmpty)
+            #expect(result.effects.map(\.outcome) == ["completed"])
+            #expect(result.result == .object(["deletedIDs": .array([.string(workspace.id.uuidString)])]))
+        } else {
+            #expect(library.workspaces == [workspace] && result.effects.isEmpty)
+            let expected: AgentErrorCode = decision == "cancel" ? .cancelled : decision == "stale" ? .versionConflict : .permissionDenied
+            #expect(result.error == expected)
+        }
+        #expect(approvals.pendingFromUserInterface().isEmpty)
+        #expect(try operations.existingRequest(request, grant: grant) == id)
+    }
+
+    @Test func staleOrRevokedRequestsCannotDelete() throws {
+        let preferences = try TestPreferences(prefix: "Agent-Workspace-Delete-Stale-")
+        defer { preferences.close() }
+        let library = try LibraryStore(inMemory: true, seed: false)
+        var workspace = Workspace(name: "Original")
+        try library.saveWorkspace(workspace)
+        let libraryID = UUID(), connection = UUID()
+        var grant: AgentGrant? = AgentGrant(connectionID: connection, libraryID: libraryID,
+            expiresAt: Date().addingTimeInterval(600), capabilities: [.workspacesManage, .destructiveRequest], scope: .library)
+        let keys = AgentRetryKeys(currentGrant: { _ in grant }, isLocked: { false })
+        let access = AgentWorkspaceAccess(library: library, libraryID: libraryID, versionKey: .init(size: .bits256),
+            retryKeys: keys, defaults: preferences.defaults, validateAdmission: {}, now: Date.init)
+        let intent = AgentRequest(requestID: UUID(), libraryID: libraryID, operation: "workspaces.delete",
+            targets: [.init(kind: .workspace, id: workspace.id)], expectedVersion: try access.version(workspace))
+        let ticket = try access.prepareDeletion(intent, connectionID: connection)
+        let request = AgentRequest(requestID: intent.requestID, libraryID: libraryID, operation: intent.operation,
+            targets: intent.targets, expectedVersion: intent.expectedVersion, retryKey: ticket.value)
+        workspace.name = "Changed after preparation"
+        try library.saveWorkspace(workspace)
+        #expect(throws: AgentErrorCode.versionConflict) { try access.deletionEffects(request, connectionID: connection) }
+        #expect(throws: AgentErrorCode.versionConflict) { try access.delete(request, connectionID: connection, validateCommit: {}) }
+        grant = nil
+        #expect(throws: AgentErrorCode.permissionDenied) { try access.deletionReceipt(request, connectionID: connection) }
+        #expect(library.workspaces == [workspace])
     }
 }

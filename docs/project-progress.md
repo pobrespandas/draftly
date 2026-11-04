@@ -3,6 +3,24 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Reviewed Workspace deletion flow — 4 November
+
+Added the app-owned deletion flow to `AgentWorkspaceAccess`. Preparation binds
+one Workspace, its version, and the current grant to a retry key. Review uses
+a fresh Workspace name and version. The handler waits for an app decision,
+checks the active session again, and records submission at the storage commit
+boundary. A completed storage receipt can return without another deletion.
+The review sheet names the Workspace, states that drafts remain, and uses a
+destructive button without the default Return shortcut.
+
+Tests cover approval, denial, cancellation, a changed Workspace, a lost session,
+a revoked grant, storage rollback, and receipt recovery after reopening the
+library. The combined run passed 160 tests in five suites. The normal native
+build passed. This flow is not connected to service admission or host feature
+availability yet. Reconciliation between a committed storage receipt and an
+unknown operation journal still needs implementation and tests before exposure.
+The missing-handler count stays at 76. Installed review acceptance is pending.
+
 ## Review cancellation groundwork — 4 November
 
 Added an internal failure path for app-owned handlers that have not submitted
