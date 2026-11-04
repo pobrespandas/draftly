@@ -49,3 +49,11 @@ was created. Installed download acceptance must wait for protected data to becom
 available. Do not bypass this check. The recovery directory is recorded in
 `/tmp/draftly-https-candidate-path.txt`. It contains the previous QA bundle and
 shared preference backup. Close QA before any preference restoration.
+
+The user then confirmed a direct Mac unlock. Changing Settings tabs and fully
+restarting QA still reported `protectedData=false`. Access stayed off and no
+connection was created. Unlock confirmation alone does not close this gate.
+Apple describes this API as protected-data availability, not a complete graphical
+screen-lock contract. See [AppKit property documentation](https://developer.apple.com/documentation/appkit/nsapplication/isprotecteddataavailable)
+and the [DTS discussion](https://developer.apple.com/forums/thread/850327).
+The cause of the persistent unavailable state is not established.
