@@ -441,11 +441,32 @@ Debug build and two project checks passed. Tests cover six review decisions,
 storage rollback, restart recovery and preservation of a recreated action.
 CI and installed acceptance remain open.
 
+## Reviewed action-group removal
+
+`actionGroups.delete` follows the native removal rule. It moves member actions
+to `General`, or to `Imported` when removing `General`. It keeps actions,
+drafts and history. Scoped access must include every member action and the
+destination group. Creating a missing destination requires library scope.
+An empty group needs only its own resource scope. Both saved and implicit
+groups use the same native staging function.
+
+The app-owned review lists member names and the destination. Its binding
+includes member IDs and versions. Changed members invalidate the review.
+Storage commits the moves, group removal and receipt together. Recovery returns
+the old result without moving recreated members or removing a recreated group.
+The focal run passed 55 app tests in five suites and one Core test. Strict
+validation verified 1 consumer, 184 contract, 824 Core and 1,621 app tests
+(2,630 total). The native package-name Debug build and two project checks
+passed. The first full attempt failed in the existing Intent Shell-start
+fixture; its controlled-clock correction and final full run passed. See
+[fixture validation](intent-shell-interruption-validation.md). CI and installed
+acceptance remain pending.
+
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-91 names in implemented or conditional handler sets. The other 46 names have
-no direct handler in those sets. These counts do not prove that 91 operations
+92 names in implemented or conditional handler sets. The other 45 names have
+no direct handler in those sets. These counts do not prove that 92 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -457,7 +478,6 @@ a direct handler for every `native.*` contract.
 | Family | Direct contracts still outside those handler sets |
 | --- | --- |
 | Editor | `editor.navigate`, `editor.open`, `editor.preview` |
-| Actions and groups | `actionGroups.delete` |
 | Themes | `themes.select`, `themes.selectBuiltIn`, `themes.replace`, `themes.reload`, `themes.install`, `themes.delete` |
 | Syntax | `syntaxes.delete`, `syntaxes.install`, `syntaxes.reload`, `syntaxes.replace` |
 | Bookmarks | `bookmarks.forget`, `bookmarks.requestAdd` |

@@ -579,6 +579,149 @@ struct AgentCommandServiceTests {
         #expect(try operations.existingRequest(request, grant: currentGrant) == id)
     }
 
+    @Test(arguments: ["General", "Projects"], ["approve", "deny", "cancel", "change", "storage"])
+    func groupRemovalReviewsMemberMovesAndPreservesContent(name: String, decision: String) async throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let group = ActionGroupRecord(name: name)
+        let destination = ActionGroupRecord(name: name == "General" ? "Imported" : "General")
+        try f.library.saveActionGroups([group, destination])
+        var action = DraftAction(name: "Move café 🐼", steps: []); action.group = name
+        var retained = DraftAction(name: "Keep", steps: []); retained.group = destination.name
+        try f.library.saveAction(action); try f.library.saveAction(retained)
+        let note = try f.note("Keep draft café 🐼")
+        let operations = AgentOperationRegistry(currentGrant: { try f.connections.grantForAuthenticatedConnection($0) },
+            validateHost: {}, isLocked: { false }, now: { f.wall })
+        let approvals = AgentApprovalStore(now: { f.wall }, currentGrant: { try? f.connections.grantForAuthenticatedConnection($0) }, isLocked: { false })
+        defer { operations.cancelAll() }
+        f.operations = operations; f.deletionApprovals = approvals; f.service = try f.makeService(withoutEditors: true)
+        let target = AgentResourceReference(kind: .actionGroup, id: group.id)
+        let (record, session) = try f.connect(scope: .resources([target, .init(kind: .action, id: action.id),
+            .init(kind: .actionGroup, id: destination.id)]), capabilities: [.actionsRead, .actionsManage, .destructiveRequest])
+        let fields = try f.values("actionGroups.get", session: session, targets: [target])
+        guard case .string(let version) = fields["versionToken"] else { Issue.record("Missing group version"); return }
+        let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "actionGroups.delete",
+            targets: [target], expectedVersion: version)
+        let request = try f.preparedMutation(intent, session: session)
+        guard case .accepted(let id, _) = try f.send(request, session: session).outcome else { Issue.record("Missing group removal operation"); return }
+        for _ in 0..<1000 where approvals.pendingFromUserInterface().isEmpty { await Task.yield() }
+        let review = try #require(approvals.pendingFromUserInterface().first)
+        #expect(review.effects.targets == [target, .init(kind: .action, id: action.id), .init(kind: .actionGroup, id: destination.id)])
+        #expect(review.effects.snapshot["destination"] == .string(destination.name))
+        #expect(f.library.actions.first { $0.id == action.id } == action)
+        if decision == "cancel" { _ = try operations.cancel(id, connectionID: record.id) }
+        else if decision == "deny" { try approvals.denyFromUserInterface(review.id) }
+        else {
+            if decision == "change" {
+                var changed = action; changed.name = "Changed after review"
+                try f.library.saveAction(changed)
+            }
+            if decision == "storage" { f.library.beforeBatchCommit = { throw DraftlyError.message("Storage failed") } }
+            try approvals.approveFromUserInterface(review.id, reviewedFingerprint: review.fingerprint)
+        }
+        for _ in 0..<1000 where try !operations.snapshot(id, connectionID: record.id).state.isTerminal {
+            try await Task.sleep(for: .milliseconds(1))
+        }
+        let reply = try f.send(request, session: session)
+        if decision == "approve" {
+            #expect(reply.outcome == .result(.object(["deletedIDs": .array([.string(group.id.uuidString)])])))
+            var moved = action; moved.group = destination.name
+            #expect(f.library.actions.first { $0.id == action.id } == moved)
+            #expect(!f.library.actionGroups.contains { $0.id == group.id })
+            try f.library.saveActionGroup(group)
+            try f.library.saveAction(action)
+            #expect(try f.send(request, session: session) == reply)
+            #expect(f.library.actions.first { $0.id == action.id } == action)
+            #expect(f.library.actionGroups.contains { $0.id == group.id })
+            let restarted = AgentOperationRegistry(currentGrant: { try f.connections.grantForAuthenticatedConnection($0) },
+                validateHost: {}, isLocked: { false }, now: { f.wall })
+            defer { restarted.cancelAll() }
+            f.operations = restarted; f.service = try f.makeService(withoutEditors: true)
+            let recoveredSession = try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+            let recoveredRequest = try f.preparedMutation(intent, session: recoveredSession)
+            guard case .accepted(let recoveredID, _) = try f.send(recoveredRequest, session: recoveredSession).outcome else {
+                Issue.record("Missing recovered group operation"); return
+            }
+            for _ in 0..<1000 where try !restarted.snapshot(recoveredID, connectionID: record.id).state.isTerminal {
+                try await Task.sleep(for: .milliseconds(1))
+            }
+            #expect(try f.send(recoveredRequest, session: recoveredSession).outcome == reply.outcome)
+            #expect(f.library.actions.first { $0.id == action.id } == action)
+            #expect(f.library.actionGroups.contains { $0.id == group.id })
+        } else {
+            let expected: AgentErrorCode = decision == "cancel" ? .cancelled : decision == "change" ? .versionConflict :
+                decision == "storage" ? .storageError : .permissionDenied
+            #expect(reply.outcome == .error(expected))
+            #expect(f.library.actionGroups.contains { $0.id == group.id })
+            #expect(f.library.actions.first { $0.id == action.id }?.group == name)
+        }
+        #expect(f.library.actions.first { $0.id == retained.id } == retained)
+        #expect(f.library.notes == [note] && approvals.pendingFromUserInterface().isEmpty)
+    }
+
+    @Test(arguments: ["implicit", "empty", "newDestination"])
+    func groupRemovalSupportsNativeGroupRepresentations(mode: String) async throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let group = ActionGroupRecord(name: "Projects")
+        if mode != "implicit" { try f.library.saveActionGroup(group) }
+        if mode != "empty" {
+            var action = DraftAction(name: "Keep", steps: []); action.group = group.name
+            try f.library.saveAction(action)
+        }
+        let target = AgentResourceReference(kind: .actionGroup, id: try #require(f.library.actionGroupIdentifiers[group.name]))
+        let operations = AgentOperationRegistry(currentGrant: { try f.connections.grantForAuthenticatedConnection($0) },
+            validateHost: {}, isLocked: { false }, now: { f.wall })
+        let approvals = AgentApprovalStore(now: { f.wall }, currentGrant: { try? f.connections.grantForAuthenticatedConnection($0) }, isLocked: { false })
+        defer { operations.cancelAll() }
+        f.operations = operations; f.deletionApprovals = approvals; f.service = try f.makeService(withoutEditors: true)
+        let (record, session) = try f.connect(scope: mode == "empty" ? .resources([target]) : .library,
+            capabilities: [.actionsRead, .actionsManage, .destructiveRequest])
+        let fields = try f.values("actionGroups.get", session: session, targets: [target])
+        guard case .string(let version) = fields["versionToken"] else { Issue.record("Missing version"); return }
+        let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "actionGroups.delete",
+            targets: [target], expectedVersion: version)
+        let request = try f.preparedMutation(intent, session: session)
+        guard case .accepted(let id, _) = try f.send(request, session: session).outcome else { Issue.record("Missing operation"); return }
+        for _ in 0..<1000 where approvals.pendingFromUserInterface().isEmpty { await Task.yield() }
+        let review = try #require(approvals.pendingFromUserInterface().first)
+        #expect(review.effects.requiresLibraryScope == (mode != "empty"))
+        try approvals.approveFromUserInterface(review.id, reviewedFingerprint: review.fingerprint)
+        for _ in 0..<1000 where try !operations.snapshot(id, connectionID: record.id).state.isTerminal {
+            try await Task.sleep(for: .milliseconds(1))
+        }
+        #expect(try f.send(request, session: session).outcome == .result(.object(["deletedIDs": .array([.string(target.id.uuidString)])])))
+        #expect(!f.library.groupNames.contains(group.name))
+        #expect(f.library.actions.count == (mode == "empty" ? 0 : 1))
+        #expect(f.library.actions.allSatisfy { $0.group == "General" })
+    }
+
+    @Test(arguments: ["member", "destination", "newDestination"])
+    func groupRemovalCannotMoveResourcesOutsideTheGrant(missing: String) throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let group = ActionGroupRecord(name: "Projects"), destination = ActionGroupRecord(name: "General")
+        try f.library.saveActionGroup(group)
+        if missing != "newDestination" { try f.library.saveActionGroup(destination) }
+        var action = DraftAction(name: "Keep", steps: []); action.group = group.name
+        try f.library.saveAction(action)
+        let operations = AgentOperationRegistry(currentGrant: { try f.connections.grantForAuthenticatedConnection($0) },
+            validateHost: {}, isLocked: { false }, now: { f.wall })
+        defer { operations.cancelAll() }
+        f.operations = operations
+        f.deletionApprovals = AgentApprovalStore(now: { f.wall }, currentGrant: { try? f.connections.grantForAuthenticatedConnection($0) }, isLocked: { false })
+        f.service = try f.makeService(withoutEditors: true)
+        let target = AgentResourceReference(kind: .actionGroup, id: group.id)
+        var allowed: Set<AgentResourceReference> = [target]
+        if missing != "member" { allowed.insert(.init(kind: .action, id: action.id)) }
+        if missing == "member" { allowed.insert(.init(kind: .actionGroup, id: destination.id)) }
+        let (_, session) = try f.connect(scope: .resources(allowed), capabilities: [.actionsRead, .actionsManage, .destructiveRequest])
+        let fields = try f.values("actionGroups.get", session: session, targets: [target])
+        guard case .string(let version) = fields["versionToken"] else { Issue.record("Missing version"); return }
+        let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "actionGroups.delete",
+            targets: [target], expectedVersion: version)
+        let input = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(intent))
+        #expect(try f.response("mutations.prepare", session: session, parameters: ["request": input]).outcome == .error(.permissionDenied))
+        #expect(f.library.actions == [action] && f.deletionApprovals?.pendingFromUserInterface().isEmpty == true)
+    }
+
     @Test func workspaceCreationUsesDefaultsOverridesAndDurableReceipts() throws {
         let f = try Fixture()
         let defaults = try #require(UserDefaults(suiteName: f.editorDefaultsName))

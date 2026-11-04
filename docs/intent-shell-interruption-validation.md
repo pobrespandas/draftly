@@ -21,6 +21,7 @@ unobserved task to affect later tests. This change removes the deadline race;
 it does not establish the cause of every earlier process exit.
 
 The focused serial Intent suite passed all 14 tests. The real timeout and
-cancellation cases passed together in 1.262 seconds. Full validation of the
-combined source remains a separate gate. Production clocks and timeouts did
-not change.
+cancellation cases passed together in 1.262 seconds. The final combined source passed strict inventory verification: 1 consumer,
+184 contract, 824 Core and 1,621 app tests (2,630 total). Both interruption
+cases passed in that complete run. The native Debug build also passed.
+Production clocks and timeouts did not change. CI remains a separate gate.

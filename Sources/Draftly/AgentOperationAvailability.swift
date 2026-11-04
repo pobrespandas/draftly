@@ -39,7 +39,7 @@ import AgentContracts
         .init(operations: AgentWorkspaceApplication.operationNames.union([AgentMutationSchemas.name]), handlers: [.workspaceApply]),
         .init(operations: ["drafts.purge", AgentMutationSchemas.name],
             handlers: [.editorRead, .draftWrite, .operationControl, .draftPurge], optionalHostFeature: true),
-        .init(operations: ["actions.delete", AgentMutationSchemas.name],
+        .init(operations: ["actions.delete", "actionGroups.delete", AgentMutationSchemas.name],
             handlers: [.operationControl, .actionDelete], optionalHostFeature: true),
         .init(operations: ["workspaces.delete", AgentMutationSchemas.name],
             handlers: [.operationControl, .workspaceDelete], optionalHostFeature: true),

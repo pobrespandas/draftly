@@ -43,19 +43,58 @@ import AgentContracts
         return action
     }
 
+    private struct GroupDeletion: Equatable {
+        let group: ActionGroupRecord
+        let actions: [DraftAction]
+        let destination: String
+        let destinationGroup: ActionGroupRecord?
+        var targets: Set<AgentResourceReference> {
+            var result: Set<AgentResourceReference> = [.init(kind: .actionGroup, id: group.id)]
+            if !actions.isEmpty {
+                result.formUnion(actions.map { .init(kind: .action, id: $0.id) })
+                if let destinationGroup { result.insert(.init(kind: .actionGroup, id: destinationGroup.id)) }
+            }
+            return result
+        }
+    }
+
+    private func checkedGroupDeletion(_ request: AgentRequest, connectionID: UUID) throws -> GroupDeletion {
+        guard request.operation == "actionGroups.delete", request.libraryID == libraryID,
+              request.targets.count == 1, let target = request.targets.first, target.kind == .actionGroup,
+              let expected = request.expectedVersion else { throw AgentErrorCode.invalidInput }
+        do { _ = try AgentActionSchemas.validatedParameters(for: request) }
+        catch { throw AgentErrorCode.invalidInput }
+        let allGroups = groups(in: .library)
+        guard let group = allGroups.first(where: { $0.id == target.id }) else { throw AgentErrorCode.notFound }
+        guard try groupVersion(group) == expected else { throw AgentErrorCode.versionConflict }
+        let destination = group.name == "General" ? "Imported" : "General"
+        let value = GroupDeletion(group: group,
+            actions: actionLibrary.actions.filter { $0.group == group.name }.sorted { $0.id.uuidString < $1.id.uuidString },
+            destination: destination, destinationGroup: allGroups.first { $0.name == destination })
+        guard let grant = try connections.grantForAuthenticatedConnection(connectionID),
+              value.targets.allSatisfy({ grant.scope.permits($0) }),
+              value.actions.isEmpty || value.destinationGroup != nil || grant.scope == .library else {
+            throw AgentErrorCode.permissionDenied
+        }
+        return value
+    }
+
     func prepareDeletion(_ request: AgentRequest, connectionID: UUID) throws -> AgentRetryKeys.Ticket {
-        guard request.operation == "actions.delete", request.retryKey == nil,
+        guard ["actions.delete", "actionGroups.delete"].contains(request.operation), request.retryKey == nil,
               request.libraryID == libraryID else { throw AgentErrorCode.invalidInput }
         try validateAdmission()
         let ticket = try retryKeys.issue(request, connectionID: connectionID)
-        if try actionMutationReceipt(request, ticket: ticket) == nil { _ = try checkedDeletion(request) }
+        if try actionMutationReceipt(request, ticket: ticket) == nil {
+            if request.operation == "actionGroups.delete" { _ = try checkedGroupDeletion(request, connectionID: connectionID) }
+            else { _ = try checkedDeletion(request) }
+        }
         try validateAdmission()
         _ = try retryKeys.verify(ticket.value, request: request, connectionID: connectionID)
         return ticket
     }
 
     func deletionReceipt(_ request: AgentRequest, connectionID: UUID) throws -> LibraryMutationReceipt? {
-        guard request.operation == "actions.delete", request.libraryID == libraryID,
+        guard ["actions.delete", "actionGroups.delete"].contains(request.operation), request.libraryID == libraryID,
               let key = request.retryKey else { throw AgentErrorCode.invalidInput }
         try validateAdmission()
         let ticket = try retryKeys.verify(key, request: request, connectionID: connectionID)
@@ -66,6 +105,17 @@ import AgentContracts
         guard let key = request.retryKey else { throw AgentErrorCode.invalidInput }
         try validateAdmission()
         _ = try retryKeys.verify(key, request: request, connectionID: connectionID)
+        if request.operation == "actionGroups.delete" {
+            let value = try checkedGroupDeletion(request, connectionID: connectionID)
+            return .init(capabilities: [.actionsManage, .destructiveRequest], targets: value.targets,
+                requiresLibraryScope: !value.actions.isEmpty && value.destinationGroup == nil,
+                snapshot: ["groupName": .string(value.group.name), "groupVersion": .string(try groupVersion(value.group)),
+                    "destination": .string(value.destination),
+                    "destinationGroup": value.destinationGroup.map { .string($0.id.uuidString) } ?? .null,
+                    "actions": .array(try value.actions.map {
+                        .object(["id": .string($0.id.uuidString), "name": .string($0.name), "version": .string(try actionVersion($0))])
+                    }), "deletesDrafts": .bool(false), "deletesActions": .bool(false)])
+        }
         let action = try checkedDeletion(request)
         return .init(capabilities: [.actionsManage, .destructiveRequest], targets: Set(request.targets),
             requiresLibraryScope: false, snapshot: ["actionName": .string(action.name),
@@ -78,6 +128,22 @@ import AgentContracts
         if let previous = try deletionReceipt(request, connectionID: connectionID) { return previous }
         guard let key = request.retryKey else { throw AgentErrorCode.invalidInput }
         let ticket = try retryKeys.verify(key, request: request, connectionID: connectionID)
+        if request.operation == "actionGroups.delete" {
+            let value = try checkedGroupDeletion(request, connectionID: connectionID)
+            let identity = LibraryMutationIdentity(requestID: request.requestID,
+                connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
+            do {
+                return try actionLibrary.commitActionGroupDeletion(value.group, movingActionsTo: value.destination,
+                    mutation: identity, at: now(), resource: .init(id: value.group.id, versionToken: try groupVersion(value.group)),
+                    validateCommit: {
+                        try self.validateAdmission()
+                        _ = try self.retryKeys.verify(key, request: request, connectionID: connectionID)
+                        guard try self.checkedGroupDeletion(request, connectionID: connectionID) == value else { throw AgentErrorCode.versionConflict }
+                        try validateCommit()
+                    })
+            } catch let error as AgentErrorCode { throw error }
+            catch { throw AgentErrorCode.storageError }
+        }
         let action = try checkedDeletion(request)
         let identity = LibraryMutationIdentity(requestID: request.requestID,
             connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
@@ -117,11 +183,11 @@ import AgentContracts
                 try Task.checkCancellation()
                 try validateSession()
                 try operations.recordEffect(operationID, effectID: effectID,
-                    kind: "actions.delete", outcome: "submitted")
+                    kind: request.operation, outcome: "submitted")
                 submitted = true
             })
             try operations.recordEffect(operationID, effectID: effectID,
-                kind: "actions.delete", outcome: "completed")
+                kind: request.operation, outcome: "completed")
             return ["deletedIDs": .array(receipt.resources.map { .string($0.id.uuidString) })]
         } catch {
             if submitted { throw AgentErrorCode.outcomeUnknown }
@@ -317,7 +383,7 @@ import AgentContracts
             else if request.operation == "actions.create", case .object(let action) = request.parameters["action"],
                case .string(let raw) = action["id"] { expected = UUID(uuidString: raw) }
             else if request.operation == "actions.duplicate" || request.operation == "actionGroups.duplicate" { expected = nil }
-            else if request.operation == "actionGroups.update" { expected = request.targets.first(where: { $0.kind == .actionGroup })?.id }
+            else if ["actionGroups.update", "actionGroups.delete"].contains(request.operation) { expected = request.targets.first(where: { $0.kind == .actionGroup })?.id }
             else { expected = request.targets.first(where: { $0.kind == .action })?.id }
             guard receipt == nil || (receipt?.resources.count == 1 && (expected == nil || receipt?.resources.first?.id == expected)) else {
                 throw AgentErrorCode.storageError

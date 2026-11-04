@@ -132,6 +132,36 @@ struct LibraryMutationReceiptTests {
         #expect(reopened.actions == [retained] && reopened.notes == [note])
     }
 
+    @Test(arguments: ["General", "Projects"])
+    func groupDeletionMovesMembersAndReceiptCommitsAtomically(name: String) throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let library = try LibraryStore(directory: root, seed: false)
+        let group = ActionGroupRecord(name: name), destination = name == "General" ? "Imported" : "General"
+        try library.saveActionGroup(group)
+        var action = DraftAction(name: "Keep café 🐼", steps: []); action.group = name
+        try library.saveAction(action)
+        let note = try library.createNote(content: "Preserve draft")
+        let mutation = identity(), resource = LibraryMutationReceipt.Resource(id: group.id, versionToken: "group-version")
+        #expect(throws: (any Error).self) {
+            try library.commitActionGroupDeletion(group, movingActionsTo: destination, mutation: mutation,
+                at: now, resource: resource, validateCommit: { throw DraftlyError.message("Authority changed") })
+        }
+        #expect(library.actions == [action] && library.actionGroups == [group])
+        #expect(try library.mutationReceipt(for: mutation, at: now) == nil)
+        let receipt = try library.commitActionGroupDeletion(group, movingActionsTo: destination, mutation: mutation,
+            at: now, resource: resource, validateCommit: {})
+        let reopened = try LibraryStore(directory: root, seed: false)
+        var moved = action; moved.group = destination
+        #expect(reopened.actions == [moved] && reopened.actionGroups.isEmpty && reopened.notes == [note])
+        try reopened.saveActionGroup(group); try reopened.saveAction(action)
+        let recreatedGroups = reopened.actionGroups
+        #expect(recreatedGroups.contains { $0.id == group.id && $0.name == group.name })
+        #expect(try reopened.commitActionGroupDeletion(group, movingActionsTo: destination, mutation: mutation,
+            at: now, resource: resource, validateCommit: { Issue.record("Recovery must not move members again") }) == receipt)
+        #expect(reopened.actions == [action] && reopened.actionGroups == recreatedGroups)
+    }
+
     @Test func workspaceDeletionRejectsWrongResourcesAndMissingTargets() throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let workspace = Workspace(name: "Keep"), mutation = identity()

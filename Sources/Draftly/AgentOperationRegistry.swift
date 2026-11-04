@@ -263,7 +263,7 @@ import DraftlyCore
     // Storage proof can resolve one interrupted deletion. It cannot replay work.
     func recoverDeletion(_ request: AgentRequest, grant: AgentGrant,
                                   receipt: LibraryMutationReceipt) throws -> Snapshot {
-        guard ["workspaces.delete", "drafts.purge", "actions.delete"].contains(request.operation), request.libraryID == grant.libraryID,
+        guard ["workspaces.delete", "drafts.purge", "actions.delete", "actionGroups.delete"].contains(request.operation), request.libraryID == grant.libraryID,
               receipt.mutation.requestID == request.requestID,
               receipt.resources.count == request.targets.count,
               Set(receipt.resources.map(\.id)) == Set(request.targets.map(\.id)),

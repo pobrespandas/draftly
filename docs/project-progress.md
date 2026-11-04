@@ -3,6 +3,26 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Reviewed action-group removal — 4 November
+
+Connected `actionGroups.delete` with the native rule: move members to General,
+or to Imported when removing General. Keep actions, drafts and history.
+Scoped grants must cover all members and the existing destination. A missing
+destination needs library scope. Empty and implicit groups are supported.
+Native review binds names, destination and member versions. Atomic storage
+receipts prevent a replay from moving members or removing a recreated group.
+
+The focal run passed 55 app tests in five suites and one Core test. It includes
+scope denial, review changes, cancellation, rollback and recovery after reopen.
+Source coverage is 92 connected/conditional names of 137; 45 names have no
+direct handler. Strict validation verified 1 consumer, 184 contract, 824 Core
+and 1,621 app tests (2,630 total). The native package-name Debug build and two
+project checks passed. The first full attempt failed in an existing Shell
+startup fixture. That fixture now controls its timeout after process startup;
+the serial Intent suite and complete final run passed. See
+[fixture validation](intent-shell-interruption-validation.md). CI and installed
+acceptance remain pending.
+
 ## Reviewed action deletion — 4 November
 
 Connected `actions.delete` through app-owned review, prepared intent, version
