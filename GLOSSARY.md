@@ -234,6 +234,10 @@ A saved copy of drafts, revisions, workspaces, actions, action groups, syntax de
 
 **Backup import**:
 A merge of a full backup into the library. When a draft with the same identity has different content or metadata, both copies are kept.
+
+**Backup restore preview**:
+A report of the additions and updates that a backup import would make to the
+current library. It does not change data or approve the import.
 _Avoid_: Library replacement
 
 ### Action resources

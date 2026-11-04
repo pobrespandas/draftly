@@ -296,8 +296,19 @@ theme mutations, installed acceptance and full CI remain open.
 
 Full CI [41808994708](https://github.com/pobrespandas/draftly/actions/runs/41808994708)
 passed for `abd4e2d`, including strict inventory verification. The earlier live
-probe skip rejection is resolved for that source. Both native build variants passed for the diagnostic-only follow-up. Its
-installed GUI observation and full CI remain pending.
+probe skip rejection is resolved for that source. Full CI
+[41813362305](https://github.com/pobrespandas/draftly/actions/runs/41813362305)
+passed for diagnostic source `fdc05d2`. The signed GUI shows `console=true`,
+`login=true` and `protectedData=false`. Admission stays off before pairing.
+
+CI [41815621541](https://github.com/pobrespandas/draftly/actions/runs/41815621541)
+failed on `2e28255`: a plain draft-reader catalog included transfer cancellation.
+The shared capability predicate now requires file read or file write. The local
+official SDK tests passed after that correction. The combined source, including
+CLI transport recovery and backup readers, passed the complete strict Swift
+inventory: 1 consumer, 183 contract, 822 Core and 1,599 app tests (2,605 total).
+The normal native Debug build and two project checks passed. Full CI for the
+new source remains required.
 
 The matching signed isolated app/helper installed and started with access off.
 Both named clients returned a neutral preflight response through their existing
@@ -307,13 +318,40 @@ has not started. QA-only diagnostics expose the actual GUI session inputs;
 control admission remains unchanged. Full client sessions and the normal
 startup/lifecycle gate remain open.
 
+## Backup export, validation and restore preview
+
+`backups.export`, `backups.validate` and `backups.previewRestore` now have direct
+handlers. They require an explicit whole-library grant and their declared
+capabilities. Export and preview also require editor tracking. Export preserves
+pending text in saved drafts in its transfer without saving it. Credentials,
+local file permissions and agent grants stay outside the backup model.
+
+Validation and preview use the existing `LibraryStore.restore` in disposable
+libraries. Preview reports only incoming counts and created/updated counts for
+each collection. It does not return library content. Its version token binds
+the source bytes and current stored library. Different pending editor bytes
+return `editor_conflict`, including canonically equivalent Unicode text. The
+engine's current conflict rules still apply, including keeping both draft
+versions. No live library record is changed.
+
+Inline and completed owned-transfer sources work. Bookmark and HTTPS sources
+return `interaction_required` without reading a file or sending a request;
+their native effect review paths remain open. No installation URL can enter the
+backup route. `backups.requestRestore` remains unavailable until its reviewed,
+version-bound mutation and recovery path is connected. The three source-set
+handler names therefore do not prove complete backup or installed acceptance.
+The combined source passed the complete strict Swift run: 1 consumer,
+183 contract, 822 Core and 1,599 app tests. The native Debug build and two
+project checks passed. Installed acceptance and full CI remain open.
+
 ## Scoped transfers and draft exports
 
 All five declared `transfers.*` handlers and `exports.drafts` now connect to the
-service. Buffers belong to one session and its exact grant. Export buffers also
-retain their original draft scope. Transfer handles do not authorize operations
-in the operation registry. Session closure and host invalidation remove buffers.
-A replaced grant, expiry or a different session cannot read or cancel them.
+service. Buffers belong to one authorized connection and its exact grant. Export buffers
+also retain their original draft scope. Transfer handles do not authorize work
+in the operation registry. A new CLI transport with the same credential can
+resume a transfer. Connection invalidation and Stop Work remove buffers. A
+replaced grant, expiry or a different connection cannot read or cancel them.
 
 Uploads use canonical Base64 chunks, byte offsets, a declared size and a SHA-256
 digest. Finish prepares bytes only. It does not import library data. Imports
@@ -324,8 +362,8 @@ flush editors, save library changes or write a destination file.
 
 Limits are 32 MiB per transfer, 64 MiB reserved per host, 16 transfers and 64 KiB
 per chunk. A transfer expires after five minutes or at grant expiry. A monotonic
-deadline prevents clock rollback from extending it. Cancelling owned bytes needs
-no export capability and returns no content. Other transfer operations retain
+deadline prevents clock rollback from extending it. Cancelling owned bytes requires file read or file write capability and
+returns no content. A plain draft reader does not receive the cancellation tool. Other transfer operations retain
 their declared read or write capabilities. Validation passed: 142 app tests,
 180 contract tests, one consumer test, two project checks and the normal native
 Debug build. Installed acceptance and full CI for this increment remain open.
@@ -343,8 +381,8 @@ increment remain open.
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-85 names in implemented or conditional handler sets. The other 52 names have
-no direct handler in those sets. These counts do not prove that 85 operations
+88 names in implemented or conditional handler sets. The other 49 names have
+no direct handler in those sets. These counts do not prove that 88 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -361,7 +399,7 @@ a direct handler for every `native.*` contract.
 | Syntax | `syntaxes.delete`, `syntaxes.install`, `syntaxes.reload`, `syntaxes.replace` |
 | Bookmarks | `bookmarks.forget`, `bookmarks.list`, `bookmarks.requestAdd` |
 | Imports | `imports.commit`, `imports.preview`, `imports.validate` |
-| Backups | `backups.export`, `backups.previewRestore`, `backups.requestRestore`, `backups.validate` |
+| Backups | `backups.requestRestore` |
 | Native operations | All 24 direct `native.*` contracts. Existing reviewed Action effects are a separate path. |
 | Operation control and activity | `operations.answerPrompt`, `operations.wait`, `activity.changes` |
 

@@ -46,6 +46,7 @@ import AgentContracts
     private lazy var themes = AgentThemeReading(library: actionLibrary, defaults: preferenceDefaults, pages: pages)
     private lazy var themeWrites = AgentThemeWriting(library: actionLibrary, libraryID: libraryID,
         reader: themes, keys: retryKeys, now: now)
+    private lazy var backups = AgentBackupReading(library: actionLibrary, drafts: drafts, transfers: transfers)
     private let actionLibrary: LibraryStore
     private let operationRegistry: AgentOperationRegistry?
     private let deletionApprovals: AgentApprovalStore?
@@ -454,6 +455,9 @@ import AgentContracts
     private func dispatch(_ request: AgentRequest, parameters: [String: AgentJSONValue], grant: AgentGrant,
                           sessionID: UUID) throws -> [String: AgentJSONValue] {
         switch request.operation {
+        case "backups.export", "backups.validate", "backups.previewRestore":
+            return try backups.read(request, parameters: parameters, grant: grant,
+                authorize: { try self.validateSession(sessionID, grant: grant) })
         case "transfers.beginImport", "transfers.appendChunk", "transfers.finishImport", "transfers.readChunk", "transfers.cancel":
             return try transfers.perform(request, parameters: parameters, grant: grant)
         case "exports.drafts":

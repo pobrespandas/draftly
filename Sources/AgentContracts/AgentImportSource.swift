@@ -10,6 +10,13 @@ package enum AgentImportSource {
         variant("https", ["url": .string(minimum: 1)])
     ])
 
+    package static let backupShape = AgentValueShape.oneOf([
+        variant("inline", ["text": .string()]),
+        variant("transfer", ["transferID": .uuid]),
+        variant("bookmark", ["bookmarkID": .uuid, "path": .string(minimum: 1, maximum: 4096)]),
+        variant("https", ["url": .string(minimum: 1)])
+    ])
+
     private static func variant(_ kind: String, _ fields: [String: AgentValueShape]) -> AgentValueShape {
         var result = fields.mapValues { AgentFieldShape(shape: $0, required: true) }
         result["kind"] = .init(shape: .string(choices: [kind]), required: true)

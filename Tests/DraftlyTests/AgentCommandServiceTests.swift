@@ -2298,6 +2298,137 @@ struct AgentCommandServiceTests {
         #expect(changed["versionToken"] != value["versionToken"])
     }
 
+    private func backupSource(_ backup: Backup, f: Fixture, session: AgentCommandService.Session,
+                              transfer: Bool) throws -> AgentJSONValue {
+        let bytes = try JSONEncoder().encode(backup)
+        if !transfer { return .object(["kind": .string("inline"), "text": .string(String(decoding: bytes, as: UTF8.self))]) }
+        let begun = try f.values("transfers.beginImport", session: session,
+            parameters: ["byteLength": .integer(Int64(bytes.count)), "sha256": .string(AgentTransferStore.digest(bytes))])
+        guard case .object(let metadata) = begun["transfer"], case .string(let rawID) = metadata["transferID"], let id = UUID(uuidString: rawID) else {
+            throw AgentErrorCode.storageError
+        }
+        let target = AgentResourceReference(kind: .operation, id: id)
+        _ = try f.values("transfers.appendChunk", session: session, targets: [target], parameters: ["offset": .integer(0), "data": .string(bytes.base64EncodedString())])
+        _ = try f.values("transfers.finishImport", session: session, targets: [target])
+        return .object(["kind": .string("transfer"), "transferID": .string(rawID)])
+    }
+
+    @Test func backupExportRequiresEveryCapabilityAndWholeLibraryScope() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let first = try f.note("Stored backup café 🐼"), second = try f.note("Second backup")
+        let action = DraftAction(name: "Backup action", steps: [])
+        try f.library.saveAction(action)
+        let model = try f.window(first, content: "Pending backup café 🐼 e\u{301}", dirty: true)
+        f.editors = [model]
+        let capabilities: Set<AgentCapability> = [.backupsExport, .draftsRead, .actionsRead, .workspacesRead, .appearanceRead, .filesWrite]
+        for capability in capabilities {
+            let (_, denied) = try f.connect(capabilities: capabilities.subtracting([capability]))
+            #expect(try f.response("backups.export", session: denied).outcome == .error(.permissionDenied))
+        }
+        let (_, scoped) = try f.connect(scope: .resources([.init(kind: .draft, id: first.id)]), capabilities: capabilities)
+        #expect(try f.response("backups.export", session: scoped).outcome == .error(.permissionDenied))
+        let (_, session) = try f.connect(capabilities: capabilities)
+        let before = try f.library.backupData()
+        let exported = try f.values("backups.export", session: session)
+        guard case .object(let metadata) = exported["transfer"], case .string(let rawID) = metadata["transferID"], let id = UUID(uuidString: rawID) else {
+            throw AgentErrorCode.storageError
+        }
+        let chunk = try f.values("transfers.readChunk", session: session, targets: [.init(kind: .operation, id: id)], parameters: ["offset": .integer(0)])
+        guard case .string(let encoded) = chunk["data"], let bytes = Data(base64Encoded: encoded) else { throw AgentErrorCode.storageError }
+        let backup = try JSONDecoder().decode(Backup.self, from: bytes)
+        #expect(Set(backup.notes.map(\.id)) == Set([first.id, second.id]) && backup.actions == [action])
+        let pending = try #require(backup.notes.first(where: { $0.id == first.id }))
+        #expect(Data(pending.content.utf8) == Data(model.editor.content.utf8))
+        #expect(try f.library.backupData() == before && model.hasUnsavedChanges)
+    }
+
+    @Test(arguments: [false, true])
+    func backupValidationUsesRestoreRulesWithoutChangingTheLibrary(transfer: Bool) throws {
+        let f = try Fixture()
+        _ = try f.note("Existing private note")
+        let incoming = Note(content: "Incoming café 🐼")
+        let backup = Backup(notes: [incoming], revisions: [Revision(noteID: incoming.id, content: "Prior")], workspaces: [], actions: [])
+        let (_, session) = try f.connect(capabilities: [.backupsRestore, .filesRead])
+        let source = try backupSource(backup, f: f, session: session, transfer: transfer)
+        let before = try f.library.backupData()
+        let result = try f.values("backups.validate", session: session, parameters: ["source": source])
+        guard case .object(let counts) = result["counts"] else { throw AgentErrorCode.storageError }
+        #expect(result["valid"] == .bool(true) && counts["drafts"] == .integer(1) && counts["versions"] == .integer(1))
+        #expect(Set(counts.keys) == Set(AgentBackupSchemas.collectionNames))
+        #expect(try f.library.backupData() == before)
+        let (_, denied) = try f.connect(capabilities: [.filesRead])
+        #expect(try f.response("backups.validate", session: denied, parameters: ["source": source]).outcome == .error(.permissionDenied))
+        if transfer {
+            let (_, other) = try f.connect(capabilities: [.backupsRestore, .filesRead])
+            #expect(try f.response("backups.validate", session: other, parameters: ["source": source]).outcome == .error(.notFound))
+        }
+        var duplicate = backup; duplicate.notes.append(incoming)
+        let invalid = try backupSource(duplicate, f: f, session: session, transfer: false)
+        #expect(try f.response("backups.validate", session: session, parameters: ["source": invalid]).outcome == .error(.invalidInput))
+        var unsupported = backup; unsupported.version = 2
+        let versioned = try backupSource(unsupported, f: f, session: session, transfer: false)
+        #expect(try f.response("backups.validate", session: session, parameters: ["source": versioned]).outcome == .error(.invalidInput))
+        #expect(try f.library.backupData() == before)
+    }
+
+    @Test func restorePreviewKeepsBothDraftVersionsAndBindsSourceAndLibraryState() throws {
+        let f = try Fixture()
+        let stored = try f.note("Stored existing café 🐼")
+        var incoming = stored; incoming.content = "Incoming different café 🐼"
+        let backup = Backup(notes: [incoming], revisions: [Revision(noteID: incoming.id, content: "Imported history")], workspaces: [], actions: [])
+        let (_, session) = try f.connect(capabilities: [.backupsRestore, .filesRead])
+        let source = try backupSource(backup, f: f, session: session, transfer: false)
+        let before = try f.library.backupData()
+        let result = try f.values("backups.previewRestore", session: session, parameters: ["source": source])
+        guard case .object(let changes) = result["changes"], case .object(let drafts) = changes["drafts"],
+              case .object(let versions) = changes["versions"], case .string(let token) = result["versionToken"] else {
+            throw AgentErrorCode.storageError
+        }
+        #expect(drafts == ["created": .integer(1), "updated": .integer(0)] && versions["created"] == .integer(1))
+        let repeated = try f.values("backups.previewRestore", session: session, parameters: ["source": source])
+        #expect(!token.isEmpty && repeated == result)
+        #expect(try f.library.backupData() == before)
+        _ = try f.note("Concurrent storage change")
+        let changedLibrary = try f.values("backups.previewRestore", session: session, parameters: ["source": source])
+        #expect(changedLibrary["versionToken"] != result["versionToken"])
+        let different = Backup(notes: [], revisions: [], workspaces: [], actions: [])
+        let otherSource = try backupSource(different, f: f, session: session, transfer: false)
+        #expect(try f.values("backups.previewRestore", session: session, parameters: ["source": otherSource])["versionToken"] != changedLibrary["versionToken"])
+    }
+
+    @Test func restorePreviewRejectsPendingCodeUnitChangesAndNativeThemeConflicts() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let note = try f.note("café")
+        let model = try f.window(note, content: "cafe\u{301}", dirty: true)
+        f.editors = [model]
+        let (_, session) = try f.connect(capabilities: [.backupsRestore, .filesRead])
+        let empty = Backup(notes: [], revisions: [], workspaces: [], actions: [])
+        let source = try backupSource(empty, f: f, session: session, transfer: false)
+        let before = try f.library.backupData()
+        #expect(try f.response("backups.previewRestore", session: session, parameters: ["source": source]).outcome == .error(.editorConflict))
+        #expect(try f.library.backupData() == before && model.hasUnsavedChanges)
+        f.editors = []
+        try f.library.saveTheme(EditorThemeDefinition(name: "Installed theme"))
+        let conflicting = Backup(notes: [], revisions: [], workspaces: [], actions: [], themes: [EditorThemeDefinition(name: "Installed theme")])
+        let conflictSource = try backupSource(conflicting, f: f, session: session, transfer: false)
+        #expect(try f.values("backups.validate", session: session, parameters: ["source": conflictSource])["valid"] == .bool(true))
+        let after = try f.library.backupData()
+        #expect(try f.response("backups.previewRestore", session: session, parameters: ["source": conflictSource]).outcome == .error(.versionConflict))
+        #expect(try f.library.backupData() == after)
+    }
+
+    @Test func backupFileAndNetworkSourcesDoNotBypassNativeReview() throws {
+        let f = try Fixture()
+        let (_, session) = try f.connect(capabilities: [.backupsRestore, .filesRead])
+        for source: AgentJSONValue in [
+            .object(["kind": .string("https"), "url": .string("https://example.invalid/backup.json")]),
+            .object(["kind": .string("bookmark"), "bookmarkID": .string(UUID().uuidString), "path": .string("backup.json")])
+        ] {
+            #expect(try f.response("backups.validate", session: session, parameters: ["source": source]).outcome == .error(.interactionRequired))
+        }
+        #expect(f.library.notes.isEmpty)
+    }
+
     @Test(arguments: ["text", "draftly"])
     func exportsUseScopedPendingDraftsWithoutSavingOrLeakingOtherResources(format: String) throws {
         let f = try Fixture(); defer { f.cleanEditorPreferences() }
@@ -2752,6 +2883,7 @@ struct AgentCommandServiceTests {
         #expect(available.remove("syntaxes.get") != nil)
         #expect(available.remove("syntaxes.export") != nil)
         #expect(available.remove("drafts.duplicate") != nil)
+        for name in AgentBackupSchemas.operationNames { #expect(available.remove(name) != nil) }
         for name in AgentTransferSchemas.operationNames { #expect(available.remove(name) != nil) }
         for name in AgentThemeReading.operationNames { #expect(available.remove(name) != nil) }
         for name in AgentThemeWriting.operationNames { #expect(available.remove(name) != nil) }

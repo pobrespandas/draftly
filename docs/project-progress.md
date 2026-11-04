@@ -3,6 +3,39 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Transfer discovery and CLI lifetimes — 4 November
+
+Full CI [41815621541](https://github.com/pobrespandas/draftly/actions/runs/41815621541)
+failed on `2e28255`. Three SDK assertions found cancellation exposed to a plain
+draft-reader grant. Discovery and permission policy now share a predicate that
+requires file read or file write for cancellation. Read-only hints remain strict.
+
+Review also found that CLI commands close each transport after one request.
+Transfer buffers now retain the authorized connection and exact grant, not that
+short-lived transport. New commands can resume the same grant's bytes. Other
+connections and replacement grants cannot. Invalidation, Stop Work and existing
+size/expiry limits remain effective. The SDK test covers separate one-shot CLI
+requests and MCP reading the same export. The combined source passed the complete
+strict Swift run: 1 consumer, 183 contract, 822 Core and 1,599 app tests (2,605).
+The normal native Debug build and two project checks passed. New full CI and
+installed acceptance remain open.
+
+## Backup readers — 4 November
+
+Three backup handlers now connect: export, validation and restore preview.
+Export includes pending text in saved drafts without saving it. Validation and
+preview use the existing restore engine in disposable libraries. Preview reports counts,
+rejects pending editor byte changes, and binds its token to the incoming bytes
+and stored library. No live library data changes. Complete owned transfers and
+inline sources work. Bookmark/HTTPS review paths remain open and return
+`interaction_required` without file or network access. Actual restore remains
+unavailable pending human review, version checks and durable recovery.
+
+Source coverage is 88 connected or conditional names out of 137; 49 names have
+no direct handler. The partial backup source routes above remain open as well.
+The combined source passed the complete strict Swift run and native build
+recorded above. Installed acceptance and full CI remain open.
+
 ## Scoped transfers and draft exports — 4 November
 
 The service now connects the five transfer contracts and `exports.drafts`.
@@ -56,8 +89,10 @@ credential creation. The host stayed off. The standalone AppKit sample showed
 protected data unavailable, but an unlaunched CLI sample does not establish the
 GUI app state. Read-only admission diagnostics were added only to the isolated
 QA build. They do not bypass or change the gate. Both the normal native build
-and the QA-flag native build passed. The signed GUI values and full client
-calls remain to be checked. No new grant has started.
+and the QA-flag native build passed. Signed source `fdc05d2` shows
+`console=true`, `login=true` and `protectedData=false` in the GUI. Its full CI
+passed in 41813362305. Full client calls still need the native unlock gate to
+open. No new grant has started.
 
 ## Durable theme mutations — 4 November
 

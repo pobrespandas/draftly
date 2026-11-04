@@ -8,12 +8,12 @@ package enum AgentTransferSchemas {
     private static func r(_ shape: AgentValueShape) -> AgentFieldShape { .init(shape: shape, required: true) }
     private static let count = AgentValueShape.integer(minimum: 0, maximum: Int64(maximumBytes))
     private static let digest = AgentValueShape.string(minimum: 64, maximum: 64)
-    private static let transfer = AgentObjectShape(fields: [
+    package static let transferShape = AgentObjectShape(fields: [
         "transferID": r(.uuid), "direction": r(.string(choices: ["import", "export"])),
         "state": r(.string(choices: ["receiving", "ready"])), "byteLength": r(count), "receivedBytes": r(count),
         "sha256": r(digest), "expiresAt": r(.utcDate)
     ])
-    private static let metadata = AgentObjectShape(fields: ["transfer": r(.object(transfer))])
+    private static let metadata = AgentObjectShape(fields: ["transfer": r(.object(transferShape))])
     private static let schemas: [String: AgentOperationSchema] = [
         "transfers.beginImport": .init(parameters: .init(fields: ["byteLength": r(count), "sha256": r(digest)]), result: metadata),
         "transfers.appendChunk": .init(parameters: .init(fields: ["offset": r(count),
@@ -27,7 +27,7 @@ package enum AgentTransferSchemas {
         "exports.drafts": .init(parameters: .init(fields: [
             "format": .init(shape: .string(choices: ["text", "draftly"]), defaultValue: .string("draftly")),
             "includeVersions": .init(shape: .boolean, defaultValue: .bool(false))]), result: .init(fields: [
-                "transfer": r(.object(transfer)), "format": r(.string(choices: ["text", "draftly"])),
+                "transfer": r(.object(transferShape)), "format": r(.string(choices: ["text", "draftly"])),
                 "draftIDs": r(.array(.uuid, maximum: AgentRequest.maximumTargets))]))
     ]
 

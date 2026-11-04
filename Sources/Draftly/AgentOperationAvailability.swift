@@ -21,6 +21,8 @@ import AgentContracts
             "actions.stepSchemas", "actions.groups", "actionGroups.get",
             "workspaces.list", "workspaces.get", "workspaces.query"], handlers: []),
         .init(operations: AgentTransferSchemas.operationNames, handlers: []),
+        .init(operations: ["backups.validate"], handlers: []),
+        .init(operations: ["backups.export", "backups.previewRestore"], handlers: [.editorRead]),
         .init(operations: AgentThemeReading.operationNames, handlers: []),
         .init(operations: AgentThemeWriting.operationNames.union([AgentMutationSchemas.name]), handlers: [.themeWrite]),
         .init(operations: ["editor.windows", "editor.get", "editor.find", "editor.markers",

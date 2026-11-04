@@ -2,7 +2,7 @@ import Foundation
 
 package enum AgentOperationSchemas {
     package static var operationNames: Set<String> {
-        AgentReadSchemas.operationNames.union(AgentTransferSchemas.operationNames).union(AgentActivitySchemas.operationNames).union(AgentMutationSchemas.operationNames).union(AgentActionSchemas.operationNames).union(AgentExecutionSchemas.operationNames).union(AgentWorkspaceSchemas.operationNames).union(AgentDraftSchemas.operationNames).union(AgentEditorSchemas.operationNames).union(AgentAppearanceSchemas.operationNames).union(AgentPreferenceSchemas.operationNames).union(AgentBookmarkSchemas.operationNames)
+        AgentReadSchemas.operationNames.union(AgentTransferSchemas.operationNames).union(AgentBackupSchemas.operationNames).union(AgentActivitySchemas.operationNames).union(AgentMutationSchemas.operationNames).union(AgentActionSchemas.operationNames).union(AgentExecutionSchemas.operationNames).union(AgentWorkspaceSchemas.operationNames).union(AgentDraftSchemas.operationNames).union(AgentEditorSchemas.operationNames).union(AgentAppearanceSchemas.operationNames).union(AgentPreferenceSchemas.operationNames).union(AgentBookmarkSchemas.operationNames)
     }
 
     package static func schema(for operation: String, preferences: AgentPreferenceRegistry? = nil) -> AgentOperationSchema? {
@@ -10,6 +10,7 @@ package enum AgentOperationSchemas {
             guard let preferences else { return nil }
             return AgentPreferenceSchemas.schema(for: operation, registry: preferences)
         }
+        if let backup = AgentBackupSchemas.schema(for: operation) { return backup }
         if let transfer = AgentTransferSchemas.schema(for: operation) { return transfer }
         return AgentReadSchemas.schema(for: operation) ?? AgentActivitySchemas.schema(for: operation) ?? AgentMutationSchemas.schema(for: operation) ?? AgentActionSchemas.schema(for: operation)
             ?? AgentExecutionSchemas.schema(for: operation) ?? AgentWorkspaceSchemas.schema(for: operation) ?? AgentDraftSchemas.schema(for: operation) ?? AgentEditorSchemas.schema(for: operation) ?? AgentAppearanceSchemas.schema(for: operation) ?? AgentBookmarkSchemas.schema(for: operation)
@@ -25,6 +26,9 @@ package enum AgentOperationSchemas {
         }
         if descriptor.requiresExpectedVersion {
             guard let version = request.expectedVersion, !version.isEmpty else { throw AgentSchemaError.invalidValue }
+        }
+        if AgentBackupSchemas.operationNames.contains(request.operation) {
+            return try AgentBackupSchemas.validatedParameters(for: request)
         }
         if AgentTransferSchemas.operationNames.contains(request.operation) {
             return try AgentTransferSchemas.validatedParameters(for: request)

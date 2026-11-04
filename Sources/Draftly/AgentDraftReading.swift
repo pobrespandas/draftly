@@ -94,6 +94,20 @@ import AgentContracts
         return try encoder.encode(backup)
     }
 
+    func backupSnapshot() throws -> Data {
+        var backup = try JSONDecoder().decode(Backup.self, from: library.backupData())
+        backup.notes = try library.notes.map { try snapshot($0).note }
+        let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
+        return try encoder.encode(backup)
+    }
+
+    func requireStoredDraftsForRestorePreview() throws {
+        for stored in library.notes {
+            let state = try snapshot(stored)
+            guard Data(state.note.content.utf8) == Data(stored.content.utf8) else { throw AgentErrorCode.editorConflict }
+        }
+    }
+
     // This checks draft state, not authority. It does not reserve the state across an await.
     func checkedSnapshot(for id: UUID, expectedVersion: String) throws -> AgentEditorRegistry.Snapshot {
         guard !expectedVersion.isEmpty, expectedVersion.utf8.count <= 4096 else { throw AgentErrorCode.invalidInput }

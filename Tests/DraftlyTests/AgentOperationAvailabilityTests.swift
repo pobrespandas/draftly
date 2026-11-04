@@ -83,6 +83,16 @@ struct AgentOperationAvailabilityTests {
         #expect(!AgentOperationAvailability(handlers: [.editorRead]).operations.contains("workspaces.apply"))
     }
 
+    @Test func backupExportAndPreviewRequireEditorTracking() {
+        let untracked = AgentOperationAvailability(handlers: [])
+        #expect(untracked.operations.contains("backups.validate"))
+        #expect(!untracked.operations.contains("backups.export"))
+        #expect(!untracked.operations.contains("backups.previewRestore"))
+        let tracked = AgentOperationAvailability(handlers: [.editorRead])
+        #expect(tracked.operations.isSuperset(of: AgentBackupSchemas.operationNames))
+        #expect(!tracked.operations.contains("backups.requestRestore"))
+    }
+
     @Test func completeHostUsesOnlyKnownContractsAndDoesNotAdvertiseMissingHandlers() {
         let available = AgentOperationAvailability(handlers: Set(AgentOperationAvailability.Handler.allCases))
         #expect(available.operations == AgentCommandService.implementedOperations.union([
