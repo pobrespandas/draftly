@@ -47,9 +47,24 @@ started with access off. Its editor had a new window ID; the old grant did not
 automatically include that new window.
 
 The correction passed 169 focused tests in five suites and the native QA build.
-The fresh connection for its installed regression check was not approved. Its
-pairing request expired. No new grant was created for the corrected window.
-The old grant was not expanded to that window.
+A resumed native pairing granted the same neutral draft, its current editor,
+and Share until 23:24 on 3 November. The corrected Stop Work button closed the
+review and disabled access. After explicit resume, the old review was absent.
+The operation was `cancelled` with no completed effects. Repeating its request
+returned the same operation without another review or native selector.
+
+A second operation reached the native share selector. The journal recorded a
+`submitted` share effect while the operation remained `running`. No destination
+was selected. The QA process was killed before a native result returned. After
+reopen, access stayed off. Explicit resume let CLI and MCP retrieve the same
+operation as `outcome_unknown`, with the share effect marked `unknown`.
+Repeating the original request through both clients returned that operation;
+no new review or selector appeared. This checks process interruption and
+recovery. It does not simulate a completed transmission to a sharing service.
+
+Before the resumed grant expired, a draft write was prepared and then the grant
+was revoked in Settings. Execution returned `permission_denied`. The native
+editor retained its prior text and did not show the rejected-write marker.
 
 ## Actual expiry and cleanup on e9528d1
 
@@ -64,11 +79,22 @@ helper discovery returned no endpoints, and the original shared preferences
 were restored and compared with the pre-QA backup. The normal library was not
 opened. Recovery artifacts retain the signed prior QA and neutral test data.
 
+## Full CI and final QA state
+
+Full CI [41758319817](https://github.com/pobrespandas/draftly/actions/runs/41758319817)
+passed for `882b945`, which includes the `e9528d1` review correction. Tooling,
+matrix, native tests, the native app build, and the required-check gate passed.
+Website checks were not selected because this change did not edit the site.
+
+The resumed QA ended before its grant deadline. All test grants are revoked,
+local access is off, the process is closed, and helper discovery is empty. The
+original shared preferences were restored and compared with the fresh backup.
+Chat Console showed its native editing consent. That consent was not approved,
+so no ChatGPT editing connection or model edit was created. Cancel closed the
+prompt during cleanup. A real model edit still needs fresh native consent.
+
 ## Remaining acceptance
 
-- Stop Work from the corrected review sheet, then resume and reject the old review.
-- Interrupt a submitted native effect and recover its unknown result without replay.
-- Reject prepared writes after revocation while the grant is still unexpired.
 - Complete a real Chat Console edit through fresh native consent.
 
 Private request and response files are retained in the local QA recovery

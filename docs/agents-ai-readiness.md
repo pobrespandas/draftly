@@ -219,12 +219,18 @@ Installed QA from `f6f6190` showed that the native effect review sheet blocked
 Settings and had no Stop Work button. The sheet now calls the existing Stop Work
 command directly. It closes only after that command succeeds. Failure leaves the
 review open and shows the model error. No permission or cancellation rule changes.
-The QA native build passed. Installed acceptance of this control is pending.
+The QA native build passed. Installed acceptance passed on signed `e9528d1`: Stop Work closed the review,
+withdrew access, and cancelled the operation without native effects. Explicit
+resume did not restore the review or replay the request.
 [Installed editing acceptance](agent-editing-acceptance.md) records the CLI, MCP,
 native Undo, concurrency, grant replacement, and actual prepared-write expiry
 checks and their limits. The QA is closed, its test grant is revoked, and the
-original shared preferences are restored. The corrected native review control
-still needs fresh installed authorization.
+original shared preferences are restored. The corrected native review control,
+unknown native-effect recovery through CLI and MCP, and denial of an unexpired
+prepared write after revocation passed in the resumed signed QA. Chat Console
+editing still needs fresh native consent. Full CI
+[41758319817](https://github.com/pobrespandas/draftly/actions/runs/41758319817)
+passed for `882b945`, including the review correction.
 
 ## Validation references
 
