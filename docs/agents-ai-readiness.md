@@ -281,12 +281,14 @@ increment remain open.
 
 ## Current CI limit
 
-Full CI [41802527118](https://github.com/pobrespandas/draftly/actions/runs/41802527118)
-failed for `4585453` in one Apple schema-encoding assertion. The assertion now
-checks exact authorized choices across finite enum, constant, local-reference
-and nullable encodings. Unconstrained branches still fail. The local Apple and
-Chat Console run passed 19 tests; the live probe was disabled. Validation on the
-CI runner remains pending. This is not a passed full-CI claim.
+CI [41804761088](https://github.com/pobrespandas/draftly/actions/runs/41804761088)
+passed all 1,575 app tests, including the revised Apple schema assertion, and
+exited successfully. Strict inventory verification rejected the disabled live
+probe's skipped XML case. The probe now requires an explicit compile flag.
+Routine builds exclude it from inventory rather than skipping it or claiming
+inference success. Eight routine Apple tests passed locally. The unchanged
+strict verifier accepted their XML against discovered names. Full CI for this
+correction remains pending.
 
 ## Operation coverage
 

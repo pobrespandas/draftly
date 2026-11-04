@@ -1030,12 +1030,13 @@ compatible distribution channel remain required; see
 The real on-device probe is opt-in and uses only neutral in-memory fixture data:
 
 ```sh
-DRAFTLY_APPLE_LIVE_QA=1 swift test --no-parallel --jobs 1 --filter onDeviceInferenceReadsOnlyTheNeutralFixtureThroughTheGateway
+swift test -Xswiftc -DDRAFTLY_APPLE_LIVE_QA --no-parallel --jobs 1 --filter onDeviceInferenceReadsOnlyTheNeutralFixtureThroughTheGateway
 ```
 
 The probe checks a real `drafts.get` and the expected Unicode response. It does
 not establish installed application acceptance, real-model editing, inference
-cancellation, or Cloud access. Routine test runs leave it disabled.
+cancellation, or Cloud access. Routine builds exclude this probe from their
+inventory. They do not skip a selected test or claim a live inference pass.
 
 ## Theme reads
 

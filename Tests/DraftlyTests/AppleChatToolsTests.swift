@@ -225,7 +225,8 @@ struct AppleChatToolsTests {
         }
         #expect(runtime.dispatches == before)
     }
-    @Test(.enabled(if: ProcessInfo.processInfo.environment["DRAFTLY_APPLE_LIVE_QA"] == "1"))
+    #if DRAFTLY_APPLE_LIVE_QA
+    @Test
     func onDeviceInferenceReadsOnlyTheNeutralFixtureThroughTheGateway() async throws {
         try #require(AppleModelAccess.modes().contains("onDevice"))
         let runtime = try AgentChatToolSessionTests.Runtime()
@@ -243,5 +244,6 @@ struct AppleChatToolsTests {
         #expect(response.contains(runtime.allowed.content))
         #expect(!response.contains(runtime.hidden.content))
     }
+    #endif
 
 }

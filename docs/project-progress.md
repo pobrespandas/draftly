@@ -3,6 +3,21 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Live Apple probe inventory — 4 November
+
+CI [41804761088](https://github.com/pobrespandas/draftly/actions/runs/41804761088)
+ran all 1,575 app tests with a successful process exit. The revised Apple schema
+assertion passed. Strict verification then rejected the XML: the runtime-disabled
+live probe appeared as a skipped case, and its suite count excluded that case.
+The verifier correctly rejects selected tests that do not pass.
+
+The live probe now requires the `DRAFTLY_APPLE_LIVE_QA` compile flag. Routine
+builds do not register it in their inventory. Explicit QA still requires an
+available model and an actual authorized fixture read. No verifier check was
+relaxed and no live success was substituted. Eight routine Apple tests passed.
+The existing strict verifier accepted their XML against the discovered inventory
+and confirmed that the live probe was absent. Full CI remains pending.
+
 ## Apple schema CI check — 4 November
 
 Full CI [41802527118](https://github.com/pobrespandas/draftly/actions/runs/41802527118)
