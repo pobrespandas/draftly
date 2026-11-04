@@ -100,15 +100,17 @@ struct AgentLocalHostTests {
         for _ in 0..<1000 where host.approvals.pendingFromUserInterface().isEmpty { await Task.yield() }
         let review = try #require(host.approvals.pendingFromUserInterface().first)
         #expect(native.calls.isEmpty)
+        await first.close()
+        let polling = try await f.client(host, record: record)
         try host.approvals.approveFromUserInterface(review.id, reviewedFingerprint: review.fingerprint)
         var response = accepted
         for _ in 0..<1000 {
-            response = try JSONDecoder().decode(AgentResponse.self, from: await first.request(data))
+            response = try JSONDecoder().decode(AgentResponse.self, from: await polling.request(data))
             if case .result = response.outcome { break }
             try await Task.sleep(for: .milliseconds(1))
         }
         #expect(response.outcome == .result(.object(["completed": .bool(true)])) && native.calls.count == 1)
-        await first.close()
+        await polling.close()
         let second = try await f.client(host, record: record)
         let recovered = try JSONDecoder().decode(AgentResponse.self, from: await second.request(data))
         #expect(recovered == response && native.calls.count == 1)

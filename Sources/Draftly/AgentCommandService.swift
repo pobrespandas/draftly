@@ -81,6 +81,8 @@ import AgentContracts
     private let preferenceDescriptors: [UUID: AgentPreferenceField]
     private let drafts: AgentDraftReading
     private var sessions: [UUID: Authorization] = [:]
+    private var operationEpoch = UUID()
+    private var connectionOperationEpochs: [UUID: UUID] = [:]
 
     init(library: LibraryStore, libraryID: UUID, connections: AgentConnectionRegistry, appVersion: String,
          preferenceDefaults: UserDefaults = .standard,
@@ -191,6 +193,7 @@ import AgentContracts
     }
 
     func invalidate(connectionID: UUID) {
+        connectionOperationEpochs.removeValue(forKey: connectionID)
         for id in sessions.filter({ $0.value.connectionID == connectionID }).keys {
             sessions.removeValue(forKey: id)
         }
@@ -198,7 +201,27 @@ import AgentContracts
         transfers.remove(connectionID: connectionID)
     }
 
-    func invalidateAll() { sessions.removeAll(); pages.removeAll(); transfers.removeAll() }
+    func invalidateAll() {
+        operationEpoch = UUID(); connectionOperationEpochs.removeAll()
+        sessions.removeAll(); pages.removeAll(); transfers.removeAll()
+    }
+
+    // Accepted work belongs to the connection. Closing a transport does not renew
+    // or revoke its grant. Explicit invalidation must still stop old work forever.
+    private func operationAuthority(for grant: AgentGrant) -> () throws -> Void {
+        let epoch = operationEpoch
+        let connectionEpoch = connectionOperationEpochs[grant.connectionID] ?? UUID()
+        connectionOperationEpochs[grant.connectionID] = connectionEpoch
+        return { [weak self] in
+            guard let self else { throw AgentErrorCode.cancelled }
+            try self.validateAdmission()
+            guard self.operationEpoch == epoch, self.connectionOperationEpochs[grant.connectionID] == connectionEpoch,
+                  let current = try self.connections.grantForAuthenticatedConnection(grant.connectionID),
+                  AgentRequestBinding.grantValue(current) == AgentRequestBinding.grantValue(grant) else {
+                throw AgentErrorCode.permissionDenied
+            }
+        }
+    }
 
     // An invalid envelope has no trusted request identity and fails before dispatch.
     func respond(to data: Data, session: Session) throws -> Data {
@@ -338,11 +361,12 @@ import AgentContracts
         if let id = try operationRegistry.existingRequest(request, grant: grant) {
             return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))
         }
+        let validateOperation = operationAuthority(for: grant)
         let id = try operationRegistry.startValueRequest(request, grant: grant) { [weak self] id in
             guard let self else { throw AgentOperationRegistry.FailureBeforeEffects(code: .cancelled) }
             return try await AgentNativeExecution.run(request, grant: grant, operationID: id, host: nativeExecution.makeHost(),
                 approvals: nativeExecution.approvals, operations: operationRegistry,
-                validateSession: { try self.validateSession(sessionID, grant: grant) })
+                validateSession: validateOperation)
         }
         return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))
     }
@@ -377,22 +401,23 @@ import AgentContracts
             else if ["actions.delete", "actionGroups.delete"].contains(request.operation) { _ = try actions.deletionEffects(request, connectionID: grant.connectionID) }
             else { _ = try workspaces.deletionEffects(request, connectionID: grant.connectionID) }
         }
+        let validateOperation = operationAuthority(for: grant)
         let id = try operationRegistry.startValueRequest(request, grant: grant) { [weak self] operationID in
             guard let self else { throw AgentOperationRegistry.FailureBeforeEffects(code: .cancelled) }
             if purge {
                 guard let writes = self.writes else { throw AgentOperationRegistry.FailureBeforeEffects(code: .unavailable) }
                 return try await writes.reviewAndPurge(request, connectionID: grant.connectionID,
                     operationID: operationID, approvals: deletionApprovals, operations: operationRegistry,
-                    validateSession: { try self.validateSession(sessionID, grant: grant) })
+                    validateSession: validateOperation)
             }
             if ["actions.delete", "actionGroups.delete"].contains(request.operation) {
                 return try await self.actions.reviewAndDelete(request, connectionID: grant.connectionID,
                     operationID: operationID, approvals: deletionApprovals, operations: operationRegistry,
-                    validateSession: { try self.validateSession(sessionID, grant: grant) })
+                    validateSession: validateOperation)
             }
             return try await self.workspaces.reviewAndDelete(request, connectionID: grant.connectionID,
                 operationID: operationID, approvals: deletionApprovals, operations: operationRegistry,
-                validateSession: { try self.validateSession(sessionID, grant: grant) })
+                validateSession: validateOperation)
         }
         return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))
     }

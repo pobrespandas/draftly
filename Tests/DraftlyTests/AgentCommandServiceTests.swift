@@ -8,6 +8,43 @@ import AgentContracts
 
 @Suite("Authenticated agent reads") @MainActor
 struct AgentCommandServiceTests {
+    @Test(arguments: ["transport", "all", "connection", "other"])
+    func acceptedNativeWorkSurvivesOnlyTransportClosure(change: String) async throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let operations = AgentOperationRegistry(currentGrant: { try f.connections.grantForAuthenticatedConnection($0) },
+            validateHost: {}, isLocked: { false }, now: { f.wall })
+        let approvals = AgentApprovalStore(now: { f.wall }, currentGrant: { try? f.connections.grantForAuthenticatedConnection($0) }, isLocked: { false })
+        defer { operations.cancelAll() }
+        let host = AgentNativeServiceTests.DirectNativeHost()
+        f.operations = operations; f.nativeExecution = .init(makeHost: { host }, approvals: approvals)
+        f.service = try f.makeService(withoutEditors: true)
+        let (record, session) = try f.connect(capabilities: [.nativeUse])
+        let request = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "native.share", parameters: ["text": .string("Neutral")])
+        guard case .accepted(let id, _) = try f.send(request, session: session).outcome else { Issue.record("Missing native operation"); return }
+        for _ in 0..<1000 where approvals.pendingFromUserInterface().isEmpty { await Task.yield() }
+        let review = try #require(approvals.pendingFromUserInterface().first)
+        switch change {
+        case "transport":
+            f.service.close(session)
+            #expect(try f.response("server.status", session: session).outcome == .error(.permissionDenied))
+        case "all": f.service.invalidateAll()
+        case "connection": f.service.invalidate(connectionID: record.id)
+        default:
+            let (other, _) = try f.connect(capabilities: [.nativeUse])
+            f.service.invalidate(connectionID: other.id)
+        }
+        try approvals.approveFromUserInterface(review.id, reviewedFingerprint: review.fingerprint)
+        for _ in 0..<1000 where try !operations.snapshot(id, connectionID: record.id).state.isTerminal {
+            try await Task.sleep(for: .milliseconds(1))
+        }
+        let next = try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        let reply = try f.send(request, session: next)
+        if ["transport", "other"].contains(change) {
+            #expect(reply.outcome == .result(.object(["completed": .bool(true)])) && host.calls.count == 1)
+        } else { #expect(reply.outcome == .error(.permissionDenied) && host.calls.isEmpty) }
+        #expect(try f.send(request, session: next) == reply)
+    }
+
     @Test(arguments: [false, true])
     func asynchronousWaitKeepsOtherRequestsResponsiveAndRechecksRevocation(revoke: Bool) async throws {
         let f = try Fixture(); defer { f.cleanEditorPreferences() }
@@ -455,7 +492,7 @@ struct AgentCommandServiceTests {
         }
     }
 
-    @Test(arguments: ["approve", "deny", "cancel", "session"])
+    @Test(arguments: ["approve", "deny", "cancel", "session", "transport"])
     func workspaceDeletionUsesAcceptedReviewAndTerminalResults(decision: String) async throws {
         let f = try Fixture(); defer { f.cleanEditorPreferences() }
         let workspace = Workspace(name: "Delete café 🐼")
@@ -486,15 +523,16 @@ struct AgentCommandServiceTests {
         } else if decision == "deny" { try approvals.denyFromUserInterface(review.id) }
         else {
             if decision == "session" { f.service.invalidateAll() }
+            if decision == "transport" { f.service.close(session) }
             try approvals.approveFromUserInterface(review.id, reviewedFingerprint: review.fingerprint)
         }
         for _ in 0..<1000 where try !operations.snapshot(id, connectionID: record.id).state.isTerminal {
             try await Task.sleep(for: .milliseconds(1))
         }
-        let nextSession = decision == "session"
+        let nextSession = ["session", "transport"].contains(decision)
             ? try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id])) : session
         let repeated = try f.send(request, session: nextSession)
-        if decision == "approve" {
+        if ["approve", "transport"].contains(decision) {
             #expect(repeated.outcome == .result(.object(["deletedIDs": .array([.string(workspace.id.uuidString)])])))
             #expect(f.library.workspaces.isEmpty)
         } else {
@@ -506,7 +544,7 @@ struct AgentCommandServiceTests {
         #expect(try operations.existingRequest(request, grant: currentGrant) == id)
     }
 
-    @Test(arguments: ["approve", "deny", "cancel", "session", "change", "storage"])
+    @Test(arguments: ["approve", "deny", "cancel", "session", "change", "storage", "transport"])
     func actionDeletionUsesAcceptedReviewAndTerminalResults(decision: String) async throws {
         let f = try Fixture(); defer { f.cleanEditorPreferences() }
         let action = DraftAction(name: "Delete café 🐼", steps: [])
@@ -537,6 +575,7 @@ struct AgentCommandServiceTests {
         } else if decision == "deny" { try approvals.denyFromUserInterface(review.id) }
         else {
             if decision == "session" { f.service.invalidateAll() }
+            if decision == "transport" { f.service.close(session) }
             if decision == "change" {
                 var changed = action; changed.name = "Changed after review"
                 try f.library.saveAction(changed)
@@ -547,10 +586,10 @@ struct AgentCommandServiceTests {
         for _ in 0..<1000 where try !operations.snapshot(id, connectionID: record.id).state.isTerminal {
             try await Task.sleep(for: .milliseconds(1))
         }
-        let nextSession = decision == "session"
+        let nextSession = ["session", "transport"].contains(decision)
             ? try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id])) : session
         let repeated = try f.send(request, session: nextSession)
-        if decision == "approve" {
+        if ["approve", "transport"].contains(decision) {
             #expect(repeated.outcome == .result(.object(["deletedIDs": .array([.string(action.id.uuidString)])])))
             #expect(f.library.actions.isEmpty)
             try f.library.saveAction(action)
