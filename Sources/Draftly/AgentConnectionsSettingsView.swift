@@ -218,6 +218,9 @@ private struct AgentOperationReviewSheet: View {
             if let error = model.lastError { Text(error.connectionMessage).foregroundStyle(.red) }
             HStack {
                 Button("Close") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button("Stop work", role: .destructive) {
+                    if (try? model.stopWork()) != nil { dismiss() }
+                }.disabled(!model.readable || !model.accessEnabled)
                 Spacer()
                 Button("Deny", role: .destructive) {
                     if (try? model.decideOperation(review, approved: false)) != nil { dismiss() }

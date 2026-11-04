@@ -213,6 +213,14 @@ The focused run passed 169 tests in five suites, including partial-handler
 configurations. The two generator checks and native Debug build passed. Full
 CI and installed acceptance for this change remain pending.
 
+## Stop Work in native review
+
+Installed QA from `f6f6190` showed that the native effect review sheet blocked
+Settings and had no Stop Work button. The sheet now calls the existing Stop Work
+command directly. It closes only after that command succeeds. Failure leaves the
+review open and shows the model error. No permission or cancellation rule changes.
+The QA native build passed. Installed acceptance of this control follows below.
+
 ## Validation references
 
 - Full CI [41643931168](https://github.com/pobrespandas/draftly/actions/runs/41643931168)
