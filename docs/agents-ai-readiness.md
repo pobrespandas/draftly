@@ -250,11 +250,26 @@ No managed entitlement was added. Read [Apple's server-model guide](https://deve
 for the platform and quota rules. Keep Cloud inference and tools in the goal;
 the on-device result does not close that requirement.
 
+## Reviewed draft purge
+
+`drafts.purge` is connected when the editor, draft writer, native review store
+and operation registry are present. It requires explicit destructive authority,
+the exact target version set and a prepared request. The native review shows
+only those trashed drafts and warns that their versions will be deleted without
+Undo. Changes to stored or pending text, an ended session, denial or cancellation
+prevent deletion. Commit rechecks authority, retry binding and editor state.
+Only the selected drafts, revisions and access records are removed. Other Trash,
+active drafts and action history remain. A matching atomic receipt can resolve
+an interrupted operation without another delete. The recovered result persists
+in the operation journal. The focused run passed 256 tests across ten app suites
+and three tests in one contract suite. The normal native build passed.
+Installed purge acceptance and full CI remain open.
+
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-69 names in implemented or conditional handler sets. The other 68 names have
-no direct handler in those sets. These counts do not prove that 69 operations
+70 names in implemented or conditional handler sets. The other 67 names have
+no direct handler in those sets. These counts do not prove that 70 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -265,7 +280,6 @@ a direct handler for every `native.*` contract.
 
 | Family | Direct contracts still outside those handler sets |
 | --- | --- |
-| Drafts | `drafts.purge` |
 | Editor | `editor.navigate`, `editor.open`, `editor.preview` |
 | Actions and groups | `actions.delete`, `actionGroups.delete` |
 | Themes | All 14 declared `themes.*` contracts. |

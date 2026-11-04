@@ -348,6 +348,69 @@ struct AgentCommandServiceTests {
         #expect(f.library.notes == saved && f.library.revisions == revisions)
     }
 
+    @Test(arguments: ["approve", "deny", "cancel", "session", "storedChange", "editorChange"])
+    func draftPurgeRequiresReviewAndCannotRepeatItsEffect(decision: String) async throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let first = try f.note("Delete café 🐼", trashed: true)
+        let second = try f.note("Delete two", trashed: true)
+        let retained = try f.note("Keep unrelated Trash", trashed: true)
+        let active = try f.note("Keep active")
+        let editor = try f.window(first, content: "Pending café 🐼", dirty: true)
+        f.editors = [editor]
+        defer { editor.pausePendingAutosave { true } }
+        let operations = AgentOperationRegistry(currentGrant: { try f.connections.grantForAuthenticatedConnection($0) },
+            validateHost: {}, isLocked: { false }, now: { f.wall })
+        let approvals = AgentApprovalStore(now: { f.wall }, currentGrant: { try? f.connections.grantForAuthenticatedConnection($0) }, isLocked: { false })
+        defer { operations.cancelAll() }
+        f.operations = operations; f.deletionApprovals = approvals; f.service = try f.makeService()
+        let targets = [first, second].map { AgentResourceReference(kind: .draft, id: $0.id) }
+        let (record, session) = try f.connect(scope: .resources(Set(targets)), capabilities: [.draftsRead, .draftsWrite, .destructiveRequest])
+        var versions: [UUID: String] = [:]
+        for target in targets {
+            let read = try f.values("drafts.get", session: session, targets: [target])
+            guard case .object(let draft) = read["draft"], case .string(let version) = draft["versionToken"] else {
+                Issue.record("Missing draft version"); return
+            }
+            versions[target.id] = version
+        }
+        let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "drafts.purge", targets: targets,
+            expectedVersion: try AgentDraftSchemas.expectedVersion(for: versions))
+        let request = try f.preparedMutation(intent, session: session)
+        let accepted = try f.send(request, session: session)
+        guard case .accepted(let id, _) = accepted.outcome else { Issue.record("Missing accepted purge: \(accepted)"); return }
+        for _ in 0..<1000 where approvals.pendingFromUserInterface().isEmpty { await Task.yield() }
+        let review = try #require(approvals.pendingFromUserInterface().first)
+        #expect(review.operation == "drafts.purge" && review.effects.targets == Set(targets))
+        #expect(review.effects.snapshot["cannotUndo"] == .bool(true))
+        #expect(f.library.notes.count == 4 && editor.editor.content == "Pending café 🐼")
+        if decision == "cancel" { _ = try f.response("operations.cancel", session: session, targets: [.init(kind: .operation, id: id)]) }
+        else if decision == "deny" { try approvals.denyFromUserInterface(review.id) }
+        else {
+            if decision == "session" { f.service.invalidateAll() }
+            if decision == "storedChange" { var changed = second; changed.content = "Changed"; try f.library.saveNote(changed) }
+            if decision == "editorChange" { editor.editor.content = "Later pending" }
+            try approvals.approveFromUserInterface(review.id, reviewedFingerprint: review.fingerprint)
+        }
+        for _ in 0..<1000 where try !operations.snapshot(id, connectionID: record.id).state.isTerminal {
+            try await Task.sleep(for: .milliseconds(1))
+        }
+        let nextSession = decision == "session"
+            ? try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id])) : session
+        let repeated = try f.send(request, session: nextSession)
+        if decision == "approve" {
+            #expect(repeated.outcome == .result(.object(["deletedIDs": .array(targets.map { .string($0.id.uuidString) })])))
+            #expect(Set(f.library.notes.map(\.id)) == [retained.id, active.id])
+            #expect(editor.editor.noteID != first.id && editor.editor.content.isEmpty)
+            #expect(editor.flush())
+            #expect(try f.send(request, session: nextSession) == repeated)
+        } else {
+            let expected: AgentErrorCode = decision == "cancel" ? .cancelled
+                : (["storedChange", "editorChange"].contains(decision) ? .versionConflict : .permissionDenied)
+            #expect(repeated.outcome == .error(expected))
+            #expect(f.library.notes.count == 4 && editor.editor.noteID == first.id)
+        }
+    }
+
     @Test(arguments: ["approve", "deny", "cancel", "session"])
     func workspaceDeletionUsesAcceptedReviewAndTerminalResults(decision: String) async throws {
         let f = try Fixture(); defer { f.cleanEditorPreferences() }

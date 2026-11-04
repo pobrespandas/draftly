@@ -258,11 +258,12 @@ import DraftlyCore
     }
 
     // Storage proof can resolve one interrupted deletion. It cannot replay work.
-    func recoverWorkspaceDeletion(_ request: AgentRequest, grant: AgentGrant,
+    func recoverDeletion(_ request: AgentRequest, grant: AgentGrant,
                                   receipt: LibraryMutationReceipt) throws -> Snapshot {
-        guard request.operation == "workspaces.delete", request.libraryID == grant.libraryID,
+        guard ["workspaces.delete", "drafts.purge"].contains(request.operation), request.libraryID == grant.libraryID,
               receipt.mutation.requestID == request.requestID,
-              receipt.resources.count == 1, receipt.resources.first?.id == request.targets.first?.id,
+              receipt.resources.count == request.targets.count,
+              Set(receipt.resources.map(\.id)) == Set(request.targets.map(\.id)),
               let id = try existingRequest(request, grant: grant) else { throw AgentErrorCode.invalidInput }
         let prepared = try AgentRequestBinding.prepare(request, preferences: AgentPreferenceCatalog.make())
         func hash(_ data: Data) -> String { SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined() }
@@ -273,15 +274,15 @@ import DraftlyCore
         let previous = try snapshot(id, connectionID: grant.connectionID)
         if previous.state == .succeeded { return previous }
         guard previous.state == .outcomeUnknown,
-              previous.effects.allSatisfy({ $0.kind == "workspaces.delete" && $0.resources == Set(request.targets) }) else {
+              previous.effects.allSatisfy({ $0.kind == request.operation && $0.resources == Set(request.targets) }) else {
             throw AgentErrorCode.versionConflict
         }
         let result: [String: AgentJSONValue] = ["deletedIDs": .array(receipt.resources.map { .string($0.id.uuidString) })]
         try AgentOperationSchemas.validateResult(result, for: request, preferences: AgentPreferenceCatalog.make())
-        let effects = [Effect(id: UUID(), kind: "workspaces.delete", outcome: "completed", resources: Set(request.targets))]
+        let effects = [Effect(id: UUID(), kind: request.operation, outcome: "completed", resources: Set(request.targets))]
         let recovered = Snapshot(id: id, state: .succeeded, updatedAt: receipt.committedAt,
             output: nil, error: nil, effects: effects, name: request.operation, result: .object(result))
-        if let journal { try journal.recoverWorkspaceDeletion(recovered.wireValue(), request: request, grant: grant) }
+        if let journal { try journal.recoverDeletion(recovered.wireValue(), request: request, grant: grant) }
         if entries[id] != nil {
             entries[id]?.state = .succeeded; entries[id]?.error = nil
             entries[id]?.result = .object(result); entries[id]?.effects = effects

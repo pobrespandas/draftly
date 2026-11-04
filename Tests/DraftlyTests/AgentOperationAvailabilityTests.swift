@@ -67,6 +67,13 @@ struct AgentOperationAvailabilityTests {
         #expect(!available.operations.contains("actions.run"))
     }
 
+    @Test(arguments: 0..<16)
+    func purgeNeedsEveryConnectedComponent(_ mask: Int) {
+        let components: [AgentOperationAvailability.Handler] = [.editorRead, .draftWrite, .operationControl, .draftPurge]
+        let handlers = Set(components.enumerated().compactMap { mask & (1 << $0.offset) != 0 ? $0.element : nil })
+        #expect(AgentOperationAvailability(handlers: handlers).operations.contains("drafts.purge") == (mask == 15))
+    }
+
     @Test func workspaceApplicationHasItsOwnConnectedComponent() {
         let available = AgentOperationAvailability(handlers: [.workspaceApply])
         #expect(available.operations.contains("workspaces.apply"))
@@ -79,7 +86,7 @@ struct AgentOperationAvailabilityTests {
     @Test func completeHostUsesOnlyKnownContractsAndDoesNotAdvertiseMissingHandlers() {
         let available = AgentOperationAvailability(handlers: Set(AgentOperationAvailability.Handler.allCases))
         #expect(available.operations == AgentCommandService.implementedOperations.union([
-            "activity.list", "operations.get", "operations.cancel", "actions.run", "workspaces.delete"]))
+            "activity.list", "operations.get", "operations.cancel", "actions.run", "workspaces.delete", "drafts.purge"]))
         #expect(available.operations.allSatisfy { AgentOperationCatalog.operation(named: $0) != nil })
         #expect(!available.operations.contains("drafts.delete"))
         #expect(!available.operations.contains("backups.restore"))

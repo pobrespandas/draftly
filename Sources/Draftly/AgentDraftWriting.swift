@@ -28,6 +28,101 @@ import DraftlyCore
         self.keys = keys; self.now = now; self.validateAdmission = validateAdmission; self.resolveSyntax = resolveSyntax
     }
 
+    private func checkedPurge(_ request: AgentRequest) throws -> [UUID: AgentEditorRegistry.Snapshot] {
+        guard request.operation == "drafts.purge", request.libraryID == libraryID,
+              !request.targets.isEmpty, request.targets.allSatisfy({ $0.kind == .draft }),
+              let expected = request.expectedVersion else { throw AgentErrorCode.invalidInput }
+        do { _ = try AgentDraftSchemas.validatedParameters(for: request) }
+        catch { throw AgentErrorCode.invalidInput }
+        guard !ActionRunner.isExecuting(in: library) else { throw AgentErrorCode.busy }
+        let states = try reader.checkedSnapshots(for: request.targets.map(\.id), expectedVersion: expected)
+        guard states.values.allSatisfy({ $0.storedNote.trashedAt != nil }) else { throw AgentErrorCode.invalidInput }
+        return states
+    }
+
+    func preparePurge(_ request: AgentRequest, connectionID: UUID) throws -> AgentRetryKeys.Ticket {
+        guard request.operation == "drafts.purge", request.retryKey == nil,
+              request.libraryID == libraryID else { throw AgentErrorCode.invalidInput }
+        try validateAdmission()
+        let ticket = try keys.issue(request, connectionID: connectionID)
+        let identity = LibraryMutationIdentity(requestID: request.requestID,
+            connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
+        do {
+            if try recoveredBatchReceipt(for: identity, targets: request.targets) == nil { _ = try checkedPurge(request) }
+        } catch let error as LibraryMutationReceiptError { throw receiptError(error) }
+        try validateAdmission()
+        _ = try keys.verify(ticket.value, request: request, connectionID: connectionID)
+        return ticket
+    }
+
+    func purgeReceipt(_ request: AgentRequest, connectionID: UUID) throws -> LibraryMutationReceipt? {
+        guard request.operation == "drafts.purge", request.libraryID == libraryID,
+              let key = request.retryKey else { throw AgentErrorCode.invalidInput }
+        try validateAdmission()
+        let ticket = try keys.verify(key, request: request, connectionID: connectionID)
+        do {
+            return try recoveredBatchReceipt(for: .init(requestID: request.requestID,
+                connectionHash: ticket.connectionHash, requestHash: ticket.requestHash), targets: request.targets)
+        } catch let error as LibraryMutationReceiptError { throw receiptError(error) }
+    }
+
+    func purgeEffects(_ request: AgentRequest, connectionID: UUID) throws -> AgentApprovalStore.Effects {
+        guard let key = request.retryKey else { throw AgentErrorCode.invalidInput }
+        try validateAdmission()
+        _ = try keys.verify(key, request: request, connectionID: connectionID)
+        let states = try checkedPurge(request)
+        return .init(capabilities: [.draftsWrite, .destructiveRequest], targets: Set(request.targets),
+            requiresLibraryScope: false, snapshot: ["drafts": .array(request.targets.map { target in
+                .object(["id": .string(target.id.uuidString),
+                    "title": .string(String(states[target.id]!.note.title.prefix(80)))])
+            }), "draftVersions": .string(request.expectedVersion!), "deletesRevisions": .bool(true),
+                "preservesActionHistory": .bool(true), "cannotUndo": .bool(true)])
+    }
+
+    func reviewAndPurge(_ request: AgentRequest, connectionID: UUID, operationID: UUID,
+                        approvals: AgentApprovalStore, operations: AgentOperationRegistry,
+                        validateSession: () throws -> Void) async throws -> [String: AgentJSONValue] {
+        var submitted = false
+        do {
+            try Task.checkCancellation(); try validateSession()
+            if let receipt = try purgeReceipt(request, connectionID: connectionID) {
+                return ["deletedIDs": .array(receipt.resources.map { .string($0.id.uuidString) })]
+            }
+            try operations.setWaitingForUser(operationID, waiting: true)
+            try await approvals.waitForApproval(request, connectionID: connectionID, resolveEffects: {
+                try validateSession()
+                return try self.purgeEffects(request, connectionID: connectionID)
+            })
+            try operations.setWaitingForUser(operationID, waiting: false)
+            try Task.checkCancellation(); try validateSession(); try validateAdmission()
+            guard let key = request.retryKey else { throw AgentErrorCode.invalidInput }
+            let ticket = try keys.verify(key, request: request, connectionID: connectionID)
+            let states = try checkedPurge(request)
+            let resources = try request.targets.map { try reader.mutationResource(for: states[$0.id]!.storedNote) }
+            let identity = LibraryMutationIdentity(requestID: request.requestID,
+                connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
+            let effectID = UUID()
+            var receipt: LibraryMutationReceipt?
+            try editors.synchronizeDeletion(Set(request.targets.map(\.id))) { validateEditors in
+                receipt = try library.commitTrashedNoteDeletion(resources, mutation: identity, at: now(), validateCommit: {
+                    try Task.checkCancellation(); try self.validateAdmission(); try validateSession()
+                    _ = try self.keys.verify(key, request: request, connectionID: connectionID)
+                    _ = try self.checkedPurge(request)
+                    try validateEditors()
+                    try operations.recordEffect(operationID, effectID: effectID, kind: "drafts.purge", outcome: "submitted")
+                    submitted = true
+                })
+            }
+            guard let receipt else { throw AgentErrorCode.storageError }
+            try operations.recordEffect(operationID, effectID: effectID, kind: "drafts.purge", outcome: "completed")
+            return ["deletedIDs": .array(receipt.resources.map { .string($0.id.uuidString) })]
+        } catch {
+            if submitted { throw AgentErrorCode.outcomeUnknown }
+            let code = error is CancellationError ? AgentErrorCode.cancelled : (error as? AgentErrorCode ?? .storageError)
+            throw AgentOperationRegistry.FailureBeforeEffects(code: code)
+        }
+    }
+
     func prepare(_ request: AgentRequest, connectionID: UUID, validateSession: () throws -> Void = {}) throws -> AgentRetryKeys.Ticket {
         guard !updating else { throw AgentErrorCode.busy }
         updating = true; defer { updating = false }

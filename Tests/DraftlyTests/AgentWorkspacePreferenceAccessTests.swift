@@ -2,7 +2,7 @@ import Foundation
 import CryptoKit
 import Testing
 import AgentContracts
-import DraftlyCore
+@testable import DraftlyCore
 @testable import Draftly
 
 @Suite("Agent default Workspace preference access") @MainActor
@@ -88,6 +88,47 @@ struct AgentWorkspacePreferenceAccessTests {
 
 @Suite("Agent Workspace deletion access") @MainActor
 struct AgentWorkspaceDeletionAccessTests {
+    @Test func interruptedDraftPurgeRecoversOnlyFromItsExactStorageReceipt() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let library = try LibraryStore(directory: root, seed: false)
+        let clock = Date(), libraryID = UUID(), connection = UUID()
+        let first = Note(content: "Delete café 🐼", trashedAt: clock)
+        let second = Note(content: "Delete two", trashedAt: clock)
+        let retained = try library.createNote(content: "Keep")
+        try library.saveNotes([first, second])
+        let targets = [first, second].map { AgentResourceReference(kind: .draft, id: $0.id) }
+        let grant = AgentGrant(connectionID: connection, libraryID: libraryID,
+            expiresAt: clock.addingTimeInterval(600), capabilities: [.draftsWrite, .destructiveRequest], scope: .resources(Set(targets)))
+        let intent = AgentRequest(requestID: UUID(), libraryID: libraryID, operation: "drafts.purge", targets: targets,
+            expectedVersion: "trusted-version-set")
+        let keys = AgentRetryKeys(currentGrant: { _ in grant }, isLocked: { false })
+        let ticket = try keys.issue(intent, connectionID: connection)
+        let request = AgentRequest(requestID: intent.requestID, libraryID: libraryID, operation: intent.operation,
+            targets: targets, expectedVersion: intent.expectedVersion, retryKey: ticket.value)
+        let journal = try AgentOperationJournal(parentDirectory: root), operationID = UUID()
+        _ = try journal.reserve(request, grant: grant, operationID: operationID)
+        let receipt = try library.commitTrashedNoteDeletion(targets.map { .init(id: $0.id, versionToken: "deleted-version") },
+            mutation: .init(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash),
+            at: clock, validateCommit: {})
+        let reopened = try LibraryStore(directory: root, seed: false)
+        let registry = AgentOperationRegistry(currentGrant: { _ in grant }, validateHost: {}, isLocked: { false },
+            journal: try AgentOperationJournal(parentDirectory: root))
+        #expect(try registry.snapshot(operationID, connectionID: connection).state == .outcomeUnknown)
+        let forged = LibraryMutationReceipt(id: UUID(), mutation: .init(requestID: request.requestID,
+            connectionHash: String(repeating: "a", count: 64), requestHash: ticket.requestHash),
+            committedAt: clock, resources: receipt.resources)
+        #expect(throws: AgentErrorCode.invalidInput) { try registry.recoverDeletion(request, grant: grant, receipt: forged) }
+        let recovered = try registry.recoverDeletion(request, grant: grant, receipt: receipt)
+        #expect(recovered.state == .succeeded && recovered.effects.map(\.kind) == ["drafts.purge"])
+        #expect(recovered.result == .object(["deletedIDs": .array(targets.map { .string($0.id.uuidString) })]))
+        let next = AgentOperationRegistry(currentGrant: { _ in grant }, validateHost: {}, isLocked: { false },
+            journal: try AgentOperationJournal(parentDirectory: root))
+        #expect(try next.snapshot(operationID, connectionID: connection).wireValue() == recovered.wireValue())
+        #expect(try next.recoverDeletion(request, grant: grant, receipt: receipt).state == .succeeded)
+        #expect(reopened.notes == [retained])
+    }
+
     @Test func deletionBindsReviewToVersionAndRecoversWithoutAnotherEffect() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }
@@ -137,21 +178,21 @@ struct AgentWorkspaceDeletionAccessTests {
         let changedIntent = AgentRequest(requestID: request.requestID, libraryID: libraryID,
             operation: request.operation, targets: request.targets, expectedVersion: "changed")
         #expect(throws: AgentErrorCode.versionConflict) {
-            try registry.recoverWorkspaceDeletion(changedIntent, grant: grant, receipt: receipt)
+            try registry.recoverDeletion(changedIntent, grant: grant, receipt: receipt)
         }
         let wrongTarget = AgentRequest(requestID: request.requestID, libraryID: libraryID,
             operation: request.operation, targets: [.init(kind: .workspace, id: retained.id)], expectedVersion: request.expectedVersion)
         #expect(throws: AgentErrorCode.invalidInput) {
-            try registry.recoverWorkspaceDeletion(wrongTarget, grant: grant, receipt: receipt)
+            try registry.recoverDeletion(wrongTarget, grant: grant, receipt: receipt)
         }
         #expect(try registry.snapshot(operationID, connectionID: connection).state == .outcomeUnknown)
-        let recovered = try registry.recoverWorkspaceDeletion(request, grant: grant, receipt: receipt)
+        let recovered = try registry.recoverDeletion(request, grant: grant, receipt: receipt)
         #expect(recovered.state == .succeeded && recovered.effects.map(\.outcome) == ["completed"])
         #expect(recovered.result == .object(["deletedIDs": .array([.string(workspace.id.uuidString)])]))
         let finalRegistry = AgentOperationRegistry(currentGrant: { _ in grant }, validateHost: {}, isLocked: { false },
             journal: try AgentOperationJournal(parentDirectory: root))
         #expect(try finalRegistry.snapshot(operationID, connectionID: connection).wireValue() == recovered.wireValue())
-        #expect(try finalRegistry.recoverWorkspaceDeletion(request, grant: grant, receipt: receipt).state == .succeeded)
+        #expect(try finalRegistry.recoverDeletion(request, grant: grant, receipt: receipt).state == .succeeded)
     }
 
     @Test(arguments: ["approve", "deny", "cancel", "stale", "session"])

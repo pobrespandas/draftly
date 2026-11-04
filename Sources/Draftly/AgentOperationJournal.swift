@@ -101,8 +101,8 @@ import AgentLocalSecurity
     }
 
     // The app calls this only after it reads an atomic deletion receipt.
-    func recoverWorkspaceDeletion(_ snapshot: AgentJSONValue, request: AgentRequest, grant: AgentGrant) throws {
-        guard request.operation == "workspaces.delete", request.libraryID == grant.libraryID,
+    func recoverDeletion(_ snapshot: AgentJSONValue, request: AgentRequest, grant: AgentGrant) throws {
+        guard ["workspaces.delete", "drafts.purge"].contains(request.operation), request.libraryID == grant.libraryID,
               case .object(let fields) = snapshot, fields["state"] == .string("succeeded"),
               case .string(let rawID) = fields["operationID"], let operationID = UUID(uuidString: rawID),
               case .object(let result) = fields["result"] else { throw AgentErrorCode.invalidInput }

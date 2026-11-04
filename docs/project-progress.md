@@ -3,6 +3,28 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Reviewed draft purge handler — 4 November
+
+Connected `drafts.purge` to native review, prepared mutations, editor coordination
+and atomic storage receipts. The handler is available only with all required
+components. It requires destructive authority for the exact targets and version
+set. It never expands a scoped deletion to all Trash. Native review explains
+that versions are removed, action history remains and Undo is not available.
+Denial, cancellation, an ended session and changed stored or pending content
+prevent commit. A completed retry returns its result. A matching storage receipt
+can resolve an uncertain journal after service restart without another effect.
+The recovery path also retains its existing Workspace deletion checks.
+
+The final focused run passed 256 tests across ten app suites and three tests
+in one contract suite. It includes six reviewed purge outcomes, all availability
+component combinations, durable recovery, Workspace regressions, MCP and host
+checks. The normal native build passed.
+
+Source coverage is 70 connected or conditional names out of 137, with 67 direct
+handlers still missing. Installed purge acceptance and full CI for this
+increment remain open. All broader client, lifecycle, provider and distribution
+gates remain open.
+
 ## Deleted-draft editor coordination — 4 November
 
 The editor registry can coordinate a reviewed deletion with its storage commit.

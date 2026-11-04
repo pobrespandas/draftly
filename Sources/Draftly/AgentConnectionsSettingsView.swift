@@ -158,6 +158,14 @@ private struct AgentOperationReviewSheet: View {
            case .string(let name) = review.effects.snapshot["workspaceName"] {
             return [("Workspace", name), ("Effect", "Delete the saved Workspace. Keep all drafts.")]
         }
+        if review.operation == "drafts.purge", case .array(let drafts) = review.effects.snapshot["drafts"] {
+            let names = drafts.compactMap { value -> String? in
+                guard case .object(let fields) = value, case .string(let title) = fields["title"] else { return nil }
+                return title
+            }
+            return [("Drafts", names.joined(separator: "\n")),
+                ("Effect", "Permanently delete these trashed drafts and their versions. Keep action history. This cannot be undone.")]
+        }
         guard case .object(let fields) = review.effects.snapshot["nativeParameters"] else { return [] }
         return fields.keys.sorted().map { key in
             let value = fields[key]!
