@@ -3,6 +3,22 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Real Codex and Claude Code sessions — 4 November
+
+Signed isolated source `fdc05d2` passed a real MCP session with Codex CLI
+0.166.0 and Claude Code 2.1.316. After the user unlocked the Mac, native
+admission showed all three inputs true. The user-approved grant covered only
+one neutral draft and its editor, with four read/write capabilities and no
+renewal. Each client read those resources, received `not_found` for the other
+draft, prepared one version-checked append and verified the resulting text.
+Native UI showed both lines. Neither client retried a write.
+
+The connection was revoked before its deadline. A new signed CLI request then
+returned `permission_denied`. Access was disabled, QA was closed and the
+original preferences were restored. These checks do not accept all operations,
+normal lifecycle behavior or post-update compatibility. Read
+[client acceptance](agent-codex-claude-acceptance.md).
+
 ## Bookmark catalog and CLI paging — 4 November
 
 Connected `bookmarks.list` with scope filtering, alias-only replies and local
@@ -21,8 +37,9 @@ The complete strict run verified 1 consumer, 183 contract, 822 Core and 1,608
 app tests (2,614 total). The native Debug build and two project checks passed.
 The zero-transport invalidation regression passed separately. Full CI
 [41818926971](https://github.com/pobrespandas/draftly/actions/runs/41818926971)
-passed for earlier source `6ec09f6`. Current full CI and installed acceptance
-remain open. Source coverage is 89 connected/conditional names of 137; 48 names
+passed for earlier source `6ec09f6`. Full CI
+[41823966856](https://github.com/pobrespandas/draftly/actions/runs/41823966856)
+passed for `b667fe1`. Installed acceptance for the new handlers remains open. Source coverage is 89 connected/conditional names of 137; 48 names
 have no direct handler. Partial backup sources and reviewed restore remain open.
 
 ## Theme grant choices — 4 November

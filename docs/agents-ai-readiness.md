@@ -39,7 +39,7 @@ agent pairing and grants.
 | Chat Console tools | Shared MCP tool definitions, completed function calls, bounded continuation, and native consent are connected to the QA host. | GPT-6.1-Sol used `drafts.list` and `drafts.get`. It returned the exact approved Unicode draft text. Native activity confirmed both calls. Signed `13c3b1e` also completed one real editor mutation and verification. | Provider-inference cancellation and the remaining operation families; see the bounded installed checks above for editor recovery and conflicts. |
 | Consent and grants | The chat creates a separate connection for the current draft and editor. Reading and editing are separate choices. The grant expires after 15 minutes. | The user approved reading. A fresh native pairing on signed `2ea267b` granted exactly `drafts.read` and `editor.read` for one draft and window. Another draft returned `not_found`; draft/editor writes returned `permission_denied` without text changes. The existing MCP process and a new CLI request were denied after the actual deadline. | Other resource families and their installed negative cases. Draft/editor editing scope, actual prepared-write expiry, and unexpired revocation passed in the bounded follow-up. |
 | Keychain and helper | The app creates the connection credential. The signed helper uses it to authenticate. | The installed helper returned the same limited capabilities. This proves sharing for that QA connection. | Broader client setup and failure-path acceptance. |
-| Installed MCP | The bundled helper exposes the local service through bounded stdio MCP. | A fresh native helper pairing negotiated `2025-11-25`, listed read tools, omitted write tools, and read the approved draft. It denied another draft and remained open through pause, resume, and actual expiry. | A full session for each named client. No Codex or Claude Code compatibility claim follows from this probe. |
+| Installed MCP | The bundled helper exposes the local service through bounded stdio MCP. | A fresh native helper pairing negotiated `2025-11-25`, listed read tools, omitted write tools, and read the approved draft. It denied another draft and remained open through pause, resume, and actual expiry. | The bounded Codex and Claude Code editing flow passed on signed `fdc05d2`; other operations and post-update sessions remain open. |
 | Revocation | Disconnect closes the chat session, revokes its connection, and removes its credential and revoked metadata. | An existing MCP process denied its next read. A new CLI request returned `permission_denied`. No draft text returned after revocation. | Revocation after native handoff and installed storage-failure cases. Revocation before a prepared draft write passed in the follow-up. |
 | Stop Work | The host suspends transport, reviews, and operations. | On signed `2ea267b`, Stop Work set access off, withdrew publication, and denied the existing authorized MCP reader. Explicit resume let that same process read again without changing grant or expiry. | Broader native-effect interruption paths. Signed `e9528d1` passed Stop Work from a pending native review and process-interruption recovery after Share handoff. No external transmission was performed. |
 | Restart | Account and conversation persistence are connected. A new host does not start a listener automatically. | The signed QA retained account and conversation after process exit. Access remained off. | A follow-up signed QA from `2ea267b` retained the selected ChatGPT model after verified process exit. Tools stayed disconnected and access stayed off. Other model/provider restart paths remain pending. Test permission and result recovery for the remaining operations. |
@@ -312,13 +312,18 @@ The normal native Debug build and two project checks passed. Full CI
 passed for `6ec09f6`. The later bookmark and cursor changes have local evidence
 below; their full CI and installed acceptance remain required.
 
-The matching signed isolated app/helper installed and started with access off.
-Both named clients returned a neutral preflight response through their existing
-accounts. No Draftly tool call followed: the GUI rejected enabling access before
-pairing or credential creation. The user-approved 15-minute draft/editor grant
-has not started. QA-only diagnostics expose the actual GUI session inputs;
-control admission remains unchanged. Full client sessions and the normal
-startup/lifecycle gate remain open.
+Signed isolated source `fdc05d2` passed real Codex CLI 0.166.0 and Claude Code
+2.1.316 sessions after the user unlocked the Mac. Each client read the approved
+draft and editor, received `not_found` for the other draft, prepared one append
+with the current editor version and verified it. Native UI showed both lines.
+The connection was revoked before expiry; a fresh CLI call was denied. Access
+was disabled and QA closed. Read [client acceptance](agent-codex-claude-acceptance.md).
+This accepts the tested flow only. Other operation families, lifecycle gates
+and post-update client sessions remain open.
+
+Full CI [41823966856](https://github.com/pobrespandas/draftly/actions/runs/41823966856)
+passed for bookmark and cursor source `b667fe1`. Installed acceptance of those
+later handlers remains open.
 
 ## Bookmark catalog and CLI pagination
 
