@@ -19,6 +19,12 @@ struct AgentConnectionsSettingsView: View {
                     .font(.caption).foregroundStyle(.secondary)
                 Text("Each connection needs your approval. Permissions stay on this Mac and are not included in backups.")
                     .font(.caption).foregroundStyle(.secondary)
+                #if DRAFTLY_AGENT_QA
+                if AgentQAConfiguration.isActive {
+                    Text(AgentApplicationSession.qaAdmissionDiagnostics)
+                        .font(.caption).textSelection(.enabled)
+                }
+                #endif
                 if let command = model.pairingCommand {
                     Button("Copy connection command") {
                         NSPasteboard.general.clearContents()

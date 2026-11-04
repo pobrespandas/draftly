@@ -292,16 +292,20 @@ The focused run passed 163 app tests, 26 Core tests and 16 contract tests. The
 normal native build and two project-generator checks passed. Six remaining
 theme mutations, installed acceptance and full CI remain open.
 
-## Current CI limit
+## Current CI and installed-client state
 
-CI [41804761088](https://github.com/pobrespandas/draftly/actions/runs/41804761088)
-passed all 1,575 app tests, including the revised Apple schema assertion, and
-exited successfully. Strict inventory verification rejected the disabled live
-probe's skipped XML case. The probe now requires an explicit compile flag.
-Routine builds exclude it from inventory rather than skipping it or claiming
-inference success. Eight routine Apple tests passed locally. The unchanged
-strict verifier accepted their XML against discovered names. Full CI for this
-correction remains pending.
+Full CI [41808994708](https://github.com/pobrespandas/draftly/actions/runs/41808994708)
+passed for `abd4e2d`, including strict inventory verification. The earlier live
+probe skip rejection is resolved for that source. Both native build variants passed for the diagnostic-only follow-up. Its
+installed GUI observation and full CI remain pending.
+
+The matching signed isolated app/helper installed and started with access off.
+Both named clients returned a neutral preflight response through their existing
+accounts. No Draftly tool call followed: the GUI rejected enabling access before
+pairing or credential creation. The user-approved 15-minute draft/editor grant
+has not started. QA-only diagnostics expose the actual GUI session inputs;
+control admission remains unchanged. Full client sessions and the normal
+startup/lifecycle gate remain open.
 
 ## Operation coverage
 

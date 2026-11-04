@@ -15,6 +15,18 @@ extension Notification.Name {
         onConsole == true && loginDone == true && protectedDataAvailable
     }
 
+    #if DRAFTLY_AGENT_QA
+    static var qaAdmissionDiagnostics: String {
+        let session = CGSessionCopyCurrentDictionary() as? [String: Any]
+        func value(_ key: String) -> String {
+            (session?[key] as? Bool).map { String($0) } ?? "unknown"
+        }
+        return "QA admission: console=" + value(kCGSessionOnConsoleKey)
+            + ", login=" + value(kCGSessionLoginDoneKey)
+            + ", protectedData=" + String(NSApplication.shared.isProtectedDataAvailable)
+    }
+    #endif
+
     static var isUnavailable: Bool {
         let session = CGSessionCopyCurrentDictionary() as? [String: Any]
         return !permitsAccess(onConsole: session?[kCGSessionOnConsoleKey as String] as? Bool,

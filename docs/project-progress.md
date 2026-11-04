@@ -3,6 +3,30 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Installed client preparation — 4 November
+
+Full CI [41808994708](https://github.com/pobrespandas/draftly/actions/runs/41808994708)
+passed for `abd4e2d`. This includes the routine inventory correction. A Developer
+ID app and helper were built from that source, signed, verified and installed
+in the retained isolated QA. The normal library was not opened. Cloud and
+updates remain disabled. A fresh shared-preference backup is retained.
+
+Startup showed access off. Signed helper discovery returned no endpoints.
+Codex CLI 0.166.0 and Claude Code 2.1.316 both returned `QA_READY` through their
+own existing logins, with no Draftly tools attached. The temporary client
+workspace does not change global MCP configuration. Claude's bare mode skips
+OAuth and Keychain reads; the successful probe instead used restricted mode
+with memory, hooks and unrelated MCP servers excluded.
+
+The user approved a new 15-minute connection for reading and editing only the
+neutral draft and its editor. Enabling access failed before pairing or
+credential creation. The host stayed off. The standalone AppKit sample showed
+protected data unavailable, but an unlaunched CLI sample does not establish the
+GUI app state. Read-only admission diagnostics were added only to the isolated
+QA build. They do not bypass or change the gate. Both the normal native build
+and the QA-flag native build passed. The signed GUI values and full client
+calls remain to be checked. No new grant has started.
+
 ## Durable theme mutations — 4 November
 
 Connected theme creation, custom-theme update and duplication. A theme definition
