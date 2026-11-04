@@ -3,6 +3,20 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Draft request session at commit — 4 November
+
+Draft preparation, storage commits, and receipt responses now check the exact
+active request session as well as its persisted grant. Invalidating a session
+before the storage commit rolls back the change. This closes a gap where the
+grant could remain valid after the original service session had ended.
+
+Seven cases cover creation, update, patch, duplication, version restoration,
+flags, and syntax. They invalidate the service session at the commit boundary,
+check stored drafts and revisions, and retry from a fresh session. The run
+passed 234 tests across ten suites. The normal native build passed. Installed
+lifecycle acceptance and full CI remain separate pending gates. Coverage stays
+at 68 connected or conditional names and 69 missing direct handlers.
+
 ## Draft syntax mutation — 4 November
 
 Connected `drafts.syntax` through the atomic metadata path. Built-in syntax names
@@ -16,8 +30,8 @@ The run passed 265 tests across 13 suites. Tests cover scoped installed lookup,
 built-in batches, Unicode names, changes during commit, rollback, and retries.
 The normal native build passed. Source-set coverage is 68 connected or
 conditional names out of 137, with 69 missing direct handlers. Installed syntax
-acceptance and full CI remain pending. A separate active-session check at the
-draft storage boundary is the next hardening step. Keep PR #105 in draft.
+acceptance and full CI remain pending. The active-session increment above
+adds a check at the draft storage boundary. Keep PR #105 in draft.
 
 ## Atomic draft metadata batches — 4 November
 

@@ -198,6 +198,15 @@ Unicode names, changes in definition identity and content, and repeat results
 after a later rename. The run passed 265 tests across 13 suites, and the normal
 native build passed. Full CI and installed acceptance remain pending.
 
+## Draft request session boundary
+
+The service now supplies an exact active-session check to draft preparation and
+writes. Each storage commit checks that session again. A persisted grant alone
+cannot keep an invalidated request session alive. Seven regression cases prove
+rollback and retry from a fresh session across the draft write paths. The run
+passed 234 tests across ten suites. The normal native build passed. This is
+source-level evidence; installed lifecycle acceptance remains pending.
+
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found

@@ -552,7 +552,9 @@ import AgentContracts
             else if ["actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder"].contains(bound.operation) { ticket = try actions.prepareActionUpdate(bound, connectionID: grant.connectionID) }
             else {
                 guard let writes else { throw AgentErrorCode.unavailable }
-                ticket = try writes.prepare(bound, connectionID: grant.connectionID)
+                ticket = try writes.prepare(bound, connectionID: grant.connectionID) {
+                    try self.validateSession(sessionID, grant: grant)
+                }
             }
             return ["requestID": .string(bound.requestID.uuidString), "retryKey": .string(ticket.value),
                 "expiresAt": .string(APIValues.date(min(ticket.expiresAt, grant.expiresAt)))]
@@ -578,12 +580,16 @@ import AgentContracts
             return ["resource": .object(["id": .string(resource.id.uuidString), "versionToken": .string(resource.versionToken)])]
         case "drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags", "drafts.syntax":
             guard let writes else { throw AgentErrorCode.unavailable }
-            let receipt = try writes.update(request, connectionID: grant.connectionID)
+            let receipt = try writes.update(request, connectionID: grant.connectionID) {
+                try self.validateSession(sessionID, grant: grant)
+            }
             return ["resources": .array(receipt.resources.map { .object(["id": .string($0.id.uuidString),
                 "versionToken": .string($0.versionToken)]) })]
         case "drafts.create", "drafts.update", "drafts.patch", "drafts.duplicate", "drafts.restoreVersion":
             guard let writes else { throw AgentErrorCode.unavailable }
-            let receipt = try writes.update(request, connectionID: grant.connectionID)
+            let receipt = try writes.update(request, connectionID: grant.connectionID) {
+                try self.validateSession(sessionID, grant: grant)
+            }
             guard let resource = receipt.resources.first else { throw AgentErrorCode.storageError }
             return ["resource": .object(["id": .string(resource.id.uuidString), "versionToken": .string(resource.versionToken)])]
         case "editor.setSelection", "editor.replaceRange", "editor.undo", "editor.redo", "editor.tasks", "editor.replaceAll":

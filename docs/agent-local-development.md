@@ -962,3 +962,12 @@ A changed name, source, type, or installed identity prevents the whole batch.
 This check concerns the stored definition, not the current bytes of an external
 syntax file. Completed receipts return without applying a definition again,
 even if the person renamed that definition after the original commit.
+
+
+### Active draft request sessions
+
+The command service passes its current session check to draft preparation and
+writes. The writer checks that session before a storage commit and before it
+returns a receipt. A valid persisted grant does not keep an ended service
+session valid. If the session ends before the commit, the transaction rolls
+back. A fresh authenticated session can retry the same authorized request.

@@ -203,6 +203,44 @@ struct AgentCommandServiceTests {
         #expect(f.library.notes == stored && f.library.revisions == revisions)
     }
 
+    @Test(arguments: ["drafts.create", "drafts.update", "drafts.patch", "drafts.duplicate", "drafts.restoreVersion", "drafts.flag", "drafts.syntax"])
+    func losingTheActiveSessionBeforeCommitRollsBackDraftWrites(operation: String) throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let original = try f.note("Original café 🐼")
+        var current = original; current.content = "Current café 🐼"; try f.library.saveNote(current)
+        let (record, session) = try f.connect(capabilities: [.draftsRead, .draftsWrite])
+        let draft = AgentResourceReference(kind: .draft, id: original.id)
+        let read = try f.values("drafts.get", session: session, targets: [draft])
+        guard case .object(let metadata) = read["draft"], case .string(let version) = metadata["versionToken"] else {
+            Issue.record("Missing version"); return
+        }
+        var targets: [AgentResourceReference] = operation == "drafts.create" ? [] : [draft]
+        if operation == "drafts.restoreVersion" {
+            let revision = try #require(f.library.revisions.first { $0.noteID == original.id })
+            targets.append(.init(kind: .revision, id: revision.id))
+        }
+        let parameters: [String: AgentJSONValue]
+        switch operation {
+        case "drafts.create": parameters = ["content": .string("Created")]
+        case "drafts.update": parameters = ["changes": .object(["content": .string("Updated")])]
+        case "drafts.patch": parameters = ["edits": .array([.object(["offset": .integer(0), "length": .integer(0), "text": .string("Prefix ")])])]
+        case "drafts.flag": parameters = ["flag": .integer(4)]
+        case "drafts.syntax": parameters = ["name": .string("TaskPaper")]
+        default: parameters = [:]
+        }
+        let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: operation, targets: targets,
+            expectedVersion: operation == "drafts.create" ? nil : version, parameters: parameters)
+        let request = try f.preparedMutation(intent, session: session)
+        let notes = f.library.notes, revisions = f.library.revisions
+        f.library.beforeBatchCommit = { f.service.invalidateAll() }
+        #expect(try f.send(request, session: session).outcome == .error(.permissionDenied))
+        #expect(f.library.notes == notes && f.library.revisions == revisions)
+        f.library.beforeBatchCommit = nil
+        let next = try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        let retried = try f.send(request, session: next)
+        guard case .result = retried.outcome else { Issue.record("Fresh session could not retry: \(retried)"); return }
+    }
+
     @Test(arguments: 0..<4, [false, true])
     func installedSyntaxNeedsReadCapabilityAndItsResourceScope(_ mask: Int, byName: Bool) throws {
         let f = try Fixture(); defer { f.cleanEditorPreferences() }
