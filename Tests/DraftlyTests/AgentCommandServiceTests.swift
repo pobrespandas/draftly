@@ -2318,8 +2318,9 @@ struct AgentCommandServiceTests {
         let reference = AgentResourceReference(kind: .operation, id: id)
         #expect(try f.response("transfers.readChunk", session: other, targets: [reference], parameters: ["offset": .integer(0)]).outcome == .error(.notFound))
         let reauthenticated = try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
-        #expect(try f.response("transfers.readChunk", session: reauthenticated, targets: [reference], parameters: ["offset": .integer(0)]).outcome == .error(.notFound))
         let chunk = try f.values("transfers.readChunk", session: session, targets: [reference], parameters: ["offset": .integer(0)])
+        let resumed = try f.values("transfers.readChunk", session: reauthenticated, targets: [reference], parameters: ["offset": .integer(0)])
+        #expect(resumed == chunk)
         guard case .string(let encoded) = chunk["data"], let bytes = Data(base64Encoded: encoded) else {
             Issue.record("Missing exported bytes"); return
         }
@@ -2375,7 +2376,15 @@ struct AgentCommandServiceTests {
         }
         f.service.close(fresh)
         let reopened = try f.service.authenticate(connectionID: second.id, credential: #require(f.secrets[second.id]))
-        #expect(try f.response("transfers.readChunk", session: reopened, targets: [.init(kind: .operation, id: freshID)],
+        let resumed = try f.values("transfers.readChunk", session: reopened, targets: [.init(kind: .operation, id: freshID)],
+            parameters: ["offset": .integer(0)])
+        guard case .string(let encodedResume) = resumed["data"], let resumedBytes = Data(base64Encoded: encodedResume) else {
+            throw AgentErrorCode.storageError
+        }
+        #expect(freshTransfer["sha256"] == .string(AgentTransferStore.digest(resumedBytes)))
+        f.service.invalidate(connectionID: second.id)
+        let afterInvalidation = try f.service.authenticate(connectionID: second.id, credential: #require(f.secrets[second.id]))
+        #expect(try f.response("transfers.readChunk", session: afterInvalidation, targets: [.init(kind: .operation, id: freshID)],
             parameters: ["offset": .integer(0)]).outcome == .error(.notFound))
     }
 

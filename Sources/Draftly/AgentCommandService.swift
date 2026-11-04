@@ -173,7 +173,7 @@ import AgentContracts
     }
 
     func close(_ session: Session) {
-        sessions.removeValue(forKey: session.id); pages.remove(sessionID: session.id); transfers.remove(sessionID: session.id)
+        sessions.removeValue(forKey: session.id); pages.remove(sessionID: session.id)
     }
 
     func authorizedLibraryID(for session: Session) throws -> UUID { try authorize(session).libraryID }
@@ -186,8 +186,9 @@ import AgentContracts
 
     func invalidate(connectionID: UUID) {
         for id in sessions.filter({ $0.value.connectionID == connectionID }).keys {
-            sessions.removeValue(forKey: id); pages.remove(sessionID: id); transfers.remove(sessionID: id)
+            sessions.removeValue(forKey: id); pages.remove(sessionID: id)
         }
+        transfers.remove(connectionID: connectionID)
     }
 
     func invalidateAll() { sessions.removeAll(); pages.removeAll(); transfers.removeAll() }
@@ -220,7 +221,7 @@ import AgentContracts
                 guard request.targets.count == 1, let target = request.targets.first, target.kind == .operation else {
                     throw AgentErrorCode.invalidInput
                 }
-                try transfers.authorize(target.id, sessionID: session.id, grant: grant)
+                try transfers.authorize(target.id, grant: grant)
                 // Transfer ownership retains the exact source grant and resource scope.
                 policyGrant = AgentGrant(connectionID: grant.connectionID, libraryID: grant.libraryID,
                     expiresAt: grant.expiresAt, revoked: grant.revoked, capabilities: grant.capabilities,
@@ -454,11 +455,11 @@ import AgentContracts
                           sessionID: UUID) throws -> [String: AgentJSONValue] {
         switch request.operation {
         case "transfers.beginImport", "transfers.appendChunk", "transfers.finishImport", "transfers.readChunk", "transfers.cancel":
-            return try transfers.perform(request, parameters: parameters, sessionID: sessionID, grant: grant)
+            return try transfers.perform(request, parameters: parameters, grant: grant)
         case "exports.drafts":
             let data = try drafts.export(request, parameters: parameters, grant: grant)
             try validateSession(sessionID, grant: grant)
-            let transfer = try transfers.export(data, resources: Set(request.targets), sessionID: sessionID, grant: grant)
+            let transfer = try transfers.export(data, resources: Set(request.targets), grant: grant)
             return ["transfer": transfer, "format": parameters["format"] ?? .string("draftly"),
                 "draftIDs": .array(request.targets.map { .string($0.id.uuidString) })]
         case "themes.list", "themes.get", "themes.export", "themes.selection", "themes.exportBuiltIn":
