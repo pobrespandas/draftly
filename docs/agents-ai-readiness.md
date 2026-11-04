@@ -406,11 +406,29 @@ change the library or select a syntax. The focused run passed 134 app tests,
 30 Core tests and 13 appearance contract tests. The native Debug build passed. Installed acceptance and full CI for this
 increment remain open.
 
+## Bounded operation waiting
+
+`operations.wait` observes an operation owned by the same connection. It
+returns on completion, a pending human review or a bounded observer timeout
+of 1 to 30 seconds. A timed-out or cancelled observer does not cancel the
+underlying work and does not replay its effects. The registry allows at most
+16 active observers. Socket and Chat Console requests use the asynchronous
+service path, so a wait does not block other requests.
+
+The observer checks current authorization while suspended and before returning
+bytes. Revocation, changed grants, resource-scope changes, lock and session
+invalidation prevent delivery. The helper allows five seconds of transport
+margin for a maximum-length wait. Ordinary requests retain their 30-second
+transport budget. The focused 199 tests and the native package-name build
+passed. A strict full recheck verified 2,622 tests after an earlier unreported
+Intent-process exit. Read [wait validation](agent-operation-waiting-acceptance.md).
+Full CI and installed acceptance for this increment remain open.
+
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-89 names in implemented or conditional handler sets. The other 48 names have
-no direct handler in those sets. These counts do not prove that 89 operations
+90 names in implemented or conditional handler sets. The other 47 names have
+no direct handler in those sets. These counts do not prove that 90 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional

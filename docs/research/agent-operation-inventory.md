@@ -5,25 +5,15 @@ Current handler and acceptance reconciliation is in
 This inventory records required contracts, including contracts without a current
 handler. It is not a list of delivered tools.
 
-Status: eight read handlers exist in the internal application service. No endpoint
-is enabled. The installed app has no agent client access yet.
-
-Snapshot date: 31 October 2026. Read-handler update: 1 November 2026.
-The table records the required inventory, not implementation completion.
+The table records all required contracts. It does not claim that each contract
+has a connected handler. Current source coverage, test evidence and installed
+acceptance are recorded in the readiness report linked above.
 
 The authoritative operation names, permission families, resource target rules,
 and expected-version/approval requirements are in
 [AgentOperationCatalog](../../Sources/AgentContracts/AgentOperationCatalog.swift).
-The first contract tests validate message safety and baseline grants. Operation
-parameter/result schemas, native destination grants, and per-member handler tests
-remain required before execution. This inventory is not evidence of functionality.
-
-AgentCommandService implements server.status, server.capabilities, server.schemas,
-library.summary, drafts.list, drafts.search, drafts.get and drafts.versions. Its
-runtime handler set determines availability. The contract catalog cannot claim
-execution availability. All other operations return an explicit unavailable or
-authorization error. See [architecture](../architecture.md#authenticated-agent-reads)
-for scope, paging, output limits and the pending transport/UI acceptance.
+The configured service advertises only its connected and permitted handlers.
+Contract presence alone does not make an operation available.
 
 | Operation | Existing owner or planned boundary | Capability names in code | Targets | Additional requirements |
 | --- | --- | --- | --- | --- |

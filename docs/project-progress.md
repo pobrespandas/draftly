@@ -3,6 +3,25 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Bounded operation waiting — 4 November
+
+Connected `operations.wait` through the asynchronous socket and Chat Console
+service paths. A wait observes only an owned operation. It returns on terminal
+state, human attention or a 1–30 second observer deadline. It does not replay
+or cancel the underlying work. Live session/grant checks run while waiting and
+before delivery. The registry bounds concurrent observers at 16. The helper
+reserves transport margin for a maximum-length wait.
+
+The focal run passed 199 tests in seven suites. It includes service concurrency,
+cross-connection denial and revocation before delivery. The normal package-name
+native build and two project checks passed. The strict recheck verified 1 consumer, 183 contract, 822 Core and 1,616 app
+tests (2,622 total). The first complete attempt exited during an existing Intent
+test without a results report; its isolated suite and the full recheck passed.
+See [wait validation](agent-operation-waiting-acceptance.md). CI
+for this increment is pending. Source coverage is now 90 connected or
+conditional names out of 137; 47 have no direct handler. These counts are not
+installed acceptance.
+
 ## Real Codex and Claude Code sessions — 4 November
 
 Signed isolated source `fdc05d2` passed a real MCP session with Codex CLI

@@ -87,12 +87,15 @@ import DraftlyCore
     private let authorization: AgentOperationAuthorization
     private let now: () -> Date
     private let capacity: Int
+    private let maximumWaiters: Int
+    private(set) var activeWaitCount = 0
     private let journal: AgentOperationJournal?
 
-    init(capacity: Int = 128, currentGrant: @escaping (UUID) throws -> AgentGrant?,
+    init(capacity: Int = 128, maximumWaiters: Int = 16, currentGrant: @escaping (UUID) throws -> AgentGrant?,
          validateHost: @escaping () throws -> Void, isLocked: @escaping () -> Bool,
          now: @escaping () -> Date = Date.init, journal: AgentOperationJournal? = nil) {
         self.capacity = max(1, capacity)
+        self.maximumWaiters = max(1, maximumWaiters)
         authorization = AgentOperationAuthorization(currentGrant: currentGrant,
             validateHost: validateHost, isLocked: isLocked, now: now)
         self.now = now
@@ -323,6 +326,40 @@ import DraftlyCore
         guard request.libraryID == entry.grant.libraryID else { throw AgentErrorCode.permissionDenied }
         let accepted = request.operation == "operations.cancel" ? try cancel(target.id, connectionID: connectionID) : false
         return (try snapshot(target.id, connectionID: connectionID), accepted)
+    }
+
+    // Waiting observes work. It does not cancel or replay it.
+    func wait(_ request: AgentRequest, connectionID: UUID,
+              validateSession: () throws -> Void,
+              uptime: () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
+              sleep: () async throws -> Void = { try await Task.sleep(for: .milliseconds(100)) }) async throws
+        -> (snapshot: Snapshot, waitExpired: Bool) {
+        guard request.operation == "operations.wait", request.targets.count == 1,
+              let target = request.targets.first, target.kind == .operation else { throw AgentErrorCode.invalidInput }
+        let parameters: [String: AgentJSONValue]
+        do { parameters = try AgentOperationSchemas.validatedParameters(for: request) }
+        catch { throw AgentErrorCode.invalidInput }
+        guard case .integer(let seconds) = parameters["timeoutSeconds"] else { throw AgentErrorCode.invalidInput }
+        guard activeWaitCount < maximumWaiters else { throw AgentErrorCode.busy }
+        activeWaitCount += 1; defer { activeWaitCount -= 1 }
+        let started = uptime()
+        do {
+            while true {
+                try Task.checkCancellation(); try validateSession()
+                guard let grant = try authorization.currentGrant(for: connectionID), request.libraryID == grant.libraryID else {
+                    throw AgentErrorCode.permissionDenied
+                }
+                let current = try snapshot(target.id, connectionID: connectionID)
+                if current.state.isTerminal || current.state == .waitingForUser {
+                    try Task.checkCancellation(); try validateSession()
+                    return (current, false)
+                }
+                let tick = uptime()
+                guard started.isFinite, tick.isFinite, tick >= started else { throw AgentErrorCode.timeout }
+                if tick - started >= Double(seconds) { return (current, true) }
+                try await sleep()
+            }
+        } catch is CancellationError { throw AgentErrorCode.cancelled }
     }
 
     func cancel(_ id: UUID, connectionID: UUID) throws -> Bool {

@@ -8,6 +8,47 @@ import AgentContracts
 
 @Suite("Authenticated agent reads") @MainActor
 struct AgentCommandServiceTests {
+    @Test(arguments: [false, true])
+    func asynchronousWaitKeepsOtherRequestsResponsiveAndRechecksRevocation(revoke: Bool) async throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let registry = AgentOperationRegistry(currentGrant: { try f.connections.grantForAuthenticatedConnection($0) },
+            validateHost: {}, isLocked: { false }, now: { f.wall })
+        f.operations = registry; f.service = try f.makeService()
+        let (record, session) = try f.connect(capabilities: [.presentUI, .draftsRead])
+        let (_, otherSession) = try f.connect(capabilities: [.presentUI, .draftsRead])
+        let grant = try #require(try f.connections.grantForAuthenticatedConnection(record.id))
+        let window = UUID(), draft = UUID(), gate = AsyncStream<Void>.makeStream()
+        defer { registry.cancelAll(); gate.continuation.finish() }
+        let operation = try registry.startValueRequest(AgentRequest(requestID: UUID(), libraryID: f.libraryID,
+            operation: "editor.preview", targets: [.init(kind: .window, id: window)],
+            parameters: ["visible": .bool(true)]), grant: grant) { _ in
+                for await _ in gate.stream { break }
+                return ["windowID": .string(window.uuidString), "draftID": .string(draft.uuidString), "visible": .bool(true)]
+            }
+        let request = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "operations.wait",
+            targets: [.init(kind: .operation, id: operation)], parameters: ["timeoutSeconds": .integer(5)])
+        let data = try JSONEncoder().encode(request)
+        let foreign = try await f.service.respondAsync(to: data, session: otherSession)
+        #expect(try JSONDecoder().decode(AgentResponse.self, from: foreign).outcome == .error(.notFound))
+        let observer = Task { try await f.service.respondAsync(to: data, session: session) }
+        for _ in 0..<1000 where registry.activeWaitCount == 0 { await Task.yield() }
+        #expect(registry.activeWaitCount == 1)
+        let status = try f.response("server.status", session: session)
+        guard case .result = status.outcome else { Issue.record("Waiting blocked another request"); return }
+        if revoke { _ = try f.connections.revokeFromUserInterface(record.id) }
+        gate.continuation.yield()
+        let response = try JSONDecoder().decode(AgentResponse.self, from: await observer.value)
+        if revoke {
+            #expect(response.outcome == .error(.permissionDenied))
+        } else {
+            guard case .result(.object(let value)) = response.outcome else { Issue.record("Missing wait result"); return }
+            #expect(value["waitExpired"] == .bool(false))
+            guard case .object(let operation) = value["operation"] else { Issue.record("Missing operation"); return }
+            #expect(operation["state"] == .string("succeeded"))
+        }
+        #expect(registry.activeWaitCount == 0)
+    }
+
     @Test func actionSubmissionIsAvailableOnlyWithConnectedExecutorAndRegistry() async throws {
         let f = try Fixture()
         let (record, _) = try f.connect(capabilities: [.actionsRun, .actionsRead, .draftsRead])

@@ -29,7 +29,7 @@ import AgentContracts
             let bound = AgentRequest(requestID: request.requestID, libraryID: libraryID, operation: request.operation,
                 targets: request.targets, expectedVersion: request.expectedVersion, retryKey: request.retryKey,
                 parameters: request.parameters)
-            return try JSONDecoder().decode(AgentResponse.self, from: service.respond(to: JSONEncoder().encode(bound), session: session))
+            return try JSONDecoder().decode(AgentResponse.self, from: await service.respondAsync(to: JSONEncoder().encode(bound), session: session))
         }, onClose: { service.close(session) }, onDisconnect: onDisconnect, validateContext: validateContext)
     }
 

@@ -79,7 +79,8 @@ import AgentLocalTransport
                 try await channel.writeFrame(JSONEncoder().encode(AgentLocalHandshake.Welcome(libraryID: libraryID)), timeout: 15)
                 while !Task.isCancelled {
                     let request = try await channel.readFrame()
-                    try await channel.writeFrame(service.respond(to: request, session: authenticated))
+                    let response = try await service.respondAsync(to: request, session: authenticated)
+                    try await channel.writeFrame(response)
                 }
             } catch { /* A failed or disconnected peer has no reusable session. */ }
         }

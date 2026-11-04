@@ -198,7 +198,40 @@ import AgentContracts
 
     // An invalid envelope has no trusted request identity and fails before dispatch.
     func respond(to data: Data, session: Session) throws -> Data {
+        try respond(to: AgentRequest.decode(data), session: session)
+    }
+
+    func respondAsync(to data: Data, session: Session) async throws -> Data {
         let request = try AgentRequest.decode(data)
+        guard request.operation == "operations.wait" else { return try respond(to: request, session: session) }
+        var authority: (connectionID: UUID, grantID: UUID)?
+        var result = AgentErrorCode.storageError.rawValue
+        defer {
+            if let authority { recordActivity(authority.connectionID, authority.grantID, request.requestID, request.operation, result) }
+        }
+        do {
+            let grant = try authorize(session)
+            authority = (grant.connectionID, grant.grantID)
+            _ = try authorizedParameters(for: request, grant: grant)
+            guard let operationRegistry else { throw AgentErrorCode.unavailable }
+            let waited = try await operationRegistry.wait(request, connectionID: grant.connectionID,
+                validateSession: { try self.validateSession(session.id, grant: grant) })
+            let values: [String: AgentJSONValue] = ["operation": try waited.snapshot.wireValue(), "waitExpired": .bool(waited.waitExpired)]
+            do { try AgentOperationSchemas.validateResult(values, for: request, preferences: preferences) }
+            catch { throw AgentErrorCode.storageError }
+            let encoded = try JSONEncoder().encode(AgentResponse(requestID: request.requestID, outcome: .result(.object(values))))
+            guard encoded.count <= AgentRequest.maximumBytes else { throw AgentErrorCode.unavailable }
+            try validateSession(session.id, grant: grant)
+            result = "success"
+            return encoded
+        } catch {
+            let code = (error as? AgentErrorCode) ?? (error is CancellationError ? .cancelled : .storageError)
+            result = code.rawValue
+            return try JSONEncoder().encode(AgentResponse(requestID: request.requestID, outcome: .error(code)))
+        }
+    }
+
+    private func respond(to request: AgentRequest, session: Session) throws -> Data {
         var authority: (connectionID: UUID, grantID: UUID)?
         var result = AgentErrorCode.storageError.rawValue
         defer {
@@ -209,48 +242,7 @@ import AgentContracts
         do {
             let grant = try authorize(session)
             authority = (grant.connectionID, grant.grantID)
-            var policyGrant = grant
-            if ["operations.get", "operations.cancel"].contains(request.operation), let operationRegistry {
-                guard request.targets.count == 1, let target = request.targets.first, target.kind == .operation else {
-                    throw AgentErrorCode.invalidInput
-                }
-                _ = try operationRegistry.snapshot(target.id, connectionID: grant.connectionID)
-                // The registry checks original resource scope and operation ownership.
-                policyGrant = AgentGrant(connectionID: grant.connectionID, libraryID: grant.libraryID,
-                    expiresAt: grant.expiresAt, revoked: grant.revoked, capabilities: grant.capabilities,
-                    scope: .library, grantID: grant.grantID)
-            }
-            if request.operation.hasPrefix("transfers."), request.operation != "transfers.beginImport" {
-                guard request.targets.count == 1, let target = request.targets.first, target.kind == .operation else {
-                    throw AgentErrorCode.invalidInput
-                }
-                try transfers.authorize(target.id, grant: grant)
-                // Transfer ownership retains the exact source grant and resource scope.
-                policyGrant = AgentGrant(connectionID: grant.connectionID, libraryID: grant.libraryID,
-                    expiresAt: grant.expiresAt, revoked: grant.revoked, capabilities: grant.capabilities,
-                    scope: .library, grantID: grant.grantID)
-            }
-            switch AgentPermissionPolicy.evaluate(request, connectionID: grant.connectionID, grant: policyGrant, now: now()) {
-            case .permitted: break
-            case .denied(let error): throw error
-            case .needsHumanApproval:
-                guard ["workspaces.delete", "drafts.purge"].contains(request.operation), deletionApprovals != nil,
-                      operationRegistry != nil else { throw AgentErrorCode.unavailable }
-            case .needsEffectAuthorization(_, let humanApproval):
-                let reviewedAction = request.operation == "actions.run" && submitAction != nil && operationRegistry != nil
-                let preferenceMutation = AgentPreferenceWriting.operationNames.contains(request.operation) && preferenceWrites != nil
-                let workspaceEffect = AgentWorkspaceApplication.operationNames.contains(request.operation) && workspaceApplication != nil
-                let themeRead = AgentThemeReading.effectOperations.contains(request.operation)
-                let syntaxExport = request.operation == "syntaxes.export"
-                let themeMutation = AgentThemeWriting.operationNames.contains(request.operation)
-                guard reviewedAction || (!humanApproval && (preferenceMutation || workspaceEffect || themeRead || themeMutation || syntaxExport)) else {
-                    throw AgentErrorCode.unavailable
-                }
-            }
-            guard availableOperations.contains(request.operation) else { throw AgentErrorCode.unavailable }
-            let parameters: [String: AgentJSONValue]
-            do { parameters = try AgentOperationSchemas.validatedParameters(for: request, preferences: preferences) }
-            catch { throw AgentErrorCode.invalidInput }
+            let parameters = try authorizedParameters(for: request, grant: grant)
             let outcome: AgentResponse.Outcome
             if ["workspaces.delete", "drafts.purge"].contains(request.operation) {
                 outcome = try submitDeletion(request, grant: grant, sessionID: session.id)
@@ -275,6 +267,52 @@ import AgentContracts
         } catch {
             return try JSONEncoder().encode(AgentResponse(requestID: request.requestID, outcome: .error(.storageError)))
         }
+    }
+
+    private func authorizedParameters(for request: AgentRequest, grant: AgentGrant) throws -> [String: AgentJSONValue] {
+        var policyGrant = grant
+        if ["operations.get", "operations.cancel", "operations.wait"].contains(request.operation), let operationRegistry {
+            guard request.targets.count == 1, let target = request.targets.first, target.kind == .operation else {
+                throw AgentErrorCode.invalidInput
+            }
+            _ = try operationRegistry.snapshot(target.id, connectionID: grant.connectionID)
+            // The registry checks original resource scope and operation ownership.
+            policyGrant = AgentGrant(connectionID: grant.connectionID, libraryID: grant.libraryID,
+                expiresAt: grant.expiresAt, revoked: grant.revoked, capabilities: grant.capabilities,
+                scope: .library, grantID: grant.grantID)
+        }
+        if request.operation.hasPrefix("transfers."), request.operation != "transfers.beginImport" {
+            guard request.targets.count == 1, let target = request.targets.first, target.kind == .operation else {
+                throw AgentErrorCode.invalidInput
+            }
+            try transfers.authorize(target.id, grant: grant)
+            // Transfer ownership retains the exact source grant and resource scope.
+            policyGrant = AgentGrant(connectionID: grant.connectionID, libraryID: grant.libraryID,
+                expiresAt: grant.expiresAt, revoked: grant.revoked, capabilities: grant.capabilities,
+                scope: .library, grantID: grant.grantID)
+        }
+        switch AgentPermissionPolicy.evaluate(request, connectionID: grant.connectionID, grant: policyGrant, now: now()) {
+        case .permitted: break
+        case .denied(let error): throw error
+        case .needsHumanApproval:
+            guard ["workspaces.delete", "drafts.purge"].contains(request.operation), deletionApprovals != nil,
+                  operationRegistry != nil else { throw AgentErrorCode.unavailable }
+        case .needsEffectAuthorization(_, let humanApproval):
+            let reviewedAction = request.operation == "actions.run" && submitAction != nil && operationRegistry != nil
+            let preferenceMutation = AgentPreferenceWriting.operationNames.contains(request.operation) && preferenceWrites != nil
+            let workspaceEffect = AgentWorkspaceApplication.operationNames.contains(request.operation) && workspaceApplication != nil
+            let themeRead = AgentThemeReading.effectOperations.contains(request.operation)
+            let syntaxExport = request.operation == "syntaxes.export"
+            let themeMutation = AgentThemeWriting.operationNames.contains(request.operation)
+            guard reviewedAction || (!humanApproval && (preferenceMutation || workspaceEffect || themeRead || themeMutation || syntaxExport)) else {
+                throw AgentErrorCode.unavailable
+            }
+        }
+        guard availableOperations.contains(request.operation) else { throw AgentErrorCode.unavailable }
+        let parameters: [String: AgentJSONValue]
+        do { parameters = try AgentOperationSchemas.validatedParameters(for: request, preferences: preferences) }
+        catch { throw AgentErrorCode.invalidInput }
+        return parameters
     }
 
     private func submitDeletion(_ request: AgentRequest, grant: AgentGrant,
