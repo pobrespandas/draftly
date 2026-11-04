@@ -16,7 +16,7 @@ Native review, editor coordination and installed acceptance remain open. The
 operation coverage count stays at 69 connected or conditional and 68 missing.
 
 The focused run passed 20 receipt tests and three native Trash-command tests.
-A follow-up passed seven Draft operations tests and one resource-choice test.
+A follow-up passed seven Draft operations tests and four resource-choice tests.
 The normal native build passed. Full CI for this increment remains pending.
 
 Before connecting the handler, bind review to the exact draft versions and
