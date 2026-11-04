@@ -3,6 +3,15 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## New draft receipt versions — 4 November
+
+A regression test showed that Create and Duplicate returned a version token
+that changed on the first read of the new draft. Receipt creation now uses the
+same editor generation as the draft reader. The new token matches that first
+read. Both failing cases now pass, and all 25 draft-writing tests passed.
+This fixes the receipt path that Merge will also use. Full integration, native
+build, and installed acceptance remain pending for this increment.
+
 ## Draft creation scope — 4 November
 
 Create and Duplicate now require library scope. Their new draft identity cannot

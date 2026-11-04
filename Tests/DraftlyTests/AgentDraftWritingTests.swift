@@ -182,6 +182,21 @@ struct AgentDraftWritingTests {
         #expect(try f.library.mutationReceipt(for: mutation, at: f.wall) == nil)
     }
 
+    @Test(arguments: ["drafts.create", "drafts.duplicate"])
+    func newDraftReceiptContainsTheCurrentVersion(operation: String) throws {
+        let f = try Fixture(); defer { f.close() }
+        let writer = try f.writer()
+        let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: operation,
+            targets: operation == "drafts.create" ? [] : [.init(kind: .draft, id: f.note.id)],
+            expectedVersion: operation == "drafts.create" ? nil : try f.token())
+        let ticket = try writer.prepare(intent, connectionID: f.connectionID)
+        let request = AgentRequest(requestID: intent.requestID, libraryID: f.libraryID, operation: operation,
+            targets: intent.targets, expectedVersion: intent.expectedVersion, retryKey: ticket.value)
+        let receipt = try writer.update(request, connectionID: f.connectionID)
+        let resource = try #require(receipt.resources.first)
+        #expect(try f.token(resource.id) == resource.versionToken)
+    }
+
     @Test func createPersistsOneDraftWithoutARevisionAndRecoversItsReceipt() throws {
         let f = try Fixture(); defer { f.close() }
         let writer = try f.writer()
