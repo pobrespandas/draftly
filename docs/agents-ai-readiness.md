@@ -43,7 +43,7 @@ agent pairing and grants.
 | Revocation | Disconnect closes the chat session, revokes its connection, and removes its credential and revoked metadata. | An existing MCP process denied its next read. A new CLI request returned `permission_denied`. No draft text returned after revocation. | Revocation after native handoff and installed storage-failure cases. Revocation before a prepared draft write passed in the follow-up. |
 | Stop Work | The host suspends transport, reviews, and operations. | On signed `2ea267b`, Stop Work set access off, withdrew publication, and denied the existing authorized MCP reader. Explicit resume let that same process read again without changing grant or expiry. | Broader native-effect interruption paths. Signed `e9528d1` passed Stop Work from a pending native review and process-interruption recovery after Share handoff. No external transmission was performed. |
 | Restart | Account and conversation persistence are connected. A new host does not start a listener automatically. | The signed QA retained account and conversation after process exit. Access remained off. | A follow-up signed QA from `2ea267b` retained the selected ChatGPT model after verified process exit. Tools stayed disconnected and access stayed off. Other model/provider restart paths remain pending. Test permission and result recovery for the remaining operations. |
-| Normal startup and lock | Host creation is still gated to isolated agent QA. | Fresh QA access started off. The QA lock adapter does not detect screen lock. | Normal startup with access off, verified initial lock state, lock/sleep transitions, and explicit resume. |
+| Normal startup and lock | Builds with a bundled helper now construct an idle host outside QA. The default admission check requires a known console session, completed login, and protected data. Suspension notifications invalidate access before their main-thread callback returns. | Prior installed QA started with access off. The new startup and session changes still need installed acceptance. | Real screen lock, sleep/wake, initial locked startup, and explicit resume. Protected-data availability is not a guarantee of graphical unlock. |
 | Distribution | App and helper profiles and signatures are checked. | Both ran installed with matching Developer ID identities. | Combined notarization, final release packaging, architecture checks, signed updates, and post-update CLI/MCP sessions. |
 | Apple Intelligence | Available on-device and Cloud choices are connected through the native model adapter. | Both choices appeared in this QA. An earlier isolated QA checked an on-device reply. | Availability is separate from inference. Cloud inference and tool integration need their own acceptance. |
 
@@ -59,6 +59,24 @@ still published, and the grant record was enabled, unrevoked, nonrenewable, and
 unchanged from before expiry. This distinguishes expiry from a manual stop or
 revocation. The QA then stopped, revoked the test connection, and exited.
 Shared preferences and saved window state were restored from the fresh backup.
+
+## Normal startup follow-up
+
+The normal path requires the bundled helper executable. Host construction still
+validates the signed application identity and its Keychain entitlements before
+creating agent state. Construction does not start transport or restore access.
+A host failure does not stop the writing library from opening. The isolated QA
+now uses the same startup and session admission path instead of a fixed unlocked
+adapter.
+
+Core Graphics console and login properties reject missing or inactive sessions.
+They do not establish screen-unlocked state. Apple distinguishes protected-data
+availability from graphical screen lock and does not guarantee equivalence.
+See [Apple DTS on screen-lock state](https://developer.apple.com/forums/thread/850327)
+and [session properties](https://developer.apple.com/documentation/coregraphics/window-server-session-properties).
+Real screen-lock acceptance remains open. No private lock keys or notifications
+have been added. The final focused run passed 54 application-host and local-host tests. The
+native QA build passed. Installed acceptance is still pending.
 
 ## Operation coverage
 

@@ -149,6 +149,17 @@ struct AgentApplicationHostTests {
         #expect(settings.resourceChoices().map(\.reference).filter { $0.kind != .revision } == [.init(kind: .draft, id: note.id)])
     }
 
+    @Test func sessionAccessRequiresKnownConsoleLoginAndProtectedData() {
+        for console in [nil, false, true] as [Bool?] {
+            for login in [nil, false, true] as [Bool?] {
+                for protectedData in [false, true] {
+                    #expect(AgentApplicationSession.permitsAccess(onConsole: console, loginDone: login,
+                        protectedDataAvailable: protectedData) == (console == true && login == true && protectedData))
+                }
+            }
+        }
+    }
+
     @Test func applicationConstructsAnIdleHostBoundToItsLiveLibrary() throws {
         let f = try Fixture(); defer { f.cleanup() }
         let app = try #require(f.app), secrets = f.secrets
@@ -203,7 +214,6 @@ struct AgentApplicationHostTests {
         let session = try f.session(host)
         let pending = try host.pairing.request(clientName: "Pending")
         NSWorkspace.shared.notificationCenter.post(name: name, object: NSWorkspace.shared)
-        for _ in 0..<100 where host.endpoint != nil { await Task.yield() }
         #expect(host.endpoint == nil && !settings.accessEnabled)
         #expect(try host.pairing.state(pending.id) == .invalidated)
         #expect(throws: AgentErrorCode.permissionDenied) { try host.service.authorizedLibraryID(for: session) }
@@ -219,7 +229,6 @@ struct AgentApplicationHostTests {
         let settings = try #require(app.agentSettings), session = try f.session(host)
         let pending = try host.pairing.request(clientName: "Pending")
         NotificationCenter.default.post(name: .NSApplicationProtectedDataWillBecomeUnavailable, object: NSApp)
-        for _ in 0..<100 where host.endpoint != nil { await Task.yield() }
         #expect(host.endpoint == nil && !settings.accessEnabled)
         #expect(try host.pairing.state(pending.id) == .invalidated)
         #expect(throws: AgentErrorCode.permissionDenied) { try host.service.authorizedLibraryID(for: session) }

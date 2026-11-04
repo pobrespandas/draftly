@@ -3,6 +3,17 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Normal agent startup follow-up — 4 November
+
+Builds with the bundled helper now construct an idle host at normal startup.
+Isolated QA uses the same path. Missing or inactive console sessions and
+unavailable protected data deny admission. Suspension notifications invalidate
+access synchronously. Host construction never restores listening access.
+The final focused run passed 54 application-host and local-host tests. The
+native QA build passed. Installed startup and real lock/sleep acceptance remain
+pending. Public session properties do not prove graphical unlock. Read
+[readiness](agents-ai-readiness.md#normal-startup-follow-up) for the limits.
+
 ## Agents and AI development — 4 November
 
 [PR #105](https://github.com/pobrespandas/draftly/pull/105) stays in draft. The

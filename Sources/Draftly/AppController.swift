@@ -1,11 +1,26 @@
 import SwiftUI
 import AppKit
+import CoreGraphics
 import DraftlyCore
 import AgentContracts
 import AgentLocalSecurity
 
 extension Notification.Name {
     static let draftlyOpenNote = Notification.Name("DraftlyOpenNote")
+}
+
+// Public session properties establish console membership, not graphical lock state.
+@MainActor enum AgentApplicationSession {
+    static func permitsAccess(onConsole: Bool?, loginDone: Bool?, protectedDataAvailable: Bool) -> Bool {
+        onConsole == true && loginDone == true && protectedDataAvailable
+    }
+
+    static var isUnavailable: Bool {
+        let session = CGSessionCopyCurrentDictionary() as? [String: Any]
+        return !permitsAccess(onConsole: session?[kCGSessionOnConsoleKey as String] as? Bool,
+            loginDone: session?[kCGSessionLoginDoneKey as String] as? Bool,
+            protectedDataAvailable: NSApplication.shared.isProtectedDataAvailable)
+    }
 }
 
 @MainActor
@@ -138,13 +153,13 @@ final class AppController: ObservableObject {
         for name in [NSWorkspace.willSleepNotification, NSWorkspace.screensDidSleepNotification,
                      NSWorkspace.sessionDidResignActiveNotification] {
             agentLifecycleObservers.append(center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-                Task { @MainActor [weak self] in self?.suspendAgentSession() }
+                MainActor.assumeIsolated { self?.suspendAgentSession() }
             })
         }
         agentProtectedDataObserver = NotificationCenter.default.addObserver(
             forName: .NSApplicationProtectedDataWillBecomeUnavailable, object: nil, queue: .main
         ) { [weak self] _ in
-            Task { @MainActor [weak self] in self?.suspendAgentSession() }
+            MainActor.assumeIsolated { self?.suspendAgentSession() }
         }
     }
 
@@ -153,7 +168,7 @@ final class AppController: ObservableObject {
         agentSettings?.refresh()
     }
 
-    func configureAgentHost(isLocked: @escaping () -> Bool,
+    func configureAgentHost(isLocked: @escaping () -> Bool = { AgentApplicationSession.isUnavailable },
                             enableReviewedActions: Bool = false,
                             preferenceStorage: AgentPreferenceStorage? = nil,
                             protectedDataAvailable: @escaping () -> Bool = { NSApplication.shared.isProtectedDataAvailable },
@@ -304,8 +319,6 @@ final class AppController: ObservableObject {
                     catch { FileHandle.standardError.write(Data("Agent QA identity check failed\n".utf8)); throw error }
                     do { _ = try AgentLibraryLocation(library: store) }
                     catch { FileHandle.standardError.write(Data("Agent QA library check failed\n".utf8)); throw error }
-                    try configureAgentHost(isLocked: { false }, enableReviewedActions: true,
-                        preferenceStorage: AgentPreferenceStorage(defaults: .standard, domain: ApplicationIdentityMigration.identifier))
                 }
                 catch {
                     FileHandle.standardError.write(Data("Agent QA host failed: \(error)\n".utf8))
@@ -313,6 +326,20 @@ final class AppController: ObservableObject {
                 }
             }
             #endif
+            if (!testing && !cloudTesting) || AgentQAConfiguration.isActive {
+                let helper = Bundle.main.bundleURL.appendingPathComponent(
+                    "Contents/Helpers/DraftlyAgent.app/Contents/MacOS/draftly-agent")
+                if FileManager.default.isExecutableFile(atPath: helper.path) {
+                    do {
+                        try configureAgentHost(enableReviewedActions: true,
+                            preferenceStorage: AgentPreferenceStorage(defaults: .standard,
+                                domain: ApplicationIdentityMigration.identifier))
+                    } catch {
+                        // Agent startup must not prevent access to the writing library.
+                        FileHandle.standardError.write(Data("Local agent host unavailable at startup\n".utf8))
+                    }
+                }
+            }
             if spotlightRequested { startSpotlightIndexing() }
             refreshThemeDevelopmentFolder()
             startupError = nil
