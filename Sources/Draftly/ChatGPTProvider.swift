@@ -112,6 +112,7 @@ struct ChatGPTModel: Equatable, Identifiable, Sendable {
         var text: [TextPosition: String] = [:]
         var completed: Turn?
         var completedItems: [Int: AgentJSONValue] = [:]
+        var startedItems = Set<Int>()
         var responseID: String?
         try await stream(request) { data in
             try Task.checkCancellation()
@@ -150,12 +151,18 @@ struct ChatGPTModel: Equatable, Identifiable, Sendable {
                 let current = text.keys.sorted().map { text[$0]! }.joined()
                 guard current.utf8.count <= 4194304 else { throw Failure.tooLarge }
                 try onText(current)
-            case "response.output_item.done":
+            case "response.output_item.added", "response.output_item.done":
                 guard let index = event.output_index, index >= 0, index < 64,
                       case .object(let envelope) = try JSONDecoder().decode(AgentJSONValue.self, from: data),
                       case .object = envelope["item"], let item = envelope["item"] else { throw Failure.invalidStream }
-                if let previous = completedItems[index], previous != item { throw Failure.invalidStream }
-                completedItems[index] = item
+                if event.type == "response.output_item.added" {
+                    guard completedItems[index] == nil else { throw Failure.invalidStream }
+                    startedItems.insert(index)
+                }
+                else {
+                    if let previous = completedItems[index], previous != item { throw Failure.invalidStream }
+                    completedItems[index] = item
+                }
             case "response.completed":
                 guard let response = event.response, response.status == "completed", response.output != nil else {
                     Self.logger.error("Completed SSE event is missing its completed response output")
@@ -167,7 +174,8 @@ struct ChatGPTModel: Equatable, Identifiable, Sendable {
                 // Retain complete stream items when the final output is empty.
                 // Use complete items only, and require the final response to succeed.
                 if rawOutput.isEmpty, !completedItems.isEmpty {
-                    guard completedItems.keys.sorted() == Array(0..<completedItems.count) else { throw Failure.invalidStream }
+                    guard startedItems.isSubset(of: Set(completedItems.keys)),
+                          completedItems.keys.sorted() == Array(0..<completedItems.count) else { throw Failure.invalidStream }
                     rawOutput = (0..<completedItems.count).map { completedItems[$0]! }
                     Self.logger.notice("Using \(completedItems.count, privacy: .public) completed stream items from an empty final output")
                 }

@@ -78,7 +78,7 @@ struct ChatGPTLocalToolTests {
         #expect(result == "Done" && rounds == 2)
     }
 
-    @Test(arguments: ["partial", "missingCompletion", "gap", "conflictingIndex", "foreignResponse", "failedCompletion"])
+    @Test(arguments: ["partial", "missingCompletion", "gap", "conflictingIndex", "foreignResponse", "failedCompletion", "partialTrailingItem", "reopenedItem"])
     func incompleteStreamItemsCannotExecuteTools(_ scenario: String) async throws {
         let runtime = try AgentChatToolSessionTests.Runtime()
         var executions = 0
@@ -93,6 +93,10 @@ struct ChatGPTLocalToolTests {
                 "output_index": scenario == "gap" ? 1 : 0, "item": call(arguments)]
             if scenario == "foreignResponse" { frame["response_id"] = "different-response" }
             _ = try event(JSONSerialization.data(withJSONObject: frame))
+            if scenario == "partialTrailingItem" || scenario == "reopenedItem" {
+                _ = try event(JSONSerialization.data(withJSONObject: ["type": "response.output_item.added",
+                    "output_index": scenario == "reopenedItem" ? 0 : 1, "item": call("{", id: "unfinished-call")]))
+            }
             if scenario == "conflictingIndex" {
                 _ = try event(JSONSerialization.data(withJSONObject: ["type": type,
                     "output_index": 0, "item": call(arguments, id: "different-call")]))

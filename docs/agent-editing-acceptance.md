@@ -112,7 +112,8 @@ the host before the QA update.
 
 The provider now retains `response.output_item.done` items when the final output
 list is empty. It still requires a successful final response, complete contiguous
-item positions, matching response identities, valid calls, and the existing
+item positions, no unfinished or reopened item in the batch, matching response
+identities, valid calls, and the existing
 permission checks. Partial items, failed responses, gaps, conflicting positions,
 and foreign response identities cannot execute a tool. Reasoning items remain
 in continuation history. This follows the completed-item event shape in the
