@@ -57,7 +57,7 @@ import AgentContracts
             guard let self else { throw AgentErrorCode.cancelled }; try self.validateAdmission()
         })
     private lazy var bookmarks = AgentBookmarkReading(defaults: preferenceDefaults, pages: pages)
-    private lazy var backups = AgentBackupReading(library: actionLibrary, drafts: drafts, transfers: transfers)
+    private lazy var backups = AgentBackupReading(library: actionLibrary, drafts: drafts, transfers: transfers, defaults: preferenceDefaults)
     private let actionLibrary: LibraryStore
     private let operationRegistry: AgentOperationRegistry?
     private let deletionApprovals: AgentApprovalStore?

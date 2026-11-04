@@ -3,6 +3,16 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Scoped local import input — 4 November
+
+Added bounded inline, transfer and saved-directory input resolution. Bookmark
+reads require capability and resource scope, reject symbolic-link descendants,
+validate file metadata and recheck authority. Backup validation and preview now
+read authorized saved files without changing the library. HTTPS still requires
+its effect route. Strict 2,694 tests and native Debug passed. Source coverage
+remains 112/137. Installed file access and theme installation remain open. See
+[local input evidence](agent-local-import-reading.md).
+
 ## Bounded theme input decoder — 4 November
 
 Unified native and Drafts JSON decoding for theme files and future installation

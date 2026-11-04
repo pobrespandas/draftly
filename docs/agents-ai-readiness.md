@@ -805,3 +805,10 @@ operation registry. Use the stored token from `themes.list`. The operation keeps
 drafts and source files, commits its deletion receipt with the record, and then
 removes the saved bookmark. See [deletion review](agent-theme-deletion-review.md)
 for cross-store limits and installed acceptance still required.
+
+## Scoped local import input
+
+Backup validation and preview now use the bounded local input resolver for
+inline text, owned transfers and authorized saved directory bookmarks. HTTPS
+input remains gated on its reviewed route. This does not connect theme installation
+or replacement. See [local input evidence](agent-local-import-reading.md).

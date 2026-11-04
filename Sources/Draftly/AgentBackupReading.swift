@@ -8,34 +8,20 @@ import AgentContracts
     private let library: LibraryStore
     private let drafts: AgentDraftReading
     private let transfers: AgentTransferStore
+    private let defaults: UserDefaults
     private let versionKey = SymmetricKey(size: .bits256)
 
-    init(library: LibraryStore, drafts: AgentDraftReading, transfers: AgentTransferStore) {
-        self.library = library; self.drafts = drafts; self.transfers = transfers
+    init(library: LibraryStore, drafts: AgentDraftReading, transfers: AgentTransferStore, defaults: UserDefaults) {
+        self.library = library; self.drafts = drafts; self.transfers = transfers; self.defaults = defaults
     }
     private func check(_ authorize: () throws -> Void) throws {
         do { try Task.checkCancellation() } catch { throw AgentErrorCode.cancelled }
         try authorize()
     }
-    private func source(_ parameters: [String: AgentJSONValue], grant: AgentGrant) throws -> Data {
-        guard case .object(let source) = parameters["source"], case .string(let kind) = source["kind"] else {
-            throw AgentErrorCode.invalidInput
-        }
-        let data: Data
-        switch kind {
-        case "inline":
-            guard case .string(let text) = source["text"] else { throw AgentErrorCode.invalidInput }
-            data = Data(text.utf8)
-        case "transfer":
-            guard case .string(let text) = source["transferID"], let id = UUID(uuidString: text) else { throw AgentErrorCode.invalidInput }
-            data = try transfers.importedData(id, grant: grant)
-        case "bookmark", "https":
-            // These sources need the native file or network effect review route.
-            throw AgentErrorCode.interactionRequired
-        default: throw AgentErrorCode.invalidInput
-        }
-        guard data.count <= AgentTransferSchemas.maximumBytes else { throw AgentErrorCode.invalidInput }
-        return data
+    private func source(_ parameters: [String: AgentJSONValue], grant: AgentGrant, authorize: () throws -> Void) throws -> Data {
+        guard let source = parameters["source"] else { throw AgentErrorCode.invalidInput }
+        return try AgentImportReading.data(source, grant: grant, defaults: defaults, transfers: transfers,
+            maximumBytes: AgentTransferSchemas.maximumBytes, authorize: authorize)
     }
     private func counts(_ backup: Backup) -> AgentJSONValue {
         .object(["drafts": .integer(Int64(backup.notes.count)), "versions": .integer(Int64(backup.revisions.count)),
@@ -63,7 +49,7 @@ import AgentContracts
             try check(authorize)
             return ["transfer": try transfers.export(data, resources: [], grant: grant)]
         }
-        let data = try source(parameters, grant: grant)
+        let data = try source(parameters, grant: grant, authorize: authorize)
         let incoming: Backup
         do {
             incoming = try JSONDecoder().decode(Backup.self, from: data)

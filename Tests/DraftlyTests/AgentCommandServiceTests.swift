@@ -2920,16 +2920,25 @@ struct AgentCommandServiceTests {
         #expect(try f.library.backupData() == after)
     }
 
-    @Test func backupFileAndNetworkSourcesDoNotBypassNativeReview() throws {
-        let f = try Fixture()
+    @Test func backupSourcesRequireSavedAccessOrNetworkReview() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
         let (_, session) = try f.connect(capabilities: [.backupsRestore, .filesRead])
-        for source: AgentJSONValue in [
-            .object(["kind": .string("https"), "url": .string("https://example.invalid/backup.json")]),
-            .object(["kind": .string("bookmark"), "bookmarkID": .string(UUID().uuidString), "path": .string("backup.json")])
-        ] {
-            #expect(try f.response("backups.validate", session: session, parameters: ["source": source]).outcome == .error(.interactionRequired))
-        }
-        #expect(f.library.notes.isEmpty)
+        let network: AgentJSONValue = .object(["kind": .string("https"), "url": .string("https://example.invalid/backup.json")])
+        #expect(try f.response("backups.validate", session: session, parameters: ["source": network]).outcome == .error(.interactionRequired))
+        let missing: AgentJSONValue = .object(["kind": .string("bookmark"), "bookmarkID": .string(UUID().uuidString), "path": .string("backup.json")])
+        #expect(try f.response("backups.validate", session: session, parameters: ["source": missing]).outcome == .error(.notFound))
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let before = try f.library.backupData()
+        try before.write(to: root.appendingPathComponent("backup.json"))
+        let defaults = try #require(UserDefaults(suiteName: f.editorDefaultsName))
+        BookmarkPreferences.store(try BookmarkPreferences.data(for: root), named: "QA backup", defaults: defaults)
+        let bookmark = try #require(try BookmarkPreferences.agentRecords(defaults: defaults).first)
+        let source: AgentJSONValue = .object(["kind": .string("bookmark"), "bookmarkID": .string(bookmark.id.uuidString), "path": .string("backup.json")])
+        #expect(try f.values("backups.validate", session: session, parameters: ["source": source])["valid"] == .bool(true))
+        _ = try f.values("backups.previewRestore", session: session, parameters: ["source": source])
+        #expect(try f.library.backupData() == before)
     }
 
     @Test(arguments: ["text", "draftly"])
