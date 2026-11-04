@@ -44,6 +44,19 @@ import AgentContracts
         return theme
     }
 
+    func selection(appearance: String, grant: AgentGrant) throws -> [String: AgentJSONValue] {
+        guard ["dark", "light"].contains(appearance) else { throw AgentErrorCode.invalidInput }
+        let raw = EditorThemePreferences(defaults: defaults).reference(dark: appearance == "dark", themes: library.themes)
+        let stored = try JSONDecoder().decode(AgentJSONValue.self, from: JSONSerialization.data(withJSONObject: raw))
+        let visible = raw.filter { key, _ in ["type", "name"].contains(key) || (key == "uuid" && raw["type"] as? String != "builtIn") }
+        var fields = try JSONDecoder().decode(AgentJSONValue.self, from: JSONSerialization.data(withJSONObject: visible))
+        let token = try version(.object(["appearance": .string(appearance), "reference": stored]))
+        if let id = (raw["uuid"] as? String).flatMap(UUID.init(uuidString:)), !grant.scope.permits(.init(kind: .theme, id: id)) {
+            fields = .null
+        }
+        return ["appearance": .string(appearance), "reference": fields, "versionToken": .string(token)]
+    }
+
     func read(_ request: AgentRequest, parameters: [String: AgentJSONValue], grant: AgentGrant,
               sessionID: UUID, authorize: () throws -> Void) throws -> [String: AgentJSONValue] {
         try authorize()
@@ -62,15 +75,7 @@ import AgentContracts
             result = page
         case "themes.selection":
             guard case .string(let appearance) = parameters["appearance"] else { throw AgentErrorCode.invalidInput }
-            let raw = EditorThemePreferences(defaults: defaults).reference(dark: appearance == "dark", themes: library.themes)
-            let stored = try JSONDecoder().decode(AgentJSONValue.self, from: JSONSerialization.data(withJSONObject: raw))
-            let visible = raw.filter { key, _ in ["type", "name"].contains(key) || (key == "uuid" && raw["type"] as? String != "builtIn") }
-            var fields = try JSONDecoder().decode(AgentJSONValue.self, from: JSONSerialization.data(withJSONObject: visible))
-            let token = try version(.object(["appearance": .string(appearance), "reference": stored]))
-            if let id = (raw["uuid"] as? String).flatMap(UUID.init(uuidString:)), !grant.scope.permits(.init(kind: .theme, id: id)) {
-                fields = .null
-            }
-            result = ["appearance": .string(appearance), "reference": fields, "versionToken": .string(token)]
+            result = try selection(appearance: appearance, grant: grant)
         case "themes.exportBuiltIn":
             guard case .string(let name) = parameters["name"] else { throw AgentErrorCode.invalidInput }
             let text = try ThemeInstallation.builtIn(name).url.absoluteString

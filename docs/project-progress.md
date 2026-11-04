@@ -3,6 +3,19 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Direct theme selection — 4 November
+
+Connected installed and built-in theme selection with separate selection/theme
+version checks. File themes need explicit file-read permission. The compared
+preference-domain commit writes reference data and revision together, preserves
+the opposite appearance and unknown fields, and rechecks authority before write.
+The durable registry prevents replay after uncertainty or manual selection changes.
+The 177 focal tests, 2,685 strict Swift tests and native Debug build passed.
+Source coverage is 110/137 connected or conditional names; 27 lack direct handlers.
+See [selection validation](agent-theme-selection-acceptance.md) for installed and
+CI checks. Prior source `cee030e` passed full CI
+[41877332833](https://github.com/pobrespandas/draftly/actions/runs/41877332833).
+
 ## Direct editor opening — 4 November
 
 Connected both explicit-window and new-window forms of `editor.open`. Existing

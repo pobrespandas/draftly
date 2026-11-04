@@ -523,11 +523,21 @@ editor. Source validation passed 174 focal tests, all 2,678 strict Swift tests a
 the native Debug build. Installed focus, presentation and post-update client
 acceptance remain open. See [opening validation](agent-editor-opening-acceptance.md).
 
+## Direct theme selection
+
+Installed and built-in selection now share native reference preparation and use
+an atomic preference-domain commit for references and revision. The request binds
+selection and target theme versions. File themes require file-read permission.
+A final validation boundary and durable operation records protect scope, storage
+failure and retries. The 177 focal tests, 2,685 strict Swift tests and native Debug
+build passed. Signed installed appearance and process-restart checks remain open.
+See [selection validation](agent-theme-selection-acceptance.md).
+
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-108 names in implemented or conditional handler sets. The other 29 names have
-no direct handler in those sets. These counts do not prove that 108 operations
+110 names in implemented or conditional handler sets. The other 27 names have
+no direct handler in those sets. These counts do not prove that 110 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -538,7 +548,7 @@ a direct handler for every `native.*` contract.
 
 | Family | Direct contracts still outside those handler sets |
 | --- | --- |
-| Themes | `themes.select`, `themes.selectBuiltIn`, `themes.replace`, `themes.reload`, `themes.install`, `themes.delete` |
+| Themes | `themes.replace`, `themes.reload`, `themes.install`, `themes.delete` |
 | Syntax | `syntaxes.delete`, `syntaxes.install`, `syntaxes.reload`, `syntaxes.replace` |
 | Bookmarks | `bookmarks.forget`, `bookmarks.requestAdd` |
 | Imports | `imports.commit`, `imports.preview`, `imports.validate` |
@@ -775,3 +785,8 @@ The authorized scene adapter passed strict complete validation: 1 consumer,
 193 contract, 824 Core and 1,654 app tests (2,672 total). The earlier focused
 19 opening tests and final native Debug build passed. `editor.open` service
 integration and installed acceptance remain open; operation coverage is unchanged.
+
+Full CI for prior source `cee030e` passed in
+[41877332833](https://github.com/pobrespandas/draftly/actions/runs/41877332833).
+Native build/tests, tooling, matrix, plan and the aggregate check all succeeded.
+The later direct theme selection source still needs its own CI acceptance.

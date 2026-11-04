@@ -19,6 +19,11 @@ package enum AgentToolInput {
             field["description"] = .string("For one draft use its versionToken. For all drafts in one list or search page use that page's batchVersion. Read again after any change. Never reuse a page token for a subset or another target set.")
             properties["expectedVersion"] = .object(field)
         }
+        if ["themes.select", "themes.selectBuiltIn"].contains(operation.name),
+           case .object(var field) = properties["expectedVersion"] {
+            field["description"] = .string("Use the current versionToken from themes.selection for the requested appearance. For themes.select, also pass the target theme's themes.get versionToken as parameters.expectedThemeVersion.")
+            properties["expectedVersion"] = .object(field)
+        }
         root["properties"] = .object(properties)
         root["not"] = .object(["required": .array([.string("parameters"), .string("parametersJSON")])])
         return .object(root)
@@ -90,6 +95,8 @@ package extension AgentOperationDescriptor {
         case "editor.open": "Open an authorized draft in an explicit window and its current expectedWindowVersion, or request newWindow. Never choose an implicit active window. Saving pending text also requires drafts.write and source-draft scope. Focus defaults to false. Retrying recovers the original outcome without opening again."
         case "editor.navigate": "Move to the previous or next draft in the current visible list. Read the editor for its current version first. Both drafts must be in scope. Saving pending text also requires drafts.write. Retry the same request to recover its original outcome without navigating again."
         case "editor.preview": "Set Markdown preview visibility for the authorized current draft without saving pending text. Retrying reports the original outcome and does not change the view again."
+        case "themes.select": "Select an authorized installed theme for light or dark appearance. Read themes.selection and themes.get first for their separate version tokens. File themes also require files.read. Retrying recovers the original outcome without selecting again."
+        case "themes.selectBuiltIn": "Select a bundled theme for light or dark appearance. Use the current themes.selection versionToken. Retrying recovers the original outcome without selecting again."
         case "library.summary": "Count drafts inside the approved scope, including Trash."
         case "drafts.list": "List authorized draft metadata with filters, order and opaque pagination."
         case "drafts.search": "Search authorized drafts. Return metadata and matching previews."

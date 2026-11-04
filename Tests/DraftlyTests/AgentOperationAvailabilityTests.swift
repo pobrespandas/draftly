@@ -121,10 +121,19 @@ struct AgentOperationAvailabilityTests {
         #expect(AgentOperationAvailability(handlers: handlers).operations.contains("editor.open") == (mask == 7))
     }
 
+    @Test(arguments: 0..<4)
+    func themeSelectionNeedsPreferenceStorageAndOperationControl(_ mask: Int) {
+        var handlers: Set<AgentOperationAvailability.Handler> = []
+        if mask & 1 != 0 { handlers.insert(.themeSelection) }
+        if mask & 2 != 0 { handlers.insert(.operationControl) }
+        let operations = AgentOperationAvailability(handlers: handlers).operations
+        #expect(AgentThemeSelection.operationNames.isSubset(of: operations) == (mask == 3))
+    }
+
     @Test func completeHostUsesOnlyKnownContractsAndDoesNotAdvertiseMissingHandlers() {
         let available = AgentOperationAvailability(handlers: Set(AgentOperationAvailability.Handler.allCases))
         #expect(available.operations == AgentCommandService.implementedOperations.union([
-            "activity.list", "operations.get", "operations.cancel", "operations.wait", "actions.run", "workspaces.delete", "drafts.purge", "actions.delete", "actionGroups.delete", "editor.preview", "editor.navigate", "editor.open"]).union(AgentNativeSchemas.operationNames))
+            "activity.list", "operations.get", "operations.cancel", "operations.wait", "actions.run", "workspaces.delete", "drafts.purge", "actions.delete", "actionGroups.delete", "editor.preview", "editor.navigate", "editor.open"]).union(AgentNativeSchemas.operationNames).union(AgentThemeSelection.operationNames))
         #expect(available.operations.allSatisfy { AgentOperationCatalog.operation(named: $0) != nil })
         #expect(!available.operations.contains("drafts.delete"))
         #expect(!available.operations.contains("backups.restore"))

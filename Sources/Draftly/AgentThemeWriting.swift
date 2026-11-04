@@ -119,3 +119,69 @@ import DraftlyCore
         catch { throw AgentErrorCode.storageError }
     }
 }
+
+// Selection uses the app's reference rules and an atomic preference-domain write.
+@MainActor enum AgentThemeSelection {
+    static let operationNames: Set<String> = ["themes.select", "themes.selectBuiltIn"]
+    struct Plan: Equatable {
+        let appearance: String
+        let themeID: UUID?
+        let name: String?
+        let storage: [String: AgentPreferenceBatch.StoredValue]
+
+        func result(_ selection: [String: AgentJSONValue]) throws -> [String: AgentJSONValue] {
+            guard case .object(let reference) = selection["reference"], let version = selection["versionToken"] else {
+                throw AgentErrorCode.outcomeUnknown
+            }
+            var result: [String: AgentJSONValue] = ["appearance": .string(appearance), "versionToken": version]
+            if let themeID {
+                guard case .string(let raw) = reference["uuid"], UUID(uuidString: raw) == themeID else { throw AgentErrorCode.outcomeUnknown }
+                result["themeID"] = .string(themeID.uuidString)
+            } else if let name {
+                guard reference["type"] == .string("builtIn"), reference["name"] == .string(name) else { throw AgentErrorCode.outcomeUnknown }
+                result["name"] = .string(name)
+            } else { throw AgentErrorCode.outcomeUnknown }
+            return result
+        }
+    }
+
+    static func prepare(_ request: AgentRequest, grant: AgentGrant, defaults: UserDefaults,
+                        library: LibraryStore, reader: AgentThemeReading, authorize: () throws -> Void) throws -> Plan {
+        guard operationNames.contains(request.operation), grant.capabilities.contains(.appearanceManage) else { throw AgentErrorCode.permissionDenied }
+        let parameters = try AgentAppearanceSchemas.validatedParameters(for: request)
+        guard case .string(let appearance) = parameters["appearance"] else { throw AgentErrorCode.invalidInput }
+        try authorize()
+        guard try reader.selection(appearance: appearance, grant: grant)["versionToken"] == request.expectedVersion.map(AgentJSONValue.string) else {
+            throw AgentErrorCode.versionConflict
+        }
+        let reference: [String: Any]
+        let themeID: UUID?, name: String?
+        if request.operation == "themes.select" {
+            guard request.targets.count == 1, let target = request.targets.first, target.kind == .theme,
+                  case .string(let expected) = parameters["expectedThemeVersion"] else { throw AgentErrorCode.invalidInput }
+            let theme = try reader.definition(target.id, grant: grant, authorize: authorize)
+            guard try reader.version(theme) == expected else { throw AgentErrorCode.versionConflict }
+            guard ["custom", "file"].contains(theme.type) else { throw AgentErrorCode.invalidInput }
+            reference = ["type": theme.type, "uuid": target.id.uuidString, "name": theme.name]
+            themeID = target.id; name = nil
+        } else {
+            guard request.targets.isEmpty, case .string(let value) = parameters["name"] else { throw AgentErrorCode.invalidInput }
+            reference = ["type": "builtIn", "name": value]
+            themeID = nil; name = value
+        }
+        let data: Data
+        do {
+            data = try EditorThemePreferences(defaults: defaults).selectionData(reference: reference,
+                dark: appearance == "dark", themes: library.themes, validateFile: { theme in
+                    let actual = try reader.definition(theme.id, grant: grant, authorize: authorize)
+                    guard case .string(let expected) = parameters["expectedThemeVersion"],
+                          try reader.version(actual) == expected else { throw AgentErrorCode.versionConflict }
+                })
+        } catch let error as AgentErrorCode { throw error }
+        catch { throw AgentErrorCode.storageError }
+        try authorize()
+        return Plan(appearance: appearance, themeID: themeID, name: name, storage: [
+            EditorThemePreferences.key: .data(data),
+            ThemeCatalog.revisionKey: .scalar(.integer(Int64(defaults.integer(forKey: ThemeCatalog.revisionKey) &+ 1)))])
+    }
+}
