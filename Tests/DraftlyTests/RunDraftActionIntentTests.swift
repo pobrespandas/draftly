@@ -2,7 +2,7 @@ import AppIntents
 import Foundation
 import Darwin
 import Testing
-import DraftlyCore
+@testable import DraftlyCore
 @testable import Draftly
 
 @Suite("Run action intent execution") @MainActor
@@ -309,6 +309,14 @@ struct RunDraftActionIntentTests {
         let note = try library.createNote(content: "Neutral")
         let model = WindowModel(library: library); model.select(note.id)
         model.runner.hostOperationTimeout = 2
+        var clock = Date(timeIntervalSince1970: 1_700_000_000)
+        let timeoutGate = AsyncStream<Void>.makeStream()
+        defer { timeoutGate.continuation.finish() }
+        model.runner.hostOperationNow = { clock }
+        model.runner.hostOperationSleep = { _ in
+            for await _ in timeoutGate.stream { break }
+            try Task.checkCancellation()
+        }
         var action = DraftAction(name: "Intent shell interruption", steps: [
             ActionStep("script", ["script": script]),
             ActionStep("insertText", ["template": "ERROR: tail ran"])
@@ -322,11 +330,19 @@ struct RunDraftActionIntentTests {
         while !FileManager.default.fileExists(atPath: marker.path), ContinuousClock.now < deadline {
             try await Task.sleep(for: .milliseconds(5))
         }
+        guard FileManager.default.fileExists(atPath: marker.path) else {
+            let report = model.runner.lastReport
+            task.cancel()
+            do { _ = try await task.value; Issue.record("The shell action returned before its start marker.") }
+            catch { Issue.record("The shell did not start. Report: \(String(describing: report)); error: \(error)") }
+            return
+        }
         let fields = try String(contentsOf: marker, encoding: .utf8).components(separatedBy: "\n")
         try #require(fields.count == 3)
         let parent = try #require(Int32(fields[0])), child = try #require(Int32(fields[1]))
         let shellFolder = URL(fileURLWithPath: fields[2]).deletingLastPathComponent()
         if cancel { task.cancel() }
+        else { clock = clock.addingTimeInterval(3); timeoutGate.continuation.yield() }
         do { _ = try await task.value; Issue.record("The interrupted shell Intent succeeded.") }
         catch { #expect(try #require(error as? AutomationActionError).reason == (cancel ? .cancelled : .timeout)) }
         #expect(getpgid(parent) == -1)
