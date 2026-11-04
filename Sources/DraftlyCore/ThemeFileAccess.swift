@@ -90,12 +90,7 @@ public enum ThemeFileAccess {
             data = bytes
             guard data.count <= maximumBytes else { throw DraftlyError.message("The theme file exceeds the size limit.") }
         } else { data = try Data(contentsOf: url) }
-        guard String(data: data, encoding: .utf8) != nil else { throw DraftlyError.message("The theme file must contain UTF-8 JSON.") }
-        var definition: EditorThemeDefinition
-        if let native = try? JSONDecoder().decode(EditorThemeDefinition.self, from: data) {
-            try native.validate()
-            definition = native
-        } else { definition = try DraftsThemeImport.decode(data: data, id: id) }
+        var definition = try ThemeInstallation.decodeDefinition(data, fallbackID: id, maximumBytes: maximumBytes ?? Int.max)
         definition.id = id
         definition.type = "file"
         try definition.validate()

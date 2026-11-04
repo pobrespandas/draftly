@@ -3,6 +3,16 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Bounded theme input decoder — 4 November
+
+Unified native and Drafts JSON decoding for theme files and future installation
+inputs. The decoder applies the caller's byte limit, validates UTF-8 and the theme,
+and preserves unknown fields. It does not resolve sources or save definitions.
+Focused 23, all 826 Core tests, 10 affected app tests and native Debug passed.
+Installation and replacement still lack handlers. Coverage remains 112/137.
+See [installation review](agent-theme-installation-review.md) for the input,
+authority and cross-store integration still required.
+
 ## Direct reviewed theme deletion — 4 November
 
 Connected `themes.delete` with app-owned destructive review and the stored token

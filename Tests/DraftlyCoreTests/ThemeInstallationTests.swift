@@ -17,6 +17,30 @@ struct ThemeInstallationTests {
                             "draftsSource": .object(["name": .string("Original name"), "unknownScope": .object(["keep": .bool(true)])])])
     }
 
+    @Test func boundedDefinitionInputPreservesBothFormatsAndUnknownFields() throws {
+        let id = UUID()
+        var native = EditorThemeDefinition(id: id, name: "Native café 🐼")
+        native.unknownFields["future"] = .object(["keep": .bool(true)])
+        let bytes = try JSONEncoder().encode(native)
+        #expect(try ThemeInstallation.decodeDefinition(bytes, fallbackID: UUID(), maximumBytes: bytes.count) == native)
+        #expect(throws: (any Error).self) {
+            try ThemeInstallation.decodeDefinition(bytes, fallbackID: id, maximumBytes: bytes.count - 1)
+        }
+        let drafts = try DraftsThemeImport.exportData(native)
+        let imported = try ThemeInstallation.decodeDefinition(drafts, fallbackID: id, maximumBytes: drafts.count)
+        #expect(imported.id == id && imported.name == native.name)
+        #expect(imported.foreground == native.foreground && imported.background == native.background)
+        #expect(imported.unknownFields["draftsSource"] != nil)
+        for invalid in [Data([0xFF]), Data("invalid".utf8), Data()] {
+            #expect(throws: (any Error).self) {
+                try ThemeInstallation.decodeDefinition(invalid, fallbackID: id, maximumBytes: 1024)
+            }
+        }
+        #expect(throws: (any Error).self) {
+            try ThemeInstallation.decodeDefinition(bytes, fallbackID: id, maximumBytes: 0)
+        }
+    }
+
     @Test func customLinkPreservesIdentityColorsUnicodeAndUnknownSourceWithoutChangingItsValue() throws {
         let original = theme()
         let installation = ThemeInstallation.custom(original)

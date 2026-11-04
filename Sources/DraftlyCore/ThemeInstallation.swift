@@ -57,6 +57,24 @@ public enum ThemeInstallation: Sendable, Equatable {
         }
     }
 
+    // Callers provide the limit before decoding input from a transfer or file.
+    package static func decodeDefinition(_ data: Data, fallbackID: UUID, maximumBytes: Int) throws -> EditorThemeDefinition {
+        guard maximumBytes > 0, data.count <= maximumBytes else {
+            throw DraftlyError.message("The theme exceeds the size limit.")
+        }
+        guard String(data: data, encoding: .utf8) != nil else {
+            throw DraftlyError.message("The theme must contain UTF-8 JSON.")
+        }
+        let definition: EditorThemeDefinition
+        if let native = try? JSONDecoder().decode(EditorThemeDefinition.self, from: data) {
+            definition = native
+        } else {
+            definition = try DraftsThemeImport.decode(data: data, id: fallbackID)
+        }
+        try definition.validate()
+        return definition
+    }
+
     private static var invalidLink: DraftlyError { .message("The theme link is invalid.") }
 
     private static func validateBuiltIn(_ name: String) throws {
