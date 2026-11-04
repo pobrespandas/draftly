@@ -64,6 +64,78 @@ struct AgentOperationJournalTests {
         #expect(starts == 1)
     }
 
+    @Test(arguments: [false, true])
+    func completedDurableWorkReleasesLiveCapacityWithoutReplay(action: Bool) async throws {
+        let (f, previewGrant, previewRequest, result) = try previewFixture(); defer { f.cleanup() }
+        let grant = action ? f.grant : previewGrant
+        let template = action ? f.request : previewRequest
+        let journal = try AgentOperationJournal(parentDirectory: f.root)
+        let registry = AgentOperationRegistry(capacity: 1, currentGrant: { _ in grant },
+            validateHost: {}, isLocked: { false }, journal: journal)
+        var starts = 0
+        @MainActor func submit(_ request: AgentRequest) throws -> UUID {
+            if action {
+                return try registry.startRequest(request, grant: grant) { _ in
+                    starts += 1
+                    return .init(report: .notStarted(actionID: request.targets[0].id,
+                        reason: .cancelled, message: "Test completion"), noteID: nil, message: "Test completion")
+                }
+            }
+            return try registry.startValueRequest(request, grant: grant) { _ in starts += 1; return result }
+        }
+        var accepted: [(AgentRequest, UUID)] = []
+        for _ in 0..<3 {
+            let request = AgentRequest(requestID: UUID(), libraryID: grant.libraryID,
+                operation: template.operation, targets: template.targets,
+                expectedVersion: template.expectedVersion, parameters: template.parameters)
+            let id = try submit(request)
+            for _ in 0..<1000 where try !registry.snapshot(id, connectionID: grant.connectionID).state.isTerminal {
+                await Task.yield()
+            }
+            #expect(try registry.snapshot(id, connectionID: grant.connectionID).state.isTerminal)
+            accepted.append((request, id))
+        }
+        for (request, id) in accepted {
+            #expect(try submit(request) == id)
+            #expect(try registry.snapshot(id, connectionID: grant.connectionID).state.isTerminal)
+        }
+        #expect(starts == 3)
+    }
+
+    @Test func durableActiveWorkStillOwnsItsCapacityUntilTerminal() async throws {
+        let (f, grant, request, result) = try previewFixture(); defer { f.cleanup() }
+        let registry = AgentOperationRegistry(capacity: 1, currentGrant: { _ in grant },
+            validateHost: {}, isLocked: { false }, journal: try AgentOperationJournal(parentDirectory: f.root))
+        let id = try registry.startValueRequest(request, grant: grant) { _ in
+            try await Task.sleep(for: .seconds(30))
+            return result
+        }
+        for _ in 0..<1000 where try registry.snapshot(id, connectionID: grant.connectionID).state == .queued {
+            await Task.yield()
+        }
+        #expect(try registry.snapshot(id, connectionID: grant.connectionID).state == .running)
+        let next = AgentRequest(requestID: UUID(), libraryID: grant.libraryID,
+            operation: request.operation, targets: request.targets, parameters: request.parameters)
+        #expect(throws: AgentErrorCode.busy) {
+            try registry.startValueRequest(next, grant: grant) { _ in
+                Issue.record("Active capacity must not be evicted"); return result
+            }
+        }
+        #expect(try registry.cancel(id, connectionID: grant.connectionID))
+        for _ in 0..<1000 where try !registry.snapshot(id, connectionID: grant.connectionID).state.isTerminal {
+            await Task.yield()
+        }
+        #expect(try registry.snapshot(id, connectionID: grant.connectionID).state.isTerminal)
+        let replacement = try registry.startValueRequest(next, grant: grant) { _ in result }
+        for _ in 0..<1000 where try !registry.snapshot(replacement, connectionID: grant.connectionID).state.isTerminal {
+            await Task.yield()
+        }
+        #expect(try registry.snapshot(replacement, connectionID: grant.connectionID).state == .succeeded)
+        #expect(try registry.startValueRequest(request, grant: grant) { _ in
+            Issue.record("Cancelled request must not replay"); return result
+        } == id)
+    }
+
     @Test func interruptedNonActionReservationRecoversAsUnknownWithoutStarting() throws {
         let (f, grant, request, result) = try previewFixture(); defer { f.cleanup() }
         let journal = try AgentOperationJournal(parentDirectory: f.root), id = UUID()

@@ -337,6 +337,11 @@ access, and is distinct from a saved revision.
 A signed, time-limited reference to one normalized request and its authorization
 context. It identifies retries. It does not grant access or approve effects.
 
+**Agent result cache**:
+The bounded in-memory state and output of accepted operations. A terminal durable
+entry can leave this cache while the operation journal keeps its request identity.
+Cache eviction does not authorize a new execution.
+
 **Agent mutation receipt**:
 The durable result of a library change associated with one request and connection.
 It identifies completed work during a retry. It does not grant access.

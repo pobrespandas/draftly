@@ -2441,3 +2441,12 @@ Old cancelled checks do not establish acceptance. Preserve both branches.
 
 The [operation retention review](agent-operation-retention-review.md) records
 the global-capacity reproduction and the requirements for a safe replacement.
+
+Live admission now releases terminal durable cache entries and resolves retries
+from the journal before applying capacity limits. Active jobs keep their slots.
+The persistent 128-record limit remains unresolved; this is not full retention
+acceptance. See the operation retention review for scope and regression evidence.
+
+The live-cache correction passed the strict complete inventory: 1 consumer,
+193 contract, 824 Core and 1,637 app tests (2,655 total). Native Debug build passed.
+Full CI and installed acceptance of this correction remain open.

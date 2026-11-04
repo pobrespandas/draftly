@@ -116,13 +116,8 @@ import DraftlyCore
         try authorization.validate(grant, targets: Set(request.targets), operationName: request.operation)
         let key = RequestKey(connectionID: grant.connectionID, requestID: request.requestID)
         let fingerprint = try requestFingerprint(prepared.value)
-        if let previous = requests[key] {
-            guard previous.fingerprint == fingerprint else { throw AgentErrorCode.versionConflict }
-            _ = try snapshot(previous.operationID, connectionID: grant.connectionID)
-            return previous.operationID
-        }
-        guard requests.count < capacity else { throw AgentErrorCode.busy }
-        guard entries.count < capacity else { throw AgentErrorCode.busy }
+        if let previous = try existingRequest(prepared.request, grant: grant) { return previous }
+        try makeAdmissionRoom()
         let id = UUID()
         if let reservation = try journal?.reserve(prepared.request, grant: grant, operationID: id), !reservation.isNew {
             _ = try snapshot(reservation.record.operationID, connectionID: grant.connectionID)
@@ -153,7 +148,7 @@ import DraftlyCore
         }
         try authorization.validate(grant, targets: Set(request.targets), operationName: request.operation)
         if let previous = try existingRequest(prepared.request, grant: grant) { return previous }
-        guard entries.count < capacity, requests.count < capacity else { throw AgentErrorCode.busy }
+        try makeAdmissionRoom()
         let id = UUID()
         if let reservation = try journal?.reserve(prepared.request, grant: grant, operationID: id), !reservation.isNew {
             _ = try snapshot(reservation.record.operationID, connectionID: grant.connectionID)
@@ -194,13 +189,27 @@ import DraftlyCore
                          operationID: UUID = UUID(), durable: Bool = false,
                          work: @escaping @MainActor (UUID) async throws -> AutomationActionExecution.Output) throws -> UUID {
         try authorization.validate(grant, targets: targets, operationName: "actions.run")
-        guard entries.count < capacity else { throw AgentErrorCode.busy }
         let id = operationID
         guard entries[id] == nil else { throw AgentErrorCode.versionConflict }
+        try makeAdmissionRoom()
         entries[id] = Entry(connectionID: grant.connectionID, grant: grant, targets: targets, updatedAt: now())
         entries[id]?.durable = durable
         launch(id) { id in .action(try await work(id)) }
         return id
+    }
+
+    // Evict only durable terminal entries. Their journal keeps retry protection.
+    private func makeAdmissionRoom() throws {
+        if journal != nil, entries.count >= capacity || requests.count >= capacity {
+            let completed = entries.filter { $0.value.durable && $0.value.state.isTerminal }
+                .sorted { $0.value.updatedAt < $1.value.updatedAt }
+            for (id, _) in completed {
+                guard entries.count >= capacity || requests.count >= capacity else { break }
+                entries.removeValue(forKey: id)
+                requests = requests.filter { $0.value.operationID != id }
+            }
+        }
+        guard entries.count < capacity, requests.count < capacity else { throw AgentErrorCode.busy }
     }
 
     private enum Completion {
@@ -405,6 +414,7 @@ import DraftlyCore
         try authorization.validate(entry.grant, targets: entry.targets, operationName: entry.name)
         guard entry.state.isTerminal else { throw AgentErrorCode.busy }
         entries.removeValue(forKey: id)
+        if entry.durable { requests = requests.filter { $0.value.operationID != id } }
     }
 
     private func finish(_ id: UUID, output supplied: AutomationActionExecution.Output) {
