@@ -3,6 +3,17 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Workspace deletion storage — 4 November
+
+Added an app-owned storage transaction that deletes one saved Workspace and
+stores its mutation receipt in the same commit. Failed final authorization
+rolls back both records. A repeat after reopening returns the saved receipt
+without another delete. Other Workspaces and drafts remain unchanged. Invalid
+resource IDs and missing targets do not store a receipt. All 18 mutation-receipt
+tests passed. This is storage groundwork only. It does not advertise or enable
+`workspaces.delete`; review, service admission, and installed acceptance remain
+pending. The missing-handler count remains 76.
+
 ## Agent Workspace window application — 4 November
 
 Connected `workspaces.apply` through the native window route. It checks the
@@ -20,8 +31,10 @@ does not replay. The effect gate does not bypass required human approval.
 The final run passed 243 tests. The normal native build and two project-generator
 checks passed. Source-set coverage is now 61 connected or conditional names out
 of 137, with 76 missing direct handlers. Full CI passed for the prior `01635d5`
-order increment. Full CI for window application and installed acceptance remain
-pending. Direct Workspace deletion still needs its review handler.
+order increment. Full CI for window application passed in
+[41784775217](https://github.com/pobrespandas/draftly/actions/runs/41784775217)
+for `f32f9d9`. Installed acceptance remains pending. Direct Workspace deletion
+still needs its review handler.
 
 ## Agent Workspace order snapshots — 4 November
 

@@ -157,8 +157,11 @@ These receipts belong to the host lifetime, not to the stored Workspace.
 The final run passed 243 tests across service, availability, host, native
 Workspace contracts, MCP, Workspace schemas, and permission policy. The normal
 native build passed without the QA flag. Project-generator tests passed two
-checks. Installed application acceptance and full CI for this increment remain
-pending. Direct Workspace deletion still needs its review handler.
+checks. Full CI passed for `f32f9d9` in
+[41784775217](https://github.com/pobrespandas/draftly/actions/runs/41784775217).
+Installed application acceptance remains pending. Direct Workspace deletion
+still needs its review handler. Its storage transaction passed 18 focused tests;
+that groundwork does not expose a new handler.
 
 ## Operation coverage
 

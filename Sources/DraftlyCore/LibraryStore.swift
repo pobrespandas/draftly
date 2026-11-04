@@ -489,6 +489,32 @@ public final class LibraryStore: ObservableObject {
             container.viewContext.rollback(); try? reload(); throw error
         }
     }
+    package func commitWorkspaceDeletion(_ id: UUID, mutation: LibraryMutationIdentity, at now: Date,
+                                         resource: LibraryMutationReceipt.Resource,
+                                         validateCommit: () throws -> Void) throws -> LibraryMutationReceipt {
+        guard resource.id == id else { throw LibraryMutationReceiptError.invalidReceipt }
+        if let previous = try mutationReceipt(for: mutation, at: now) {
+            guard previous.resources.count == 1, previous.resources.first?.id == id else {
+                throw LibraryMutationReceiptError.requestConflict
+            }
+            return previous
+        }
+        do {
+            let request = NSFetchRequest<NSManagedObject>(entityName: "Record")
+            request.predicate = NSPredicate(format: "key == %@", "workspace:" + id.uuidString)
+            let records = try container.viewContext.fetch(request)
+            guard records.count == 1 else { throw LibraryMutationReceiptError.invalidReceipt }
+            container.viewContext.delete(records[0])
+            let receipt = LibraryMutationReceipt(id: UUID(), mutation: mutation, committedAt: now, resources: [resource])
+            try receipt.validate()
+            try persist(receipt, id: receipt.id, kind: "agentMutationReceipt")
+            try beforeBatchCommit?()
+            try validateCommit()
+            try commit()
+            return receipt
+        } catch { container.viewContext.rollback(); try? reload(); throw error }
+    }
+
     private var actionCatalog: ActionCatalog {
         ActionCatalog(actions: actions, groups: actionGroups)
     }
