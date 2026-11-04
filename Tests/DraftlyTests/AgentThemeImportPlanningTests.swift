@@ -50,7 +50,10 @@ struct AgentThemeImportPlanningTests {
         try JSONEncoder().encode(EditorThemeDefinition(name: "Original file")).write(to: originalURL)
         try JSONEncoder().encode(EditorThemeDefinition(name: "Incoming file")).write(to: inputURL)
         let original = try ThemeFileAccess.prepare(originalURL), incoming = try ThemeFileAccess.prepare(inputURL)
-        if replace { try ThemeFileAccess.install(original, in: f.library, defaults: defaults) }
+        if replace {
+            try ThemeFileAccess.install(original, in: f.library, defaults: defaults)
+            try FileManager.default.removeItem(at: originalURL)
+        }
         let reader = AgentThemeReading(library: f.library, defaults: defaults, pages: AgentReadPages(now: Date.init, uptime: { ProcessInfo.processInfo.systemUptime }))
         let bookmark = AgentResourceReference(kind: .bookmark, id: UUID()), target = AgentResourceReference(kind: .theme, id: original.definition.id)
         let grant = AgentGrant(connectionID: UUID(), libraryID: f.libraryID, expiresAt: Date().addingTimeInterval(300), capabilities: [.appearanceManage, .filesRead], scope: .resources([bookmark, target]))

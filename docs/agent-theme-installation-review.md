@@ -1,68 +1,66 @@
-# Theme installation and replacement review
+# Local theme installation and replacement
 
-`themes.install` and `themes.replace` still lack direct handlers. Do not advertise
-them as connected operations.
+`themes.install` and `themes.replace` connect when the host has preference storage
+and the durable operation registry. They require appearance management and file
+read capabilities. Call them directly, then wait for the accepted operation.
+They do not use `mutations.prepare`.
 
-## Input decoding
+## Inputs and preconditions
 
-`ThemeInstallation.decodeDefinition` provides one bounded decoder for native and
-Drafts JSON. The file-theme reader now uses it. The caller supplies a byte limit
-before decoding. The decoder requires UTF-8, validates the definition, preserves
-native unknown fields, and retains the Drafts source for export. File access still
-sets the installed file identity and type after decoding. The parser does not
-open files, fetch URLs, create bookmarks, save definitions or change selection.
+Supported inputs are inline native or Drafts JSON, a ready connection-owned
+transfer, a scoped saved directory bookmark, and a built-in or custom installation
+link. Theme bytes use the same limit as the file-theme reader. HTTPS input still
+returns `interactionRequired`. Its reviewed network route remains unimplemented.
+These connected names are not complete acceptance of every source variant.
 
-## Host integration still required
+File mode requires bookmark input. The resolver reads through pinned directory
+handles, captures a narrower file permission while the file descriptor is live,
+and checks the permission's resolved device, inode, size and modification metadata
+against that descriptor. Permission bytes stay inside the app. The effect owner
+checks the original bookmark identity and current file definition again before
+saving. Custom mode uses its captured definition without another source read.
 
-- Resolve inline text, connection-owned transfers, authorized bookmark paths and
-  HTTPS inputs. Do not accept arbitrary local paths. Network reads need the
-  native effect authorization route.
-- Validate installation URLs with `ThemeInstallation` and handle built-in names.
-- Keep custom and file modes distinct. File mode requires a saved bookmark.
-- Bind replacement to the existing target version and resource scope. Reject
-  conflicting identities or names before saving.
-- Validate optional selection against its separate appearance token. Do not
-  broaden resource grants to a new definition or editor.
-- Commit durable request identity with the library mutation. Recover the original
-  result before reading an input again. Do not repeat uncertain network effects.
-- Preserve native cross-store ordering and report uncertain partial outcomes.
-  Library records, bookmarks and selection do not share one transaction.
-- Test interruption, concurrency, revocation, transfer ownership and installed
-  native behavior before release acceptance.
+New installation does not silently replace an existing ID or same-type name.
+Use explicit replacement with the stored target token from `themes.list`.
+Replacement requires target access. It can repair a missing original file without
+reading that file. The old source file is not changed or deleted. It keeps the target ID and type, and rejects
+conflicts with another installed theme. It cannot replace a record with a built-in
+name. Optional selection needs the separate appearance token from
+`themes.selection` as `expectedSelectionVersion`.
 
-## Decoder validation
+## Commit and recovery
 
-The 23 focused format and file-access tests passed. Regression passed all 826
-Core tests and 10 app tests for selection, reload and reviewed deletion. The
-native Debug build passed. Logs: `/tmp/draftly-theme-input.log`,
-`/tmp/draftly-theme-input-regression.log` and `/tmp/draftly-theme-input-build.log`.
-These checks validate the shared decoder. They do not validate installation or
-replacement handlers, which remain absent. Coverage remains 112/137.
+The operation captures its resolved input before launch. Live authority and current
+preconditions are checked at the library commit boundary. The journal records
+submission before the theme and library receipt commit together. Saved permission,
+selection references and the local presentation revision then use one compared
+preference-domain write. Unknown preference fields and the other appearance stay.
+The result exposes only resource identifiers, version tokens and built-in names.
+Creating a resource does not broaden the connection's grant.
 
-## Prepared installation and replacement
+Library records and preferences are separate stores. A failure after submission
+reports an unknown outcome. It does not automatically undo or repeat partial
+changes. A retry or recreated service checks the durable operation first and
+returns its original result without resolving the source, installing or selecting
+again. An uncertain operation remains uncertain. Do not present it as success.
 
-`AgentThemeImportPlanning` accepts a trusted resolved input. It checks the request
-schema, library binding, capabilities, resource scope, identity and name conflicts.
-It carries a validated definition, optional file permission and optional selection
-intent. It does not resolve a source, save a definition or select an appearance.
-The input owner must prove that the resolved input belongs to the requested source.
+## Validation and remaining gates
 
-New installation cannot silently overwrite an installed identity or same-type
-name. The caller must use explicit replacement with the current target token.
-Replacement keeps the target ID and theme type. It cannot consume another
-installed identity or name. File replacement uses the effective `themes.get`
-token; the existing authorized file is read to validate that token. Built-in input
-must match its installation link and cannot replace an installed record.
+The complete run verified 1 consumer, 193 contract, 826 Core and 1,681 app
+tests (2,701 total). Native Debug passed. Evidence:
+`/tmp/draftly-theme-install-verified.log`,
+`/tmp/draftly-theme-install-verified` and
+`/tmp/draftly-theme-install-verified-build.log`.
 
-Optional selection requires its own appearance token. This token does not replace
-the target definition token. The effect owner must revalidate the same prepared
-input and current target/selection at the final commit boundary. It must recover
-the durable result before resolving the original source again.
+The run includes the four focused suites, twelve installation source and
+optional-selection cases, replacement of a missing original file, recreated-service
+recovery without source access, preference failure, authority loss, failed library
+storage, changed files including NFC/NFD, revoked bookmarks and stale selection.
+Local input tests cover 24 cases with and without file-permission capture.
 
-Three new tests cover eight conflict/authority scenarios, both file plan forms,
-and built-in link binding. Together with selection and reload regression, all
-11 tests in two suites passed. Native Debug passed. Logs:
-`/tmp/draftly-theme-import-plan.log` and
-`/tmp/draftly-theme-import-plan-native.log`. The handlers remain unavailable.
-Source resolution, durable effects, multi-store recovery and installed acceptance
-are still required. Coverage remains 112/137.
+Signed installed behavior, process interruption between stores, production file
+permissions and reviewed HTTPS resolution remain open. Definition tokens do not
+yet bind the target's saved file permission. Retarget concurrency needs review
+before release. Local file I/O remains synchronous, as in the existing theme
+reader; mounted-file latency also needs acceptance. The agent distribution and
+client gates remain open. Do not treat source coverage as release acceptance.

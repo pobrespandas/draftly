@@ -6,6 +6,9 @@ public enum ThemeFileAccess {
     public struct Prepared: Sendable {
         public let definition: EditorThemeDefinition
         public let bookmark: Data
+        package init(definition: EditorThemeDefinition, bookmark: Data) {
+            self.definition = definition; self.bookmark = bookmark
+        }
     }
 
     public static func bookmarkKey(for id: UUID) -> String { "theme.file." + id.uuidString }
@@ -37,6 +40,14 @@ public enum ThemeFileAccess {
         let changed = definitions.filter { definition in !library.themes.contains(definition) }
         if !changed.isEmpty { try library.saveThemes(changed) }
         for file in prepared { defaults.set(file.bookmark, forKey: bookmarkKey(for: file.definition.id)) }
+    }
+
+    package static func read(_ prepared: Prepared, maximumBytes: Int) throws -> EditorThemeDefinition {
+        var stale = false
+        let url = try URL(resolvingBookmarkData: prepared.bookmark, options: [.withSecurityScope, .withoutUI], relativeTo: nil, bookmarkDataIsStale: &stale)
+        let active = url.startAccessingSecurityScopedResource()
+        defer { if active { url.stopAccessingSecurityScopedResource() } }
+        return try definition(at: url, id: prepared.definition.id, maximumBytes: maximumBytes)
     }
 
     public static func registeredURL(for id: UUID, defaults: UserDefaults = .standard) throws -> URL? {

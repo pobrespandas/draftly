@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 import AgentContracts
-import DraftlyCore
+@testable import DraftlyCore
 @testable import Draftly
 
 @Suite("Authorized direct theme selection") @MainActor
@@ -40,6 +40,142 @@ struct AgentThemeSelectionTests {
             f.operations = nil; f.preferenceStorage = nil
             f.cleanEditorPreferences(); try? FileManager.default.removeItem(at: root)
         }
+    }
+
+    @Test(arguments: ["inline", "transfer", "file", "builtIn", "replace", "fileReplace"], [false, true])
+    func installationPreservesDataAndRecoversWithoutResolvingAgain(mode: String, select: Bool) async throws {
+        let fixture = try Fixture(); defer { fixture.close() }
+        let f = fixture.f, defaults = fixture.defaults
+        let retained = EditorThemeDefinition(name: "Keep theme"), original = EditorThemeDefinition(name: "Before café 🐼")
+        try f.library.saveTheme(retained)
+        if mode == "replace" { try f.library.saveTheme(original) }
+        let note = try f.note("Keep draft café 🐼")
+        defaults.set("keep", forKey: "unknown.setting")
+        let (connection, session) = try f.connect(capabilities: [.appearanceRead, .appearanceManage, .filesRead])
+        let incoming = EditorThemeDefinition(name: "Incoming café 🐼", background: "112233")
+        let bytes = try JSONEncoder().encode(incoming)
+        var source: AgentJSONValue = .object(["kind": .string("inline"), "text": .string(String(decoding: bytes, as: UTF8.self))])
+        let file = fixture.root.appendingPathComponent("Incoming.json")
+        try bytes.write(to: file)
+        var replacementID = original.id
+        if mode == "fileReplace" {
+            let oldFile = fixture.root.appendingPathComponent("Old.json")
+            try JSONEncoder().encode(original).write(to: oldFile)
+            let old = try ThemeFileAccess.prepare(oldFile)
+            try ThemeFileAccess.install(old, in: f.library, defaults: defaults)
+            replacementID = old.definition.id
+            try FileManager.default.removeItem(at: oldFile)
+        }
+        if ["file", "fileReplace"].contains(mode) {
+            BookmarkPreferences.store(try BookmarkPreferences.data(for: fixture.root), named: "Input", defaults: defaults)
+            let bookmark = try #require(try BookmarkPreferences.agentRecords(defaults: defaults).first)
+            source = .object(["kind": .string("bookmark"), "bookmarkID": .string(bookmark.id.uuidString), "path": .string("Incoming.json")])
+        }
+        if mode == "builtIn" { source = .object(["kind": .string("installationURL"), "url": .string(try ThemeInstallation.builtIn("Dark").url.absoluteString)]) }
+        if mode == "transfer" {
+            let started = try f.values("transfers.beginImport", session: session, parameters: ["byteLength": .integer(Int64(bytes.count)), "sha256": .string(AgentTransferStore.digest(bytes))])
+            guard case .object(let transfer) = started["transfer"], case .string(let raw) = transfer["transferID"], let id = UUID(uuidString: raw) else { Issue.record("Missing transfer"); return }
+            let target = AgentResourceReference(kind: .operation, id: id)
+            _ = try f.values("transfers.appendChunk", session: session, targets: [target], parameters: ["offset": .integer(0), "data": .string(bytes.base64EncodedString())])
+            _ = try f.values("transfers.finishImport", session: session, targets: [target])
+            source = .object(["kind": .string("transfer"), "transferID": .string(raw)])
+        }
+        var parameters: [String: AgentJSONValue] = ["source": source, "mode": .string(["file", "fileReplace"].contains(mode) ? "file" : "custom")]
+        if select { parameters["selectAppearance"] = .string("light"); parameters["expectedSelectionVersion"] = .string(try fixture.token("light", session: session)) }
+        let replacing = ["replace", "fileReplace"].contains(mode)
+        var expected: String?
+        if replacing {
+            guard case .array(let rows) = try f.values("themes.list", session: session)["items"],
+                  let row = rows.first(where: { if case .object(let fields) = $0 { return fields["id"] == .string(replacementID.uuidString) }; return false }),
+                  case .object(let fields) = row, case .string(let token) = fields["versionToken"] else { Issue.record("Missing stored version"); return }
+            expected = token
+        }
+        let request = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: replacing ? "themes.replace" : "themes.install", targets: replacing ? [.init(kind: .theme, id: replacementID)] : [], expectedVersion: expected, parameters: parameters)
+        let beforeReferences = defaults.data(forKey: EditorThemePreferences.key)
+        let response = try f.send(request, session: session)
+        guard case .accepted(let id, _) = response.outcome else { Issue.record("Missing install: \(response)"); return }
+        f.service.close(session)
+        let completed = try await fixture.wait(id, connection: connection.id)
+        #expect(completed.state == .succeeded)
+        guard case .object(let result) = completed.result else { Issue.record("Missing install result"); return }
+        if mode == "builtIn" {
+            #expect(result["builtInName"] == .string("Dark") && result["resource"] == .null)
+            #expect(f.library.themes == [retained])
+        } else {
+            guard case .object(let resource) = result["resource"], case .string(let raw) = resource["id"], let resourceID = UUID(uuidString: raw) else { Issue.record("Missing resource"); return }
+            let installed = try #require(f.library.themes.first { $0.id == resourceID })
+            #expect(installed.name == incoming.name && installed.background == "112233")
+            #expect(!replacing || resourceID == replacementID)
+            if ["file", "fileReplace"].contains(mode) {
+                #expect(defaults.data(forKey: ThemeFileAccess.bookmarkKey(for: resourceID)) != nil)
+                #expect(try ThemeFileAccess.read(installed, defaults: defaults) == installed)
+            }
+            #expect(f.library.themes.contains(retained) && f.library.themes.count == 2)
+        }
+        #expect(f.library.notes == [note] && defaults.string(forKey: "unknown.setting") == "keep")
+        if !select { #expect(defaults.data(forKey: EditorThemePreferences.key) == beforeReferences && result["selection"] == .null) }
+        try FileManager.default.removeItem(at: file)
+        let reopened = AgentOperationRegistry(currentGrant: { try f.connections.grantForAuthenticatedConnection($0) }, validateHost: {}, isLocked: { f.locked }, now: { f.wall }, journal: try AgentOperationJournal(parentDirectory: fixture.root))
+        f.operations = reopened; f.service = try f.makeService()
+        let next = try f.service.authenticate(connectionID: connection.id, credential: #require(f.secrets[connection.id]))
+        let references = defaults.data(forKey: EditorThemePreferences.key), revision = defaults.integer(forKey: ThemeCatalog.revisionKey), themes = f.library.themes
+        #expect(try f.send(request, session: next).outcome == .result(.object(result)))
+        #expect(defaults.data(forKey: EditorThemePreferences.key) == references && defaults.integer(forKey: ThemeCatalog.revisionKey) == revision && f.library.themes == themes)
+    }
+
+    @Test(arguments: ["preferenceFailure", "stopWork", "libraryFailure"])
+    func installationDoesNotRepeatPartialEffects(mode: String) async throws {
+        let fixture = try Fixture(); defer { fixture.close() }
+        let f = fixture.f, defaults = fixture.defaults
+        var writes = 0
+        f.preferenceStorage = AgentPreferenceStorage(read: { defaults.persistentDomain(forName: f.editorDefaultsName) ?? [:] }, replace: { [weak f] _, updated in
+            guard let f else { throw AgentErrorCode.cancelled }
+            writes += 1; defaults.setPersistentDomain(updated, forName: f.editorDefaultsName)
+            if mode == "preferenceFailure" { throw AgentErrorCode.storageError }
+            f.service.invalidateAll(); return true
+        })
+        f.service = try f.makeService()
+        let (connection, session) = try f.connect(capabilities: [.appearanceRead, .appearanceManage, .filesRead])
+        let incoming = EditorThemeDefinition(name: "Partial café 🐼")
+        let bytes = try JSONEncoder().encode(incoming)
+        let request = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "themes.install", parameters: ["source": .object(["kind": .string("inline"), "text": .string(String(decoding: bytes, as: UTF8.self))])])
+        if mode == "libraryFailure" { f.library.beforeBatchCommit = { throw DraftlyError.message("Disk failed") } }
+        guard case .accepted(let id, _) = try f.send(request, session: session).outcome else { Issue.record("Missing operation"); return }
+        let result = try await fixture.wait(id, connection: connection.id)
+        if mode == "libraryFailure" {
+            #expect(result.state == .failed && result.error == .storageError && f.library.themes.isEmpty && writes == 0)
+        } else {
+            #expect(result.state == .outcomeUnknown && result.error == .outcomeUnknown && f.library.themes == [incoming] && writes == 1)
+            let next = try f.service.authenticate(connectionID: connection.id, credential: #require(f.secrets[connection.id]))
+            let revision = defaults.integer(forKey: ThemeCatalog.revisionKey)
+            #expect(try f.send(request, session: next).outcome == .error(.outcomeUnknown))
+            #expect(writes == 1 && defaults.integer(forKey: ThemeCatalog.revisionKey) == revision && f.library.themes == [incoming])
+        }
+    }
+
+    @Test(arguments: ["fileChanged", "fileChangedNFD", "bookmarkRevoked", "selectionChanged"])
+    func pendingInstallationRechecksItsInputsBeforeSaving(mode: String) async throws {
+        let fixture = try Fixture(); defer { fixture.close() }
+        let f = fixture.f, defaults = fixture.defaults
+        var sourceTheme = EditorThemeDefinition(name: "Pending café 🐼")
+        let file = fixture.root.appendingPathComponent("Pending.json")
+        try JSONEncoder().encode(sourceTheme).write(to: file)
+        BookmarkPreferences.store(try BookmarkPreferences.data(for: fixture.root), named: "Pending", defaults: defaults)
+        let bookmark = try #require(try BookmarkPreferences.agentRecords(defaults: defaults).first)
+        let (connection, session) = try f.connect(capabilities: [.appearanceRead, .appearanceManage, .filesRead])
+        var parameters: [String: AgentJSONValue] = ["mode": .string("file"), "source": .object(["kind": .string("bookmark"), "bookmarkID": .string(bookmark.id.uuidString), "path": .string("Pending.json")])]
+        if mode == "selectionChanged" { parameters["selectAppearance"] = .string("light"); parameters["expectedSelectionVersion"] = .string(try fixture.token("light", session: session)) }
+        let request = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "themes.install", parameters: parameters)
+        guard case .accepted(let id, _) = try f.send(request, session: session).outcome else { Issue.record("Missing operation"); return }
+        if mode == "fileChanged" { sourceTheme.background = "ABCDEF"; try JSONEncoder().encode(sourceTheme).write(to: file) }
+        if mode == "fileChangedNFD" { sourceTheme.name = sourceTheme.name.decomposedStringWithCanonicalMapping; try JSONEncoder().encode(sourceTheme).write(to: file) }
+        if mode == "bookmarkRevoked" { BookmarkPreferences.forget("Pending", defaults: defaults) }
+        if mode == "selectionChanged" { try EditorThemePreferences(defaults: defaults).set(reference: ["type": "builtIn", "name": "Dark"], dark: false, themes: f.library.themes) }
+        let preferences = defaults.persistentDomain(forName: f.editorDefaultsName) ?? [:]
+        let result = try await fixture.wait(id, connection: connection.id)
+        #expect(result.state == .failed && result.error == (mode == "bookmarkRevoked" ? .permissionDenied : .versionConflict))
+        #expect(f.library.themes.isEmpty)
+        #expect(NSDictionary(dictionary: defaults.persistentDomain(forName: f.editorDefaultsName) ?? [:]).isEqual(to: preferences))
     }
 
     @Test(arguments: [false, true], ["light", "dark"])

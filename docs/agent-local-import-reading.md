@@ -51,3 +51,16 @@ log is `/tmp/draftly-import-root-check.log`. The preceding complete 2,694-test
 result predates this root check.
 
 Native Debug passed after the root check. Log: `/tmp/draftly-import-root-build.log`.
+
+## Narrow file permission capture
+
+The snapshot can now capture a file permission for theme installation. It does so
+while the original file descriptor and granted directory scope remain live. The
+resolved permission must refer to the same device, inode, size and modification
+metadata. The snapshot returns permission bytes only to the app-owned effect
+route. They are not part of CLI or MCP results.
+
+Expanded input tests cover 24 cases with permission capture on and off. Complete
+validation passed 2,701 tests and native Debug. See
+[installation evidence](agent-theme-installation-review.md) for final logs and
+remaining acceptance. The earlier local-input reports above predate capture.

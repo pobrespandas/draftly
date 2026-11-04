@@ -6,8 +6,8 @@ import AgentContracts
 
 @Suite("Scoped local import input") @MainActor
 struct AgentImportReadingTests {
-    @Test(arguments: ["valid", "size", "scope", "capability", "parent", "symlink", "directory", "fifo", "revoked", "rootChanged", "bookmarkChanged", "finalSymlink"])
-    func bookmarkInputStaysWithinItsGrant(mode: String) throws {
+    @Test(arguments: ["valid", "size", "scope", "capability", "parent", "symlink", "directory", "fifo", "revoked", "rootChanged", "bookmarkChanged", "finalSymlink"], [false, true])
+    func bookmarkInputStaysWithinItsGrant(mode: String, capture: Bool) throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let suite = "Draftly.ImportReading." + UUID().uuidString
         let defaults = try #require(UserDefaults(suiteName: suite))
@@ -37,9 +37,10 @@ struct AgentImportReadingTests {
         let source: AgentJSONValue = .object(["kind": .string("bookmark"), "bookmarkID": .string(record.id.uuidString), "path": .string(path)])
         let transfers = AgentTransferStore(now: Date.init, uptime: { ProcessInfo.processInfo.systemUptime })
         var checks = 0
+        var capturedPermission: Data?
         func read() throws -> Data {
-            try AgentImportReading.data(source, grant: grant, defaults: defaults, transfers: transfers,
-                maximumBytes: mode == "size" ? bytes.count - 1 : bytes.count, authorize: {
+            let snapshot = try AgentImportReading.snapshot(source, grant: grant, defaults: defaults, transfers: transfers,
+                maximumBytes: mode == "size" ? bytes.count - 1 : bytes.count, captureFilePermission: capture, authorize: {
                     checks += 1
                     if mode == "rootChanged", checks == 2 {
                         try FileManager.default.moveItem(at: directory, to: root.appendingPathComponent("held"))
@@ -50,8 +51,18 @@ struct AgentImportReadingTests {
                     }
                     if mode == "revoked", checks > 2 { throw AgentErrorCode.permissionDenied }
                 })
+            capturedPermission = snapshot.filePermission
+            return snapshot.data
         }
-        if mode == "valid" { #expect(try read() == bytes) }
+        if mode == "valid" {
+            #expect(try read() == bytes)
+            if capture {
+                let permission = try #require(capturedPermission)
+                var stale = false
+                let resolved = try URL(resolvingBookmarkData: permission, options: [.withSecurityScope, .withoutUI], relativeTo: nil, bookmarkDataIsStale: &stale)
+                #expect(try Data(contentsOf: resolved) == bytes)
+            } else { #expect(capturedPermission == nil) }
+        }
         else { #expect(throws: (any Error).self) { try read() } }
         #expect(try Data(contentsOf: mode == "rootChanged" ? root.appendingPathComponent("held/input.json") : file) == bytes)
         #expect(try Data(contentsOf: root.appendingPathComponent("outside.json")) == bytes)

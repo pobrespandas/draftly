@@ -4,14 +4,26 @@ import AgentContracts
 
 // Local input stays within a saved directory and the connection's resource scope.
 @MainActor enum AgentImportReading {
+    struct Snapshot {
+        let data: Data
+        let filePermission: Data?
+    }
     static func data(_ source: AgentJSONValue, grant: AgentGrant, defaults: UserDefaults,
                      transfers: AgentTransferStore, maximumBytes: Int,
                      authorize: () throws -> Void) throws -> Data {
+        try snapshot(source, grant: grant, defaults: defaults, transfers: transfers,
+                     maximumBytes: maximumBytes, captureFilePermission: false, authorize: authorize).data
+    }
+    static func snapshot(_ source: AgentJSONValue, grant: AgentGrant, defaults: UserDefaults,
+                     transfers: AgentTransferStore, maximumBytes: Int, captureFilePermission: Bool,
+                     authorize: () throws -> Void) throws -> Snapshot {
         guard maximumBytes > 0, maximumBytes <= AgentTransferSchemas.maximumBytes else { throw AgentErrorCode.invalidInput }
         try Task.checkCancellation(); try authorize()
         let kind = try AgentImportSource.validate(source)
         guard case .object(let fields) = source else { throw AgentErrorCode.invalidInput }
         let data: Data
+        var filePermission: Data?
+        guard !captureFilePermission || kind == "bookmark" else { throw AgentErrorCode.invalidInput }
         switch kind {
         case "inline":
             guard case .string(let text) = fields["text"], text.utf8.count <= maximumBytes else { throw AgentErrorCode.invalidInput }
@@ -34,7 +46,8 @@ import AgentContracts
             guard root.isFileURL else { throw AgentErrorCode.permissionDenied }
             let active = root.startAccessingSecurityScopedResource()
             defer { if active { root.stopAccessingSecurityScopedResource() } }
-            data = try read(path, under: root, limit: maximumBytes, authorize: authorize)
+            let snapshot = try read(path, under: root, limit: maximumBytes, captureFilePermission: captureFilePermission, authorize: authorize)
+            data = snapshot.data; filePermission = snapshot.filePermission
             guard try BookmarkPreferences.agentRecords(defaults: defaults).contains(where: { $0.id == id && $0.data == record.data }) else {
                 throw AgentErrorCode.permissionDenied
             }
@@ -43,10 +56,10 @@ import AgentContracts
         }
         guard data.count <= maximumBytes else { throw AgentErrorCode.invalidInput }
         try Task.checkCancellation(); try authorize()
-        return data
+        return Snapshot(data: data, filePermission: filePermission)
     }
 
-    private static func read(_ path: String, under root: URL, limit: Int, authorize: () throws -> Void) throws -> Data {
+    private static func read(_ path: String, under root: URL, limit: Int, captureFilePermission: Bool, authorize: () throws -> Void) throws -> Snapshot {
         // Resolve the granted root once. Descendants never follow a symbolic link.
         var rootInfo = stat()
         guard lstat(root.path, &rootInfo) == 0, rootInfo.st_mode & S_IFMT == S_IFDIR else {
@@ -87,6 +100,35 @@ import AgentContracts
               before.st_ctimespec.tv_sec == after.st_ctimespec.tv_sec, before.st_ctimespec.tv_nsec == after.st_ctimespec.tv_nsec else {
             throw AgentErrorCode.versionConflict
         }
-        return data
+        var permission: Data?
+        if captureFilePermission {
+            try Task.checkCancellation(); try authorize()
+            var pathBuffer = [CChar](repeating: 0, count: Int(MAXPATHLEN))
+            guard fcntl(descriptor, F_GETPATH, &pathBuffer) == 0,
+                  let end = pathBuffer.firstIndex(of: 0),
+                  let path = String(validating: pathBuffer[..<end].map { UInt8(bitPattern: $0) }, as: UTF8.self) else {
+                throw AgentErrorCode.permissionDenied
+            }
+            let file = URL(fileURLWithPath: path)
+            let bookmark = try file.bookmarkData(options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil)
+            var stale = false
+            let resolved = try URL(resolvingBookmarkData: bookmark, options: [.withSecurityScope, .withoutUI], relativeTo: nil, bookmarkDataIsStale: &stale)
+            let access = resolved.startAccessingSecurityScopedResource()
+            defer { if access { resolved.stopAccessingSecurityScopedResource() } }
+            guard let physical = realpath(resolved.path, nil) else { throw AgentErrorCode.permissionDenied }
+            defer { free(physical) }
+            let checked = Darwin.open(physical, O_RDONLY | O_NOFOLLOW_ANY | O_NONBLOCK | O_CLOEXEC)
+            guard checked >= 0 else { throw AgentErrorCode.permissionDenied }
+            defer { Darwin.close(checked) }
+            var info = stat()
+            guard fstat(checked, &info) == 0, info.st_dev == before.st_dev, info.st_ino == before.st_ino,
+                  info.st_size == before.st_size,
+                  info.st_mtimespec.tv_sec == before.st_mtimespec.tv_sec, info.st_mtimespec.tv_nsec == before.st_mtimespec.tv_nsec,
+                  info.st_ctimespec.tv_sec == before.st_ctimespec.tv_sec, info.st_ctimespec.tv_nsec == before.st_ctimespec.tv_nsec else {
+                throw AgentErrorCode.versionConflict
+            }
+            permission = bookmark
+        }
+        return Snapshot(data: data, filePermission: permission)
     }
 }

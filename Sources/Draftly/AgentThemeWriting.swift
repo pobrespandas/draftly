@@ -212,13 +212,62 @@ import DraftlyCore
         case definition(EditorThemeDefinition)
         case file(ThemeFileAccess.Prepared)
     }
-    struct Plan {
+    struct Plan: Equatable {
         let definition: EditorThemeDefinition?
         let bookmark: Data?
         let builtInName: String?
         let appearance: String?
         let selectionVersion: String?
         let targetVersion: String?
+    }
+
+    static func resolve(_ request: AgentRequest, grant: AgentGrant, defaults: UserDefaults,
+                        transfers: AgentTransferStore, authorize: () throws -> Void) throws -> Input {
+        let parameters = try AgentAppearanceSchemas.validatedParameters(for: request)
+        guard let source = parameters["source"], case .object(let fields) = source,
+              case .string(let mode) = parameters["mode"] else { throw AgentErrorCode.invalidInput }
+        try Task.checkCancellation(); try authorize()
+        if fields["kind"] == .string("installationURL") {
+            guard case .string(let raw) = fields["url"], let url = URL(string: raw) else { throw AgentErrorCode.invalidInput }
+            do {
+                switch try ThemeInstallation(url: url) {
+                case .builtIn(let name): return .builtIn(name)
+                case .custom(let definition): return .definition(definition)
+                }
+            } catch { throw AgentErrorCode.invalidInput }
+        }
+        let snapshot = try AgentImportReading.snapshot(source, grant: grant, defaults: defaults,
+            transfers: transfers, maximumBytes: AgentRequest.maximumBytes,
+            captureFilePermission: mode == "file", authorize: authorize)
+        var definition: EditorThemeDefinition
+        do { definition = try ThemeInstallation.decodeDefinition(snapshot.data, fallbackID: request.targets.first?.id ?? UUID(), maximumBytes: AgentRequest.maximumBytes) }
+        catch { throw AgentErrorCode.invalidInput }
+        try Task.checkCancellation(); try authorize()
+        if mode == "file" {
+            guard let permission = snapshot.filePermission else { throw AgentErrorCode.permissionDenied }
+            definition.id = request.targets.first?.id ?? UUID(); definition.type = "file"
+            return .file(.init(definition: definition, bookmark: permission))
+        }
+        return .definition(definition)
+    }
+
+    static func validateSource(_ request: AgentRequest, input: Input, defaults: UserDefaults,
+                               authorize: () throws -> Void) throws {
+        try Task.checkCancellation(); try authorize()
+        if case .object(let source) = request.parameters["source"], source["kind"] == .string("bookmark") {
+            guard case .string(let raw) = source["bookmarkID"], let id = UUID(uuidString: raw),
+                  try BookmarkPreferences.agentRecords(defaults: defaults).contains(where: { $0.id == id }) else {
+                throw AgentErrorCode.permissionDenied
+            }
+        }
+        if case .file(let prepared) = input {
+            let actual = try ThemeFileAccess.read(prepared, maximumBytes: AgentRequest.maximumBytes)
+            guard try AgentRequestBinding.encoded(actual, maximum: AgentRequest.maximumBytes * 2)
+                == AgentRequestBinding.encoded(prepared.definition, maximum: AgentRequest.maximumBytes * 2) else {
+                throw AgentErrorCode.versionConflict
+            }
+        }
+        try Task.checkCancellation(); try authorize()
     }
 
     static func prepare(_ request: AgentRequest, input: Input, grant: AgentGrant,
@@ -262,7 +311,7 @@ import DraftlyCore
         if request.operation == "themes.replace" {
             guard request.targets.count == 1, let target = request.targets.first, target.kind == .theme,
                   grant.scope.permits(target), var value = definition else { throw AgentErrorCode.permissionDenied }
-            let previous = try reader.definition(target.id, grant: grant, authorize: authorize)
+            guard let previous = library.themes.first(where: { $0.id == target.id }) else { throw AgentErrorCode.notFound }
             let version = try reader.version(previous)
             guard request.expectedVersion == version else { throw AgentErrorCode.versionConflict }
             guard previous.type == value.type else { throw AgentErrorCode.invalidInput }

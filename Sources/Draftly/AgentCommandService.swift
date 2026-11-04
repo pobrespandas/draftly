@@ -21,7 +21,7 @@ import AgentContracts
         if editorWrites != nil { handlers.insert(.editorWrite) }
         if workspaceApplication != nil { handlers.insert(.workspaceApply) }
         if preferenceWrites != nil { handlers.insert(.preferenceWrite) }
-        if preferenceStorage != nil { handlers.insert(.themePresentation) }
+        if preferenceStorage != nil { handlers.insert(.themePresentation); handlers.insert(.themeImport) }
         if readActivity != nil { handlers.insert(.activityRead) }
         if operationRegistry != nil { handlers.insert(.operationControl) }
         if submitAction != nil { handlers.insert(.actionExecution) }
@@ -283,6 +283,8 @@ import AgentContracts
             let outcome: AgentResponse.Outcome
             if AgentNativeSchemas.operationNames.contains(request.operation) {
                 outcome = try submitNative(request, grant: grant, sessionID: session.id)
+            } else if AgentThemeInstallation.operationNames.contains(request.operation) {
+                outcome = try submitThemeImport(request, grant: grant, sessionID: session.id)
             } else if AgentThemePresentation.operationNames.contains(request.operation) {
                 outcome = try submitThemePresentation(request, grant: grant, sessionID: session.id)
             } else if request.operation == "editor.open" {
@@ -349,6 +351,7 @@ import AgentContracts
             let themeRead = AgentThemeReading.effectOperations.contains(request.operation)
             let syntaxExport = request.operation == "syntaxes.export"
             let themeMutation = AgentThemeWriting.operationNames.contains(request.operation)
+                || (AgentThemeInstallation.operationNames.contains(request.operation) && preferenceStorage != nil && operationRegistry != nil)
                 || (AgentThemePresentation.operationNames.contains(request.operation) && preferenceStorage != nil && operationRegistry != nil)
             let reviewedNative = AgentNativeSchemas.operationNames.contains(request.operation) && nativeExecution != nil && operationRegistry != nil
             let editorPresentation = ["editor.preview", "editor.navigate", "editor.open"].contains(request.operation) && editorRegistry != nil && operationRegistry != nil
@@ -361,6 +364,41 @@ import AgentContracts
         do { parameters = try AgentOperationSchemas.validatedParameters(for: request, preferences: preferences) }
         catch { throw AgentErrorCode.invalidInput }
         return parameters
+    }
+
+    private func submitThemeImport(_ request: AgentRequest, grant: AgentGrant, sessionID: UUID) throws -> AgentResponse.Outcome {
+        guard let preferenceStorage, let operationRegistry else { throw AgentErrorCode.unavailable }
+        try validateSession(sessionID, grant: grant)
+        func outcome(_ snapshot: AgentOperationRegistry.Snapshot) throws -> AgentResponse.Outcome {
+            if snapshot.state == .succeeded {
+                guard case .object(let result) = snapshot.result else { throw AgentErrorCode.storageError }
+                try AgentAppearanceSchemas.validateResult(result, for: request)
+                return .result(.object(result))
+            }
+            if snapshot.state.isTerminal { return .error(snapshot.error ?? .outcomeUnknown) }
+            return .accepted(operationID: snapshot.id, state: snapshot.state)
+        }
+        if let id = try operationRegistry.existingRequest(request, grant: grant) {
+            return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))
+        }
+        guard request.retryKey == nil else { throw AgentErrorCode.invalidInput }
+        let authorize = { try self.validateSession(sessionID, grant: grant) }
+        let input = try AgentThemeImportPlanning.resolve(request, grant: grant, defaults: preferenceDefaults, transfers: transfers, authorize: authorize)
+        let plan = try AgentThemeImportPlanning.prepare(request, input: input, grant: grant, library: actionLibrary, reader: themes, authorize: authorize)
+        let ticket = try retryKeys.issue(request, connectionID: grant.connectionID)
+        let identity = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
+        let validateOperation = operationAuthority(for: grant)
+        var sources: Set<AgentResourceReference> = []
+        if case .object(let source) = request.parameters["source"], case .string(let raw) = source["bookmarkID"], let id = UUID(uuidString: raw) {
+            sources.insert(.init(kind: .bookmark, id: id))
+        }
+        let id = try operationRegistry.startValueRequest(request, grant: grant, effectTargets: sources) { [weak self] id in
+            guard let self else { throw AgentOperationRegistry.FailureBeforeEffects(code: .cancelled) }
+            return try AgentThemeInstallation.run(request, input: input, plan: plan, grant: grant,
+                identity: identity, library: self.actionLibrary, reader: self.themes, defaults: self.preferenceDefaults,
+                storage: preferenceStorage, now: self.now, operations: operationRegistry, operationID: id, authorize: validateOperation)
+        }
+        return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))
     }
 
     private func submitThemePresentation(_ request: AgentRequest, grant: AgentGrant, sessionID: UUID) throws -> AgentResponse.Outcome {

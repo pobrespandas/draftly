@@ -536,8 +536,8 @@ See [selection validation](agent-theme-selection-acceptance.md).
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-112 names in implemented or conditional handler sets. The other 25 names have
-no direct handler in those sets. These counts do not prove that 112 operations
+114 names in implemented or conditional handler sets. The other 23 names have
+no direct handler in those sets. These counts do not prove that 114 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -548,7 +548,6 @@ a direct handler for every `native.*` contract.
 
 | Family | Direct contracts still outside those handler sets |
 | --- | --- |
-| Themes | `themes.replace`, `themes.install` |
 | Syntax | `syntaxes.delete`, `syntaxes.install`, `syntaxes.reload`, `syntaxes.replace` |
 | Bookmarks | `bookmarks.forget`, `bookmarks.requestAdd` |
 | Imports | `imports.commit`, `imports.preview`, `imports.validate` |
@@ -812,3 +811,12 @@ Backup validation and preview now use the bounded local input resolver for
 inline text, owned transfers and authorized saved directory bookmarks. HTTPS
 input remains gated on its reviewed route. This does not connect theme installation
 or replacement. See [local input evidence](agent-local-import-reading.md).
+
+## Local theme installation and replacement
+
+The preference effect host connects `themes.install` and `themes.replace` with
+inline, owned transfer, scoped bookmark and installation-link inputs. File mode
+captures a checked file permission. HTTPS resolution still needs its reviewed
+route. Durable results prevent automatic replay of cross-store effects. See
+[installation evidence](agent-theme-installation-review.md). These two names
+remain conditional on host components and source support, not release acceptance.

@@ -3,6 +3,17 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Local theme installation and replacement — 4 November
+
+Connected `themes.install` and `themes.replace` for inline JSON, owned transfers,
+scoped directory files and installation links. File mode captures a checked narrow
+permission. Stored tokens allow replacement of a missing original file. Optional
+selection uses its separate appearance token. Cross-store failures stay uncertain;
+recovery does not resolve or install again. Strict 2,701 tests and native Debug
+passed. Source coverage is 114/137 connected or conditional names; 23 lack direct
+handlers. HTTPS, permission-retarget concurrency, installed QA and distribution
+remain open. See [installation evidence](agent-theme-installation-review.md).
+
 ## Theme installation and replacement preparation — 4 November
 
 Added a non-saving plan for resolved custom, file and built-in inputs. It binds
