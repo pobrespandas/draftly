@@ -38,3 +38,31 @@ native Debug build passed. Logs: `/tmp/draftly-theme-input.log`,
 `/tmp/draftly-theme-input-regression.log` and `/tmp/draftly-theme-input-build.log`.
 These checks validate the shared decoder. They do not validate installation or
 replacement handlers, which remain absent. Coverage remains 112/137.
+
+## Prepared installation and replacement
+
+`AgentThemeImportPlanning` accepts a trusted resolved input. It checks the request
+schema, library binding, capabilities, resource scope, identity and name conflicts.
+It carries a validated definition, optional file permission and optional selection
+intent. It does not resolve a source, save a definition or select an appearance.
+The input owner must prove that the resolved input belongs to the requested source.
+
+New installation cannot silently overwrite an installed identity or same-type
+name. The caller must use explicit replacement with the current target token.
+Replacement keeps the target ID and theme type. It cannot consume another
+installed identity or name. File replacement uses the effective `themes.get`
+token; the existing authorized file is read to validate that token. Built-in input
+must match its installation link and cannot replace an installed record.
+
+Optional selection requires its own appearance token. This token does not replace
+the target definition token. The effect owner must revalidate the same prepared
+input and current target/selection at the final commit boundary. It must recover
+the durable result before resolving the original source again.
+
+Three new tests cover eight conflict/authority scenarios, both file plan forms,
+and built-in link binding. Together with selection and reload regression, all
+11 tests in two suites passed. Native Debug passed. Logs:
+`/tmp/draftly-theme-import-plan.log` and
+`/tmp/draftly-theme-import-plan-native.log`. The handlers remain unavailable.
+Source resolution, durable effects, multi-store recovery and installed acceptance
+are still required. Coverage remains 112/137.

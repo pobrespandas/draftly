@@ -3,6 +3,16 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Theme installation and replacement preparation — 4 November
+
+Added a non-saving plan for resolved custom, file and built-in inputs. It binds
+library, capability, resource, identity, name and optional selection preconditions.
+Replacement keeps the explicit target identity and type. The plan does not fetch,
+install or select. All 11 focused tests and native Debug passed. Source resolution,
+durable commit/recovery and installed acceptance remain open. The handlers are
+not advertised; coverage remains 112/137. See
+[installation review](agent-theme-installation-review.md).
+
 ## Import root identity check — 4 November
 
 The input reader now checks root device and inode across canonicalization and

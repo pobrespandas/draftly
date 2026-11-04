@@ -204,3 +204,85 @@ import DraftlyCore
             ThemeCatalog.revisionKey: .scalar(.integer(Int64(defaults.integer(forKey: ThemeCatalog.revisionKey) &+ 1)))])
     }
 }
+
+// Source resolution runs before this plan. The plan does not save or select.
+@MainActor enum AgentThemeImportPlanning {
+    enum Input {
+        case builtIn(String)
+        case definition(EditorThemeDefinition)
+        case file(ThemeFileAccess.Prepared)
+    }
+    struct Plan {
+        let definition: EditorThemeDefinition?
+        let bookmark: Data?
+        let builtInName: String?
+        let appearance: String?
+        let selectionVersion: String?
+        let targetVersion: String?
+    }
+
+    static func prepare(_ request: AgentRequest, input: Input, grant: AgentGrant,
+                        library: LibraryStore, reader: AgentThemeReading,
+                        authorize: () throws -> Void) throws -> Plan {
+        guard request.libraryID == grant.libraryID, ["themes.install", "themes.replace"].contains(request.operation) else { throw AgentErrorCode.invalidInput }
+        guard grant.capabilities.isSuperset(of: [.appearanceManage, .filesRead]) else { throw AgentErrorCode.permissionDenied }
+        try Task.checkCancellation(); try authorize()
+        let parameters = try AgentAppearanceSchemas.validatedParameters(for: request)
+        guard case .string(let mode) = parameters["mode"] else { throw AgentErrorCode.invalidInput }
+        if case .object(let source) = parameters["source"], source["kind"] == .string("bookmark") {
+            guard case .string(let raw) = source["bookmarkID"], let id = UUID(uuidString: raw),
+                  grant.scope.permits(.init(kind: .bookmark, id: id)) else { throw AgentErrorCode.permissionDenied }
+        }
+        let appearance: String?, selectionVersion: String?
+        if case .string(let value) = parameters["selectAppearance"], case .string(let token) = parameters["expectedSelectionVersion"] {
+            guard try reader.selection(appearance: value, grant: grant)["versionToken"] == .string(token) else {
+                throw AgentErrorCode.versionConflict
+            }
+            appearance = value; selectionVersion = token
+        } else { appearance = nil; selectionVersion = nil }
+        var definition: EditorThemeDefinition?, bookmark: Data?, builtInName: String?
+        switch input {
+        case .builtIn(let name):
+            guard mode == "custom", request.operation == "themes.install", case .object(let source) = parameters["source"],
+                  source["kind"] == .string("installationURL"), case .string(let raw) = source["url"],
+                  let url = URL(string: raw), try ThemeInstallation(url: url) == .builtIn(name) else { throw AgentErrorCode.invalidInput }
+            builtInName = name
+        case .definition(var value):
+            guard mode == "custom" else { throw AgentErrorCode.invalidInput }
+            value.type = "custom"
+            do { value = try DraftsThemeImport.applyingEditorChanges(value); try value.validate() }
+            catch { throw AgentErrorCode.invalidInput }
+            definition = value
+        case .file(let prepared):
+            guard mode == "file", prepared.definition.type == "file", !prepared.bookmark.isEmpty else { throw AgentErrorCode.invalidInput }
+            do { try prepared.definition.validate() } catch { throw AgentErrorCode.invalidInput }
+            definition = prepared.definition; bookmark = prepared.bookmark
+        }
+        let targetVersion: String?
+        if request.operation == "themes.replace" {
+            guard request.targets.count == 1, let target = request.targets.first, target.kind == .theme,
+                  grant.scope.permits(target), var value = definition else { throw AgentErrorCode.permissionDenied }
+            let previous = try reader.definition(target.id, grant: grant, authorize: authorize)
+            let version = try reader.version(previous)
+            guard request.expectedVersion == version else { throw AgentErrorCode.versionConflict }
+            guard previous.type == value.type else { throw AgentErrorCode.invalidInput }
+            // Explicit replacement keeps the target identity and cannot consume another installed ID.
+            guard value.id == target.id || !library.themes.contains(where: { $0.id == value.id }) else {
+                throw AgentErrorCode.versionConflict
+            }
+            value.id = target.id; definition = value; targetVersion = version
+        } else {
+            guard request.targets.isEmpty, request.expectedVersion == nil else { throw AgentErrorCode.invalidInput }
+            targetVersion = nil
+            // An existing identity or name needs an explicit versioned replacement.
+            if let definition, library.themes.contains(where: { $0.id == definition.id }) { throw AgentErrorCode.versionConflict }
+        }
+        if let definition, library.themes.contains(where: {
+            $0.id != request.targets.first?.id
+                && $0.type == definition.type && $0.name == definition.name
+        }) { throw AgentErrorCode.versionConflict }
+        try Task.checkCancellation(); try authorize()
+        return Plan(definition: definition, bookmark: bookmark, builtInName: builtInName,
+                    appearance: appearance, selectionVersion: selectionVersion, targetVersion: targetVersion)
+    }
+}
