@@ -21,11 +21,13 @@ import AgentContracts
         return Data(HMAC<SHA256>.authenticationCode(for: bytes, using: key)).base64EncodedString()
     }
 
+    func version(_ theme: EditorThemeDefinition) throws -> String { try version(encoded(theme)) }
+
     private func encoded(_ theme: EditorThemeDefinition) throws -> AgentJSONValue {
         try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(theme))
     }
 
-    private func resolved(_ id: UUID, grant: AgentGrant, authorize: () throws -> Void) throws -> EditorThemeDefinition {
+    func definition(_ id: UUID, grant: AgentGrant, authorize: () throws -> Void) throws -> EditorThemeDefinition {
         guard grant.scope.permits(.init(kind: .theme, id: id)),
               let theme = library.themes.first(where: { $0.id == id }) else { throw AgentErrorCode.notFound }
         if theme.type == "file" {
@@ -77,7 +79,7 @@ import AgentContracts
                 "versionToken": .string(try version(.string(text)))]
         case "themes.get", "themes.export":
             guard let id = request.targets.first?.id else { throw AgentErrorCode.invalidInput }
-            let theme = try resolved(id, grant: grant, authorize: authorize)
+            let theme = try definition(id, grant: grant, authorize: authorize)
             let definition = try encoded(theme), token = try version(definition)
             if request.operation == "themes.get" {
                 result = ["definition": definition, "versionToken": .string(token)]

@@ -70,6 +70,7 @@ struct AgentCommandServiceTests {
         var wall = Date(timeIntervalSince1970: 1_700_000_000)
         var uptime: TimeInterval = 100
         var hostError: AgentErrorCode?
+        var onHostValidation: (() -> Void)?
         var locked = false
         var generation = ""
         var editors: [WindowModel] = [] { didSet { editorRegistry.refreshMembership() } }
@@ -99,6 +100,7 @@ struct AgentCommandServiceTests {
             try AgentCommandService(library: library, libraryID: libraryID, connections: connections,
                 appVersion: "QA", preferenceDefaults: try #require(UserDefaults(suiteName: editorDefaultsName)),
                 preferenceStorage: preferenceStorage, nativePreferenceRead: nativePreferenceRead, validateHost: { [unowned self] in
+                    self.onHostValidation?()
                     if let error = self.hostError { throw error }
                 }, isLocked: { [unowned self] in self.locked }, now: { [unowned self] in self.wall },
                 uptime: { [unowned self] in self.uptime }, editors: withoutEditors ? nil : editorRegistry, pendingEditorGeneration: { [unowned self] _ in
@@ -2296,6 +2298,176 @@ struct AgentCommandServiceTests {
         #expect(changed["versionToken"] != value["versionToken"])
     }
 
+    @Test(arguments: ["themes.create", "themes.update", "themes.duplicate"], [false, true])
+    func themeWritesUseDurableReceiptsWithoutChangingSelection(operation: String, withoutEditors: Bool) throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        f.service = try f.makeService(withoutEditors: withoutEditors)
+        var original = try DraftsThemeImport.decode(data: DraftsThemeImport.exportData(EditorThemeDefinition(name: "Original café 🐼")))
+        original.unknownFields["future"] = .object(["keep": .bool(true)])
+        try f.library.saveTheme(original)
+        let defaults = try #require(UserDefaults(suiteName: f.editorDefaultsName))
+        let references = defaults.object(forKey: EditorThemePreferences.key) as? Data
+        let (record, session) = try f.connect(capabilities: [.appearanceRead, .appearanceManage])
+        let target = AgentResourceReference(kind: .theme, id: original.id)
+        let read = try f.values("themes.get", session: session, targets: [target])
+        guard case .string(let version) = read["versionToken"] else { Issue.record("Missing theme version"); return }
+        let parameters: [String: AgentJSONValue]
+        if operation == "themes.create" {
+            parameters = ["theme": .object(["name": .string("Created café 🐼"), "future": .object(["keep": .bool(true)])])]
+        } else if operation == "themes.update" {
+            var changed = original; changed.foreground = "ABCDEF"
+            parameters = ["theme": try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(changed))]
+        } else { parameters = [:] }
+        let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: operation,
+            targets: operation == "themes.create" ? [] : [target], expectedVersion: operation == "themes.create" ? nil : version, parameters: parameters)
+        let request = try f.preparedMutation(intent, session: session)
+        #expect(f.library.themes == [original])
+        let first = try f.send(request, session: session)
+        guard case .result(.object(let result)) = first.outcome, case .object(let resource) = result["resource"],
+              case .string(let rawID) = resource["id"], let id = UUID(uuidString: rawID),
+              let saved = f.library.themes.first(where: { $0.id == id }) else { Issue.record("Missing theme receipt: \(first)"); return }
+        #expect(f.library.themes.count == (operation == "themes.update" ? 1 : 2))
+        #expect(saved.unknownFields["future"] == .object(["keep": .bool(true)]))
+        #expect(id == original.id ? operation == "themes.update" : operation != "themes.update")
+        let current = try f.values("themes.get", session: session, targets: [.init(kind: .theme, id: id)])
+        #expect(current["versionToken"] == resource["versionToken"])
+        #expect(try DraftsThemeImport.decode(data: DraftsThemeImport.exportData(saved)).foreground == saved.foreground)
+        #expect(try f.send(request, session: session) == first)
+        var later = saved; later.background = "112233"; later.name += " User"
+        later = try DraftsThemeImport.applyingEditorChanges(later); try f.library.saveTheme(later)
+        f.service = try f.makeService(withoutEditors: withoutEditors)
+        let resumed = try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        let retry = try f.preparedMutation(intent, session: resumed)
+        #expect(try f.send(retry, session: resumed) == first)
+        #expect(f.library.themes.first { $0.id == id } == later)
+        #expect(defaults.data(forKey: EditorThemePreferences.key) == references)
+    }
+
+    @Test func themePreparationChecksGlobalCreationScopeAndNativeValidation() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let original = EditorThemeDefinition(name: "Scoped café 🐼"); try f.library.saveTheme(original)
+        let target = AgentResourceReference(kind: .theme, id: original.id)
+        let (_, scoped) = try f.connect(scope: .resources([target]), capabilities: [.appearanceRead, .appearanceManage])
+        let (_, full) = try f.connect(capabilities: [.appearanceManage])
+        let read = try f.values("themes.get", session: scoped, targets: [target])
+        guard case .string(let version) = read["versionToken"] else { Issue.record("Missing version"); return }
+        func prepare(_ request: AgentRequest, session: AgentCommandService.Session) throws -> AgentResponse {
+            let frame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(request))
+            return try f.response("mutations.prepare", session: session, parameters: ["request": frame])
+        }
+        for operation in ["themes.create", "themes.duplicate"] {
+            let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: operation,
+                targets: operation == "themes.create" ? [] : [target], expectedVersion: operation == "themes.create" ? nil : version,
+                parameters: operation == "themes.create" ? ["theme": .object([:])] : [:])
+            #expect(try prepare(intent, session: scoped).outcome == .error(.permissionDenied))
+        }
+        let invalid = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "themes.create",
+            parameters: ["theme": .object(["foreground": .string("invalid")])])
+        #expect(try prepare(invalid, session: full).outcome == .error(.invalidInput))
+        let collision = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "themes.create",
+            parameters: ["theme": .object(["id": .string(original.id.uuidString), "name": .string("Other")])])
+        #expect(try prepare(collision, session: full).outcome == .error(.versionConflict))
+        let stale = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "themes.update", targets: [target],
+            expectedVersion: "stale", parameters: ["theme": try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(original))])
+        #expect(try prepare(stale, session: scoped).outcome == .error(.versionConflict))
+        #expect(f.library.themes == [original])
+    }
+
+    @Test(arguments: [false, true])
+    func fileThemeDuplicationUsesCurrentDataAndCannotOverwriteTheSource(changesAtCommit: Bool) throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let url = root.appendingPathComponent("theme.json")
+        let source = EditorThemeDefinition(name: "File café 🐼")
+        try JSONEncoder().encode(source).write(to: url)
+        let prepared = try ThemeFileAccess.prepare(url)
+        let defaults = try #require(UserDefaults(suiteName: f.editorDefaultsName))
+        try ThemeFileAccess.install(prepared, in: f.library, defaults: defaults)
+        let target = AgentResourceReference(kind: .theme, id: prepared.definition.id)
+        let (_, session) = try f.connect(capabilities: [.appearanceRead, .appearanceManage, .filesRead])
+        let read = try f.values("themes.get", session: session, targets: [target])
+        guard case .string(let version) = read["versionToken"] else { Issue.record("Missing version"); return }
+        let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "themes.duplicate", targets: [target], expectedVersion: version)
+        let request = try f.preparedMutation(intent, session: session)
+        if changesAtCommit {
+            f.library.beforeBatchCommit = {
+                var changed = source; changed.foreground = "ABCDEF"
+                try JSONEncoder().encode(changed).write(to: url)
+            }
+        }
+        defer { f.library.beforeBatchCommit = nil }
+        let response = try f.send(request, session: session)
+        if changesAtCommit {
+            #expect(response.outcome == .error(.versionConflict))
+            #expect(f.library.themes == [prepared.definition])
+        } else {
+            guard case .result = response.outcome else { Issue.record("File duplication failed: \(response)"); return }
+            let copy = try #require(f.library.themes.first { $0.type == "custom" })
+            #expect(copy.id != prepared.definition.id && copy.name == source.name + " Copy")
+            #expect(copy.foreground == source.foreground)
+            #expect(defaults.object(forKey: ThemeFileAccess.bookmarkKey(for: copy.id)) == nil)
+            #expect(try JSONDecoder().decode(EditorThemeDefinition.self, from: Data(contentsOf: url)) == source)
+        }
+        let update = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "themes.update", targets: [target],
+            expectedVersion: version, parameters: ["theme": try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(prepared.definition))])
+        let frame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(update))
+        #expect(try f.response("mutations.prepare", session: session, parameters: ["request": frame]).outcome
+            == .error(changesAtCommit ? .versionConflict : .interactionRequired))
+    }
+
+    @Test func cancellationDuringFinalThemeValidationRollsBackAndCanRetry() async throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let original = EditorThemeDefinition(name: "Keep café 🐼"); try f.library.saveTheme(original)
+        let target = AgentResourceReference(kind: .theme, id: original.id)
+        let (_, session) = try f.connect(scope: .resources([target]), capabilities: [.appearanceRead, .appearanceManage])
+        let read = try f.values("themes.get", session: session, targets: [target])
+        guard case .string(let version) = read["versionToken"] else { Issue.record("Missing version"); return }
+        var changed = original; changed.foreground = "ABCDEF"
+        let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "themes.update", targets: [target],
+            expectedVersion: version, parameters: ["theme": try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(changed))])
+        let request = try f.preparedMutation(intent, session: session)
+        var mutation: Task<AgentResponse, Error>?
+        f.library.beforeBatchCommit = { f.onHostValidation = { mutation?.cancel() } }
+        defer { f.library.beforeBatchCommit = nil; f.onHostValidation = nil }
+        mutation = Task { try f.send(request, session: session) }
+        let response = try await #require(mutation).value
+        #expect(response.outcome == .error(.cancelled))
+        #expect(f.library.themes == [original])
+        f.library.beforeBatchCommit = nil; f.onHostValidation = nil
+        guard case .result = try f.send(request, session: session).outcome else { Issue.record("Cancelled theme mutation could not retry"); return }
+        #expect(f.library.themes == [changed])
+    }
+
+    @Test(arguments: ["storage", "session", "revoked", "expired"])
+    func themeCommitRechecksAuthorityAndRollsBack(boundary: String) throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let original = EditorThemeDefinition(name: "Keep café 🐼"); try f.library.saveTheme(original)
+        let target = AgentResourceReference(kind: .theme, id: original.id)
+        let (record, session) = try f.connect(scope: .resources([target]), capabilities: [.appearanceRead, .appearanceManage])
+        let read = try f.values("themes.get", session: session, targets: [target])
+        guard case .string(let version) = read["versionToken"] else { Issue.record("Missing version"); return }
+        var changed = original; changed.foreground = "ABCDEF"
+        let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "themes.update", targets: [target],
+            expectedVersion: version, parameters: ["theme": try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(changed))])
+        let request = try f.preparedMutation(intent, session: session)
+        f.library.beforeBatchCommit = {
+            if boundary == "storage" { throw CocoaError(.fileWriteNoPermission) }
+            if boundary == "session" { f.service.invalidateAll() }
+            if boundary == "revoked" { _ = try f.connections.revokeFromUserInterface(record.id) }
+            if boundary == "expired" { f.wall = record.grant.expiresAt.addingTimeInterval(1) }
+        }
+        defer { f.library.beforeBatchCommit = nil }
+        #expect(try f.send(request, session: session).outcome == .error(boundary == "storage" ? .storageError : .permissionDenied))
+        #expect(f.library.themes == [original])
+        if boundary == "storage" {
+            f.library.beforeBatchCommit = nil
+            guard case .result = try f.send(request, session: session).outcome else { Issue.record("Failed theme write could not retry"); return }
+            #expect(f.library.themes == [changed])
+        }
+    }
+
     @Test(arguments: [false, true])
     func themeReadsRespectResourceScopeAndExportPortableDefinitions(imported: Bool) throws {
         let f = try Fixture(); defer { f.cleanEditorPreferences() }
@@ -2390,6 +2562,7 @@ struct AgentCommandServiceTests {
         #expect(available.remove("syntaxes.get") != nil)
         #expect(available.remove("drafts.duplicate") != nil)
         for name in AgentThemeReading.operationNames { #expect(available.remove(name) != nil) }
+        for name in AgentThemeWriting.operationNames { #expect(available.remove(name) != nil) }
         #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", "preferences.get", AgentMutationSchemas.name, "drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion", "drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags", "drafts.syntax", "drafts.merge", "editor.windows", "editor.get", "editor.setSelection", "editor.replaceRange", "editor.undo", "editor.redo", "editor.tasks", "editor.replaceAll", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.create", "workspaces.update", "workspaces.duplicate", "workspaces.reorder", "workspaces.apply"]) && available.count == 57)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.invalidInput))
         #expect(f.library.notes.isEmpty)
@@ -3056,7 +3229,7 @@ struct AgentCommandServiceTests {
         #expect(f.library.notes.first { $0.id == second.id }?.content == second.content)
     }
 
-    @Test func missingEditorTrackingKeepsMutationRoutesUnavailable() throws {
+    @Test func missingEditorTrackingKeepsDraftAndEditorMutationRoutesUnavailable() throws {
         let f = try Fixture()
         f.service = try AgentCommandService(library: f.library, libraryID: f.libraryID, connections: f.connections,
             appVersion: "QA", validateHost: {}, isLocked: { false }, now: { f.wall },
@@ -3064,7 +3237,7 @@ struct AgentCommandServiceTests {
         let (_, session) = try f.connect(capabilities: [.draftsRead, .draftsWrite])
         let schemas = try f.values("server.schemas", session: session)
         guard case .array(let entries) = schemas["operations"] else { Issue.record("Missing schema entries"); return }
-        for name in ["mutations.prepare", "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.setSelection", "editor.replaceRange"] {
+        for name in ["drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.setSelection", "editor.replaceRange"] {
             let entry = entries.first { value in
                 guard case .object(let fields) = value else { return false }
                 return fields["name"] == .string(name)
@@ -3072,7 +3245,10 @@ struct AgentCommandServiceTests {
             guard case .object(let fields) = entry else { Issue.record("Missing mutation descriptor"); continue }
             #expect(fields["available"] == .bool(false))
         }
-        #expect(try f.response("mutations.prepare", session: session).outcome == .error(.unavailable))
+        let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "drafts.update",
+            targets: [.init(kind: .draft, id: UUID())], expectedVersion: "unused", parameters: ["changes": .object(["content": .string("Not saved")])])
+        let frame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(intent))
+        #expect(try f.response("mutations.prepare", session: session, parameters: ["request": frame]).outcome == .error(.unavailable))
         #expect(f.library.notes.isEmpty)
     }
 

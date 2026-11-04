@@ -14,7 +14,7 @@ import AgentContracts
     }
     static var implementedOperations: Set<String> { AgentOperationAvailability.implementedOperations }
     private var availability: AgentOperationAvailability {
-        var handlers: Set<AgentOperationAvailability.Handler> = []
+        var handlers: Set<AgentOperationAvailability.Handler> = [.themeWrite]
         if editorRegistry != nil { handlers.insert(.editorRead) }
         if writes != nil { handlers.insert(.draftWrite) }
         if editorWrites != nil { handlers.insert(.editorWrite) }
@@ -44,6 +44,8 @@ import AgentContracts
                 try self.validateAdmission()
             }, now: now)
     private lazy var themes = AgentThemeReading(library: actionLibrary, defaults: preferenceDefaults, pages: pages)
+    private lazy var themeWrites = AgentThemeWriting(library: actionLibrary, libraryID: libraryID,
+        reader: themes, keys: retryKeys, now: now)
     private let actionLibrary: LibraryStore
     private let operationRegistry: AgentOperationRegistry?
     private let deletionApprovals: AgentApprovalStore?
@@ -223,7 +225,8 @@ import AgentContracts
                 let preferenceMutation = AgentPreferenceWriting.operationNames.contains(request.operation) && preferenceWrites != nil
                 let workspaceEffect = AgentWorkspaceApplication.operationNames.contains(request.operation) && workspaceApplication != nil
                 let themeRead = AgentThemeReading.effectOperations.contains(request.operation)
-                guard reviewedAction || (!humanApproval && (preferenceMutation || workspaceEffect || themeRead)) else {
+                let themeMutation = AgentThemeWriting.operationNames.contains(request.operation)
+                guard reviewedAction || (!humanApproval && (preferenceMutation || workspaceEffect || themeRead || themeMutation)) else {
                     throw AgentErrorCode.unavailable
                 }
             }
@@ -554,7 +557,9 @@ import AgentContracts
                 operation: input.operation, targets: input.targets, expectedVersion: input.expectedVersion, parameters: input.parameters)
             guard availableOperations.contains(bound.operation) else { throw AgentErrorCode.unavailable }
             let ticket: AgentRetryKeys.Ticket
-            if AgentPreferenceWriting.operationNames.contains(bound.operation) {
+            if AgentThemeWriting.operationNames.contains(bound.operation) {
+                ticket = try themeWrites.prepare(bound, grant: grant, authorize: { try self.validateSession(sessionID, grant: grant) })
+            } else if AgentPreferenceWriting.operationNames.contains(bound.operation) {
                 guard let preferenceWrites else { throw AgentErrorCode.unavailable }
                 ticket = try preferenceWrites.prepare(bound, connectionID: grant.connectionID)
             } else if AgentEditorWriting.operationNames.contains(bound.operation) {
@@ -581,6 +586,10 @@ import AgentContracts
             }
             return ["requestID": .string(bound.requestID.uuidString), "retryKey": .string(ticket.value),
                 "expiresAt": .string(APIValues.date(min(ticket.expiresAt, grant.expiresAt)))]
+        case "themes.create", "themes.update", "themes.duplicate":
+            let receipt = try themeWrites.update(request, grant: grant, authorize: { try self.validateSession(sessionID, grant: grant) })
+            guard let resource = receipt.resources.first else { throw AgentErrorCode.storageError }
+            return ["resource": .object(["id": .string(resource.id.uuidString), "versionToken": .string(resource.versionToken)])]
         case "actionGroups.reorder", "actions.reorder":
             let receipt = try actions.updateAction(request, connectionID: grant.connectionID)
             return ["resources": .array(receipt.resources.map { .object(["id": .string($0.id.uuidString), "versionToken": .string($0.versionToken)]) })]

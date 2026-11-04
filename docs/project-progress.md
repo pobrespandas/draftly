@@ -3,6 +3,34 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Durable theme mutations — 4 November
+
+Connected theme creation, custom-theme update and duplication. A theme definition
+and its receipt save in one storage transaction. Creation and duplication need
+library scope. Scoped custom-theme updates need the exact resource and current
+version. File duplication reads the current bounded file with `files.read` and
+creates a portable custom definition. Native file themes use Reload or targeted
+replacement; direct update returns an interaction requirement. These operations
+do not change the configured theme selection.
+
+The commit rechecks the active session, grant, retry key, source version and
+cancellation after source resolution. Recreating the service can prepare the
+same intent and recover its original receipt without another write or replacing
+later user changes. Imported fields use the native theme validator and Drafts
+color updates. Duplicate identities and names fail before save.
+
+A late-cancellation regression first reproduced the wrong `storage_error` result
+with unchanged data. The handler now reports `cancelled`, keeps the old theme,
+and permits a clean retry. The final focused run passed 163 app tests across
+six suites, 26 Core tests across two suites and 16 contract tests across two
+suites. The normal native build and two project-generator checks passed.
+
+Source coverage is 78 connected or conditional names out of 137; 59 direct
+handlers remain missing. Six theme mutation contracts remain. Installed theme
+mutation acceptance and full CI remain open. Next, let the complete CI validate
+the inventory fix and this source. Keep full installed Codex/Claude Code,
+lifecycle, provider and distribution acceptance in scope before publication.
+
 ## Live Apple probe inventory — 4 November
 
 CI [41804761088](https://github.com/pobrespandas/draftly/actions/runs/41804761088)

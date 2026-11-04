@@ -656,6 +656,30 @@ public final class LibraryStore: ObservableObject {
             try beforeBatchCommit?(); try commit()
         } catch { container.viewContext.rollback(); try? reload(); throw error }
     }
+    package func commitTheme(_ value: EditorThemeDefinition, mutation: LibraryMutationIdentity, at now: Date,
+                             validateCommit: () throws -> Void,
+                             makeResource: (EditorThemeDefinition) throws -> LibraryMutationReceipt.Resource) throws -> LibraryMutationReceipt {
+        if let previous = try mutationReceipt(for: mutation, at: now) {
+            guard previous.resources.count == 1, previous.resources.first?.id == value.id else {
+                throw LibraryMutationReceiptError.requestConflict
+            }
+            return previous
+        }
+        try validateThemes([value])
+        do {
+            try persist(value, id: value.id, kind: "theme")
+            let receipt = LibraryMutationReceipt(id: UUID(), mutation: mutation, committedAt: now,
+                resources: [try makeResource(value)])
+            try receipt.validate()
+            guard receipt.resources.first?.id == value.id else { throw LibraryMutationReceiptError.invalidReceipt }
+            try persist(receipt, id: receipt.id, kind: "agentMutationReceipt")
+            try beforeBatchCommit?()
+            try validateCommit()
+            try commit()
+            return receipt
+        } catch { container.viewContext.rollback(); try? reload(); throw error }
+    }
+
     public func deleteTheme(_ id: UUID) throws { try delete(id, kind: "theme") }
     public func hasThemeMigration(_ migrationID: String) throws -> Bool {
         try persistence.decode("themeMigration", ThemeMigration.self).contains(where: { $0.name == migrationID })

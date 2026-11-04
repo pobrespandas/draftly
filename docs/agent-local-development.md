@@ -1049,3 +1049,19 @@ bookmark with a bounded regular-file read. Missing access never falls back to
 the saved file snapshot. Requests cannot supply a path. Export formats are
 native JSON, Drafts JSON and a portable installation URL. These calls do not
 select or modify a theme. Installed-client acceptance remains separate.
+
+## Theme mutation
+
+`themes.create`, `themes.update` and `themes.duplicate` use `mutations.prepare`.
+Creation and duplication require library scope. Update can use a scoped grant
+for its exact custom theme. The expected version comes from `themes.get`.
+Native constructor defaults fill absent creation fields. Definitions use the
+existing color and name validators. Imported Drafts fields remain in canonical
+definitions. These operations do not change the selected light or dark theme.
+
+File duplication also requires `files.read`. It resolves the app bookmark and
+creates a custom snapshot. A file change before commit rejects the write.
+Direct file update returns `interaction_required`; use the separate native
+Reload or replacement route when those handlers are connected. A saved receipt
+recovers the original result across service recreation. It never repeats a
+completed write or replaces a later user edit. Installed acceptance is pending.

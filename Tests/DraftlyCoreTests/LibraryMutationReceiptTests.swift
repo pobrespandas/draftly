@@ -14,6 +14,31 @@ struct LibraryMutationReceiptTests {
         notes.map { .init(id: $0.id, versionToken: "opaque-neutral-version") }
     }
 
+    @Test func themeMutationAndReceiptRollBackTogetherAndRecoverAfterReopen() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let library = try LibraryStore(directory: root, seed: false)
+        let original = EditorThemeDefinition(name: "Original café 🐼")
+        try library.saveTheme(original)
+        var changed = original; changed.foreground = "ABCDEF"
+        let mutation = identity()
+        #expect(throws: (any Error).self) {
+            try library.commitTheme(changed, mutation: mutation, at: now,
+                validateCommit: { throw DraftlyError.message("Authority ended") },
+                makeResource: { .init(id: $0.id, versionToken: "v1") })
+        }
+        #expect(library.themes == [original])
+        #expect(try library.mutationReceipt(for: mutation, at: now) == nil)
+        let receipt = try library.commitTheme(changed, mutation: mutation, at: now, validateCommit: {},
+            makeResource: { .init(id: $0.id, versionToken: "v1") })
+        var later = changed; later.background = "112233"; try library.saveTheme(later)
+        let reopened = try LibraryStore(directory: root, seed: false)
+        #expect(try reopened.commitTheme(changed, mutation: mutation, at: now,
+            validateCommit: { Issue.record("Completed theme write must not run again") },
+            makeResource: { _ in throw LibraryMutationReceiptError.invalidReceipt }) == receipt)
+        #expect(reopened.themes == [later])
+    }
+
     @Test func targetedTrashDeletionIsAtomicAndRecoversAfterReopen() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }

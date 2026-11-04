@@ -279,6 +279,19 @@ contract tests. The normal native build and two project-generator checks
 passed. The nine mutation contracts, installed acceptance and full CI for this
 increment remain open.
 
+## Theme mutation
+
+Creation, custom-theme update and duplication now use atomic theme receipts.
+Creation and duplication require library scope. Update binds one custom theme
+and its current version. A file duplicate requires `files.read`, rereads the
+current file at commit and becomes a portable custom theme. Direct file update
+requires the native Reload or replacement route. Theme selection is separate.
+The handler rechecks cancellation and exact active authority after resolution.
+Receipt recovery through a new service does not overwrite later user changes.
+The focused run passed 163 app tests, 26 Core tests and 16 contract tests. The
+normal native build and two project-generator checks passed. Six remaining
+theme mutations, installed acceptance and full CI remain open.
+
 ## Current CI limit
 
 CI [41804761088](https://github.com/pobrespandas/draftly/actions/runs/41804761088)
@@ -293,8 +306,8 @@ correction remains pending.
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-75 names in implemented or conditional handler sets. The other 62 names have
-no direct handler in those sets. These counts do not prove that 75 operations
+78 names in implemented or conditional handler sets. The other 59 names have
+no direct handler in those sets. These counts do not prove that 78 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -307,7 +320,7 @@ a direct handler for every `native.*` contract.
 | --- | --- |
 | Editor | `editor.navigate`, `editor.open`, `editor.preview` |
 | Actions and groups | `actions.delete`, `actionGroups.delete` |
-| Themes | `themes.create`, `themes.update`, `themes.duplicate`, `themes.select`, `themes.selectBuiltIn`, `themes.replace`, `themes.reload`, `themes.install`, `themes.delete` |
+| Themes | `themes.select`, `themes.selectBuiltIn`, `themes.replace`, `themes.reload`, `themes.install`, `themes.delete` |
 | Syntax | `syntaxes.delete`, `syntaxes.export`, `syntaxes.install`, `syntaxes.reload`, `syntaxes.replace` |
 | Bookmarks | `bookmarks.forget`, `bookmarks.list`, `bookmarks.requestAdd` |
 | Imports and exports | `imports.commit`, `imports.preview`, `imports.validate`, `exports.drafts` |

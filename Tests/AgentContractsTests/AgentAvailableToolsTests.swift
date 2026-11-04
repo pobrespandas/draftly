@@ -30,12 +30,15 @@ struct AgentAvailableToolsTests {
         }
     }
 
-    @Test(arguments: [false, true])
-    func libraryOnlyToolsAreHiddenFromScopedWriters(allResources: Bool) throws {
-        let catalog = try AgentAvailableTools(capabilities: capabilities([.draftsWrite], allResources: allResources),
-            schemas: ["operations": .array([operation("drafts.create"), operation("drafts.duplicate"), operation("drafts.merge"), operation("drafts.update")])])
-        #expect(catalog.definitions.contains { $0.operation == "drafts.update" })
-        for name in ["drafts.create", "drafts.duplicate", "drafts.merge"] {
+    @Test(arguments: [false, true], [AgentCapability.draftsWrite, .appearanceManage])
+    func libraryOnlyToolsAreHiddenFromScopedWriters(allResources: Bool, capability: AgentCapability) throws {
+        let family = capability == .draftsWrite ? "drafts" : "themes"
+        let creation = [family + ".create", family + ".duplicate"] + (family == "drafts" ? ["drafts.merge"] : [])
+        let update = family + ".update"
+        let catalog = try AgentAvailableTools(capabilities: capabilities([capability], allResources: allResources),
+            schemas: ["operations": .array((creation + [update]).map { operation($0) })])
+        #expect(catalog.definitions.contains { $0.operation == update })
+        for name in creation {
             #expect(catalog.definitions.contains { $0.operation == name } == allResources)
             if !allResources {
                 #expect(throws: AgentErrorCode.permissionDenied) {
