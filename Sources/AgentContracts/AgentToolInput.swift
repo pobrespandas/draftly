@@ -14,7 +14,7 @@ package enum AgentToolInput {
             exact["description"] = .string("Use JSON object text instead of parameters when exact decimal values are needed. Do not supply both.")
             properties["parametersJSON"] = .object(exact)
         }
-        if ["drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags", "drafts.syntax"].contains(operation.name),
+        if ["drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags", "drafts.syntax", "drafts.merge"].contains(operation.name),
            case .object(var field) = properties["expectedVersion"] {
             field["description"] = .string("For one draft use its versionToken. For all drafts in one list or search page use that page's batchVersion. Read again after any change. Never reuse a page token for a subset or another target set.")
             properties["expectedVersion"] = .object(field)
@@ -91,6 +91,7 @@ package extension AgentOperationDescriptor {
         case "drafts.list": "List authorized draft metadata with filters, order and opaque pagination."
         case "drafts.search": "Search authorized drafts. Return metadata and matching previews."
         case "drafts.get": "Read authorized draft metadata and a bounded UTF-16 content chunk."
+        case "drafts.merge": "Merge all target drafts in the explicit order into one new draft. Requires library scope. Archive, trash, or keep the originals atomically; preserve their pending editor text."
         case "drafts.syntax": "Change syntax for authorized drafts atomically. Use a built-in name, or an installed name or syntaxID with appearance.read permission and access to that syntax."
         case "drafts.versions": "Read versions of an authorized draft. Content is optional."
         default: "Request the named \(name) operation in Draftly."

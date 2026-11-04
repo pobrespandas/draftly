@@ -578,6 +578,17 @@ import AgentContracts
             let receipt = try actions.updateAction(request, connectionID: grant.connectionID)
             guard let resource = receipt.resources.first else { throw AgentErrorCode.storageError }
             return ["resource": .object(["id": .string(resource.id.uuidString), "versionToken": .string(resource.versionToken)])]
+        case "drafts.merge":
+            guard let writes else { throw AgentErrorCode.unavailable }
+            let receipt = try writes.update(request, connectionID: grant.connectionID) {
+                try self.validateSession(sessionID, grant: grant)
+            }
+            let ids = Set(request.targets.map(\.id))
+            guard let merged = receipt.resources.first(where: { !ids.contains($0.id) }) else { throw AgentErrorCode.storageError }
+            func value(_ resource: LibraryMutationReceipt.Resource) -> AgentJSONValue {
+                .object(["id": .string(resource.id.uuidString), "versionToken": .string(resource.versionToken)])
+            }
+            return ["resource": value(merged), "originals": .array(receipt.resources.filter { ids.contains($0.id) }.map(value))]
         case "drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags", "drafts.syntax":
             guard let writes else { throw AgentErrorCode.unavailable }
             let receipt = try writes.update(request, connectionID: grant.connectionID) {

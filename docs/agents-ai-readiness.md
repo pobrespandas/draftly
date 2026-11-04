@@ -210,17 +210,27 @@ source-level evidence; installed lifecycle acceptance remains pending.
 ## Draft creation scope
 
 Create and Duplicate require library scope. A grant for named existing drafts
-cannot authorize a new draft identity. The declared Merge contract has the same
-scope rule and remains unimplemented. The shared tool catalog hides all
+cannot authorize a new draft identity. Merge has the same scope rule. The shared tool catalog hides all
 library-only tools from resource-scoped connections. Direct calls still check
 the live policy. The run passed 238 tests across ten suites. The normal native
 build passed. Full CI and installed acceptance remain pending.
 
+## Draft merge
+
+`drafts.merge` now commits one new draft and all original draft effects with a
+durable receipt. It uses the native text and tag rules, an exact source version
+set, and explicit content order. Library scope is required. Storage errors,
+stale sources, editor changes, and ended authority prevent a partial merge.
+Service recreation recovers the same result without another write, even after
+a later user edit. New draft receipt tokens now match the first reader version.
+The final run passed 270 tests across 13 suites. The normal native build passed.
+Full CI, installed merge acceptance, and process-restart acceptance remain open.
+
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-68 names in implemented or conditional handler sets. The other 69 names have
-no direct handler in those sets. These counts do not prove that 68 operations
+69 names in implemented or conditional handler sets. The other 68 names have
+no direct handler in those sets. These counts do not prove that 69 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -231,7 +241,7 @@ a direct handler for every `native.*` contract.
 
 | Family | Direct contracts still outside those handler sets |
 | --- | --- |
-| Drafts | `drafts.merge`, `drafts.purge` |
+| Drafts | `drafts.purge` |
 | Editor | `editor.navigate`, `editor.open`, `editor.preview` |
 | Actions and groups | `actions.delete`, `actionGroups.delete` |
 | Themes | All 14 declared `themes.*` contracts. |

@@ -182,6 +182,84 @@ struct AgentDraftWritingTests {
         #expect(try f.library.mutationReceipt(for: mutation, at: f.wall) == nil)
     }
 
+    @Test(arguments: ["archive", "trash", "keep"], ["empty", "tight", "blank"])
+    func mergeCommitsPendingSourcesAndOneNewDraftWithoutReplaying(destination: String, separatorMode: String) throws {
+        let f = try Fixture(); defer { f.close() }
+        var first = f.note; first.tags = ["one"]; first.syntax = "TaskPaper"
+        let second = Note(content: "Second 語法", tags: ["two"], flag: 7, isArchived: true, trashedAt: f.wall, syntax: "TaskPaper")
+        let hidden = Note(content: "Untouched")
+        try f.library.saveNotes([first, second, hidden])
+        let storedHidden = try #require(f.library.notes.first { $0.id == hidden.id })
+        let model = f.model(); model.editor.content = "Pending café 🐼"; model.hasUnsavedChanges = true
+        let parameters: [String: AgentJSONValue] = ["order": .array([second.id, first.id].map { .string($0.uuidString) }),
+            "separator": .string(separatorMode == "empty" ? "" : "---"), "includeBlankLine": .bool(separatorMode == "blank"),
+            "destination": .string(destination)]
+        let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "drafts.merge",
+            targets: [first.id, second.id].map { .init(kind: .draft, id: $0) },
+            expectedVersion: try AgentDraftSchemas.expectedVersion(for: [first.id: f.token(), second.id: f.token(second.id)]), parameters: parameters)
+        let writer = try f.writer(), before = f.library.notes
+        let ticket = try writer.prepare(intent, connectionID: f.connectionID)
+        #expect(f.library.notes == before && model.hasUnsavedChanges)
+        let request = AgentRequest(requestID: intent.requestID, libraryID: f.libraryID, operation: intent.operation,
+            targets: intent.targets, expectedVersion: intent.expectedVersion, retryKey: ticket.value, parameters: parameters)
+        let receipt = try writer.update(request, connectionID: f.connectionID)
+        let ids: Set<UUID> = [first.id, second.id]
+        let resource = try #require(receipt.resources.first { !ids.contains($0.id) })
+        var merged = try #require(f.library.notes.first { $0.id == resource.id })
+        let joiner = separatorMode == "empty" ? "\n" : separatorMode == "tight" ? "\n---\n" : "\n\n---\n\n"
+        #expect(merged.content == "Second 語法" + joiner + "Pending café 🐼")
+        #expect(merged.syntax == "TaskPaper" && merged.flag == 0 && !merged.isArchived && merged.trashedAt == nil)
+        #expect(Set(merged.tags) == ["one", "two"] && merged.scriptMetadata == nil)
+        #expect(receipt.resources.count == 3)
+        #expect(try f.token(merged.id) == resource.versionToken)
+        #expect(f.library.notes.first { $0.id == hidden.id } == storedHidden)
+        #expect(model.editor.noteID == first.id && model.editor.content == "Pending café 🐼" && !model.hasUnsavedChanges)
+        for note in f.library.notes where ids.contains(note.id) {
+            if destination == "archive" { #expect(note.isArchived && note.trashedAt == nil) }
+            else if destination == "trash" { #expect(note.trashedAt == f.wall && note.isArchived == (note.id == second.id)) }
+            else { #expect(note.isArchived == (note.id == second.id) && note.trashedAt == (note.id == second.id ? f.wall : nil)) }
+        }
+        #expect(f.library.revisions.contains { $0.noteID == first.id && $0.content == f.note.content })
+        merged.content = "Person edited after merge"; try f.library.saveNote(merged)
+        let after = f.library.notes, revisions = f.library.revisions
+        #expect(try f.writer().update(request, connectionID: f.connectionID) == receipt)
+        #expect(f.library.notes == after && f.library.revisions == revisions && f.library.notes.count == 4)
+    }
+
+    @Test(arguments: ["storage", "version", "grant", "session", "editor"])
+    func failedMergeLeavesNoNewDraftOrPartialOriginals(boundary: String) throws {
+        let f = try Fixture(); defer { f.close() }
+        var second = try f.library.createNote(content: "Second")
+        let model = f.model(); model.editor.content = "Pending café 🐼"; model.hasUnsavedChanges = true
+        let parameters: [String: AgentJSONValue] = ["order": .array([second.id, f.note.id].map { .string($0.uuidString) })]
+        let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "drafts.merge",
+            targets: [f.note.id, second.id].map { .init(kind: .draft, id: $0) },
+            expectedVersion: try AgentDraftSchemas.expectedVersion(for: [f.note.id: f.token(), second.id: f.token(second.id)]), parameters: parameters)
+        let writer = try f.writer(), ticket = try writer.prepare(intent, connectionID: f.connectionID)
+        let request = AgentRequest(requestID: intent.requestID, libraryID: f.libraryID, operation: intent.operation,
+            targets: intent.targets, expectedVersion: intent.expectedVersion, retryKey: ticket.value, parameters: parameters)
+        var sessionValid = true
+        if boundary == "version" { second.content = "Concurrent stored edit"; try f.library.saveNote(second) }
+        let before = f.library.notes.sorted { $0.id.uuidString < $1.id.uuidString }, revisions = f.library.revisions
+        f.library.beforeBatchCommit = {
+            if boundary == "storage" { throw AgentErrorCode.storageError }
+            if boundary == "grant" { f.grant = nil }
+            if boundary == "session" { sessionValid = false }
+            if boundary == "editor" { model.editor.content = "New pending text" }
+        }
+        let code: AgentErrorCode = boundary == "storage" ? .storageError : boundary == "version" ? .versionConflict
+            : boundary == "editor" ? .editorConflict : .permissionDenied
+        #expect(throws: code) {
+            try writer.update(request, connectionID: f.connectionID, validateSession: {
+                guard sessionValid else { throw AgentErrorCode.permissionDenied }
+            })
+        }
+        #expect(f.library.notes.sorted { $0.id.uuidString < $1.id.uuidString } == before && f.library.revisions == revisions)
+        #expect(model.editor.content == (boundary == "editor" ? "New pending text" : "Pending café 🐼") && model.hasUnsavedChanges)
+        let identity = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
+        #expect(try f.library.mutationReceipt(for: identity, at: f.wall) == nil)
+    }
+
     @Test(arguments: ["drafts.create", "drafts.duplicate"])
     func newDraftReceiptContainsTheCurrentVersion(operation: String) throws {
         let f = try Fixture(); defer { f.close() }

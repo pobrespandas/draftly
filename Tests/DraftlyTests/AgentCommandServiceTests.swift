@@ -203,6 +203,50 @@ struct AgentCommandServiceTests {
         #expect(f.library.notes == stored && f.library.revisions == revisions)
     }
 
+    @Test(arguments: [false, true])
+    func mergeRequiresLibraryScopeAndRecoversAfterServiceRestart(libraryScope: Bool) throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let first = try f.note("First café 🐼"), second = try f.note("Second 語法"), hidden = try f.note("Untouched")
+        let model = try f.window(first, content: "Pending café 🐼", dirty: true); f.editors = [model]
+        let targets = [first.id, second.id].map { AgentResourceReference(kind: .draft, id: $0) }
+        let (record, session) = try f.connect(scope: libraryScope ? .library : .resources(Set(targets)), capabilities: [.draftsRead, .draftsWrite])
+        func version(_ note: Note) throws -> String {
+            let result = try f.get(note, session: session)
+            guard case .object(let draft) = result["draft"], case .string(let value) = draft["versionToken"] else { throw AgentErrorCode.storageError }
+            return value
+        }
+        let parameters: [String: AgentJSONValue] = ["order": .array([second.id, first.id].map { .string($0.uuidString) }),
+            "separator": .string("---"), "includeBlankLine": .bool(true), "destination": .string("archive")]
+        let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "drafts.merge", targets: targets,
+            expectedVersion: try AgentDraftSchemas.expectedVersion(for: [first.id: version(first), second.id: version(second)]), parameters: parameters)
+        if !libraryScope {
+            let frame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(intent))
+            #expect(try f.response("mutations.prepare", session: session, parameters: ["request": frame]).outcome == .error(.permissionDenied))
+            #expect(try f.send(intent, session: session).outcome == .error(.permissionDenied))
+            #expect(f.library.notes.count == 3 && model.hasUnsavedChanges)
+            return
+        }
+        let request = try f.preparedMutation(intent, session: session)
+        let response = try f.send(request, session: session)
+        guard case .result(.object(let result)) = response.outcome, case .object(let resource) = result["resource"],
+              case .string(let rawID) = resource["id"], let id = UUID(uuidString: rawID),
+              case .array(let originals) = result["originals"] else { Issue.record("Missing merge result: \(response)"); return }
+        var merged = try #require(f.library.notes.first { $0.id == id })
+        #expect(merged.content == "Second 語法\n\n---\n\nPending café 🐼" && originals.count == 2)
+        #expect(f.library.notes.first { $0.id == hidden.id } == hidden)
+        let current = try f.get(merged, session: session)
+        guard case .object(let metadata) = current["draft"] else { Issue.record("Missing merged metadata"); return }
+        #expect(resource["versionToken"] == metadata["versionToken"])
+        merged.content = "Later user edit"; try f.library.saveNote(merged)
+        let before = f.library.notes, revisions = f.library.revisions
+        f.service = try f.makeService()
+        let next = try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        let repeated = try f.preparedMutation(intent, session: next)
+        #expect(try f.send(repeated, session: next) == response)
+        #expect(f.library.notes == before && f.library.revisions == revisions && f.library.notes.count == 4)
+        #expect(model.editor.noteID == first.id && !model.hasUnsavedChanges)
+    }
+
     @Test(arguments: ["drafts.create", "drafts.duplicate"])
     func scopedDraftEditingCannotCreateAnotherDraft(operation: String) throws {
         let f = try Fixture(); defer { f.cleanEditorPreferences() }
@@ -2202,7 +2246,7 @@ struct AgentCommandServiceTests {
         #expect(available.remove("syntaxes.list") != nil)
         #expect(available.remove("syntaxes.get") != nil)
         #expect(available.remove("drafts.duplicate") != nil)
-        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", "preferences.get", AgentMutationSchemas.name, "drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion", "drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags", "drafts.syntax", "editor.windows", "editor.get", "editor.setSelection", "editor.replaceRange", "editor.undo", "editor.redo", "editor.tasks", "editor.replaceAll", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.create", "workspaces.update", "workspaces.duplicate", "workspaces.reorder", "workspaces.apply"]) && available.count == 56)
+        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", "preferences.get", AgentMutationSchemas.name, "drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion", "drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags", "drafts.syntax", "drafts.merge", "editor.windows", "editor.get", "editor.setSelection", "editor.replaceRange", "editor.undo", "editor.redo", "editor.tasks", "editor.replaceAll", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.create", "workspaces.update", "workspaces.duplicate", "workspaces.reorder", "workspaces.apply"]) && available.count == 57)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.invalidInput))
         #expect(f.library.notes.isEmpty)
         #expect(try f.values("server.capabilities", session: session)["capabilities"] == .array([.string("drafts.read"), .string("drafts.write")]))

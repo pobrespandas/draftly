@@ -5,7 +5,7 @@ import DraftlyCore
 // App-owned draft mutations share version checks and durable receipts.
 @MainActor final class AgentDraftWriting {
     private let libraryID: UUID
-    static let operationNames: Set<String> = ["drafts.create", "drafts.update", "drafts.patch", "drafts.duplicate", "drafts.restoreVersion", "drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags", "drafts.syntax"]
+    static let operationNames: Set<String> = ["drafts.create", "drafts.update", "drafts.patch", "drafts.duplicate", "drafts.merge", "drafts.restoreVersion", "drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags", "drafts.syntax"]
     static let metadataOperations: Set<String> = ["drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags", "drafts.syntax"]
     private let library: LibraryStore
     private let reader: AgentDraftReading
@@ -51,6 +51,13 @@ import DraftlyCore
                         _ = try applyingMetadata(request, parameters: parameters, to: state.note, at: date, syntaxName: syntax?.name)
                     }
                 }
+            } else if request.operation == "drafts.merge" {
+                guard let expected = request.expectedVersion else { throw AgentErrorCode.invalidInput }
+                if try recoveredMergeReceipt(for: mutation, targets: request.targets) == nil {
+                    guard !ActionRunner.isExecuting(in: library) else { throw AgentErrorCode.busy }
+                    let initial = try reader.checkedSnapshots(for: request.targets.map(\.id), expectedVersion: expected)
+                    _ = try mergePlan(parameters, initial: initial, at: now())
+                }
             } else if request.operation == "drafts.create" {
                 _ = try creationNote(parameters)
             } else if request.operation == "drafts.duplicate" {
@@ -88,6 +95,10 @@ import DraftlyCore
             let parameters = try AgentDraftSchemas.validatedParameters(for: request)
             if Self.metadataOperations.contains(request.operation) {
                 return try updateMetadata(request, parameters: parameters, ticket: ticket, connectionID: connectionID, validateSession: validateSession)
+            }
+            if request.operation == "drafts.merge" {
+                return try updateMerge(request, parameters: parameters, ticket: ticket,
+                    connectionID: connectionID, validateSession: validateSession)
             }
             if request.operation == "drafts.create" {
                 let mutation = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
@@ -174,6 +185,90 @@ import DraftlyCore
             throw receiptError(error)
         } catch is AgentSchemaError { throw AgentErrorCode.invalidInput }
         catch { throw AgentErrorCode.storageError }
+    }
+
+    private func recoveredMergeReceipt(for mutation: LibraryMutationIdentity,
+                                       targets: [AgentResourceReference]) throws -> LibraryMutationReceipt? {
+        guard let receipt = try library.mutationReceipt(for: mutation, at: now()) else { return nil }
+        let originals = Set(targets.map(\.id)), recorded = Set(receipt.resources.map(\.id))
+        guard receipt.resources.count == originals.count + 1, originals.isSubset(of: recorded),
+              recorded.subtracting(originals).count == 1 else { throw AgentErrorCode.storageError }
+        return receipt
+    }
+
+    private func mergePlan(_ parameters: [String: AgentJSONValue],
+                           initial: [UUID: AgentEditorRegistry.Snapshot], at date: Date) throws -> (merged: Note, originals: [Note]) {
+        guard case .array(let order) = parameters["order"], case .string(let separator) = parameters["separator"],
+              case .bool(let blank) = parameters["includeBlankLine"], case .string(let destination) = parameters["destination"] else {
+            throw AgentErrorCode.invalidInput
+        }
+        let states = try order.map { value -> AgentEditorRegistry.Snapshot in
+            guard case .string(let rawID) = value, let id = UUID(uuidString: rawID), let state = initial[id] else {
+                throw AgentErrorCode.invalidInput
+            }
+            return state
+        }
+        let merged = try DraftOperations.merge(states.map(\.note), separator: separator, includeBlankLine: blank, at: date)
+        let originals = try states.map { state -> Note in
+            var note = state.note
+            switch destination {
+            case "archive": note.isArchived = true; note.trashedAt = nil; note.modifiedAt = date
+            case "trash": note.trashedAt = date; note.modifiedAt = date
+            case "keep":
+                if !DraftOperations.sameText(note.content, state.storedNote.content) { note.modifiedAt = date }
+            default: throw AgentErrorCode.invalidInput
+            }
+            return note
+        }
+        return (merged, originals)
+    }
+
+    private func updateMerge(_ request: AgentRequest, parameters: [String: AgentJSONValue],
+                             ticket: AgentRetryKeys.Ticket, connectionID: UUID,
+                             validateSession: () throws -> Void) throws -> LibraryMutationReceipt {
+        guard let expected = request.expectedVersion, let key = request.retryKey else { throw AgentErrorCode.invalidInput }
+        let mutation = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
+        if let receipt = try recoveredMergeReceipt(for: mutation, targets: request.targets) {
+            try validateAdmission(); try validateSession(); _ = try keys.verify(key, request: request, connectionID: connectionID)
+            return receipt
+        }
+        guard !ActionRunner.isExecuting(in: library) else { throw AgentErrorCode.busy }
+        let initial = try reader.checkedSnapshots(for: request.targets.map(\.id), expectedVersion: expected)
+        let date = now()
+        let plan = try mergePlan(parameters, initial: initial, at: date)
+        guard !library.notes.contains(where: { $0.id == plan.merged.id }) else { throw AgentErrorCode.versionConflict }
+        let mergedResource = try reader.mutationResource(for: plan.merged)
+        var receipt: LibraryMutationReceipt?
+        _ = try editors.synchronizeMutations(plan.originals) { originals, generations in
+            try validateAdmission(); try validateSession(); _ = try keys.verify(key, request: request, connectionID: connectionID)
+            var builders: [UUID: @Sendable ([Note]) throws -> [LibraryMutationReceipt.Resource]] = [:]
+            for note in originals {
+                guard let generation = generations[note.id] else { throw AgentErrorCode.storageError }
+                builders[note.id] = reader.mutationResources(for: note.id, generation: generation)
+            }
+            let resourceBuilders = builders
+            receipt = try library.commitNotes(originals + [plan.merged], mutation: mutation, at: date,
+                preserveDates: true, validateCommit: {
+                    try self.validateAdmission(); try validateSession()
+                    _ = try self.keys.verify(key, request: request, connectionID: connectionID)
+                    guard !ActionRunner.isExecuting(in: self.library) else { throw AgentErrorCode.busy }
+                    guard !self.library.notes.contains(where: { $0.id == plan.merged.id }) else { throw AgentErrorCode.versionConflict }
+                    try self.reader.validateMutationSnapshots(initial, expectedVersion: expected, reservedGenerations: generations)
+                }, makeResources: { values in
+                    try values.flatMap { note in
+                        if note.id == mergedResource.id { return [mergedResource] }
+                        guard let builder = resourceBuilders[note.id] else { throw AgentErrorCode.storageError }
+                        return try builder([note])
+                    }
+                })
+            return try originals.map { note in
+                guard let saved = library.notes.first(where: { $0.id == note.id }) else { throw AgentErrorCode.storageError }
+                return saved
+            }
+        }
+        try validateAdmission(); try validateSession(); _ = try keys.verify(key, request: request, connectionID: connectionID)
+        guard let receipt else { throw AgentErrorCode.storageError }
+        return receipt
     }
 
     private func recoveredBatchReceipt(for mutation: LibraryMutationIdentity,

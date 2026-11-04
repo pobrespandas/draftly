@@ -977,9 +977,29 @@ back. A fresh authenticated session can retry the same authorized request.
 
 `drafts.create` and `drafts.duplicate` require library scope. A grant that names
 existing drafts does not cover a new draft identity. It can still edit its
-approved drafts. The declared `drafts.merge` contract has the same scope rule;
-that operation still has no connected handler.
+approved drafts. `drafts.merge` has the same scope rule.
 
 The shared tool catalog omits operations that require library scope when the
 connection has resource scope. Direct transport calls must still pass the live
 permission policy. Filtering a tool list does not replace that check.
+
+
+### Atomic draft merge
+
+`drafts.merge` requires library scope. Its `order` must name every target draft
+exactly once. Use the source set's `expectedVersion`, then prepare and execute
+the request with its retry key. Page batch versions cover only the exact page
+set; an arbitrary selection can combine its current per-draft tokens.
+
+The operation uses the native merge engine for separators, tags, and syntax.
+It creates a new Inbox draft and applies the requested destination to the
+originals in one transaction. `archive` clears trash state. `trash` keeps the
+archive state. `keep` preserves folder state. Pending source text is saved with
+revision protection. Existing editors stay on their current draft.
+
+The result contains the new draft in `resource` and every source receipt in
+`originals`. Repeating the same request returns that stored result. It does not
+merge again or overwrite later edits. An ended session, changed source version,
+conflicting editor, or storage error before commit prevents partial storage.
+Service recreation is covered by tests. Installed process-restart acceptance
+remains separate. Read a fresh version before a new write after a host restart.

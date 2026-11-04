@@ -3,20 +3,42 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Atomic draft merge — 4 November
+
+Connected `drafts.merge`. It requires library scope, all source draft versions,
+and an explicit order that names every target once. The native merge engine
+builds the new Inbox draft. The handler commits it with the source changes and
+one receipt. Archive, Trash, and Keep use the app's destination rules. Pending
+source text is saved with revision protection. Existing editors keep their
+current draft. Unrelated drafts remain unchanged.
+
+Tests cover all destinations and separator modes, pending Unicode text, tags,
+syntax, source revisions, scope denial, and failed commits. Storage failure,
+changed sources, lost grants, ended sessions, and new editor text leave no
+partial merge. A recreated command service returns the stored result without
+another merge or overwriting a later user edit. This does not establish a
+process-restart or installed-client acceptance result.
+
+The final run passed 270 tests across 13 suites. The normal native build passed.
+This run also validates the new-draft receipt version correction below.
+Source-set coverage is 69 connected or conditional names out of 137, with 68
+missing direct handlers. Full CI and installed acceptance remain pending.
+Keep the broader lifecycle, provider, client, and distribution gates open.
+
 ## New draft receipt versions — 4 November
 
 A regression test showed that Create and Duplicate returned a version token
 that changed on the first read of the new draft. Receipt creation now uses the
 same editor generation as the draft reader. The new token matches that first
 read. Both failing cases now pass, and all 25 draft-writing tests passed.
-This fixes the receipt path that Merge will also use. Full integration, native
-build, and installed acceptance remain pending for this increment.
+This fixes the receipt path that Merge also uses. The Merge increment above
+supplies integration and native build evidence. Installed acceptance remains
+pending.
 
 ## Draft creation scope — 4 November
 
 Create and Duplicate now require library scope. Their new draft identity cannot
-belong to a grant that names only existing drafts. The declared Merge contract
-uses the same rule but still has no handler. Editing approved existing drafts
+belong to a grant that names only existing drafts. The Merge contract adopted the same rule before its handler was connected. Editing approved existing drafts
 keeps its resource scope. No grant is expanded by this change.
 
 The shared tool catalog now filters all operations that require library scope
