@@ -2296,6 +2296,86 @@ struct AgentCommandServiceTests {
         #expect(changed["versionToken"] != value["versionToken"])
     }
 
+    @Test(arguments: [false, true])
+    func themeReadsRespectResourceScopeAndExportPortableDefinitions(imported: Bool) throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        var visible = EditorThemeDefinition(name: "Allowed café 🐼", unknownFields: ["future": .object(["keep": .bool(true)])])
+        if imported {
+            var source = try #require(JSONSerialization.jsonObject(with: DraftsThemeImport.exportData(visible)) as? [String: Any])
+            source["future"] = ["keep": true]
+            visible = try DraftsThemeImport.decode(data: JSONSerialization.data(withJSONObject: source))
+        }
+        let hidden = EditorThemeDefinition(name: "Hidden")
+        try f.library.saveThemes([visible, hidden])
+        let target = AgentResourceReference(kind: .theme, id: visible.id)
+        let (_, session) = try f.connect(scope: .resources([target]), capabilities: [.appearanceRead])
+        let (_, denied) = try f.connect(capabilities: [.draftsRead])
+        #expect(try f.response("themes.list", session: denied).outcome == .error(.permissionDenied))
+        let page = try f.values("themes.list", session: session)
+        guard case .array(let items) = page["items"] else { Issue.record("Missing themes"); return }
+        #expect(items.count == 1 && page["builtInNames"] == .array(ThemeCatalog.builtInNames.map(AgentJSONValue.string)))
+        #expect(try f.response("themes.get", session: session, targets: [.init(kind: .theme, id: hidden.id)]).outcome == .error(.notFound))
+        let read = try f.values("themes.get", session: session, targets: [target])
+        #expect(read["definition"] == (try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(visible))))
+        for format in ["native", "drafts", "installationURL"] {
+            let result = try f.values("themes.export", session: session, targets: [target], parameters: ["format": .string(format)])
+            #expect(result["versionToken"] == read["versionToken"])
+            guard case .object(let chunk) = result["content"], case .string(let text) = chunk["text"] else { Issue.record("Missing export"); return }
+            if format == "native" { #expect(try JSONDecoder().decode(EditorThemeDefinition.self, from: Data(text.utf8)) == visible) }
+            else if format == "drafts" {
+                let decoded = try DraftsThemeImport.decode(data: Data(text.utf8), id: visible.id)
+                #expect(decoded.name == visible.name && decoded.foreground == visible.foreground && decoded.heading == visible.heading)
+                if imported { #expect(decoded.unknownFields["draftsSource"] == visible.unknownFields["draftsSource"]) }
+            } else { #expect(try ThemeInstallation(url: #require(URL(string: text))) == .custom(visible)) }
+        }
+        var changed = visible; changed.background = "AABBCC"; try f.library.saveTheme(changed)
+        #expect(try f.values("themes.get", session: session, targets: [target])["versionToken"] != read["versionToken"])
+    }
+
+    @Test func themeSelectionHidesUnscopedResourcesAndBuiltInsRoundTrip() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let hidden = EditorThemeDefinition(name: "Hidden café 🐼")
+        try f.library.saveTheme(hidden)
+        let defaults = try #require(UserDefaults(suiteName: f.editorDefaultsName))
+        try EditorThemePreferences(defaults: defaults).set(reference: ["type": "custom", "uuid": hidden.id.uuidString], dark: true, themes: f.library.themes)
+        let (_, scoped) = try f.connect(scope: .resources([]), capabilities: [.appearanceRead])
+        let (_, full) = try f.connect(capabilities: [.appearanceRead])
+        let selection = try f.values("themes.selection", session: scoped, parameters: ["appearance": .string("dark")])
+        #expect(selection["reference"] == .null)
+        let visible = try f.values("themes.selection", session: full, parameters: ["appearance": .string("dark")])
+        guard case .object(let reference) = visible["reference"] else { Issue.record("Missing selection"); return }
+        #expect(reference["uuid"] == .string(hidden.id.uuidString))
+        for name in ThemeCatalog.builtInNames {
+            let result = try f.values("themes.exportBuiltIn", session: scoped, parameters: ["name": .string(name)])
+            guard case .object(let chunk) = result["content"], case .string(let text) = chunk["text"] else { Issue.record("Missing URL"); return }
+            #expect(try ThemeInstallation(url: #require(URL(string: text))) == .builtIn(name))
+        }
+    }
+
+    @Test func fileThemeReadsRequireFilePermissionAndUseTheCurrentFile() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let url = root.appendingPathComponent("theme.json")
+        var source = EditorThemeDefinition(name: "File café 🐼")
+        try JSONEncoder().encode(source).write(to: url)
+        let prepared = try ThemeFileAccess.prepare(url)
+        let defaults = try #require(UserDefaults(suiteName: f.editorDefaultsName))
+        try ThemeFileAccess.install(prepared, in: f.library, defaults: defaults)
+        let target = AgentResourceReference(kind: .theme, id: prepared.definition.id)
+        let (_, denied) = try f.connect(scope: .resources([target]), capabilities: [.appearanceRead])
+        let (_, allowed) = try f.connect(scope: .resources([target]), capabilities: [.appearanceRead, .filesRead])
+        #expect(try f.response("themes.get", session: denied, targets: [target]).outcome == .error(.permissionDenied))
+        let first = try f.values("themes.get", session: allowed, targets: [target])
+        source.foreground = "ABCDEF"; try JSONEncoder().encode(source).write(to: url)
+        let second = try f.values("themes.get", session: allowed, targets: [target])
+        guard case .object(let definition) = second["definition"] else { Issue.record("Missing live theme"); return }
+        #expect(definition["foreground"] == .string("ABCDEF") && first["versionToken"] != second["versionToken"])
+        try Data(repeating: 32, count: AgentRequest.maximumBytes + 1).write(to: url)
+        #expect(try f.response("themes.get", session: allowed, targets: [target]).outcome == .error(.unavailable))
+    }
+
     @Test func schemasReportActualHandlersAndUnsupportedOperationsNeverSimulateSuccess() throws {
         let f = try Fixture(), (_, session) = try f.connect(capabilities: [.draftsRead, .draftsWrite])
         let values = try f.values("server.schemas", session: session)
@@ -2309,6 +2389,7 @@ struct AgentCommandServiceTests {
         #expect(available.remove("syntaxes.list") != nil)
         #expect(available.remove("syntaxes.get") != nil)
         #expect(available.remove("drafts.duplicate") != nil)
+        for name in AgentThemeReading.operationNames { #expect(available.remove(name) != nil) }
         #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", "preferences.get", AgentMutationSchemas.name, "drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion", "drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags", "drafts.syntax", "drafts.merge", "editor.windows", "editor.get", "editor.setSelection", "editor.replaceRange", "editor.undo", "editor.redo", "editor.tasks", "editor.replaceAll", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.create", "workspaces.update", "workspaces.duplicate", "workspaces.reorder", "workspaces.apply"]) && available.count == 57)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.invalidInput))
         #expect(f.library.notes.isEmpty)

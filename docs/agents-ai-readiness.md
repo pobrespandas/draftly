@@ -265,11 +265,25 @@ in the operation journal. The focused run passed 256 tests across ten app suites
 and three tests in one contract suite. The normal native build passed.
 Installed purge acceptance and full CI remain open.
 
+## Theme reading
+
+Five theme read contracts use app-owned catalog, preference and file routes.
+Listing filters installed themes by resource scope without reading their files.
+Selection hides an installed reference outside scope. Definition and export
+reads check authority before and after resolution. File themes require
+`files.read` and use the saved theme bookmark with a bounded regular-file read.
+Failures return no cached definition. Exports support native JSON, Drafts JSON
+and portable installation URLs. Imported Drafts fields remain in Drafts exports.
+The focused run passed 150 app tests, 26 Core tests and three shared-tool
+contract tests. The normal native build and two project-generator checks
+passed. The nine mutation contracts, installed acceptance and full CI for this
+increment remain open.
+
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-70 names in implemented or conditional handler sets. The other 67 names have
-no direct handler in those sets. These counts do not prove that 70 operations
+75 names in implemented or conditional handler sets. The other 62 names have
+no direct handler in those sets. These counts do not prove that 75 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -282,7 +296,7 @@ a direct handler for every `native.*` contract.
 | --- | --- |
 | Editor | `editor.navigate`, `editor.open`, `editor.preview` |
 | Actions and groups | `actions.delete`, `actionGroups.delete` |
-| Themes | All 14 declared `themes.*` contracts. |
+| Themes | `themes.create`, `themes.update`, `themes.duplicate`, `themes.select`, `themes.selectBuiltIn`, `themes.replace`, `themes.reload`, `themes.install`, `themes.delete` |
 | Syntax | `syntaxes.delete`, `syntaxes.export`, `syntaxes.install`, `syntaxes.reload`, `syntaxes.replace` |
 | Bookmarks | `bookmarks.forget`, `bookmarks.list`, `bookmarks.requestAdd` |
 | Imports and exports | `imports.commit`, `imports.preview`, `imports.validate`, `exports.drafts` |

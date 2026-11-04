@@ -20,6 +20,7 @@ import AgentContracts
             "syntaxes.getBuiltIn", "syntaxes.exportBuiltIn", "actions.list", "actions.get",
             "actions.stepSchemas", "actions.groups", "actionGroups.get",
             "workspaces.list", "workspaces.get", "workspaces.query"], handlers: []),
+        .init(operations: AgentThemeReading.operationNames, handlers: []),
         .init(operations: ["editor.windows", "editor.get", "editor.find", "editor.markers",
             "editor.links", "editor.listTasks"], handlers: [.editorRead]),
         .init(operations: AgentDraftWriting.operationNames, handlers: [.editorRead, .draftWrite]),
@@ -59,6 +60,7 @@ import AgentContracts
             switch name {
             case "preferences.get": result.insert(.appearanceRead)
             case "preferences.update": result.insert(.appearanceManage)
+            case "themes.get", "themes.export": result.insert(.filesRead)
             case "actions.run": result.formUnion([.draftsWrite, .editorWrite, .nativeUse])
             default: break
             }

@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 
 @MainActor
 public enum ThemeFileAccess {
@@ -44,7 +45,7 @@ public enum ThemeFileAccess {
         return try URL(resolvingBookmarkData: bookmark, options: [.withSecurityScope, .withoutUI], relativeTo: nil, bookmarkDataIsStale: &stale)
     }
 
-    public static func read(_ definition: EditorThemeDefinition, defaults: UserDefaults = .standard) throws -> EditorThemeDefinition {
+    public static func read(_ definition: EditorThemeDefinition, defaults: UserDefaults = .standard, maximumBytes: Int? = nil) throws -> EditorThemeDefinition {
         try definition.validate()
         guard definition.type == "file" else { return definition }
         guard let bookmark = defaults.data(forKey: bookmarkKey(for: definition.id)) else {
@@ -54,7 +55,7 @@ public enum ThemeFileAccess {
         let url = try URL(resolvingBookmarkData: bookmark, options: [.withSecurityScope, .withoutUI], relativeTo: nil, bookmarkDataIsStale: &stale)
         let active = url.startAccessingSecurityScopedResource()
         defer { if active { url.stopAccessingSecurityScopedResource() } }
-        let current = try self.definition(at: url, id: definition.id)
+        let current = try self.definition(at: url, id: definition.id, maximumBytes: maximumBytes)
         guard current.name == definition.name else {
             throw DraftlyError.message("The file theme name changed. Reselect or import it again.")
         }
@@ -65,9 +66,30 @@ public enum ThemeFileAccess {
         return current
     }
 
-    private static func definition(at url: URL, id: UUID) throws -> EditorThemeDefinition {
+    private static func definition(at url: URL, id: UUID, maximumBytes: Int? = nil) throws -> EditorThemeDefinition {
         guard url.isFileURL else { throw DraftlyError.message("Choose a local theme file.") }
-        let data = try Data(contentsOf: url)
+        let data: Data
+        if let maximumBytes {
+            guard maximumBytes > 0, maximumBytes < Int.max else { throw DraftlyError.message("The theme size limit is invalid.") }
+            let descriptor = url.withUnsafeFileSystemRepresentation { path in
+                path.map { Darwin.open($0, O_RDONLY | O_NONBLOCK | O_CLOEXEC | O_NOFOLLOW) } ?? -1
+            }
+            guard descriptor >= 0 else { throw DraftlyError.message("The theme file could not be opened.") }
+            let file = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
+            defer { try? file.close() }
+            var status = stat()
+            guard fstat(descriptor, &status) == 0, status.st_mode & S_IFMT == S_IFREG else {
+                throw DraftlyError.message("Choose a regular theme file.")
+            }
+            var bytes = Data()
+            while bytes.count <= maximumBytes {
+                let chunk = try file.read(upToCount: maximumBytes + 1 - bytes.count) ?? Data()
+                if chunk.isEmpty { break }
+                bytes.append(chunk)
+            }
+            data = bytes
+            guard data.count <= maximumBytes else { throw DraftlyError.message("The theme file exceeds the size limit.") }
+        } else { data = try Data(contentsOf: url) }
         guard String(data: data, encoding: .utf8) != nil else { throw DraftlyError.message("The theme file must contain UTF-8 JSON.") }
         var definition: EditorThemeDefinition
         if let native = try? JSONDecoder().decode(EditorThemeDefinition.self, from: data) {

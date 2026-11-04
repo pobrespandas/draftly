@@ -43,6 +43,7 @@ import AgentContracts
                 guard let self else { throw AgentErrorCode.cancelled }
                 try self.validateAdmission()
             }, now: now)
+    private lazy var themes = AgentThemeReading(library: actionLibrary, defaults: preferenceDefaults, pages: pages)
     private let actionLibrary: LibraryStore
     private let operationRegistry: AgentOperationRegistry?
     private let deletionApprovals: AgentApprovalStore?
@@ -221,7 +222,8 @@ import AgentContracts
                 let reviewedAction = request.operation == "actions.run" && submitAction != nil && operationRegistry != nil
                 let preferenceMutation = AgentPreferenceWriting.operationNames.contains(request.operation) && preferenceWrites != nil
                 let workspaceEffect = AgentWorkspaceApplication.operationNames.contains(request.operation) && workspaceApplication != nil
-                guard reviewedAction || (!humanApproval && (preferenceMutation || workspaceEffect)) else {
+                let themeRead = AgentThemeReading.effectOperations.contains(request.operation)
+                guard reviewedAction || (!humanApproval && (preferenceMutation || workspaceEffect || themeRead)) else {
                     throw AgentErrorCode.unavailable
                 }
             }
@@ -435,6 +437,9 @@ import AgentContracts
     private func dispatch(_ request: AgentRequest, parameters: [String: AgentJSONValue], grant: AgentGrant,
                           sessionID: UUID) throws -> [String: AgentJSONValue] {
         switch request.operation {
+        case "themes.list", "themes.get", "themes.export", "themes.selection", "themes.exportBuiltIn":
+            return try themes.read(request, parameters: parameters, grant: grant, sessionID: sessionID,
+                authorize: { try self.validateSession(sessionID, grant: grant) })
         case "syntaxes.getBuiltIn":
             guard case .string(let name) = parameters["name"] else { throw AgentErrorCode.invalidInput }
             let source = try ScriptSyntax.definition(name).source

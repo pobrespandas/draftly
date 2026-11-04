@@ -1036,3 +1036,15 @@ DRAFTLY_APPLE_LIVE_QA=1 swift test --no-parallel --jobs 1 --filter onDeviceInfer
 The probe checks a real `drafts.get` and the expected Unicode response. It does
 not establish installed application acceptance, real-model editing, inference
 cancellation, or Cloud access. Routine test runs leave it disabled.
+
+## Theme reads
+
+`themes.list`, `themes.get`, `themes.export`, `themes.selection` and
+`themes.exportBuiltIn` require appearance read permission. Resource scope limits
+installed themes. A selected installed theme outside scope returns a null
+reference. Built-in names remain public. Definitions and exports return opaque
+version tokens. File themes also require `files.read`; the app uses its saved
+bookmark with a bounded regular-file read. Missing access never falls back to
+the saved file snapshot. Requests cannot supply a path. Export formats are
+native JSON, Drafts JSON and a portable installation URL. These calls do not
+select or modify a theme. Installed-client acceptance remains separate.

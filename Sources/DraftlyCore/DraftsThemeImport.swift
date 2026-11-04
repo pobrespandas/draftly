@@ -32,6 +32,27 @@ public enum DraftsThemeImport {
         return result
     }
 
+    public static func exportData(_ value: EditorThemeDefinition) throws -> Data {
+        let theme = try applyingEditorChanges(value)
+        try theme.validate()
+        let source: ThemeJSONValue
+        if let original = theme.unknownFields["draftsSource"] { source = original }
+        else {
+            func color(_ value: String) -> ThemeJSONValue {
+                .string("#" + value.trimmingCharacters(in: CharacterSet(charactersIn: "# ")))
+            }
+            source = .object(["name": .string(theme.name), "description": .string(""), "isDark": .bool(theme.isDark),
+                "colors": .object(["editor": .object([:]), "interface": .object([
+                    "textForeground": color(theme.foreground), "textBackground": color(theme.background)])]),
+                "scopes": .object(["text.normal": .object(["settings": .object(["foreground": color(theme.foreground)])]),
+                    "text.heading": .object(["settings": .object(["foreground": color(theme.heading)])])])])
+        }
+        let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
+        let data = try encoder.encode(source)
+        _ = try decode(data: data)
+        return data
+    }
+
     public static func decode(data: Data, id: UUID = UUID()) throws -> EditorThemeDefinition {
         guard String(data: data, encoding: .utf8) != nil else {
             throw DraftlyError.message("The Drafts theme must contain UTF-8 JSON.")

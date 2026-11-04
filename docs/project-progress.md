@@ -3,6 +3,32 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Theme read contracts — 4 November
+
+Connected the five theme read contracts: list, get, export, selection and
+built-in export. Catalog pages filter by theme scope and reuse opaque cursors.
+Selection hides an installed reference outside the grant. Definitions and
+exports use version tokens. Native and installation exports preserve portable
+custom definitions. Drafts export retains imported fields and applies current
+editor colors before encoding. Built-in exports use the app installation URL.
+
+File-backed definitions require `files.read` in addition to appearance access
+and the exact theme scope. The app resolves its existing bookmark; a request
+cannot supply a path. The agent read is bounded to the wire-size limit and
+accepts only a regular opened file. It does not return a cached definition when
+file permission, access, parsing or size checks fail. Native callers keep their
+existing read behavior unless they request a byte limit.
+
+The final focused run passed 150 app tests across five suites, 26 Core tests
+across five suites and three shared-tool contract tests. Native and imported
+exports round-trip. File reads detect current content, enforce the exact byte
+limit and deny missing file authority. The normal native build and two project
+generator checks passed. Source coverage is 75 connected or conditional names
+out of 137; 62 direct handlers remain missing.
+
+The nine theme mutation contracts remain unconnected. Installed read acceptance
+and full CI for this increment remain open. Broader readiness is unchanged.
+
 ## Reviewed draft purge handler — 4 November
 
 Connected `drafts.purge` to native review, prepared mutations, editor coordination
