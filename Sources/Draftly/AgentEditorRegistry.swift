@@ -70,6 +70,30 @@ import AgentContracts
         }
     }
 
+    func validatePreview(_ expected: WindowSnapshot) throws {
+        let model = try matchingModel(expected)
+        guard !ActionRunner.isExecuting(in: library), !model.actionPending, !model.runner.isRunning,
+              model.actionPreview == nil, model.previewHTML == nil else { throw AgentErrorCode.busy }
+        guard model.editor.canApplyExternalEdit?() != false else { throw AgentErrorCode.interactionRequired }
+    }
+
+    func setPreview(_ expected: WindowSnapshot, visible: Bool, authorize: () throws -> Void) throws {
+        try validatePreview(expected)
+        try authorize()
+        try validatePreview(expected)
+        let model = try matchingModel(expected)
+        // Presentation must not flush pending edits or change their Undo history.
+        model.setEditorPreviewVisible(visible)
+        try authorize()
+        guard valid, trackedModels().contains(where: { $0 === model }),
+              model.editor.noteID == expected.draftID, model.showPreview == visible,
+              DraftOperations.sameText(model.editor.content, expected.content),
+              model.editor.safeSelection == expected.selection,
+              (model.hasUnsavedChanges || model.editor.hasUnpersistedText) == expected.dirty else {
+            throw AgentErrorCode.outcomeUnknown
+        }
+    }
+
     func setSelection(_ expected: WindowSnapshot, range: NSRange, authorize: () throws -> Void) throws {
         guard valid else { throw AgentErrorCode.cancelled }
         try validateSelection(expected)

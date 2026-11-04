@@ -493,11 +493,21 @@ disk use grows with accepted work. Current validation and remaining installed
 migration and storage-failure checks are in the
 [retention review](agent-operation-retention-review.md).
 
+## Direct editor preview
+
+`editor.preview` now sets app-owned preview visibility without flushing pending
+text. It requires the window and current draft in scope and both presentation
+and draft-read capabilities. Active Actions, custom previews and composition
+block it. Generation checks reject changes before submission. The journal
+recovers results without another presentation. Local tests include real native
+Undo/Redo and unchanged drafts and versions. Signed installed presentation is
+still open. See [preview validation](agent-editor-preview-acceptance.md).
+
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-105 names in implemented or conditional handler sets. The other 32 names have
-no direct handler in those sets. These counts do not prove that 105 operations
+106 names in implemented or conditional handler sets. The other 31 names have
+no direct handler in those sets. These counts do not prove that 106 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -508,7 +518,7 @@ a direct handler for every `native.*` contract.
 
 | Family | Direct contracts still outside those handler sets |
 | --- | --- |
-| Editor | `editor.navigate`, `editor.open`, `editor.preview` |
+| Editor | `editor.navigate`, `editor.open` |
 | Themes | `themes.select`, `themes.selectBuiltIn`, `themes.replace`, `themes.reload`, `themes.install`, `themes.delete` |
 | Syntax | `syntaxes.delete`, `syntaxes.install`, `syntaxes.reload`, `syntaxes.replace` |
 | Bookmarks | `bookmarks.forget`, `bookmarks.requestAdd` |
@@ -715,3 +725,7 @@ Indexed journal validation passed the strict inventory: 1 consumer, 193 contract
 39 focal tests and the final native Debug build passed. Full CI of the final
 source and installed migration/update acceptance remain open. See the retention
 review for exact validation scope and logs.
+
+Direct editor preview passed strict complete Swift validation: 1 consumer,
+193 contract, 824 Core and 1,645 app tests (2,663 total). The 49 focal tests and
+native Debug build passed. Full CI and signed installed presentation remain open.

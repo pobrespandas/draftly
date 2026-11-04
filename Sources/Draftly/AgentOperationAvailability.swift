@@ -28,6 +28,7 @@ import AgentContracts
         .init(operations: AgentThemeWriting.operationNames.union([AgentMutationSchemas.name]), handlers: [.themeWrite]),
         .init(operations: ["editor.windows", "editor.get", "editor.find", "editor.markers",
             "editor.links", "editor.listTasks"], handlers: [.editorRead]),
+        .init(operations: ["editor.preview"], handlers: [.editorRead, .operationControl], optionalHostFeature: true),
         .init(operations: AgentDraftWriting.operationNames, handlers: [.editorRead, .draftWrite]),
         .init(operations: AgentEditorWriting.operationNames, handlers: [.editorRead, .draftWrite, .editorWrite]),
         .init(operations: ["workspaces.create", "workspaces.update", "workspaces.duplicate", "workspaces.reorder", "actions.create", "actions.update", "actions.duplicate",

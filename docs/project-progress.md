@@ -3,6 +3,18 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Direct editor preview — 4 November
+
+Connected `editor.preview` to app-owned presentation and the durable registry.
+It sets visibility without flushing pending text or changing native Undo history.
+Window and current-draft scope are required. Stale editors, active Actions,
+custom previews and composition block presentation. Recovered requests report
+the original outcome without changing the view again. Source coverage is
+106 connected/conditional names of 137; 31 names have no direct handler.
+The 49 focal tests and native Debug build passed. Complete validation and
+installed presentation are tracked in
+[preview validation](agent-editor-preview-acceptance.md).
+
 ## Indexed operation journal — 4 November
 
 Individual request records and operation indexes remove the permanent global
@@ -2467,3 +2479,7 @@ Indexed journal validation passed the strict inventory: 1 consumer, 193 contract
 39 focal tests and the final native Debug build passed. Full CI of the final
 source and installed migration/update acceptance remain open. See the retention
 review for exact validation scope and logs.
+
+Direct editor preview passed strict complete Swift validation: 1 consumer,
+193 contract, 824 Core and 1,645 app tests (2,663 total). The 49 focal tests and
+native Debug build passed. Full CI and signed installed presentation remain open.

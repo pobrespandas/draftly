@@ -273,6 +273,8 @@ import AgentContracts
             let outcome: AgentResponse.Outcome
             if AgentNativeSchemas.operationNames.contains(request.operation) {
                 outcome = try submitNative(request, grant: grant, sessionID: session.id)
+            } else if request.operation == "editor.preview" {
+                outcome = try submitEditorPreview(request, grant: grant, sessionID: session.id)
             } else if ["workspaces.delete", "drafts.purge", "actions.delete", "actionGroups.delete"].contains(request.operation) {
                 outcome = try submitDeletion(request, grant: grant, sessionID: session.id)
             } else {
@@ -334,7 +336,8 @@ import AgentContracts
             let syntaxExport = request.operation == "syntaxes.export"
             let themeMutation = AgentThemeWriting.operationNames.contains(request.operation)
             let reviewedNative = AgentNativeSchemas.operationNames.contains(request.operation) && nativeExecution != nil && operationRegistry != nil
-            guard reviewedAction || reviewedNative || (!humanApproval && (preferenceMutation || workspaceEffect || themeRead || themeMutation || syntaxExport)) else {
+            let editorPresentation = request.operation == "editor.preview" && editorRegistry != nil && operationRegistry != nil
+            guard reviewedAction || reviewedNative || (!humanApproval && (editorPresentation || preferenceMutation || workspaceEffect || themeRead || themeMutation || syntaxExport)) else {
                 throw AgentErrorCode.unavailable
             }
         }
@@ -343,6 +346,53 @@ import AgentContracts
         do { parameters = try AgentOperationSchemas.validatedParameters(for: request, preferences: preferences) }
         catch { throw AgentErrorCode.invalidInput }
         return parameters
+    }
+
+    private func submitEditorPreview(_ request: AgentRequest, grant: AgentGrant, sessionID: UUID) throws -> AgentResponse.Outcome {
+        guard let editorRegistry, let operationRegistry,
+              let windowID = request.targets.first?.id,
+              case .bool(let visible) = request.parameters["visible"] else { throw AgentErrorCode.unavailable }
+        try validateSession(sessionID, grant: grant)
+        func outcome(_ snapshot: AgentOperationRegistry.Snapshot) throws -> AgentResponse.Outcome {
+            if snapshot.state == .succeeded {
+                guard case .object(let result) = snapshot.result else { throw AgentErrorCode.storageError }
+                try AgentEditorSchemas.validateResult(result, for: request)
+                return .result(.object(result))
+            }
+            if snapshot.state.isTerminal { return .error(snapshot.error ?? .outcomeUnknown) }
+            return .accepted(operationID: snapshot.id, state: snapshot.state)
+        }
+        if let id = try operationRegistry.existingRequest(request, grant: grant) {
+            return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))
+        }
+        let initial = try editorContext(windowID, grant: grant).snapshot
+        try editorRegistry.validatePreview(initial)
+        let validateOperation = operationAuthority(for: grant)
+        let id = try operationRegistry.startValueRequest(request, grant: grant) { [weak self] id in
+            guard let self else { throw AgentOperationRegistry.FailureBeforeEffects(code: .cancelled) }
+            var submitted = false
+            let effectID = UUID()
+            do {
+                try Task.checkCancellation(); try validateOperation()
+                let current = try self.editorContext(windowID, grant: grant).snapshot
+                guard current.generation == initial.generation, let draftID = current.draftID else { throw AgentErrorCode.versionConflict }
+                try editorRegistry.validatePreview(current)
+                try operationRegistry.recordEffect(id, effectID: effectID, kind: request.operation, outcome: "submitted")
+                submitted = true
+                try editorRegistry.setPreview(current, visible: visible, authorize: validateOperation)
+                try validateOperation(); try Task.checkCancellation()
+                try operationRegistry.recordEffect(id, effectID: effectID, kind: request.operation, outcome: "completed")
+                return ["windowID": .string(windowID.uuidString), "draftID": .string(draftID.uuidString), "visible": .bool(visible)]
+            } catch {
+                if submitted {
+                    try? operationRegistry.recordEffect(id, effectID: effectID, kind: request.operation, outcome: "unknown")
+                    throw AgentErrorCode.outcomeUnknown
+                }
+                throw AgentOperationRegistry.FailureBeforeEffects(code:
+                    error is CancellationError ? .cancelled : (error as? AgentErrorCode ?? .storageError))
+            }
+        }
+        return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))
     }
 
     private func submitNative(_ request: AgentRequest, grant: AgentGrant, sessionID: UUID) throws -> AgentResponse.Outcome {

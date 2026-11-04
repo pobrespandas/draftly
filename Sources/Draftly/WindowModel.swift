@@ -564,7 +564,10 @@ final class WindowModel: ObservableObject {
     func preview() {
         if let actionPreview { actionPreview.finish(false); return }
         guard flush() else { return }
-        previewHTML = nil; showPreview.toggle()
+        setEditorPreviewVisible(!showPreview)
+    }
+    func setEditorPreviewVisible(_ visible: Bool) {
+        previewHTML = nil; showPreview = visible
         if showPreview { window?.makeFirstResponder(nil) }
         else { editor.focusToken = UUID() }
     }
