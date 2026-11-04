@@ -465,28 +465,37 @@ passed for `b5985f1`. Installed group-removal acceptance remains open.
 
 ## Direct native requests
 
-Seven typed native operations now connect to the existing adapters through an
-app-owned execution environment. They cover clipboard read/write, HTML-to-Markdown,
-sharing, printing, URL opening and speech. Each concrete request needs native
-consent. The shared operation journal prevents replay after reconnection or an
-uncertain effect. Native execution does not depend on enabling destructive
-library mutations. App startup still leaves access off.
+Thirteen typed native operations connect to existing adapters through an
+app-owned execution environment. The latest six add dictation, transcription,
+location, Shell, AppleScript and Shortcuts. Each concrete request needs native
+consent. The host is created after approval and current authority checks.
+Unrestricted automation requires library scope and its separate capability.
+App startup still leaves access off.
 
-Text inputs are bounded. Unknown host fields cannot select another adapter.
-Application URL schemes need unrestricted capability and library scope. Text
-results remain in memory; journal recovery reports missing text explicitly
-without repeating the read. Read [direct native validation](agent-direct-native-acceptance.md)
-and [the result-retention decision](adr/0005-agent-transient-native-results.md).
-Strict validation verified 1 consumer, 189 contract, 824 Core and 1,627 app
-tests (2,641 total). The final focal run passed 29 app tests in six suites and
-five contract tests. The native package-name Debug build and two project checks
-passed. CI and installed acceptance remain open for this increment.
+Private output stays in memory. Journal recovery reports missing output rather
+than repeating effects. Accepted work survives submitting-transport closure;
+revocation and Stop Work still invalidate it. Request identity preserves distinct
+Unicode bytes. Read [direct native validation](agent-direct-native-acceptance.md),
+[transport lifetime](agent-accepted-operation-lifetime.md),
+[request identity](agent-request-byte-identity.md) and
+[the result-retention decision](adr/0005-agent-transient-native-results.md).
+Strict validation verified 1 consumer, 193 contract, 824 Core and 1,634 app tests
+(2,652 total). Native Debug build and two project checks passed. Real Shell tests
+checked literal Unicode arguments, exit status and parent/child cancellation.
+Installed acceptance of capture and automation and CI for this increment remain
+open. The previous source `18a6e14` passed
+[full CI](https://github.com/pobrespandas/draftly/actions/runs/41849728024).
+
+Before publication, define bounded journal retention. Its current 128-record
+limit can permanently reject new jobs. Any retention policy must preserve
+unknown-effect records and prevent silent replay. This is an unresolved
+reliability gate, separate from handler coverage.
 
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-99 names in implemented or conditional handler sets. The other 38 names have
-no direct handler in those sets. These counts do not prove that 99 operations
+105 names in implemented or conditional handler sets. The other 32 names have
+no direct handler in those sets. These counts do not prove that 105 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -503,7 +512,7 @@ a direct handler for every `native.*` contract.
 | Bookmarks | `bookmarks.forget`, `bookmarks.requestAdd` |
 | Imports | `imports.commit`, `imports.preview`, `imports.validate` |
 | Backups | `backups.requestRestore` |
-| Native operations | `native.http`, `native.xmlrpc`, `native.fileRead`, `native.fileWrite`, `native.htmlPreview`, `native.mail`, `native.messages`, `native.calendar`, `native.reminders`, `native.dictate`, `native.transcribe`, `native.scanDocument`, `native.location`, `native.models`, `native.shell`, `native.appleScript`, `native.shortcut` |
+| Native operations | `native.http`, `native.xmlrpc`, `native.fileRead`, `native.fileWrite`, `native.htmlPreview`, `native.mail`, `native.messages`, `native.calendar`, `native.reminders`, `native.scanDocument`, `native.models` |
 | Operation control and activity | `operations.answerPrompt`, `activity.changes` |
 
 Keep the full [operation inventory](research/agent-operation-inventory.md) and

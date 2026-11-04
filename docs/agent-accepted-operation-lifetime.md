@@ -31,3 +31,7 @@ work, while invalidating another connection leaves its owner unaffected.
 Four focused tests in two suites passed. They include reviewed Workspace and
 action deletion after transport closure. Full validation of the combined
 source and signed installed one-shot CLI acceptance remain separate gates.
+
+The combined capture/automation increment passed strict validation with 2,652
+tests and a native Debug build. Signed installed acceptance and CI remain
+separate gates.

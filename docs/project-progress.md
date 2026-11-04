@@ -5,20 +5,31 @@ Historical test reports describe only the versions they tested.
 
 ## Direct native requests — 4 November
 
-Connected seven typed native requests: clipboard read/write, HTML-to-Markdown,
-share, print, URL opening and speech. They use existing adapters, one-use native
-review and the shared operation journal. The execution environment is independent
-of destructive library mutations. Typed inputs cannot select another host method.
-Application URL schemes require unrestricted capability and library scope.
+Connected thirteen typed native requests. The latest six add dictation,
+transcription, location, Shell, AppleScript and Shortcuts. Each needs native
+review. The host is created only after approval and a current authority check.
+Code and application automation require unrestricted capability and library scope.
+Private capture and automation results stay in memory. Journal recovery reports
+missing output and does not repeat an effect. See
+[direct native validation](agent-direct-native-acceptance.md).
 
-Private text results remain in memory. Journal recovery returns explicit missing
-text and never repeats a read to reconstruct its old output. Boolean results
-remain recoverable. See [direct native validation](agent-direct-native-acceptance.md).
-Source coverage is 99 connected/conditional names of 137; 38 names have no direct
-handler. Strict validation verified 1 consumer, 189 contract, 824 Core and
-1,627 app tests (2,641 total). Native Debug build and two project checks passed.
-The real-socket test covers review and recovery across transports with fake
-native effects. CI and signed installed native-effect acceptance remain open.
+Accepted work now survives closure of its submitting CLI transport (`224fa8c`).
+Revocation and Stop Work still invalidate its authority. Request identity now
+uses canonical encoded bytes (`eae3c1b`), so different Unicode bytes cannot reuse
+a request identifier. Regression tests failed before both fixes and passed after.
+
+Source coverage is 105 connected/conditional names of 137; 32 names have no direct
+handler. Strict validation verified 1 consumer, 193 contract, 824 Core and
+1,634 app tests (2,652 total). Native Debug build and two project checks passed.
+Real Shell tests checked Unicode arguments, exit status and parent/child cleanup
+before terminal cancellation. Other new effects use test adapters. Signed
+installed acceptance and CI for this increment remain open. The earlier source
+`18a6e14` passed [full CI](https://github.com/pobrespandas/draftly/actions/runs/41849728024).
+
+Publication also needs a bounded journal retention policy. The current 128-record
+limit can permanently reject new work in a long-lived library. Retention must
+preserve unknown-effect records and must not permit silent replay of effects.
+No journal reset or automatic replay is an accepted workaround.
 
 ## Reviewed action-group removal — 4 November
 

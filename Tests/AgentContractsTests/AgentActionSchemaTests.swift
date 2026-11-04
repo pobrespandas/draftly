@@ -110,7 +110,7 @@ struct AgentActionSchemaTests {
     }
 
     @Test func unsupportedOperationsDoNotReceiveAnEmptyFallbackSchema() {
-        #expect(AgentOperationSchemas.schema(for: "native.shell") == nil)
+        #expect(AgentActionSchemas.schema(for: "native.shell") == nil)
         #expect(throws: AgentErrorCode.unavailable) {
             try AgentOperationSchemas.validatedParameters(for: request("future.operation"))
         }

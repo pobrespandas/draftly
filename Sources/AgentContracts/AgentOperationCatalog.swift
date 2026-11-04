@@ -203,8 +203,8 @@ package enum AgentOperationCatalog {
         .init(name: "native.print", owner: "NativeActionHost", capabilities: [.nativeUse], targets: .none, requiresHumanApproval: true),
         .init(name: "native.speak", owner: "NativeActionHost", capabilities: [.nativeUse], targets: .none, requiresHumanApproval: true),
         .init(name: "native.openURL", owner: "NativeActionHost", capabilities: [.nativeUse], targets: .none, requiresHumanApproval: true),
-        .init(name: "native.shell", owner: "NativeAutomationAdapter", capabilities: [.nativeUse, .scriptsUnrestricted], targets: .none, requiresHumanApproval: true),
-        .init(name: "native.appleScript", owner: "NativeAutomationAdapter", capabilities: [.nativeUse, .scriptsUnrestricted], targets: .none, requiresHumanApproval: true),
-        .init(name: "native.shortcut", owner: "NativeAutomationAdapter", capabilities: [.nativeUse, .scriptsUnrestricted], targets: .none, requiresHumanApproval: true),
+        .init(name: "native.shell", owner: "NativeAutomationAdapter", capabilities: [.nativeUse, .scriptsUnrestricted], targets: .none, requiresLibraryScope: true, requiresHumanApproval: true),
+        .init(name: "native.appleScript", owner: "NativeAutomationAdapter", capabilities: [.nativeUse, .scriptsUnrestricted], targets: .none, requiresLibraryScope: true, requiresHumanApproval: true),
+        .init(name: "native.shortcut", owner: "NativeAutomationAdapter", capabilities: [.nativeUse, .scriptsUnrestricted], targets: .none, requiresLibraryScope: true, requiresHumanApproval: true),
     ]
 }

@@ -154,6 +154,12 @@ private struct AgentOperationReviewSheet: View {
         case "getClipboard": return "Read the current clipboard"
         case "htmlToMarkdown": return "Convert HTML to Markdown"
         case "speak": return "Read text aloud"
+        case "dictate": return "Record dictation"
+        case "transcribe": return "Transcribe a selected audio file"
+        case "location": return "Read the current location"
+        case "shellScript": return "Run a Shell script"
+        case "appleScript": return "Run AppleScript"
+        case "shortcut": return "Run a Shortcut"
         case "htmlToClipboard": return "Copy formatted text to the clipboard"
         case "share": return "Share text"
         case "shareFile": return "Share a text file"
@@ -190,13 +196,18 @@ private struct AgentOperationReviewSheet: View {
                 ("Effect", "Permanently delete these trashed drafts and their versions. Keep action history. This cannot be undone.")]
         }
         guard case .object(let fields) = review.effects.snapshot["nativeParameters"] else { return [] }
-        return fields.keys.sorted().map { key in
+        let rows = fields.keys.sorted().map { key in
             let value = fields[key]!
-            let label = ["text": "Text", "html": "HTML content", "name": "File name", "format": "Format", "template": "Template", "url": "URL"][key] ?? key
+            let label = (key == "name" && review.effects.snapshot["nativeOperation"] == .string("shortcut")) ? "Shortcut" : ["text": "Text", "html": "HTML content", "name": "File name", "format": "Format", "template": "Template", "url": "URL", "source": "Source", "locale": "Language", "arguments": "Arguments", "argumentsJSON": "Arguments", "subroutine": "Subroutine", "waitForResponse": "Track completion"][key] ?? key
             if case .string(let text) = value { return (label, text) }
             let data = try? JSONEncoder().encode(value)
             return (label, data.flatMap { String(data: $0, encoding: .utf8) } ?? "Unavailable")
         }
+        if case .string(let operation) = review.effects.snapshot["nativeOperation"],
+           ["shellScript", "shell", "appleScript", "shortcut"].contains(operation) {
+            return [("Access", "Uses your macOS permissions and full library access.")] + rows
+        }
+        return rows
     }
 
     private var details: String? {

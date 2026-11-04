@@ -17,3 +17,7 @@ A regression test failed for composed and decomposed text with and without a
 journal. Both cases pass after the correction. The focal run passed 33 tests
 in four suites, including operation lifetime, journal and native service cases.
 Full validation of the combined source remains a separate gate.
+
+The combined capture/automation increment passed strict validation with 2,652
+tests and a native Debug build. Signed installed acceptance and CI remain
+separate gates.

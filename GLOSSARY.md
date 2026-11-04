@@ -297,8 +297,8 @@ The request alone does not confirm that the operation stopped or undo completed 
 _Avoid_: Rollback, Undo
 
 **Unknown agent outcome**:
-An agent operation result for which completion or cancellation cannot be confirmed.
-It is distinct from confirmed failure or confirmed cancellation.
+An agent operation whose full effects cannot be confirmed, even when its work
+has stopped. It is distinct from a confirmed failure or cancellation.
 _Avoid_: Cancelled (when completion is unconfirmed)
 
 **Agent pairing challenge**:
@@ -362,6 +362,10 @@ to other resources.
 **Agent native operation**:
 An agent request to use a system service or platform tool directly. It has its
 own input and approval, independent of a saved Action.
+
+**Unrestricted automation**:
+Code execution or application automation that uses the person's macOS permissions.
+It can act beyond selected Draftly resources.
 
 **Agent transient result**:
 A result whose content is not saved. Its completion can remain known after
