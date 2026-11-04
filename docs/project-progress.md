@@ -3,6 +3,26 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Agent Workspace window application — 4 November
+
+Connected `workspaces.apply` through the native window route. It checks the
+specific active session, grant, Workspace version, and live window before the
+first view effect. Both resource references and presentation permission are
+required. Tests preserve pending editor state and stored library data. They do
+not grant implicit draft or editor reads. Empty windows are supported. Running
+Actions are not cancelled. Stale or closed targets fail.
+
+Presentation errors before submission can retry. Results use host-lifetime
+receipts. Successful retries do not replace a later view change. Losing the
+session or window after submission leaves an unknown result that reconnection
+does not replay. The effect gate does not bypass required human approval.
+
+The final run passed 243 tests. The normal native build and two project-generator
+checks passed. Source-set coverage is now 61 connected or conditional names out
+of 137, with 76 missing direct handlers. Full CI passed for the prior `01635d5`
+order increment. Full CI for window application and installed acceptance remain
+pending. Direct Workspace deletion still needs its review handler.
+
 ## Agent Workspace order snapshots — 4 November
 
 Connected `workspaces.reorder`. Library-scoped list pages carry an opaque order
@@ -13,8 +33,9 @@ failure and prevent another reorder after a lost reply or service restart.
 
 The focused run passed 146 tests. The normal native build passed without the
 QA flag. Source-set coverage is now 60 connected or conditional names out of
-137, with 77 direct handlers missing. Installed acceptance and full CI remain
-pending. Workspaces still need direct apply and reviewed delete handlers.
+137, with 77 direct handlers missing. Full CI [41781501330](https://github.com/pobrespandas/draftly/actions/runs/41781501330)
+passed for `01635d5`. Installed acceptance remains pending. Later increments
+below their own headings record additional handlers.
 
 ## Agent Workspace creation and duplication — 4 November
 

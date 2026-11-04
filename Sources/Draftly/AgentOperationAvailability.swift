@@ -4,7 +4,7 @@ import AgentContracts
 @MainActor struct AgentOperationAvailability {
     enum Handler: CaseIterable {
         case editorRead, draftWrite, editorWrite, preferenceWrite
-        case activityRead, operationControl, actionExecution
+        case activityRead, operationControl, actionExecution, workspaceApply
     }
 
     private struct Rule {
@@ -30,6 +30,7 @@ import AgentContracts
             handlers: [.editorRead, .draftWrite]),
         .init(operations: AgentPreferenceWriting.operationNames.union([AgentMutationSchemas.name]),
             handlers: [.preferenceWrite]),
+        .init(operations: AgentWorkspaceApplication.operationNames.union([AgentMutationSchemas.name]), handlers: [.workspaceApply]),
         .init(operations: ["activity.list"], handlers: [.activityRead], optionalHostFeature: true),
         .init(operations: ["operations.get", "operations.cancel"], handlers: [.operationControl], optionalHostFeature: true),
         .init(operations: ["actions.run"], handlers: [.operationControl, .actionExecution], optionalHostFeature: true)

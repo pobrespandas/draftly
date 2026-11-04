@@ -18,6 +18,7 @@ import AgentContracts
         if editorRegistry != nil { handlers.insert(.editorRead) }
         if writes != nil { handlers.insert(.draftWrite) }
         if editorWrites != nil { handlers.insert(.editorWrite) }
+        if workspaceApplication != nil { handlers.insert(.workspaceApply) }
         if preferenceWrites != nil { handlers.insert(.preferenceWrite) }
         if readActivity != nil { handlers.insert(.activityRead) }
         if operationRegistry != nil { handlers.insert(.operationControl) }
@@ -45,6 +46,7 @@ import AgentContracts
     private let editorRegistry: AgentEditorRegistry?
     private let windowReadKey = SymmetricKey(size: .bits256)
     private let retryKeys: AgentRetryKeys
+    private var workspaceApplication: AgentWorkspaceApplication?
     private var writes: AgentDraftWriting?
     private var editorWrites: AgentEditorWriting?
     private var preferenceWrites: AgentPreferenceWriting?
@@ -129,6 +131,11 @@ import AgentContracts
                 keys: retryKeys, now: now, validateAdmission: { [weak self] in
                     guard let self else { throw AgentErrorCode.cancelled }; try self.validateAdmission()
                 })
+            workspaceApplication = AgentWorkspaceApplication(library: library, editors: editors, keys: retryKeys,
+                currentGrant: { try connections.grantForAuthenticatedConnection($0) }, version: { [weak self] workspace in
+                    guard let self else { throw AgentErrorCode.cancelled }
+                    return try self.workspaces.version(workspace)
+                })
             editorWrites = AgentEditorWriting(registry: editors, keys: retryKeys,
                 currentGrant: { try connections.grantForAuthenticatedConnection($0) }, validateAdmission: { [weak self] in
                     guard let self else { throw AgentErrorCode.cancelled }; try self.validateAdmission()
@@ -198,10 +205,13 @@ import AgentContracts
             case .permitted: break
             case .denied(let error): throw error
             case .needsHumanApproval: throw AgentErrorCode.unavailable
-            case .needsEffectAuthorization:
+            case .needsEffectAuthorization(_, let humanApproval):
                 let reviewedAction = request.operation == "actions.run" && submitAction != nil && operationRegistry != nil
                 let preferenceMutation = AgentPreferenceWriting.operationNames.contains(request.operation) && preferenceWrites != nil
-                guard reviewedAction || preferenceMutation else { throw AgentErrorCode.unavailable }
+                let workspaceEffect = AgentWorkspaceApplication.operationNames.contains(request.operation) && workspaceApplication != nil
+                guard reviewedAction || (!humanApproval && (preferenceMutation || workspaceEffect)) else {
+                    throw AgentErrorCode.unavailable
+                }
             }
             guard availableOperations.contains(request.operation) else { throw AgentErrorCode.unavailable }
             let parameters: [String: AgentJSONValue]
@@ -354,6 +364,13 @@ import AgentContracts
         return ["actionVersion": .string(try actions.actionVersion(action)), "draftVersion": .string(draftVersion)]
     }
 
+    private func validateSession(_ id: UUID, grant: AgentGrant) throws {
+        let current = try authorize(Session(id: id))
+        guard AgentRequestBinding.grantValue(current) == AgentRequestBinding.grantValue(grant) else {
+            throw AgentErrorCode.permissionDenied
+        }
+    }
+
     private func dispatch(_ request: AgentRequest, parameters: [String: AgentJSONValue], grant: AgentGrant,
                           sessionID: UUID) throws -> [String: AgentJSONValue] {
         switch request.operation {
@@ -477,6 +494,11 @@ import AgentContracts
             } else if AgentEditorWriting.operationNames.contains(bound.operation) {
                 guard let editorWrites else { throw AgentErrorCode.unavailable }
                 ticket = try editorWrites.prepare(bound, connectionID: grant.connectionID)
+            } else if AgentWorkspaceApplication.operationNames.contains(bound.operation) {
+                guard let workspaceApplication else { throw AgentErrorCode.unavailable }
+                ticket = try workspaceApplication.prepare(bound, connectionID: grant.connectionID) {
+                    try self.validateSession(sessionID, grant: grant)
+                }
             } else if AgentWorkspaceAccess.operationNames.contains(bound.operation) { ticket = try workspaces.prepare(bound, connectionID: grant.connectionID) }
             else if ["actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder"].contains(bound.operation) { ticket = try actions.prepareActionUpdate(bound, connectionID: grant.connectionID) }
             else {
@@ -488,6 +510,11 @@ import AgentContracts
         case "actionGroups.reorder", "actions.reorder":
             let receipt = try actions.updateAction(request, connectionID: grant.connectionID)
             return ["resources": .array(receipt.resources.map { .object(["id": .string($0.id.uuidString), "versionToken": .string($0.versionToken)]) })]
+        case "workspaces.apply":
+            guard let workspaceApplication else { throw AgentErrorCode.unavailable }
+            return try workspaceApplication.apply(request, connectionID: grant.connectionID) {
+                try self.validateSession(sessionID, grant: grant)
+            }
         case "workspaces.reorder":
             let receipt = try workspaces.update(request, connectionID: grant.connectionID)
             return ["resources": .array(receipt.resources.map { .object([
@@ -533,7 +560,7 @@ import AgentContracts
             return ["operations": .array(names.map { name in
                 let schema = AgentOperationSchemas.schema(for: name, preferences: preferences)
                 return .object(["name": .string(name), "inputSchema": schema?.parameters.jsonSchema ?? .null,
-                    "resultSchema": schema?.result.jsonSchema ?? .null, "available": .bool(availableOperations.contains(name) && (name != AgentMutationSchemas.name || !grant.capabilities.isDisjoint(with: [.draftsWrite, .actionsManage, .workspacesManage, .preferencesWrite])))])
+                    "resultSchema": schema?.result.jsonSchema ?? .null, "available": .bool(availableOperations.contains(name) && (name != AgentMutationSchemas.name || !grant.capabilities.isDisjoint(with: [.draftsWrite, .actionsManage, .workspacesManage, .workspacesApply, .preferencesWrite])))])
             })]
         default: return try drafts.read(request, parameters: parameters, grant: grant, sessionID: sessionID)
         }

@@ -54,6 +54,15 @@ struct AgentOperationAvailabilityTests {
         #expect(!available.operations.contains(AgentMutationSchemas.name))
     }
 
+    @Test func workspaceApplicationHasItsOwnConnectedComponent() {
+        let available = AgentOperationAvailability(handlers: [.workspaceApply])
+        #expect(available.operations.contains("workspaces.apply"))
+        #expect(available.operations.contains("mutations.prepare"))
+        #expect(available.capabilities.contains(.workspacesApply) && available.capabilities.contains(.presentUI))
+        #expect(!available.operations.contains("workspaces.update") && !available.operations.contains("editor.replaceRange"))
+        #expect(!AgentOperationAvailability(handlers: [.editorRead]).operations.contains("workspaces.apply"))
+    }
+
     @Test func completeHostUsesOnlyKnownContractsAndDoesNotAdvertiseMissingHandlers() {
         let available = AgentOperationAvailability(handlers: Set(AgentOperationAvailability.Handler.allCases))
         #expect(available.operations == AgentCommandService.implementedOperations.union([

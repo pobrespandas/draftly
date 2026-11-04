@@ -42,6 +42,34 @@ import AgentContracts
         return candidates
     }
 
+    private func workspaceModel(_ windowID: UUID) throws -> WindowModel {
+        guard valid else { throw AgentErrorCode.cancelled }
+        guard let model = trackedModels().first(where: { entries[ObjectIdentifier($0)]?.windowID == windowID }) else {
+            throw AgentErrorCode.notFound
+        }
+        guard !ActionRunner.isExecuting(in: library), !model.actionPending, !model.runner.isRunning else {
+            throw AgentErrorCode.busy
+        }
+        return model
+    }
+
+    func validateWorkspaceApplication(windowID: UUID) throws { _ = try workspaceModel(windowID) }
+
+    func applyWorkspace(_ workspace: Workspace, windowID: UUID, authorize: () throws -> Void) throws {
+        let model = try workspaceModel(windowID)
+        let draftID = model.editor.noteID, content = model.editor.content
+        let selection = model.editor.safeSelection, dirty = model.hasUnsavedChanges
+        try model.applyScriptWorkspace(workspace, authorize: {
+            try authorize()
+            guard try self.workspaceModel(windowID) === model else { throw AgentErrorCode.notFound }
+        })
+        guard try workspaceModel(windowID) === model, model.selectedWorkspace == workspace.id,
+              model.editor.noteID == draftID, DraftOperations.sameText(model.editor.content, content),
+              model.editor.safeSelection == selection, model.hasUnsavedChanges == dirty else {
+            throw AgentErrorCode.outcomeUnknown
+        }
+    }
+
     func setSelection(_ expected: WindowSnapshot, range: NSRange, authorize: () throws -> Void) throws {
         guard valid else { throw AgentErrorCode.cancelled }
         try validateSelection(expected)

@@ -402,8 +402,10 @@ final class WindowModel: ObservableObject {
         return resolved
     }
 
-    func applyScriptWorkspace(_ workspace: Workspace) throws {
-        applyResolvedWorkspace(try prepareWorkspace(workspace))
+    func applyScriptWorkspace(_ workspace: Workspace, authorize: () throws -> Void = {}) throws {
+        let resolved = try prepareWorkspace(workspace)
+        try authorize()
+        applyResolvedWorkspace(resolved)
     }
 
     func saveAndApplyWorkspace(_ workspace: Workspace) throws {

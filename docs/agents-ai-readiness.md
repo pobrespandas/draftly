@@ -114,9 +114,9 @@ through creation. Results return a resource receipt, not readable metadata.
 
 The final focused run passed 130 tests across service, availability, Workspace
 schemas, and permission policy. The normal native build, without the agent QA
-flag, passed. Project-generator tests passed two checks. Installed creation and
-duplication acceptance, full CI for this change, and the three remaining
-Workspace contracts are still pending.
+flag, passed. Project-generator tests passed two checks. Installed creation and duplication acceptance remain pending. Full CI
+[41781501330](https://github.com/pobrespandas/draftly/actions/runs/41781501330)
+passed at `01635d5`, before the window-application follow-up.
 
 ## Workspace order snapshots
 
@@ -131,14 +131,40 @@ The batch uses the existing atomic Workspace commit. Storage failure leaves
 the prior order intact. Retry and service-restart recovery return the original
 receipt without another reorder. The final focused run passed 146 tests across
 service, availability, Workspace/read schemas, and permission policy. The
-normal native build passed. Installed acceptance and full CI for this change
-remain pending. Applying and deleting Workspaces still have no direct handler.
+normal native build passed. Full CI
+[41781501330](https://github.com/pobrespandas/draftly/actions/runs/41781501330)
+passed for `01635d5`. Installed order acceptance remains pending.
+
+## Workspace window application
+
+`workspaces.apply` now has a connected window adapter. It needs the selected
+Workspace, the selected live window, `workspaces.apply`, and `ui.present`.
+The expected version comes from `workspaces.get`. Preparation does not apply
+the view. The native route resolves presentation references before it checks
+the active session, unchanged grant, version, and window at the first view
+effect. The general effect gate still blocks effects that need human approval
+unless a review adapter handles them.
+
+Integration tests preserve editor text, selection, dirty state, and stored
+library data. They deny draft and editor reads without those permissions.
+Empty windows work. An active Action returns `busy` and is not cancelled.
+Stale definitions and closed targets fail. Native presentation failure before
+submission can retry. A lost session or window after submission returns
+`outcome_unknown`; reconnection does not replay it. Successful repeats return
+the original receipt without replacing a later view change by the person.
+These receipts belong to the host lifetime, not to the stored Workspace.
+
+The final run passed 243 tests across service, availability, host, native
+Workspace contracts, MCP, Workspace schemas, and permission policy. The normal
+native build passed without the QA flag. Project-generator tests passed two
+checks. Installed application acceptance and full CI for this increment remain
+pending. Direct Workspace deletion still needs its review handler.
 
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-60 names in implemented or conditional handler sets. The other 77 names have
-no direct handler in those sets. These counts do not prove that 60 operations
+61 names in implemented or conditional handler sets. The other 76 names have
+no direct handler in those sets. These counts do not prove that 61 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -152,7 +178,7 @@ a direct handler for every `native.*` contract.
 | Drafts | `drafts.archive`, `drafts.flag`, `drafts.merge`, `drafts.purge`, `drafts.restore`, `drafts.syntax`, `drafts.tags`, `drafts.trash` |
 | Editor | `editor.navigate`, `editor.open`, `editor.preview` |
 | Actions and groups | `actions.delete`, `actionGroups.delete` |
-| Workspaces | `workspaces.apply`, `workspaces.delete` |
+| Workspaces | `workspaces.delete` |
 | Themes | All 14 declared `themes.*` contracts. |
 | Syntax | `syntaxes.delete`, `syntaxes.export`, `syntaxes.install`, `syntaxes.reload`, `syntaxes.replace` |
 | Bookmarks | `bookmarks.forget`, `bookmarks.list`, `bookmarks.requestAdd` |

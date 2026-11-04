@@ -377,6 +377,171 @@ struct AgentCommandServiceTests {
         #expect(try f.response("workspaces.list", session: session, parameters: ["cursor": cursor]).outcome == .error(.versionConflict))
     }
 
+    @Test func workspaceApplicationUsesNativeRulesWithoutEditingDraftsAndDoesNotReplay() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let note = try f.note("Stored café 🐼")
+        let dirty = "Unsaved café 🐼 e\u{301}"
+        let model = try f.window(note, content: dirty, dirty: true)
+        model.editor.selection = NSRange(location: 2, length: 3)
+        f.editors = [model]
+        let windowID = try #require(f.editorRegistry.windowSnapshots().first?.id)
+        var workspace = Workspace(name: "Apply café 🐼")
+        workspace.query = "café"; workspace.tags = ["one"]; workspace.excludedTags = ["two"]
+        workspace.folder = .all; workspace.sort = .title; workspace.ascending = true
+        workspace.matchAnyTag = true; workspace.tagged = true
+        try f.library.saveWorkspace(workspace)
+        let target = AgentResourceReference(kind: .workspace, id: workspace.id)
+        let window = AgentResourceReference(kind: .window, id: windowID)
+        let (record, session) = try f.connect(scope: .resources([target, window]),
+            capabilities: [.workspacesRead, .workspacesApply, .presentUI])
+        guard case .string(let version) = try f.values("workspaces.get", session: session, targets: [target])["versionToken"] else {
+            throw AgentErrorCode.invalidInput
+        }
+        let schemas = try f.values("server.schemas", session: session)
+        guard case .array(let operations) = schemas["operations"] else { throw AgentErrorCode.invalidInput }
+        #expect(operations.contains { value in
+            guard case .object(let fields) = value else { return false }
+            return fields["name"] == .string("mutations.prepare") && fields["available"] == .bool(true)
+        })
+        let tools = try AgentAvailableTools(capabilities: f.values("server.capabilities", session: session), schemas: schemas)
+        #expect(tools.inputs["workspaces.apply"] != nil && tools.inputs["mutations.prepare"] != nil)
+        #expect(tools.inputs["editor.get"] == nil && tools.inputs["drafts.get"] == nil)
+        let before = try f.library.backupData()
+        let intent = AgentRequest(requestID: UUID(), libraryID: nil, operation: "workspaces.apply",
+            targets: [window, target], expectedVersion: version)
+        let prepared = try f.preparedMutation(intent, session: session)
+        #expect(model.selectedWorkspace == nil)
+        let result = try f.send(prepared, session: session)
+        #expect(result.outcome == .result(.object(["workspaceID": .string(workspace.id.uuidString), "windowID": .string(windowID.uuidString)])))
+        #expect(model.selectedWorkspace == workspace.id && model.query == workspace.query)
+        #expect(model.folder == .all && model.sort == .title && model.ascending)
+        #expect(model.activeTagFilters == ["one"] && model.excludedTagFilters == ["two"] && model.tagPresence == true)
+        #expect(model.editor.noteID == note.id && model.editor.content.utf8.elementsEqual(dirty.utf8))
+        #expect(model.editor.selection == NSRange(location: 2, length: 3) && model.hasUnsavedChanges)
+        #expect(try f.library.backupData() == before)
+        #expect(try f.response("editor.get", session: session, targets: [window]).outcome == .error(.permissionDenied))
+        #expect(try f.response("drafts.get", session: session, targets: [.init(kind: .draft, id: note.id)]).outcome == .error(.permissionDenied))
+        model.query = "User changed this later"
+        #expect(try f.send(prepared, session: session) == result)
+        #expect(model.query == "User changed this later")
+        let recovered = try f.preparedMutation(intent, session: session)
+        #expect(try f.send(recovered, session: session) == result && model.query == "User changed this later")
+        _ = try f.connections.revokeFromUserInterface(record.id)
+        #expect(try f.send(recovered, session: session).outcome == .error(.permissionDenied))
+    }
+
+    @Test func workspaceApplicationRequiresBothResourcesAndCapabilitiesAndRejectsStaleOrClosedTargets() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let note = try f.note("Neutral"), model = try f.window(note)
+        f.editors = [model]
+        let windowID = try #require(f.editorRegistry.windowSnapshots().first?.id)
+        let workspace = Workspace(name: "Target")
+        try f.library.saveWorkspace(workspace)
+        let target = AgentResourceReference(kind: .workspace, id: workspace.id), window = AgentResourceReference(kind: .window, id: windowID)
+        let (_, session) = try f.connect(scope: .resources([target, window]), capabilities: [.workspacesRead, .workspacesApply, .presentUI])
+        guard case .string(let version) = try f.values("workspaces.get", session: session, targets: [target])["versionToken"] else {
+            throw AgentErrorCode.invalidInput
+        }
+        let intent = AgentRequest(requestID: UUID(), libraryID: nil, operation: "workspaces.apply", targets: [target, window], expectedVersion: version)
+        let frame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(intent))
+        for (scope, caps, error) in [
+            (AgentResourceScope.resources([target]), Set<AgentCapability>([.workspacesApply, .presentUI]), AgentErrorCode.notFound),
+            (.resources([window]), [.workspacesApply, .presentUI], .notFound),
+            (.resources([target, window]), [.workspacesApply], .permissionDenied),
+            (.resources([target, window]), [.presentUI], .permissionDenied)
+        ] {
+            let (_, denied) = try f.connect(scope: scope, capabilities: caps)
+            #expect(try f.response("mutations.prepare", session: denied, parameters: ["request": frame]).outcome == .error(error))
+        }
+        let prepared = try f.preparedMutation(intent, session: session)
+        var changed = workspace; changed.query = "Changed after prepare"
+        try f.library.saveWorkspace(changed)
+        #expect(try f.send(prepared, session: session).outcome == .error(.versionConflict))
+        try f.library.saveWorkspace(workspace)
+        f.editors = []
+        #expect(try f.send(prepared, session: session).outcome == .error(.notFound))
+        #expect(model.selectedWorkspace == nil)
+    }
+
+    @Test func workspaceApplicationDoesNotCancelRunningActions() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let note = try f.note("Neutral"), model = try f.window(note)
+        f.editors = [model]
+        let windowID = try #require(f.editorRegistry.windowSnapshots().first?.id)
+        let workspace = Workspace(name: "Target")
+        try f.library.saveWorkspace(workspace)
+        let target = AgentResourceReference(kind: .workspace, id: workspace.id)
+        let (_, session) = try f.connect(capabilities: [.workspacesRead, .workspacesApply, .presentUI])
+        guard case .string(let version) = try f.values("workspaces.get", session: session, targets: [target])["versionToken"] else {
+            throw AgentErrorCode.invalidInput
+        }
+        let intent = AgentRequest(requestID: UUID(), libraryID: nil, operation: "workspaces.apply",
+            targets: [target, .init(kind: .window, id: windowID)], expectedVersion: version)
+        let prepared = try f.preparedMutation(intent, session: session)
+        model.actionPending = true
+        #expect(try f.send(prepared, session: session).outcome == .error(.busy))
+        #expect(model.actionPending && model.selectedWorkspace == nil)
+        model.actionPending = false
+        guard case .result = try f.send(prepared, session: session).outcome else { Issue.record("Apply did not resume"); return }
+        #expect(model.selectedWorkspace == workspace.id)
+    }
+
+    @Test(arguments: [false, true])
+    func failedWorkspacePresentationCanRetryButAnUncertainApplicationCannotReplay(_ suspendSession: Bool) throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let note = try f.note("Neutral"), model = try f.window(note)
+        f.editors = [model]
+        let windowID = try #require(f.editorRegistry.windowSnapshots().first?.id)
+        var workspace = Workspace(name: "Target")
+        workspace.query = "New query"
+        workspace.scriptMetadata = ["api": #"{"loadActionListGroup":{"name":"Missing group"}}"#]
+        try f.library.saveWorkspace(workspace)
+        let target = AgentResourceReference(kind: .workspace, id: workspace.id), window = AgentResourceReference(kind: .window, id: windowID)
+        let (record, session) = try f.connect(scope: .resources([target, window]), capabilities: [.workspacesRead, .workspacesApply, .presentUI])
+        guard case .string(let version) = try f.values("workspaces.get", session: session, targets: [target])["versionToken"] else {
+            throw AgentErrorCode.invalidInput
+        }
+        let intent = AgentRequest(requestID: UUID(), libraryID: nil, operation: "workspaces.apply", targets: [target, window], expectedVersion: version)
+        let prepared = try f.preparedMutation(intent, session: session)
+        #expect(try f.send(prepared, session: session).outcome == .error(.invalidInput))
+        #expect(model.selectedWorkspace == nil && model.query.isEmpty)
+        try f.library.saveActionGroup(ActionGroupRecord(name: "Missing group"))
+        let changed = model.$query.dropFirst().sink { _ in
+            if suspendSession { f.service.invalidateAll() }
+            else { f.editors = [] }
+        }
+        #expect(try f.send(prepared, session: session).outcome == .error(.outcomeUnknown))
+        changed.cancel()
+        #expect(model.query == workspace.query)
+        f.editors = [model]
+        model.query = "User changed the view"
+        let resumed = try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        #expect(try f.send(prepared, session: resumed).outcome == .error(.outcomeUnknown))
+        #expect(model.query == "User changed the view")
+    }
+
+    @Test func workspaceApplicationSupportsAnEmptyWindowWithoutDraftAccess() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        var dependencies = WindowDependencies()
+        dependencies.preferences = WindowPreferences(defaults: try #require(UserDefaults(suiteName: f.editorDefaultsName)))
+        let model = WindowModel(library: f.library, dependencies: dependencies)
+        f.editors = [model]
+        let windowID = try #require(f.editorRegistry.windowSnapshots().first?.id)
+        let workspace = Workspace(name: "Empty window")
+        try f.library.saveWorkspace(workspace)
+        let target = AgentResourceReference(kind: .workspace, id: workspace.id), window = AgentResourceReference(kind: .window, id: windowID)
+        let (_, session) = try f.connect(scope: .resources([target, window]), capabilities: [.workspacesRead, .workspacesApply, .presentUI])
+        guard case .string(let version) = try f.values("workspaces.get", session: session, targets: [target])["versionToken"] else {
+            throw AgentErrorCode.invalidInput
+        }
+        let intent = AgentRequest(requestID: UUID(), libraryID: nil, operation: "workspaces.apply", targets: [target, window], expectedVersion: version)
+        let prepared = try f.preparedMutation(intent, session: session)
+        let result = try f.send(prepared, session: session)
+        guard case .result = result.outcome else { Issue.record("Empty window apply failed: \(result.outcome)"); return }
+        #expect(model.selectedWorkspace == workspace.id && model.editor.noteID == nil && model.editor.content.isEmpty)
+        #expect(f.library.notes.isEmpty)
+    }
+
     @Test func workspaceUpdateRespectsScopeConflictsAndRecovers() throws {
         let f = try Fixture(), original = Workspace(name: "Original")
         try f.library.saveWorkspace(original)
@@ -1846,7 +2011,7 @@ struct AgentCommandServiceTests {
         #expect(available.remove("syntaxes.list") != nil)
         #expect(available.remove("syntaxes.get") != nil)
         #expect(available.remove("drafts.duplicate") != nil)
-        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", "preferences.get", AgentMutationSchemas.name, "drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.setSelection", "editor.replaceRange", "editor.undo", "editor.redo", "editor.tasks", "editor.replaceAll", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.create", "workspaces.update", "workspaces.duplicate", "workspaces.reorder"]) && available.count == 49)
+        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", "preferences.get", AgentMutationSchemas.name, "drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.setSelection", "editor.replaceRange", "editor.undo", "editor.redo", "editor.tasks", "editor.replaceAll", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.create", "workspaces.update", "workspaces.duplicate", "workspaces.reorder", "workspaces.apply"]) && available.count == 50)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.invalidInput))
         #expect(f.library.notes.isEmpty)
         #expect(try f.values("server.capabilities", session: session)["capabilities"] == .array([.string("drafts.read"), .string("drafts.write")]))
