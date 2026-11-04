@@ -76,7 +76,10 @@ See [Apple DTS on screen-lock state](https://developer.apple.com/forums/thread/8
 and [session properties](https://developer.apple.com/documentation/coregraphics/window-server-session-properties).
 Real screen-lock acceptance remains open. No private lock keys or notifications
 have been added. The final focused run passed 54 application-host and local-host tests. The
-native QA build passed. Installed acceptance is still pending.
+native QA build passed. Signed installed QA checked default-off startup, lock
+suspension, explicit resume, a one-second hardware sleep, and unavailable-session
+restart. Read [session lifecycle acceptance](agent-session-lifecycle-acceptance.md)
+for the evidence and remaining checks.
 
 ## Operation coverage
 
