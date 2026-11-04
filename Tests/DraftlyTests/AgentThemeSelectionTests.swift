@@ -109,6 +109,9 @@ struct AgentThemeSelectionTests {
             if ["file", "fileReplace"].contains(mode) {
                 #expect(defaults.data(forKey: ThemeFileAccess.bookmarkKey(for: resourceID)) != nil)
                 #expect(try ThemeFileAccess.read(installed, defaults: defaults) == installed)
+                let inspection = try f.service.authenticate(connectionID: connection.id, credential: #require(f.secrets[connection.id]))
+                #expect(try f.values("themes.get", session: inspection, targets: [.init(kind: .theme, id: resourceID)])["versionToken"] == resource["versionToken"])
+                f.service.close(inspection)
             }
             #expect(f.library.themes.contains(retained) && f.library.themes.count == 2)
         }
@@ -176,6 +179,62 @@ struct AgentThemeSelectionTests {
         #expect(result.state == .failed && result.error == (mode == "bookmarkRevoked" ? .permissionDenied : .versionConflict))
         #expect(f.library.themes.isEmpty)
         #expect(NSDictionary(dictionary: defaults.persistentDomain(forName: f.editorDefaultsName) ?? [:]).isEqual(to: preferences))
+    }
+
+    @Test(arguments: ["replaceBefore", "replaceQueued", "reload", "select", "deleteReview"])
+    func retargetedFilePermissionInvalidatesStaleThemeWork(mode: String) async throws {
+        let fixture = try Fixture(); defer { fixture.close() }
+        let f = fixture.f, defaults = fixture.defaults
+        let approvals = AgentApprovalStore(now: { f.wall }, currentGrant: { try? f.connections.grantForAuthenticatedConnection($0) }, isLocked: { false })
+        f.deletionApprovals = approvals; f.service = try f.makeService()
+        let bytes = try JSONEncoder().encode(EditorThemeDefinition(name: "Same café 🐼"))
+        let firstURL = fixture.root.appendingPathComponent("First.json"), secondURL = fixture.root.appendingPathComponent("Second.json")
+        try bytes.write(to: firstURL); try bytes.write(to: secondURL)
+        let first = try ThemeFileAccess.prepare(firstURL), second = try ThemeFileAccess.prepare(secondURL, id: first.definition.id)
+        try ThemeFileAccess.install(first, in: f.library, defaults: defaults)
+        BookmarkPreferences.store(try BookmarkPreferences.data(for: fixture.root), named: "Source", defaults: defaults)
+        let bookmark = try #require(try BookmarkPreferences.agentRecords(defaults: defaults).first)
+        let (connection, session) = try f.connect(capabilities: [.appearanceRead, .appearanceManage, .filesRead, .destructiveRequest])
+        let target = AgentResourceReference(kind: .theme, id: first.definition.id)
+        let originalVersion = try fixture.themeToken(target.id, session: session)
+        guard case .array(let rows) = try f.values("themes.list", session: session)["items"], case .object(let row) = rows.first else { Issue.record("Missing theme"); return }
+        #expect(row["versionToken"] == .string(originalVersion))
+        let permissionKey = ThemeFileAccess.bookmarkKey(for: target.id)
+        #expect(defaults.data(forKey: permissionKey) != second.bookmark)
+        let operation = mode.hasPrefix("replace") ? "themes.replace" : mode == "deleteReview" ? "themes.delete" : mode == "select" ? "themes.select" : "themes.reload"
+        var parameters: [String: AgentJSONValue] = [:]
+        var expected = originalVersion
+        if mode.hasPrefix("replace") {
+            parameters = ["mode": .string("file"), "source": .object(["kind": .string("bookmark"), "bookmarkID": .string(bookmark.id.uuidString), "path": .string("Second.json")])]
+        }
+        if mode == "select" { expected = try fixture.token("light", session: session); parameters = ["appearance": .string("light"), "expectedThemeVersion": .string(originalVersion)] }
+        var request = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: operation, targets: [target], expectedVersion: expected, parameters: parameters)
+        if mode == "deleteReview" { request = try f.preparedMutation(request, session: session) }
+        var accepted: UUID?
+        if ["replaceQueued", "deleteReview"].contains(mode) {
+            guard case .accepted(let id, _) = try f.send(request, session: session).outcome else { Issue.record("Missing operation"); return }
+            accepted = id
+            if mode == "deleteReview" {
+                for _ in 0..<1000 where approvals.pendingFromUserInterface().isEmpty { await Task.yield() }
+                #expect(!approvals.pendingFromUserInterface().isEmpty)
+            }
+        }
+        defaults.set(second.bookmark, forKey: permissionKey)
+        let revision = defaults.integer(forKey: ThemeCatalog.revisionKey), references = defaults.data(forKey: EditorThemePreferences.key)
+        if let accepted {
+            if mode == "deleteReview" {
+                let review = try #require(approvals.pendingFromUserInterface().first)
+                try approvals.approveFromUserInterface(review.id, reviewedFingerprint: review.fingerprint)
+            }
+            let result = try await fixture.wait(accepted, connection: connection.id)
+            #expect(result.state == .failed && result.error == .versionConflict)
+        } else { #expect(try f.send(request, session: session).outcome == .error(.versionConflict)) }
+        let currentVersion = try fixture.themeToken(target.id, session: session)
+        #expect(currentVersion != originalVersion)
+        guard case .array(let updatedRows) = try f.values("themes.list", session: session)["items"], case .object(let updated) = updatedRows.first else { Issue.record("Missing current theme"); return }
+        #expect(updated["versionToken"] == .string(currentVersion))
+        #expect(defaults.data(forKey: permissionKey) == second.bookmark && f.library.themes == [first.definition])
+        #expect(defaults.integer(forKey: ThemeCatalog.revisionKey) == revision && defaults.data(forKey: EditorThemePreferences.key) == references)
     }
 
     @Test(arguments: [false, true], ["light", "dark"])

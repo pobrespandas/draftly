@@ -21,7 +21,16 @@ import AgentContracts
         return Data(HMAC<SHA256>.authenticationCode(for: bytes, using: key)).base64EncodedString()
     }
 
-    func version(_ theme: EditorThemeDefinition) throws -> String { try version(encoded(theme)) }
+    func version(_ theme: EditorThemeDefinition) throws -> String {
+        try version(theme, filePermission: defaults.data(forKey: ThemeFileAccess.bookmarkKey(for: theme.id)))
+    }
+
+    func version(_ theme: EditorThemeDefinition, filePermission: Data?) throws -> String {
+        let definition = try encoded(theme)
+        guard theme.type == "file" else { return try version(definition) }
+        let permission = filePermission.map { AgentJSONValue.string(Data(SHA256.hash(data: $0)).base64EncodedString()) } ?? .null
+        return try version(.object(["definition": definition, "filePermission": permission]))
+    }
 
     private func encoded(_ theme: EditorThemeDefinition) throws -> AgentJSONValue {
         try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(theme))
@@ -69,7 +78,7 @@ import AgentContracts
                 parameters: parameters, expiresAt: grant.expiresAt, ids: { themes.map(\.id) }, value: { id in
                     guard let theme = byID[id] else { return nil }
                     return .object(["id": .string(id.uuidString), "name": .string(theme.name), "type": .string(theme.type),
-                        "versionToken": .string(try self.version(self.encoded(theme)))])
+                        "versionToken": .string(try self.version(theme))])
                 })
             page["builtInNames"] = .array(ThemeCatalog.builtInNames.map(AgentJSONValue.string))
             result = page
@@ -85,7 +94,7 @@ import AgentContracts
         case "themes.get", "themes.export":
             guard let id = request.targets.first?.id else { throw AgentErrorCode.invalidInput }
             let theme = try definition(id, grant: grant, authorize: authorize)
-            let definition = try encoded(theme), token = try version(definition)
+            let definition = try encoded(theme), token = try version(theme)
             if request.operation == "themes.get" {
                 result = ["definition": definition, "versionToken": .string(token)]
             } else {

@@ -48,3 +48,9 @@ Strict validation passed 1 consumer, 193 contract, 825 Core and 1,673 app tests
 (2,692 total). The native Debug build passed after project regeneration added the
 new source file. Logs: `/tmp/draftly-theme-delete-full.log` and
 `/tmp/draftly-theme-delete-build.log`. Current-source CI remains pending.
+
+File-theme listing versions now include the saved permission. A same-content
+retarget during destructive review fails with `versionConflict`; it does not
+remove the newly selected permission. This is local approval-store evidence, not
+installed human-review acceptance. See
+[installation evidence](agent-theme-installation-review.md).

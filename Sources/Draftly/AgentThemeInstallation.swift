@@ -48,7 +48,7 @@ import DraftlyCore
             }
             if let definition = plan.definition {
                 // Validate the response token before any durable change.
-                let version = try reader.version(definition)
+                let version = try reader.version(definition, filePermission: plan.bookmark)
                 let receipt = try library.commitTheme(definition, mutation: identity, at: now(),
                     validateCommit: { try validate(); try submit() },
                     makeResource: { .init(id: $0.id, versionToken: version) })
@@ -66,7 +66,7 @@ import DraftlyCore
                         try AgentThemeImportPlanning.validateSource(request, input: input, defaults: defaults, authorize: authorize)
                         if let definition = plan.definition {
                             guard let actual = library.themes.first(where: { $0.id == definition.id }),
-                                  try reader.version(actual) == reader.version(definition) else { throw AgentErrorCode.versionConflict }
+                                  try reader.version(actual, filePermission: plan.bookmark) == reader.version(definition, filePermission: plan.bookmark) else { throw AgentErrorCode.versionConflict }
                         }
                     }
                     try submit()

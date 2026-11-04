@@ -3,6 +3,16 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## File-theme permission versions — 4 November
+
+File-theme versions now bind the saved permission as well as the definition.
+Same-content retargets invalidate stale replacement, reload, selection and reviewed
+deletion. Installation returns the token for its new permission. Raw permission
+bytes and their hash remain private. Focused 19, strict 2,702 tests and native
+Debug passed. Source coverage stays 114/137. Installed retarget behavior, HTTPS
+and distribution remain open. See
+[installation evidence](agent-theme-installation-review.md).
+
 ## Local theme installation and replacement — 4 November
 
 Connected `themes.install` and `themes.replace` for inline JSON, owned transfers,

@@ -59,8 +59,30 @@ storage, changed files including NFC/NFD, revoked bookmarks and stale selection.
 Local input tests cover 24 cases with and without file-permission capture.
 
 Signed installed behavior, process interruption between stores, production file
-permissions and reviewed HTTPS resolution remain open. Definition tokens do not
-yet bind the target's saved file permission. Retarget concurrency needs review
-before release. Local file I/O remains synchronous, as in the existing theme
+permissions and reviewed HTTPS resolution remain open. File-theme tokens now bind the saved file permission. Local tests reject stale
+work after a same-content retarget. Installed retarget acceptance remains open. Local file I/O remains synchronous, as in the existing theme
 reader; mounted-file latency also needs acceptance. The agent distribution and
 client gates remain open. Do not treat source coverage as release acceptance.
+
+## Permission-bound file tokens
+
+File-theme versions combine the definition with a hash of the saved permission.
+The whole value uses the reader's private HMAC key. Neither the permission bytes
+nor their hash appears as a result field. Custom-theme versions keep their
+existing form. Listing uses the stored definition and permission; file reads use
+the current file definition and permission.
+
+Installation computes its result token against the new permission before saving
+and checks the preference write before success. Tests compare that token with a
+subsequent `themes.get`. A retarget between preparation and execution invalidates
+the stored target token, even when both files have identical definitions.
+
+The permission-bound source passed 19 focused tests in three suites. Five cases
+cover stale replacement before and after acceptance, reload, selection and a
+pending destructive review. All keep the retargeted permission and stored theme.
+Strict validation passed 1 consumer, 193 contract, 826 Core and 1,682 app tests
+(2,702 total). Native Debug passed. Logs:
+`/tmp/draftly-theme-permission-version-expanded.log`,
+`/tmp/draftly-theme-permission-version-full.log` and
+`/tmp/draftly-theme-permission-version-build.log`. Installed acceptance remains
+open. These results supersede the earlier source's local totals above.

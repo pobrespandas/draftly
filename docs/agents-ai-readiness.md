@@ -820,3 +820,11 @@ captures a checked file permission. HTTPS resolution still needs its reviewed
 route. Durable results prevent automatic replay of cross-store effects. See
 [installation evidence](agent-theme-installation-review.md). These two names
 remain conditional on host components and source support, not release acceptance.
+
+## File-theme permission versions
+
+File-theme tokens now bind the saved permission without exposing permission bytes
+or their hash. A same-content retarget invalidates stale local operations, including
+pending destructive review. Installation result tokens match subsequent reads.
+Strict 2,702 tests and native Debug passed. Installed retarget acceptance remains
+open. See [installation evidence](agent-theme-installation-review.md).

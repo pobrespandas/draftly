@@ -51,3 +51,8 @@ Source coverage is 110 connected/conditional names of 137, with 27 missing handl
 The preceding `editor.open` source `cee030e` passed all selected CI jobs in
 [41877332833](https://github.com/pobrespandas/draftly/actions/runs/41877332833),
 including native build/tests and tooling. This does not accept the later selector.
+
+File-theme tokens now also bind the saved permission. Same-content retargeting
+invalidates `expectedThemeVersion` before selection can write preferences. The
+permission token tests cover this behavior; see
+[installation evidence](agent-theme-installation-review.md).
