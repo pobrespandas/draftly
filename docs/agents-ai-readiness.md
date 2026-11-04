@@ -749,3 +749,20 @@ Direct navigation passed strict complete Swift validation: 1 consumer, 193 contr
 824 Core and 1,649 app tests (2,667 total). The focused 172 tests and final native
 Debug build passed. Full CI, installed focus/navigation and signed-update client
 acceptance remain open. See the navigation report for scope and logs.
+
+The [authorized new-window adapter](agent-authorized-window-opening.md) now
+provides app-owned scene creation with authority checks and protected cleanup.
+`editor.open` remains unavailable until both explicit-window and new-window
+requests connect to the service, scope policy and durable registry. This adapter
+does not increase operation coverage or establish installed opening acceptance.
+
+CI for navigation source `0f9c51f` ended without running native or tooling jobs.
+GitHub reported unavailable macOS arm64 runner capacity. Plan and matrix passed;
+the aggregate check failed on cancelled selected jobs. See
+[41869494074](https://github.com/pobrespandas/draftly/actions/runs/41869494074).
+This leaves full CI acceptance open; no check was relaxed.
+
+The authorized scene adapter passed strict complete validation: 1 consumer,
+193 contract, 824 Core and 1,654 app tests (2,672 total). The earlier focused
+19 opening tests and final native Debug build passed. `editor.open` service
+integration and installed acceptance remain open; operation coverage is unchanged.

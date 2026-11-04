@@ -90,8 +90,27 @@ private enum PendingMenuAction {
     weak var origin: NSWindow?
     weak var model: WindowModel?
     var completed = false
-    init(noteID: UUID?, tab: Bool, origin: NSWindow?) {
+    let authorize: (() throws -> Void)?
+    let focusEditor: Bool
+    var onModel: ((WindowModel) -> Void)?
+    init(noteID: UUID?, tab: Bool, origin: NSWindow?, authorize: (() throws -> Void)? = nil,
+         focusEditor: Bool = true, onModel: ((WindowModel) -> Void)? = nil) {
         self.noteID = noteID; self.tab = tab; self.origin = origin
+        self.authorize = authorize; self.focusEditor = focusEditor; self.onModel = onModel
+    }
+    var canCloseWithoutSaving: Bool {
+        guard authorize != nil, let model else { return true }
+        return Self.canClose(model, noteID: noteID)
+    }
+    static func canClose(_ model: WindowModel, noteID: UUID?) -> Bool {
+        guard !model.hasUnsavedChanges, !model.editor.hasUnpersistedText,
+              !model.actionPending, !model.runner.isRunning, model.actionPreview == nil,
+              model.previewHTML == nil, !model.arrangementSession.isActive,
+              model.editor.canApplyExternalEdit?() != false else { return false }
+        if model.editor.noteID == nil { return model.editor.content.isEmpty }
+        guard model.editor.noteID == noteID,
+              let stored = model.library.notes.first(where: { $0.id == noteID }) else { return false }
+        return DraftOperations.sameText(model.editor.content, stored.content)
     }
 }
 
@@ -129,6 +148,7 @@ final class AppController: ObservableObject {
     private let windowOpenRequests = WindowOpenRequestRegistry()
     private var draftSceneRequests: [UUID: DraftSceneRequest] = [:]
     private var retiredDraftSceneRequests: Set<UUID> = []
+    private var retiredAuthorizedDraftSceneRequests: [UUID: UUID] = [:]
     var openLibrary: (() -> Void)? {
         didSet {
             guard libraryWindowRequested, let openLibrary else { return }
@@ -434,6 +454,30 @@ final class AppController: ObservableObject {
         })
     }
 
+    func openAuthorizedDraftWindow(_ id: UUID, focusEditor: Bool, timeout: TimeInterval = 120,
+                                   authorize: @escaping () throws -> Void) async throws -> WindowModel {
+        try authorize(); try Task.checkCancellation()
+        guard let library, let openDraftLibrary,
+              library.notes.contains(where: { $0.id == id }) else { throw AgentErrorCode.unavailable }
+        var selected: WindowModel?
+        let result = try await windowOpenRequests.request(timeout: timeout, start: { requestID in
+            draftSceneRequests[requestID] = DraftSceneRequest(noteID: id, tab: false, origin: nil,
+                authorize: authorize, focusEditor: focusEditor, onModel: { selected = $0 })
+            openDraftLibrary(requestID)
+        }, onEnd: { [weak self] requestID in
+            guard let self, let request = self.draftSceneRequests[requestID], !request.completed else { return }
+            self.draftSceneRequests.removeValue(forKey: requestID)
+            self.retiredDraftSceneRequests.insert(requestID)
+            self.retiredAuthorizedDraftSceneRequests[requestID] = id
+            if request.canCloseWithoutSaving { request.model?.window?.close() }
+        })
+        try Task.checkCancellation(); try authorize()
+        guard result, self.library === library, let selected,
+              windows.allObjects.contains(where: { $0 === selected }), selected.editor.noteID == id,
+              selected.window != nil else { throw AgentErrorCode.outcomeUnknown }
+        return selected
+    }
+
     func registerWindow(_ model: WindowModel, window: NSWindow? = nil, requestID: UUID? = nil) {
         if let window { model.window = window }
         if let window = model.window { model.installCloseProtection(on: window) }
@@ -455,10 +499,16 @@ final class AppController: ObservableObject {
         }
         guard let request = draftSceneRequests[requestID],
               request.model == nil || request.model === model else {
-            model.window?.close()
+            let target = retiredAuthorizedDraftSceneRequests[requestID] ?? draftSceneRequests[requestID]?.noteID
+            let protected = retiredAuthorizedDraftSceneRequests[requestID] != nil || draftSceneRequests[requestID]?.authorize != nil
+            if !protected || DraftSceneRequest.canClose(model, noteID: target) { model.window?.close() }
             return
         }
         request.model = model
+        if !request.completed {
+            do { try request.authorize?() }
+            catch { _ = windowOpenRequests.complete(requestID, false); return }
+        }
         windows.add(model)
         cachedAgentEditors?.refreshMembership()
         if model.window?.isKeyWindow == true { commandWindow = model }
@@ -467,12 +517,31 @@ final class AppController: ObservableObject {
             _ = windowOpenRequests.complete(requestID, false)
             return
         }
+        if request.authorize != nil {
+            guard model.editor.noteID == nil, model.editor.content.isEmpty,
+                  !model.hasUnsavedChanges, !model.editor.hasUnpersistedText,
+                  model.editor.canApplyExternalEdit?() != false else {
+                _ = windowOpenRequests.complete(requestID, false); return
+            }
+        }
+        let validateRequest = {
+            try request.authorize?()
+            if request.authorize != nil, !request.canCloseWithoutSaving { throw AgentErrorCode.interactionRequired }
+        }
+        do { try validateRequest() }
+        catch { _ = windowOpenRequests.complete(requestID, false); return }
         guard model.flush() else { _ = windowOpenRequests.complete(requestID, false); return }
         if let id = request.noteID {
             guard model.library.notes.contains(where: { $0.id == id }) else {
                 _ = windowOpenRequests.complete(requestID, false); return
             }
-            model.folder = .inbox; model.clearFilters(); model.select(id)
+            model.folder = .inbox; model.clearFilters()
+            do {
+                guard try model.selectAuthorized(id, focusEditor: request.focusEditor,
+                    authorize: validateRequest) else {
+                    _ = windowOpenRequests.complete(requestID, false); return
+                }
+            } catch { _ = windowOpenRequests.complete(requestID, false); return }
             guard model.editor.noteID == id else { _ = windowOpenRequests.complete(requestID, false); return }
         } else { model.create() }
         if request.tab {
@@ -485,11 +554,16 @@ final class AppController: ObservableObject {
                 _ = windowOpenRequests.complete(requestID, false); return
             }
         }
+        do { try validateRequest() }
+        catch { _ = windowOpenRequests.complete(requestID, false); return }
+        request.onModel?(model)
+        request.onModel = nil
         request.completed = true
         if !windowOpenRequests.complete(requestID, true) {
             draftSceneRequests.removeValue(forKey: requestID)
             retiredDraftSceneRequests.insert(requestID)
-            window.close()
+            if request.authorize != nil, let id = request.noteID { retiredAuthorizedDraftSceneRequests[requestID] = id }
+            if request.canCloseWithoutSaving { window.close() }
         }
     }
 
@@ -505,7 +579,10 @@ final class AppController: ObservableObject {
     func unregisterWindow(_ model: WindowModel) {
         for (id, request) in Array(draftSceneRequests) {
             if request.model === model {
-                if request.completed { draftSceneRequests.removeValue(forKey: id); retiredDraftSceneRequests.insert(id) }
+                if request.completed {
+                    draftSceneRequests.removeValue(forKey: id); retiredDraftSceneRequests.insert(id)
+                    if request.authorize != nil, let target = request.noteID { retiredAuthorizedDraftSceneRequests[id] = target }
+                }
                 else { windowOpenRequests.cancel(id) }
             } else if !request.completed, let origin = request.origin, origin === model.window {
                 windowOpenRequests.cancel(id)

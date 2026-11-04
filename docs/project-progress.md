@@ -3,6 +3,16 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Authorized new-window adapter — 4 November
+
+The app has a new scene-opening adapter with live authorization, strict empty
+editor admission and safe cancellation cleanup. It returns the actual window
+model. Changed or unrelated editors are neither saved nor replaced. This is a
+foundation for `editor.open`; the CLI/MCP handler is not advertised yet. Source
+coverage stays at 107/137 connected or conditional names, with 30 still missing.
+See [new-window validation](agent-authorized-window-opening.md) for evidence and
+remaining explicit-window/new-window integration.
+
 ## Direct editor navigation — 4 November
 
 Connected `editor.navigate` to visible-list order and app-owned selection.
@@ -2499,3 +2509,8 @@ Direct navigation passed strict complete Swift validation: 1 consumer, 193 contr
 824 Core and 1,649 app tests (2,667 total). The focused 172 tests and final native
 Debug build passed. Full CI, installed focus/navigation and signed-update client
 acceptance remain open. See the navigation report for scope and logs.
+
+The authorized scene adapter passed strict complete validation: 1 consumer,
+193 contract, 824 Core and 1,654 app tests (2,672 total). The earlier focused
+19 opening tests and final native Debug build passed. `editor.open` service
+integration and installed acceptance remain open; operation coverage is unchanged.
