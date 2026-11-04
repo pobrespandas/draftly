@@ -3,6 +3,15 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Import root identity check — 4 November
+
+The input reader now checks root device and inode across canonicalization and
+open. A directory swap fails before traversal. Expanded local tests cover 12
+cases, including changed bookmark bytes and the final symbolic link. All four
+focused tests and native Debug passed. The complete 2,694-test result is from the
+preceding source. Installed acceptance and current CI remain open. Coverage
+remains 112/137. See [local input evidence](agent-local-import-reading.md).
+
 ## Scoped local import input — 4 November
 
 Added bounded inline, transfer and saved-directory input resolution. Bookmark

@@ -48,11 +48,19 @@ import AgentContracts
 
     private static func read(_ path: String, under root: URL, limit: Int, authorize: () throws -> Void) throws -> Data {
         // Resolve the granted root once. Descendants never follow a symbolic link.
+        var rootInfo = stat()
+        guard lstat(root.path, &rootInfo) == 0, rootInfo.st_mode & S_IFMT == S_IFDIR else {
+            throw AgentErrorCode.permissionDenied
+        }
+        try Task.checkCancellation(); try authorize()
         guard let physical = realpath(root.path, nil) else { throw AgentErrorCode.permissionDenied }
         defer { free(physical) }
         var descriptor = Darwin.open(physical, O_RDONLY | O_DIRECTORY | O_NOFOLLOW_ANY | O_NONBLOCK | O_CLOEXEC)
         guard descriptor >= 0 else { throw AgentErrorCode.permissionDenied }
         defer { Darwin.close(descriptor) }
+        var openedRoot = stat()
+        guard fstat(descriptor, &openedRoot) == 0, rootInfo.st_dev == openedRoot.st_dev,
+              rootInfo.st_ino == openedRoot.st_ino else { throw AgentErrorCode.versionConflict }
         let components = path.split(separator: "/", omittingEmptySubsequences: false)
         for (index, component) in components.enumerated() {
             try Task.checkCancellation(); try authorize()

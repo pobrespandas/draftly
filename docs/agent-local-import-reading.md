@@ -31,8 +31,23 @@ Nine cases cover exact-size reads, oversized files, resource denial, missing
 capability, parent traversal, symbolic-link escape, directories, FIFOs and live
 authority loss. Backup integration tests validate and preview saved input while
 preserving library data. Existing transfer ownership tests remain applicable.
-Signed installed access and changes to saved bookmarks during a read remain open.
+Signed installed access remains open.
 
 Strict validation passed 1 consumer, 193 contract, 826 Core and 1,674 app tests
 (2,694 total). Native Debug passed. Logs: `/tmp/draftly-import-reading-full.log`
 and `/tmp/draftly-import-reading-build.log`. Current-source CI remains pending.
+
+## Root identity check
+
+The reader checks that the resolved root is a directory before canonicalization.
+After opening it, device and inode must match that check. A symbolic-link swap
+between the check and open fails before traversal. This narrows the path race;
+it does not claim to stop a privileged process from controlling the file system.
+
+Expanded tests cover 12 cases. They include a root swap injected at the authority
+check, changed saved permission bytes, and a symbolic link at the final file.
+All four focused tests in two suites passed, including backup integration. The
+log is `/tmp/draftly-import-root-check.log`. The preceding complete 2,694-test
+result predates this root check.
+
+Native Debug passed after the root check. Log: `/tmp/draftly-import-root-build.log`.

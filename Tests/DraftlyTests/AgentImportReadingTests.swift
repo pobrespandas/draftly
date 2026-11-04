@@ -6,7 +6,7 @@ import AgentContracts
 
 @Suite("Scoped local import input") @MainActor
 struct AgentImportReadingTests {
-    @Test(arguments: ["valid", "size", "scope", "capability", "parent", "symlink", "directory", "fifo", "revoked"])
+    @Test(arguments: ["valid", "size", "scope", "capability", "parent", "symlink", "directory", "fifo", "revoked", "rootChanged", "bookmarkChanged", "finalSymlink"])
     func bookmarkInputStaysWithinItsGrant(mode: String) throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let suite = "Draftly.ImportReading." + UUID().uuidString
@@ -26,6 +26,10 @@ struct AgentImportReadingTests {
             try FileManager.default.createSymbolicLink(at: directory.appendingPathComponent("escape"), withDestinationURL: root)
             path = "escape/outside.json"
         }
+        if mode == "finalSymlink" {
+            path = "leaf"
+            try FileManager.default.createSymbolicLink(at: directory.appendingPathComponent(path), withDestinationURL: root.appendingPathComponent("outside.json"))
+        }
         if mode == "directory" { path = "folder"; try FileManager.default.createDirectory(at: directory.appendingPathComponent(path), withIntermediateDirectories: false) }
         if mode == "fifo" { path = "pipe"; #expect(mkfifo(directory.appendingPathComponent(path).path, 0o600) == 0) }
         let grant = AgentGrant(connectionID: UUID(), libraryID: UUID(), expiresAt: Date().addingTimeInterval(300),
@@ -37,12 +41,19 @@ struct AgentImportReadingTests {
             try AgentImportReading.data(source, grant: grant, defaults: defaults, transfers: transfers,
                 maximumBytes: mode == "size" ? bytes.count - 1 : bytes.count, authorize: {
                     checks += 1
+                    if mode == "rootChanged", checks == 2 {
+                        try FileManager.default.moveItem(at: directory, to: root.appendingPathComponent("held"))
+                        try FileManager.default.createSymbolicLink(at: directory, withDestinationURL: root)
+                    }
+                    if mode == "bookmarkChanged", checks == 3 {
+                        BookmarkPreferences.store(Data("replacement permission".utf8), named: "QA", defaults: defaults)
+                    }
                     if mode == "revoked", checks > 2 { throw AgentErrorCode.permissionDenied }
                 })
         }
         if mode == "valid" { #expect(try read() == bytes) }
         else { #expect(throws: (any Error).self) { try read() } }
-        #expect(try Data(contentsOf: file) == bytes)
+        #expect(try Data(contentsOf: mode == "rootChanged" ? root.appendingPathComponent("held/input.json") : file) == bytes)
         #expect(try Data(contentsOf: root.appendingPathComponent("outside.json")) == bytes)
     }
 }
