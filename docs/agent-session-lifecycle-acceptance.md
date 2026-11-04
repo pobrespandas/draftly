@@ -40,14 +40,17 @@ Action was selected. Renewal is off. The fixed expiry is 05:34 UTC on
 A new conversation sent a neutral number-list prompt to GPT-6.1-Sol without
 local tools. The UI showed a partial response and an active Stop response
 control. Stop removed the busy state and partial response. The prompt remained.
-A later turn and restart persistence still need acceptance. This observation
-proves UI cancellation; it does not prove when remote inference stopped.
+After restart, the saved conversation contained only the user prompt and no
+assistant message. A new response after cancellation still needs acceptance.
+This observation proves UI cancellation; it does not prove when remote
+inference stopped.
 
 ## Limits and continuation
 
-The QA is still open with access off. The read-only grant has not been extended.
-Revoke it after the remaining checks, close the QA, and restore its saved
-preferences from the fresh private session backup.
+The grant was revoked without extending its expiry. The QA was closed. Helper
+discovery returned no endpoints. Shared preferences were restored exactly from
+the fresh session backup. Only the window frame and selected Settings tab had
+changed. No new access remains enabled.
 
 Normal startup with a helper is implemented. This installed app still uses a
 QA library. Public console properties and protected-data availability do not
@@ -55,3 +58,14 @@ guarantee graphical unlock. See [Apple's clarification](https://developer.apple.
 Test other lock paths, user switching, longer sleep, and normal distribution
 before claiming broad acceptance. Named-client sessions, provider renewal,
 Apple Intelligence Cloud tools, and signed update acceptance remain open.
+
+## Client handshake correction
+
+Codex CLI 0.166.0 sent an experimental object that Swift MCP SDK 0.12.1 could
+not decode. Source `33e91f9` ignores unnegotiated experimental client capability
+objects before SDK dispatch. It does not change tool arguments or permissions.
+All 20 MCP boundary and host tests passed. The signed installed helper accepted
+the actual captured Codex initialize request and negotiated `2025-06-18`.
+This proves the initialization fix. It does not prove a full named-client
+session. Codex and Claude Code exposed no tools in the earlier paused-host
+probes. Their successful read sessions remain pending.
