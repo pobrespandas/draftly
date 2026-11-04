@@ -3,6 +3,15 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Reviewed HTTPS input — 4 November
+
+Connected app-owned download review for theme installation and replacement, and
+backup validation and preview. Downloads require `native.use`, retain the parent
+request identity and do not replay after recovery. Source tests use an injected
+fetch function. Strict 2,713 tests and native Debug passed. Coverage stays at
+115/137. Real TLS and signed installed acceptance remain open. See
+[HTTPS input evidence](agent-https-input-acceptance.md).
+
 ## Reviewed bounded HTTP — 4 November
 
 Connected `native.http` to app-owned review and a private asynchronous session.
@@ -11,7 +20,8 @@ stay on the reviewed origin. Response data is transient; recovery does not send
 again. Real loopback checks cover redirects, bodyless representation sizes and
 connection closure on cancellation. Strict 2,711 tests and native Debug passed.
 Coverage is 115/137 connected or conditional names; 22 lack direct handlers.
-Automatic HTTPS inputs, signed installed HTTP and distribution remain open. See
+Signed installed HTTP and distribution remain open. Reviewed HTTPS inputs are
+now connected; see [input evidence](agent-https-input-acceptance.md). See
 [HTTP evidence](agent-native-http-acceptance.md).
 
 ## File-theme permission versions — 4 November

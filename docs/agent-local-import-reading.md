@@ -64,3 +64,9 @@ Expanded input tests cover 24 cases with permission capture on and off. Complete
 validation passed 2,701 tests and native Debug. See
 [installation evidence](agent-theme-installation-review.md) for final logs and
 remaining acceptance. The earlier local-input reports above predate capture.
+
+## Reviewed HTTPS inputs
+
+The parent command now owns the reviewed HTTPS download. The local input reader
+still rejects network input. See [HTTPS input evidence](agent-https-input-acceptance.md)
+for authority checks, limits, recovery and acceptance gaps.

@@ -270,9 +270,17 @@ import DraftlyCore
         try Task.checkCancellation(); try authorize()
     }
 
-    static func prepare(_ request: AgentRequest, input: Input, grant: AgentGrant,
+    struct Intent {
+        let parameters: [String: AgentJSONValue]
+        let appearance: String?
+        let selectionVersion: String?
+        let target: EditorThemeDefinition?
+        let targetVersion: String?
+    }
+
+    static func intent(_ request: AgentRequest, grant: AgentGrant,
                         library: LibraryStore, reader: AgentThemeReading,
-                        authorize: () throws -> Void) throws -> Plan {
+                        authorize: () throws -> Void) throws -> Intent {
         guard request.libraryID == grant.libraryID, ["themes.install", "themes.replace"].contains(request.operation) else { throw AgentErrorCode.invalidInput }
         guard grant.capabilities.isSuperset(of: [.appearanceManage, .filesRead]) else { throw AgentErrorCode.permissionDenied }
         try Task.checkCancellation(); try authorize()
@@ -289,6 +297,30 @@ import DraftlyCore
             }
             appearance = value; selectionVersion = token
         } else { appearance = nil; selectionVersion = nil }
+        let target: EditorThemeDefinition?, targetVersion: String?
+        if request.operation == "themes.replace" {
+            guard request.targets.count == 1, let resource = request.targets.first, resource.kind == .theme,
+                  grant.scope.permits(resource) else { throw AgentErrorCode.permissionDenied }
+            guard let previous = library.themes.first(where: { $0.id == resource.id }) else { throw AgentErrorCode.notFound }
+            let version = try reader.version(previous)
+            guard request.expectedVersion == version else { throw AgentErrorCode.versionConflict }
+            guard previous.type == mode else { throw AgentErrorCode.invalidInput }
+            target = previous; targetVersion = version
+        } else {
+            guard request.targets.isEmpty, request.expectedVersion == nil else { throw AgentErrorCode.invalidInput }
+            target = nil; targetVersion = nil
+        }
+        try Task.checkCancellation(); try authorize()
+        return Intent(parameters: parameters, appearance: appearance, selectionVersion: selectionVersion,
+                      target: target, targetVersion: targetVersion)
+    }
+
+    static func prepare(_ request: AgentRequest, input: Input, grant: AgentGrant,
+                        library: LibraryStore, reader: AgentThemeReading,
+                        authorize: () throws -> Void) throws -> Plan {
+        let intent = try intent(request, grant: grant, library: library, reader: reader, authorize: authorize)
+        let parameters = intent.parameters
+        guard case .string(let mode) = parameters["mode"] else { throw AgentErrorCode.invalidInput }
         var definition: EditorThemeDefinition?, bookmark: Data?, builtInName: String?
         switch input {
         case .builtIn(let name):
@@ -307,24 +339,12 @@ import DraftlyCore
             do { try prepared.definition.validate() } catch { throw AgentErrorCode.invalidInput }
             definition = prepared.definition; bookmark = prepared.bookmark
         }
-        let targetVersion: String?
-        if request.operation == "themes.replace" {
-            guard request.targets.count == 1, let target = request.targets.first, target.kind == .theme,
-                  grant.scope.permits(target), var value = definition else { throw AgentErrorCode.permissionDenied }
-            guard let previous = library.themes.first(where: { $0.id == target.id }) else { throw AgentErrorCode.notFound }
-            let version = try reader.version(previous)
-            guard request.expectedVersion == version else { throw AgentErrorCode.versionConflict }
-            guard previous.type == value.type else { throw AgentErrorCode.invalidInput }
-            // Explicit replacement keeps the target identity and cannot consume another installed ID.
-            guard value.id == target.id || !library.themes.contains(where: { $0.id == value.id }) else {
-                throw AgentErrorCode.versionConflict
-            }
-            value.id = target.id; definition = value; targetVersion = version
-        } else {
-            guard request.targets.isEmpty, request.expectedVersion == nil else { throw AgentErrorCode.invalidInput }
-            targetVersion = nil
-            // An existing identity or name needs an explicit versioned replacement.
-            if let definition, library.themes.contains(where: { $0.id == definition.id }) { throw AgentErrorCode.versionConflict }
+        if let previous = intent.target {
+            guard var value = definition, previous.type == value.type else { throw AgentErrorCode.invalidInput }
+            guard value.id == previous.id || !library.themes.contains(where: { $0.id == value.id }) else { throw AgentErrorCode.versionConflict }
+            value.id = previous.id; definition = value
+        } else if let definition, library.themes.contains(where: { $0.id == definition.id }) {
+            throw AgentErrorCode.versionConflict
         }
         if let definition, library.themes.contains(where: {
             $0.id != request.targets.first?.id
@@ -332,6 +352,6 @@ import DraftlyCore
         }) { throw AgentErrorCode.versionConflict }
         try Task.checkCancellation(); try authorize()
         return Plan(definition: definition, bookmark: bookmark, builtInName: builtInName,
-                    appearance: appearance, selectionVersion: selectionVersion, targetVersion: targetVersion)
+                    appearance: intent.appearance, selectionVersion: intent.selectionVersion, targetVersion: intent.targetVersion)
     }
 }

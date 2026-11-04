@@ -86,3 +86,9 @@ Strict validation passed 1 consumer, 193 contract, 826 Core and 1,682 app tests
 `/tmp/draftly-theme-permission-version-full.log` and
 `/tmp/draftly-theme-permission-version-build.log`. Installed acceptance remains
 open. These results supersede the earlier source's local totals above.
+
+## Reviewed HTTPS inputs
+
+The parent command now owns the reviewed HTTPS download. The local input reader
+still rejects network input. See [HTTPS input evidence](agent-https-input-acceptance.md)
+for authority checks, limits, recovery and acceptance gaps.

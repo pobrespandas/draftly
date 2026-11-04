@@ -41,7 +41,7 @@ import AgentContracts
             "syntaxes": count(before.syntaxes ?? [], after.syntaxes ?? []), "runs": count(before.runs ?? [], after.runs ?? [])])
     }
     func read(_ request: AgentRequest, parameters: [String: AgentJSONValue],
-              grant: AgentGrant, authorize: () throws -> Void) throws -> [String: AgentJSONValue] {
+              grant: AgentGrant, sourceData: Data? = nil, authorize: () throws -> Void) throws -> [String: AgentJSONValue] {
         try check(authorize)
         guard grant.scope == .library else { throw AgentErrorCode.permissionDenied }
         if request.operation == "backups.export" {
@@ -49,7 +49,8 @@ import AgentContracts
             try check(authorize)
             return ["transfer": try transfers.export(data, resources: [], grant: grant)]
         }
-        let data = try source(parameters, grant: grant, authorize: authorize)
+        let data = try sourceData ?? source(parameters, grant: grant, authorize: authorize)
+        guard data.count <= AgentTransferSchemas.maximumBytes else { throw AgentErrorCode.invalidInput }
         let incoming: Backup
         do {
             incoming = try JSONDecoder().decode(Backup.self, from: data)

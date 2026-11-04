@@ -809,15 +809,14 @@ for cross-store limits and installed acceptance still required.
 
 Backup validation and preview now use the bounded local input resolver for
 inline text, owned transfers and authorized saved directory bookmarks. HTTPS
-input remains gated on its reviewed route. This does not connect theme installation
+input now uses the separate reviewed download route. This does not connect theme installation
 or replacement. See [local input evidence](agent-local-import-reading.md).
 
 ## Local theme installation and replacement
 
 The preference effect host connects `themes.install` and `themes.replace` with
 inline, owned transfer, scoped bookmark and installation-link inputs. File mode
-captures a checked file permission. HTTPS resolution still needs its reviewed
-route. Durable results prevent automatic replay of cross-store effects. See
+captures a checked file permission. HTTPS now uses a separate reviewed download route. Durable results prevent automatic replay of cross-store effects. See
 [installation evidence](agent-theme-installation-review.md). These two names
 remain conditional on host components and source support, not release acceptance.
 
@@ -833,5 +832,5 @@ open. See [installation evidence](agent-theme-installation-review.md).
 
 The native effect host now connects `native.http` with app-owned review, bounded
 response reads and a private session. Redirects stay on the reviewed origin.
-Response content is transient and recovery does not send again. Automatic HTTPS
-input resolution remains open. See [HTTP evidence](agent-native-http-acceptance.md).
+Response content is transient and recovery does not send again. Reviewed HTTPS inputs are connected for theme installation and backup validation
+and preview. Installed acceptance remains open. See [HTTP evidence](agent-native-http-acceptance.md).

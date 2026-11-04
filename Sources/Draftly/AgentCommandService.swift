@@ -283,6 +283,8 @@ import AgentContracts
             let outcome: AgentResponse.Outcome
             if AgentNativeSchemas.operationNames.contains(request.operation) {
                 outcome = try submitNative(request, grant: grant, sessionID: session.id)
+            } else if ["backups.validate", "backups.previewRestore"].contains(request.operation) {
+                outcome = try submitBackupInput(request, grant: grant, sessionID: session.id)
             } else if AgentThemeInstallation.operationNames.contains(request.operation) {
                 outcome = try submitThemeImport(request, grant: grant, sessionID: session.id)
             } else if AgentThemePresentation.operationNames.contains(request.operation) {
@@ -366,6 +368,47 @@ import AgentContracts
         return parameters
     }
 
+    private func submitBackupInput(_ request: AgentRequest, grant: AgentGrant, sessionID: UUID) throws -> AgentResponse.Outcome {
+        try validateSession(sessionID, grant: grant)
+        func outcome(_ snapshot: AgentOperationRegistry.Snapshot) throws -> AgentResponse.Outcome {
+            if snapshot.state == .succeeded {
+                guard case .object(let result) = snapshot.result else { throw AgentErrorCode.storageError }
+                try AgentOperationSchemas.validateResult(result, for: request, preferences: preferences)
+                return .result(.object(result))
+            }
+            if snapshot.state.isTerminal { return .error(snapshot.error ?? .outcomeUnknown) }
+            return .accepted(operationID: snapshot.id, state: snapshot.state)
+        }
+        if let operationRegistry, let id = try operationRegistry.existingRequest(request, grant: grant) {
+            return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))
+        }
+        let parameters = try AgentBackupSchemas.validatedParameters(for: request)
+        if !AgentHTTPSImport.isHTTPS(request) {
+            let result = try backups.read(request, parameters: parameters, grant: grant,
+                authorize: { try self.validateSession(sessionID, grant: grant) })
+            try AgentOperationSchemas.validateResult(result, for: request, preferences: preferences)
+            return .result(.object(result))
+        }
+        guard let operationRegistry, let environment = nativeExecution else { throw AgentErrorCode.interactionRequired }
+        _ = try AgentHTTPSImport.sourceURL(request, grant: grant)
+        let validateOperation = operationAuthority(for: grant)
+        func validateIntent() throws {
+            try validateOperation()
+            guard grant.scope == .library else { throw AgentErrorCode.permissionDenied }
+            if request.operation == "backups.previewRestore" { try self.drafts.requireStoredDraftsForRestorePreview() }
+        }
+        try validateIntent()
+        let id = try operationRegistry.startValueRequest(request, grant: grant) { [weak self] id in
+            guard let self else { throw AgentOperationRegistry.FailureBeforeEffects(code: .cancelled) }
+            let data = try await AgentHTTPSImport.read(request, grant: grant, maximumBytes: AgentTransferSchemas.maximumBytes,
+                environment: environment, operations: operationRegistry, operationID: id,
+                validateIntent: validateIntent, authorize: validateOperation)
+            do { return try self.backups.read(request, parameters: parameters, grant: grant, sourceData: data, authorize: validateOperation) }
+            catch { throw AgentErrorCode.outcomeUnknown }
+        }
+        return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))
+    }
+
     private func submitThemeImport(_ request: AgentRequest, grant: AgentGrant, sessionID: UUID) throws -> AgentResponse.Outcome {
         guard let preferenceStorage, let operationRegistry else { throw AgentErrorCode.unavailable }
         try validateSession(sessionID, grant: grant)
@@ -383,8 +426,14 @@ import AgentContracts
         }
         guard request.retryKey == nil else { throw AgentErrorCode.invalidInput }
         let authorize = { try self.validateSession(sessionID, grant: grant) }
-        let input = try AgentThemeImportPlanning.resolve(request, grant: grant, defaults: preferenceDefaults, transfers: transfers, authorize: authorize)
-        let plan = try AgentThemeImportPlanning.prepare(request, input: input, grant: grant, library: actionLibrary, reader: themes, authorize: authorize)
+        let network = AgentHTTPSImport.isHTTPS(request)
+        if network {
+            guard nativeExecution != nil else { throw AgentErrorCode.interactionRequired }
+            _ = try AgentHTTPSImport.sourceURL(request, grant: grant)
+            _ = try AgentThemeImportPlanning.intent(request, grant: grant, library: actionLibrary, reader: themes, authorize: authorize)
+        }
+        let input = network ? nil : try AgentThemeImportPlanning.resolve(request, grant: grant, defaults: preferenceDefaults, transfers: transfers, authorize: authorize)
+        let plan = try input.map { try AgentThemeImportPlanning.prepare(request, input: $0, grant: grant, library: actionLibrary, reader: themes, authorize: authorize) }
         let ticket = try retryKeys.issue(request, connectionID: grant.connectionID)
         let identity = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
         let validateOperation = operationAuthority(for: grant)
@@ -394,7 +443,24 @@ import AgentContracts
         }
         let id = try operationRegistry.startValueRequest(request, grant: grant, effectTargets: sources) { [weak self] id in
             guard let self else { throw AgentOperationRegistry.FailureBeforeEffects(code: .cancelled) }
-            return try AgentThemeInstallation.run(request, input: input, plan: plan, grant: grant,
+            let resolved: AgentThemeImportPlanning.Input
+            let prepared: AgentThemeImportPlanning.Plan
+            if let input, let plan { resolved = input; prepared = plan }
+            else {
+                guard let environment = self.nativeExecution else { throw AgentOperationRegistry.FailureBeforeEffects(code: .unavailable) }
+                let data = try await AgentHTTPSImport.read(request, grant: grant, maximumBytes: AgentRequest.maximumBytes,
+                    environment: environment, operations: operationRegistry, operationID: id, validateIntent: {
+                        _ = try AgentThemeImportPlanning.intent(request, grant: grant, library: self.actionLibrary,
+                            reader: self.themes, authorize: validateOperation)
+                    }, authorize: validateOperation)
+                do {
+                    let definition = try ThemeInstallation.decodeDefinition(data, fallbackID: request.targets.first?.id ?? UUID(), maximumBytes: AgentRequest.maximumBytes)
+                    resolved = .definition(definition)
+                    prepared = try AgentThemeImportPlanning.prepare(request, input: resolved, grant: grant,
+                        library: self.actionLibrary, reader: self.themes, authorize: validateOperation)
+                } catch { throw AgentErrorCode.outcomeUnknown }
+            }
+            return try AgentThemeInstallation.run(request, input: resolved, plan: prepared, grant: grant,
                 identity: identity, library: self.actionLibrary, reader: self.themes, defaults: self.preferenceDefaults,
                 storage: preferenceStorage, now: self.now, operations: operationRegistry, operationID: id, authorize: validateOperation)
         }

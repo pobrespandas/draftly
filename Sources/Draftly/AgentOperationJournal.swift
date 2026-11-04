@@ -115,7 +115,9 @@ import AgentLocalSecurity
 
     static func supports(_ name: String) -> Bool {
         guard let operation = AgentOperationCatalog.operation(named: name) else { return false }
+        // Backup readers can own a reviewed HTTPS input effect.
         return operation.requiresEffectAuthorization || operation.requiresHumanApproval
+            || ["backups.validate", "backups.previewRestore"].contains(name)
     }
 
     private func validateSnapshot(_ value: AgentJSONValue, operationID: UUID, name: String? = nil) throws {

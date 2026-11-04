@@ -145,6 +145,10 @@ private struct AgentOperationReviewSheet: View {
     @State private var showTechnicalDetails = false
 
     private var nativeTitle: String? {
+        if review.effects.snapshot["sourceImport"] == .bool(true) {
+            return ["themes.install": "Download and Install Theme", "themes.replace": "Download and Replace Theme",
+                "backups.validate": "Download Backup for Validation", "backups.previewRestore": "Download Backup for Preview"][review.operation] ?? "Download Input"
+        }
         if review.operation == "themes.delete" { return "Delete Theme" }
         if review.operation == "workspaces.delete" { return "Delete Workspace" }
         if review.operation == "actions.delete" { return "Delete Action" }
@@ -203,7 +207,7 @@ private struct AgentOperationReviewSheet: View {
         guard case .object(let fields) = review.effects.snapshot["nativeParameters"] else { return [] }
         let rows = fields.keys.sorted().map { key in
             let value = fields[key]!
-            let label = (key == "name" && review.effects.snapshot["nativeOperation"] == .string("shortcut")) ? "Shortcut" : ["text": "Text", "html": "HTML content", "name": "File name", "format": "Format", "template": "Template", "url": "URL", "source": "Source", "locale": "Language", "arguments": "Arguments", "argumentsJSON": "Arguments", "subroutine": "Subroutine", "waitForResponse": "Track completion", "method": "Method", "headersJSON": "Headers", "bodyText": "Body", "bodyBase64": "Body (Base64)", "timeout": "Timeout (seconds)", "followRedirects": "Follow redirects on this origin"][key] ?? key
+            let label = (key == "name" && review.effects.snapshot["nativeOperation"] == .string("shortcut")) ? "Shortcut" : ["text": "Text", "html": "HTML content", "name": "File name", "format": "Format", "template": "Template", "url": "URL", "source": "Source", "locale": "Language", "arguments": "Arguments", "argumentsJSON": "Arguments", "subroutine": "Subroutine", "waitForResponse": "Track completion", "method": "Method", "headersJSON": "Headers", "bodyText": "Body", "bodyBase64": "Body (Base64)", "timeout": "Timeout (seconds)", "followRedirects": "Follow redirects on this origin", "maximumBytes": "Maximum download bytes", "purpose": "Purpose"][key] ?? key
             if case .string(let text) = value { return (label, text) }
             let data = try? JSONEncoder().encode(value)
             return (label, data.flatMap { String(data: $0, encoding: .utf8) } ?? "Unavailable")

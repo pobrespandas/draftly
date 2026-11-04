@@ -7,6 +7,7 @@ import DraftlyCore
     struct Environment {
         let makeHost: @MainActor () -> any ActionHost
         let approvals: AgentApprovalStore
+        var fetchHTTPS: @MainActor (String, Int) async throws -> Data = { try await AgentHTTPSImport.download($0, maximumBytes: $1) }
     }
 
     struct Plan {
