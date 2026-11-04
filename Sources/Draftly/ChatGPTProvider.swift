@@ -111,6 +111,7 @@ struct ChatGPTModel: Equatable, Identifiable, Sendable {
         guard request.httpBody!.count <= 4194304 else { throw Failure.tooLarge }
         var text: [TextPosition: String] = [:]
         var completed: Turn?
+        var completedItems: [Int: AgentJSONValue] = [:]
         var responseID: String?
         try await stream(request) { data in
             try Task.checkCancellation()
@@ -130,7 +131,8 @@ struct ChatGPTModel: Equatable, Identifiable, Sendable {
                 Self.logger.error("SSE schema mismatch: type=\(type, privacy: .public), path=\(path, privacy: .public)")
                 throw Failure.invalidStream
             }
-            if let id = event.response?.id {
+            if let nested = event.response?.id, let top = event.response_id, nested != top { throw Failure.invalidStream }
+            if let id = event.response?.id ?? event.response_id {
                 guard responseID == nil || responseID == id else {
                     Self.logger.error("SSE response identity changed within one HTTP request")
                     throw Failure.invalidStream
@@ -148,11 +150,30 @@ struct ChatGPTModel: Equatable, Identifiable, Sendable {
                 let current = text.keys.sorted().map { text[$0]! }.joined()
                 guard current.utf8.count <= 4194304 else { throw Failure.tooLarge }
                 try onText(current)
+            case "response.output_item.done":
+                guard let index = event.output_index, index >= 0, index < 64,
+                      case .object(let envelope) = try JSONDecoder().decode(AgentJSONValue.self, from: data),
+                      case .object = envelope["item"], let item = envelope["item"] else { throw Failure.invalidStream }
+                if let previous = completedItems[index], previous != item { throw Failure.invalidStream }
+                completedItems[index] = item
             case "response.completed":
-                guard let response = event.response, response.status == "completed", let output = response.output else {
+                guard let response = event.response, response.status == "completed", response.output != nil else {
                     Self.logger.error("Completed SSE event is missing its completed response output")
                     throw Failure.invalidStream
                 }
+                guard case .object(let envelope) = try JSONDecoder().decode(AgentJSONValue.self, from: data),
+                      case .object(let rawResponse) = envelope["response"],
+                      case .array(var rawOutput) = rawResponse["output"] else { throw Failure.invalidStream }
+                // Retain complete stream items when the final output is empty.
+                // Use complete items only, and require the final response to succeed.
+                if rawOutput.isEmpty, !completedItems.isEmpty {
+                    guard completedItems.keys.sorted() == Array(0..<completedItems.count) else { throw Failure.invalidStream }
+                    rawOutput = (0..<completedItems.count).map { completedItems[$0]! }
+                    Self.logger.notice("Using \(completedItems.count, privacy: .public) completed stream items from an empty final output")
+                }
+                let output: [Output]
+                do { output = try rawOutput.map { try JSONDecoder().decode(Output.self, from: JSONEncoder().encode($0)) } }
+                catch { throw Failure.invalidStream }
                 guard !output.contains(where: { !["message", "reasoning", "function_call"].contains($0.type) }) else { throw Failure.toolsUnavailable }
                 let allowed = Set(definitions.map(\.name))
                 let calls = try output.filter { $0.type == "function_call" }.map { item -> ToolCall in
@@ -171,13 +192,10 @@ struct ChatGPTModel: Equatable, Identifiable, Sendable {
                 let final = content.filter { $0.type == "output_text" }.compactMap(\.text).joined()
                 guard !final.isEmpty || !calls.isEmpty else {
                     let types = output.map { Self.safeLabel($0.type) }.joined(separator: ",")
-                    Self.logger.error("Completed response has no output text: types=\(types, privacy: .public)")
+                    Self.logger.error("Completed response has no output text: types=\(types, privacy: .public), completedItems=\(completedItems.count, privacy: .public), textParts=\(text.count, privacy: .public)")
                     throw Failure.invalidStream
                 }
                 guard final.utf8.count <= 4194304 else { throw Failure.tooLarge }
-                guard case .object(let envelope) = try JSONDecoder().decode(AgentJSONValue.self, from: data),
-                      case .object(let rawResponse) = envelope["response"],
-                      case .array(let rawOutput) = rawResponse["output"] else { throw Failure.invalidStream }
                 completed = Turn(text: final, output: rawOutput, calls: calls)
                 try onText(final)
                 return true
@@ -280,7 +298,7 @@ struct ChatGPTModel: Equatable, Identifiable, Sendable {
     private struct APIError: Decodable { let code: String? }
     private struct Event: Decodable {
         let type: String; let delta: String?; let output_index: Int?; let content_index: Int?
-        let response: Response?; let error: APIError?; let code: String?
+        let response: Response?; let response_id: String?; let error: APIError?; let code: String?
     }
     private struct Response: Decodable {
         let id: String?; let status: String?; let output: [Output]?; let error: APIError?

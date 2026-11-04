@@ -101,3 +101,23 @@ Private request and response files are retained in the local QA recovery
 directory. They are not release assets. This report does not establish normal
 host startup, screen-lock handling, notarization, named-client support, or a
 published agents feature. PR #105 stays in draft.
+
+## Chat Console stream failure
+
+A later approved ChatGPT editing session failed before local tool execution.
+The activity log contained only `server.capabilities` and `server.schemas` for
+that connection. The response completed with an empty output list. No editor
+read or mutation ran. Disconnect revoked the connection and Stop Work closed
+the host before the QA update.
+
+The provider now retains `response.output_item.done` items when the final output
+list is empty. It still requires a successful final response, complete contiguous
+item positions, matching response identities, valid calls, and the existing
+permission checks. Partial items, failed responses, gaps, conflicting positions,
+and foreign response identities cannot execute a tool. Reasoning items remain
+in continuation history. This follows the completed-item event shape in the
+[OpenAI function calling guide](https://developers.openai.com/api/docs/guides/function-calling).
+The 23 focused provider, tool-session, console, and transport tests passed. The
+native QA build passed. Installed acceptance of this correction remains pending.
+The empty final
+list alone does not prove which preceding events the service sent.
