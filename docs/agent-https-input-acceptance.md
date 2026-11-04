@@ -35,3 +35,17 @@ temporary network test was removed after the run; CI has no network dependency.
 Approval in the signed installed app, lock and sleep behavior,
 client acceptance and signed distribution remain open. Agents stay disabled for
 publication. These tests do not establish production acceptance.
+
+## Installed QA checkpoint
+
+The isolated installed QA now uses source `757dbdb` with `DRAFTLY_AGENT_QA`.
+The native QA build passed. The current helper was packaged with its matching
+profile. App and helper static signature checks passed under team `NM92LU2KKV`.
+This is not notarization evidence. The normal installed app was not replaced.
+
+Native Settings showed access off, no approved connections and no activity.
+Admission reported `console=true`, `login=true`, `protectedData=false`. No grant
+was created. Installed download acceptance must wait for protected data to become
+available. Do not bypass this check. The recovery directory is recorded in
+`/tmp/draftly-https-candidate-path.txt`. It contains the previous QA bundle and
+shared preference backup. Close QA before any preference restoration.
