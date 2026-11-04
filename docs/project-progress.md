@@ -3,6 +3,19 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Installed syntax export — 4 November
+
+`syntaxes.export` now returns source text or a `draftly://syntax` installation
+URL for the exact granted resource. Export preserves source data and supports
+UTF-16 chunks. File exports require `files.read`, read the current bookmarked
+file, and reject oversized files and non-regular files. A missing file returns
+`unavailable`. Export does not change the library or select a syntax.
+
+The source inventory now connects 79 of the 137 required names. The remaining
+58 names still need direct handlers. The final focused run passed 134 app tests
+across two suites, 30 Core syntax tests and 13 appearance contract tests. The native
+Debug build passed. Installed acceptance for this handler remains open.
+
 ## Installed client preparation — 4 November
 
 Full CI [41808994708](https://github.com/pobrespandas/draftly/actions/runs/41808994708)

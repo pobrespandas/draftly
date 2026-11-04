@@ -1,5 +1,6 @@
 import Foundation
 import CoreFoundation
+import Darwin
 
 public enum SyntaxTaskError: Error { case invalidSnapshot }
 
@@ -568,12 +569,36 @@ public struct SyntaxDefinition: Identifiable, Codable, Equatable {
         let bookmark = try url.bookmarkData(options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil)
         defaults.set(bookmark, forKey: "syntax.file." + id.uuidString)
     }
-    public static func read(_ definition: SyntaxDefinition, defaults: UserDefaults = .standard) throws -> SyntaxDefinition {
+    public static func read(_ definition: SyntaxDefinition, defaults: UserDefaults = .standard, maximumBytes: Int? = nil) throws -> SyntaxDefinition {
         guard let bookmark = defaults.data(forKey: "syntax.file." + definition.id.uuidString) else { throw DraftlyError.message("Reselect the file for syntax \(definition.name).") }
         var stale = false
         let url = try URL(resolvingBookmarkData: bookmark, options: [.withSecurityScope], relativeTo: nil, bookmarkDataIsStale: &stale)
         let active = url.startAccessingSecurityScopedResource(); defer { if active { url.stopAccessingSecurityScopedResource() } }
-        let current = try SyntaxDefinition(data: Data(contentsOf: url), type: "file", id: definition.id)
+        let data: Data
+        if let maximumBytes {
+            guard url.isFileURL, maximumBytes > 0, maximumBytes < Int.max else {
+                throw DraftlyError.message("The syntax file size limit is invalid.")
+            }
+            let descriptor = url.withUnsafeFileSystemRepresentation { path in
+                path.map { Darwin.open($0, O_RDONLY | O_NONBLOCK | O_CLOEXEC | O_NOFOLLOW) } ?? -1
+            }
+            guard descriptor >= 0 else { throw DraftlyError.message("The syntax file could not be opened.") }
+            let file = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
+            defer { try? file.close() }
+            var status = stat()
+            guard fstat(descriptor, &status) == 0, status.st_mode & S_IFMT == S_IFREG else {
+                throw DraftlyError.message("Choose a regular syntax file.")
+            }
+            var bytes = Data()
+            while bytes.count <= maximumBytes {
+                let chunk = try file.read(upToCount: maximumBytes + 1 - bytes.count) ?? Data()
+                if chunk.isEmpty { break }
+                bytes.append(chunk)
+            }
+            guard bytes.count <= maximumBytes else { throw DraftlyError.message("The syntax file exceeds the size limit.") }
+            data = bytes
+        } else { data = try Data(contentsOf: url) }
+        let current = try SyntaxDefinition(data: data, type: "file", id: definition.id)
         guard current.name == definition.name else { throw DraftlyError.message("The file syntax name changed. Import it again.") }
         if stale { try register(url, id: definition.id, defaults: defaults) }
         return current

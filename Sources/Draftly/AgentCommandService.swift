@@ -225,8 +225,9 @@ import AgentContracts
                 let preferenceMutation = AgentPreferenceWriting.operationNames.contains(request.operation) && preferenceWrites != nil
                 let workspaceEffect = AgentWorkspaceApplication.operationNames.contains(request.operation) && workspaceApplication != nil
                 let themeRead = AgentThemeReading.effectOperations.contains(request.operation)
+                let syntaxExport = request.operation == "syntaxes.export"
                 let themeMutation = AgentThemeWriting.operationNames.contains(request.operation)
-                guard reviewedAction || (!humanApproval && (preferenceMutation || workspaceEffect || themeRead || themeMutation)) else {
+                guard reviewedAction || (!humanApproval && (preferenceMutation || workspaceEffect || themeRead || themeMutation || syntaxExport)) else {
                     throw AgentErrorCode.unavailable
                 }
             }
@@ -479,6 +480,30 @@ import AgentContracts
                 })
             result["builtInNames"] = .array(ScriptSyntax.names.map(AgentJSONValue.string))
             return result
+        case "syntaxes.export":
+            guard let id = request.targets.first?.id,
+                  grant.scope.permits(.init(kind: .syntax, id: id)),
+                  var syntax = actionLibrary.syntaxes.first(where: { $0.id == id && $0.type != "builtIn" }) else {
+                throw AgentErrorCode.notFound
+            }
+            if syntax.type == "file" {
+                guard grant.capabilities.contains(.filesRead) else { throw AgentErrorCode.permissionDenied }
+                try validateSession(sessionID, grant: grant)
+                do { syntax = try SyntaxFileAccess.read(syntax, defaults: preferenceDefaults, maximumBytes: AgentRequest.maximumBytes) }
+                catch { throw AgentErrorCode.unavailable }
+                try validateSession(sessionID, grant: grant)
+            }
+            let token = Data(HMAC<SHA256>.authenticationCode(for: Data(syntax.source.utf8), using: preferenceVersionKey)).base64EncodedString()
+            let text: String
+            if parameters["format"] == .string("installationURL") {
+                var components = URLComponents(); components.scheme = "draftly"; components.host = "syntax"
+                components.queryItems = [URLQueryItem(name: "data", value: syntax.source)]
+                guard let url = components.string else { throw AgentErrorCode.storageError }
+                text = url
+            } else { text = syntax.source }
+            try validateSession(sessionID, grant: grant)
+            return ["resourceID": .string(id.uuidString), "format": parameters["format"] ?? .string("source"),
+                "content": .object(try AgentDraftReading.chunk(text, parameters: parameters)), "versionToken": .string(token)]
         case "syntaxes.get":
             guard let id = request.targets.first?.id,
                   grant.scope.permits(.init(kind: .syntax, id: id)),

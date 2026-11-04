@@ -2298,6 +2298,81 @@ struct AgentCommandServiceTests {
         #expect(changed["versionToken"] != value["versionToken"])
     }
 
+    @Test(arguments: ["source", "installationURL"])
+    func syntaxExportPreservesSourceAndEnforcesScope(format: String) throws {
+        let f = try Fixture()
+        var object = try ScriptSyntax.definition("Plain Text").object
+        object["name"] = "Export café 🐼 & ? #"
+        let syntax = try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: object))
+        try f.library.saveSyntax(syntax)
+        let target = AgentResourceReference(kind: .syntax, id: syntax.id)
+        let (_, denied) = try f.connect(scope: .resources([target]), capabilities: [])
+        let (_, hidden) = try f.connect(scope: .resources([]), capabilities: [.appearanceRead])
+        let (_, allowed) = try f.connect(scope: .resources([target]), capabilities: [.appearanceRead])
+        let parameters: [String: AgentJSONValue] = ["format": .string(format)]
+        let before = try f.library.backupData()
+        #expect(try f.response("syntaxes.export", session: denied, targets: [target], parameters: parameters).outcome == .error(.permissionDenied))
+        #expect(try f.response("syntaxes.export", session: hidden, targets: [target], parameters: parameters).outcome == .error(.notFound))
+        let result = try f.values("syntaxes.export", session: allowed, targets: [target], parameters: parameters)
+        guard case .object(let chunk) = result["content"], case .string(let text) = chunk["text"] else {
+            Issue.record("Missing syntax export"); return
+        }
+        #expect(result["resourceID"] == .string(syntax.id.uuidString) && result["format"] == .string(format))
+        if format == "source" { #expect(text == syntax.source) }
+        else {
+            let url = try #require(URLComponents(string: text))
+            #expect(url.scheme == "draftly" && url.host == "syntax")
+            #expect(url.queryItems == [URLQueryItem(name: "data", value: syntax.source)])
+        }
+        #expect(try f.library.backupData() == before)
+        let page = try f.values("syntaxes.export", session: allowed, targets: [target],
+            parameters: ["format": .string(format), "length": .integer(12)])
+        guard case .object(let partial) = page["content"], case .string(let prefix) = partial["text"] else {
+            Issue.record("Missing export page"); return
+        }
+        #expect(text.hasPrefix(prefix) && partial["hasMore"] == .bool(true))
+        object["name"] = "Changed export"
+        try f.library.saveSyntax(try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: object), id: syntax.id))
+        #expect(try f.values("syntaxes.export", session: allowed, targets: [target], parameters: parameters)["versionToken"] != result["versionToken"])
+    }
+
+    @Test func fileSyntaxExportRequiresFilePermissionAndReadsBoundedCurrentSource() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let url = root.appendingPathComponent("syntax.json")
+        var object = try ScriptSyntax.definition("Plain Text").object
+        object["name"] = "File syntax café 🐼"
+        let bytes = try JSONSerialization.data(withJSONObject: object)
+        try bytes.write(to: url)
+        let syntax = try SyntaxDefinition(data: bytes, type: "file")
+        let defaults = try #require(UserDefaults(suiteName: f.editorDefaultsName))
+        try SyntaxFileAccess.install(syntax, from: url, in: f.library, defaults: defaults)
+        let target = AgentResourceReference(kind: .syntax, id: syntax.id)
+        let (_, denied) = try f.connect(scope: .resources([target]), capabilities: [.appearanceRead])
+        let (_, allowed) = try f.connect(scope: .resources([target]), capabilities: [.appearanceRead, .filesRead])
+        #expect(try f.response("syntaxes.export", session: denied, targets: [target]).outcome == .error(.permissionDenied))
+        let first = try f.values("syntaxes.export", session: allowed, targets: [target])
+        object["description"] = "Changed file source"
+        let updated = try JSONSerialization.data(withJSONObject: object)
+        try updated.write(to: url)
+        let second = try f.values("syntaxes.export", session: allowed, targets: [target])
+        #expect(second["versionToken"] != first["versionToken"])
+        guard case .object(let content) = second["content"], case .string(let text) = content["text"] else {
+            Issue.record("Missing current source"); return
+        }
+        #expect(try JSONSerialization.jsonObject(with: Data(text.utf8)) as? NSDictionary == object as NSDictionary)
+        try Data(repeating: 32, count: AgentRequest.maximumBytes + 1).write(to: url)
+        #expect(try f.response("syntaxes.export", session: allowed, targets: [target]).outcome == .error(.unavailable))
+        try FileManager.default.removeItem(at: url)
+        #expect(try f.response("syntaxes.export", session: allowed, targets: [target]).outcome == .error(.unavailable))
+        let replacement = root.appendingPathComponent("replacement.json")
+        try updated.write(to: replacement)
+        try FileManager.default.createSymbolicLink(at: url, withDestinationURL: replacement)
+        #expect(try f.response("syntaxes.export", session: allowed, targets: [target]).outcome == .error(.unavailable))
+    }
+
     @Test(arguments: ["themes.create", "themes.update", "themes.duplicate"], [false, true])
     func themeWritesUseDurableReceiptsWithoutChangingSelection(operation: String, withoutEditors: Bool) throws {
         let f = try Fixture(); defer { f.cleanEditorPreferences() }
@@ -2560,6 +2635,7 @@ struct AgentCommandServiceTests {
         #expect(available.remove("syntaxes.exportBuiltIn") != nil)
         #expect(available.remove("syntaxes.list") != nil)
         #expect(available.remove("syntaxes.get") != nil)
+        #expect(available.remove("syntaxes.export") != nil)
         #expect(available.remove("drafts.duplicate") != nil)
         for name in AgentThemeReading.operationNames { #expect(available.remove(name) != nil) }
         for name in AgentThemeWriting.operationNames { #expect(available.remove(name) != nil) }

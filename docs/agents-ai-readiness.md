@@ -307,11 +307,21 @@ has not started. QA-only diagnostics expose the actual GUI session inputs;
 control admission remains unchanged. Full client sessions and the normal
 startup/lifecycle gate remain open.
 
+## Installed syntax export
+
+The service now connects `syntaxes.export` for a granted installed syntax. It
+returns source text or a portable installation URL with bounded UTF-16 chunks.
+File sources require `files.read` and a bounded read of the saved bookmark.
+The handler rejects oversized, missing and non-regular files. It does not
+change the library or select a syntax. The focused run passed 134 app tests,
+30 Core tests and 13 appearance contract tests. The native Debug build passed. Installed acceptance and full CI for this
+increment remain open.
+
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-78 names in implemented or conditional handler sets. The other 59 names have
-no direct handler in those sets. These counts do not prove that 78 operations
+79 names in implemented or conditional handler sets. The other 58 names have
+no direct handler in those sets. These counts do not prove that 79 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -325,7 +335,7 @@ a direct handler for every `native.*` contract.
 | Editor | `editor.navigate`, `editor.open`, `editor.preview` |
 | Actions and groups | `actions.delete`, `actionGroups.delete` |
 | Themes | `themes.select`, `themes.selectBuiltIn`, `themes.replace`, `themes.reload`, `themes.install`, `themes.delete` |
-| Syntax | `syntaxes.delete`, `syntaxes.export`, `syntaxes.install`, `syntaxes.reload`, `syntaxes.replace` |
+| Syntax | `syntaxes.delete`, `syntaxes.install`, `syntaxes.reload`, `syntaxes.replace` |
 | Bookmarks | `bookmarks.forget`, `bookmarks.list`, `bookmarks.requestAdd` |
 | Imports and exports | `imports.commit`, `imports.preview`, `imports.validate`, `exports.drafts` |
 | Backups | `backups.export`, `backups.previewRestore`, `backups.requestRestore`, `backups.validate` |
