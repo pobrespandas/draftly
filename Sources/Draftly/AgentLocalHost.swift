@@ -52,6 +52,7 @@ import AgentLocalSecurity
     init(library: LibraryStore, appVersion: String,
          editors: AgentEditorRegistry? = nil,
          enableReviewedActions: Bool = false,
+         enableReviewedMutations: Bool = false,
          nativePreferenceRead: ((String) throws -> AgentPreferenceReading)? = nil,
          preferenceDefaults: UserDefaults = .standard,
          preferenceStorage: AgentPreferenceStorage? = nil,
@@ -75,7 +76,7 @@ import AgentLocalSecurity
             file = try AgentConnectionFile(parentDirectory: parent)
             locator = try AgentHostLocator(parentDirectory: parent)
             activity = try AgentActivityStore(parentDirectory: parent)
-            journal = enableReviewedActions ? try AgentOperationJournal(parentDirectory: parent) : nil
+            journal = (enableReviewedActions || enableReviewedMutations) ? try AgentOperationJournal(parentDirectory: parent) : nil
             _ = try locator.endpoints()
         }
         catch { lease.close(); throw error }
@@ -122,7 +123,7 @@ import AgentLocalSecurity
                 }, operations: operations, submitAction: enableReviewedActions ? { request, grant in
                     guard let owner else { throw AgentErrorCode.cancelled }
                     return try owner.submitReviewedAction(request, grant: grant)
-                } : nil)
+                } : nil, deletionApprovals: enableReviewedMutations ? approvals : nil)
         } catch { lease.close(); throw error }
         pairing = AgentPairingCoordinator(registry: registry, libraryID: lease.libraryID,
             validateHost: validateOwner, isLocked: isLocked, resolveTargets: resolveTargets)

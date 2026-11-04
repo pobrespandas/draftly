@@ -170,6 +170,7 @@ final class AppController: ObservableObject {
 
     func configureAgentHost(isLocked: @escaping () -> Bool = { AgentApplicationSession.isUnavailable },
                             enableReviewedActions: Bool = false,
+                            enableReviewedMutations: Bool = false,
                             preferenceStorage: AgentPreferenceStorage? = nil,
                             protectedDataAvailable: @escaping () -> Bool = { NSApplication.shared.isProtectedDataAvailable },
                             credentials: AgentConnectionRegistry.CredentialAccess? = nil,
@@ -182,6 +183,7 @@ final class AppController: ObservableObject {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
         let host = try AgentLocalHost(library: library, appVersion: version, editors: editors,
             enableReviewedActions: enableReviewedActions,
+            enableReviewedMutations: enableReviewedMutations,
             nativePreferenceRead: { [weak self] id in
                 guard let self else { throw AgentErrorCode.cancelled }
                 if id == "application.launchAtLogin" {
@@ -331,7 +333,7 @@ final class AppController: ObservableObject {
                     "Contents/Helpers/DraftlyAgent.app/Contents/MacOS/draftly-agent")
                 if FileManager.default.isExecutableFile(atPath: helper.path) {
                     do {
-                        try configureAgentHost(enableReviewedActions: true,
+                        try configureAgentHost(enableReviewedActions: true, enableReviewedMutations: true,
                             preferenceStorage: AgentPreferenceStorage(defaults: .standard,
                                 domain: ApplicationIdentityMigration.identifier))
                     } catch {

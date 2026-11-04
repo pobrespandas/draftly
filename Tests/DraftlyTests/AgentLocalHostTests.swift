@@ -33,9 +33,10 @@ struct AgentLocalHostTests {
             try? FileManager.default.removeItem(at: root)
         }
         func host(editors: AgentEditorRegistry? = nil, enableReviewedActions: Bool = false,
+                  enableReviewedMutations: Bool = false,
                   socketParent: URL = FileManager.default.temporaryDirectory) throws -> AgentLocalHost {
             try AgentLocalHost(library: library, appVersion: "Neutral QA", editors: editors,
-                enableReviewedActions: enableReviewedActions, isLocked: { [self] in self.locked },
+                enableReviewedActions: enableReviewedActions, enableReviewedMutations: enableReviewedMutations, isLocked: { [self] in self.locked },
                 pendingEditorGeneration: { _ in "" }, resolveTargets: { [self] targets in
                     AgentLibraryResourceChoices(library: self.library, editors: editors).resolve(targets)
                 }, socketParentDirectory: socketParent,
@@ -119,6 +120,47 @@ struct AgentLocalHostTests {
         host.suspend()
         #expect(notified)
         await #expect(throws: AgentErrorCode.cancelled) { try await stopped.tools() }
+    }
+
+    @Test func reviewedWorkspaceDeletionIsExplicitAndStopWorkCancelsPendingReview() async throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let workspace = Workspace(name: "Keep until approved")
+        try f.library.saveWorkspace(workspace)
+        let host = try f.host(enableReviewedMutations: true)
+        defer { host.close() }
+        #expect(host.service.availableCapabilities.contains(.destructiveRequest))
+        #expect(!host.service.availableCapabilities.contains(.actionsRun))
+        try host.setEnabledFromUserInterface(true)
+        let record = try host.connections.connectFromUserInterface(name: "Delete review", libraryID: host.libraryID,
+            capabilities: [.workspacesRead, .workspacesManage, .destructiveRequest],
+            scope: .resources([.init(kind: .workspace, id: workspace.id)]))
+        let session = try host.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        func send(_ request: AgentRequest) throws -> AgentResponse {
+            try JSONDecoder().decode(AgentResponse.self, from: host.service.respond(to: JSONEncoder().encode(request), session: session))
+        }
+        let target = AgentResourceReference(kind: .workspace, id: workspace.id)
+        let read = try send(.init(requestID: UUID(), libraryID: host.libraryID, operation: "workspaces.get", targets: [target]))
+        guard case .result(.object(let values)) = read.outcome, case .string(let version) = values["versionToken"] else {
+            Issue.record("Missing version"); return
+        }
+        let intent = AgentRequest(requestID: UUID(), libraryID: host.libraryID, operation: "workspaces.delete", targets: [target], expectedVersion: version)
+        let frame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(intent))
+        let prepared = try send(.init(requestID: UUID(), libraryID: host.libraryID, operation: "mutations.prepare", parameters: ["request": frame]))
+        guard case .result(.object(let ticket)) = prepared.outcome, case .string(let key) = ticket["retryKey"] else {
+            Issue.record("Missing retry key"); return
+        }
+        let accepted = try send(.init(requestID: intent.requestID, libraryID: host.libraryID, operation: intent.operation,
+            targets: intent.targets, expectedVersion: version, retryKey: key))
+        guard case .accepted(let operationID, _) = accepted.outcome else { Issue.record("Missing accepted operation"); return }
+        for _ in 0..<1000 where host.approvals.pendingFromUserInterface().isEmpty { await Task.yield() }
+        #expect(host.approvals.pendingFromUserInterface().count == 1)
+        try host.setEnabledFromUserInterface(false)
+        for _ in 0..<1000 where !host.approvals.pendingFromUserInterface().isEmpty { await Task.yield() }
+        #expect(host.approvals.pendingFromUserInterface().isEmpty && f.library.workspaces == [workspace])
+        #expect(try host.connections.configurationForUserInterface().enabled == false)
+        try host.setEnabledFromUserInterface(true)
+        for _ in 0..<1000 where try !host.operations.snapshot(operationID, connectionID: record.id).state.isTerminal { await Task.yield() }
+        #expect(try host.operations.snapshot(operationID, connectionID: record.id).state == .cancelled)
     }
 
     @Test func reviewedActionAdmissionRequiresAnExplicitAuthorizedEditorWindow() async throws {

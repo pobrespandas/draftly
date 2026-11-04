@@ -54,6 +54,19 @@ struct AgentOperationAvailabilityTests {
         #expect(!available.operations.contains(AgentMutationSchemas.name))
     }
 
+    @Test(arguments: 0..<4)
+    func workspaceDeletionNeedsReviewAndOperationControl(_ mask: Int) {
+        var handlers: Set<AgentOperationAvailability.Handler> = []
+        if mask & 1 != 0 { handlers.insert(.operationControl) }
+        if mask & 2 != 0 { handlers.insert(.workspaceDelete) }
+        let available = AgentOperationAvailability(handlers: handlers)
+        #expect(available.operations.contains("workspaces.delete") == (mask == 3))
+        #expect(available.operations.contains("mutations.prepare") == (mask == 3))
+        #expect(available.capabilities.contains(.destructiveRequest) == (mask == 3))
+        #expect(!available.operations.contains("drafts.update"))
+        #expect(!available.operations.contains("actions.run"))
+    }
+
     @Test func workspaceApplicationHasItsOwnConnectedComponent() {
         let available = AgentOperationAvailability(handlers: [.workspaceApply])
         #expect(available.operations.contains("workspaces.apply"))
@@ -66,7 +79,7 @@ struct AgentOperationAvailabilityTests {
     @Test func completeHostUsesOnlyKnownContractsAndDoesNotAdvertiseMissingHandlers() {
         let available = AgentOperationAvailability(handlers: Set(AgentOperationAvailability.Handler.allCases))
         #expect(available.operations == AgentCommandService.implementedOperations.union([
-            "activity.list", "operations.get", "operations.cancel", "actions.run"]))
+            "activity.list", "operations.get", "operations.cancel", "actions.run", "workspaces.delete"]))
         #expect(available.operations.allSatisfy { AgentOperationCatalog.operation(named: $0) != nil })
         #expect(!available.operations.contains("drafts.delete"))
         #expect(!available.operations.contains("backups.restore"))

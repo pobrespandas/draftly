@@ -110,6 +110,9 @@ struct AgentWorkspaceDeletionAccessTests {
         let ticket = try access.prepareDeletion(intent, connectionID: connection)
         let request = AgentRequest(requestID: intent.requestID, libraryID: libraryID, operation: intent.operation,
             targets: intent.targets, expectedVersion: intent.expectedVersion, retryKey: ticket.value)
+        let journal = try AgentOperationJournal(parentDirectory: root)
+        let operationID = UUID()
+        _ = try journal.reserve(request, grant: grant, operationID: operationID)
         let effects = try access.deletionEffects(request, connectionID: connection)
         #expect(effects.snapshot["workspaceName"] == .string(workspace.name))
         #expect(effects.snapshot["deletesDrafts"] == .bool(false))
@@ -128,6 +131,27 @@ struct AgentWorkspaceDeletionAccessTests {
             validateCommit: { Issue.record("A completed deletion must not run again") }) == receipt)
         #expect(try nextAccess.prepareDeletion(intent, connectionID: connection).requestHash == ticket.requestHash)
         #expect(reopened.notes == [note] && reopened.workspaces == [retained])
+        let registry = AgentOperationRegistry(currentGrant: { _ in grant }, validateHost: {}, isLocked: { false },
+            journal: try AgentOperationJournal(parentDirectory: root))
+        #expect(try registry.snapshot(operationID, connectionID: connection).state == .outcomeUnknown)
+        let changedIntent = AgentRequest(requestID: request.requestID, libraryID: libraryID,
+            operation: request.operation, targets: request.targets, expectedVersion: "changed")
+        #expect(throws: AgentErrorCode.versionConflict) {
+            try registry.recoverWorkspaceDeletion(changedIntent, grant: grant, receipt: receipt)
+        }
+        let wrongTarget = AgentRequest(requestID: request.requestID, libraryID: libraryID,
+            operation: request.operation, targets: [.init(kind: .workspace, id: retained.id)], expectedVersion: request.expectedVersion)
+        #expect(throws: AgentErrorCode.invalidInput) {
+            try registry.recoverWorkspaceDeletion(wrongTarget, grant: grant, receipt: receipt)
+        }
+        #expect(try registry.snapshot(operationID, connectionID: connection).state == .outcomeUnknown)
+        let recovered = try registry.recoverWorkspaceDeletion(request, grant: grant, receipt: receipt)
+        #expect(recovered.state == .succeeded && recovered.effects.map(\.outcome) == ["completed"])
+        #expect(recovered.result == .object(["deletedIDs": .array([.string(workspace.id.uuidString)])]))
+        let finalRegistry = AgentOperationRegistry(currentGrant: { _ in grant }, validateHost: {}, isLocked: { false },
+            journal: try AgentOperationJournal(parentDirectory: root))
+        #expect(try finalRegistry.snapshot(operationID, connectionID: connection).wireValue() == recovered.wireValue())
+        #expect(try finalRegistry.recoverWorkspaceDeletion(request, grant: grant, receipt: receipt).state == .succeeded)
     }
 
     @Test(arguments: ["approve", "deny", "cancel", "stale", "session"])

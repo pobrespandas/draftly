@@ -3,6 +3,28 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Workspace deletion service and recovery — 4 November
+
+Connected `workspaces.delete` through explicit reviewed-mutation host wiring.
+Normal startup connects the handler but keeps access off by default. Hosts that
+do not connect both review and operation control do not advertise deletion.
+The service returns `accepted` only for nonterminal work. Repeated completed
+requests return the typed result or the recorded error. No editor permission
+or library-wide scope is required for one authorized Workspace.
+
+An atomic storage receipt can resolve an interrupted deletion journal entry.
+Recovery checks the original request, connection, grant, target, and canonical
+request hash. It records the completed result without deleting again. Ordinary
+terminal journal results remain immutable. Missing storage proof leaves an
+unknown result. The result contract rejects empty, foreign, duplicate, or extra
+Workspace IDs. Stop Work removes the pending review and preserves the Workspace.
+
+The final run passed 258 tests across 12 suites, including service, host, MCP,
+review, journal, and Workspace contracts. The normal native build passed.
+Source-set coverage is 62 connected or conditional names out of 137, with 75
+missing direct handlers. Full CI for this increment and installed acceptance
+remain pending. The broader readiness gates remain open. PR #105 stays in draft.
+
 ## Reviewed Workspace deletion flow — 4 November
 
 Added the app-owned deletion flow to `AgentWorkspaceAccess`. Preparation binds

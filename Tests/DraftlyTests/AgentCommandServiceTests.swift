@@ -84,6 +84,8 @@ struct AgentCommandServiceTests {
                 create: { [unowned self] in self.secrets[$0] = $1 },
                 remove: { [unowned self] in self.secrets.removeValue(forKey: $0) }),
             now: { [unowned self] in self.wall }, authorityChanged: { _ in })
+        var operations: AgentOperationRegistry?
+        var deletionApprovals: AgentApprovalStore?
         var preferenceStorage: AgentPreferenceStorage?
         var nativePreferenceRead: ((String) throws -> AgentPreferenceReading)?
         var service: AgentCommandService!
@@ -101,7 +103,7 @@ struct AgentCommandServiceTests {
                 }, isLocked: { [unowned self] in self.locked }, now: { [unowned self] in self.wall },
                 uptime: { [unowned self] in self.uptime }, editors: withoutEditors ? nil : editorRegistry, pendingEditorGeneration: { [unowned self] _ in
                     self.onGeneration?(); return self.generation
-                })
+                }, operations: operations, deletionApprovals: deletionApprovals)
         }
         func enablePreferenceWrites() throws {
             let defaults = try #require(UserDefaults(suiteName: editorDefaultsName))
@@ -162,6 +164,57 @@ struct AgentCommandServiceTests {
         func get(_ note: Note, session: AgentCommandService.Session, parameters: [String: AgentJSONValue] = [:]) throws -> [String: AgentJSONValue] {
             try values("drafts.get", session: session, targets: [.init(kind: .draft, id: note.id)], parameters: parameters)
         }
+    }
+
+    @Test(arguments: ["approve", "deny", "cancel", "session"])
+    func workspaceDeletionUsesAcceptedReviewAndTerminalResults(decision: String) async throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let workspace = Workspace(name: "Delete café 🐼")
+        try f.library.saveWorkspace(workspace)
+        let note = try f.note("Keep")
+        let operations = AgentOperationRegistry(currentGrant: { try f.connections.grantForAuthenticatedConnection($0) },
+            validateHost: {}, isLocked: { false }, now: { f.wall })
+        let approvals = AgentApprovalStore(now: { f.wall }, currentGrant: { try? f.connections.grantForAuthenticatedConnection($0) }, isLocked: { false })
+        defer { operations.cancelAll() }
+        f.operations = operations; f.deletionApprovals = approvals
+        f.service = try f.makeService(withoutEditors: true)
+        let (record, session) = try f.connect(scope: .resources([.init(kind: .workspace, id: workspace.id)]),
+            capabilities: [.workspacesRead, .workspacesManage, .destructiveRequest])
+        let target = AgentResourceReference(kind: .workspace, id: workspace.id)
+        let snapshot = try f.values("workspaces.get", session: session, targets: [target])
+        guard case .string(let version) = snapshot["versionToken"] else { Issue.record("Missing version"); return }
+        let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "workspaces.delete",
+            targets: [target], expectedVersion: version)
+        let request = try f.preparedMutation(intent, session: session)
+        let accepted = try f.send(request, session: session)
+        guard case .accepted(let id, _) = accepted.outcome else { Issue.record("Missing accepted operation: \(accepted)"); return }
+        for _ in 0..<1000 where approvals.pendingFromUserInterface().isEmpty { await Task.yield() }
+        let review = try #require(approvals.pendingFromUserInterface().first)
+        #expect(f.library.workspaces == [workspace])
+        if decision == "cancel" {
+            let response = try f.response("operations.cancel", session: session, targets: [.init(kind: .operation, id: id)])
+            guard case .result = response.outcome else { Issue.record("Cancellation failed"); return }
+        } else if decision == "deny" { try approvals.denyFromUserInterface(review.id) }
+        else {
+            if decision == "session" { f.service.invalidateAll() }
+            try approvals.approveFromUserInterface(review.id, reviewedFingerprint: review.fingerprint)
+        }
+        for _ in 0..<1000 where try !operations.snapshot(id, connectionID: record.id).state.isTerminal {
+            try await Task.sleep(for: .milliseconds(1))
+        }
+        let nextSession = decision == "session"
+            ? try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id])) : session
+        let repeated = try f.send(request, session: nextSession)
+        if decision == "approve" {
+            #expect(repeated.outcome == .result(.object(["deletedIDs": .array([.string(workspace.id.uuidString)])])))
+            #expect(f.library.workspaces.isEmpty)
+        } else {
+            #expect(repeated.outcome == .error(decision == "cancel" ? .cancelled : .permissionDenied))
+            #expect(f.library.workspaces == [workspace])
+        }
+        #expect(f.library.notes == [note] && approvals.pendingFromUserInterface().isEmpty)
+        let currentGrant = try #require(try f.connections.grantForAuthenticatedConnection(record.id))
+        #expect(try operations.existingRequest(request, grant: currentGrant) == id)
     }
 
     @Test func workspaceCreationUsesDefaultsOverridesAndDurableReceipts() throws {

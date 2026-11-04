@@ -163,20 +163,27 @@ Installed application acceptance remains pending. Direct Workspace deletion
 still needs its review handler. Its storage transaction passed 18 focused tests;
 that groundwork does not expose a new handler.
 
-## Workspace deletion flow under development
+## Workspace deletion
 
-The app-owned deletion flow now binds review to one Workspace and its version.
-It rejects stale definitions and lost sessions before committing. The review
-sheet states that drafts remain. The combined run passed 160 tests in five
-suites, and the normal native build passed. Service admission, host availability,
-receipt/journal reconciliation, and installed acceptance remain pending.
-`workspaces.delete` is not advertised. The operation count below is unchanged.
+`workspaces.delete` is connected only when the host supplies review and operation
+control. Normal startup supplies those components and keeps access off by
+default. A request waits for app review, checks its active session and Workspace
+version again, and commits one deletion with a durable storage receipt. Drafts
+remain. Stop Work cancels pending review. Completed retries return their result;
+terminal states are not encoded as `accepted`.
+
+Recovery can replace an unknown deletion result only with matching atomic
+storage proof. It checks the request, connection, grant, and resource, then saves
+the result without repeating the effect. Other terminal journal results stay
+immutable. Tests reject foreign and duplicate result IDs. The final run passed
+258 tests across 12 suites. The normal native build passed. Full CI for this
+increment and installed acceptance remain pending.
 
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-61 names in implemented or conditional handler sets. The other 76 names have
-no direct handler in those sets. These counts do not prove that 61 operations
+62 names in implemented or conditional handler sets. The other 75 names have
+no direct handler in those sets. These counts do not prove that 62 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -190,7 +197,6 @@ a direct handler for every `native.*` contract.
 | Drafts | `drafts.archive`, `drafts.flag`, `drafts.merge`, `drafts.purge`, `drafts.restore`, `drafts.syntax`, `drafts.tags`, `drafts.trash` |
 | Editor | `editor.navigate`, `editor.open`, `editor.preview` |
 | Actions and groups | `actions.delete`, `actionGroups.delete` |
-| Workspaces | `workspaces.delete` |
 | Themes | All 14 declared `themes.*` contracts. |
 | Syntax | `syntaxes.delete`, `syntaxes.export`, `syntaxes.install`, `syntaxes.reload`, `syntaxes.replace` |
 | Bookmarks | `bookmarks.forget`, `bookmarks.list`, `bookmarks.requestAdd` |

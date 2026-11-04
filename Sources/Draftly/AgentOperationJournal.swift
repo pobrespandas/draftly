@@ -100,6 +100,33 @@ import AgentLocalSecurity
         }
     }
 
+    // The app calls this only after it reads an atomic deletion receipt.
+    func recoverWorkspaceDeletion(_ snapshot: AgentJSONValue, request: AgentRequest, grant: AgentGrant) throws {
+        guard request.operation == "workspaces.delete", request.libraryID == grant.libraryID,
+              case .object(let fields) = snapshot, fields["state"] == .string("succeeded"),
+              case .string(let rawID) = fields["operationID"], let operationID = UUID(uuidString: rawID),
+              case .object(let result) = fields["result"] else { throw AgentErrorCode.invalidInput }
+        try AgentOperationSchemas.validateResult(result, for: request, preferences: AgentPreferenceCatalog.make())
+        try validateSnapshot(snapshot, operationID: operationID, name: request.operation)
+        let prepared = try AgentRequestBinding.prepare(request, preferences: AgentPreferenceCatalog.make())
+        let requestFingerprint = try fingerprint(prepared.value)
+        let grantFingerprint = try fingerprint(AgentRequestBinding.grantValue(grant))
+        try update { records in
+            guard let index = records.firstIndex(where: { $0.operationID == operationID && $0.connectionID == grant.connectionID }) else {
+                throw AgentErrorCode.notFound
+            }
+            let record = records[index]
+            guard record.libraryID == grant.libraryID, record.grantFingerprint == grantFingerprint else {
+                throw AgentErrorCode.permissionDenied
+            }
+            guard record.requestID == request.requestID, record.operationName == request.operation,
+                  record.requestFingerprint == requestFingerprint else { throw AgentErrorCode.versionConflict }
+            guard case .object(let previous) = record.snapshot,
+                  previous["state"] == .string("outcome_unknown") else { throw AgentErrorCode.versionConflict }
+            records[index].snapshot = snapshot
+        }
+    }
+
     private func fingerprint(_ value: AgentJSONValue) throws -> String {
         Data(SHA256.hash(data: try AgentRequestBinding.encoded(value, maximum: AgentRequest.maximumBytes * 2))).base64EncodedString()
     }

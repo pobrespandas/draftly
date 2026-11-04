@@ -105,6 +105,9 @@ package enum AgentOperationSchemas {
             return
         }
         try validateResult(values, for: request.operation)
+        if request.operation == "workspaces.delete" {
+            try AgentResourceShapes.validateOrder(values["deletedIDs"], targets: request.targets)
+        }
         if request.operation == "workspaces.reorder" {
             guard case .array(let resources) = values["resources"] else { throw AgentSchemaError.invalidValue }
             let ids = resources.map { resource -> AgentJSONValue in

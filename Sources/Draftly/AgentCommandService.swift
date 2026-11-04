@@ -23,6 +23,7 @@ import AgentContracts
         if readActivity != nil { handlers.insert(.activityRead) }
         if operationRegistry != nil { handlers.insert(.operationControl) }
         if submitAction != nil { handlers.insert(.actionExecution) }
+        if deletionApprovals != nil && operationRegistry != nil { handlers.insert(.workspaceDelete) }
         return AgentOperationAvailability(handlers: handlers)
     }
     private var availableOperations: Set<String> { availability.operations }
@@ -41,6 +42,7 @@ import AgentContracts
             }, now: now)
     private let actionLibrary: LibraryStore
     private let operationRegistry: AgentOperationRegistry?
+    private let deletionApprovals: AgentApprovalStore?
     private let submitAction: ((AgentRequest, AgentGrant) throws -> UUID)?
     private let actionVersionKey = SymmetricKey(size: .bits256)
     private let editorRegistry: AgentEditorRegistry?
@@ -79,12 +81,14 @@ import AgentContracts
          recordActivity: @escaping (UUID, UUID, UUID, String, String) -> Void = { _, _, _, _, _ in },
          readActivity: ((UUID, UUID) throws -> [AgentActivityStore.Entry])? = nil,
          operations: AgentOperationRegistry? = nil,
-         submitAction: ((AgentRequest, AgentGrant) throws -> UUID)? = nil) throws {
+         submitAction: ((AgentRequest, AgentGrant) throws -> UUID)? = nil,
+         deletionApprovals: AgentApprovalStore? = nil) throws {
         guard editors?.isBound(to: library) ?? true else { throw AgentErrorCode.invalidInput }
         self.nativePreferenceRead = nativePreferenceRead
         self.preferenceDefaults = preferenceDefaults
         self.actionLibrary = library
         self.operationRegistry = operations
+        self.deletionApprovals = deletionApprovals
         self.submitAction = submitAction
         self.libraryID = libraryID; self.connections = connections; self.appVersion = appVersion
         self.editorRegistry = editors
@@ -204,7 +208,9 @@ import AgentContracts
             switch AgentPermissionPolicy.evaluate(request, connectionID: grant.connectionID, grant: policyGrant, now: now()) {
             case .permitted: break
             case .denied(let error): throw error
-            case .needsHumanApproval: throw AgentErrorCode.unavailable
+            case .needsHumanApproval:
+                guard request.operation == "workspaces.delete", deletionApprovals != nil,
+                      operationRegistry != nil else { throw AgentErrorCode.unavailable }
             case .needsEffectAuthorization(_, let humanApproval):
                 let reviewedAction = request.operation == "actions.run" && submitAction != nil && operationRegistry != nil
                 let preferenceMutation = AgentPreferenceWriting.operationNames.contains(request.operation) && preferenceWrites != nil
@@ -217,10 +223,16 @@ import AgentContracts
             let parameters: [String: AgentJSONValue]
             do { parameters = try AgentOperationSchemas.validatedParameters(for: request, preferences: preferences) }
             catch { throw AgentErrorCode.invalidInput }
-            let values = try dispatch(request, parameters: parameters, grant: grant, sessionID: session.id)
-            do { try AgentOperationSchemas.validateResult(values, for: request, preferences: preferences) }
-            catch { throw AgentErrorCode.storageError }
-            let response = try AgentResponse(requestID: request.requestID, outcome: .result(.object(values)))
+            let outcome: AgentResponse.Outcome
+            if request.operation == "workspaces.delete" {
+                outcome = try submitWorkspaceDeletion(request, grant: grant, sessionID: session.id)
+            } else {
+                let values = try dispatch(request, parameters: parameters, grant: grant, sessionID: session.id)
+                do { try AgentOperationSchemas.validateResult(values, for: request, preferences: preferences) }
+                catch { throw AgentErrorCode.storageError }
+                outcome = .result(.object(values))
+            }
+            let response = try AgentResponse(requestID: request.requestID, outcome: outcome)
             let encoded = try JSONEncoder().encode(response)
             guard encoded.count <= AgentRequest.maximumBytes else { throw AgentErrorCode.unavailable }
             // Encoding can take time. Recheck authority after it, before returning bytes.
@@ -235,6 +247,37 @@ import AgentContracts
         } catch {
             return try JSONEncoder().encode(AgentResponse(requestID: request.requestID, outcome: .error(.storageError)))
         }
+    }
+
+    private func submitWorkspaceDeletion(_ request: AgentRequest, grant: AgentGrant,
+                                         sessionID: UUID) throws -> AgentResponse.Outcome {
+        guard let operationRegistry, let deletionApprovals else { throw AgentErrorCode.unavailable }
+        try validateSession(sessionID, grant: grant)
+        let receipt = try workspaces.deletionReceipt(request, connectionID: grant.connectionID)
+        func outcome(_ snapshot: AgentOperationRegistry.Snapshot) throws -> AgentResponse.Outcome {
+            if snapshot.state == .succeeded {
+                guard case .object(let result) = snapshot.result else { throw AgentErrorCode.storageError }
+                try AgentOperationSchemas.validateResult(result, for: request, preferences: preferences)
+                return .result(.object(result))
+            }
+            if snapshot.state.isTerminal { return .error(snapshot.error ?? .outcomeUnknown) }
+            return .accepted(operationID: snapshot.id, state: snapshot.state)
+        }
+        if let id = try operationRegistry.existingRequest(request, grant: grant) {
+            var snapshot = try operationRegistry.snapshot(id, connectionID: grant.connectionID)
+            if let receipt, snapshot.state == .outcomeUnknown {
+                snapshot = try operationRegistry.recoverWorkspaceDeletion(request, grant: grant, receipt: receipt)
+            }
+            return try outcome(snapshot)
+        }
+        if receipt == nil { _ = try workspaces.deletionEffects(request, connectionID: grant.connectionID) }
+        let id = try operationRegistry.startValueRequest(request, grant: grant) { [weak self] operationID in
+            guard let self else { throw AgentOperationRegistry.FailureBeforeEffects(code: .cancelled) }
+            return try await self.workspaces.reviewAndDelete(request, connectionID: grant.connectionID,
+                operationID: operationID, approvals: deletionApprovals, operations: operationRegistry,
+                validateSession: { try self.validateSession(sessionID, grant: grant) })
+        }
+        return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))
     }
 
     private func validateAdmission() throws {
@@ -499,6 +542,9 @@ import AgentContracts
                 ticket = try workspaceApplication.prepare(bound, connectionID: grant.connectionID) {
                     try self.validateSession(sessionID, grant: grant)
                 }
+            } else if bound.operation == "workspaces.delete" {
+                guard deletionApprovals != nil, operationRegistry != nil else { throw AgentErrorCode.unavailable }
+                ticket = try workspaces.prepareDeletion(bound, connectionID: grant.connectionID)
             } else if AgentWorkspaceAccess.operationNames.contains(bound.operation) { ticket = try workspaces.prepare(bound, connectionID: grant.connectionID) }
             else if ["actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder"].contains(bound.operation) { ticket = try actions.prepareActionUpdate(bound, connectionID: grant.connectionID) }
             else {
