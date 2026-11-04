@@ -12,6 +12,7 @@ struct AgentLocalHostTests {
     @MainActor private final class Fixture {
         let root: URL
         let library: LibraryStore
+        let preferences: TestPreferences
         var locked = false
         var applicationError: AgentErrorCode?
         var onApplicationCheck: (() throws -> Void)?
@@ -21,11 +22,13 @@ struct AgentLocalHostTests {
         var connectionAttempts = 0
 
         init() throws {
+            preferences = try TestPreferences(prefix: "Draftly-Local-Host-Preferences-")
             root = FileManager.default.temporaryDirectory.appendingPathComponent("Draftly-Local-Host-" + UUID().uuidString)
             try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
             library = try LibraryStore(directory: root, seed: false)
         }
         func cleanup() {
+            preferences.close()
             library.container.viewContext.reset()
             for store in library.container.persistentStoreCoordinator.persistentStores {
                 try? library.container.persistentStoreCoordinator.remove(store)
@@ -36,9 +39,9 @@ struct AgentLocalHostTests {
                   enableReviewedMutations: Bool = false,
                   socketParent: URL = FileManager.default.temporaryDirectory) throws -> AgentLocalHost {
             try AgentLocalHost(library: library, appVersion: "Neutral QA", editors: editors,
-                enableReviewedActions: enableReviewedActions, enableReviewedMutations: enableReviewedMutations, isLocked: { [self] in self.locked },
+                enableReviewedActions: enableReviewedActions, enableReviewedMutations: enableReviewedMutations, preferenceDefaults: preferences.defaults, isLocked: { [self] in self.locked },
                 pendingEditorGeneration: { _ in "" }, resolveTargets: { [self] targets in
-                    AgentLibraryResourceChoices(library: self.library, editors: editors).resolve(targets)
+                    AgentLibraryResourceChoices(library: self.library, editors: editors, bookmarkDefaults: self.preferences.defaults).resolve(targets)
                 }, socketParentDirectory: socketParent,
                 credentials: .init(read: { [self] id in self.credentialReads += 1; return self.secrets[id] },
                     create: { [self] id, value in

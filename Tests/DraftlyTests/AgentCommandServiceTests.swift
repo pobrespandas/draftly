@@ -2038,6 +2038,7 @@ struct AgentCommandServiceTests {
         #expect(try items(second).map { $0["title"] } == [.string("B")])
         let (_, other) = try f.connect()
         #expect(try f.response("drafts.list", session: other, parameters: next).outcome == .error(.invalidInput))
+        f.service.close(resumed)
         f.service.invalidate(connectionID: record.id)
         let fresh = try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
         #expect(try f.response("drafts.list", session: fresh, parameters: next).outcome == .error(.invalidInput))
@@ -2314,6 +2315,50 @@ struct AgentCommandServiceTests {
         try f.library.saveSyntax(try SyntaxDefinition(data: JSONSerialization.data(withJSONObject: source), id: syntax.id))
         let changed = try f.values("syntaxes.get", session: allowed, targets: [target])
         #expect(changed["versionToken"] != value["versionToken"])
+    }
+
+    @Test func bookmarkCatalogFiltersScopeAndNeverReturnsPathsOrPermissionBytes() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let defaults = try #require(UserDefaults(suiteName: f.editorDefaultsName))
+        let secret = Data("/private/never-open-this-folder".utf8)
+        BookmarkPreferences.store(secret, named: "Allowed café 🐼", defaults: defaults)
+        BookmarkPreferences.store(Data([2]), named: "Hidden folder", defaults: defaults)
+        let records = try BookmarkPreferences.agentRecords(defaults: defaults)
+        let allowed = try #require(records.first { $0.name == "Allowed café 🐼" })
+        let target = AgentResourceReference(kind: .bookmark, id: allowed.id)
+        let (_, session) = try f.connect(scope: .resources([target]), capabilities: [.preferencesRead])
+        let (_, denied) = try f.connect(scope: .resources([target]), capabilities: [])
+        let (_, empty) = try f.connect(scope: .resources([]), capabilities: [.preferencesRead])
+        let before = try f.library.backupData()
+        #expect(try f.response("bookmarks.list", session: denied).outcome == .error(.permissionDenied))
+        #expect(try items(f.values("bookmarks.list", session: empty)).isEmpty)
+        let result = try f.values("bookmarks.list", session: session)
+        let values = try items(result), value = try #require(values.first)
+        #expect(values.count == 1 && value["id"] == .string(allowed.id.uuidString) && value["name"] == .string(allowed.name))
+        #expect(Set(value.keys) == ["id", "name", "versionToken"])
+        #expect(try f.values("bookmarks.list", session: session) == result)
+        let text = String(decoding: try JSONEncoder().encode(AgentJSONValue.object(result)), as: UTF8.self)
+        #expect(!text.contains("/private/") && !text.contains(secret.base64EncodedString()) && !text.contains("Hidden folder"))
+        BookmarkPreferences.store(Data([3]), named: allowed.name, defaults: defaults)
+        #expect(try items(f.values("bookmarks.list", session: session)).isEmpty)
+        #expect(try f.library.backupData() == before)
+    }
+
+    @Test func bookmarkPagesKeepMembershipAndRejectOtherGrants() throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let defaults = try #require(UserDefaults(suiteName: f.editorDefaultsName))
+        BookmarkPreferences.store(Data([1]), named: "A folder", defaults: defaults)
+        BookmarkPreferences.store(Data([2]), named: "B folder", defaults: defaults)
+        let (_, session) = try f.connect(capabilities: [.preferencesRead])
+        let (_, other) = try f.connect(capabilities: [.preferencesRead])
+        let first = try f.values("bookmarks.list", session: session, parameters: ["limit": .integer(1)])
+        let cursor = try #require(first["nextCursor"])
+        #expect(try items(first).first?["name"] == .string("A folder") && cursor != .null)
+        #expect(try f.response("bookmarks.list", session: other, parameters: ["cursor": cursor]).outcome == .error(.invalidInput))
+        BookmarkPreferences.store(Data([3]), named: "C folder", defaults: defaults)
+        let second = try f.values("bookmarks.list", session: session, parameters: ["cursor": cursor])
+        #expect(try items(second).map { $0["name"] } == [.string("B folder")])
+        #expect(second["nextCursor"] == .null)
     }
 
     private func backupSource(_ backup: Backup, f: Fixture, session: AgentCommandService.Session,
@@ -2901,6 +2946,7 @@ struct AgentCommandServiceTests {
         #expect(available.remove("syntaxes.get") != nil)
         #expect(available.remove("syntaxes.export") != nil)
         #expect(available.remove("drafts.duplicate") != nil)
+        for name in AgentBookmarkReading.operationNames { #expect(available.remove(name) != nil) }
         for name in AgentBackupSchemas.operationNames { #expect(available.remove(name) != nil) }
         for name in AgentTransferSchemas.operationNames { #expect(available.remove(name) != nil) }
         for name in AgentThemeReading.operationNames { #expect(available.remove(name) != nil) }

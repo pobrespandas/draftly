@@ -307,8 +307,10 @@ The shared capability predicate now requires file read or file write. The local
 official SDK tests passed after that correction. The combined source, including
 CLI transport recovery and backup readers, passed the complete strict Swift
 inventory: 1 consumer, 183 contract, 822 Core and 1,599 app tests (2,605 total).
-The normal native Debug build and two project checks passed. Full CI for the
-new source remains required.
+The normal native Debug build and two project checks passed. Full CI
+[41818926971](https://github.com/pobrespandas/draftly/actions/runs/41818926971)
+passed for `6ec09f6`. The later bookmark and cursor changes have local evidence
+below; their full CI and installed acceptance remain required.
 
 The matching signed isolated app/helper installed and started with access off.
 Both named clients returned a neutral preflight response through their existing
@@ -317,6 +319,27 @@ pairing or credential creation. The user-approved 15-minute draft/editor grant
 has not started. QA-only diagnostics expose the actual GUI session inputs;
 control admission remains unchanged. Full client sessions and the normal
 startup/lifecycle gate remain open.
+
+## Bookmark catalog and CLI pagination
+
+`bookmarks.list` now filters resource scope and returns aliases, IDs and version
+tokens without paths or saved permission bytes. IDs bind the alias, permission
+bytes and a persisted local generation. Native Settings and Action writes use
+that same store. Replacement, forgetting/recreation and corrupt metadata do not
+redirect an old scoped grant. Failed identity persistence publishes no new ID.
+The grant picker and resolver share the service's preference domain and expose
+current bookmark and theme targets.
+
+Cursors now survive CLI transport closure under the same connection and grant.
+Other connections, changed grants, invalidation and Stop Work cannot reuse them.
+Membership, query/target binding and both clocks retain their existing rules.
+The real socket/CLI request test reads the next page and excludes hidden drafts.
+
+The complete strict local run verified 1 consumer, 183 contract, 822 Core and
+1,608 app tests (2,614 total). The native Debug build and two project checks
+passed. A focused test checked invalidation with no remaining transport.
+Installed acceptance and full CI remain open. Bookmark add/forget review and
+file-source effect routes remain unfinished.
 
 ## Backup export, validation and restore preview
 
@@ -381,8 +404,8 @@ increment remain open.
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-88 names in implemented or conditional handler sets. The other 49 names have
-no direct handler in those sets. These counts do not prove that 88 operations
+89 names in implemented or conditional handler sets. The other 48 names have
+no direct handler in those sets. These counts do not prove that 89 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -397,7 +420,7 @@ a direct handler for every `native.*` contract.
 | Actions and groups | `actions.delete`, `actionGroups.delete` |
 | Themes | `themes.select`, `themes.selectBuiltIn`, `themes.replace`, `themes.reload`, `themes.install`, `themes.delete` |
 | Syntax | `syntaxes.delete`, `syntaxes.install`, `syntaxes.reload`, `syntaxes.replace` |
-| Bookmarks | `bookmarks.forget`, `bookmarks.list`, `bookmarks.requestAdd` |
+| Bookmarks | `bookmarks.forget`, `bookmarks.requestAdd` |
 | Imports | `imports.commit`, `imports.preview`, `imports.validate` |
 | Backups | `backups.requestRestore` |
 | Native operations | All 24 direct `native.*` contracts. Existing reviewed Action effects are a separate path. |

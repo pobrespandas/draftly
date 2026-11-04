@@ -184,6 +184,7 @@ final class AppController: ObservableObject {
                             enableReviewedActions: Bool = false,
                             enableReviewedMutations: Bool = false,
                             preferenceStorage: AgentPreferenceStorage? = nil,
+                            preferenceDefaults: UserDefaults = .standard,
                             protectedDataAvailable: @escaping () -> Bool = { NSApplication.shared.isProtectedDataAvailable },
                             credentials: AgentConnectionRegistry.CredentialAccess? = nil,
                             validateApplication: @escaping () throws -> Void = { try AgentCredentialIdentity.validateCurrentProcess(.application) },
@@ -191,7 +192,7 @@ final class AppController: ObservableObject {
         guard let library else { throw AgentErrorCode.unavailable }
         guard agentHost == nil else { return }
         let editors = try agentEditorRegistry(for: library)
-        let resources = AgentLibraryResourceChoices(library: library, editors: editors)
+        let resources = AgentLibraryResourceChoices(library: library, editors: editors, bookmarkDefaults: preferenceDefaults)
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
         let host = try AgentLocalHost(library: library, appVersion: version, editors: editors,
             enableReviewedActions: enableReviewedActions,
@@ -206,7 +207,7 @@ final class AppController: ObservableObject {
                 }
                 return try AgentNativePreferenceAccess.readSpotlight(spotlight,
                     hasStoredOverride: UserDefaults.standard.object(forKey: SpotlightPreferences.enabledKey) != nil)
-            }, preferenceStorage: preferenceStorage,
+            }, preferenceDefaults: preferenceDefaults, preferenceStorage: preferenceStorage,
             isLocked: { isLocked() || !protectedDataAvailable() },
             pendingEditorGeneration: { _ in "" }, resolveTargets: { resources.resolve($0) },
             credentials: credentials, validateApplication: validateApplication, validateHelper: validateHelper)

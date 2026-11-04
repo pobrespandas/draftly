@@ -14,6 +14,7 @@ import AgentLocalSecurity
     let service: AgentCommandService
     private let library: LibraryStore
     private let editors: AgentEditorRegistry?
+    private let preferenceDefaults: UserDefaults
     private let lease: AgentHostLease
     private let publications: AgentHostPublications
     private let activity: AgentActivityStore
@@ -94,7 +95,7 @@ import AgentLocalSecurity
         }), credentials: credentialAccess,
             authorityChanged: { id in owner?.authorityChanged(id) })
         self.lease = lease; self.publications = AgentHostPublications(locator: locator); libraryID = lease.libraryID; connections = registry
-        self.library = library; self.editors = editors
+        self.library = library; self.editors = editors; self.preferenceDefaults = preferenceDefaults
         self.activity = activity
         self.socketParentDirectory = socketParentDirectory
         self.validateApplication = validateApplication; self.validateHelper = validateHelper
@@ -353,7 +354,7 @@ import AgentLocalSecurity
     }
 
     func makeLibrarySettingsModel() throws -> AgentConnectionsSettingsModel {
-        let resources = AgentLibraryResourceChoices(library: library, editors: editors)
+        let resources = AgentLibraryResourceChoices(library: library, editors: editors, bookmarkDefaults: preferenceDefaults)
         return try makeSettingsModel(choices: { resources.choices() })
     }
 

@@ -3,6 +3,28 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Bookmark catalog and CLI paging — 4 November
+
+Connected `bookmarks.list` with scope filtering, alias-only replies and local
+permission-bound IDs. Native Settings and Actions share the identity store.
+New generations persist before publication. Changed permission bytes or
+forgetting/recreation cannot inherit the old identity. The native picker and
+resolver use the service's preference domain. Tests use isolated defaults.
+Bookmark add/forget handlers and file-source review routes remain open.
+
+CLI paging now resumes under the same connection and grant after a command
+closes its transport. Other connections and changed grants stay excluded.
+Invalidation clears cursors even with no remaining transport. Membership,
+query/target binding, expiry and clock rollback checks remain effective.
+
+The complete strict run verified 1 consumer, 183 contract, 822 Core and 1,608
+app tests (2,614 total). The native Debug build and two project checks passed.
+The zero-transport invalidation regression passed separately. Full CI
+[41818926971](https://github.com/pobrespandas/draftly/actions/runs/41818926971)
+passed for earlier source `6ec09f6`. Current full CI and installed acceptance
+remain open. Source coverage is 89 connected/conditional names of 137; 48 names
+have no direct handler. Partial backup sources and reviewed restore remain open.
+
 ## Theme grant choices — 4 November
 
 Stored themes now appear in the native grant resource choices. The resolver

@@ -36,11 +36,11 @@ struct AgentApplicationHostTests {
             try? FileManager.default.removeItem(at: root)
         }
         func host(editors supplied: AgentEditorRegistry? = nil) throws -> AgentLocalHost {
-            let app = try #require(app), secrets = secrets, library = library
+            let app = try #require(app), secrets = secrets, library = library, defaults = defaults
             return try AgentLocalHost(library: library, appVersion: "Neutral QA",
-                editors: supplied ?? app.agentEditorRegistry(for: library), isLocked: { false },
+                editors: supplied ?? app.agentEditorRegistry(for: library), preferenceDefaults: defaults, isLocked: { false },
                 pendingEditorGeneration: { _ in "" }, resolveTargets: { targets in
-                    AgentLibraryResourceChoices(library: library).resolve(targets)
+                    AgentLibraryResourceChoices(library: library, bookmarkDefaults: defaults).resolve(targets)
                 }, credentials: .init(read: { secrets.values[$0] }, create: { id, value in
                     guard secrets.values[id] == nil else { throw AgentErrorCode.versionConflict }
                     secrets.values[id] = value
@@ -164,7 +164,7 @@ struct AgentApplicationHostTests {
         let f = try Fixture(); defer { f.cleanup() }
         let app = try #require(f.app), secrets = f.secrets
         let note = try f.library.createNote(content: "Scoped draft")
-        try app.configureAgentHost(isLocked: { f.locked }, protectedDataAvailable: { f.protectedDataAvailable }, credentials: .init(read: { secrets.values[$0] },
+        try app.configureAgentHost(isLocked: { f.locked }, preferenceDefaults: f.defaults, protectedDataAvailable: { f.protectedDataAvailable }, credentials: .init(read: { secrets.values[$0] },
             create: { secrets.values[$0] = $1 }, remove: { secrets.values.removeValue(forKey: $0) }),
             validateApplication: {}, validateHelper: { _ in })
         let settings = try #require(app.agentSettings)
@@ -192,7 +192,7 @@ struct AgentApplicationHostTests {
         let window = WindowModel(library: f.library, dependencies: dependencies)
         window.editor.load(note, focusEditor: false)
         app.registerWindow(window)
-        try app.configureAgentHost(isLocked: { f.locked }, protectedDataAvailable: { f.protectedDataAvailable }, credentials: .init(read: { secrets.values[$0] },
+        try app.configureAgentHost(isLocked: { f.locked }, preferenceDefaults: f.defaults, protectedDataAvailable: { f.protectedDataAvailable }, credentials: .init(read: { secrets.values[$0] },
             create: { secrets.values[$0] = $1 }, remove: { secrets.values.removeValue(forKey: $0) }),
             validateApplication: {}, validateHelper: { _ in })
         let settings = try #require(app.agentSettings)

@@ -20,6 +20,7 @@ import AgentContracts
             "syntaxes.getBuiltIn", "syntaxes.exportBuiltIn", "actions.list", "actions.get",
             "actions.stepSchemas", "actions.groups", "actionGroups.get",
             "workspaces.list", "workspaces.get", "workspaces.query"], handlers: []),
+        .init(operations: AgentBookmarkReading.operationNames, handlers: []),
         .init(operations: AgentTransferSchemas.operationNames, handlers: []),
         .init(operations: ["backups.validate"], handlers: []),
         .init(operations: ["backups.export", "backups.previewRestore"], handlers: [.editorRead]),

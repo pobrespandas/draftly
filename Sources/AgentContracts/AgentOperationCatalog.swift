@@ -164,7 +164,7 @@ package enum AgentOperationCatalog {
         .init(name: "preferences.get", owner: "Typed preference commands", capabilities: [.preferencesRead], targets: .none, isReadOnly: true),
         .init(name: "preferences.update", owner: "Typed preference commands", capabilities: [.preferencesWrite], targets: .none, requiresExpectedVersion: true),
         .init(name: "preferences.reset", owner: "Typed preference commands", capabilities: [.preferencesWrite], targets: .none, requiresExpectedVersion: true),
-        .init(name: "bookmarks.list", owner: "BookmarkPreferences", capabilities: [.preferencesRead], targets: .none),
+        .init(name: "bookmarks.list", owner: "BookmarkPreferences", capabilities: [.preferencesRead], targets: .none, isReadOnly: true),
         .init(name: "bookmarks.requestAdd", owner: "BookmarkPreferences", capabilities: [.preferencesWrite], targets: .none, requiresHumanApproval: true),
         .init(name: "bookmarks.forget", owner: "BookmarkPreferences", capabilities: [.preferencesWrite], targets: .one(.bookmark), requiresExpectedVersion: true, requiresHumanApproval: true),
         .init(name: "imports.validate", owner: "DraftFileCommands + importers", capabilities: [.filesRead, .draftsWrite], targets: .none),
