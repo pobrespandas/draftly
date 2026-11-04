@@ -73,7 +73,7 @@ import AgentContracts
     func validatePreview(_ expected: WindowSnapshot) throws {
         let model = try matchingModel(expected)
         guard !ActionRunner.isExecuting(in: library), !model.actionPending, !model.runner.isRunning,
-              model.actionPreview == nil, model.previewHTML == nil else { throw AgentErrorCode.busy }
+              model.actionPreview == nil, model.previewHTML == nil, !model.arrangementSession.isActive else { throw AgentErrorCode.busy }
         guard model.editor.canApplyExternalEdit?() != false else { throw AgentErrorCode.interactionRequired }
     }
 
@@ -92,6 +92,41 @@ import AgentContracts
               (model.hasUnsavedChanges || model.editor.hasUnpersistedText) == expected.dirty else {
             throw AgentErrorCode.outcomeUnknown
         }
+    }
+
+    func navigationDestination(_ expected: WindowSnapshot, offset: Int, allowSaving: Bool) throws -> UUID {
+        try validatePreview(expected)
+        let model = try matchingModel(expected)
+        guard let source = expected.draftID, let stored = library.notes.first(where: { $0.id == source }) else {
+            throw AgentErrorCode.notFound
+        }
+        _ = try snapshot(stored)
+        let destination = model.navigationDestination(offset) ?? source
+        if destination != source, expected.dirty || !DraftOperations.sameText(stored.content, expected.content) {
+            guard allowSaving else { throw AgentErrorCode.permissionDenied }
+        }
+        return destination
+    }
+
+    func navigate(_ expected: WindowSnapshot, offset: Int, destination: UUID, allowSaving: Bool,
+                  authorize: () throws -> Void) throws -> WindowSnapshot {
+        guard try navigationDestination(expected, offset: offset, allowSaving: allowSaving) == destination else {
+            throw AgentErrorCode.versionConflict
+        }
+        try authorize()
+        guard try navigationDestination(expected, offset: offset, allowSaving: allowSaving) == destination else {
+            throw AgentErrorCode.versionConflict
+        }
+        let model = try matchingModel(expected)
+        guard try model.selectAuthorized(destination, authorize: {
+            try authorize()
+            guard self.library.notes.contains(where: { $0.id == destination }),
+                  self.library.notes.contains(where: { $0.id == expected.draftID }) else { throw AgentErrorCode.notFound }
+        }) else { throw AgentErrorCode.storageError }
+        try authorize()
+        guard valid, let result = try windowSnapshots().first(where: { $0.id == expected.id }),
+              result.draftID == destination else { throw AgentErrorCode.outcomeUnknown }
+        return result
     }
 
     func setSelection(_ expected: WindowSnapshot, range: NSRange, authorize: () throws -> Void) throws {

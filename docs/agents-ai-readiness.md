@@ -503,11 +503,21 @@ recovers results without another presentation. Local tests include real native
 Undo/Redo and unchanged drafts and versions. Signed installed presentation is
 still open. See [preview validation](agent-editor-preview-acceptance.md).
 
+## Direct editor navigation
+
+`editor.navigate` now uses the native visible list and selection path. Scope
+must cover its window, source and destination. Pending saves require draft-write
+permission. Stored content, pending editor state and list changes are checked
+before selection. The registry records implicit affected drafts. Authority loss
+after saving prevents later loading and returns an uncertain result without
+replay. See [navigation validation](agent-editor-navigation-acceptance.md) for
+local evidence and remaining installed and update checks.
+
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-106 names in implemented or conditional handler sets. The other 31 names have
-no direct handler in those sets. These counts do not prove that 106 operations
+107 names in implemented or conditional handler sets. The other 30 names have
+no direct handler in those sets. These counts do not prove that 107 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -518,7 +528,7 @@ a direct handler for every `native.*` contract.
 
 | Family | Direct contracts still outside those handler sets |
 | --- | --- |
-| Editor | `editor.navigate`, `editor.open` |
+| Editor | `editor.open` |
 | Themes | `themes.select`, `themes.selectBuiltIn`, `themes.replace`, `themes.reload`, `themes.install`, `themes.delete` |
 | Syntax | `syntaxes.delete`, `syntaxes.install`, `syntaxes.reload`, `syntaxes.replace` |
 | Bookmarks | `bookmarks.forget`, `bookmarks.requestAdd` |
@@ -729,3 +739,13 @@ review for exact validation scope and logs.
 Direct editor preview passed strict complete Swift validation: 1 consumer,
 193 contract, 824 Core and 1,645 app tests (2,663 total). The 49 focal tests and
 native Debug build passed. Full CI and signed installed presentation remain open.
+
+Source review also found fixed 128-entry host-lifetime receipt maps in
+`AgentEditorWriting` and `AgentWorkspaceApplication`. Their saturation and
+reclamation still need validation. The indexed journal fixes durable reservation
+capacity; it does not change these separate receipt maps.
+
+Direct navigation passed strict complete Swift validation: 1 consumer, 193 contract,
+824 Core and 1,649 app tests (2,667 total). The focused 172 tests and final native
+Debug build passed. Full CI, installed focus/navigation and signed-update client
+acceptance remain open. See the navigation report for scope and logs.

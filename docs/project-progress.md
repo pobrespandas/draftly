@@ -3,6 +3,17 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Direct editor navigation — 4 November
+
+Connected `editor.navigate` to visible-list order and app-owned selection.
+The request binds the editor and stored content version. Both affected drafts
+must be in scope. Saving pending text also needs draft-write permission; native
+conflict and version rules still apply. Authority checks separate saving,
+recording access and loading. Uncertain results never trigger another navigation.
+Source coverage is 107 connected/conditional names of 137; 30 lack direct handlers.
+The focused 172 tests passed. See
+[navigation validation](agent-editor-navigation-acceptance.md) for final checks.
+
 ## Direct editor preview — 4 November
 
 Connected `editor.preview` to app-owned presentation and the durable registry.
@@ -2483,3 +2494,8 @@ review for exact validation scope and logs.
 Direct editor preview passed strict complete Swift validation: 1 consumer,
 193 contract, 824 Core and 1,645 app tests (2,663 total). The 49 focal tests and
 native Debug build passed. Full CI and signed installed presentation remain open.
+
+Direct navigation passed strict complete Swift validation: 1 consumer, 193 contract,
+824 Core and 1,649 app tests (2,667 total). The focused 172 tests and final native
+Debug build passed. Full CI, installed focus/navigation and signed-update client
+acceptance remain open. See the navigation report for scope and logs.

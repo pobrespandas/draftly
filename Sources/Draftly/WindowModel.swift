@@ -295,13 +295,18 @@ final class WindowModel: ObservableObject {
     }
 
     func select(_ id: UUID?, focusEditor: Bool = true, fromAction: Bool = false) {
-        guard id != editor.noteID else { return }
+        do { _ = try selectAuthorized(id, focusEditor: focusEditor, fromAction: fromAction, authorize: {}) }
+        catch { library.error = error.localizedDescription }
+    }
+    @discardableResult func selectAuthorized(_ id: UUID?, focusEditor: Bool = true, fromAction: Bool = false,
+                                             authorize: () throws -> Void) throws -> Bool {
+        guard id != editor.noteID else { return true }
+        try authorize()
         if !fromAction { cancelActionForUserEdit() }
-        guard flush() else { return }
-        if let id, library.notes.contains(where: { $0.id == id }) {
-            do { try library.recordAccess(id) }
-            catch { library.error = error.localizedDescription; return }
-        }
+        guard flush() else { return false }
+        try authorize()
+        if let id, library.notes.contains(where: { $0.id == id }) { try library.recordAccess(id) }
+        try authorize()
         if let current = editor.noteID, library.notes.contains(where: { $0.id == current }) { lastNoteID = current }
         status = ""; previewHTML = nil
         scratchNote = nil
@@ -309,6 +314,8 @@ final class WindowModel: ObservableObject {
             editor.load(note, focusEditor: focusEditor); tagsText = note.tags.joined(separator: ", "); onAccessDraft(note.id)
         }
         else { editor.noteID = nil; editor.content = ""; tagsText = "" }
+        try authorize()
+        return true
     }
     func selectFromList(_ id: UUID?) {
         guard let id, id != editor.noteID else { return }
@@ -575,11 +582,15 @@ final class WindowModel: ObservableObject {
         guard currentNote != nil else { return }
         run(DraftAction(name: "Edit Text", steps: [ActionStep("script", ["script": script])]))
     }
-    func navigate(_ offset: Int) {
+    func navigationDestination(_ offset: Int) -> UUID? {
         let notes = visibleNotes
-        guard !notes.isEmpty else { return }
+        guard !notes.isEmpty else { return nil }
         let index = notes.firstIndex { $0.id == editor.noteID }.map { min(max(0, $0 + offset), notes.count - 1) } ?? 0
-        select(notes[index].id)
+        return notes[index].id
+    }
+    func navigate(_ offset: Int) {
+        guard let id = navigationDestination(offset) else { return }
+        select(id)
     }
     func toggleFloat() { isFloating.toggle(); window?.level = isFloating ? .floating : .normal }
     var activeTagFilters: [String] {

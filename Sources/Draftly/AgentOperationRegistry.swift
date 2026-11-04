@@ -136,7 +136,7 @@ import DraftlyCore
 
     // App-owned handlers must obtain effect approval before they perform work.
     // This registry preserves identity and results. It does not grant approval.
-    func startValueRequest(_ request: AgentRequest, grant: AgentGrant,
+    func startValueRequest(_ request: AgentRequest, grant: AgentGrant, effectTargets: Set<AgentResourceReference> = [],
                            work: @escaping @MainActor (UUID) async throws -> [String: AgentJSONValue]) throws -> UUID {
         guard request.operation != "actions.run",
               AgentOperationJournal.supports(request.operation),
@@ -146,7 +146,9 @@ import DraftlyCore
         case .denied(let error): throw error
         default: break
         }
-        try authorization.validate(grant, targets: Set(request.targets), operationName: request.operation)
+        let targets = Set(request.targets).union(effectTargets)
+        guard targets.count <= AgentRequest.maximumTargets else { throw AgentErrorCode.invalidInput }
+        try authorization.validate(grant, targets: targets, operationName: request.operation)
         if let previous = try existingRequest(prepared.request, grant: grant) { return previous }
         try makeAdmissionRoom()
         let id = UUID()
@@ -154,7 +156,7 @@ import DraftlyCore
             _ = try snapshot(reservation.record.operationID, connectionID: grant.connectionID)
             return reservation.record.operationID
         }
-        entries[id] = Entry(connectionID: grant.connectionID, grant: grant, targets: Set(request.targets),
+        entries[id] = Entry(connectionID: grant.connectionID, grant: grant, targets: targets,
             updatedAt: now(), durable: journal != nil, name: request.operation)
         requests[RequestKey(connectionID: grant.connectionID, requestID: request.requestID)] = (try requestFingerprint(prepared.value), id)
         launch(id) { id in

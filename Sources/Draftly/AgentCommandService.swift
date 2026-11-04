@@ -273,8 +273,8 @@ import AgentContracts
             let outcome: AgentResponse.Outcome
             if AgentNativeSchemas.operationNames.contains(request.operation) {
                 outcome = try submitNative(request, grant: grant, sessionID: session.id)
-            } else if request.operation == "editor.preview" {
-                outcome = try submitEditorPreview(request, grant: grant, sessionID: session.id)
+            } else if ["editor.preview", "editor.navigate"].contains(request.operation) {
+                outcome = try submitEditorPresentation(request, grant: grant, sessionID: session.id)
             } else if ["workspaces.delete", "drafts.purge", "actions.delete", "actionGroups.delete"].contains(request.operation) {
                 outcome = try submitDeletion(request, grant: grant, sessionID: session.id)
             } else {
@@ -336,7 +336,7 @@ import AgentContracts
             let syntaxExport = request.operation == "syntaxes.export"
             let themeMutation = AgentThemeWriting.operationNames.contains(request.operation)
             let reviewedNative = AgentNativeSchemas.operationNames.contains(request.operation) && nativeExecution != nil && operationRegistry != nil
-            let editorPresentation = request.operation == "editor.preview" && editorRegistry != nil && operationRegistry != nil
+            let editorPresentation = ["editor.preview", "editor.navigate"].contains(request.operation) && editorRegistry != nil && operationRegistry != nil
             guard reviewedAction || reviewedNative || (!humanApproval && (editorPresentation || preferenceMutation || workspaceEffect || themeRead || themeMutation || syntaxExport)) else {
                 throw AgentErrorCode.unavailable
             }
@@ -348,10 +348,9 @@ import AgentContracts
         return parameters
     }
 
-    private func submitEditorPreview(_ request: AgentRequest, grant: AgentGrant, sessionID: UUID) throws -> AgentResponse.Outcome {
+    private func submitEditorPresentation(_ request: AgentRequest, grant: AgentGrant, sessionID: UUID) throws -> AgentResponse.Outcome {
         guard let editorRegistry, let operationRegistry,
-              let windowID = request.targets.first?.id,
-              case .bool(let visible) = request.parameters["visible"] else { throw AgentErrorCode.unavailable }
+              let windowID = request.targets.first?.id else { throw AgentErrorCode.unavailable }
         try validateSession(sessionID, grant: grant)
         func outcome(_ snapshot: AgentOperationRegistry.Snapshot) throws -> AgentResponse.Outcome {
             if snapshot.state == .succeeded {
@@ -365,24 +364,48 @@ import AgentContracts
         if let id = try operationRegistry.existingRequest(request, grant: grant) {
             return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))
         }
-        let initial = try editorContext(windowID, grant: grant).snapshot
+        let context = try editorContext(windowID, grant: grant)
+        let initial = context.snapshot
+        let navigating = request.operation == "editor.navigate"
+        let offset = request.parameters["direction"] == .string("previous") ? -1 : 1
+        let allowSaving = grant.capabilities.contains(.draftsWrite)
+        if navigating, request.expectedVersion != context.version { throw AgentErrorCode.versionConflict }
+        let destination = navigating ? try editorRegistry.navigationDestination(initial, offset: offset, allowSaving: true) : initial.draftID
+        guard let destination, grant.scope.permits(.init(kind: .draft, id: destination)) else { throw AgentErrorCode.notFound }
+        if navigating { _ = try editorRegistry.navigationDestination(initial, offset: offset, allowSaving: allowSaving) }
         try editorRegistry.validatePreview(initial)
         let validateOperation = operationAuthority(for: grant)
-        let id = try operationRegistry.startValueRequest(request, grant: grant) { [weak self] id in
+        let id = try operationRegistry.startValueRequest(request, grant: grant, effectTargets: Set([initial.draftID, destination].compactMap { $0 }.map { AgentResourceReference(kind: .draft, id: $0) })) { [weak self] id in
             guard let self else { throw AgentOperationRegistry.FailureBeforeEffects(code: .cancelled) }
             var submitted = false
             let effectID = UUID()
             do {
                 try Task.checkCancellation(); try validateOperation()
-                let current = try self.editorContext(windowID, grant: grant).snapshot
+                let currentContext = try self.editorContext(windowID, grant: grant)
+                let current = currentContext.snapshot
+                if navigating, currentContext.version != request.expectedVersion { throw AgentErrorCode.versionConflict }
                 guard current.generation == initial.generation, let draftID = current.draftID else { throw AgentErrorCode.versionConflict }
                 try editorRegistry.validatePreview(current)
+                if navigating, try editorRegistry.navigationDestination(current, offset: offset, allowSaving: allowSaving) != destination {
+                    throw AgentErrorCode.versionConflict
+                }
                 try operationRegistry.recordEffect(id, effectID: effectID, kind: request.operation, outcome: "submitted")
                 submitted = true
-                try editorRegistry.setPreview(current, visible: visible, authorize: validateOperation)
+                let result: [String: AgentJSONValue]
+                if navigating {
+                    let next = try editorRegistry.navigate(current, offset: offset, destination: destination,
+                        allowSaving: allowSaving, authorize: validateOperation)
+                    var values = try self.editorValues(next)
+                    values["selection"] = .object(["offset": .integer(Int64(next.selection.location)), "length": .integer(Int64(next.selection.length))])
+                    result = values
+                } else {
+                    guard case .bool(let visible) = request.parameters["visible"] else { throw AgentErrorCode.invalidInput }
+                    try editorRegistry.setPreview(current, visible: visible, authorize: validateOperation)
+                    result = ["windowID": .string(windowID.uuidString), "draftID": .string(draftID.uuidString), "visible": .bool(visible)]
+                }
                 try validateOperation(); try Task.checkCancellation()
                 try operationRegistry.recordEffect(id, effectID: effectID, kind: request.operation, outcome: "completed")
-                return ["windowID": .string(windowID.uuidString), "draftID": .string(draftID.uuidString), "visible": .bool(visible)]
+                return result
             } catch {
                 if submitted {
                     try? operationRegistry.recordEffect(id, effectID: effectID, kind: request.operation, outcome: "unknown")
@@ -891,11 +914,14 @@ import AgentContracts
             "length": .integer(Int64(snapshot.selection.length))])
         let syntax = try? editorRegistry?.syntaxDefinition(windowID: snapshot.id)
         let syntaxIdentity = syntax.map { $0.name + "\u{0}" + $0.source + "\u{0}" + $0.featureState }
-        let state: AgentJSONValue = .object(["syntaxVersion": syntaxIdentity.map { .string($0) } ?? .null,
+        let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
+        let stored = actionLibrary.notes.first(where: { $0.id == snapshot.draftID }).map { note in
+            Data(SHA256.hash(data: Data(note.content.utf8))).base64EncodedString()
+        }
+        let state: AgentJSONValue = .object(["storedContentVersion": stored.map(AgentJSONValue.string) ?? .null, "syntaxVersion": syntaxIdentity.map { .string($0) } ?? .null,
             "windowID": .string(snapshot.id.uuidString), "generation": .string(snapshot.generation.uuidString),
             "draftID": snapshot.draftID.map { .string($0.uuidString) } ?? .null,
             "content": .string(snapshot.content), "selection": selection, "dirty": .bool(snapshot.dirty)])
-        let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
         let token = Data(HMAC<SHA256>.authenticationCode(for: try encoder.encode(state), using: windowReadKey)).base64EncodedString()
         return ["windowID": .string(snapshot.id.uuidString),
             "draftID": snapshot.draftID.map { .string($0.uuidString) } ?? .null,
