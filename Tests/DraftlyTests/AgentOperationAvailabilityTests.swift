@@ -93,10 +93,19 @@ struct AgentOperationAvailabilityTests {
         #expect(!tracked.operations.contains("backups.requestRestore"))
     }
 
+    @Test(arguments: 0..<4)
+    func actionDeletionNeedsReviewAndOperationControl(_ mask: Int) {
+        var handlers: Set<AgentOperationAvailability.Handler> = []
+        if mask & 1 != 0 { handlers.insert(.operationControl) }
+        if mask & 2 != 0 { handlers.insert(.actionDelete) }
+        let available = AgentOperationAvailability(handlers: handlers)
+        #expect(available.operations.contains("actions.delete") == (mask == 3))
+    }
+
     @Test func completeHostUsesOnlyKnownContractsAndDoesNotAdvertiseMissingHandlers() {
         let available = AgentOperationAvailability(handlers: Set(AgentOperationAvailability.Handler.allCases))
         #expect(available.operations == AgentCommandService.implementedOperations.union([
-            "activity.list", "operations.get", "operations.cancel", "operations.wait", "actions.run", "workspaces.delete", "drafts.purge"]))
+            "activity.list", "operations.get", "operations.cancel", "operations.wait", "actions.run", "workspaces.delete", "drafts.purge", "actions.delete"]))
         #expect(available.operations.allSatisfy { AgentOperationCatalog.operation(named: $0) != nil })
         #expect(!available.operations.contains("drafts.delete"))
         #expect(!available.operations.contains("backups.restore"))

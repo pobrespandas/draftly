@@ -422,13 +422,30 @@ margin for a maximum-length wait. Ordinary requests retain their 30-second
 transport budget. The focused 199 tests and the native package-name build
 passed. A strict full recheck verified 2,622 tests after an earlier unreported
 Intent-process exit. Read [wait validation](agent-operation-waiting-acceptance.md).
-Full CI and installed acceptance for this increment remain open.
+Full CI [41829611557](https://github.com/pobrespandas/draftly/actions/runs/41829611557)
+passed for `0f2b863`. Installed wait acceptance remains open.
+
+## Reviewed action deletion
+
+`actions.delete` now requires an app-owned human review, a prepared retry key
+and the exact action version. The review shows the action name and states that
+drafts and action history remain. Denial, cancellation, stale versions and
+session invalidation prevent deletion. The storage transaction commits the
+single action deletion and its receipt together. It shares the record-deletion
+boundary used by Workspaces. A recovered request returns its receipt; it does
+not delete a later action with the same ID. The operation journal can recover
+a committed deletion after an uncertain result. No action-group deletion
+handler is claimed by this change. Strict validation verified 1 consumer,
+184 contract, 823 Core and 1,618 app tests (2,626 total). The native package-name
+Debug build and two project checks passed. Tests cover six review decisions,
+storage rollback, restart recovery and preservation of a recreated action.
+CI and installed acceptance remain open.
 
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-90 names in implemented or conditional handler sets. The other 47 names have
-no direct handler in those sets. These counts do not prove that 90 operations
+91 names in implemented or conditional handler sets. The other 46 names have
+no direct handler in those sets. These counts do not prove that 91 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -440,14 +457,14 @@ a direct handler for every `native.*` contract.
 | Family | Direct contracts still outside those handler sets |
 | --- | --- |
 | Editor | `editor.navigate`, `editor.open`, `editor.preview` |
-| Actions and groups | `actions.delete`, `actionGroups.delete` |
+| Actions and groups | `actionGroups.delete` |
 | Themes | `themes.select`, `themes.selectBuiltIn`, `themes.replace`, `themes.reload`, `themes.install`, `themes.delete` |
 | Syntax | `syntaxes.delete`, `syntaxes.install`, `syntaxes.reload`, `syntaxes.replace` |
 | Bookmarks | `bookmarks.forget`, `bookmarks.requestAdd` |
 | Imports | `imports.commit`, `imports.preview`, `imports.validate` |
 | Backups | `backups.requestRestore` |
 | Native operations | All 24 direct `native.*` contracts. Existing reviewed Action effects are a separate path. |
-| Operation control and activity | `operations.answerPrompt`, `operations.wait`, `activity.changes` |
+| Operation control and activity | `operations.answerPrompt`, `activity.changes` |
 
 Keep the full [operation inventory](research/agent-operation-inventory.md) and
 [required manifest](../Tests/AgentContractsTests/required-operations.txt).

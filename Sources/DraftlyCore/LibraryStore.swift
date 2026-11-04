@@ -521,6 +521,20 @@ public final class LibraryStore: ObservableObject {
     package func commitWorkspaceDeletion(_ id: UUID, mutation: LibraryMutationIdentity, at now: Date,
                                          resource: LibraryMutationReceipt.Resource,
                                          validateCommit: () throws -> Void) throws -> LibraryMutationReceipt {
+        try commitRecordDeletion(id, kind: "workspace", mutation: mutation, at: now,
+            resource: resource, validateCommit: validateCommit)
+    }
+
+    package func commitActionDeletion(_ id: UUID, mutation: LibraryMutationIdentity, at now: Date,
+                                     resource: LibraryMutationReceipt.Resource,
+                                     validateCommit: () throws -> Void) throws -> LibraryMutationReceipt {
+        try commitRecordDeletion(id, kind: "action", mutation: mutation, at: now,
+            resource: resource, validateCommit: validateCommit)
+    }
+
+    private func commitRecordDeletion(_ id: UUID, kind: String, mutation: LibraryMutationIdentity, at now: Date,
+                                      resource: LibraryMutationReceipt.Resource,
+                                      validateCommit: () throws -> Void) throws -> LibraryMutationReceipt {
         guard resource.id == id else { throw LibraryMutationReceiptError.invalidReceipt }
         if let previous = try mutationReceipt(for: mutation, at: now) {
             guard previous.resources.count == 1, previous.resources.first?.id == id else {
@@ -530,7 +544,7 @@ public final class LibraryStore: ObservableObject {
         }
         do {
             let request = NSFetchRequest<NSManagedObject>(entityName: "Record")
-            request.predicate = NSPredicate(format: "key == %@", "workspace:" + id.uuidString)
+            request.predicate = NSPredicate(format: "key == %@", kind + ":" + id.uuidString)
             let records = try container.viewContext.fetch(request)
             guard records.count == 1 else { throw LibraryMutationReceiptError.invalidReceipt }
             container.viewContext.delete(records[0])

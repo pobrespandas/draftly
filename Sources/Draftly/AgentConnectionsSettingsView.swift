@@ -146,6 +146,7 @@ private struct AgentOperationReviewSheet: View {
 
     private var nativeTitle: String? {
         if review.operation == "workspaces.delete" { return "Delete Workspace" }
+        if review.operation == "actions.delete" { return "Delete Action" }
         guard case .string(let operation) = review.effects.snapshot["nativeOperation"] else { return nil }
         switch operation {
         case "clipboard": return "Copy text to the clipboard"
@@ -163,6 +164,9 @@ private struct AgentOperationReviewSheet: View {
         if review.operation == "workspaces.delete",
            case .string(let name) = review.effects.snapshot["workspaceName"] {
             return [("Workspace", name), ("Effect", "Delete the saved Workspace. Keep all drafts.")]
+        }
+        if review.operation == "actions.delete", case .string(let name) = review.effects.snapshot["actionName"] {
+            return [("Action", name), ("Effect", "Permanently delete this action. Keep all drafts and action history.")]
         }
         if review.operation == "drafts.purge", case .array(let drafts) = review.effects.snapshot["drafts"] {
             let names = drafts.compactMap { value -> String? in
@@ -245,8 +249,8 @@ private struct AgentOperationReviewSheet: View {
                     if (try? model.decideOperation(review, approved: false)) != nil { dismiss() }
                 }
                 Group {
-                    if review.operation == "workspaces.delete" {
-                        Button("Delete Workspace", role: .destructive) {
+                    if ["workspaces.delete", "actions.delete"].contains(review.operation) {
+                        Button(review.operation == "actions.delete" ? "Delete Action" : "Delete Workspace", role: .destructive) {
                             if (try? model.decideOperation(review, approved: true)) != nil { dismiss() }
                         }
                     } else {

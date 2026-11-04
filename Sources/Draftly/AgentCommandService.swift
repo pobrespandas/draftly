@@ -25,6 +25,7 @@ import AgentContracts
         if submitAction != nil { handlers.insert(.actionExecution) }
         if deletionApprovals != nil && operationRegistry != nil {
             handlers.insert(.workspaceDelete)
+            handlers.insert(.actionDelete)
             if writes != nil { handlers.insert(.draftPurge) }
         }
         return AgentOperationAvailability(handlers: handlers)
@@ -244,7 +245,7 @@ import AgentContracts
             authority = (grant.connectionID, grant.grantID)
             let parameters = try authorizedParameters(for: request, grant: grant)
             let outcome: AgentResponse.Outcome
-            if ["workspaces.delete", "drafts.purge"].contains(request.operation) {
+            if ["workspaces.delete", "drafts.purge", "actions.delete"].contains(request.operation) {
                 outcome = try submitDeletion(request, grant: grant, sessionID: session.id)
             } else {
                 let values = try dispatch(request, parameters: parameters, grant: grant, sessionID: session.id)
@@ -295,7 +296,7 @@ import AgentContracts
         case .permitted: break
         case .denied(let error): throw error
         case .needsHumanApproval:
-            guard ["workspaces.delete", "drafts.purge"].contains(request.operation), deletionApprovals != nil,
+            guard ["workspaces.delete", "drafts.purge", "actions.delete"].contains(request.operation), deletionApprovals != nil,
                   operationRegistry != nil else { throw AgentErrorCode.unavailable }
         case .needsEffectAuthorization(_, let humanApproval):
             let reviewedAction = request.operation == "actions.run" && submitAction != nil && operationRegistry != nil
@@ -322,6 +323,7 @@ import AgentContracts
         let purge = request.operation == "drafts.purge"
         if purge && writes == nil { throw AgentErrorCode.unavailable }
         let receipt = try purge ? writes!.purgeReceipt(request, connectionID: grant.connectionID)
+            : request.operation == "actions.delete" ? actions.deletionReceipt(request, connectionID: grant.connectionID)
             : workspaces.deletionReceipt(request, connectionID: grant.connectionID)
         func outcome(_ snapshot: AgentOperationRegistry.Snapshot) throws -> AgentResponse.Outcome {
             if snapshot.state == .succeeded {
@@ -341,6 +343,7 @@ import AgentContracts
         }
         if receipt == nil {
             if purge { _ = try writes!.purgeEffects(request, connectionID: grant.connectionID) }
+            else if request.operation == "actions.delete" { _ = try actions.deletionEffects(request, connectionID: grant.connectionID) }
             else { _ = try workspaces.deletionEffects(request, connectionID: grant.connectionID) }
         }
         let id = try operationRegistry.startValueRequest(request, grant: grant) { [weak self] operationID in
@@ -348,6 +351,11 @@ import AgentContracts
             if purge {
                 guard let writes = self.writes else { throw AgentOperationRegistry.FailureBeforeEffects(code: .unavailable) }
                 return try await writes.reviewAndPurge(request, connectionID: grant.connectionID,
+                    operationID: operationID, approvals: deletionApprovals, operations: operationRegistry,
+                    validateSession: { try self.validateSession(sessionID, grant: grant) })
+            }
+            if request.operation == "actions.delete" {
+                return try await self.actions.reviewAndDelete(request, connectionID: grant.connectionID,
                     operationID: operationID, approvals: deletionApprovals, operations: operationRegistry,
                     validateSession: { try self.validateSession(sessionID, grant: grant) })
             }
@@ -665,6 +673,9 @@ import AgentContracts
             } else if bound.operation == "drafts.purge" {
                 guard let writes, deletionApprovals != nil, operationRegistry != nil else { throw AgentErrorCode.unavailable }
                 ticket = try writes.preparePurge(bound, connectionID: grant.connectionID)
+            } else if bound.operation == "actions.delete" {
+                guard deletionApprovals != nil, operationRegistry != nil else { throw AgentErrorCode.unavailable }
+                ticket = try actions.prepareDeletion(bound, connectionID: grant.connectionID)
             } else if bound.operation == "workspaces.delete" {
                 guard deletionApprovals != nil, operationRegistry != nil else { throw AgentErrorCode.unavailable }
                 ticket = try workspaces.prepareDeletion(bound, connectionID: grant.connectionID)

@@ -109,6 +109,29 @@ struct LibraryMutationReceiptTests {
         #expect(reopened.workspaces == [retained] && reopened.notes == [note])
     }
 
+    @Test func actionDeletionAndReceiptCommitTogetherAndRecoverAfterReopen() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let library = try LibraryStore(directory: root, seed: false)
+        let action = DraftAction(name: "Delete café 🐼", steps: []), retained = DraftAction(name: "Keep", steps: [])
+        let note = try library.createNote(content: "Preserve café 🐼")
+        try library.saveAction(action)
+        try library.saveAction(retained)
+        let mutation = identity(), resource = LibraryMutationReceipt.Resource(id: action.id, versionToken: "deleted-version")
+        #expect(throws: (any Error).self) {
+            try library.commitActionDeletion(action.id, mutation: mutation, at: now, resource: resource,
+                validateCommit: { throw DraftlyError.message("Authority changed") })
+        }
+        #expect(Set(library.actions.map(\.id)) == [action.id, retained.id])
+        #expect(try library.mutationReceipt(for: mutation, at: now) == nil)
+        let receipt = try library.commitActionDeletion(action.id, mutation: mutation, at: now, resource: resource, validateCommit: {})
+        #expect(library.actions == [retained] && library.notes == [note])
+        let reopened = try LibraryStore(directory: root, seed: false)
+        #expect(try reopened.commitActionDeletion(action.id, mutation: mutation, at: now, resource: resource,
+            validateCommit: { Issue.record("Completed deletion must not execute again") }) == receipt)
+        #expect(reopened.actions == [retained] && reopened.notes == [note])
+    }
+
     @Test func workspaceDeletionRejectsWrongResourcesAndMissingTargets() throws {
         let library = try LibraryStore(inMemory: true, seed: false)
         let workspace = Workspace(name: "Keep"), mutation = identity()

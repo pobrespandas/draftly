@@ -117,7 +117,7 @@ package enum AgentOperationSchemas {
             return
         }
         try validateResult(values, for: request.operation)
-        if request.operation == "workspaces.delete" {
+        if ["workspaces.delete", "actions.delete", "actionGroups.delete"].contains(request.operation) {
             try AgentResourceShapes.validateOrder(values["deletedIDs"], targets: request.targets)
         }
         if request.operation == "workspaces.reorder" {

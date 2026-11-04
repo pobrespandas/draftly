@@ -32,6 +32,104 @@ import AgentContracts
         return Data(HMAC<SHA256>.authenticationCode(for: try encoder.encode(action), using: actionVersionKey)).base64EncodedString()
     }
 
+    private func checkedDeletion(_ request: AgentRequest) throws -> DraftAction {
+        guard request.operation == "actions.delete", request.libraryID == libraryID,
+              request.targets.count == 1, let target = request.targets.first, target.kind == .action,
+              let expected = request.expectedVersion else { throw AgentErrorCode.invalidInput }
+        do { _ = try AgentActionSchemas.validatedParameters(for: request) }
+        catch { throw AgentErrorCode.invalidInput }
+        guard let action = actionLibrary.actions.first(where: { $0.id == target.id }) else { throw AgentErrorCode.notFound }
+        guard try actionVersion(action) == expected else { throw AgentErrorCode.versionConflict }
+        return action
+    }
+
+    func prepareDeletion(_ request: AgentRequest, connectionID: UUID) throws -> AgentRetryKeys.Ticket {
+        guard request.operation == "actions.delete", request.retryKey == nil,
+              request.libraryID == libraryID else { throw AgentErrorCode.invalidInput }
+        try validateAdmission()
+        let ticket = try retryKeys.issue(request, connectionID: connectionID)
+        if try actionMutationReceipt(request, ticket: ticket) == nil { _ = try checkedDeletion(request) }
+        try validateAdmission()
+        _ = try retryKeys.verify(ticket.value, request: request, connectionID: connectionID)
+        return ticket
+    }
+
+    func deletionReceipt(_ request: AgentRequest, connectionID: UUID) throws -> LibraryMutationReceipt? {
+        guard request.operation == "actions.delete", request.libraryID == libraryID,
+              let key = request.retryKey else { throw AgentErrorCode.invalidInput }
+        try validateAdmission()
+        let ticket = try retryKeys.verify(key, request: request, connectionID: connectionID)
+        return try actionMutationReceipt(request, ticket: ticket)
+    }
+
+    func deletionEffects(_ request: AgentRequest, connectionID: UUID) throws -> AgentApprovalStore.Effects {
+        guard let key = request.retryKey else { throw AgentErrorCode.invalidInput }
+        try validateAdmission()
+        _ = try retryKeys.verify(key, request: request, connectionID: connectionID)
+        let action = try checkedDeletion(request)
+        return .init(capabilities: [.actionsManage, .destructiveRequest], targets: Set(request.targets),
+            requiresLibraryScope: false, snapshot: ["actionName": .string(action.name),
+                "actionVersion": .string(try actionVersion(action)), "deletesDrafts": .bool(false)])
+    }
+
+    // The caller must consume the exact app-owned review before this commit.
+    func delete(_ request: AgentRequest, connectionID: UUID,
+                validateCommit: () throws -> Void) throws -> LibraryMutationReceipt {
+        if let previous = try deletionReceipt(request, connectionID: connectionID) { return previous }
+        guard let key = request.retryKey else { throw AgentErrorCode.invalidInput }
+        let ticket = try retryKeys.verify(key, request: request, connectionID: connectionID)
+        let action = try checkedDeletion(request)
+        let identity = LibraryMutationIdentity(requestID: request.requestID,
+            connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
+        do {
+            return try actionLibrary.commitActionDeletion(action.id, mutation: identity, at: now(),
+                resource: .init(id: action.id, versionToken: try actionVersion(action)), validateCommit: {
+                    try self.validateAdmission()
+                    _ = try self.retryKeys.verify(key, request: request, connectionID: connectionID)
+                    guard try self.checkedDeletion(request) == action else { throw AgentErrorCode.versionConflict }
+                    try validateCommit()
+                })
+        } catch let error as AgentErrorCode { throw error }
+        catch { throw AgentErrorCode.storageError }
+    }
+
+    func reviewAndDelete(_ request: AgentRequest, connectionID: UUID,
+                         operationID: UUID, approvals: AgentApprovalStore,
+                         operations: AgentOperationRegistry,
+                         validateSession: () throws -> Void) async throws -> [String: AgentJSONValue] {
+        var submitted = false
+        do {
+            try Task.checkCancellation()
+            try validateSession()
+            if let receipt = try deletionReceipt(request, connectionID: connectionID) {
+                return ["deletedIDs": .array(receipt.resources.map { .string($0.id.uuidString) })]
+            }
+            try operations.setWaitingForUser(operationID, waiting: true)
+            try await approvals.waitForApproval(request, connectionID: connectionID, resolveEffects: {
+                try validateSession()
+                return try self.deletionEffects(request, connectionID: connectionID)
+            })
+            try operations.setWaitingForUser(operationID, waiting: false)
+            try Task.checkCancellation()
+            try validateSession()
+            let effectID = UUID()
+            let receipt = try delete(request, connectionID: connectionID, validateCommit: {
+                try Task.checkCancellation()
+                try validateSession()
+                try operations.recordEffect(operationID, effectID: effectID,
+                    kind: "actions.delete", outcome: "submitted")
+                submitted = true
+            })
+            try operations.recordEffect(operationID, effectID: effectID,
+                kind: "actions.delete", outcome: "completed")
+            return ["deletedIDs": .array(receipt.resources.map { .string($0.id.uuidString) })]
+        } catch {
+            if submitted { throw AgentErrorCode.outcomeUnknown }
+            let code = error is CancellationError ? AgentErrorCode.cancelled : (error as? AgentErrorCode ?? .storageError)
+            throw AgentOperationRegistry.FailureBeforeEffects(code: code)
+        }
+    }
+
     private func checkedActionUpdate(_ request: AgentRequest, connectionID: UUID) throws -> DraftAction {
         guard let target = request.targets.first?.id, let expected = request.expectedVersion,
               let original = actionLibrary.actions.first(where: { $0.id == target }) else { throw AgentErrorCode.notFound }

@@ -3,6 +3,19 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Reviewed action deletion — 4 November
+
+Connected `actions.delete` through app-owned review, prepared intent, version
+checks and atomic storage receipts. Native review names the action and states
+that drafts and history remain. The action deletion uses the same storage
+boundary as Workspace deletion. Recovery cannot delete a recreated action with
+the same ID. Service cases cover approval, denial, cancellation and stale
+sessions; storage tests check rollback and recovery after reopen.
+Source coverage is 91 connected/conditional names of 137; 46 names have no
+direct handler. Strict validation verified 1 consumer, 184 contract, 823 Core
+and 1,618 app tests (2,626 total). The native package-name Debug build and two
+project checks passed. CI and installed acceptance remain pending.
+
 ## Bounded operation waiting — 4 November
 
 Connected `operations.wait` through the asynchronous socket and Chat Console
@@ -17,8 +30,9 @@ cross-connection denial and revocation before delivery. The normal package-name
 native build and two project checks passed. The strict recheck verified 1 consumer, 183 contract, 822 Core and 1,616 app
 tests (2,622 total). The first complete attempt exited during an existing Intent
 test without a results report; its isolated suite and the full recheck passed.
-See [wait validation](agent-operation-waiting-acceptance.md). CI
-for this increment is pending. Source coverage is now 90 connected or
+See [wait validation](agent-operation-waiting-acceptance.md). Full CI
+[41829611557](https://github.com/pobrespandas/draftly/actions/runs/41829611557)
+passed for `0f2b863`. Source coverage is now 90 connected or
 conditional names out of 137; 47 have no direct handler. These counts are not
 installed acceptance.
 
