@@ -5,7 +5,7 @@ import AgentContracts
 
 // Workspace snapshots and durable mutations share one version key.
 @MainActor final class AgentWorkspaceAccess {
-    static let operationNames: Set<String> = ["workspaces.create", "workspaces.update", "workspaces.duplicate"]
+    static let operationNames: Set<String> = ["workspaces.create", "workspaces.update", "workspaces.duplicate", "workspaces.reorder"]
     private let library: LibraryStore
     private let libraryID: UUID
     private let versionKey: SymmetricKey
@@ -25,6 +25,31 @@ import AgentContracts
     func version(_ workspace: Workspace) throws -> String {
         let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
         return Data(HMAC<SHA256>.authenticationCode(for: try encoder.encode(workspace), using: versionKey)).base64EncodedString()
+    }
+
+    func orderVersion() throws -> String {
+        let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
+        let records = library.workspaces.sorted { $0.id.uuidString < $1.id.uuidString }
+        let data = Data("workspace-order\n".utf8) + (try encoder.encode(records))
+        return Data(HMAC<SHA256>.authenticationCode(for: data, using: versionKey)).base64EncodedString()
+    }
+
+    private func checkedOrder(_ request: AgentRequest) throws -> [Workspace] {
+        guard let expected = request.expectedVersion, try orderVersion() == expected else { throw AgentErrorCode.versionConflict }
+        let parameters: [String: AgentJSONValue]
+        do { parameters = try AgentWorkspaceSchemas.validatedParameters(for: request) }
+        catch { throw AgentErrorCode.invalidInput }
+        guard case .array(let order) = parameters["order"] else { throw AgentErrorCode.invalidInput }
+        let byID = Dictionary(uniqueKeysWithValues: library.workspaces.map { ($0.id, $0) })
+        let ids = order.compactMap { item -> UUID? in
+            guard case .string(let raw) = item else { return nil }; return UUID(uuidString: raw)
+        }
+        guard ids.count == byID.count, Set(ids) == Set(byID.keys) else { throw AgentErrorCode.versionConflict }
+        return try ids.enumerated().map { index, id in
+            guard var value = byID[id] else { throw AgentErrorCode.versionConflict }
+            value.order = index
+            return value
+        }
     }
 
     private func checkedWorkspaceUpdate(_ request: AgentRequest) throws -> Workspace {
@@ -81,6 +106,11 @@ import AgentContracts
         do {
             let receipt = try library.mutationReceipt(for: identity, at: now())
             guard let receipt else { return nil }
+            if request.operation == "workspaces.reorder" {
+                guard receipt.resources.count == request.targets.count,
+                      Set(receipt.resources.map(\.id)) == Set(request.targets.map(\.id)) else { throw AgentErrorCode.storageError }
+                return receipt
+            }
             guard receipt.resources.count == 1, let resource = receipt.resources.first else { throw AgentErrorCode.storageError }
             switch request.operation {
             case "workspaces.update":
@@ -108,7 +138,10 @@ import AgentContracts
         guard Self.operationNames.contains(request.operation), request.retryKey == nil, request.libraryID == libraryID else { throw AgentErrorCode.invalidInput }
         try validateAdmission()
         let ticket = try retryKeys.issue(request, connectionID: connectionID)
-        if try workspaceReceipt(request, ticket: ticket) == nil { _ = try checkedMutation(request) }
+        if try workspaceReceipt(request, ticket: ticket) == nil {
+            if request.operation == "workspaces.reorder" { _ = try checkedOrder(request) }
+            else { _ = try checkedMutation(request) }
+        }
         try validateAdmission(); _ = try retryKeys.verify(ticket.value, request: request, connectionID: connectionID)
         return ticket
     }
@@ -121,12 +154,17 @@ import AgentContracts
             try validateAdmission(); _ = try retryKeys.verify(key, request: request, connectionID: connectionID)
             return previous
         }
-        let updated = try checkedMutation(request)
+        let updated: [Workspace]
+        if request.operation == "workspaces.reorder" { updated = try checkedOrder(request) }
+        else { updated = [try checkedMutation(request)] }
         let identity = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
         do {
-            return try library.commitWorkspaces([updated], mutation: identity, at: now(), validateCommit: {
+            return try library.commitWorkspaces(updated, mutation: identity, at: now(), validateCommit: {
                 try self.validateAdmission(); _ = try self.retryKeys.verify(key, request: request, connectionID: connectionID)
-                guard try self.checkedMutation(request, generatedID: updated.id) == updated else { throw AgentErrorCode.versionConflict }
+                let current: [Workspace]
+                if request.operation == "workspaces.reorder" { current = try self.checkedOrder(request) }
+                else { current = [try self.checkedMutation(request, generatedID: updated.first?.id)] }
+                guard current == updated else { throw AgentErrorCode.versionConflict }
             }, makeResources: { values in
                 try values.map { .init(id: $0.id, versionToken: try self.version($0)) }
             })

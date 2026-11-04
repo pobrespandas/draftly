@@ -437,7 +437,7 @@ import AgentContracts
                     return .object(["id": .string(id.uuidString), "name": .string(workspace.name),
                         "order": workspace.order.map { .integer(Int64($0)) } ?? .null,
                         "versionToken": .string(try self.workspaces.version(workspace))])
-                })
+                }, revision: grant.scope == .library ? { try self.workspaces.orderVersion() } : nil)
         case "activity.list":
             guard let readActivity else { throw AgentErrorCode.unavailable }
             let entries = try readActivity(grant.connectionID, grant.grantID).filter {
@@ -488,6 +488,10 @@ import AgentContracts
         case "actionGroups.reorder", "actions.reorder":
             let receipt = try actions.updateAction(request, connectionID: grant.connectionID)
             return ["resources": .array(receipt.resources.map { .object(["id": .string($0.id.uuidString), "versionToken": .string($0.versionToken)]) })]
+        case "workspaces.reorder":
+            let receipt = try workspaces.update(request, connectionID: grant.connectionID)
+            return ["resources": .array(receipt.resources.map { .object([
+                "id": .string($0.id.uuidString), "versionToken": .string($0.versionToken)]) })]
         case "workspaces.create", "workspaces.update", "workspaces.duplicate":
             let receipt = try workspaces.update(request, connectionID: grant.connectionID)
             guard let resource = receipt.resources.first else { throw AgentErrorCode.storageError }

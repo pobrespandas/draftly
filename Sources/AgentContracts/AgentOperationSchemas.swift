@@ -105,6 +105,14 @@ package enum AgentOperationSchemas {
             return
         }
         try validateResult(values, for: request.operation)
+        if request.operation == "workspaces.reorder" {
+            guard case .array(let resources) = values["resources"] else { throw AgentSchemaError.invalidValue }
+            let ids = resources.map { resource -> AgentJSONValue in
+                guard case .object(let value) = resource else { return .null }
+                return value["id"] ?? .null
+            }
+            try AgentResourceShapes.validateOrder(.array(ids), targets: request.targets)
+        }
         let binding: (field: String, key: String, kind: AgentResourceKind)?
         switch request.operation {
         case "drafts.get": binding = ("draft", "id", .draft)

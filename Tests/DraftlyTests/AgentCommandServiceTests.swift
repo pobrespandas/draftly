@@ -304,6 +304,79 @@ struct AgentCommandServiceTests {
         #expect(f.library.workspaces == [source])
     }
 
+    @Test func workspaceOrderUsesACompleteSnapshotAndRecoversItsReceipt() throws {
+        let f = try Fixture()
+        let original = [Workspace(name: "A café 🐼"), Workspace(name: "B"), Workspace(name: "C")]
+        try f.library.saveWorkspaces(original)
+        let (record, session) = try f.connect(capabilities: [.workspacesRead, .workspacesManage])
+        let listed = try f.values("workspaces.list", session: session)
+        guard case .string(let version) = listed["orderVersion"] else { throw AgentErrorCode.invalidInput }
+        let order = original.reversed().map(\.id)
+        let intent = AgentRequest(requestID: UUID(), libraryID: nil, operation: "workspaces.reorder",
+            targets: original.map { .init(kind: .workspace, id: $0.id) }, expectedVersion: version,
+            parameters: ["order": .array(order.map { .string($0.uuidString) })])
+        let prepared = try f.preparedMutation(intent, session: session)
+        #expect(f.library.workspaces == original)
+        f.library.beforeBatchCommit = { throw AgentErrorCode.storageError }
+        #expect(try f.send(prepared, session: session).outcome == .error(.storageError))
+        #expect(f.library.workspaces == original)
+        f.library.beforeBatchCommit = nil
+        let reply = try f.send(prepared, session: session)
+        guard case .result(.object(let result)) = reply.outcome, case .array(let resources) = result["resources"] else {
+            Issue.record("Missing order receipt: \(reply.outcome)"); return
+        }
+        #expect(f.library.workspaces.map(\.id) == order)
+        #expect(f.library.workspaces.map(\.order) == [0, 1, 2])
+        #expect(resources.compactMap { value -> String? in
+            guard case .object(let fields) = value, case .string(let id) = fields["id"] else { return nil }; return id
+        } == order.map(\.uuidString))
+        #expect(try f.send(prepared, session: session) == reply)
+        f.service = try f.makeService()
+        let reopened = try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        let recovered = try f.preparedMutation(intent, session: reopened)
+        #expect(try f.send(recovered, session: reopened) == reply)
+        #expect(f.library.workspaces.map(\.id) == order)
+    }
+
+    @Test func workspaceOrderRejectsMissingMembersAndChangedSnapshots() throws {
+        let f = try Fixture(), a = Workspace(name: "A"), b = Workspace(name: "B")
+        try f.library.saveWorkspaces([a, b])
+        let (_, session) = try f.connect(capabilities: [.workspacesRead, .workspacesManage])
+        guard case .string(let version) = try f.values("workspaces.list", session: session)["orderVersion"] else {
+            throw AgentErrorCode.invalidInput
+        }
+        let target = AgentResourceReference(kind: .workspace, id: a.id)
+        let incomplete = AgentRequest(requestID: UUID(), libraryID: nil, operation: "workspaces.reorder",
+            targets: [target], expectedVersion: version, parameters: ["order": .array([.string(a.id.uuidString)])])
+        let frame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(incomplete))
+        #expect(try f.response("mutations.prepare", session: session, parameters: ["request": frame]).outcome == .error(.versionConflict))
+        let intent = AgentRequest(requestID: UUID(), libraryID: nil, operation: "workspaces.reorder",
+            targets: [target, .init(kind: .workspace, id: b.id)], expectedVersion: version,
+            parameters: ["order": .array([.string(b.id.uuidString), .string(a.id.uuidString)])])
+        let prepared = try f.preparedMutation(intent, session: session)
+        var changed = b; changed.query = "Changed elsewhere"
+        try f.library.saveWorkspace(changed)
+        #expect(try f.send(prepared, session: session).outcome == .error(.versionConflict))
+        #expect(f.library.workspaces == [a, changed])
+    }
+
+    @Test func workspaceOrderSnapshotIsPrivateToLibraryScopeAndInvalidatesPaging() throws {
+        let f = try Fixture(), a = Workspace(name: "A"), b = Workspace(name: "B")
+        try f.library.saveWorkspaces([a, b])
+        let (_, session) = try f.connect(capabilities: [.workspacesRead, .workspacesManage])
+        let target = AgentResourceReference(kind: .workspace, id: a.id)
+        let (_, scoped) = try f.connect(scope: .resources([target]), capabilities: [.workspacesRead, .workspacesManage])
+        #expect(try f.values("workspaces.list", session: scoped)["orderVersion"] == nil)
+        let page = try f.values("workspaces.list", session: session, parameters: ["limit": .integer(1)])
+        guard let cursor = page["nextCursor"], case .string(let version) = page["orderVersion"] else { throw AgentErrorCode.invalidInput }
+        let intent = AgentRequest(requestID: UUID(), libraryID: nil, operation: "workspaces.reorder",
+            targets: [target], expectedVersion: version, parameters: ["order": .array([.string(a.id.uuidString)])])
+        let frame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(intent))
+        #expect(try f.response("mutations.prepare", session: scoped, parameters: ["request": frame]).outcome == .error(.permissionDenied))
+        try f.library.saveWorkspace(Workspace(name: "New member"))
+        #expect(try f.response("workspaces.list", session: session, parameters: ["cursor": cursor]).outcome == .error(.versionConflict))
+    }
+
     @Test func workspaceUpdateRespectsScopeConflictsAndRecovers() throws {
         let f = try Fixture(), original = Workspace(name: "Original")
         try f.library.saveWorkspace(original)
@@ -1773,7 +1846,7 @@ struct AgentCommandServiceTests {
         #expect(available.remove("syntaxes.list") != nil)
         #expect(available.remove("syntaxes.get") != nil)
         #expect(available.remove("drafts.duplicate") != nil)
-        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", "preferences.get", AgentMutationSchemas.name, "drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.setSelection", "editor.replaceRange", "editor.undo", "editor.redo", "editor.tasks", "editor.replaceAll", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.create", "workspaces.update", "workspaces.duplicate"]) && available.count == 48)
+        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", "preferences.get", AgentMutationSchemas.name, "drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.setSelection", "editor.replaceRange", "editor.undo", "editor.redo", "editor.tasks", "editor.replaceAll", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.create", "workspaces.update", "workspaces.duplicate", "workspaces.reorder"]) && available.count == 49)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.invalidInput))
         #expect(f.library.notes.isEmpty)
         #expect(try f.values("server.capabilities", session: session)["capabilities"] == .array([.string("drafts.read"), .string("drafts.write")]))

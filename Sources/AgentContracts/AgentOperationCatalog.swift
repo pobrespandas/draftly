@@ -128,7 +128,7 @@ package enum AgentOperationCatalog {
         .init(name: "workspaces.create", owner: "LibraryStore", capabilities: [.workspacesManage], targets: .none, requiresLibraryScope: true),
         .init(name: "workspaces.update", owner: "LibraryStore", capabilities: [.workspacesManage], targets: .one(.workspace), requiresExpectedVersion: true),
         .init(name: "workspaces.duplicate", owner: "LibraryStore", capabilities: [.workspacesManage], targets: .one(.workspace), requiresExpectedVersion: true, requiresLibraryScope: true),
-        .init(name: "workspaces.reorder", owner: "LibraryStore", capabilities: [.workspacesManage], targets: .many(.workspace), requiresExpectedVersion: true),
+        .init(name: "workspaces.reorder", owner: "LibraryStore", capabilities: [.workspacesManage], targets: .many(.workspace), requiresExpectedVersion: true, requiresLibraryScope: true),
         .init(name: "workspaces.delete", owner: "LibraryStore", capabilities: [.workspacesManage, .destructiveRequest], targets: .one(.workspace), requiresExpectedVersion: true, requiresHumanApproval: true),
         .init(name: "workspaces.apply", owner: "WindowModel.prepareWorkspace", capabilities: [.workspacesApply, .presentUI], targets: .pair(.workspace, .window), requiresExpectedVersion: true),
         .init(name: "themes.list", owner: "InstalledThemeCommands", capabilities: [.appearanceRead], targets: .none),

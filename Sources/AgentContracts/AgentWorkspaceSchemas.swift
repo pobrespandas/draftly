@@ -50,7 +50,7 @@ package enum AgentWorkspaceSchemas {
         return [
             "workspaces.list": .init(parameters: page, result: .init(fields: [
                 "items": r(.array(.object(summary), maximum: 200)),
-                "nextCursor": r(.nullable(AgentResourceShapes.token))
+                "nextCursor": r(.nullable(AgentResourceShapes.token)), "orderVersion": o(AgentResourceShapes.token)
             ])),
             "workspaces.get": .init(parameters: none, result: .init(fields: [
                 "workspace": r(.object(definition)), "versionToken": r(AgentResourceShapes.token)

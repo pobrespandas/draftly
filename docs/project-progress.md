@@ -3,6 +3,19 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Agent Workspace order snapshots — 4 November
+
+Connected `workspaces.reorder`. Library-scoped list pages carry an opaque order
+snapshot. Selected-resource pages do not disclose it. Reorder requires every
+current Workspace and rejects stale metadata, changed membership, and partial
+resource sets. Atomic commit and durable receipts preserve the old order on
+failure and prevent another reorder after a lost reply or service restart.
+
+The focused run passed 146 tests. The normal native build passed without the
+QA flag. Source-set coverage is now 60 connected or conditional names out of
+137, with 77 direct handlers missing. Installed acceptance and full CI remain
+pending. Workspaces still need direct apply and reviewed delete handlers.
+
 ## Agent Workspace creation and duplication — 4 November
 
 Connected `workspaces.create` and `workspaces.duplicate` through a shared

@@ -118,11 +118,27 @@ flag, passed. Project-generator tests passed two checks. Installed creation and
 duplication acceptance, full CI for this change, and the three remaining
 Workspace contracts are still pending.
 
+## Workspace order snapshots
+
+`workspaces.reorder` now has a connected handler. Library-scoped lists return
+an optional opaque `orderVersion` through the existing frozen-page mechanism.
+Selected-resource lists omit it. Metadata or membership changes invalidate
+library-scoped continuation pages and prepared reorder requests. Reorder
+requires library scope and every current Workspace exactly once. It changes
+only order values and returns receipts for the same resource set.
+
+The batch uses the existing atomic Workspace commit. Storage failure leaves
+the prior order intact. Retry and service-restart recovery return the original
+receipt without another reorder. The final focused run passed 146 tests across
+service, availability, Workspace/read schemas, and permission policy. The
+normal native build passed. Installed acceptance and full CI for this change
+remain pending. Applying and deleting Workspaces still have no direct handler.
+
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-59 names in implemented or conditional handler sets. The other 78 names have
-no direct handler in those sets. These counts do not prove that 59 operations
+60 names in implemented or conditional handler sets. The other 77 names have
+no direct handler in those sets. These counts do not prove that 60 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -136,7 +152,7 @@ a direct handler for every `native.*` contract.
 | Drafts | `drafts.archive`, `drafts.flag`, `drafts.merge`, `drafts.purge`, `drafts.restore`, `drafts.syntax`, `drafts.tags`, `drafts.trash` |
 | Editor | `editor.navigate`, `editor.open`, `editor.preview` |
 | Actions and groups | `actions.delete`, `actionGroups.delete` |
-| Workspaces | `workspaces.apply`, `workspaces.delete`, `workspaces.reorder` |
+| Workspaces | `workspaces.apply`, `workspaces.delete` |
 | Themes | All 14 declared `themes.*` contracts. |
 | Syntax | `syntaxes.delete`, `syntaxes.export`, `syntaxes.install`, `syntaxes.reload`, `syntaxes.replace` |
 | Bookmarks | `bookmarks.forget`, `bookmarks.list`, `bookmarks.requestAdd` |
