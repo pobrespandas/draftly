@@ -291,6 +291,38 @@ import AgentContracts
         }
     }
 
+    // Recheck this boundary inside the storage transaction, before its commit.
+    func synchronizeDeletion(_ ids: Set<UUID>, committing: (() throws -> Void) throws -> Void) throws {
+        guard valid else { throw AgentErrorCode.cancelled }
+        guard !self.committing else { throw AgentErrorCode.busy }
+        guard !ids.isEmpty else { throw AgentErrorCode.invalidInput }
+        var expected: [UUID: String] = [:]
+        for id in ids {
+            guard let stored = library.notes.first(where: { $0.id == id }) else { throw AgentErrorCode.notFound }
+            expected[id] = try snapshot(stored).generation
+        }
+        func validate() throws {
+            guard !ActionRunner.isExecuting(in: library) else { throw AgentErrorCode.busy }
+            for (id, generation) in expected { try validateMutationGeneration(for: id, expected: generation) }
+            for model in trackedModels() where model.editor.noteID.map(ids.contains) == true {
+                guard !model.actionPending, !model.runner.isRunning else { throw AgentErrorCode.busy }
+                guard model.editor.canApplyExternalEdit?() != false else { throw AgentErrorCode.interactionRequired }
+            }
+        }
+        try validate()
+        self.committing = true
+        defer { self.committing = false }
+        try committing(validate)
+        guard !library.notes.contains(where: { ids.contains($0.id) }) else { throw AgentErrorCode.storageError }
+        // Keep cleanup synchronous even if a storage publication ended authority.
+        for model in models() where model.library === library {
+            if let id = model.editor.noteID, ids.contains(id) {
+                controlled(model) { model.discardDeletedDraft(id) }
+            }
+        }
+        for id in ids { generations.removeValue(forKey: id) }
+    }
+
     func validateMutationGeneration(for id: UUID, expected: String) throws {
         guard valid else { throw AgentErrorCode.cancelled }
         _ = trackedModels()

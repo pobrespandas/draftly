@@ -3,6 +3,29 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Deleted-draft editor coordination — 4 November
+
+The editor registry can coordinate a reviewed deletion with its storage commit.
+It checks current draft generations, conflicting pending text, running actions
+and native editor interaction. The caller receives a validation callback for
+the transaction boundary. A failed commit leaves pending editor text in place.
+After commit, every matching tracked window cancels autosave and switches to a
+new empty scratch draft without flushing the deleted text. Its native Undo
+history is cleared by the draft transition. Cleanup remains synchronous if a
+storage publication ends authority. Unrelated drafts stay open.
+
+The first deletion test exposed an Undo fixture exception: the native draft
+transition clears groups, so the fixture must not close a removed group. The
+fixture now checks the group level before closing it. This change does not
+alter the production Undo path. The handler still needs native review, exact
+version binding, durable operation reconciliation and installed acceptance.
+`drafts.purge` remains unavailable. Coverage remains 69 connected or conditional
+operations and 68 missing direct handlers.
+
+The final focused run passed 46 tests across five suites: editor mutation,
+draft writing, native Trash, script Undo and range Undo. The normal native build
+passed. These are source-level checks; installed deletion acceptance is open.
+
 ## Targeted Trash transaction — 4 November
 
 A package-only storage operation can delete an exact nonempty set of trashed

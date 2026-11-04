@@ -281,6 +281,19 @@ final class WindowModel: ObservableObject {
         folder = .inbox; clearFilters()
         return true
     }
+    // A committed deletion must not flush the removed draft back into storage.
+    func discardDeletedDraft(_ id: UUID) {
+        guard editor.noteID == id, !library.notes.contains(where: { $0.id == id }) else { return }
+        saveTask?.cancel(); saveTask = nil; pendingSaveConflict = nil
+        cancelActionForUserEdit()
+        if lastNoteID == id { lastNoteID = nil }
+        let note = Note()
+        scratchNote = note; showPreview = false; previewHTML = nil
+        editor.load(note, focusEditor: false)
+        tagsText = ""; status = ""; hasUnsavedChanges = false
+        editor.synchronizeScriptEdit?()
+    }
+
     func select(_ id: UUID?, focusEditor: Bool = true, fromAction: Bool = false) {
         guard id != editor.noteID else { return }
         if !fromAction { cancelActionForUserEdit() }
