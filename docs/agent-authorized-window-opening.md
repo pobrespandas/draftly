@@ -2,9 +2,9 @@
 
 The app now has a separate authorized new-window adapter. It uses the real scene
 request registry and returns the actual registered window model. This is a
-foundation for `editor.open`, not a connected CLI/MCP handler. The operation
-remains unavailable. Source coverage stays at 107 connected/conditional names
-and 30 names without a direct handler.
+foundation checkpoint for `editor.open`. Its later service integration is
+recorded in [opening validation](agent-editor-opening-acceptance.md). At this
+checkpoint, coverage was 107 connected/conditional names with 30 missing handlers.
 
 The caller supplies live authorization. The adapter checks it before target
 lookup, before scene loading, around native selection, and before returning.
@@ -26,16 +26,13 @@ recording access, unchanged drafts and versions, unexpected pending editors,
 late registration after cancellation, and completed-window ownership. They do
 not prove visible focus or installed SwiftUI scene behavior.
 
-## Remaining integration
+## Integration status
 
-- Connect this factory through the app-owned editor registry and local host.
-- Implement both explicit-window and new-window forms of `editor.open`.
-- Check the existing window version, current draft scope and pending-save rights
-  before replacing its editor. Never select an implicit active window.
-- Preserve request identity and uncertain effects in the shared journal. Report
-  the actual new window identity without broadening its grant automatically.
-- Test expiry and Stop Work during creation, MCP discovery and result recovery.
-- Accept the complete path in a signed installed app and after an update.
+The later opening implementation connects this factory through the app-owned
+editor registry. It supports explicit-window and new-window requests with scope,
+version checks and the durable operation journal. Installed scene behavior,
+visible focus, expiry/Stop Work while displaying UI, and signed-update client
+sessions remain open. Read the opening report for that later evidence.
 
 The initial 19 opening tests and native Debug build passed. The final lookup
 ordering check adds one test. Strict final validation verified 1 consumer,

@@ -304,6 +304,9 @@ final class AppController: ObservableObject {
         let registry = AgentEditorRegistry(library: library, models: { [weak self, weak library] in
             guard let self, let library, self.library === library else { return [] }
             return self.windows.allObjects
+        }, openWindow: { [weak self, weak library] id, focus, authorize in
+            guard let self, let library, self.library === library else { throw AgentErrorCode.cancelled }
+            return try await self.openAuthorizedDraftWindow(id, focusEditor: focus, authorize: authorize)
         })
         registry.refreshMembership()
         cachedAgentEditors = registry

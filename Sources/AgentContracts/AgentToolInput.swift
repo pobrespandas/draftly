@@ -87,6 +87,7 @@ package extension AgentOperationDescriptor {
         case "server.status": "Read the Draftly host version and access status."
         case "server.capabilities": "Read this connection's current permissions, resource scope and expiry."
         case "server.schemas": "Read operation schemas and current handler availability."
+        case "editor.open": "Open an authorized draft in an explicit window and its current expectedWindowVersion, or request newWindow. Never choose an implicit active window. Saving pending text also requires drafts.write and source-draft scope. Focus defaults to false. Retrying recovers the original outcome without opening again."
         case "editor.navigate": "Move to the previous or next draft in the current visible list. Read the editor for its current version first. Both drafts must be in scope. Saving pending text also requires drafts.write. Retry the same request to recover its original outcome without navigating again."
         case "editor.preview": "Set Markdown preview visibility for the authorized current draft without saving pending text. Retrying reports the original outcome and does not change the view again."
         case "library.summary": "Count drafts inside the approved scope, including Trash."

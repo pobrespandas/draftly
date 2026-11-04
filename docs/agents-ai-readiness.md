@@ -513,11 +513,21 @@ after saving prevents later loading and returns an uncertain result without
 replay. See [navigation validation](agent-editor-navigation-acceptance.md) for
 local evidence and remaining installed and update checks.
 
+## Direct editor opening
+
+`editor.open` now supports explicit windows with their expected version and
+new windows through the app-owned authorized scene factory. Source/window/target
+scope and pending-save rights are checked before replacement. New window IDs do
+not broaden a grant. Journal recovery never creates another scene or reloads an
+editor. Source validation passed 174 focal tests, all 2,678 strict Swift tests and
+the native Debug build. Installed focus, presentation and post-update client
+acceptance remain open. See [opening validation](agent-editor-opening-acceptance.md).
+
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-107 names in implemented or conditional handler sets. The other 30 names have
-no direct handler in those sets. These counts do not prove that 107 operations
+108 names in implemented or conditional handler sets. The other 29 names have
+no direct handler in those sets. These counts do not prove that 108 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -528,7 +538,6 @@ a direct handler for every `native.*` contract.
 
 | Family | Direct contracts still outside those handler sets |
 | --- | --- |
-| Editor | `editor.open` |
 | Themes | `themes.select`, `themes.selectBuiltIn`, `themes.replace`, `themes.reload`, `themes.install`, `themes.delete` |
 | Syntax | `syntaxes.delete`, `syntaxes.install`, `syntaxes.reload`, `syntaxes.replace` |
 | Bookmarks | `bookmarks.forget`, `bookmarks.requestAdd` |
@@ -752,9 +761,9 @@ acceptance remain open. See the navigation report for scope and logs.
 
 The [authorized new-window adapter](agent-authorized-window-opening.md) now
 provides app-owned scene creation with authority checks and protected cleanup.
-`editor.open` remains unavailable until both explicit-window and new-window
-requests connect to the service, scope policy and durable registry. This adapter
-does not increase operation coverage or establish installed opening acceptance.
+The later `editor.open` integration connects both forms to the service, scope
+policy and durable registry; see its opening report. The adapter alone did not
+increase operation coverage or establish installed opening acceptance.
 
 CI for navigation source `0f9c51f` ended without running native or tooling jobs.
 GitHub reported unavailable macOS arm64 runner capacity. Plan and matrix passed;

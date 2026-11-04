@@ -112,10 +112,19 @@ struct AgentOperationAvailabilityTests {
         #expect(AgentOperationAvailability(handlers: handlers).operations.contains("editor.navigate") == (mask == 3))
     }
 
+    @Test(arguments: 0..<8)
+    func openingNeedsEditorMembershipFactoryAndOperationControl(_ mask: Int) {
+        var handlers: Set<AgentOperationAvailability.Handler> = []
+        if mask & 1 != 0 { handlers.insert(.editorRead) }
+        if mask & 2 != 0 { handlers.insert(.editorOpen) }
+        if mask & 4 != 0 { handlers.insert(.operationControl) }
+        #expect(AgentOperationAvailability(handlers: handlers).operations.contains("editor.open") == (mask == 7))
+    }
+
     @Test func completeHostUsesOnlyKnownContractsAndDoesNotAdvertiseMissingHandlers() {
         let available = AgentOperationAvailability(handlers: Set(AgentOperationAvailability.Handler.allCases))
         #expect(available.operations == AgentCommandService.implementedOperations.union([
-            "activity.list", "operations.get", "operations.cancel", "operations.wait", "actions.run", "workspaces.delete", "drafts.purge", "actions.delete", "actionGroups.delete", "editor.preview", "editor.navigate"]).union(AgentNativeSchemas.operationNames))
+            "activity.list", "operations.get", "operations.cancel", "operations.wait", "actions.run", "workspaces.delete", "drafts.purge", "actions.delete", "actionGroups.delete", "editor.preview", "editor.navigate", "editor.open"]).union(AgentNativeSchemas.operationNames))
         #expect(available.operations.allSatisfy { AgentOperationCatalog.operation(named: $0) != nil })
         #expect(!available.operations.contains("drafts.delete"))
         #expect(!available.operations.contains("backups.restore"))

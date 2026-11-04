@@ -16,6 +16,7 @@ import AgentContracts
     private var availability: AgentOperationAvailability {
         var handlers: Set<AgentOperationAvailability.Handler> = [.themeWrite]
         if editorRegistry != nil { handlers.insert(.editorRead) }
+        if editorRegistry?.canOpenWindow == true { handlers.insert(.editorOpen) }
         if writes != nil { handlers.insert(.draftWrite) }
         if editorWrites != nil { handlers.insert(.editorWrite) }
         if workspaceApplication != nil { handlers.insert(.workspaceApply) }
@@ -273,6 +274,8 @@ import AgentContracts
             let outcome: AgentResponse.Outcome
             if AgentNativeSchemas.operationNames.contains(request.operation) {
                 outcome = try submitNative(request, grant: grant, sessionID: session.id)
+            } else if request.operation == "editor.open" {
+                outcome = try submitEditorOpen(request, grant: grant, sessionID: session.id)
             } else if ["editor.preview", "editor.navigate"].contains(request.operation) {
                 outcome = try submitEditorPresentation(request, grant: grant, sessionID: session.id)
             } else if ["workspaces.delete", "drafts.purge", "actions.delete", "actionGroups.delete"].contains(request.operation) {
@@ -336,7 +339,7 @@ import AgentContracts
             let syntaxExport = request.operation == "syntaxes.export"
             let themeMutation = AgentThemeWriting.operationNames.contains(request.operation)
             let reviewedNative = AgentNativeSchemas.operationNames.contains(request.operation) && nativeExecution != nil && operationRegistry != nil
-            let editorPresentation = ["editor.preview", "editor.navigate"].contains(request.operation) && editorRegistry != nil && operationRegistry != nil
+            let editorPresentation = ["editor.preview", "editor.navigate", "editor.open"].contains(request.operation) && editorRegistry != nil && operationRegistry != nil
             guard reviewedAction || reviewedNative || (!humanApproval && (editorPresentation || preferenceMutation || workspaceEffect || themeRead || themeMutation || syntaxExport)) else {
                 throw AgentErrorCode.unavailable
             }
@@ -346,6 +349,83 @@ import AgentContracts
         do { parameters = try AgentOperationSchemas.validatedParameters(for: request, preferences: preferences) }
         catch { throw AgentErrorCode.invalidInput }
         return parameters
+    }
+
+    private func submitEditorOpen(_ request: AgentRequest, grant: AgentGrant, sessionID: UUID) throws -> AgentResponse.Outcome {
+        guard let editorRegistry, editorRegistry.canOpenWindow, let operationRegistry,
+              let draftID = request.targets.first?.id else { throw AgentErrorCode.unavailable }
+        try validateSession(sessionID, grant: grant)
+        let parameters = try AgentEditorSchemas.validatedParameters(for: request)
+        func outcome(_ snapshot: AgentOperationRegistry.Snapshot) throws -> AgentResponse.Outcome {
+            if snapshot.state == .succeeded {
+                guard case .object(let result) = snapshot.result else { throw AgentErrorCode.storageError }
+                try AgentEditorSchemas.validateResult(result, for: request)
+                return .result(.object(result))
+            }
+            if snapshot.state.isTerminal { return .error(snapshot.error ?? .outcomeUnknown) }
+            return .accepted(operationID: snapshot.id, state: snapshot.state)
+        }
+        if let id = try operationRegistry.existingRequest(request, grant: grant) {
+            return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))
+        }
+        guard actionLibrary.notes.contains(where: { $0.id == draftID }) else { throw AgentErrorCode.notFound }
+        let newWindow = parameters["newWindow"] == .bool(true), focus = parameters["focus"] == .bool(true)
+        let allowSaving = grant.capabilities.contains(.draftsWrite)
+        var initial: AgentEditorWriting.Context?
+        var affected: Set<AgentResourceReference> = []
+        if !newWindow {
+            guard case .string(let raw) = parameters["windowID"], let windowID = UUID(uuidString: raw),
+                  case .string(let expected) = parameters["expectedWindowVersion"] else { throw AgentErrorCode.invalidInput }
+            let context = try editorContext(windowID, grant: grant)
+            guard context.version == expected else { throw AgentErrorCode.versionConflict }
+            try editorRegistry.validateOpening(context.snapshot, destination: draftID, allowSaving: allowSaving)
+            initial = context
+            affected.insert(.init(kind: .window, id: windowID))
+            if let source = context.snapshot.draftID { affected.insert(.init(kind: .draft, id: source)) }
+        }
+        let validateOperation = operationAuthority(for: grant)
+        let validateTarget = { [weak self] in
+            guard let self else { throw AgentErrorCode.cancelled }
+            try validateOperation()
+            guard self.actionLibrary.notes.contains(where: { $0.id == draftID }) else { throw AgentErrorCode.notFound }
+        }
+        let id = try operationRegistry.startValueRequest(request, grant: grant, effectTargets: affected) { [weak self] id in
+            guard let self else { throw AgentOperationRegistry.FailureBeforeEffects(code: .cancelled) }
+            let effect = UUID()
+            var submitted = false
+            do {
+                try Task.checkCancellation(); try validateTarget()
+                if let initial {
+                    let current = try self.editorContext(initial.snapshot.id, grant: grant)
+                    guard current.version == initial.version, current.snapshot.generation == initial.snapshot.generation else {
+                        throw AgentErrorCode.versionConflict
+                    }
+                    try editorRegistry.validateOpening(current.snapshot, destination: draftID, allowSaving: allowSaving)
+                }
+                try operationRegistry.recordEffect(id, effectID: effect, kind: request.operation, outcome: "submitted")
+                submitted = true
+                let opened: AgentEditorRegistry.WindowSnapshot
+                if newWindow { opened = try await editorRegistry.openNewWindow(draftID: draftID, focus: focus, authorize: validateTarget) }
+                else if let initial {
+                    opened = try editorRegistry.openExisting(initial.snapshot, destination: draftID, focus: focus,
+                        allowSaving: allowSaving, authorize: validateTarget)
+                } else { throw AgentErrorCode.invalidInput }
+                try Task.checkCancellation(); try validateTarget()
+                var result = try self.editorValues(opened)
+                result["selection"] = .object(["offset": .integer(Int64(opened.selection.location)), "length": .integer(Int64(opened.selection.length))])
+                try AgentEditorSchemas.validateResult(result, for: request)
+                try operationRegistry.recordEffect(id, effectID: effect, kind: request.operation, outcome: "completed")
+                return result
+            } catch {
+                if submitted {
+                    try? operationRegistry.recordEffect(id, effectID: effect, kind: request.operation, outcome: "unknown")
+                    throw AgentErrorCode.outcomeUnknown
+                }
+                throw AgentOperationRegistry.FailureBeforeEffects(code:
+                    error is CancellationError ? .cancelled : (error as? AgentErrorCode ?? .storageError))
+            }
+        }
+        return try outcome(operationRegistry.snapshot(id, connectionID: grant.connectionID))
     }
 
     private func submitEditorPresentation(_ request: AgentRequest, grant: AgentGrant, sessionID: UUID) throws -> AgentResponse.Outcome {

@@ -3,6 +3,17 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Direct editor opening — 4 November
+
+Connected both explicit-window and new-window forms of `editor.open`. Existing
+replacement binds the window version and requires source/window/target scope.
+Pending saves require draft-write permission. New scenes use the authorized
+adapter and never broaden grants to their returned window identifier. Recovery
+does not save, focus or open again. Source coverage is 108 connected/conditional
+names of 137; 29 have no direct handler. The strict 2,678 tests, 174 focal tests
+and native Debug build passed. See
+[opening validation](agent-editor-opening-acceptance.md) for installed and CI gates.
+
 ## Authorized new-window adapter — 4 November
 
 The app has a new scene-opening adapter with live authorization, strict empty

@@ -41,5 +41,5 @@ Strict complete Swift validation verified 1 consumer, 193 contract, 824 Core
 and 1,645 app tests (2,663 total). The log is
 `/tmp/draftly-editor-preview-full.log`. Full CI of this source remains open. Signed installed
 presentation, real focus behavior and post-update client acceptance remain open.
-Editor opening still has no direct handler. Later navigation validation is
+Later editor opening validation is in [its report](agent-editor-opening-acceptance.md). Later navigation validation is
 recorded in [its own report](agent-editor-navigation-acceptance.md).

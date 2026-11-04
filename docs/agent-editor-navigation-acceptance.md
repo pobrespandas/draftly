@@ -50,5 +50,5 @@ Logs: `/tmp/draftly-editor-navigation-final-focused.log` and
 193 contract, 824 Core and 1,649 app tests (2,667 total). The log is
 `/tmp/draftly-editor-navigation-full.log`. The final native Debug build passed.
 Full CI of this source remains open. Installed navigation and native focus, cross-device storage
-conflicts, and post-update client sessions remain open. `editor.open` still has
-no direct handler.
+conflicts, and post-update client sessions remain open. Later direct opening validation is recorded in
+[its own report](agent-editor-opening-acceptance.md).

@@ -97,15 +97,43 @@ import AgentContracts
     func navigationDestination(_ expected: WindowSnapshot, offset: Int, allowSaving: Bool) throws -> UUID {
         try validatePreview(expected)
         let model = try matchingModel(expected)
-        guard let source = expected.draftID, let stored = library.notes.first(where: { $0.id == source }) else {
+        guard let source = expected.draftID, library.notes.contains(where: { $0.id == source }) else {
             throw AgentErrorCode.notFound
         }
-        _ = try snapshot(stored)
         let destination = model.navigationDestination(offset) ?? source
+        try validateOpening(expected, destination: destination, allowSaving: allowSaving)
+        return destination
+    }
+
+    func validateOpening(_ expected: WindowSnapshot, destination: UUID, allowSaving: Bool) throws {
+        try validatePreview(expected)
+        guard let source = expected.draftID, let stored = library.notes.first(where: { $0.id == source }),
+              library.notes.contains(where: { $0.id == destination }) else { throw AgentErrorCode.notFound }
+        _ = try snapshot(stored)
         if destination != source, expected.dirty || !DraftOperations.sameText(stored.content, expected.content) {
             guard allowSaving else { throw AgentErrorCode.permissionDenied }
         }
-        return destination
+    }
+
+    func openNewWindow(draftID: UUID, focus: Bool, authorize: @escaping () throws -> Void) async throws -> WindowSnapshot {
+        guard valid, let openWindow else { throw AgentErrorCode.unavailable }
+        try authorize(); try Task.checkCancellation()
+        let model = try await openWindow(draftID, focus, authorize)
+        try Task.checkCancellation(); try authorize()
+        guard valid, model.library === library, model.window != nil, trackedModels().contains(where: { $0 === model }),
+              let id = entries[ObjectIdentifier(model)]?.windowID,
+              let snapshot = try windowSnapshots().first(where: { $0.id == id }), snapshot.draftID == draftID else {
+            throw AgentErrorCode.outcomeUnknown
+        }
+        return snapshot
+    }
+
+    func openExisting(_ expected: WindowSnapshot, destination: UUID, focus: Bool, allowSaving: Bool,
+                      authorize: () throws -> Void) throws -> WindowSnapshot {
+        try validateOpening(expected, destination: destination, allowSaving: allowSaving)
+        try authorize()
+        try validateOpening(expected, destination: destination, allowSaving: allowSaving)
+        return try select(expected, destination: destination, focus: focus, activate: focus, authorize: authorize)
     }
 
     func navigate(_ expected: WindowSnapshot, offset: Int, destination: UUID, allowSaving: Bool,
@@ -117,13 +145,23 @@ import AgentContracts
         guard try navigationDestination(expected, offset: offset, allowSaving: allowSaving) == destination else {
             throw AgentErrorCode.versionConflict
         }
+        return try select(expected, destination: destination, focus: true, authorize: authorize)
+    }
+
+    private func select(_ expected: WindowSnapshot, destination: UUID, focus: Bool, activate: Bool = false,
+                        authorize: () throws -> Void) throws -> WindowSnapshot {
         let model = try matchingModel(expected)
-        guard try model.selectAuthorized(destination, authorize: {
+        guard try model.selectAuthorized(destination, focusEditor: focus, authorize: {
             try authorize()
             guard self.library.notes.contains(where: { $0.id == destination }),
                   self.library.notes.contains(where: { $0.id == expected.draftID }) else { throw AgentErrorCode.notFound }
         }) else { throw AgentErrorCode.storageError }
         try authorize()
+        if activate {
+            model.window?.makeKeyAndOrderFront(nil)
+            model.editor.focusToken = UUID()
+            try authorize()
+        }
         guard valid, let result = try windowSnapshots().first(where: { $0.id == expected.id }),
               result.draftID == destination else { throw AgentErrorCode.outcomeUnknown }
         return result
@@ -235,6 +273,10 @@ import AgentContracts
             selection = model.editor.selection
         }
     }
+    typealias WindowOpening = @MainActor (UUID, Bool, @escaping () throws -> Void) async throws -> WindowModel
+    private let openWindow: WindowOpening?
+    var canOpenWindow: Bool { valid && openWindow != nil }
+
     private let library: LibraryStore
     private let models: () -> [WindowModel]
     private var entries: [ObjectIdentifier: Entry] = [:]
@@ -243,7 +285,8 @@ import AgentContracts
     private var committing = false
     private var controlledChanges: Set<ObjectIdentifier> = []
 
-    init(library: LibraryStore, models: @escaping () -> [WindowModel]) {
+    init(library: LibraryStore, models: @escaping () -> [WindowModel], openWindow: WindowOpening? = nil) {
+        self.openWindow = openWindow
         self.library = library; self.models = models
     }
 
