@@ -3,6 +3,22 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Agent Workspace creation and duplication — 4 November
+
+Connected `workspaces.create` and `workspaces.duplicate` through a shared
+Workspace access component. Creation inherits app defaults and accepts explicit
+overrides. Duplication preserves metadata. Both require library scope and use
+prepared mutations, current authority checks, and durable receipts. Repeating
+a completed request or recovering after service restart does not create another
+copy. Existing selected-resource updates keep their prior behavior.
+
+The focused run passed 130 tests. These include source conflicts, storage
+failure, scope denial, and revocation, expiry, and lock before commit. The normal
+native build passed without the QA flag. Project-generator tests passed two
+checks. Source-set coverage is now 59 connected or conditional names out of
+137, with 78 direct handlers still missing. Installed acceptance and full CI for
+this change remain pending. Read [readiness](agents-ai-readiness.md) for limits.
+
 ## Normal agent startup follow-up — 4 November
 
 Builds with the bundled helper now construct an idle host at normal startup.

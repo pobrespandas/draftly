@@ -32,6 +32,12 @@ import AgentContracts
                 guard let self else { throw AgentErrorCode.cancelled }
                 try self.validateAdmission()
             }, now: now)
+    private lazy var workspaces = AgentWorkspaceAccess(library: actionLibrary, libraryID: libraryID,
+            versionKey: actionVersionKey, retryKeys: retryKeys, defaults: preferenceDefaults,
+            validateAdmission: { [weak self] in
+                guard let self else { throw AgentErrorCode.cancelled }
+                try self.validateAdmission()
+            }, now: now)
     private let actionLibrary: LibraryStore
     private let operationRegistry: AgentOperationRegistry?
     private let submitAction: ((AgentRequest, AgentGrant) throws -> UUID)?
@@ -348,77 +354,6 @@ import AgentContracts
         return ["actionVersion": .string(try actions.actionVersion(action)), "draftVersion": .string(draftVersion)]
     }
 
-    private func workspaceVersion(_ workspace: Workspace) throws -> String {
-        let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
-        return Data(HMAC<SHA256>.authenticationCode(for: try encoder.encode(workspace), using: actionVersionKey)).base64EncodedString()
-    }
-
-    private func checkedWorkspaceUpdate(_ request: AgentRequest) throws -> Workspace {
-        guard let target = request.targets.first?.id, let expected = request.expectedVersion,
-              let original = actionLibrary.workspaces.first(where: { $0.id == target }) else { throw AgentErrorCode.notFound }
-        guard try workspaceVersion(original) == expected else { throw AgentErrorCode.versionConflict }
-        let parameters: [String: AgentJSONValue]
-        do { parameters = try AgentWorkspaceSchemas.validatedParameters(for: request) }
-        catch { throw AgentErrorCode.invalidInput }
-        guard let value = parameters["workspace"] else { throw AgentErrorCode.invalidInput }
-        let updated: Workspace
-        do { updated = try JSONDecoder().decode(Workspace.self, from: JSONEncoder().encode(value)) }
-        catch { throw AgentErrorCode.invalidInput }
-        guard updated.id == target, updated.order == original.order,
-              !updated.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw AgentErrorCode.invalidInput
-        }
-        return updated
-    }
-
-    private func workspaceReceipt(_ request: AgentRequest, ticket: AgentRetryKeys.Ticket) throws -> LibraryMutationReceipt? {
-        let identity = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
-        do {
-            let receipt = try actionLibrary.mutationReceipt(for: identity, at: now())
-            guard receipt == nil || (receipt?.resources.count == 1 && receipt?.resources.first?.id == request.targets.first?.id) else {
-                throw AgentErrorCode.storageError
-            }
-            return receipt
-        } catch let error as LibraryMutationReceiptError {
-            switch error {
-            case .requestConflict: throw AgentErrorCode.invalidInput
-            case .retryWindowExpired: throw AgentErrorCode.retryWindowExpired
-            case .pendingChanges: throw AgentErrorCode.busy
-            case .invalidReceipt: throw AgentErrorCode.storageError
-            }
-        }
-    }
-
-    private func prepareWorkspaceUpdate(_ request: AgentRequest, connectionID: UUID) throws -> AgentRetryKeys.Ticket {
-        guard request.retryKey == nil, request.libraryID == libraryID else { throw AgentErrorCode.invalidInput }
-        try validateAdmission()
-        let ticket = try retryKeys.issue(request, connectionID: connectionID)
-        if try workspaceReceipt(request, ticket: ticket) == nil { _ = try checkedWorkspaceUpdate(request) }
-        try validateAdmission(); _ = try retryKeys.verify(ticket.value, request: request, connectionID: connectionID)
-        return ticket
-    }
-
-    private func updateWorkspace(_ request: AgentRequest, connectionID: UUID) throws -> LibraryMutationReceipt {
-        guard let key = request.retryKey else { throw AgentErrorCode.invalidInput }
-        try validateAdmission()
-        let ticket = try retryKeys.verify(key, request: request, connectionID: connectionID)
-        if let previous = try workspaceReceipt(request, ticket: ticket) {
-            try validateAdmission(); _ = try retryKeys.verify(key, request: request, connectionID: connectionID)
-            return previous
-        }
-        let updated = try checkedWorkspaceUpdate(request)
-        let identity = LibraryMutationIdentity(requestID: request.requestID, connectionHash: ticket.connectionHash, requestHash: ticket.requestHash)
-        do {
-            return try actionLibrary.commitWorkspaces([updated], mutation: identity, at: now(), validateCommit: {
-                try self.validateAdmission(); _ = try self.retryKeys.verify(key, request: request, connectionID: connectionID)
-                guard try self.checkedWorkspaceUpdate(request) == updated else { throw AgentErrorCode.versionConflict }
-            }, makeResources: { values in
-                try values.map { .init(id: $0.id, versionToken: try self.workspaceVersion($0)) }
-            })
-        } catch let error as AgentErrorCode { throw error }
-        catch { throw AgentErrorCode.storageError }
-    }
-
     private func dispatch(_ request: AgentRequest, parameters: [String: AgentJSONValue], grant: AgentGrant,
                           sessionID: UUID) throws -> [String: AgentJSONValue] {
         switch request.operation {
@@ -491,7 +426,7 @@ import AgentContracts
             guard let id = request.targets.first?.id, grant.scope.permits(.init(kind: .workspace, id: id)),
                   let workspace = actionLibrary.workspaces.first(where: { $0.id == id }) else { throw AgentErrorCode.notFound }
             let value = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(workspace))
-            return ["workspace": value, "versionToken": .string(try workspaceVersion(workspace))]
+            return ["workspace": value, "versionToken": .string(try workspaces.version(workspace))]
         case "workspaces.list":
             return try pages.page(owner: .init(sessionID: sessionID, grantID: grant.grantID), request: request,
                 parameters: parameters, expiresAt: grant.expiresAt,
@@ -501,7 +436,7 @@ import AgentContracts
                           let workspace = self.actionLibrary.workspaces.first(where: { $0.id == id }) else { return nil }
                     return .object(["id": .string(id.uuidString), "name": .string(workspace.name),
                         "order": workspace.order.map { .integer(Int64($0)) } ?? .null,
-                        "versionToken": .string(try self.workspaceVersion(workspace))])
+                        "versionToken": .string(try self.workspaces.version(workspace))])
                 })
         case "activity.list":
             guard let readActivity else { throw AgentErrorCode.unavailable }
@@ -542,7 +477,7 @@ import AgentContracts
             } else if AgentEditorWriting.operationNames.contains(bound.operation) {
                 guard let editorWrites else { throw AgentErrorCode.unavailable }
                 ticket = try editorWrites.prepare(bound, connectionID: grant.connectionID)
-            } else if bound.operation == "workspaces.update" { ticket = try prepareWorkspaceUpdate(bound, connectionID: grant.connectionID) }
+            } else if AgentWorkspaceAccess.operationNames.contains(bound.operation) { ticket = try workspaces.prepare(bound, connectionID: grant.connectionID) }
             else if ["actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder"].contains(bound.operation) { ticket = try actions.prepareActionUpdate(bound, connectionID: grant.connectionID) }
             else {
                 guard let writes else { throw AgentErrorCode.unavailable }
@@ -553,8 +488,8 @@ import AgentContracts
         case "actionGroups.reorder", "actions.reorder":
             let receipt = try actions.updateAction(request, connectionID: grant.connectionID)
             return ["resources": .array(receipt.resources.map { .object(["id": .string($0.id.uuidString), "versionToken": .string($0.versionToken)]) })]
-        case "workspaces.update":
-            let receipt = try updateWorkspace(request, connectionID: grant.connectionID)
+        case "workspaces.create", "workspaces.update", "workspaces.duplicate":
+            let receipt = try workspaces.update(request, connectionID: grant.connectionID)
             guard let resource = receipt.resources.first else { throw AgentErrorCode.storageError }
             return ["resource": .object(["id": .string(resource.id.uuidString), "versionToken": .string(resource.versionToken)])]
         case "actions.create", "actions.update", "actions.duplicate", "actions.move", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate":

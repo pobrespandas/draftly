@@ -108,7 +108,7 @@ struct AgentCommandServiceTests {
             preferenceStorage = try AgentPreferenceStorage(defaults: defaults, domain: editorDefaultsName)
             service = try makeService()
         }
-        func preparedPreference(_ request: AgentRequest, session: AgentCommandService.Session) throws -> AgentRequest {
+        func preparedMutation(_ request: AgentRequest, session: AgentCommandService.Session) throws -> AgentRequest {
             let frame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(request))
             let prepared = try values("mutations.prepare", session: session, parameters: ["request": frame])
             guard case .string(let key) = prepared["retryKey"] else { throw AgentErrorCode.invalidInput }
@@ -162,6 +162,146 @@ struct AgentCommandServiceTests {
         func get(_ note: Note, session: AgentCommandService.Session, parameters: [String: AgentJSONValue] = [:]) throws -> [String: AgentJSONValue] {
             try values("drafts.get", session: session, targets: [.init(kind: .draft, id: note.id)], parameters: parameters)
         }
+    }
+
+    @Test func workspaceCreationUsesDefaultsOverridesAndDurableReceipts() throws {
+        let f = try Fixture()
+        let defaults = try #require(UserDefaults(suiteName: f.editorDefaultsName))
+        defer { defaults.removePersistentDomain(forName: f.editorDefaultsName) }
+        var template = Workspace(name: "Default template")
+        template.query = "café 🐼"; template.tags = ["inherited"]
+        template.excludedTags = ["excluded"]; template.folder = .archive
+        template.scriptMetadata = ["api": #"{"flaggedStatus":"flagged"}"#]
+        try f.library.saveWorkspace(template)
+        defaults.set(template.id.uuidString, forKey: WorkspaceDefaults.key)
+        let (record, session) = try f.connect(capabilities: [.workspacesRead, .workspacesManage])
+        let newID = UUID()
+        let intent = AgentRequest(requestID: UUID(), libraryID: nil, operation: "workspaces.create",
+            parameters: ["workspace": .object(["id": .string(newID.uuidString), "name": .string("New café 🐼"),
+                "tags": .array([]), "excludedTags": .null])])
+        let prepared = try f.preparedMutation(intent, session: session)
+        #expect(f.library.workspaces == [template])
+        let reply = try f.send(prepared, session: session)
+        guard case .result = reply.outcome else { Issue.record("Create failed: \(reply.outcome)"); return }
+        let created = try #require(f.library.workspaces.first { $0.id == newID })
+        #expect(created.name == "New café 🐼" && created.query == template.query && created.folder == .archive)
+        #expect(created.tags.isEmpty && created.excludedTags == nil && created.order == nil)
+        #expect(created.scriptMetadata == template.scriptMetadata)
+        #expect(try f.send(prepared, session: session) == reply && f.library.workspaces.count == 2)
+        f.service = try f.makeService()
+        let reopened = try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        let recovered = try f.preparedMutation(intent, session: reopened)
+        #expect(try f.send(recovered, session: reopened) == reply && f.library.workspaces.count == 2)
+    }
+
+    @Test(arguments: [nil, "Named copy café 🐼"] as [String?])
+    func workspaceDuplicationPreservesMetadataRejectsConflictsAndRecoversWithoutAnotherCopy(_ name: String?) throws {
+        let f = try Fixture()
+        var source = Workspace(name: "Source café 🐼")
+        source.query = "tag:qa"; source.order = 7; source.tags = ["one"]
+        source.excludedTags = ["two"]; source.matchAnyTag = true; source.tagged = true
+        source.listOptions = DraftListOptions(); source.scriptMetadata = ["custom": "café 🐼"]
+        try f.library.saveWorkspace(source)
+        let target = AgentResourceReference(kind: .workspace, id: source.id)
+        let (record, session) = try f.connect(capabilities: [.workspacesRead, .workspacesManage])
+        let values = try f.values("workspaces.get", session: session, targets: [target])
+        guard case .string(let version) = values["versionToken"] else { throw AgentErrorCode.invalidInput }
+        let intent = AgentRequest(requestID: UUID(), libraryID: nil, operation: "workspaces.duplicate",
+            targets: [target], expectedVersion: version, parameters: name.map { ["name": .string($0)] } ?? [:])
+        let prepared = try f.preparedMutation(intent, session: session)
+        #expect(f.library.workspaces == [source])
+        var changed = source; changed.query = "Concurrent change"
+        try f.library.saveWorkspace(changed)
+        #expect(try f.send(prepared, session: session).outcome == .error(.versionConflict))
+        #expect(f.library.workspaces == [changed])
+        try f.library.saveWorkspace(source)
+        let reply = try f.send(prepared, session: session)
+        guard case .result = reply.outcome else { Issue.record("Duplicate failed: \(reply.outcome)"); return }
+        let copy = try #require(f.library.workspaces.first { $0.id != source.id })
+        var expected = source; expected.id = copy.id; expected.name = name ?? (source.name + " Copy")
+        #expect(copy == expected)
+        try f.library.saveWorkspace(changed)
+        #expect(try f.send(prepared, session: session) == reply && f.library.workspaces.count == 2)
+        f.service = try f.makeService()
+        let reopened = try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        let recovered = try f.preparedMutation(intent, session: reopened)
+        #expect(try f.send(recovered, session: reopened) == reply && f.library.workspaces.count == 2)
+    }
+
+    @Test(arguments: ["workspaces.create", "workspaces.duplicate"])
+    func newWorkspaceMutationsRequireLibraryScopeAndRollbackFailedCommits(_ operation: String) throws {
+        let f = try Fixture(), source = Workspace(name: "Neutral source")
+        try f.library.saveWorkspace(source)
+        let target = AgentResourceReference(kind: .workspace, id: source.id)
+        let (record, session) = try f.connect(capabilities: [.workspacesRead, .workspacesManage])
+        let (_, scoped) = try f.connect(scope: .resources([target]), capabilities: [.workspacesRead, .workspacesManage])
+        let (_, readOnly) = try f.connect(capabilities: [.workspacesRead])
+        guard case .string(let version) = try f.values("workspaces.get", session: session, targets: [target])["versionToken"] else {
+            throw AgentErrorCode.invalidInput
+        }
+        let intent = AgentRequest(requestID: UUID(), libraryID: nil, operation: operation,
+            targets: operation == "workspaces.create" ? [] : [target],
+            expectedVersion: operation == "workspaces.create" ? nil : version,
+            parameters: operation == "workspaces.create" ? ["workspace": .object(["name": .string("New")])] : [:])
+        let frame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(intent))
+        for denied in [scoped, readOnly] {
+            #expect(try f.response("mutations.prepare", session: denied, parameters: ["request": frame]).outcome == .error(.permissionDenied))
+        }
+        let prepared = try f.preparedMutation(intent, session: session)
+        f.library.beforeBatchCommit = { throw AgentErrorCode.storageError }
+        #expect(try f.send(prepared, session: session).outcome == .error(.storageError))
+        #expect(f.library.workspaces == [source])
+        f.library.beforeBatchCommit = nil
+        let reply = try f.send(prepared, session: session)
+        guard case .result = reply.outcome else { Issue.record("Retry failed: \(reply.outcome)"); return }
+        #expect(f.library.workspaces.count == 2)
+        _ = try f.connections.revokeFromUserInterface(record.id)
+        #expect(try f.send(prepared, session: session).outcome == .error(.permissionDenied))
+        #expect(f.library.workspaces.count == 2)
+    }
+
+    @Test(arguments: ["workspaces.create", "workspaces.duplicate"], ["revoke", "expire", "lock"])
+    func workspaceCreationChecksAuthorityAgainBeforeCommit(_ operation: String, _ interruption: String) throws {
+        let f = try Fixture(), source = Workspace(name: "Source")
+        try f.library.saveWorkspace(source)
+        let target = AgentResourceReference(kind: .workspace, id: source.id)
+        let (record, session) = try f.connect(capabilities: [.workspacesRead, .workspacesManage])
+        guard case .string(let version) = try f.values("workspaces.get", session: session, targets: [target])["versionToken"] else {
+            throw AgentErrorCode.invalidInput
+        }
+        let intent = AgentRequest(requestID: UUID(), libraryID: nil, operation: operation,
+            targets: operation == "workspaces.create" ? [] : [target],
+            expectedVersion: operation == "workspaces.create" ? nil : version,
+            parameters: operation == "workspaces.create" ? ["workspace": .object(["name": .string("New")])] : [:])
+        let prepared = try f.preparedMutation(intent, session: session)
+        f.library.beforeBatchCommit = {
+            switch interruption {
+            case "revoke": _ = try f.connections.revokeFromUserInterface(record.id)
+            case "expire": f.wall = record.expiresAt
+            default: f.locked = true
+            }
+        }
+        #expect(try f.send(prepared, session: session).outcome == .error(.permissionDenied))
+        #expect(f.library.workspaces == [source])
+        f.library.beforeBatchCommit = nil
+        try f.library.reload()
+        #expect(f.library.workspaces == [source])
+    }
+
+    @Test func workspaceCreationCannotOverwriteAnExistingIdentityOrSaveBlankNames() throws {
+        let f = try Fixture(), source = Workspace(name: "Preserve me")
+        try f.library.saveWorkspace(source)
+        let (_, session) = try f.connect(capabilities: [.workspacesManage])
+        for (definition, error) in [
+            (["id": AgentJSONValue.string(source.id.uuidString), "name": .string("Overwrite")], AgentErrorCode.versionConflict),
+            (["name": .string(" \n ")], AgentErrorCode.invalidInput)
+        ] {
+            let intent = AgentRequest(requestID: UUID(), libraryID: nil, operation: "workspaces.create",
+                parameters: ["workspace": .object(definition)])
+            let frame = try JSONDecoder().decode(AgentJSONValue.self, from: JSONEncoder().encode(intent))
+            #expect(try f.response("mutations.prepare", session: session, parameters: ["request": frame]).outcome == .error(error))
+        }
+        #expect(f.library.workspaces == [source])
     }
 
     @Test func workspaceUpdateRespectsScopeConflictsAndRecovers() throws {
@@ -461,7 +601,7 @@ struct AgentCommandServiceTests {
         }
         let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "preferences.update", expectedVersion: version,
             parameters: ["items": .array([.object(["id": .string("editor.fontSize"), "value": .integer(23)])])])
-        let signed = try f.preparedPreference(intent, session: session)
+        let signed = try f.preparedMutation(intent, session: session)
         #expect(defaults.object(forKey: "editor.fontSize") == nil)
         let first = try f.send(signed, session: session)
         guard case .result = first.outcome else { Issue.record("Preference write failed: \(first.outcome)"); return }
@@ -472,7 +612,7 @@ struct AgentCommandServiceTests {
             Issue.record("Missing updated version"); return
         }
         let reset = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "preferences.reset", expectedVersion: current, parameters: params)
-        let preparedReset = try f.preparedPreference(reset, session: session)
+        let preparedReset = try f.preparedMutation(reset, session: session)
         let restored = try f.send(preparedReset, session: session)
         guard case .result = restored.outcome else { Issue.record("Preference reset failed"); return }
         #expect(defaults.object(forKey: "editor.fontSize") == nil)
@@ -492,7 +632,7 @@ struct AgentCommandServiceTests {
         guard case .string(let version) = values["versionToken"] else { Issue.record("Missing version"); return }
         let request = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "preferences.update", expectedVersion: version,
             parameters: ["items": .array([.object(["id": .string("editor.fontSize"), "value": .integer(24)])])])
-        let signed = try f.preparedPreference(request, session: session)
+        let signed = try f.preparedMutation(request, session: session)
         let response = try f.send(signed, session: session)
         guard case .result = response.outcome else { Issue.record("Preference write needs an editor"); return }
         #expect(UserDefaults(suiteName: f.editorDefaultsName)?.double(forKey: "editor.fontSize") == 24)
@@ -508,7 +648,7 @@ struct AgentCommandServiceTests {
         guard case .string(let version) = reading["versionToken"] else { Issue.record("Missing version"); return }
         let request = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "preferences.update", expectedVersion: version,
             parameters: ["items": .array([.object(["id": .string("markdown.multi.smartQuotesEnabled"), "value": .bool(false)])])])
-        let signed = try f.preparedPreference(request, session: session)
+        let signed = try f.preparedMutation(request, session: session)
         let changed = #"{"future":{"keep":"café 🐼"}}"#
         defaults.set(changed, forKey: MarkdownPreferences.multiKey)
         #expect(try f.send(signed, session: session).outcome == .error(.versionConflict))
@@ -1459,19 +1599,19 @@ struct AgentCommandServiceTests {
         let (record, session) = try f.connect(capabilities: [.draftsRead, .draftsWrite])
         let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "drafts.create",
             parameters: ["content": .string("Created café 🐼"), "tags": .array([.string("One")])])
-        let request = try f.preparedPreference(intent, session: session)
+        let request = try f.preparedMutation(intent, session: session)
         let first = try f.send(request, session: session)
         #expect(try f.send(request, session: session) == first)
         #expect(f.library.notes.count == 1)
         try f.library.reload()
         f.service = try f.makeService()
         let resumed = try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
-        let recoveredRequest = try f.preparedPreference(intent, session: resumed)
+        let recoveredRequest = try f.preparedMutation(intent, session: resumed)
         #expect(try f.send(recoveredRequest, session: resumed) == first)
         #expect(f.library.notes.count == 1)
         let next = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "drafts.create",
             parameters: ["content": .string("Must roll back")])
-        let prepared = try f.preparedPreference(next, session: resumed)
+        let prepared = try f.preparedMutation(next, session: resumed)
         f.library.beforeBatchCommit = { _ = try f.connections.revokeFromUserInterface(record.id) }
         #expect(try f.send(prepared, session: resumed).outcome == .error(.permissionDenied))
         #expect(f.library.notes.count == 1)
@@ -1499,7 +1639,7 @@ struct AgentCommandServiceTests {
         let intent = AgentRequest(requestID: UUID(), libraryID: f.libraryID, operation: "drafts.duplicate",
             targets: [.init(kind: .draft, id: original.id)], expectedVersion: version)
         let request: AgentRequest
-        do { request = try f.preparedPreference(intent, session: session) }
+        do { request = try f.preparedMutation(intent, session: session) }
         catch { Issue.record("Duplicate prepare failed: \(error)"); return }
         let first = try f.send(request, session: session)
         #expect(try f.send(request, session: session) == first)
@@ -1513,7 +1653,7 @@ struct AgentCommandServiceTests {
         #expect(original.content == "Duplicate café 🐼" && f.library.revisions.count == revisionCount)
         try f.library.reload(); f.service = try f.makeService()
         let resumed = try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
-        let recovered = try f.preparedPreference(intent, session: resumed)
+        let recovered = try f.preparedMutation(intent, session: resumed)
         #expect(try f.send(recovered, session: resumed) == first)
         #expect(f.library.notes.count == 2)
     }
@@ -1633,7 +1773,7 @@ struct AgentCommandServiceTests {
         #expect(available.remove("syntaxes.list") != nil)
         #expect(available.remove("syntaxes.get") != nil)
         #expect(available.remove("drafts.duplicate") != nil)
-        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", "preferences.get", AgentMutationSchemas.name, "drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.setSelection", "editor.replaceRange", "editor.undo", "editor.redo", "editor.tasks", "editor.replaceAll", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.update"]) && available.count == 46)
+        #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", "preferences.get", AgentMutationSchemas.name, "drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion", "editor.windows", "editor.get", "editor.setSelection", "editor.replaceRange", "editor.undo", "editor.redo", "editor.tasks", "editor.replaceAll", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.create", "workspaces.update", "workspaces.duplicate"]) && available.count == 48)
         #expect(try f.response("drafts.create", session: session, parameters: ["content": .string("Not saved")]).outcome == .error(.invalidInput))
         #expect(f.library.notes.isEmpty)
         #expect(try f.values("server.capabilities", session: session)["capabilities"] == .array([.string("drafts.read"), .string("drafts.write")]))

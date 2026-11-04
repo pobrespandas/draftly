@@ -24,7 +24,7 @@ import AgentContracts
             "editor.links", "editor.listTasks"], handlers: [.editorRead]),
         .init(operations: AgentDraftWriting.operationNames, handlers: [.editorRead, .draftWrite]),
         .init(operations: AgentEditorWriting.operationNames, handlers: [.editorRead, .draftWrite, .editorWrite]),
-        .init(operations: ["workspaces.update", "actions.create", "actions.update", "actions.duplicate",
+        .init(operations: ["workspaces.create", "workspaces.update", "workspaces.duplicate", "actions.create", "actions.update", "actions.duplicate",
             "actions.move", "actions.reorder", "actions.validateShortcut", "actionGroups.create",
             "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", AgentMutationSchemas.name],
             handlers: [.editorRead, .draftWrite]),

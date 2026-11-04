@@ -98,11 +98,31 @@ exposed no tools while the local host was paused. The signed installed helper
 accepted the captured Codex request after the correction. The QA is now closed,
 the read grant is revoked, and original shared preferences are restored.
 
+## Workspace creation and duplication
+
+`workspaces.create` and `workspaces.duplicate` now have connected handlers.
+Creation uses `WorkspaceDefaults` and then applies explicit input fields.
+Duplication preserves the canonical metadata and uses a new identity. Both
+require library scope because they create a resource outside a fixed selection.
+Existing selected-resource `workspaces.update` remains supported.
+
+The shared workspace component owns version checks and durable receipts.
+Preparation does not write. Lost replies and service restart recover the same
+receipt without another copy. Storage failure, revocation, expiry, and lock
+before commit leave no new workspace. Existing identities cannot be overwritten
+through creation. Results return a resource receipt, not readable metadata.
+
+The final focused run passed 130 tests across service, availability, Workspace
+schemas, and permission policy. The normal native build, without the agent QA
+flag, passed. Project-generator tests passed two checks. Installed creation and
+duplication acceptance, full CI for this change, and the three remaining
+Workspace contracts are still pending.
+
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-57 names in implemented or conditional handler sets. The other 80 names have
-no direct handler in those sets. These counts do not prove that 57 operations
+59 names in implemented or conditional handler sets. The other 78 names have
+no direct handler in those sets. These counts do not prove that 59 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -116,7 +136,7 @@ a direct handler for every `native.*` contract.
 | Drafts | `drafts.archive`, `drafts.flag`, `drafts.merge`, `drafts.purge`, `drafts.restore`, `drafts.syntax`, `drafts.tags`, `drafts.trash` |
 | Editor | `editor.navigate`, `editor.open`, `editor.preview` |
 | Actions and groups | `actions.delete`, `actionGroups.delete` |
-| Workspaces | `workspaces.apply`, `workspaces.create`, `workspaces.delete`, `workspaces.duplicate`, `workspaces.reorder` |
+| Workspaces | `workspaces.apply`, `workspaces.delete`, `workspaces.reorder` |
 | Themes | All 14 declared `themes.*` contracts. |
 | Syntax | `syntaxes.delete`, `syntaxes.export`, `syntaxes.install`, `syntaxes.reload`, `syntaxes.replace` |
 | Bookmarks | `bookmarks.forget`, `bookmarks.list`, `bookmarks.requestAdd` |
