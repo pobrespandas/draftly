@@ -76,6 +76,24 @@ import AgentContracts
         }
     }
 
+    func export(_ request: AgentRequest, parameters: [String: AgentJSONValue], grant: AgentGrant) throws -> Data {
+        let ids = request.targets.map(\.id)
+        let notes = try ids.map { id -> Note in
+            guard grant.scope.permits(.init(kind: .draft, id: id)), let stored = library.notes.first(where: { $0.id == id }) else {
+                throw AgentErrorCode.notFound
+            }
+            return try snapshot(stored).note
+        }
+        if parameters["format"] == .string("text") {
+            guard notes.count == 1, let note = notes.first else { throw AgentErrorCode.invalidInput }
+            return Data(note.content.utf8)
+        }
+        let versions = parameters["includeVersions"] == .bool(true) ? library.revisions.filter { ids.contains($0.noteID) } : []
+        let backup = Backup(notes: notes, revisions: versions, workspaces: [], actions: [])
+        let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
+        return try encoder.encode(backup)
+    }
+
     // This checks draft state, not authority. It does not reserve the state across an await.
     func checkedSnapshot(for id: UUID, expectedVersion: String) throws -> AgentEditorRegistry.Snapshot {
         guard !expectedVersion.isEmpty, expectedVersion.utf8.count <= 4096 else { throw AgentErrorCode.invalidInput }

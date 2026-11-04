@@ -345,3 +345,8 @@ it applies. It identifies one setting within the agent interface.
 **Agent read snapshot**:
 The fixed membership and order of resources for one paged query under one grant.
 Each page reads current values; the snapshot does not freeze resource content.
+
+**Agent transfer**:
+A temporary exchange of file content between an agent connection and Draftly.
+It does not install imported content, save an export to disk, or grant access
+to other resources.

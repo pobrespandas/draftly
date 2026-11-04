@@ -2298,6 +2298,112 @@ struct AgentCommandServiceTests {
         #expect(changed["versionToken"] != value["versionToken"])
     }
 
+    @Test(arguments: ["text", "draftly"])
+    func exportsUseScopedPendingDraftsWithoutSavingOrLeakingOtherResources(format: String) throws {
+        let f = try Fixture(); defer { f.cleanEditorPreferences() }
+        let note = try f.note("Stored café 🐼"), hidden = try f.note("Hidden export secret")
+        let model = try f.window(note, content: "Pending export café 🐼 e\u{301}", dirty: true)
+        f.editors = [model]
+        let target = AgentResourceReference(kind: .draft, id: note.id)
+        let (record, session) = try f.connect(scope: .resources([target]), capabilities: [.draftsRead, .filesWrite])
+        let (_, denied) = try f.connect(scope: .resources([target]), capabilities: [.draftsRead])
+        let (_, other) = try f.connect(scope: .resources([target]), capabilities: [.draftsRead, .filesWrite])
+        #expect(try f.response("exports.drafts", session: denied, targets: [target]).outcome == .error(.permissionDenied))
+        #expect(try f.response("exports.drafts", session: session, targets: [target, .init(kind: .draft, id: hidden.id)]).outcome == .error(.notFound))
+        let before = try f.library.backupData()
+        let result = try f.values("exports.drafts", session: session, targets: [target], parameters: ["format": .string(format)])
+        guard case .object(let transfer) = result["transfer"], case .string(let rawID) = transfer["transferID"], let id = UUID(uuidString: rawID) else {
+            Issue.record("Missing export transfer"); return
+        }
+        let reference = AgentResourceReference(kind: .operation, id: id)
+        #expect(try f.response("transfers.readChunk", session: other, targets: [reference], parameters: ["offset": .integer(0)]).outcome == .error(.notFound))
+        let reauthenticated = try f.service.authenticate(connectionID: record.id, credential: #require(f.secrets[record.id]))
+        #expect(try f.response("transfers.readChunk", session: reauthenticated, targets: [reference], parameters: ["offset": .integer(0)]).outcome == .error(.notFound))
+        let chunk = try f.values("transfers.readChunk", session: session, targets: [reference], parameters: ["offset": .integer(0)])
+        guard case .string(let encoded) = chunk["data"], let bytes = Data(base64Encoded: encoded) else {
+            Issue.record("Missing exported bytes"); return
+        }
+        #expect(transfer["sha256"] == .string(AgentTransferStore.digest(bytes)))
+        if format == "text" { #expect(String(decoding: bytes, as: UTF8.self) == model.editor.content) }
+        else {
+            let backup = try JSONDecoder().decode(Backup.self, from: bytes)
+            #expect(backup.notes.map(\.id) == [note.id] && backup.notes.first?.content == model.editor.content)
+            #expect(backup.actions.isEmpty && backup.workspaces.isEmpty && backup.revisions.isEmpty)
+        }
+        #expect(try f.library.backupData() == before && model.hasUnsavedChanges)
+        #expect(try f.values("transfers.cancel", session: session, targets: [reference])["cancelled"] == .bool(true))
+        #expect(try f.response("transfers.readChunk", session: session, targets: [reference], parameters: ["offset": .integer(0)]).outcome == .error(.notFound))
+    }
+
+    @Test func anUploadOwnerCanCancelWithoutExportPermission() throws {
+        let f = try Fixture()
+        let (_, session) = try f.connect(scope: .resources([]), capabilities: [.filesRead])
+        let (_, other) = try f.connect(scope: .resources([]), capabilities: [.filesRead])
+        let result = try f.values("transfers.beginImport", session: session,
+            parameters: ["byteLength": .integer(0), "sha256": .string(AgentTransferStore.digest(Data()))])
+        guard case .object(let transfer) = result["transfer"], case .string(let rawID) = transfer["transferID"], let id = UUID(uuidString: rawID) else {
+            throw AgentErrorCode.storageError
+        }
+        let target = AgentResourceReference(kind: .operation, id: id)
+        #expect(try f.response("transfers.cancel", session: other, targets: [target]).outcome == .error(.notFound))
+        #expect(try f.values("transfers.cancel", session: session, targets: [target])["cancelled"] == .bool(true))
+    }
+
+    @Test func draftExportIncludesOnlyRequestedVersionsAndRechecksAuthority() throws {
+        let f = try Fixture()
+        let note = try f.note("Current allowed"), hidden = try f.note("Current hidden")
+        let revision = Revision(noteID: note.id, content: "Allowed prior café 🐼")
+        try f.library.saveRevision(revision)
+        try f.library.saveRevision(Revision(noteID: hidden.id, content: "Hidden prior"))
+        let target = AgentResourceReference(kind: .draft, id: note.id)
+        let (record, session) = try f.connect(scope: .resources([target]), capabilities: [.draftsRead, .filesWrite])
+        let result = try f.values("exports.drafts", session: session, targets: [target], parameters: ["includeVersions": .bool(true)])
+        guard case .object(let transfer) = result["transfer"], case .string(let rawID) = transfer["transferID"], let id = UUID(uuidString: rawID) else {
+            Issue.record("Missing export transfer"); return
+        }
+        let reference = AgentResourceReference(kind: .operation, id: id)
+        let chunk = try f.values("transfers.readChunk", session: session, targets: [reference], parameters: ["offset": .integer(0)])
+        guard case .string(let encoded) = chunk["data"], let bytes = Data(base64Encoded: encoded) else { throw AgentErrorCode.storageError }
+        let backup = try JSONDecoder().decode(Backup.self, from: bytes)
+        #expect(backup.notes.map(\.id) == [note.id] && backup.revisions == [revision])
+        _ = try f.connections.revokeFromUserInterface(record.id)
+        #expect(try f.response("transfers.readChunk", session: session, targets: [reference], parameters: ["offset": .integer(0)]).outcome == .error(.permissionDenied))
+        let (second, fresh) = try f.connect(scope: .resources([target]), capabilities: [.draftsRead, .filesWrite])
+        let freshResult = try f.values("exports.drafts", session: fresh, targets: [target])
+        guard case .object(let freshTransfer) = freshResult["transfer"], case .string(let freshRawID) = freshTransfer["transferID"], let freshID = UUID(uuidString: freshRawID) else {
+            throw AgentErrorCode.storageError
+        }
+        f.service.close(fresh)
+        let reopened = try f.service.authenticate(connectionID: second.id, credential: #require(f.secrets[second.id]))
+        #expect(try f.response("transfers.readChunk", session: reopened, targets: [.init(kind: .operation, id: freshID)],
+            parameters: ["offset": .integer(0)]).outcome == .error(.notFound))
+    }
+
+    @Test func transferImportsBindOwnershipOffsetsDigestAndLifetime() throws {
+        let f = try Fixture()
+        let (_, session) = try f.connect(scope: .resources([]), capabilities: [.filesRead])
+        let data = Data("Transfer café 🐼 e\u{301}".utf8)
+        let before = try f.library.backupData()
+        let begun = try f.values("transfers.beginImport", session: session,
+            parameters: ["byteLength": .integer(Int64(data.count)), "sha256": .string(AgentTransferStore.digest(data))])
+        guard case .object(let transfer) = begun["transfer"], case .string(let rawID) = transfer["transferID"], let id = UUID(uuidString: rawID) else {
+            Issue.record("Missing import transfer"); return
+        }
+        let target = AgentResourceReference(kind: .operation, id: id)
+        #expect(try f.response("transfers.finishImport", session: session, targets: [target]).outcome == .error(.invalidInput))
+        #expect(try f.response("transfers.appendChunk", session: session, targets: [target],
+            parameters: ["offset": .integer(1), "data": .string(data.base64EncodedString())]).outcome == .error(.invalidInput))
+        let parameters: [String: AgentJSONValue] = ["offset": .integer(0), "data": .string(data.base64EncodedString())]
+        let appended = try f.values("transfers.appendChunk", session: session, targets: [target], parameters: parameters)
+        #expect(try f.values("transfers.appendChunk", session: session, targets: [target], parameters: parameters) == appended)
+        let finished = try f.values("transfers.finishImport", session: session, targets: [target])
+        #expect(try f.values("transfers.finishImport", session: session, targets: [target]) == finished)
+        #expect(try f.response("transfers.readChunk", session: session, targets: [target], parameters: ["offset": .integer(0)]).outcome == .error(.permissionDenied))
+        #expect(try f.library.backupData() == before)
+        f.uptime += 301
+        #expect(try f.response("transfers.finishImport", session: session, targets: [target]).outcome == .error(.notFound))
+    }
+
     @Test(arguments: ["source", "installationURL"])
     func syntaxExportPreservesSourceAndEnforcesScope(format: String) throws {
         let f = try Fixture()
@@ -2637,6 +2743,7 @@ struct AgentCommandServiceTests {
         #expect(available.remove("syntaxes.get") != nil)
         #expect(available.remove("syntaxes.export") != nil)
         #expect(available.remove("drafts.duplicate") != nil)
+        for name in AgentTransferSchemas.operationNames { #expect(available.remove(name) != nil) }
         for name in AgentThemeReading.operationNames { #expect(available.remove(name) != nil) }
         for name in AgentThemeWriting.operationNames { #expect(available.remove(name) != nil) }
         #expect(operations.count == 137 && available == AgentReadSchemas.operationNames.union(["preferences.schema", "preferences.get", AgentMutationSchemas.name, "drafts.create", "drafts.update", "drafts.patch", "drafts.restoreVersion", "drafts.archive", "drafts.trash", "drafts.restore", "drafts.flag", "drafts.tags", "drafts.syntax", "drafts.merge", "editor.windows", "editor.get", "editor.setSelection", "editor.replaceRange", "editor.undo", "editor.redo", "editor.tasks", "editor.replaceAll", "editor.find", "editor.markers", "editor.links", "editor.listTasks", "actions.list", "actions.get", "actions.stepSchemas", "actions.create", "actions.update", "actions.duplicate", "actions.move", "actions.reorder", "actions.validateShortcut", "actions.groups", "actionGroups.get", "actionGroups.create", "actionGroups.update", "actionGroups.duplicate", "actionGroups.reorder", "workspaces.list", "workspaces.get", "workspaces.query", "workspaces.create", "workspaces.update", "workspaces.duplicate", "workspaces.reorder", "workspaces.apply"]) && available.count == 57)

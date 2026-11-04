@@ -3,6 +3,25 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Scoped transfers and draft exports — 4 November
+
+The service now connects the five transfer contracts and `exports.drafts`.
+Uploads prepare bounded bytes and verify their digest. They do not apply imports.
+Exports freeze only selected authorized drafts and optional versions. Pending
+editor content is included without flushing the editor. Text export accepts one
+draft; the native format uses the existing backup model. No destination file is
+written. Ownership binds the exact session, grant and source scope. Buffers have
+size, count and expiry limits, including a monotonic deadline. Cancelling owned
+bytes returns no content and does not require export permission.
+
+Coverage is 85 connected or conditional names of 137. The remaining 52 names
+still need direct handlers. Validation passed: 142 app tests across three suites,
+180 contract tests across 26 suites, one consumer test, two project checks and
+the normal native Debug build. Installed acceptance and full CI remain open.
+Full CI for the earlier admission diagnostics, `fdc05d2`,
+passed in [41813362305](https://github.com/pobrespandas/draftly/actions/runs/41813362305).
+The retained installed QA is still that source, with access off and no new grant.
+
 ## Installed syntax export — 4 November
 
 `syntaxes.export` now returns source text or a `draftly://syntax` installation

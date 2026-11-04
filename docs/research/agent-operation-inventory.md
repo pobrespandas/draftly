@@ -136,7 +136,7 @@ for scope, paging, output limits and the pending transport/UI acceptance.
 | transfers.appendChunk | AgentTransferStore | filesRead | operation | none |
 | transfers.finishImport | AgentTransferStore | filesRead | operation | none |
 | transfers.readChunk | AgentTransferStore | filesWrite | operation | none |
-| transfers.cancel | AgentTransferStore | filesWrite | operation | none |
+| transfers.cancel | AgentTransferStore | none | operation | none |
 | activity.list | AgentActivityStore | connection only | none | none |
 | activity.changes | AgentActivityStore | connection only | none | none |
 | native.http | NativeActionHost | nativeUse | none | human |
@@ -548,3 +548,31 @@ bookmark does not grant the connection file authority. Forget replies bind the
 requested identity. The existing name-based store still needs a stable local ID
 adapter and scope filtering before these routes can run. No folder, preference,
 service registration, native permission or grant was changed by these tests.
+
+
+### Scoped file transfers
+
+A transfer is a temporary byte exchange, not a library import or a saved file.
+Transfers retain their original session, grant and source resource scope.
+Closing a session, changing its grant, expiry or host invalidation prevents
+further access. Transfer IDs are operation-kind handles, but do not identify
+work in `operations.get`.
+
+Uploads declare a byte count and SHA-256 digest. Chunks use byte offsets and
+canonical Base64. Finish requires the complete bytes and a matching digest.
+A repeated identical chunk is safe; an overlapping change is a conflict.
+Finish does not install any content. Existing import handlers must validate
+and apply the prepared content separately. Those handlers remain unavailable.
+
+Exports freeze the selected drafts, including pending editor content. The
+`draftly` format uses the existing backup format with only selected drafts and
+optional selected-draft versions. The `text` format requires exactly one draft
+and excludes versions. Neither route flushes editors or writes a destination
+file. The owning session reads exported bytes through `transfers.readChunk`.
+
+Transfers expire after five minutes or at grant expiry, whichever occurs first.
+The monotonic deadline also prevents clock rollback from extending access.
+Each transfer holds at most 32 MiB. Each host reserves at most 64 MiB across
+16 transfers. Chunks hold at most 64 KiB. Buffer cleanup checks ownership,
+not `files.write`: cancelling an upload must not require export permission.
+It returns no content and changes no library resource.

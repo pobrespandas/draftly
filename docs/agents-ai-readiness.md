@@ -307,6 +307,29 @@ has not started. QA-only diagnostics expose the actual GUI session inputs;
 control admission remains unchanged. Full client sessions and the normal
 startup/lifecycle gate remain open.
 
+## Scoped transfers and draft exports
+
+All five declared `transfers.*` handlers and `exports.drafts` now connect to the
+service. Buffers belong to one session and its exact grant. Export buffers also
+retain their original draft scope. Transfer handles do not authorize operations
+in the operation registry. Session closure and host invalidation remove buffers.
+A replaced grant, expiry or a different session cannot read or cancel them.
+
+Uploads use canonical Base64 chunks, byte offsets, a declared size and a SHA-256
+digest. Finish prepares bytes only. It does not import library data. Imports
+remain unavailable. Exports use current authorized draft snapshots, including
+pending editor content. The existing backup format can include versions of only
+those drafts. Text export accepts one draft and no versions. Export does not
+flush editors, save library changes or write a destination file.
+
+Limits are 32 MiB per transfer, 64 MiB reserved per host, 16 transfers and 64 KiB
+per chunk. A transfer expires after five minutes or at grant expiry. A monotonic
+deadline prevents clock rollback from extending it. Cancelling owned bytes needs
+no export capability and returns no content. Other transfer operations retain
+their declared read or write capabilities. Validation passed: 142 app tests,
+180 contract tests, one consumer test, two project checks and the normal native
+Debug build. Installed acceptance and full CI for this increment remain open.
+
 ## Installed syntax export
 
 The service now connects `syntaxes.export` for a granted installed syntax. It
@@ -320,8 +343,8 @@ increment remain open.
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
-79 names in implemented or conditional handler sets. The other 58 names have
-no direct handler in those sets. These counts do not prove that 79 operations
+85 names in implemented or conditional handler sets. The other 52 names have
+no direct handler in those sets. These counts do not prove that 85 operations
 are complete, always available, or accepted in an installed app.
 
 The review used `AgentCommandService.implementedOperations`, its conditional
@@ -337,9 +360,8 @@ a direct handler for every `native.*` contract.
 | Themes | `themes.select`, `themes.selectBuiltIn`, `themes.replace`, `themes.reload`, `themes.install`, `themes.delete` |
 | Syntax | `syntaxes.delete`, `syntaxes.install`, `syntaxes.reload`, `syntaxes.replace` |
 | Bookmarks | `bookmarks.forget`, `bookmarks.list`, `bookmarks.requestAdd` |
-| Imports and exports | `imports.commit`, `imports.preview`, `imports.validate`, `exports.drafts` |
+| Imports | `imports.commit`, `imports.preview`, `imports.validate` |
 | Backups | `backups.export`, `backups.previewRestore`, `backups.requestRestore`, `backups.validate` |
-| Transfers | All five declared `transfers.*` contracts. |
 | Native operations | All 24 direct `native.*` contracts. Existing reviewed Action effects are a separate path. |
 | Operation control and activity | `operations.answerPrompt`, `operations.wait`, `activity.changes` |
 

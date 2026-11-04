@@ -173,7 +173,7 @@ package enum AgentOperationCatalog {
         .init(name: "transfers.appendChunk", owner: "AgentTransferStore", capabilities: [.filesRead], targets: .one(.operation)),
         .init(name: "transfers.finishImport", owner: "AgentTransferStore", capabilities: [.filesRead], targets: .one(.operation)),
         .init(name: "transfers.readChunk", owner: "AgentTransferStore", capabilities: [.filesWrite], targets: .one(.operation)),
-        .init(name: "transfers.cancel", owner: "AgentTransferStore", capabilities: [.filesWrite], targets: .one(.operation)),
+        .init(name: "transfers.cancel", owner: "AgentTransferStore", capabilities: [], targets: .one(.operation)),
         .init(name: "activity.list", owner: "AgentActivityStore", capabilities: [], targets: .none, isReadOnly: true),
         .init(name: "activity.changes", owner: "AgentActivityStore", capabilities: [], targets: .none),
         .init(name: "native.http", owner: "NativeActionHost", capabilities: [.nativeUse], targets: .none, requiresHumanApproval: true),
