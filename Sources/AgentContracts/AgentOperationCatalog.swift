@@ -50,6 +50,12 @@ package struct AgentOperationDescriptor: Sendable {
                 "themes.install", "themes.replace", "syntaxes.export", "syntaxes.install", "syntaxes.replace", "syntaxes.reload"].contains(name)
     }
 
+    package func permits(capabilities allowed: Set<AgentCapability>) -> Bool {
+        guard allowed.isSuperset(of: capabilities) else { return false }
+        // Upload owners can cancel without export access. Plain draft readers cannot own transfers.
+        return name != "transfers.cancel" || !allowed.isDisjoint(with: [.filesRead, .filesWrite])
+    }
+
     package func acceptsTargets(_ values: [AgentResourceReference]) -> Bool {
         targets.accepts(values)
     }

@@ -48,6 +48,22 @@ struct AgentAvailableToolsTests {
         }
     }
 
+    @Test(arguments: [Set<AgentCapability>(), [.draftsRead], [.filesRead], [.filesWrite], [.filesRead, .filesWrite]])
+    func transferCancellationNeedsFileAccessInDiscoveryAndPermissionPolicy(_ allowed: Set<AgentCapability>) throws {
+        let catalog = try AgentAvailableTools(capabilities: capabilities(Array(allowed)),
+            schemas: ["operations": .array([operation("transfers.cancel")])])
+        let available = !allowed.isDisjoint(with: [.filesRead, .filesWrite])
+        #expect(catalog.definitions.contains { $0.operation == "transfers.cancel" } == available)
+        let connection = UUID(), library = UUID()
+        let request = AgentRequest(requestID: UUID(), libraryID: library, operation: "transfers.cancel",
+            targets: [.init(kind: .operation, id: UUID())])
+        let grant = AgentGrant(connectionID: connection, libraryID: library,
+            expiresAt: Date(timeIntervalSince1970: 2_000_000_000), capabilities: allowed, scope: .library)
+        let decision = AgentPermissionPolicy.evaluate(request, connectionID: connection, grant: grant,
+            now: Date(timeIntervalSince1970: 1_700_000_000))
+        #expect(decision == (available ? .permitted(.library) : .denied(.permissionDenied)))
+    }
+
     @Test func duplicateDescriptorsAndMalformedMetadataFailClosed() throws {
         #expect(throws: AgentErrorCode.invalidInput) {
             try AgentAvailableTools(capabilities: capabilities([.draftsRead]), schemas: ["operations": .array([

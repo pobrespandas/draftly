@@ -29,7 +29,7 @@ package struct AgentAvailableTools: Sendable {
                   seen.insert(name).inserted else { throw AgentErrorCode.invalidInput }
             guard fields["available"] == .bool(true),
                   let descriptor = AgentOperationCatalog.operation(named: name),
-                  allowed.isSuperset(of: descriptor.capabilities),
+                  descriptor.permits(capabilities: allowed),
                   !descriptor.requiresLibraryScope || allResources,
                   let input = fields["inputSchema"], input != .null else { continue }
             inputs[name] = input
