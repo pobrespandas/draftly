@@ -3,6 +3,21 @@
 Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
+## Apple schema CI check — 4 November
+
+Full CI [41802527118](https://github.com/pobrespandas/draftly/actions/runs/41802527118)
+failed for `4585453`. Its app test log reports one failure in the native Apple
+tool-schema assertion. That assertion required a direct `enum` field in encoded
+`GenerationSchema`. The test now reads equivalent finite string choices through
+local definitions, constant alternatives and nullable alternatives. It rejects
+unconstrained string alternatives and reference cycles. It compares the exact
+name set with the authorized catalog. An unsupported encoding reports its
+neutral schema for diagnosis. No production permission check was removed.
+
+The local Apple and Chat Console run passed 19 tests in two suites. The opt-in
+live inference probe was disabled. Full CI on the failing runner remains
+required; local success does not prove that compatibility gate.
+
 ## Theme read contracts — 4 November
 
 Connected the five theme read contracts: list, get, export, selection and

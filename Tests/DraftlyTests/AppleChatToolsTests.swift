@@ -23,6 +23,45 @@ struct AppleChatToolsTests {
         await #expect(throws: AgentErrorCode.permissionDenied) { try await bridge.catalog(name: "draftly_drafts_create") }
     }
 
+    private func literalNames(_ value: AgentJSONValue, root: [String: AgentJSONValue],
+                              references: Set<String> = []) -> Set<String>? {
+        guard case .object(let fields) = value else { return nil }
+        if case .string(let reference) = fields["$ref"] {
+            guard reference.hasPrefix("#/$defs/"), !references.contains(reference),
+                  case .object(let definitions) = root["$defs"],
+                  let target = definitions[String(reference.dropFirst("#/$defs/".count))] else { return nil }
+            return literalNames(target, root: root, references: references.union([reference]))
+        }
+        if case .array(let values) = fields["enum"] {
+            let strings = values.compactMap { value -> String? in if case .string(let text) = value { return text }; return nil }
+            return strings.count == values.count ? Set(strings) : nil
+        }
+        if case .string(let value) = fields["const"] { return [value] }
+        if fields["type"] == .string("null") { return [] }
+        for keyword in ["anyOf", "oneOf"] {
+            if case .array(let alternatives) = fields[keyword], !alternatives.isEmpty {
+                var result: Set<String> = []
+                for alternative in alternatives {
+                    guard let names = literalNames(alternative, root: root, references: references) else { return nil }
+                    result.formUnion(names)
+                }
+                return result
+            }
+        }
+        return nil
+    }
+
+    @Test func nameConstraintReaderRejectsAnUnconstrainedAlternative() {
+        let names: AgentJSONValue = .object(["enum": .array([.string("allowed")])])
+        let reference: AgentJSONValue = .object(["$ref": .string("#/$defs/Names")])
+        let root: [String: AgentJSONValue] = ["$defs": .object(["Names": names])]
+        #expect(literalNames(reference, root: root) == ["allowed"])
+        #expect(literalNames(.object(["anyOf": .array([reference, .object(["type": .string("null")])])]), root: root) == ["allowed"])
+        #expect(literalNames(.object(["oneOf": .array([.object(["const": .string("allowed")])])]), root: [:]) == ["allowed"])
+        #expect(literalNames(.object(["anyOf": .array([names, .object(["type": .string("string")])])]), root: [:]) == nil)
+        #expect(literalNames(reference, root: ["$defs": .object(["Names": reference])]) == nil)
+    }
+
     @Test func modelToolSchemasConstrainNamesButTheGatewayStillChecksCalls() async throws {
         let runtime = try AgentChatToolSessionTests.Runtime()
         let session = AgentChatToolSession(backend: runtime.backend)
@@ -35,11 +74,12 @@ struct AppleChatToolsTests {
         }
         for schema in schemas {
             guard case .object(let root) = schema, case .object(let properties) = root["properties"],
-                  case .object(let field) = properties["name"], case .array(let choices) = field["enum"] else {
-                Issue.record("Missing constrained tool names"); return
+                  let field = properties["name"], let choices = literalNames(field, root: root) else {
+                Issue.record("Missing constrained tool names: \(String(decoding: try JSONEncoder().encode(schema), as: UTF8.self))"); return
             }
-            #expect(choices.contains(.string("draftly_drafts_get")))
-            #expect(!choices.contains(.string("draftly_drafts_create")) && !choices.contains(.string("draftly_tools")))
+            let expected = Set(try await session.tools().map(\.name))
+            #expect(choices == expected && choices.contains("draftly_drafts_get"))
+            #expect(!choices.contains("draftly_drafts_create") && !choices.contains("draftly_tools"))
         }
         let catalog = try #require(tools.first { $0.name == "draftly_tools" } as? any Tool<GeneratedContent, String>)
         let description = try await catalog.call(arguments: GeneratedContent(json: "{\"name\":\"draftly_drafts_get\"}"))

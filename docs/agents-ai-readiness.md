@@ -279,6 +279,15 @@ contract tests. The normal native build and two project-generator checks
 passed. The nine mutation contracts, installed acceptance and full CI for this
 increment remain open.
 
+## Current CI limit
+
+Full CI [41802527118](https://github.com/pobrespandas/draftly/actions/runs/41802527118)
+failed for `4585453` in one Apple schema-encoding assertion. The assertion now
+checks exact authorized choices across finite enum, constant, local-reference
+and nullable encodings. Unconstrained branches still fail. The local Apple and
+Chat Console run passed 19 tests; the live probe was disabled. Validation on the
+CI runner remains pending. This is not a passed full-CI claim.
+
 ## Operation coverage
 
 The required-operation manifest contains 137 names. A source-set review found
