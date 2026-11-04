@@ -1,31 +1,33 @@
 # Project progress
 
-Updated: 3 November 2026. This is the maintained continuation summary.
+Updated: 4 November 2026. This is the maintained continuation summary.
 Historical test reports describe only the versions they tested.
 
-## Agents and AI development — 3 November
+## Agents and AI development — 4 November
 
-[PR #105](https://github.com/pobrespandas/draftly/pull/105) remains development
-work. Read [agents and AI readiness](agents-ai-readiness.md) for the authoritative
-implementation, integration, installed QA, and publication map.
+[PR #105](https://github.com/pobrespandas/draftly/pull/105) stays in draft. The
+bounded installed editing and Stop Work QA block is complete. Read
+[agents and AI readiness](agents-ai-readiness.md) for the broader remaining work
+and [installed editing acceptance](agent-editing-acceptance.md) for source-specific
+evidence and limits.
 
-The signed isolated QA completed direct ChatGPT sign-in, native read consent,
-real `drafts.list`/`drafts.get` inference, helper Keychain sharing, and an installed
-MCP read session. Revocation denied the existing MCP session and a new CLI
-request. Idle Stop Work withdrew the endpoint. After full process exit, the
-account and conversation returned without another login and access stayed off.
-The QA is closed and the original shared preferences and window state restored.
+Signed isolated QA checked scoped CLI/MCP edits, native Undo/Redo, replay
+protection, manual conflicts, grant replacement, actual expiry, and unexpired
+revocation. A missing Stop Work control in native review was added and accepted.
+Interrupting a submitted Share effect retained an unknown result across restart;
+CLI and MCP did not replay it. No share destination was selected.
 
-Normal host startup, screen-lock acceptance, active-session Stop Work, real
-expiry and negative access cases, remaining handlers, and final signed/notarized
-distribution remain open. No agents release is established. Model choice reset
-to Apple On-Device after restart and needs a separate correction or explicit UX.
+Signed `13c3b1e` completed a real GPT-6.1-Sol editor change after fixing finalized
+stream-item handling. The editor preserved the prior Unicode text and appended
+one exact test line. Activity showed one write followed by a verification read.
+Full CI [41765000703](https://github.com/pobrespandas/draftly/actions/runs/41765000703)
+passed for that source. The QA is closed, test grants are revoked, local access
+is off, and the original shared preferences are restored.
 
-Full CI `41598564068` passed for native consent commit `698c883`. QA isolation
-commit `e891051` has 30 focused tests, two generator checks, a native build, and
-the installed checks above; its own full CI is pending. The prior 78-test run
-covers the consent and lifecycle changes. Older release sections below remain
-historical evidence for their named versions.
+Normal host startup, real screen-lock/sleep handling, remaining contracts,
+provider renewal and other model paths, named-client acceptance, and final
+signed/notarized distribution remain open. No agents feature was published.
+Older release and test sections below retain their original scope.
 
 ## Signed helper smoke check — 2 November
 

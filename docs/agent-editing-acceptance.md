@@ -79,7 +79,7 @@ helper discovery returned no endpoints, and the original shared preferences
 were restored and compared with the pre-QA backup. The normal library was not
 opened. Recovery artifacts retain the signed prior QA and neutral test data.
 
-## Full CI and final QA state
+## Earlier CI and cleanup checkpoint
 
 Full CI [41758319817](https://github.com/pobrespandas/draftly/actions/runs/41758319817)
 passed for `882b945`, which includes the `e9528d1` review correction. Tooling,
@@ -91,16 +91,7 @@ local access is off, the process is closed, and helper discovery is empty. The
 original shared preferences were restored and compared with the fresh backup.
 Chat Console showed its native editing consent. That consent was not approved,
 so no ChatGPT editing connection or model edit was created. Cancel closed the
-prompt during cleanup. A real model edit still needs fresh native consent.
-
-## Remaining acceptance
-
-- Complete a real Chat Console edit through fresh native consent.
-
-Private request and response files are retained in the local QA recovery
-directory. They are not release assets. This report does not establish normal
-host startup, screen-lock handling, notarization, named-client support, or a
-published agents feature. PR #105 stays in draft.
+prompt during cleanup. The later installed model edit is recorded below.
 
 ## Chat Console stream failure
 
@@ -113,12 +104,45 @@ the host before the QA update.
 The provider now retains `response.output_item.done` items when the final output
 list is empty. It still requires a successful final response, complete contiguous
 item positions, no unfinished or reopened item in the batch, matching response
-identities, valid calls, and the existing
-permission checks. Partial items, failed responses, gaps, conflicting positions,
+identities, valid calls, and the existing permission checks. Partial items, failed responses, gaps, conflicting positions,
 and foreign response identities cannot execute a tool. Reasoning items remain
 in continuation history. This follows the completed-item event shape in the
 [OpenAI function calling guide](https://developers.openai.com/api/docs/guides/function-calling).
 The 23 focused provider, tool-session, console, and transport tests passed. The
-native QA build passed. Installed acceptance of this correction remains pending.
-The empty final
-list alone does not prove which preceding events the service sent.
+native QA build passed. The installed follow-up below tested this correction.
+
+## Installed real ChatGPT edit on 13c3b1e
+
+On 4 November, the person approved a new 15-minute connection for only the same
+neutral draft and its current editor. The native grant contained exactly
+`drafts.read`, `drafts.write`, `editor.read`, and `editor.write`, with two resource
+references and renewal off. It granted no Action or other-draft access.
+
+GPT-6.1-Sol completed `editor.windows`, `editor.get`, `mutations.prepare`,
+`editor.replaceRange`, and another `editor.get`. Each call succeeded. There was
+exactly one write. The native editor showed the entire prior text followed by
+one new line, `QA ChatGPT edit café 🐼`. An exact comparison with the expected Unicode text passed. ChatGPT returned its verification message.
+
+The provider log confirmed that finalized stream items supplied the output
+omitted from the final frame. This establishes the live path that the focused
+stream tests cover. One native observation timed out; the app PID remained
+unchanged and a fresh observation confirmed the saved text. No model request
+was resent after the write.
+
+The chat connection was revoked and removed. Stop Work disabled the host. The
+QA exited and helper discovery returned no endpoints. The original shared
+preferences were restored and compared with the pre-QA backup. Only the window
+frame, recent-draft IDs, and selected Settings tab had changed. The normal app
+was not running and its library was not opened.
+
+Full CI [41765000703](https://github.com/pobrespandas/draftly/actions/runs/41765000703)
+passed for `13c3b1e`, the signed installed source. It includes tooling, matrix,
+native tests, the app build, and the required-check gate.
+
+## Acceptance boundary
+
+The planned editing and Stop Work QA block is complete for these recorded paths.
+Private request, response, and native observation files remain in local recovery
+storage. They are not release assets. This report does not establish normal
+host startup, screen-lock handling, notarization, named-client support, other
+operation families, or a published agents feature. PR #105 stays in draft.

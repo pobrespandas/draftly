@@ -1,10 +1,23 @@
 # Agents and AI readiness
 
-Updated: 3 November 2026. Work is on [PR #105](https://github.com/pobrespandas/draftly/pull/105).
+Updated: 4 November 2026. Work is on [PR #105](https://github.com/pobrespandas/draftly/pull/105).
 Agents and AI are not complete or ready for an agents release.
 
 This is the current status summary. The operation and chat checkpoints retain
 historical evidence. A passed test applies to its recorded source and path.
+
+## Latest bounded acceptance
+
+The installed editing and Stop Work QA block is complete. Signed `f6f6190` and
+`e9528d1` checked CLI/MCP edits, native Undo/Redo, conflicts, scope denial,
+replacement, expiry, revocation, review cancellation, and uncertain effect
+recovery without replay. Signed `13c3b1e` completed a real GPT-6.1-Sol editor
+mutation and verification after fixing finalized stream-item handling. Full CI
+[41765000703](https://github.com/pobrespandas/draftly/actions/runs/41765000703)
+passed for that source. Read [installed editing acceptance](agent-editing-acceptance.md)
+for the evidence and limits. QA is closed, grants are revoked, access is off,
+and original shared preferences are restored. PR #105 remains in draft.
+This closes one QA block. It does not close the broader readiness work below.
 
 ## Scope
 
@@ -23,12 +36,12 @@ agent pairing and grants.
 | Area | Implementation and integration | Installed evidence | Remaining acceptance |
 | --- | --- | --- | --- |
 | ChatGPT account | Direct official OAuth, Keychain records, model catalog, session renewal, and account controls are connected. | The signed QA completed sign-in and restored the account after full process exit without another browser login. | Real renewal, uncertain renewal recovery, remote sign-out, and multiple-account behavior. |
-| Chat Console tools | Shared MCP tool definitions, completed function calls, bounded continuation, and native consent are connected to the QA host. | GPT-6.1-Sol used `drafts.list` and `drafts.get`. It returned the exact approved Unicode draft text. Native activity confirmed both calls. | Real editing, Undo, cancellation, concurrency, result recovery, and the remaining operation families. |
-| Consent and grants | The chat creates a separate connection for the current draft and editor. Reading and editing are separate choices. The grant expires after 15 minutes. | The user approved reading. A fresh native pairing on signed `2ea267b` granted exactly `drafts.read` and `editor.read` for one draft and window. Another draft returned `not_found`; draft/editor writes returned `permission_denied` without text changes. The existing MCP process and a new CLI request were denied after the actual deadline. | Other resource families, editing grants, and their installed negative cases. |
+| Chat Console tools | Shared MCP tool definitions, completed function calls, bounded continuation, and native consent are connected to the QA host. | GPT-6.1-Sol used `drafts.list` and `drafts.get`. It returned the exact approved Unicode draft text. Native activity confirmed both calls. Signed `13c3b1e` also completed one real editor mutation and verification. | Provider-inference cancellation and the remaining operation families; see the bounded installed checks above for editor recovery and conflicts. |
+| Consent and grants | The chat creates a separate connection for the current draft and editor. Reading and editing are separate choices. The grant expires after 15 minutes. | The user approved reading. A fresh native pairing on signed `2ea267b` granted exactly `drafts.read` and `editor.read` for one draft and window. Another draft returned `not_found`; draft/editor writes returned `permission_denied` without text changes. The existing MCP process and a new CLI request were denied after the actual deadline. | Other resource families and their installed negative cases. Draft/editor editing scope, actual prepared-write expiry, and unexpired revocation passed in the bounded follow-up. |
 | Keychain and helper | The app creates the connection credential. The signed helper uses it to authenticate. | The installed helper returned the same limited capabilities. This proves sharing for that QA connection. | Broader client setup and failure-path acceptance. |
 | Installed MCP | The bundled helper exposes the local service through bounded stdio MCP. | A fresh native helper pairing negotiated `2025-11-25`, listed read tools, omitted write tools, and read the approved draft. It denied another draft and remained open through pause, resume, and actual expiry. | A full session for each named client. No Codex or Claude Code compatibility claim follows from this probe. |
-| Revocation | Disconnect closes the chat session, revokes its connection, and removes its credential and revoked metadata. | An existing MCP process denied its next read. A new CLI request returned `permission_denied`. No draft text returned after revocation. | Revocation during writes and native effects, plus installed storage-failure cases. |
-| Stop Work | The host suspends transport, reviews, and operations. | On signed `2ea267b`, Stop Work set access off, withdrew publication, and denied the existing authorized MCP reader. Explicit resume let that same process read again without changing grant or expiry. | Stop Work during an active operation with effects or a pending review. The installed check covered an open read session. |
+| Revocation | Disconnect closes the chat session, revokes its connection, and removes its credential and revoked metadata. | An existing MCP process denied its next read. A new CLI request returned `permission_denied`. No draft text returned after revocation. | Revocation after native handoff and installed storage-failure cases. Revocation before a prepared draft write passed in the follow-up. |
+| Stop Work | The host suspends transport, reviews, and operations. | On signed `2ea267b`, Stop Work set access off, withdrew publication, and denied the existing authorized MCP reader. Explicit resume let that same process read again without changing grant or expiry. | Broader native-effect interruption paths. Signed `e9528d1` passed Stop Work from a pending native review and process-interruption recovery after Share handoff. No external transmission was performed. |
 | Restart | Account and conversation persistence are connected. A new host does not start a listener automatically. | The signed QA retained account and conversation after process exit. Access remained off. | A follow-up signed QA from `2ea267b` retained the selected ChatGPT model after verified process exit. Tools stayed disconnected and access stayed off. Other model/provider restart paths remain pending. Test permission and result recovery for the remaining operations. |
 | Normal startup and lock | Host creation is still gated to isolated agent QA. | Fresh QA access started off. The QA lock adapter does not detect screen lock. | Normal startup with access off, verified initial lock state, lock/sleep transitions, and explicit resume. |
 | Distribution | App and helper profiles and signatures are checked. | Both ran installed with matching Developer ID identities. | Combined notarization, final release packaging, architecture checks, signed updates, and post-update CLI/MCP sessions. |
@@ -137,9 +150,9 @@ its tool definitions with MCP. It exposes no inbound HTTP server.
 
 ## Next work
 
-1. Test editing grants, other resource families, and Stop Work during active
-   effects or pending review. Reuse the accepted fresh pairing, read-only
-   negatives, active read-session pause/resume, expiry, and revocation evidence.
+1. Test other resource families and the remaining native-effect paths. Reuse
+   the completed bounded editing, pending-review Stop Work, uncertain recovery,
+   scope denial, expiry, and revocation evidence above.
 2. Connect normal host startup only after lock behavior and default-off access
    have passed their checks. The QA adapter cannot satisfy this gate.
 3. Reconcile and implement the missing operation contracts. Validate editor
@@ -227,8 +240,8 @@ native Undo, concurrency, grant replacement, and actual prepared-write expiry
 checks and their limits. The QA is closed, its test grant is revoked, and the
 original shared preferences are restored. The corrected native review control,
 unknown native-effect recovery through CLI and MCP, and denial of an unexpired
-prepared write after revocation passed in the resumed signed QA. Chat Console
-editing still needs fresh native consent. Full CI
+prepared write after revocation passed in the resumed signed QA. Real Chat Console editing passed on signed `13c3b1e`; the
+connection was revoked after verification. Full CI
 [41758319817](https://github.com/pobrespandas/draftly/actions/runs/41758319817)
 passed for `882b945`, including the review correction.
 
